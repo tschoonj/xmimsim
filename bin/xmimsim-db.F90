@@ -10,7 +10,7 @@ USE,INTRINSIC :: ISO_FORTRAN_ENV
 
 IMPLICIT NONE
 
-INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 92, &
+INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 4, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,MEC2 = 510.998910
@@ -207,15 +207,28 @@ DO i=1,maxz
         !group creation
         CALL h5gcreate_f(file_id,element,group_id,h5error)
 
-        !create rayleigh theta dataset
+        !create rayleigh theta dataset, including the energies and random
+        !numbers 
         CALL h5screate_simple_f(2,dims,dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'RayleighTheta_CDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id,'RayleighTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rayleigh_theta(i,:,:),dims,h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
+        CALL h5screate_simple_f(1,[dims(1)],dspace_id,h5error)
+        CALL h5dcreate_f(group_id,'Energies',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,energies,[dims(1)],h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
+        CALL h5screate_simple_f(1,[dims(2)],dspace_id,h5error)
+        CALL h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims(2)],h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
+
+
         !create compton theta dataset
         CALL h5screate_simple_f(2,dims,dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'ComptonTheta_CDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id,'ComptonTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,compton_theta(i,:,:),dims,h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
@@ -226,6 +239,8 @@ ENDDO
 !#endif
 !free memory
 DEALLOCATE(rayleigh_theta,compton_theta,thetas)
+
+!CALL h5close_f(h5error)
 
 !azimuthal angle -> Z independent
 ALLOCATE(rayleigh_phi(nintervals_theta2,nintervals_r),& 
@@ -362,24 +377,66 @@ DEALLOCATE(cdfs)
 WRITE (6,*) 'Continuing to write to HDF5 file'
 #endif
 !write to hdf5 file...
-CALL h5gopen_f(file_id,'/',group_id,h5error)
+!CALL h5gopen_f(file_id,'/',group_id,h5error)
+
+CALL h5gcreate_f(file_id,'RayleighPhi',group_id,h5error)
+
 CALL h5screate_simple_f(2,dims2,dspace_id,h5error)
 CALL &
-h5dcreate_f(group_id,'RayleighPhi_CDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+h5dcreate_f(group_id,'RayleighPhi_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
 CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rayleigh_phi,dims2,h5error)
 CALL h5sclose_f(dspace_id,h5error)
 CALL h5dclose_f(dset_id,h5error)
 
+CALL h5screate_simple_f(1,[dims2(1)],dspace_id,h5error)
+CALL &
+h5dcreate_f(group_id,'Thetas',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,thetas,[dims2(1)],h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5dclose_f(dset_id,h5error)
+
+CALL h5screate_simple_f(1,[dims2(2)],dspace_id,h5error)
+CALL &
+h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims2(2)],h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5dclose_f(dset_id,h5error)
+CALL h5gclose_f(group_id,h5error)
+
+
+
+
+CALL h5gcreate_f(file_id,'ComptonPhi',group_id,h5error)
 CALL h5screate_simple_f(3,dims3,dspace_id,h5error)
 CALL &
-h5dcreate_f(group_id,'ComptonPhi_CDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+h5dcreate_f(group_id,'ComptonPhi_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
 CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,compton_phi,dims3,h5error)
 CALL h5sclose_f(dspace_id,h5error)
 CALL h5dclose_f(dset_id,h5error)
 
+CALL h5screate_simple_f(1,[dims3(1)],dspace_id,h5error)
+CALL &
+h5dcreate_f(group_id,'Thetas',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,thetas,[dims3(1)],h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5dclose_f(dset_id,h5error)
 
+CALL h5screate_simple_f(1,[dims3(2)],dspace_id,h5error)
+CALL &
+h5dcreate_f(group_id,'Energies',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,energies,[dims3(2)],h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5dclose_f(dset_id,h5error)
 
+CALL h5screate_simple_f(1,[dims3(3)],dspace_id,h5error)
+CALL &
+h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims3(3)],h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5dclose_f(dset_id,h5error)
 CALL h5gclose_f(group_id,h5error)
+
+
 
 
 
