@@ -26,8 +26,11 @@ AC_PROG_LIBTOOL
 #initialize pkg-config
 PKG_PROG_PKG_CONFIG
 
-#search for xraylib
+#search for xraylib and other modules
 PKG_CHECK_MODULES([xraylib],libxrlf03 >= 2.13.1)
+PKG_CHECK_MODULES([gsl],gsl >= 1.10)
+PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
+
 
 AC_PROG_CC
 #this next line may never be reached...
