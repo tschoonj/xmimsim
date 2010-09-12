@@ -16,7 +16,7 @@ struct xmi_layer {
 	int n_elements;
 	int *Z;
 	double *weight;
-	double density,
+	double density;
 	double thickness;
 };
 
