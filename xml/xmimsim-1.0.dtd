@@ -1,0 +1,56 @@
+<!ELEMENT xmimsim (general, composition , geometry, excitation, absorbers, detector)>
+
+<!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory)>
+<!ATTLIST general version CDATA #REQUIRED>
+<!ELEMENT outputfile (#PCDATA)>
+<!ELEMENT n_photons_interval (#PCDATA)>
+<!ELEMENT n_photons_line (#PCDATA)>
+<!ELEMENT n_interactions_trajectory (#PCDATA)>
+
+<!ELEMENT composition (layer+)>
+<!ELEMENT layer (element+,density,thickness)>
+<!ELEMENT element (atomic_number,weight_fraction)>
+<!ELEMENT atomic_number (#PCDATA)>
+<!ELEMENT weight_fraction (#PCDATA)>
+<!ELEMENT density (#PCDATA)>
+<!ELEMENT thickness (#PCDATA)>
+
+<!ELEMENT geometry (d_sample_source, n_sample_orientation, p_detector_window, n_detector_orientation, area_detector, acceptance_detector, source_size, d_source_slit, slit_size)>
+<!ELEMENT d_sample_source (#PCDATA)>
+<!ELEMENT n_sample_orientation (x,y,z)>
+<!ELEMENT p_detector_window (x,y,z)>
+<!ELEMENT n_detector_orientation (x,y,z)>
+<!ELEMENT area_detector (#PCDATA)>
+<!ELEMENT acceptance_detector (#PCDATA)>
+<!ELEMENT source_size (sigma_x,sigma_xp,sigma_y, sigma_yp)>
+<!ELEMENT d_source_slit (#PCDATA)>
+<!ELEMENT slit_size (slit_size_x,slit_size_y)>
+<!ELEMENT x (#PCDATA)>
+<!ELEMENT y (#PCDATA)>
+<!ELEMENT z (#PCDATA)>
+<!ELEMENT sigma_x (#PCDATA)>
+<!ELEMENT sigma_xp (#PCDATA)>
+<!ELEMENT sigma_y (#PCDATA)>
+<!ELEMENT sigma_yp (#PCDATA)>
+<!ELEMENT slit_size_x (#PCDATA)>
+<!ELEMENT slit_size_y (#PCDATA)>
+
+<!ELEMENT excitation (discrete*,continuous*)>
+<!ELEMENT discrete (energy, horizontal_intensity,vertical_intensity)>
+<!ELEMENT continuous (energy, horizontal_intensity,vertical_intensity)>
+<!ELEMENT energy (#PCDATA)>
+<!ELEMENT horizontal_intensity (#PCDATA)>
+<!ELEMENT vertical_intensity (#PCDATA)>
+
+<!ELEMENT absorbers (excitation_path*,detector_path*)>
+<!ELEMENT excitation_path (layer+)>
+<!ELEMENT detector_path (layer+)>
+
+<!ELEMENT detector (detector_type,gain,zero,fano,noise,max_convolution_energy,crystal)>
+<!ELEMENT detector_type (#PCDATA)>
+<!ELEMENT gain (#PCDATA)>
+<!ELEMENT zero (#PCDATA)>
+<!ELEMENT fano (#PCDATA)>
+<!ELEMENT noise (#PCDATA)>
+<!ELEMENT max_convolution_energy (#PCDATA)>
+<!ELEMENT crystal (layer+)>

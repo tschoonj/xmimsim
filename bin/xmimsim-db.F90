@@ -10,7 +10,7 @@ USE,INTRINSIC :: ISO_FORTRAN_ENV
 
 IMPLICIT NONE
 
-INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 4, &
+INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 92, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,MEC2 = 510.998910

@@ -30,6 +30,7 @@ PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([xraylib],libxrlf03 >= 2.13.1)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
+PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
 
 
 AC_PROG_CC
@@ -42,6 +43,13 @@ if test -z $CC ; then
 ACX_PTHREAD(,
 	[AC_MSG_ERROR([POSIX threads are required for building the xmimsim package])]
 )
+
+#search for xmlcatalog
+AC_CHECK_PROG([XMLCATALOG],[xmlcatalog],[xmlcatalog],[fail])
+if test x$XMLCATALOG = xfail ; then
+	AC_MSG_ERROR([xmlcatalog was not found. This should be a part of the libxml2 installation which was detected on the system. Consider verifying your PATH variable.])
+fi
+
 
 
 #search for HDF5...
