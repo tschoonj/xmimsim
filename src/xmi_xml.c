@@ -3,7 +3,7 @@
 #include <libxml/parser.h>
 
 
-static int readLayerXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer **layer);
+static int readLayerXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
 static int readGeneralXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
 static int readCompositionXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition);
 static int readGeometryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry);
@@ -87,17 +87,88 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 	//allocate memory
 	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
 
+	(*composition)->n_layers = 0;
+	(*composition)->layers = NULL;
+
 	subnode = node->children;
 
 	while (subnode != NULL) {
-	
+		if (!xmlStrcmp(subnode->name,(const xmlChar *) "layer")){
+			fprintf(stdout,"found layer\n");
+			(*composition)->layers = (struct xmi_layer *) realloc((*composition)->layers,sizeof(struct xmi_layer)*++((*composition)->n_layers)); 
+			//long live C and its deliciously complicated syntax :-)
+			if (readLayerXML(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
+				return 0;
+			}	
+		}
+		subnode=subnode->next;
 	}
 
-
-
+	return 1;
 }
 
+static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
+	xmlNodePtr subnode,subsubnode;
+	xmlChar *txt;
 
+	layer->n_elements = 0;
+	layer->Z = NULL;
+	layer->weight = NULL;
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+		if (!xmlStrcmp(subnode->name,(const xmlChar *) "element")) {
+			fprintf(stdout,"found element\n");
+			layer->n_elements++;
+			layer->Z = (int *) realloc(layer->Z,sizeof(int)*layer->n_elements);
+			layer->weight = (double *) realloc(layer->weight,sizeof(double)*layer->n_elements);
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "atomic_number")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%i",layer->Z+layer->n_elements-1) != 1) {
+						fprintf(stderr,"error reading in atomic_number of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+					
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "weight_fraction")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",layer->weight+layer->n_elements-1) != 1) {
+						fprintf(stderr,"error reading in weight_fraction of xml file\n");
+						return 0;
+					}
+					//divide weight by 100 to get rid of the percentages
+					layer->weight[layer->n_elements-1] /= 100.0;
+					xmlFree(txt);
+					
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "density")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&(layer->density)) != 1) {
+				fprintf(stderr,"error reading in density of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "thickness")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&(layer->thickness)) != 1) {
+				fprintf(stderr,"error reading in thickness of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		subnode = subnode->next;
+
+	}
+	return 1;
+}
 
 
 int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
@@ -165,14 +236,14 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 				return 0;
 			}	
 		}
-/*		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
 			if (readCompositionXML(doc, subroot, &((**input).composition)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
+/*		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
 			if (readGeometryXML(doc, subroot, &((**input).geometry)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
