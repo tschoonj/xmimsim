@@ -79,6 +79,23 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 }
 
 
+static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
+	xmlNodePtr subnode;
+	xmlChar *txt;
+	
+
+	//allocate memory
+	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+	
+	}
+
+
+
+}
 
 
 
