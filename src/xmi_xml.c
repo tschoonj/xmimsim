@@ -81,7 +81,6 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 
 static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
 	xmlNodePtr subnode;
-	xmlChar *txt;
 	
 
 	//allocate memory
@@ -94,7 +93,6 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "layer")){
-			fprintf(stdout,"found layer\n");
 			(*composition)->layers = (struct xmi_layer *) realloc((*composition)->layers,sizeof(struct xmi_layer)*++((*composition)->n_layers)); 
 			//long live C and its deliciously complicated syntax :-)
 			if (readLayerXML(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
@@ -302,8 +300,241 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		subnode = subnode->next;
 	}
-
+	return 1;
 }
+
+static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
+	xmlNodePtr subnode,subsubnode;
+	xmlChar *txt;
+	
+	*excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+
+	(*excitation)->n_discrete = 0;
+	(*excitation)->discrete = NULL;
+	(*excitation)->n_continuous = 0;
+	(*excitation)->continuous = NULL;
+
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+		if (!xmlStrcmp(subnode->name,(const xmlChar*) "discrete")) {
+			(*excitation)->discrete = (struct xmi_energy *) realloc((*excitation)->discrete,++((*excitation)->n_discrete)*sizeof(struct xmi_energy));
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].energy)) != 1) {
+						fprintf(stderr,"error reading in discrete energy of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].horizontal_intensity)) != 1) {
+						fprintf(stderr,"error reading in discrete horizontal_intensity of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].vertical_intensity)) != 1) {
+						fprintf(stderr,"error reading in discrete vertical_intensity of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "continuous")) {
+			(*excitation)->continuous = (struct xmi_energy *) realloc((*excitation)->continuous,++((*excitation)->n_continuous)*sizeof(struct xmi_energy));
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].energy)) != 1) {
+						fprintf(stderr,"error reading in continuous energy of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].horizontal_intensity)) != 1) {
+						fprintf(stderr,"error reading in continuous horizontal_intensity of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity)) != 1) {
+						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		subnode = subnode->next;
+	}
+
+	if ((*excitation)->n_continuous == 0 && (*excitation)->n_discrete == 0) {
+		fprintf(stderr,"Found no discrete or continuous energies in xml file\n");
+		return 0;
+	}
+
+
+	return 1;
+}
+
+
+static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
+
+	xmlNodePtr subnode,subsubnode;
+
+
+	*absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+
+	(*absorbers)->n_exc_layers = 0;
+	(*absorbers)->exc_layers = NULL;
+	(*absorbers)->n_det_layers = 0;
+	(*absorbers)->det_layers = NULL;
+
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+		if (!xmlStrcmp(subnode->name,(const xmlChar *) "excitation_path")) {
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
+					(*absorbers)->exc_layers = realloc((*absorbers)->exc_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_exc_layers);
+					if (readLayerXML(doc, subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1) == 0) {
+						return 0;
+					}
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "detector_path")) {
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
+					(*absorbers)->det_layers = realloc((*absorbers)->det_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_det_layers);
+					if (readLayerXML(doc, subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1) == 0) {
+						return 0;
+					}
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+	
+		subnode = subnode->next;
+	}
+
+	return 1;
+}
+
+
+
+static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
+	xmlNodePtr subnode,subsubnode;
+	xmlChar *txt;
+
+
+	
+	*detector= (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
+
+	(*detector)->n_crystal_layers = 0;
+	(*detector)->crystal_layers = NULL;
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+		if (!xmlStrcmp(subnode->name,(const xmlChar *) "detector_type")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if (!xmlStrcmp(txt,(const xmlChar *) "SiLi")) {
+				(*detector)->detector_type = XMI_DETECTOR_SILI;
+			}	
+			else if (!xmlStrcmp(txt,(const xmlChar *) "Ge")) {
+				(*detector)->detector_type = XMI_DETECTOR_GE;
+			}	
+			else if (!xmlStrcmp(txt,(const xmlChar *) "Si_SDD")) {
+				(*detector)->detector_type = XMI_DETECTOR_SI_SDD;
+			}	
+			else {
+				fprintf(stderr,"Unknown detector type\n");
+				return 0;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "gain")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->gain)) != 1) {
+				fprintf(stderr,"error reading in gain of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "zero")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->zero)) != 1) {
+				fprintf(stderr,"error reading in zero of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "fano")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->fano)) != 1) {
+				fprintf(stderr,"error reading in fano of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "noise")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->noise)) != 1) {
+				fprintf(stderr,"error reading in noise of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "max_convolution_energy")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->max_convolution_energy)) != 1) {
+				fprintf(stderr,"error reading in max_convolution_energy of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "crystal")) {
+			subsubnode = subnode->children;
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
+					(*detector)->crystal_layers = realloc((*detector)->crystal_layers,sizeof(struct xmi_layer)*++(*detector)->n_crystal_layers);
+					if (readLayerXML(doc, subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1) == 0) {
+						return 0;
+					}
+				}
+				subsubnode = subsubnode->next;
+			}
+	
+
+		}
+		subnode= subnode->next;
+	}
+
+	return 1;
+}
+
+
+
+
 
 
 static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
@@ -318,7 +549,6 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "element")) {
-			fprintf(stdout,"found element\n");
 			layer->n_elements++;
 			layer->Z = (int *) realloc(layer->Z,sizeof(int)*layer->n_elements);
 			layer->weight = (double *) realloc(layer->weight,sizeof(double)*layer->n_elements);
@@ -449,7 +679,7 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 				return 0;
 			}	
 		}
-/*		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
 			if (readExcitationXML(doc, subroot, &((**input).excitation)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
@@ -469,7 +699,7 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
-		}*/
+		}
 
 		subroot = subroot->next;
 	}

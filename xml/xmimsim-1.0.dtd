@@ -42,7 +42,7 @@
 <!ELEMENT horizontal_intensity (#PCDATA)>
 <!ELEMENT vertical_intensity (#PCDATA)>
 
-<!ELEMENT absorbers (excitation_path*,detector_path*)>
+<!ELEMENT absorbers (excitation_path?,detector_path?)>
 <!ELEMENT excitation_path (layer+)>
 <!ELEMENT detector_path (layer+)>
 
