@@ -107,6 +107,205 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 	return 1;
 }
 
+static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
+	xmlNodePtr subnode,subsubnode;
+	xmlChar *txt;
+	
+
+	//allocate memory
+	*geometry= (struct xmi_geometry *) malloc(sizeof(struct xmi_geometry));
+
+	subnode = node->children;
+
+	while (subnode != NULL) {
+		if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_sample_source")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_sample_source)) != 1) {
+				fprintf(stderr,"error reading in d_sample_source of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "n_sample_orientation")) {
+			subsubnode = subnode->children;	
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[0])) != 1) {
+						fprintf(stderr,"error reading in n_sample_orientation x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[1])) != 1) {
+						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[2])) != 1) {
+						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "p_detector_window")) {
+			subsubnode = subnode->children;	
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[0])) != 1) {
+						fprintf(stderr,"error reading in p_detector_window x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[1])) != 1) {
+						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[2])) != 1) {
+						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "n_detector_orientation")) {
+			subsubnode = subnode->children;	
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[0])) != 1) {
+						fprintf(stderr,"error reading in n_detector_orientation x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[1])) != 1) {
+						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[2])) != 1) {
+						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "area_detector")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->area_detector)) != 1) {
+				fprintf(stderr,"error reading in area_detector of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "acceptance_detector")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->acceptance_detector)) != 1) {
+				fprintf(stderr,"error reading in acceptance_detector of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_source_slit")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_source_slit)) != 1) {
+				fprintf(stderr,"error reading in d_source_slit of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "source_size")) {
+			subsubnode = subnode->children;	
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_x)) != 1) {
+						fprintf(stderr,"error reading in sigma_x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_xp)) != 1) {
+						fprintf(stderr,"error reading in sigma_xp of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_y)) != 1) {
+						fprintf(stderr,"error reading in sigma_y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_yp)) != 1) {
+						fprintf(stderr,"error reading in sigma_yp of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "slit_size")) {
+			subsubnode = subnode->children;	
+			while (subsubnode != NULL) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_x)) != 1) {
+						fprintf(stderr,"error reading in slit_size_x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_y)) != 1) {
+						fprintf(stderr,"error reading in slit_size_y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				subsubnode = subsubnode->next;
+			}
+		}
+		subnode = subnode->next;
+	}
+
+}
+
+
 static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
@@ -243,14 +442,14 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 				return 0;
 			}	
 		}
-/*		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
 			if (readGeometryXML(doc, subroot, &((**input).geometry)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
+/*		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
 			if (readExcitationXML(doc, subroot, &((**input).excitation)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
