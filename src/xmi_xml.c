@@ -2,6 +2,7 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
+#include <string.h>
 
 
 
@@ -717,14 +718,14 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	xmlTextWriterPtr writer;
 	xmlDocPtr doc;
 	xmlNodePtr node;
-	xmlChar *txt;
 	char version[100];
+	char detector_type[20];
+	int i,j;
 
 
 
 	LIBXML_TEST_VERSION
 
-	fprintf(stdout,"Entering xmi_write_input_xml\n");
 
 	//create tree
 	doc = xmlNewDoc(BAD_CAST XML_DEFAULT_VERSION);
@@ -747,9 +748,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error creating the xml writer\n");
 		return 0;
 	}
-	fprintf(stdout,"writer created\n");
 
-	xmlTextWriterSetIndent(writer,1);
+	xmlTextWriterSetIndent(writer,2);
 
 	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
@@ -768,7 +768,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 
 	//general
-	fprintf(stdout,"before general creation\n");
 	if (xmlTextWriterStartElement(writer, BAD_CAST "general") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
@@ -779,7 +778,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
 		return 0;
 	}
-	fprintf(stdout,"after version creation\n");
 
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "outputfile","%s",input->general->outputfile) < 0) {
 		fprintf(stderr,"Error writing outputfile\n");
@@ -806,7 +804,427 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 
+	//composition
+/*	if (xmlTextWriterStartElement(writer, BAD_CAST "composition") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}*/
+/*
+	for (i = 0 ; i < input->composition->n_layers ; i++) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+			return 0;
+		}
+		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->composition->layers[i].Z[j]) < 0) {
+				fprintf(stderr,"Error writing atomic_number\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->composition->layers[i].weight[j]) < 0) {
+				fprintf(stderr,"Error writing weight_number\n");
+				return 0;
+			}
+			
+		
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
+				return 0;
+			}
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->composition->layers[i].density) < 0) {
+			fprintf(stderr,"Error writing density\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->composition->layers[i].thickness) < 0) {
+			fprintf(stderr,"Error writing thickness\n");
+			return 0;
+		}
+	
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+			return 0;
+		}
+	}
+*/
+/*	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for composition\n");
+		return 0;
+	}*/
+/*
+	//geometry
+	if (xmlTextWriterStartElement(writer, BAD_CAST "geometry") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_sample_source","%lf",input->geometry->d_sample_source) < 0) {
+		fprintf(stderr,"Error writing d_sample_source\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "n_sample_orientation") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->n_sample_orientation[0]) < 0) {
+		fprintf(stderr,"Error writing n_sample_orientation[0]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->n_sample_orientation[1]) < 0) {
+		fprintf(stderr,"Error writing n_sample_orientation[1]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->n_sample_orientation[2]) < 0) {
+		fprintf(stderr,"Error writing n_sample_orientation[2]\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for n_sample_orientation\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "p_detector_window") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->p_detector_window[0]) < 0) {
+		fprintf(stderr,"Error writing p_detector_window[0]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->p_detector_window[1]) < 0) {
+		fprintf(stderr,"Error writing p_detector_window[1]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->p_detector_window[2]) < 0) {
+		fprintf(stderr,"Error writing p_detector_window[2]\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for p_detector_window\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "n_detector_orientation") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->n_detector_orientation[0]) < 0) {
+		fprintf(stderr,"Error writing n_detector_orientation[0]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->n_detector_orientation[1]) < 0) {
+		fprintf(stderr,"Error writing n_detector_orientation[1]\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->n_detector_orientation[2]) < 0) {
+		fprintf(stderr,"Error writing n_detector_orientation[2]\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for n_detector_orientation\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "area_detector","%lf",input->geometry->area_detector) < 0) {
+		fprintf(stderr,"Error writing area_detector\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "acceptance_detector","%lf",input->geometry->acceptance_detector) < 0) {
+		fprintf(stderr,"Error writing acceptance_detector\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "source_size") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->geometry->sigma_x) < 0) {
+		fprintf(stderr,"Error writing sigma_x\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->geometry->sigma_xp) < 0) {
+		fprintf(stderr,"Error writing sigma_xp\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->geometry->sigma_y) < 0) {
+		fprintf(stderr,"Error writing sigma_y\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->geometry->sigma_yp) < 0) {
+		fprintf(stderr,"Error writing sigma_yp\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for source_size\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%lf",input->geometry->d_source_slit) < 0) {
+		fprintf(stderr,"Error writing d_source_slit\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "slit_size") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_x","%lf",input->geometry->slit_size_x) < 0) {
+		fprintf(stderr,"Error writing slit_size_x\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_y","%lf",input->geometry->slit_size_y) < 0) {
+		fprintf(stderr,"Error writing slit_size_y\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for slit_size\n");
+		return 0;
+	}
 
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for geometry\n");
+		return 0;
+	}
+
+	//excitation
+	if (xmlTextWriterStartElement(writer, BAD_CAST "excitation") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (input->excitation->n_discrete > 0) {
+		for (i = 0 ; i < input->excitation->n_discrete ; i++) { 
+			if (xmlTextWriterStartElement(writer, BAD_CAST "discrete") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->discrete[i].energy) < 0) {
+				fprintf(stderr,"Error writing energy\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lf",input->excitation->discrete[i].horizontal_intensity) < 0) {
+				fprintf(stderr,"Error writing horizontal_intensity\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lf",input->excitation->discrete[i].vertical_intensity) < 0) {
+				fprintf(stderr,"Error writing vertical_intensity\n");
+				return 0;
+			}
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for discrete\n");
+				return 0;
+			}
+		}
+	}
+	if (input->excitation->n_continuous > 0) {
+		for (i = 0 ; i < input->excitation->n_continuous ; i++) { 
+			if (xmlTextWriterStartElement(writer, BAD_CAST "continuous") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->continuous[i].energy) < 0) {
+				fprintf(stderr,"Error writing energy\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lf",input->excitation->continuous[i].horizontal_intensity) < 0) {
+				fprintf(stderr,"Error writing horizontal_intensity\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lf",input->excitation->continuous[i].vertical_intensity) < 0) {
+				fprintf(stderr,"Error writing vertical_intensity\n");
+				return 0;
+			}
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for continuous\n");
+				return 0;
+			}
+		}
+	}
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending excitation\n");
+		return 0;
+	}
+	//absorbers
+	if (xmlTextWriterStartElement(writer, BAD_CAST "absorbers") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (input->absorbers->n_exc_layers > 0) {
+		for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
+			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
+				if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->absorbers->exc_layers[i].Z[j]) < 0) {
+					fprintf(stderr,"Error writing atomic_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->absorbers->exc_layers[i].weight[j]) < 0) {
+					fprintf(stderr,"Error writing weight_number\n");
+					return 0;
+				}
+			
+		
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
+					return 0;
+				}
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->absorbers->exc_layers[i].density) < 0) {
+				fprintf(stderr,"Error writing density\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->absorbers->exc_layers[i].thickness) < 0) {
+				fprintf(stderr,"Error writing thickness\n");
+				return 0;
+			}
+	
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+				return 0;
+			}
+		}
+		
+	}
+	if (input->absorbers->n_det_layers > 0) {
+		for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
+			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
+				if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->absorbers->det_layers[i].Z[j]) < 0) {
+					fprintf(stderr,"Error writing atomic_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->absorbers->det_layers[i].weight[j]) < 0) {
+					fprintf(stderr,"Error writing weight_number\n");
+					return 0;
+				}
+			
+		
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
+					return 0;
+				}
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->absorbers->det_layers[i].density) < 0) {
+				fprintf(stderr,"Error writing density\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->absorbers->det_layers[i].thickness) < 0) {
+				fprintf(stderr,"Error writing thickness\n");
+				return 0;
+			}
+	
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+				return 0;
+			}
+		}
+		
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending absorbers\n");
+		return 0;
+	}
+
+	//detector
+	if (xmlTextWriterStartElement(writer, BAD_CAST "detector") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	if (input->detector->detector_type == XMI_DETECTOR_SILI)
+		strcpy(detector_type,"SiLi");
+	else if (input->detector->detector_type == XMI_DETECTOR_GE)
+		strcpy(detector_type,"Ge");
+	else if (input->detector->detector_type == XMI_DETECTOR_SI_SDD)
+		strcpy(detector_type,"Si_SDD");
+
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "detector_type","%s",detector_type) < 0) {
+		fprintf(stderr,"Error writing detector_type\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%lf",input->detector->gain) < 0) {
+		fprintf(stderr,"Error writing gain\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "zero","%lf",input->detector->zero) < 0) {
+		fprintf(stderr,"Error writing zero\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "fano","%lf",input->detector->fano) < 0) {
+		fprintf(stderr,"Error writing fano\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "noise","%lf",input->detector->noise) < 0) {
+		fprintf(stderr,"Error writing noise\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "max_convolution_energy","%lf",input->detector->max_convolution_energy) < 0) {
+		fprintf(stderr,"Error writing max_convolution_energy\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer, BAD_CAST "crystal") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+			return 0;
+		}
+		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
+			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->detector->crystal_layers[i].Z[j]) < 0) {
+				fprintf(stderr,"Error writing atomic_number\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->detector->crystal_layers[i].weight[j]) < 0) {
+				fprintf(stderr,"Error writing weight_number\n");
+				return 0;
+			}
+			
+		
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
+				return 0;
+			}
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->detector->crystal_layers[i].density) < 0) {
+			fprintf(stderr,"Error writing density\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->detector->crystal_layers[i].thickness) < 0) {
+			fprintf(stderr,"Error writing thickness\n");
+			return 0;
+		}
+	
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+			return 0;
+		}
+	}
+
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending crystal\n");
+		return 0;
+	}
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending detector\n");
+		return 0;
+	}
+	*/
 	//end it
 	if (xmlTextWriterEndDocument(writer) < 0) {
 		fprintf(stderr,"Error ending document\n");
