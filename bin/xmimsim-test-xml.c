@@ -18,7 +18,7 @@ int main (int argc, char *argv[]) {
 
 	fprintf(stdout,"rv: %i\n",rv);
 
-	fprintf(stdout,"version: %i\n",input->general->version);
+	fprintf(stdout,"version: %lf\n",input->general->version);
 	fprintf(stdout,"outputfile: %s\n",input->general->outputfile);
 	fprintf(stdout,"n_photons_interval: %li\n",input->general->n_photons_interval);
 	fprintf(stdout,"n_photons_line: %li\n",input->general->n_photons_line);
@@ -90,6 +90,12 @@ int main (int argc, char *argv[]) {
 		fprintf(stdout,"density: %lf\n",input->detector->crystal_layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->detector->crystal_layers[i].thickness);
 	} 
+
+
+	rv = xmi_write_input_xml("test_output.xml",input);
+
+	fprintf(stdout,"rv: %i\n",rv);
+	
 
 	xmi_free_input(input);
 

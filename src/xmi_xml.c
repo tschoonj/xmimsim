@@ -1,6 +1,8 @@
 #include "xmi_xml.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
+#include <libxml/xmlwriter.h>
+
 
 
 static int readLayerXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
@@ -29,7 +31,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 	while (attr != NULL) {
 		if (!xmlStrcmp(attr->name,(const xmlChar *) "version")) {
 			txt =xmlNodeListGetString(doc,attr->children,1);
-			if(sscanf((const char *)txt,"%i",&((*general)->version)) != 1) {
+			if(sscanf((const char *)txt,"%f",&((*general)->version)) != 1) {
 				fprintf(stderr,"error reading in version of xml file\n");
 				return 0;
 			}
@@ -706,6 +708,115 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
+	return 1;
+
+}
+
+int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
+
+	xmlTextWriterPtr writer;
+	xmlDocPtr doc;
+	xmlNodePtr node;
+	xmlChar *txt;
+	char version[100];
+
+
+
+	LIBXML_TEST_VERSION
+
+	fprintf(stdout,"Entering xmi_write_input_xml\n");
+
+	//create tree
+	doc = xmlNewDoc(BAD_CAST XML_DEFAULT_VERSION);
+	if (doc == NULL) {
+		fprintf(stderr,"Error creating the xml document tree\n");
+		return 0;
+	}
+
+	//create xml node
+	node = xmlNewDocNode(doc,NULL,BAD_CAST "xmimsim",NULL);
+	if (node == NULL) {
+		fprintf(stderr,"Error creating the xml node\n");
+		return 0;
+	}
+
+	xmlDocSetRootElement(doc,node);
+
+	writer = xmlNewTextWriterTree(doc,node,0);
+	if (writer == NULL) {
+		fprintf(stderr,"Error creating the xml writer\n");
+		return 0;
+	}
+	fprintf(stdout,"writer created\n");
+
+	xmlTextWriterSetIndent(writer,1);
+
+	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
+		return 0;
+	}
+
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+		fprintf(stderr,"Error starting DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDTD(writer) < 0) {
+		fprintf(stderr,"Error ending DTD\n");
+		return 0;
+	}
+
+
+	//general
+	fprintf(stdout,"before general creation\n");
+	if (xmlTextWriterStartElement(writer, BAD_CAST "general") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		return 0;
+	}
+
+	sprintf(version,"%.1f",input->general->version);
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "version", BAD_CAST version) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
+		return 0;
+	}
+	fprintf(stdout,"after version creation\n");
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "outputfile","%s",input->general->outputfile) < 0) {
+		fprintf(stderr,"Error writing outputfile\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_photons_interval","%li",input->general->n_photons_interval) < 0) {
+		fprintf(stderr,"Error writing n_photons_interval\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_photons_line","%li",input->general->n_photons_line) < 0) {
+		fprintf(stderr,"Error writing n_photons_line\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_interactions_trajectory","%i",input->general->n_interactions_trajectory) < 0) {
+		fprintf(stderr,"Error writing n_interactions_trajectory\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error calling xmlTextWriterEndElement for general\n");
+		return 0;
+	}
+
+
+	//end it
+	if (xmlTextWriterEndDocument(writer) < 0) {
+		fprintf(stderr,"Error ending document\n");
+		return 0;
+	}
+
+	xmlFreeTextWriter(writer);
+	xmlSaveFileEnc(xmlfile,doc,NULL);
+	xmlFreeDoc(doc);
+
 	return 1;
 
 }

@@ -4,7 +4,7 @@
 
 
 struct xmi_general {
-	int version;
+	float version;
 	char *outputfile;
 	long int n_photons_interval;
 	long int n_photons_line;
