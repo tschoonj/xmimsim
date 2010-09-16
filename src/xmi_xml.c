@@ -727,7 +727,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	LIBXML_TEST_VERSION
 
 
-	//create tree
+/*	//create tree
 	doc = xmlNewDoc(BAD_CAST XML_DEFAULT_VERSION);
 	if (doc == NULL) {
 		fprintf(stderr,"Error creating the xml document tree\n");
@@ -765,7 +765,31 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error ending DTD\n");
 		return 0;
 	}
+*/
 
+	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+		return 0;
+	}
+	xmlTextWriterSetIndent(writer,2);
+	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
+		return 0;
+	}
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+		fprintf(stderr,"Error starting DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDTD(writer) < 0) {
+		fprintf(stderr,"Error ending DTD\n");
+		return 0;
+	}
+	
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
+		fprintf(stderr,"Error writing xmimsim tag\n");
+		return 0;
+	}
 
 	//general
 	if (xmlTextWriterStartElement(writer, BAD_CAST "general") < 0) {
@@ -805,11 +829,11 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	}
 
 	//composition
-/*	if (xmlTextWriterStartElement(writer, BAD_CAST "composition") < 0) {
+	if (xmlTextWriterStartElement(writer, BAD_CAST "composition") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
-	}*/
-/*
+	}
+
 	for (i = 0 ; i < input->composition->n_layers ; i++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
@@ -824,7 +848,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error writing atomic_number\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->composition->layers[i].weight[j]) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->composition->layers[i].weight[j]*100.0) < 0) {
 				fprintf(stderr,"Error writing weight_number\n");
 				return 0;
 			}
@@ -849,12 +873,12 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 			return 0;
 		}
 	}
-*/
-/*	if (xmlTextWriterEndElement(writer) < 0) {
+
+	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error calling xmlTextWriterEndElement for composition\n");
 		return 0;
-	}*/
-/*
+	}
+
 	//geometry
 	if (xmlTextWriterStartElement(writer, BAD_CAST "geometry") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
@@ -997,11 +1021,11 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lf",input->excitation->discrete[i].horizontal_intensity) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lg",input->excitation->discrete[i].horizontal_intensity) < 0) {
 				fprintf(stderr,"Error writing horizontal_intensity\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lf",input->excitation->discrete[i].vertical_intensity) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lg",input->excitation->discrete[i].vertical_intensity) < 0) {
 				fprintf(stderr,"Error writing vertical_intensity\n");
 				return 0;
 			}
@@ -1021,11 +1045,11 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lf",input->excitation->continuous[i].horizontal_intensity) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lg",input->excitation->continuous[i].horizontal_intensity) < 0) {
 				fprintf(stderr,"Error writing horizontal_intensity\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lf",input->excitation->continuous[i].vertical_intensity) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lg",input->excitation->continuous[i].vertical_intensity) < 0) {
 				fprintf(stderr,"Error writing vertical_intensity\n");
 				return 0;
 			}
@@ -1046,6 +1070,10 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 	if (input->absorbers->n_exc_layers > 0) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "excitation_path") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+			return 0;
+		}
 		for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
 			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
@@ -1060,7 +1088,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 					fprintf(stderr,"Error writing atomic_number\n");
 					return 0;
 				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->absorbers->exc_layers[i].weight[j]) < 0) {
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->absorbers->exc_layers[i].weight[j]*100.0) < 0) {
 					fprintf(stderr,"Error writing weight_number\n");
 					return 0;
 				}
@@ -1085,9 +1113,17 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				return 0;
 			}
 		}
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error calling xmlTextWriterEndElement for excitation_path\n");
+			return 0;
+		}
 		
 	}
 	if (input->absorbers->n_det_layers > 0) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "detector_path") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+			return 0;
+		}
 		for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
 			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
@@ -1102,7 +1138,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 					fprintf(stderr,"Error writing atomic_number\n");
 					return 0;
 				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->absorbers->det_layers[i].weight[j]) < 0) {
+				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->absorbers->det_layers[i].weight[j]*100.0) < 0) {
 					fprintf(stderr,"Error writing weight_number\n");
 					return 0;
 				}
@@ -1126,6 +1162,10 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
 				return 0;
 			}
+		}
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error calling xmlTextWriterEndElement for detector_path\n");
+			return 0;
 		}
 		
 	}
@@ -1189,7 +1229,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error writing atomic_number\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lf",input->detector->crystal_layers[i].weight[j]) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->detector->crystal_layers[i].weight[j]*100.0) < 0) {
 				fprintf(stderr,"Error writing weight_number\n");
 				return 0;
 			}
@@ -1224,8 +1264,12 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error ending detector\n");
 		return 0;
 	}
-	*/
+	
 	//end it
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim\n");
+		return 0;
+	}
 	if (xmlTextWriterEndDocument(writer) < 0) {
 		fprintf(stderr,"Error ending document\n");
 		return 0;
