@@ -5,7 +5,7 @@
 
 int main (int argc, char *argv[]) {
 
-	struct xmi_input *input;
+	struct xmi_input *input,*input2;
 	int rv;
 	int i,j;
 
@@ -95,9 +95,16 @@ int main (int argc, char *argv[]) {
 	rv = xmi_write_input_xml("test_output.xml",input);
 
 	fprintf(stdout,"rv: %i\n",rv);
-	
+
+
+	xmi_copy_input(input,&input2);
+
+	rv = xmi_write_input_xml("test_output_copy.xml",input2);
+
+	fprintf(stdout,"rv: %i\n",rv);
 
 	xmi_free_input(input);
+	xmi_free_input(input2);
 
 	return 0;
 

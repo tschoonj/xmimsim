@@ -101,7 +101,7 @@ void xmi_free_input(struct xmi_input *);
 
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
-void xmi_copy_input(struct xmi_input *A, struct xmi_input *B);
+void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
 
 
 #endif
