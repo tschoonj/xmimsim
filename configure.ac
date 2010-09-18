@@ -39,6 +39,43 @@ if test -z $CC ; then
         AC_MSG_ERROR([no C compiler was found on the system.])
 	fi
 
+#check for headers
+AC_CHECK_HEADER(stdio.h)
+AC_CHECK_HEADER(errno.h)
+AC_CHECK_HEADER(fcntl.h)
+AC_CHECK_HEADER(signal.h)
+AC_CHECK_HEADER(stdlib.h)
+AC_CHECK_HEADER(string.h)
+AC_CHECK_HEADER(sys/resource.h)
+AC_CHECK_HEADER(sys/stat.h)
+AC_CHECK_HEADER(sys/types.h)
+AC_CHECK_HEADER(syslog.h)
+AC_CHECK_HEADER(time.h)
+AC_CHECK_HEADER(unistd.h)
+AC_CHECK_HEADER(stddef.h)
+
+#check for functions
+AC_CHECK_FUNC(umask)
+AC_CHECK_FUNC(getrlimit)
+AC_CHECK_FUNC(fork)
+AC_CHECK_FUNC(setsid)
+AC_CHECK_FUNC(sigemptyset)
+AC_CHECK_FUNC(sigaction)
+AC_CHECK_FUNC(dup)
+AC_CHECK_FUNC(openlog)
+AC_CHECK_FUNC(syslog)
+AC_CHECK_FUNC(setlogmask)
+AC_CHECK_FUNC(fcntl)
+AC_CHECK_FUNC(strerror)
+AC_CHECK_FUNC(ftruncate)
+AC_CHECK_FUNC(getpid)
+AC_CHECK_FUNC(strlen)
+AC_CHECK_FUNC(strrchr)
+AC_CHECK_FUNC(mkfifo)
+AC_CHECK_FUNC(qsort)
+AC_CHECK_FUNC(bsearch)
+AC_CHECK_FUNC(access)
+
 #search for pthreads
 ACX_PTHREAD(,
 	[AC_MSG_ERROR([POSIX threads are required for building the xmimsim package])]

@@ -1,4 +1,5 @@
 #include "xmi_xml.h"
+#include "xmi_aux.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
@@ -543,23 +544,31 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
+	int n_elements, *Z,i;
+	double *weight;
+	int *sorted_Z_ind;
 
 	layer->n_elements = 0;
 	layer->Z = NULL;
 	layer->weight = NULL;
 
+	n_elements = 0;
+	Z = NULL;
+	weight = NULL;
+
+
 	subnode = node->children;
 
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "element")) {
-			layer->n_elements++;
-			layer->Z = (int *) realloc(layer->Z,sizeof(int)*layer->n_elements);
-			layer->weight = (double *) realloc(layer->weight,sizeof(double)*layer->n_elements);
+			n_elements++;
+			Z = (int *) realloc(Z,sizeof(int)*n_elements);
+			weight = (double *) realloc(weight,sizeof(double)*n_elements);
 			subsubnode = subnode->children;
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "atomic_number")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%i",layer->Z+layer->n_elements-1) != 1) {
+					if(sscanf((const char *)txt,"%i",Z+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in atomic_number of xml file\n");
 						return 0;
 					}
@@ -568,12 +577,12 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "weight_fraction")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",layer->weight+layer->n_elements-1) != 1) {
+					if(sscanf((const char *)txt,"%lf",weight+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in weight_fraction of xml file\n");
 						return 0;
 					}
 					//divide weight by 100 to get rid of the percentages
-					layer->weight[layer->n_elements-1] /= 100.0;
+					weight[n_elements-1] /= 100.0;
 					xmlFree(txt);
 					
 				}
@@ -599,6 +608,21 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		subnode = subnode->next;
 
 	}
+
+	//sort!
+	sorted_Z_ind = xmi_sort_int(Z, n_elements);
+	layer->n_elements = n_elements;
+	layer->Z = (int *) malloc(sizeof(int)*n_elements);
+	layer->weight = (double*) malloc(sizeof(double)*n_elements);
+	for (i = 0 ; i < n_elements ; i++) {
+		layer->Z[i] = Z[sorted_Z_ind[i]];
+		layer->weight[i] = weight[sorted_Z_ind[i]];
+	}
+
+	free(sorted_Z_ind);
+	free(Z);
+	free(weight);
+
 	return 1;
 }
 
@@ -717,7 +741,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 	xmlTextWriterPtr writer;
 	xmlDocPtr doc;
-	xmlNodePtr node;
 	char version[100];
 	char detector_type[20];
 	int i,j;
@@ -726,46 +749,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 	LIBXML_TEST_VERSION
 
-
-/*	//create tree
-	doc = xmlNewDoc(BAD_CAST XML_DEFAULT_VERSION);
-	if (doc == NULL) {
-		fprintf(stderr,"Error creating the xml document tree\n");
-		return 0;
-	}
-
-	//create xml node
-	node = xmlNewDocNode(doc,NULL,BAD_CAST "xmimsim",NULL);
-	if (node == NULL) {
-		fprintf(stderr,"Error creating the xml node\n");
-		return 0;
-	}
-
-	xmlDocSetRootElement(doc,node);
-
-	writer = xmlNewTextWriterTree(doc,node,0);
-	if (writer == NULL) {
-		fprintf(stderr,"Error creating the xml writer\n");
-		return 0;
-	}
-
-	xmlTextWriterSetIndent(writer,2);
-
-	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
-		return 0;
-	}
-
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
-		fprintf(stderr,"Error starting DTD\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndDTD(writer) < 0) {
-		fprintf(stderr,"Error ending DTD\n");
-		return 0;
-	}
-*/
 
 	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
 		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
