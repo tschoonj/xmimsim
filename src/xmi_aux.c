@@ -1,4 +1,5 @@
 #include "xmi_aux.h"
+#include "xmi_data_structs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +51,9 @@ int *xmi_sort_int(int *array,int n_elements) {
 	return rv;
 } 
 
+
+
 static int xmi_cmp_int(const void *a, const void *b) {
-	return *(int *) a-*(int *) b;
+	return *((int *) a) - *((int *) b);
 }
+

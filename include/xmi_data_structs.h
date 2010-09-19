@@ -94,11 +94,19 @@ struct xmi_input {
 	struct xmi_detector *detector;
 };
 
+#define XMI_COMPARE_GENERAL 1
+#define XMI_COMPARE_COMPOSITION 2
+#define XMI_COMPARE_GEOMETRY 4
+#define XMI_COMPARE_EXCITATION 8
+#define XMI_COMPARE_ABSORBERS 16
+#define XMI_COMPARE_DETECTOR 32
 
-
+// 0.01%
+#define XMI_COMPARE_THRESHOLD 0.0001
 
 void xmi_free_input(struct xmi_input *);
 
+//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_COMPARE_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);

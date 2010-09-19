@@ -102,6 +102,17 @@ int main (int argc, char *argv[]) {
 	rv = xmi_write_input_xml("test_output_copy.xml",input2);
 
 	fprintf(stdout,"rv: %i\n",rv);
+	xmi_free_input(input);
+	xmi_free_input(input2);
+
+	rv = xmi_read_input_xml("test_output_a.xml",&input);
+	fprintf(stdout,"rv read copy_a: %i\n",rv);
+	rv = xmi_read_input_xml("test_output_b.xml",&input2);
+	fprintf(stdout,"rv read copy_b: %i\n",rv);
+
+
+	rv= xmi_compare_input(input,input2);
+	fprintf(stdout,"compare rv: %i\n",rv);
 
 	xmi_free_input(input);
 	xmi_free_input(input2);

@@ -14,6 +14,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometr
 static int readExcitationXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
 static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
+static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 
 
 
@@ -390,6 +391,14 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	if ((*excitation)->n_continuous == 0 && (*excitation)->n_discrete == 0) {
 		fprintf(stderr,"Found no discrete or continuous energies in xml file\n");
 		return 0;
+	}
+
+	//sort!
+	if ((*excitation)->n_continuous == 0) {
+		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
+	}
+	if ((*excitation)->n_discrete == 0) {
+		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 	}
 
 
@@ -1264,4 +1273,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 	return 1;
 
+}
+static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
+	return ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
 }
