@@ -27,7 +27,8 @@ AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrlf03 >= 2.13.1)
+PKG_CHECK_MODULES([xraylib],libxrl >= 2.13.1)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.13.1)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
