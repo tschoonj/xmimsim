@@ -1,5 +1,7 @@
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdio.h>
+#include "xmi_xml.h"
 
 static void file_menu_click(GtkWidget *widget, gpointer data) {
 
@@ -17,6 +19,9 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 
 }
 
+static struct xmi_input *current;
+
+
 
 int main (int argc, char *argv[]) {
 
@@ -31,6 +36,24 @@ int main (int argc, char *argv[]) {
 	GtkWidget *save;
 	GtkWidget *save_as;
 	GtkWidget *quit;
+	GtkWidget *notebook;
+	GtkWidget *frame;
+	GtkWidget *label;
+	GtkWidget *vbox_notebook;
+	GtkWidget *hbox_text_label;
+	GtkWidget *text;
+
+	//should be changed later using a cpp macro that will point to the data folder of the package
+	//windows will be quite complicated here I'm sure...
+	//
+	char default_file1[] = "/Volumes/Home/schoon/github/xmimsim/example/example1.xml";
+	char default_file2[] = "/Users/schoon/github/xmimsim/example/example1.xml";
+
+	//start by reading in the default file -> command-line args later to be arranged
+	if (xmi_read_input_xml(default_file1, &current) == 0 && xmi_read_input_xml(default_file2, &current) == 0) {
+		fprintf(stderr,"Could not read in default xml file\n");
+		return 1;
+	}
 
 
 
@@ -73,6 +96,30 @@ int main (int argc, char *argv[]) {
 
 	g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit),NULL);
 	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),NULL);
+
+	//notebook
+	notebook = gtk_notebook_new();
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
+	gtk_widget_show(notebook);
+
+	//Append general
+	vbox_notebook = gtk_vbox_new(FALSE,0);
+	gtk_container_add(GTK_CONTAINER(notebook),vbox_notebook);
+	hbox_text_label = gtk_hbox_new(FALSE,0);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, FALSE, FALSE, 3);
+	label = gtk_label_new("Outputfile");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	text = gtk_entry_new();
+	gtk_entry_set_text(text,current->general->outputfile);
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+
+
+
+	label = gtk_label_new("General settings");
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), frame, label);
+	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
+
+
 
 	gtk_widget_show_all(window);
 
