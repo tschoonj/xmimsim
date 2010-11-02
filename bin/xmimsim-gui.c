@@ -42,6 +42,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *vbox_notebook;
 	GtkWidget *hbox_text_label;
 	GtkWidget *text;
+	char buffer[512];
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
 	//windows will be quite complicated here I'm sure...
@@ -103,20 +104,49 @@ int main (int argc, char *argv[]) {
 	gtk_widget_show(notebook);
 
 	//Append general
-	vbox_notebook = gtk_vbox_new(FALSE,0);
-	gtk_container_add(GTK_CONTAINER(notebook),vbox_notebook);
-	hbox_text_label = gtk_hbox_new(FALSE,0);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, FALSE, FALSE, 3);
+	vbox_notebook = gtk_vbox_new(FALSE,5);
+	//gtk_container_add(GTK_CONTAINER(notebook),vbox_notebook);
+	//Outputfile
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Outputfile");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
-	gtk_entry_set_text(text,current->general->outputfile);
-	gtk_box_pack_start(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	gtk_entry_set_text(GTK_ENTRY(text),current->general->outputfile);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	//n_photons_interval
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Number of photons per interval");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	text = gtk_entry_new();
+	sprintf(buffer,"%li",current->general->n_photons_interval);
+	gtk_entry_set_text(GTK_ENTRY(text),buffer);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	//n_photons_line
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Number of photons per discrete line");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	text = gtk_entry_new();
+	sprintf(buffer,"%li",current->general->n_photons_line);
+	gtk_entry_set_text(GTK_ENTRY(text),buffer);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	//n_interactions_trajectory
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Number of interactions per trajectory");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	text = gtk_entry_new();
+	sprintf(buffer,"%i",current->general->n_interactions_trajectory);
+	gtk_entry_set_text(GTK_ENTRY(text),buffer);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	
 
 
 
 	label = gtk_label_new("General settings");
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), frame, label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbox_notebook, label);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
 

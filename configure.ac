@@ -20,9 +20,15 @@ AC_USE_SYSTEM_EXTENSIONS
 
 #libtool
 LT_PREREQ([2.0.0])
-LT_INIT([disable-fast-install])
+LT_INIT()
 AC_PROG_LIBTOOL
 
+#
+AC_PROG_CC
+#this next line may never be reached...
+if test -z $CC ; then
+        AC_MSG_ERROR([no C compiler was found on the system.])
+	fi
 #initialize pkg-config
 PKG_PROG_PKG_CONFIG
 
@@ -34,11 +40,6 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
 
 
-AC_PROG_CC
-#this next line may never be reached...
-if test -z $CC ; then
-        AC_MSG_ERROR([no C compiler was found on the system.])
-	fi
 
 #check for headers
 AC_CHECK_HEADER(stdio.h,,[AC_MSG_ERROR([Required header not found on the system])])
