@@ -22,7 +22,7 @@ void *xmi_memdup(const void *mem, size_t bytes) {
 	return temp;
 }
 
-int *xmi_sort_int(int *array,int n_elements) {
+int *xmi_sort_idl_int(int *array,int n_elements) {
 	int *rv;
 	int *array_copy;
 	int i;
@@ -47,6 +47,7 @@ int *xmi_sort_int(int *array,int n_elements) {
 		rv[i] = res-array_copy;
 	}
 
+	free(array_copy);
 
 	return rv;
 } 

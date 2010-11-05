@@ -619,7 +619,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 	}
 
 	//sort!
-	sorted_Z_ind = xmi_sort_int(Z, n_elements);
+	sorted_Z_ind = xmi_sort_idl_int(Z, n_elements);
 	layer->n_elements = n_elements;
 	layer->Z = (int *) malloc(sizeof(int)*n_elements);
 	layer->weight = (double*) malloc(sizeof(double)*n_elements);

@@ -5,6 +5,7 @@ PROGRAM xmimsim_db
 USE :: xraylib
 USE :: hdf5
 USE :: OMP_LIB
+USE :: xmimsim_aux
 USE,INTRINSIC :: ISO_C_BINDING
 USE,INTRINSIC :: ISO_FORTRAN_ENV
 
@@ -19,19 +20,22 @@ CHARACTER(200) :: error_message
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
         rayleigh_theta,compton_theta
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis
+REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies2
 
 INTEGER :: stat,i,j,k,l,m,n
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
+REAL (KIND=C_FLOAT) :: temp_energy,temp_total_cs
 
 CHARACTER(len=30) :: filename = 'xmimsimdata.h5'
 
 INTEGER(HID_T) :: file_id       ! File identifier 
 INTEGER(HID_T) :: dset_id       ! Dataset identifier 
 INTEGER(HID_T) :: dspace_id     ! Dataspace identifier
-INTEGER(HID_T) :: group_id     
+INTEGER(HID_T) :: group_id, group_id2    
 INTEGER(HSIZE_T),DIMENSION(2) :: dims = [nintervals_e, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(2) :: dims2 = [nintervals_theta2, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(3) :: dims3 = [nintervals_theta2, nintervals_e,nintervals_r]
+INTEGER(HSIZE_T),DIMENSION(2) :: dims4 
 
 INTEGER :: h5error
 CHARACTER(len=2) :: element
@@ -41,13 +45,13 @@ REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: &
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) ::  compton_phi
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs 
 
-
+TYPE (interaction_prob), DIMENSION(maxz) :: interaction_probs
 
 
 CALL h5open_f(h5error)
 
 
-CALL SetHardExit(1)
+CALL SetErrorMessages(0)
 
 ALLOCATE(rayleigh_theta(maxz, nintervals_e, nintervals_r),&
 compton_theta(maxz, nintervals_e, nintervals_r),&
@@ -93,7 +97,7 @@ ENDDO
 
 !CALL OMP_SET_NUM_THREADS(1)
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies2,temp_energy)
 
 #if DEBUG == 2
 WRITE(6,*) 'multiple allocs'
@@ -190,6 +194,40 @@ IF (i == 26) THEN
         CLOSE(unit=100)
 ENDIF
 #endif
+        !automatic allocation -> could be a problem for some
+        !compilers... yes I'm talking about you Intel!!! (requires -assume lhs_alloc)
+        !Gfortran 4.5 also doesn't appear to support automatic allocation when
+        !initializing with REAL... sorry Intel!
+        ALLOCATE(energies2(SIZE(energies)))
+        energies2 = REAL(energies,KIND=C_FLOAT)
+        !add edge energies
+        DO k=K_SHELL,L3_SHELL
+                temp_energy = EdgeEnergy(i,k)
+                IF (temp_energy > 0.0_C_FLOAT) THEN
+                        energies2 = [energies2,&
+                         temp_energy+0.00001_C_FLOAT]
+                        energies2 = [energies2,&
+                         temp_energy-0.00001_C_FLOAT]
+                ENDIF
+        ENDDO
+        
+
+        !SORT them
+        CALL qsort(C_LOC(energies2),SIZE(energies2,KIND=C_SIZE_T),&
+        INT(KIND(energies2),KIND=C_SIZE_T),C_FUNLOC(C_FLOAT_CMP))
+        !calls assign_interaction_prob...
+        interaction_probs(i) = energies2
+
+        DO k=1,SIZE(energies2)
+                temp_total_cs = CS_Total_Kissel(i,energies2(k))
+                interaction_probs(i)%Rayl_and_Compt(k,1) = CS_Rayl(i,energies2(k))/temp_total_cs
+                interaction_probs(i)%Rayl_and_Compt(k,2) = CS_Compt(i,energies2(k))/temp_total_cs+&
+                  interaction_probs(i)%Rayl_and_Compt(k,1)
+        ENDDO
+
+        DEALLOCATE(energies2)
+
+
 ENDDO Zloop
 !$OMP END DO
 !$OMP END PARALLEL
@@ -204,23 +242,26 @@ CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F,file_id,h5error)
 !#if DEBUG != 1
 DO i=1,maxz
         WRITE(element,'(I2)') i
-        !group creation
+        !group creation -> element
         CALL h5gcreate_f(file_id,element,group_id,h5error)
+
+        !group creation -> theta_icdf 
+        CALL h5gcreate_f(group_id,'Theta_ICDF',group_id2,h5error)
 
         !create rayleigh theta dataset, including the energies and random
         !numbers 
         CALL h5screate_simple_f(2,dims,dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'RayleighTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id2,'RayleighTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rayleigh_theta(i,:,:),dims,h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
         CALL h5screate_simple_f(1,[dims(1)],dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'Energies',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id2,'Energies',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,energies,[dims(1)],h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
         CALL h5screate_simple_f(1,[dims(2)],dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id2,'Random numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims(2)],h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
@@ -228,11 +269,36 @@ DO i=1,maxz
 
         !create compton theta dataset
         CALL h5screate_simple_f(2,dims,dspace_id,h5error)
-        CALL h5dcreate_f(group_id,'ComptonTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dcreate_f(group_id2,'ComptonTheta_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
         CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,compton_theta(i,:,:),dims,h5error)
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
 
+        !group close -> theta_icdf
+        CALL h5gclose_f(group_id2,h5error)
+
+
+        !group creation -> interaction_probs 
+        CALL h5gcreate_f(group_id,'Interaction probabilities',group_id2,h5error)
+        CALL h5screate_simple_f(1,[SIZE(interaction_probs(i)%energies ,KIND=HSIZE_T)],dspace_id,h5error)
+        CALL h5dcreate_f(group_id2,'Energies',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,interaction_probs(i)%energies,&
+                [SIZE(interaction_probs(i)%energies ,KIND=HSIZE_T)] ,h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
+        CALL h5screate_simple_f(2,[SIZE(interaction_probs(i)%Rayl_and_Compt, DIM=1 &
+                ,KIND=HSIZE_T),SIZE(interaction_probs(i)%Rayl_and_Compt, DIM=2 ,KIND=HSIZE_T)],dspace_id,h5error)
+        CALL h5dcreate_f(group_id2,'Rayleigh and Compton probabilities',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,interaction_probs(i)%Rayl_and_Compt,&
+                [SIZE(interaction_probs(i)%Rayl_and_Compt, DIM=1 ,KIND=HSIZE_T),&
+                SIZE(interaction_probs(i)%Rayl_and_Compt, DIM=2 ,KIND=HSIZE_T)] ,h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
+
+        !group close -> interaction_probs
+        CALL h5gclose_f(group_id2,h5error)
+
+        !group close -> element
         CALL h5gclose_f(group_id,h5error)
 ENDDO
 
@@ -241,6 +307,7 @@ ENDDO
 DEALLOCATE(rayleigh_theta,compton_theta,thetas)
 
 !CALL h5close_f(h5error)
+
 
 !azimuthal angle -> Z independent
 ALLOCATE(rayleigh_phi(nintervals_theta2,nintervals_r),& 
@@ -397,7 +464,7 @@ CALL h5dclose_f(dset_id,h5error)
 
 CALL h5screate_simple_f(1,[dims2(2)],dspace_id,h5error)
 CALL &
-h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+h5dcreate_f(group_id,'Random numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
 CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims2(2)],h5error)
 CALL h5sclose_f(dspace_id,h5error)
 CALL h5dclose_f(dset_id,h5error)
@@ -430,7 +497,7 @@ CALL h5dclose_f(dset_id,h5error)
 
 CALL h5screate_simple_f(1,[dims3(3)],dspace_id,h5error)
 CALL &
-h5dcreate_f(group_id,'Random_numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+h5dcreate_f(group_id,'Random numbers',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
 CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,rs,[dims3(3)],h5error)
 CALL h5sclose_f(dspace_id,h5error)
 CALL h5dclose_f(dset_id,h5error)

@@ -33,8 +33,9 @@ if test -z $CC ; then
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 2.13.1)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.13.1)
+#the xraylib requirement will have to be changed to 2.14.1 or even 2.15.0
+PKG_CHECK_MODULES([xraylib],libxrl >= 2.14.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
@@ -124,6 +125,8 @@ do
 	fi
 done
 
+FC=$H5FC_FC
+
 AC_SUBST(H5FC_LINKER)
 AC_SUBST(H5FC_INCLUDE)
 AC_SUBST(H5FC_STATIC)
@@ -134,7 +137,7 @@ AC_SUBST(H5FC_STATIC)
 #echo "H5FC_STATIC: $H5FC_STATIC" 
 
 #search for a fortran compiler (do not check explicitly for the 2003 features yet)
-AC_PROG_FC([$H5FC])
+AC_PROG_FC([$FC])
 if test -z $FC ; then
 	AC_MSG_ERROR([Fortran 2003 compiler was not found])
 fi
@@ -151,6 +154,8 @@ AC_LANG_POP(Fortran)
 AC_SUBST(HAVE_OPENMP)
 OPENMP_FFLAGS=$ax_cv_fc_openmp
 AC_SUBST(OPENMP_FFLAGS)
+
+AX_MPI
 
 AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile])
 AC_CONFIG_HEADERS([config.h])
