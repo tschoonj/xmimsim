@@ -57,6 +57,7 @@ AC_CHECK_HEADER(time.h,,[AC_MSG_ERROR([Required header not found on the system])
 AC_CHECK_HEADER(unistd.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stddef.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(math.h,,[AC_MSG_ERROR([Required header not found on the system])])
+AC_CHECK_HEADER(regex.h,,[AC_MSG_ERROR([Required header not found on the system])])
 
 #check for functions
 AC_CHECK_FUNC(umask,,[AC_MSG_ERROR([Required libc function not found])])
@@ -79,6 +80,10 @@ AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
+
+#check for types
+AC_CHECK_TYPE([ptrdiff_t],,[AC_MSG_ERROR([ptrdiff_t type not found])])
+
 
 #search for pthreads
 ACX_PTHREAD(,
@@ -145,17 +150,39 @@ fi
 
 #search for openmp
 AC_LANG_PUSH(Fortran)
-AX_OPENMP([
-	AC_DEFINE(HAVE_OPENMP,1,[OpenMP support detected])
-],[
-	AC_DEFINE(HAVE_OPENMP,0,[no OpenMP support detected])
-])
+AC_OPENMP
+#AX_OPENMP([
+#	AC_DEFINE(HAVE_OPENMP,1,[OpenMP support detected])
+#],)
 AC_LANG_POP(Fortran)
-AC_SUBST(HAVE_OPENMP)
-OPENMP_FFLAGS=$ax_cv_fc_openmp
-AC_SUBST(OPENMP_FFLAGS)
+#AC_SUBST(HAVE_OPENMP)
+#OPENMP_FFLAGS=$ax_cv_fc_openmp
+#AC_SUBST(OPENMP_FFLAGS)
 
-AX_MPI
+
+#search for open-mpi
+AC_CHECK_PROGS([MPICC],[mpicc],["fail"])
+OPENMPI_LDFLAGS=
+OPENMPI_LIBADD=
+OPENMPI_CFLAGS=
+if test x$MPICC != xfail ; then
+	AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])
+	OPENMPI_CFLAGS=$($MPICC -showme:compile)
+	OPENMPI_LINK=$($MPICC -showme:link)
+	for i in $OPENMPI_LINK 
+	do
+		if test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
+			OPENMPI_LIBADD+="$i "
+		else
+			OPENMPI_LDFLAGS+="$i "
+		fi
+	done
+fi
+
+AC_SUBST(OPENMPI_LDFLAGS)
+AC_SUBST(OPENMPI_LIBADD)
+AC_SUBST(OPENMPI_CFLAGS)
+
 
 AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile])
 AC_CONFIG_HEADERS([config.h])
