@@ -394,10 +394,10 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	}
 
 	//sort!
-	if ((*excitation)->n_continuous == 0) {
+	if ((*excitation)->n_continuous != 0) {
 		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 	}
-	if ((*excitation)->n_discrete == 0) {
+	if ((*excitation)->n_discrete != 0) {
 		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 	}
 
@@ -1275,5 +1275,13 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 }
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
-	return ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
+	double diff;
+
+	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
+	
+	if (diff > 0.0)
+		return 1;
+	else if (diff < 0.0)
+		return -1;
+
 }

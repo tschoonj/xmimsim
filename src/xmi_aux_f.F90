@@ -3,10 +3,177 @@ MODULE xmimsim_aux
 USE, INTRINSIC :: ISO_C_BINDING
 IMPLICIT NONE
 
+!
+!
+!  Rayleigh, Compton interaction probabilities
+!
+!
+
 TYPE :: interaction_prob
         REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies
         REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: Rayl_and_Compt
 ENDTYPE
+
+!
+!
+!  xmi data structs
+!
+!
+
+!  xmi_general
+
+TYPE, BIND(C) :: xmi_generalC
+        REAL (C_FLOAT) :: version
+        TYPE (C_PTR) :: outputfile
+        INTEGER (C_LONG) :: n_photons_interval
+        INTEGER (C_LONG) :: n_photons_line
+        INTEGER (C_INT) :: n_interactions_trajectory
+ENDTYPE
+
+TYPE :: xmi_general
+        REAL (C_FLOAT) :: version
+        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: outputfile
+        INTEGER (C_LONG) :: n_photons_interval
+        INTEGER (C_LONG) :: n_photons_line
+        INTEGER (C_INT) :: n_interactions_trajectory
+ENDTYPE
+
+!  xmi_layer
+
+TYPE, BIND(C) :: xmi_layerC
+        INTEGER (C_INT) :: n_elements
+        TYPE (C_PTR) :: Z
+        TYPE (C_PTR) :: weight
+        REAL (C_DOUBLE) :: density
+        REAL (C_DOUBLE) :: thickness
+ENDTYPE
+
+TYPE :: xmi_layer
+        INTEGER (C_INT) :: n_elements
+        INTEGER (C_INT), ALLOCATABLE,DIMENSION(:) :: Z
+        REAL (C_DOUBLE), ALLOCATABLE,DIMENSION(:) :: weight
+        REAL (C_DOUBLE) :: density
+        REAL (C_DOUBLE) :: thickness
+ENDTYPE
+
+!  xmi_composition
+
+TYPE, BIND(C) :: xmi_compositionC
+        INTEGER (C_INT) :: n_layers
+        TYPE (C_PTR) :: layers
+ENDTYPE
+
+TYPE :: xmi_composition
+        INTEGER (C_INT) :: n_layers
+        TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: layers
+ENDTYPE
+
+!  xmi_geometry
+
+TYPE, BIND(C) :: xmi_geometry
+        REAL (C_DOUBLE) :: d_sample_source;
+        REAL (C_DOUBLE), DIMENSION(3) :: n_sample_orientation;
+        REAL (C_DOUBLE), DIMENSION(3) :: p_detector_window;
+        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation;
+        REAL (C_DOUBLE) :: area_detector;
+        REAL (C_DOUBLE) :: acceptance_detector;
+        REAL (C_DOUBLE) :: sigma_x;
+        REAL (C_DOUBLE) :: sigma_xp;
+        REAL (C_DOUBLE) :: sigma_y;
+        REAL (C_DOUBLE) :: sigma_yp;
+        REAL (C_DOUBLE) :: d_source_slit;
+        REAL (C_DOUBLE) :: slit_size_x;
+        REAL (C_DOUBLE) :: slit_size_y;
+ENDTYPE
+
+!  xmi_energy
+
+TYPE, BIND(C) :: xmi_energy
+        REAL (C_DOUBLE) :: energy
+        REAL (C_DOUBLE) :: horizontal_intensity
+        REAL (C_DOUBLE) :: vertical_intensity
+ENDTYPE
+
+!  xmi_excitation
+
+TYPE, BIND(C) :: xmi_excitationC
+        INTEGER (C_INT) :: n_discrete
+        TYPE (C_PTR) :: discrete
+        INTEGER (C_INT) :: n_continuous
+        TYPE (C_PTR) :: continuous
+ENDTYPE
+
+TYPE :: xmi_excitation
+        INTEGER (C_INT) :: n_discrete
+        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: discrete
+        INTEGER (C_INT) :: n_continuous
+        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: continuous
+ENDTYPE
+
+!   xmi_absorbers
+
+TYPE, BIND(C) :: xmi_absorbersC
+        INTEGER (C_INT) :: n_exc_layers
+        TYPE (C_PTR) :: exc_layers
+        INTEGER (C_INT) :: n_det_layers
+        TYPE (C_PTR) :: det_layers
+ENDTYPE
+
+TYPE :: xmi_absorbers
+        INTEGER (C_INT) :: n_exc_layers
+        TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: exc_layers
+        INTEGER (C_INT) :: n_det_layers
+        TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: det_layers
+ENDTYPE
+
+#define XMI_DETECTOR_SILI 0
+#define XMI_DETECTOR_GE 1
+#define XMI_DETECTOR_SI_SDD 2
+
+!  xmi_detector
+
+TYPE, BIND(C) :: xmi_detectorC
+        INTEGER (C_INT) :: detector_type
+        REAL (C_DOUBLE) :: gain
+        REAL (C_DOUBLE) :: zero 
+        REAL (C_DOUBLE) :: fano 
+        REAL (C_DOUBLE) :: noise 
+        REAL (C_DOUBLE) :: max_convolution_energy
+        INTEGER (C_INT) :: n_crystal_layers
+        TYPE (C_PTR) :: crystal_layers
+ENDTYPE
+
+TYPE :: xmi_detector
+        INTEGER (C_INT) :: detector_type
+        REAL (C_DOUBLE) :: gain
+        REAL (C_DOUBLE) :: zero 
+        REAL (C_DOUBLE) :: fano 
+        REAL (C_DOUBLE) :: noise 
+        REAL (C_DOUBLE) :: max_convolution_energy
+        INTEGER (C_INT) :: n_crystal_layers
+        TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: crystal_layers
+ENDTYPE
+
+!  xmi_input
+
+TYPE, BIND(C) :: xmi_inputC
+        TYPE (C_PTR) :: general
+        TYPE (C_PTR) :: composition 
+        TYPE (C_PTR) :: geometry 
+        TYPE (C_PTR) :: excitation 
+        TYPE (C_PTR) :: absorbers 
+        TYPE (C_PTR) :: detector 
+ENDTYPE
+
+TYPE :: xmi_input
+       TYPE (xmi_general) :: general
+       TYPE (xmi_composition) :: composition
+       TYPE (xmi_geometry) :: geometry
+       TYPE (xmi_excitation) :: excitation
+       TYPE (xmi_absorbers) :: absorbers
+       TYPE (xmi_detector) :: detector
+ENDTYPE
+
 
 
 INTERFACE
@@ -18,7 +185,12 @@ SUBROUTINE qsort(base,nmemb,size,compar) BIND(C,NAME='qsort')
         INTEGER (C_SIZE_T),VALUE :: nmemb, size
         TYPE (C_FUNPTR),VALUE :: compar
 ENDSUBROUTINE
-
+FUNCTION strlen(s) BIND(C,NAME='strlen')
+        USE,INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE :: s
+        INTEGER (C_SIZE_T) :: strlen
+ENDFUNCTION strlen
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)
@@ -111,6 +283,197 @@ SUBROUTINE assign_interaction_prob(outvar,invar)
 
         RETURN
 ENDSUBROUTINE assign_interaction_prob
+
+!
+! xmi_input_C2F creates a complete copy of the C structure!!!
+!
+
+SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F')
+        IMPLICIT NONE
+        !pass by reference, no VALUE
+        TYPE (xmi_inputC), INTENT(IN) :: xmi_inputC_in
+        TYPE (C_PTR), INTENT(OUT) :: xmi_inputFPtr
+        TYPE (xmi_input), POINTER :: xmi_inputF
+
+        TYPE (xmi_generalC),POINTER :: xmi_general_temp
+        TYPE (xmi_compositionC),POINTER :: xmi_composition_temp
+        TYPE (xmi_geometry),POINTER :: xmi_geometry_temp
+        TYPE (xmi_excitationC),POINTER :: xmi_excitation_temp
+        TYPE (xmi_absorbersC),POINTER :: xmi_absorbers_temp
+        TYPE (xmi_detectorC),POINTER :: xmi_detector_temp
+        TYPE (xmi_layerC),POINTER, DIMENSION(:) :: xmi_layer_temp
+        TYPE (xmi_energy),POINTER, DIMENSION(:) :: xmi_energy_temp
+        INTEGER (C_INT), POINTER,DIMENSION(:) :: Z_temp
+        REAL (C_DOUBLE), POINTER,DIMENSION(:) :: weight_temp
+
+        INTEGER :: i
+
+
+        !!
+        !! allocate xmi_inputF
+        !!
+
+        ALLOCATE(xmi_inputF)
+
+        !!
+        !! associate xmi_general 
+        !!
+        CALL C_F_POINTER (xmi_inputC_in%general, xmi_general_temp)
+        xmi_inputF%general%version = xmi_general_temp%version
+        xmi_inputF%general%n_photons_interval = xmi_general_temp%n_photons_interval
+        xmi_inputF%general%n_photons_line = xmi_general_temp%n_photons_line
+        xmi_inputF%general%n_interactions_trajectory = &
+                xmi_general_temp%n_interactions_trajectory
+        !todo is outputfile... not so important actually  
+        
+
+        !!
+        !! associate xmi_composition 
+        !!
+        CALL C_F_POINTER (xmi_inputC_in%composition , xmi_composition_temp)
+        xmi_inputF%composition%n_layers = xmi_composition_temp%n_layers
+        ALLOCATE(xmi_inputF%composition%layers(xmi_inputF%composition%n_layers))
+        CALL C_F_POINTER (xmi_composition_temp%layers,xmi_layer_temp,[xmi_inputF%composition%n_layers])
+
+        DO i=1,xmi_inputF%composition%n_layers
+                xmi_inputF%composition%layers(i)%n_elements = &
+                xmi_layer_temp(i)%n_elements
+                xmi_inputF%composition%layers(i)%density = &
+                xmi_layer_temp(i)%density
+                xmi_inputF%composition%layers(i)%thickness = &
+                xmi_layer_temp(i)%thickness
+                CALL C_F_POINTER &
+                (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                xmi_inputF%composition%layers(i)%Z = &
+                Z_temp
+                CALL C_F_POINTER &
+                (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                xmi_inputF%composition%layers(i)%weight = &
+                weight_temp
+        ENDDO
+
+        !!
+        !! associate xmi_geometry
+        !!
+        !should be easy...
+        CALL C_F_POINTER (xmi_inputC_in%geometry, xmi_geometry_temp)
+        xmi_inputF%geometry = xmi_geometry_temp
+
+
+        !!
+        !! associate xmi_excitation
+        !!
+        CALL C_F_POINTER (xmi_inputC_in%excitation, xmi_excitation_temp)
+
+        xmi_inputF%excitation%n_discrete = xmi_excitation_temp%n_discrete
+        xmi_inputF%excitation%n_continuous = xmi_excitation_temp%n_continuous
+
+        IF (xmi_inputF%excitation%n_discrete .GT. 0) THEN
+                CALL C_F_POINTER (xmi_excitation_temp%discrete,&
+                xmi_energy_temp,&
+                [xmi_inputF%excitation%n_discrete]) 
+                xmi_inputF%excitation%discrete = xmi_energy_temp
+        ENDIF
+
+        IF (xmi_inputF%excitation%n_continuous .GT. 0) THEN
+                CALL C_F_POINTER (xmi_excitation_temp%continuous,&
+                xmi_energy_temp,&
+                [xmi_inputF%excitation%n_continuous]) 
+                xmi_inputF%excitation%continuous = xmi_energy_temp
+        ENDIF
+
+        !!
+        !! associate xmi_absorbers
+        !!
+        CALL C_F_POINTER (xmi_inputC_in%absorbers, xmi_absorbers_temp)
+
+        xmi_inputF%absorbers%n_exc_layers = xmi_absorbers_temp%n_exc_layers
+        xmi_inputF%absorbers%n_det_layers = xmi_absorbers_temp%n_det_layers
+
+        IF (xmi_inputF%absorbers%n_exc_layers .GT. 0) THEN
+                CALL C_F_POINTER (xmi_absorbers_temp%exc_layers,&
+                xmi_layer_temp,&
+                [xmi_inputF%absorbers%n_exc_layers])
+                DO i=1,xmi_inputF%absorbers%n_exc_layers
+                        xmi_inputF%absorbers%exc_layers(i)%n_elements = &
+                        xmi_layer_temp(i)%n_elements
+                        xmi_inputF%absorbers%exc_layers(i)%density = &
+                        xmi_layer_temp(i)%density
+                        xmi_inputF%absorbers%exc_layers(i)%thickness = &
+                        xmi_layer_temp(i)%thickness
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%absorbers%exc_layers(i)%Z = &
+                        Z_temp
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%absorbers%exc_layers(i)%weight = &
+                        weight_temp
+                ENDDO
+        ENDIF
+
+        IF (xmi_inputF%absorbers%n_det_layers .GT. 0) THEN
+                CALL C_F_POINTER (xmi_absorbers_temp%det_layers,&
+                xmi_layer_temp,&
+                [xmi_inputF%absorbers%n_det_layers])
+                DO i=1,xmi_inputF%absorbers%n_det_layers
+                        xmi_inputF%absorbers%det_layers(i)%n_elements = &
+                        xmi_layer_temp(i)%n_elements
+                        xmi_inputF%absorbers%det_layers(i)%density = &
+                        xmi_layer_temp(i)%density
+                        xmi_inputF%absorbers%det_layers(i)%thickness = &
+                        xmi_layer_temp(i)%thickness
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%absorbers%det_layers(i)%Z = &
+                        Z_temp
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%absorbers%det_layers(i)%weight = &
+                        weight_temp
+                ENDDO
+        ENDIF
+
+        !!
+        !! associate xmi_detector
+        !!
+        CALL C_F_POINTER (xmi_inputC_in%detector,xmi_detector_temp)
+        xmi_inputF%detector%detector_type = xmi_detector_temp%detector_type 
+        xmi_inputF%detector%gain= xmi_detector_temp%gain
+        xmi_inputF%detector%zero= xmi_detector_temp%zero
+        xmi_inputF%detector%fano= xmi_detector_temp%fano
+        xmi_inputF%detector%noise= xmi_detector_temp%noise
+        xmi_inputF%detector%max_convolution_energy= xmi_detector_temp%max_convolution_energy
+        xmi_inputF%detector%n_crystal_layers =&
+        xmi_detector_temp%n_crystal_layers 
+
+        IF (xmi_inputF%detector%n_crystal_layers .GT. 0) THEN
+                CALL C_F_POINTER (xmi_detector_temp%crystal_layers,&
+                xmi_layer_temp,&
+                [xmi_inputF%detector%n_crystal_layers])
+                DO i=1,xmi_inputF%detector%n_crystal_layers
+                        xmi_inputF%detector%crystal_layers(i)%n_elements = &
+                        xmi_layer_temp(i)%n_elements
+                        xmi_inputF%detector%crystal_layers(i)%density = &
+                        xmi_layer_temp(i)%density
+                        xmi_inputF%detector%crystal_layers(i)%thickness = &
+                        xmi_layer_temp(i)%thickness
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%detector%crystal_layers(i)%Z = &
+                        Z_temp
+                        CALL C_F_POINTER &
+                        (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        xmi_inputF%detector%crystal_layers(i)%weight = &
+                        weight_temp
+                ENDDO
+        ENDIF
+
+        !!return value
+        xmi_inputFPtr = C_LOC(xmi_inputF)
+
+
+ENDSUBROUTINE xmi_input_C2F
 
 
 ENDMODULE

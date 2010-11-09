@@ -39,6 +39,7 @@ PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
+PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
 
 
 

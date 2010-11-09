@@ -370,6 +370,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *hbox_text_label;
 	GtkWidget *text;
 	GtkWidget *toolbar;
+	GtkWidget *scrolled_window;
 	char buffer[512];
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
@@ -547,11 +548,13 @@ int main (int argc, char *argv[]) {
 	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) N_INTERACTIONS_TRAJECTORY);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	
-
+	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), vbox_notebook);
 
 
 	label = gtk_label_new("General settings");
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbox_notebook, label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
 

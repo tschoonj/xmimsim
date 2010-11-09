@@ -20,6 +20,7 @@ int main (int argc, char *argv[]) {
 	//general variables
 	struct xmi_input *input;
 	int rv;
+	void *inputF;
 	
 
 
@@ -33,6 +34,8 @@ int main (int argc, char *argv[]) {
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
 
+	//copy to the corresponding fortran variable
+	xmi_input_C2F(input,&inputF);
 
 
 #ifdef HAVE_OPENMPI
