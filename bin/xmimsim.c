@@ -8,6 +8,7 @@
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_aux.h"
+#include <stdio.h>
 
 int main (int argc, char *argv[]) {
 	
@@ -20,7 +21,8 @@ int main (int argc, char *argv[]) {
 	//general variables
 	struct xmi_input *input;
 	int rv;
-	void *inputF;
+	xmi_inputFPtr inputFPtr;
+	xmi_hdf5FPtr hdf5Ptr;
 	
 
 
@@ -35,8 +37,17 @@ int main (int argc, char *argv[]) {
 	rv = xmi_read_input_xml(argv[1],&input);
 
 	//copy to the corresponding fortran variable
-	xmi_input_C2F(input,&inputF);
+	xmi_input_C2F(input,&inputFPtr);
 
+	//read from HDF5 file what needs to be read in
+	if (xmi_init_from_hdf5("xmimsimdata.h5",inputFPtr,&hdf5Ptr) == 0) {
+		fprintf(stdout,"Could not initialize from hdf5 data file\n");
+		return 1;
+	}	
+
+
+	xmi_free_input_F(&inputFPtr);
+	
 
 #ifdef HAVE_OPENMPI
 	MPI_Finalize();

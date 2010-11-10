@@ -188,7 +188,8 @@ ENDSUBROUTINE
 FUNCTION strlen(s) BIND(C,NAME='strlen')
         USE,INTRINSIC :: ISO_C_BINDING
         IMPLICIT NONE
-        TYPE (C_PTR), VALUE :: s
+        !TYPE (C_PTR), VALUE :: s
+        CHARACTER (KIND=C_CHAR,LEN=*) :: s
         INTEGER (C_SIZE_T) :: strlen
 ENDFUNCTION strlen
 ENDINTERFACE
@@ -314,6 +315,10 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !!
 
         ALLOCATE(xmi_inputF)
+#if DEBUG == 1
+        WRITE (6,*) 'Entered xmi_input_C2F'
+#endif
+
 
         !!
         !! associate xmi_general 
@@ -326,6 +331,9 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 xmi_general_temp%n_interactions_trajectory
         !todo is outputfile... not so important actually  
         
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_general ok'
+#endif
 
         !!
         !! associate xmi_composition 
@@ -352,6 +360,9 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 weight_temp
         ENDDO
 
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_composition ok'
+#endif
         !!
         !! associate xmi_geometry
         !!
@@ -359,6 +370,9 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         CALL C_F_POINTER (xmi_inputC_in%geometry, xmi_geometry_temp)
         xmi_inputF%geometry = xmi_geometry_temp
 
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_geometry ok'
+#endif
 
         !!
         !! associate xmi_excitation
@@ -382,6 +396,9 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 xmi_inputF%excitation%continuous = xmi_energy_temp
         ENDIF
 
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_excitation ok'
+#endif
         !!
         !! associate xmi_absorbers
         !!
@@ -390,7 +407,12 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%absorbers%n_exc_layers = xmi_absorbers_temp%n_exc_layers
         xmi_inputF%absorbers%n_det_layers = xmi_absorbers_temp%n_det_layers
 
+#if DEBUG == 1
+        WRITE (6,*) 'n_exc_layers: ',xmi_inputF%absorbers%n_exc_layers
+        WRITE (6,*) 'n_det_layers: ',xmi_inputF%absorbers%n_det_layers
+#endif
         IF (xmi_inputF%absorbers%n_exc_layers .GT. 0) THEN
+                ALLOCATE(xmi_inputF%absorbers%exc_layers(xmi_inputF%absorbers%n_exc_layers))
                 CALL C_F_POINTER (xmi_absorbers_temp%exc_layers,&
                 xmi_layer_temp,&
                 [xmi_inputF%absorbers%n_exc_layers])
@@ -413,6 +435,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         ENDIF
 
         IF (xmi_inputF%absorbers%n_det_layers .GT. 0) THEN
+                ALLOCATE(xmi_inputF%absorbers%det_layers(xmi_inputF%absorbers%n_det_layers))
                 CALL C_F_POINTER (xmi_absorbers_temp%det_layers,&
                 xmi_layer_temp,&
                 [xmi_inputF%absorbers%n_det_layers])
@@ -434,6 +457,9 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 ENDDO
         ENDIF
 
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_absorbers ok'
+#endif
         !!
         !! associate xmi_detector
         !!
@@ -448,6 +474,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_detector_temp%n_crystal_layers 
 
         IF (xmi_inputF%detector%n_crystal_layers .GT. 0) THEN
+                ALLOCATE(xmi_inputF%detector%crystal_layers(xmi_inputF%detector%n_crystal_layers))
                 CALL C_F_POINTER (xmi_detector_temp%crystal_layers,&
                 xmi_layer_temp,&
                 [xmi_inputF%detector%n_crystal_layers])
@@ -469,11 +496,88 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 ENDDO
         ENDIF
 
+#if DEBUG == 1
+        WRITE (6,*) 'xmi_detector ok'
+#endif
         !!return value
         xmi_inputFPtr = C_LOC(xmi_inputF)
 
+#if DEBUG == 1
+        WRITE (6,*) 'Exiting xmi_input_C2F'
+#endif
+
+        RETURN
 
 ENDSUBROUTINE xmi_input_C2F
+
+SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(INOUT) :: xmi_inputFPtr
+        TYPE (xmi_input), POINTER :: xmi_inputF
+        INTEGER :: i
+
+
+        !associate C and Fortran pointers
+        CALL C_F_POINTER(xmi_inputFPTR, xmi_inputF)
+
+        !free general
+        !nothing to do
+
+        !free composition
+        DO i=1,xmi_inputF%composition%n_layers
+                DEALLOCATE(xmi_inputF%composition%layers(i)%Z)
+                DEALLOCATE(xmi_inputF%composition%layers(i)%weight)
+        ENDDO
+
+        !free geometry
+        !nothing to do
+
+        !free excitation
+        IF (xmi_inputF%excitation%n_discrete .GT. 0) THEN
+                DEALLOCATE(xmi_inputF%excitation%discrete)
+        ENDIF
+
+        IF (xmi_inputF%excitation%n_continuous .GT. 0) THEN
+                DEALLOCATE(xmi_inputF%excitation%continuous)
+        ENDIF
+
+
+        !free absorbers
+        IF (xmi_inputF%absorbers%n_exc_layers .GT. 0) THEN
+                DO i=1,xmi_inputF%absorbers%n_exc_layers
+                        DEALLOCATE(xmi_inputF%absorbers%exc_layers(i)%Z)
+                        DEALLOCATE(xmi_inputF%absorbers%exc_layers(i)%weight)
+                ENDDO
+                DEALLOCATE(xmi_inputF%absorbers%exc_layers)
+        ENDIF
+
+        IF (xmi_inputF%absorbers%n_det_layers .GT. 0) THEN
+                DO i=1,xmi_inputF%absorbers%n_det_layers
+                        DEALLOCATE(xmi_inputF%absorbers%det_layers(i)%Z)
+                        DEALLOCATE(xmi_inputF%absorbers%det_layers(i)%weight)
+                ENDDO
+                DEALLOCATE(xmi_inputF%absorbers%det_layers)
+        ENDIF
+        
+        !free detector
+        IF (xmi_inputF%detector%n_crystal_layers .GT. 0) THEN
+                DO i=1,xmi_inputF%detector%n_crystal_layers
+                        DEALLOCATE(xmi_inputF%detector%crystal_layers(i)%Z)
+                        DEALLOCATE(xmi_inputF%detector%crystal_layers(i)%weight)
+                ENDDO
+                DEALLOCATE(xmi_inputF%detector%crystal_layers)
+        ENDIF
+
+
+
+        !free input
+        DEALLOCATE(xmi_inputF)
+        xmi_inputFPtr=C_NULL_PTR
+
+
+ENDSUBROUTINE xmi_free_input_F
+
+
 
 
 ENDMODULE

@@ -94,6 +94,12 @@ struct xmi_input {
 	struct xmi_detector *detector;
 };
 
+
+//typedefs are clearer then using void *...
+//these correspond in a more transparent way with the Fortran variables
+typedef void* xmi_inputFPtr;  
+typedef void* xmi_hdf5FPtr;
+
 #define XMI_COMPARE_GENERAL 1
 #define XMI_COMPARE_COMPOSITION 2
 #define XMI_COMPARE_GEOMETRY 4
@@ -112,7 +118,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
-void xmi_input_C2F(struct xmi_input *xmi_inputC, void **xmi_inputFPtr );
+void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );
+
+//Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
+void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
+
+//Fortran function that reads in from the HDF5 data file what it needs... return 1 on success, 0 otherwise
+int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *hdf5FPtr );
 
 
 #endif

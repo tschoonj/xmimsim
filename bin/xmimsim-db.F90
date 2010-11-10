@@ -504,7 +504,7 @@ CALL h5dclose_f(dset_id,h5error)
 CALL h5gclose_f(group_id,h5error)
 
 
-
+CALL h5fclose_f(file_id,h5error)
 
 
 

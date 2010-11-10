@@ -234,7 +234,7 @@ static void file_menu_click(GtkWidget *widget, gpointer data) {
 static void update_undo_buffer(int kind, GtkWidget *widget);
 
 static void pos_int_changed(GtkWidget *widget, gpointer data) {
-	int kind = (int) data;
+	int kind = GPOINTER_TO_INT(data);
 	char buffer[512];
 	char *textPtr;
 
@@ -523,7 +523,7 @@ int main (int argc, char *argv[]) {
 	n_photons_intervalW = text;
 	sprintf(buffer,"%li",current->xi->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) N_PHOTONS_INTERVAL  );
+	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_PHOTONS_INTERVAL)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_photons_line
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -534,7 +534,7 @@ int main (int argc, char *argv[]) {
 	n_photons_lineW = text;
 	sprintf(buffer,"%li",current->xi->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) N_PHOTONS_LINE  );
+	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_PHOTONS_LINE)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_interactions_trajectory
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -545,7 +545,7 @@ int main (int argc, char *argv[]) {
 	n_interactions_trajectoryW = text;
 	sprintf(buffer,"%i",current->xi->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) N_INTERACTIONS_TRAJECTORY);
+	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_INTERACTIONS_TRAJECTORY));
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
