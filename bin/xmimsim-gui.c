@@ -4,8 +4,7 @@
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
 #include <stdlib.h>
-#include <regex.h>
-
+#include <glib.h>
 
 
 /*
@@ -66,11 +65,11 @@ static struct undo_single *last;
 
 /*
  *
- * regex patterns
+ * Gregex patterns
  *
  */
 
-regex_t pos_int;
+GRegex *pos_int;
 
 
 /*
@@ -248,7 +247,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 		case N_PHOTONS_LINE:
 		case N_INTERACTIONS_TRAJECTORY:
 			textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(widget));
-			if (regexec(&pos_int,textPtr,0,NULL,0) == 0 ){
+			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				update_undo_buffer(kind, widget);
@@ -411,10 +410,13 @@ int main (int argc, char *argv[]) {
 
 
 	//initialize regex patterns
+	/*
 	if (regcomp(&pos_int,"^[1-9][0-9]*$" , REG_EXTENDED | REG_NOSUB) != 0) {
 		fprintf(stderr,"Error compiling regex pattern pos_int\n");
 		return 1;
 	}
+	*/
+	pos_int = g_regex_new("^[1-9][0-9]*$", G_REGEX_EXTENDED,0, NULL);
 
 
 
