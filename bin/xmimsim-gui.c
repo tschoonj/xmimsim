@@ -364,6 +364,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *edit;
 	GtkWidget *notebook;
 	GtkWidget *frame;
+	GtkWidget *superframe;
 	GtkWidget *label;
 	GtkWidget *vbox_notebook;
 	GtkWidget *hbox_text_label;
@@ -503,7 +504,11 @@ int main (int argc, char *argv[]) {
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_widget_show(notebook);
 
+	frame = gtk_frame_new("General");
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+
 	//Append general
+	superframe = gtk_vbox_new(FALSE,5);
 	vbox_notebook = gtk_vbox_new(FALSE,5);
 	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
 	//gtk_container_add(GTK_CONTAINER(notebook),vbox_notebook);
@@ -549,13 +554,18 @@ int main (int argc, char *argv[]) {
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
 	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_INTERACTIONS_TRAJECTORY));
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
-	
+
+	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
+
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), vbox_notebook);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
 
 
-	label = gtk_label_new("General settings");
+	label = gtk_label_new("Input parameters");
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
