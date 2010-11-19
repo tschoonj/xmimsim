@@ -8,10 +8,43 @@ IMPLICIT NONE
 !  Rayleigh, Compton interaction probabilities
 !
 !
-
 TYPE :: interaction_prob
         REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies
         REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: Rayl_and_Compt
+ENDTYPE
+
+!
+!
+! HDF5 data structures
+!
+!
+TYPE :: xmi_hdf5_Z
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighTheta_ICDF
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: ComptonTheta_ICDF
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
+        !interaction_probs ...
+        TYPE (interaction_prob) :: interaction_probs
+        INTEGER (C_INT) :: Z
+ENDTYPE
+
+
+
+TYPE :: xmi_hdf5
+        TYPE (xmi_hdf5_Z), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Zs
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighPhi_ICDF
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighThetas
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighRandomNumbers
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: ComptonPhi_ICDF
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonThetas
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonEnergies
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonRandomNumbers
+ENDTYPE
+
+TYPE :: xmi_hdf5_ZPtr
+        !this type is necessary because Fortran does not support arrays of
+        !pointers
+        TYPE (xmi_hdf5_Z), POINTER :: Ptr
 ENDTYPE
 
 !
@@ -54,6 +87,7 @@ TYPE :: xmi_layer
         REAL (C_DOUBLE), ALLOCATABLE,DIMENSION(:) :: weight
         REAL (C_DOUBLE) :: density
         REAL (C_DOUBLE) :: thickness
+        TYPE (xmi_hdf5_ZPtr), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Z_local
 ENDTYPE
 
 !  xmi_composition
@@ -185,6 +219,7 @@ SUBROUTINE qsort(base,nmemb,size,compar) BIND(C,NAME='qsort')
         INTEGER (C_SIZE_T),VALUE :: nmemb, size
         TYPE (C_FUNPTR),VALUE :: compar
 ENDSUBROUTINE
+!interface for the libc strlen function
 FUNCTION strlen(s) BIND(C,NAME='strlen')
         USE,INTRINSIC :: ISO_C_BINDING
         IMPLICIT NONE
@@ -192,6 +227,17 @@ FUNCTION strlen(s) BIND(C,NAME='strlen')
         CHARACTER (KIND=C_CHAR,LEN=*) :: s
         INTEGER (C_SIZE_T) :: strlen
 ENDFUNCTION strlen
+
+!interface for the xmi_get_random_numbers function
+FUNCTION xmi_get_random_numbers(numbers, n) BIND(C,NAME='xmi_get_random_numbers')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE :: numbers !points to a C array of unsigned long
+        !int's
+        INTEGER (C_LONG), VALUE :: n
+        INTEGER (C_INT) :: xmi_get_random_numbers
+ENDFUNCTION xmi_get_random_numbers
+
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)
@@ -514,7 +560,7 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(INOUT) :: xmi_inputFPtr
         TYPE (xmi_input), POINTER :: xmi_inputF
-        INTEGER :: i
+        INTEGER :: i,j
 
 
         !associate C and Fortran pointers
@@ -527,6 +573,10 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
         DO i=1,xmi_inputF%composition%n_layers
                 DEALLOCATE(xmi_inputF%composition%layers(i)%Z)
                 DEALLOCATE(xmi_inputF%composition%layers(i)%weight)
+                DO j=1,xmi_inputF%composition%layers(i)%n_elements
+                        NULLIFY(xmi_inputF%composition%layers(i)%xmi_hdf5_Z_local(j)%Ptr)
+                ENDDO
+                DEALLOCATE(xmi_inputF%composition%layers(i)%xmi_hdf5_Z_local)
         ENDDO
 
         !free geometry

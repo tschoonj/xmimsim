@@ -1283,5 +1283,6 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 		return 1;
 	else if (diff < 0.0)
 		return -1;
+	return 0;
 
 }

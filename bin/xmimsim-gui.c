@@ -29,6 +29,11 @@ static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 
 
+//composition
+static GtkWidget *compositionW;
+
+
+
 /*
  *
  * gulongs
@@ -96,6 +101,41 @@ enum {
 	N_PHOTONS_LINE,
 	N_INTERACTIONS_TRAJECTORY,
 };
+
+
+enum {
+	N_ELEMENTS_COLUMN,
+	ELEMENTS_COLUMN,
+	DENSITY_COLUMN,
+	THICKNESS_COLUMN,
+	NCOLUMNS_MATRIX
+};
+
+
+GtkWidget *initialize_matrix(struct xmi_composition *composition) {
+	GtkTreeStore *store;
+	GtkTreeIter iter;
+
+	int i;
+
+
+	store = gtk_list_store_new(NCOLUMNS_MATRIX, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+/*
+	for (i=0 ; i < composition
+
+	gtk_list_store_append(store, &iter,
+				N_ELEMENTS_COLUMN, "Number of elements",
+				ELEMENTS_COLUMN,"Elements",
+				DENSITY_COLUMN,"Density",
+				THICKNESS_COLUMN,"Thickness",
+				-1
+				);
+
+*/
+}
+
+
+
 
 
 

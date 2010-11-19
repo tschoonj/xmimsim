@@ -160,6 +160,11 @@ AC_LANG_POP(Fortran)
 #OPENMP_FFLAGS=$ax_cv_fc_openmp
 #AC_SUBST(OPENMP_FFLAGS)
 
+AC_LANG_PUSH(C)
+AC_OPENMP
+AC_LANG_POP(C)
+
+
 
 #search for open-mpi
 AC_CHECK_PROGS([MPICC],[mpicc],["fail"])

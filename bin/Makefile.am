@@ -24,6 +24,6 @@ xmimsim_test_xml_SOURCES = xmimsim-test-xml.c
 xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
-xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@
+xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @OPENMP_CFLAGS@
 xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
