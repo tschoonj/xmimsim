@@ -4,6 +4,8 @@ AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
+AS_INIT
+
 AC_CANONICAL_HOST
 
 LIB_CURRENT=0
@@ -13,7 +15,7 @@ AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)
 
-
+#m4_pattern_allow([AS_TR_SH])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_USE_SYSTEM_EXTENSIONS
@@ -41,6 +43,7 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.14.0)
 PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
 PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
+PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 
 
 
@@ -147,6 +150,7 @@ AC_PROG_FC([$FC])
 if test -z $FC ; then
 	AC_MSG_ERROR([Fortran 2003 compiler was not found])
 fi
+AC_FC_SRCEXT(f90)
 
 
 #search for openmp
@@ -188,6 +192,7 @@ fi
 AC_SUBST(OPENMPI_LDFLAGS)
 AC_SUBST(OPENMPI_LIBADD)
 AC_SUBST(OPENMPI_CFLAGS)
+
 
 
 AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile])

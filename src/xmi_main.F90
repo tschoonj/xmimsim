@@ -3,13 +3,23 @@ MODULE xmimsim_main
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
 USE :: hdf5
+USE :: omp_lib
+USE :: fgsl
 
 
+
+!global variables, defined in C, external for Fortran
+
+
+
+!global variables
 
 
 
 
 CONTAINS
+
+
 
 FUNCTION xmi_init_from_hdf5(xmi_hdf5_file, xmi_inputFPtr, xmi_hdf5FPtr ) &
 BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
@@ -329,5 +339,77 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         xmi_hdf5FPtr = C_NULL_PTR
 
 ENDSUBROUTINE xmi_free_hdf5_F
+
+
+FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
+nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channelsPtr
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
+        INTEGER (C_INT) :: rv 
+
+        TYPE (xmi_hdf5), POINTER :: hdf5F
+        TYPE (xmi_input), POINTER :: inputF
+        INTEGER :: max_threads, thread_num
+
+        TYPE (fgsl_rng_type) :: rng_type
+        TYPE (fgsl_rng) :: rng
+        INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+
+
+
+        !begin...
+        
+        rv = 0
+
+
+
+        CALL C_F_POINTER(inputFPtr, inputF)
+        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
+
+        !divide n_photons by n_mpi_hosts
+        inputF%general%n_photons_interval = inputF%general%n_photons_interval/n_mpi_hosts
+        inputF%general%n_photons_line= inputF%general%n_photons_line/n_mpi_hosts
+        
+        max_threads = omp_get_max_threads()
+
+#if DEBUG == 1
+        WRITE (6,*) 'num_threads: ', max_threads
+#endif
+
+        ALLOCATE(seeds(max_threads))
+
+        !fetch some seeds
+        IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
+
+#if DEBUG == 1
+        WRITE (*,*) 'seeds: ',seeds
+#endif
+
+
+!$omp parallel default(shared) private(rng, thread_num)
+
+        thread_num = omp_get_thread_num()
+        rng_type = fgsl_rng_mt19937
+
+#if DEBUG == 2
+        WRITE (*,*) 'thread num: ', thread_num
+#endif
+        rng = fgsl_rng_alloc(rng_type)
+#if DEBUG == 2
+        WRITE (*,*) 'After gsl_rng_alloc'
+#endif
+        CALL fgsl_rng_set(rng,seeds(thread_num))
+
+
+
+        !cleanup
+        CALL fgsl_rng_free(rng)
+
+!$omp end parallel
+
+        rv = 1
+
+ENDFUNCTION xmi_main_msim
 
 ENDMODULE

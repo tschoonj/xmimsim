@@ -6,6 +6,7 @@
 
 #include <omp.h>
 
+#include "xmi_main.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_aux.h"
@@ -31,6 +32,7 @@ int main (int argc, char *argv[]) {
 	const gsl_rng_type *rng_type;
 	gsl_rng *rng;
 	unsigned long int seed;
+	double channels[2048];
 
 
 #ifdef HAVE_OPENMPI
@@ -55,37 +57,18 @@ int main (int argc, char *argv[]) {
 
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5("xmimsimdata.h5",inputFPtr,&hdf5FPtr) == 0) {
-		fprintf(stdout,"Could not initialize from hdf5 data file\n");
+		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
 
 
-	
-	//set random number generator to Mersenne Twister
-	rng_type = gsl_rng_mt19937;
 
-
-
-
-#pragma omp parallel default(shared) private(rng,seed)
-{
-
-	rng = gsl_rng_alloc(rng_type);
-	if (xmi_get_random_numbers(&seed,1) == 0) {
-		exit(1);
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048) == 0) {
+		fprintf(stderr,"Error in xmi_main_msim\n");
+		return 1;
 	}
 
-	//set seed
-	gsl_rng_set(rng,seed);
-
-
-	//fortran code must take as arguments number of hosts (MPI) and number of cpus per host (openMP)
-	//ideally the code first checks the total number of cpus available
-	//
-	//think its maybe best to run the openMP code completely in Fortran
-	//requires bindings for gsl_rng_alloc and xmi_get_random_numbers -> watch out with unsigned long int !!!!
-
-}
+	
 
 
 
