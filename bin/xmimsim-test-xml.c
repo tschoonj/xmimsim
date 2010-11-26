@@ -18,6 +18,9 @@ int main (int argc, char *argv[]) {
 
 	fprintf(stdout,"rv: %i\n",rv);
 
+	if (rv == 0 )
+		return 0;
+
 	fprintf(stdout,"version: %lf\n",input->general->version);
 	fprintf(stdout,"outputfile: %s\n",input->general->outputfile);
 	fprintf(stdout,"n_photons_interval: %li\n",input->general->n_photons_interval);
@@ -44,20 +47,25 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"n_detector_orientation[2]: %lf\n",input->geometry->n_detector_orientation[2]);
 	fprintf(stdout,"area_detector: %lf\n",input->geometry->area_detector);
 	fprintf(stdout,"acceptance_detector: %lf\n",input->geometry->acceptance_detector);
-	fprintf(stdout,"sigma_x: %lf\n",input->geometry->sigma_x);
-	fprintf(stdout,"sigma_xp: %lf\n",input->geometry->sigma_xp);
-	fprintf(stdout,"sigma_y: %lf\n",input->geometry->sigma_y);
-	fprintf(stdout,"sigma_yp: %lf\n",input->geometry->sigma_yp);
 	fprintf(stdout,"d_source_slit: %lf\n",input->geometry->d_source_slit);
 	fprintf(stdout,"slit_size_x: %lf\n",input->geometry->slit_size_x);
 	fprintf(stdout,"slit_size_y: %lf\ni\n",input->geometry->slit_size_y);
 
 	fprintf(stdout,"excitation\n");
-	for (i = 0 ; i < input->excitation->n_discrete ; i++) 
+	for (i = 0 ; i < input->excitation->n_discrete ; i++) { 
 		fprintf(stdout,"discrete: %lf -> %lf and %lf\n",input->excitation->discrete[i].energy,input->excitation->discrete[i].horizontal_intensity,input->excitation->discrete[i].vertical_intensity);
-	for (i = 0 ; i < input->excitation->n_continuous ; i++) 
+		fprintf(stdout,"sigma_x: %lf\n",input->excitation->discrete[i].sigma_x);
+		fprintf(stdout,"sigma_xp: %lf\n",input->excitation->discrete[i].sigma_xp);
+		fprintf(stdout,"sigma_y: %lf\n",input->excitation->discrete[i].sigma_y);
+		fprintf(stdout,"sigma_yp: %lf\n",input->excitation->discrete[i].sigma_yp);
+	}
+	for (i = 0 ; i < input->excitation->n_continuous ; i++) { 
 		fprintf(stdout,"continuous: %lf -> %lf and %lf\n",input->excitation->continuous[i].energy,input->excitation->continuous[i].horizontal_intensity,input->excitation->continuous[i].vertical_intensity);
-
+		fprintf(stdout,"sigma_x: %lf\n",input->excitation->continuous[i].sigma_x);
+		fprintf(stdout,"sigma_xp: %lf\n",input->excitation->continuous[i].sigma_xp);
+		fprintf(stdout,"sigma_y: %lf\n",input->excitation->continuous[i].sigma_y);
+		fprintf(stdout,"sigma_yp: %lf\n",input->excitation->continuous[i].sigma_yp);
+	}
 	
 	fprintf(stdout,"absorbers\n");
 	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
@@ -105,9 +113,9 @@ int main (int argc, char *argv[]) {
 	xmi_free_input(input);
 	xmi_free_input(input2);
 
-	rv = xmi_read_input_xml("test_output_a.xml",&input);
+	rv = xmi_read_input_xml("test_output.xml",&input);
 	fprintf(stdout,"rv read copy_a: %i\n",rv);
-	rv = xmi_read_input_xml("test_output_b.xml",&input2);
+	rv = xmi_read_input_xml("test_output_copy.xml",&input2);
 	fprintf(stdout,"rv read copy_b: %i\n",rv);
 
 

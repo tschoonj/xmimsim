@@ -243,44 +243,6 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "source_size")) {
-			subsubnode = subnode->children;	
-			while (subsubnode != NULL) {
-				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
-					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_x)) != 1) {
-						fprintf(stderr,"error reading in sigma_x of xml file\n");
-						return 0;
-					}
-					xmlFree(txt);
-				}
-				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
-					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_xp)) != 1) {
-						fprintf(stderr,"error reading in sigma_xp of xml file\n");
-						return 0;
-					}
-					xmlFree(txt);
-				}
-				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
-					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_y)) != 1) {
-						fprintf(stderr,"error reading in sigma_y of xml file\n");
-						return 0;
-					}
-					xmlFree(txt);
-				}
-				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
-					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->sigma_yp)) != 1) {
-						fprintf(stderr,"error reading in sigma_yp of xml file\n");
-						return 0;
-					}
-					xmlFree(txt);
-				}
-				subsubnode = subsubnode->next;
-			}
-		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "slit_size")) {
 			subsubnode = subnode->children;	
 			while (subsubnode != NULL) {
@@ -351,6 +313,38 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 					}
 					xmlFree(txt);
 				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_x)) != 1) {
+						fprintf(stderr,"error reading in sigma_x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_xp)) != 1) {
+						fprintf(stderr,"error reading in sigma_xp of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_y)) != 1) {
+						fprintf(stderr,"error reading in sigma_y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp)) != 1) {
+						fprintf(stderr,"error reading in sigma_yp of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
 				subsubnode = subsubnode->next;
 			}
 		}
@@ -378,6 +372,38 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
 					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_x)) != 1) {
+						fprintf(stderr,"error reading in sigma_x of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_xp)) != 1) {
+						fprintf(stderr,"error reading in sigma_xp of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_y)) != 1) {
+						fprintf(stderr,"error reading in sigma_y of xml file\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
+					txt = xmlNodeListGetString(doc,subsubnode->children,1);
+					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_yp)) != 1) {
+						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -948,30 +974,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error writing acceptance_detector\n");
 		return 0;
 	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "source_size") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->geometry->sigma_x) < 0) {
-		fprintf(stderr,"Error writing sigma_x\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->geometry->sigma_xp) < 0) {
-		fprintf(stderr,"Error writing sigma_xp\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->geometry->sigma_y) < 0) {
-		fprintf(stderr,"Error writing sigma_y\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->geometry->sigma_yp) < 0) {
-		fprintf(stderr,"Error writing sigma_yp\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for source_size\n");
-		return 0;
-	}
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%lf",input->geometry->d_source_slit) < 0) {
 		fprintf(stderr,"Error writing d_source_slit\n");
 		return 0;
@@ -1021,6 +1023,22 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 				fprintf(stderr,"Error writing vertical_intensity\n");
 				return 0;
 			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->excitation->discrete[i].sigma_x) < 0) {
+				fprintf(stderr,"Error writing sigma_x\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->excitation->discrete[i].sigma_xp) < 0) {
+				fprintf(stderr,"Error writing sigma_xp\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->excitation->discrete[i].sigma_y) < 0) {
+				fprintf(stderr,"Error writing sigma_y\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->discrete[i].sigma_yp) < 0) {
+				fprintf(stderr,"Error writing sigma_yp\n");
+				return 0;
+			}
 			if (xmlTextWriterEndElement(writer) < 0) {
 				fprintf(stderr,"Error calling xmlTextWriterEndElement for discrete\n");
 				return 0;
@@ -1043,6 +1061,22 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 			}
 			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%lg",input->excitation->continuous[i].vertical_intensity) < 0) {
 				fprintf(stderr,"Error writing vertical_intensity\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->excitation->continuous[i].sigma_x) < 0) {
+				fprintf(stderr,"Error writing sigma_x\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->excitation->continuous[i].sigma_xp) < 0) {
+				fprintf(stderr,"Error writing sigma_xp\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->excitation->continuous[i].sigma_y) < 0) {
+				fprintf(stderr,"Error writing sigma_y\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->continuous[i].sigma_yp) < 0) {
+				fprintf(stderr,"Error writing sigma_yp\n");
 				return 0;
 			}
 			if (xmlTextWriterEndElement(writer) < 0) {

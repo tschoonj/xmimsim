@@ -111,10 +111,6 @@ TYPE, BIND(C) :: xmi_geometry
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation;
         REAL (C_DOUBLE) :: area_detector;
         REAL (C_DOUBLE) :: acceptance_detector;
-        REAL (C_DOUBLE) :: sigma_x;
-        REAL (C_DOUBLE) :: sigma_xp;
-        REAL (C_DOUBLE) :: sigma_y;
-        REAL (C_DOUBLE) :: sigma_yp;
         REAL (C_DOUBLE) :: d_source_slit;
         REAL (C_DOUBLE) :: slit_size_x;
         REAL (C_DOUBLE) :: slit_size_y;
@@ -126,6 +122,10 @@ TYPE, BIND(C) :: xmi_energy
         REAL (C_DOUBLE) :: energy
         REAL (C_DOUBLE) :: horizontal_intensity
         REAL (C_DOUBLE) :: vertical_intensity
+        REAL (C_DOUBLE) :: sigma_x;
+        REAL (C_DOUBLE) :: sigma_xp;
+        REAL (C_DOUBLE) :: sigma_y;
+        REAL (C_DOUBLE) :: sigma_yp;
 ENDTYPE
 
 !  xmi_excitation

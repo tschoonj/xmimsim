@@ -37,10 +37,6 @@ struct xmi_geometry {
 	double n_detector_orientation[3];
 	double area_detector;
 	double acceptance_detector;
-	double sigma_x;
-	double sigma_xp;
-	double sigma_y;
-	double sigma_yp;
 	double d_source_slit;
 	double slit_size_x;
 	double slit_size_y;
@@ -50,6 +46,10 @@ struct xmi_energy {
 	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
+	double sigma_x;
+	double sigma_xp;
+	double sigma_y;
+	double sigma_yp;
 };
 
 struct xmi_excitation {

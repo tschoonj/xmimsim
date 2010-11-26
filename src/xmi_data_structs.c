@@ -226,15 +226,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY(n_detector_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
 	XMI_IF_COMPARE_GEOMETRY(acceptance_detector)
-	XMI_IF_COMPARE_GEOMETRY(sigma_x)
-	XMI_IF_COMPARE_GEOMETRY(sigma_xp)
-	XMI_IF_COMPARE_GEOMETRY(sigma_y)
-	XMI_IF_COMPARE_GEOMETRY(sigma_yp)
 	XMI_IF_COMPARE_GEOMETRY(d_source_slit)
 	XMI_IF_COMPARE_GEOMETRY(slit_size_x)
 	XMI_IF_COMPARE_GEOMETRY(slit_size_y)
 
 	after_geometry:
+
+#define XMI_IF_COMPARE_EXCITATION_DISCRETE(a) if (fabsl(A->excitation->discrete[i].a-B->excitation->discrete[i].a)/A->excitation->discrete[i].a > XMI_COMPARE_THRESHOLD) {\
+					rv |= XMI_COMPARE_EXCITATION;\
+					break;\
+				}
 
 	//excitation
 	if (A->excitation->n_discrete > 0 || B->excitation->n_discrete > 0) {
@@ -243,40 +244,34 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		}
 		else {
 			for (i = 0 ; i < A->excitation->n_discrete ; i++) {
-				if (fabsl(A->excitation->discrete[i].energy-B->excitation->discrete[i].energy)/A->excitation->discrete[i].energy > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
-				if (fabsl(A->excitation->discrete[i].horizontal_intensity-B->excitation->discrete[i].horizontal_intensity)/A->excitation->discrete[i].horizontal_intensity > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
-				if (fabsl(A->excitation->discrete[i].vertical_intensity-B->excitation->discrete[i].vertical_intensity)/A->excitation->discrete[i].vertical_intensity > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(energy)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(horizontal_intensity)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(vertical_intensity)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_x)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_xp)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_y)
+				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_yp)
 			}
 		}
 	}	
 
+#define XMI_IF_COMPARE_EXCITATION_CONTINUOUS(a) if (fabsl(A->excitation->continuous[i].a-B->excitation->continuous[i].a)/A->excitation->continuous[i].a > XMI_COMPARE_THRESHOLD) {\
+					rv |= XMI_COMPARE_EXCITATION;\
+					break;\
+				}
 	if (A->excitation->n_continuous > 0 || B->excitation->n_continuous > 0) {
 		if (A->excitation->n_continuous != B->excitation->n_continuous) {
 			rv |= XMI_COMPARE_EXCITATION;
 		}
 		else {
 			for (i = 0 ; i < A->excitation->n_continuous ; i++) {
-				if (fabsl(A->excitation->continuous[i].energy-B->excitation->continuous[i].energy)/A->excitation->continuous[i].energy > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
-				if (fabsl(A->excitation->continuous[i].horizontal_intensity-B->excitation->continuous[i].horizontal_intensity)/A->excitation->continuous[i].horizontal_intensity > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
-				if (fabsl(A->excitation->continuous[i].vertical_intensity-B->excitation->continuous[i].vertical_intensity)/A->excitation->continuous[i].vertical_intensity > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_COMPARE_EXCITATION;
-					break;
-				}
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(energy)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(horizontal_intensity)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(vertical_intensity)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_x)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_xp)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_y)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_yp)
 			}
 		}
 	}	
