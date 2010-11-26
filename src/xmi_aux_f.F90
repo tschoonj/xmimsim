@@ -227,6 +227,10 @@ TYPE :: xmi_photon
         !offspring of the photon (the standard fluorescence photon is not
         !considered as offspring!!!)
         TYPE (xmi_photon),POINTER :: offspring
+        !polar angle
+        REAL (C_DOUBLE) :: theta
+        !azimuthal angle
+        REAL (C_DOUBLE) :: phi 
 ENDTYPE
 
 

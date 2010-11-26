@@ -454,9 +454,16 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         ALLOCATE(photon)
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
+                        
                         !Calculate energy with rng
                         photon%energy = &
                         fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
+
+                        !Calculate its initial coordinates and direction
+                        CALL xmi_coords_dir(rng,exc%continuous(i), inputF%geometry,&
+                        photon)
+
+
 
                         !Calculate the electric field vector
                         !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
@@ -489,6 +496,10 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         !Calculate energy with rng
                         photon%energy = exc%discrete(i)%energy 
 
+                        !Calculate its initial coordinates and direction
+                        CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
+                        photon)
+
                         !Calculate the electric field vector
                         !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
                         !.LT. hor_ver_ratio ) THEN
@@ -517,5 +528,99 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         rv = 1
 
 ENDFUNCTION xmi_main_msim
+
+
+SUBROUTINE xmi_coords_dir(rng, energy, geometry, photon) 
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_energy), INTENT(IN) :: energy
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+
+        REAL (C_DOUBLE) :: x1, y1
+
+#if DEBUG == 2
+        WRITE (*,*) 'Entering xmi_coords_dir'
+        WRITE (*,*) 'energy: ',energy
+#endif
+
+
+
+        !Determine whether it's a point or Gaussian source...
+
+        IF (ABS(energy%sigma_x*energy%sigma_y) .LT. 1.0E-20) THEN
+                !point source
+                CALL xmi_coords_point(rng, geometry, photon, x1, y1)
+        ELSE
+                !gaussian source
+                CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
+        ENDIF
+
+        photon%dirv(1) = SIN(x1) 
+        photon%dirv(2) = SIN(y1) 
+        photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+
+#if DEBUG == 2
+        WRITE (*,*) 'dirv: ', photon%dirv
+#endif
+
+
+        photon%theta = ACOS(photon%dirv(3))
+
+        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+                !processor dependent...
+                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        ELSE
+                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        ENDIF
+
+        RETURN
+
+ENDSUBROUTINE xmi_coords_dir
+
+SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1) 
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
+
+        REAL (C_DOUBLE) :: x1_max, y1_max
+
+#if DEBUG == 2
+        WRITE (*,*) 'Entering xmi_coords_point'
+#endif
+
+        x1_max = ATAN(geometry%slit_size_x/geometry%d_source_slit/2.0_C_DOUBLE)
+        y1_max = ATAN(geometry%slit_size_y/geometry%d_source_slit/2.0_C_DOUBLE)
+
+        x1 = x1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE) 
+        y1 = y1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE) 
+
+        photon%coords(1:3) = 0.0_C_DOUBLE
+
+        RETURN
+ENDSUBROUTINE xmi_coords_point
+
+SUBROUTINE xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1) 
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_energy), INTENT(IN) :: energy
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
+
+
+        x1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_xp)
+        y1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_yp)
+
+        photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
+                geometry%d_source_slit*SIN(x1)
+        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - & 
+                geometry%d_source_slit*SIN(y1)
+        photon%coords(3) = 0.0_C_DOUBLE
+
+ENDSUBROUTINE xmi_coords_gaussian
 
 ENDMODULE
