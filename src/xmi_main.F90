@@ -355,7 +355,11 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
-
+        INTEGER (C_LONG) :: i,j
+        TYPE (xmi_photon), POINTER :: photon
+        REAL (C_DOUBLE) :: hor_ver_ratio
+        INTEGER (C_LONG) :: n_photons
+        REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
 
 
         !begin...
@@ -367,9 +371,6 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
 
-        !divide n_photons by n_mpi_hosts
-        inputF%general%n_photons_interval = inputF%general%n_photons_interval/n_mpi_hosts
-        inputF%general%n_photons_line= inputF%general%n_photons_line/n_mpi_hosts
         
         max_threads = omp_get_max_threads()
 
@@ -386,21 +387,126 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         WRITE (*,*) 'seeds: ',seeds
 #endif
 
+!
+!
+!
+!  Starting the main OpenMP loop
+!
+!
+!
 
-!$omp parallel default(shared) private(rng, thread_num)
 
+
+
+!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy)
+
+!
+!
+!       Initialize random number generator
+!
+!
         thread_num = omp_get_thread_num()
         rng_type = fgsl_rng_mt19937
 
-#if DEBUG == 2
-        WRITE (*,*) 'thread num: ', thread_num
-#endif
         rng = fgsl_rng_alloc(rng_type)
-#if DEBUG == 2
-        WRITE (*,*) 'After gsl_rng_alloc'
-#endif
         CALL fgsl_rng_set(rng,seeds(thread_num))
 
+!
+!
+!       Start with continuous energies
+!
+!
+!        ASSOCIATE (exc => inputF%excitation)
+!
+!       Note : Intel Fortran 11.1 seems to have a serious problem with ASSOCIATE
+!       constructs when compiling with openMP
+!
+!
+
+
+
+#define exc inputF%excitation
+        cont:DO i=1,exc%n_continuous
+                hor_ver_ratio = &
+                exc%continuous(i)%horizontal_intensity/ &
+                (exc%continuous(i)%vertical_intensity+ &
+                exc%continuous(i)%horizontal_intensity)
+                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
+                !Calculate the initial energy -> interval boundaries
+                IF (i .EQ. 1) THEN
+                        !first interval
+                        iv_start_energy = (1.5_C_DOUBLE * &
+                        exc%continuous(1)%energy) - 0.5_C_DOUBLE*exc%continuous(2)%energy
+                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(2)%energy+exc%continuous(1)%energy)
+                ELSEIF (i .EQ. exc%n_continuous) THEN
+                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+exc%continuous(i)%energy)
+                        !this next line needs verification...
+                        iv_end_energy = (1.5_C_DOUBLE * &
+                        exc%continuous(i)%energy) - 0.5_C_DOUBLE*exc%continuous(i-1)%energy
+                ELSE
+                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+exc%continuous(i)%energy)
+                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(i)%energy+exc%continuous(i+1)%energy)
+
+                ENDIF
+
+                DO j=1,n_photons
+                        !Allocate the photon
+                        ALLOCATE(photon)
+                        photon%n_interactions=0
+                        NULLIFY(photon%offspring)
+                        !Calculate energy with rng
+                        photon%energy = &
+                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
+
+                        !Calculate the electric field vector
+                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
+                        !.LT. hor_ver_ratio ) THEN
+                        !        !horizontal polarization
+                        !ELSE
+                        !        !vertical polarization
+                        !ENDIF
+
+
+
+
+
+                        DEALLOCATE(photon)
+                ENDDO
+        ENDDO cont
+
+        disc:DO i=1,exc%n_discrete
+                hor_ver_ratio = &
+                exc%discrete(i)%horizontal_intensity/ &
+                (exc%discrete(i)%vertical_intensity+ &
+                exc%discrete(i)%horizontal_intensity)
+                n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
+
+                DO j=1,n_photons
+                        !Allocate the photon
+                        ALLOCATE(photon)
+                        photon%n_interactions=0
+                        NULLIFY(photon%offspring)
+                        !Calculate energy with rng
+                        photon%energy = exc%discrete(i)%energy 
+
+                        !Calculate the electric field vector
+                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
+                        !.LT. hor_ver_ratio ) THEN
+                        !        !horizontal polarization
+                        !ELSE
+                        !        !vertical polarization
+                        !ENDIF
+                        
+
+
+
+
+                        DEALLOCATE(photon)
+                ENDDO
+        ENDDO disc 
+
+#undef exc
+ !       ENDASSOCIATE
 
 
         !cleanup

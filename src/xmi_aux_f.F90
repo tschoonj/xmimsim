@@ -208,6 +208,28 @@ TYPE :: xmi_input
        TYPE (xmi_detector) :: detector
 ENDTYPE
 
+!
+!
+!   xmi_photon: will hold all the properties of a photon during the simulations
+!
+!
+TYPE :: xmi_photon
+        !coordinates of the photon
+        REAL (C_DOUBLE), DIMENSION(3) :: coords
+        !direction of the photon
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv
+        !electric field vector of the photon
+        REAL (C_DOUBLE), DIMENSION(3) :: elecv
+        !energy of the photon
+        REAL (C_DOUBLE) :: energy
+        !number of interactions the photon has experienced
+        INTEGER (C_INT) :: n_interactions
+        !offspring of the photon (the standard fluorescence photon is not
+        !considered as offspring!!!)
+        TYPE (xmi_photon),POINTER :: offspring
+ENDTYPE
+
+
 
 
 INTERFACE
