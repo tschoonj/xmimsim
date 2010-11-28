@@ -117,6 +117,12 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
 
+void xmi_free_composition(struct xmi_composition *);
+
+void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B);
+
+
+
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
 void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );
 

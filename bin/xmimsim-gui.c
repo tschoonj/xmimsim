@@ -5,6 +5,7 @@
 #include "xmi_data_structs.h"
 #include <stdlib.h>
 #include <glib.h>
+#include <xraylib.h>
 
 
 /*
@@ -45,6 +46,16 @@ static gulong n_photons_lineG;
 static gulong n_interactions_trajectoryG;
 
 
+/*
+ *
+ *  xmi_composition structs
+ *
+ */
+
+struct xmi_composition *compositionS;
+struct xmi_composition *exc_compositionS;
+struct xmi_composition *det_compositionS;
+struct xmi_composition *crystal_compositionS;
 
 
 
@@ -100,6 +111,7 @@ enum {
 	N_PHOTONS_INTERVAL,
 	N_PHOTONS_LINE,
 	N_INTERACTIONS_TRAJECTORY,
+	COMPOSITION,
 };
 
 
@@ -111,27 +123,227 @@ enum {
 	NCOLUMNS_MATRIX
 };
 
+struct matrix_data {
+	GtkWidget *addButton;
+	GtkWidget *editButton;
+	GtkWidget *deleteButton;
+	GtkWidget *topButton;
+	GtkWidget *upButton;
+	GtkWidget *downButton;
+	GtkWidget *bottomButton;
+};
 
-GtkWidget *initialize_matrix(struct xmi_composition *composition) {
-	GtkTreeStore *store;
+static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
+	GtkTreeIter iter,temp_iter;
+	GtkTreeModel *model;
+	int n_elements;
+	gchar *elements;
+	double density,thickness;
+	gboolean valid;
+	int index,nindices;
+	struct matrix_data *md = (struct matrix_data *) data;
+
+
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, N_ELEMENTS_COLUMN, &n_elements, ELEMENTS_COLUMN, &elements, DENSITY_COLUMN, &density, THICKNESS_COLUMN, &thickness, -1);
+#if DEBUG == 1
+		fprintf(stdout,"n_elements: %i elements: %s density: %lf thickness: %lf\n",n_elements, elements, density, thickness);	
+		g_free(elements);
+#endif
+		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+		index = 0;
+		nindices = 0;
+		while(valid) {
+			if (gtk_tree_selection_iter_is_selected(selection, &temp_iter)) {
+#if DEBUG == 1
+				fprintf(stdout,"Index: %i\n",nindices);
+#endif
+				index = nindices;
+			}
+			nindices++;
+			valid = gtk_tree_model_iter_next(model, &temp_iter);
+		}
+
+		if (index == 0) {
+			gtk_widget_set_sensitive(md->downButton,TRUE);
+			gtk_widget_set_sensitive(md->bottomButton,TRUE);
+			gtk_widget_set_sensitive(md->upButton,FALSE);
+			gtk_widget_set_sensitive(md->topButton,FALSE);
+		}
+		else if(index == nindices-1) {
+			gtk_widget_set_sensitive(md->downButton,FALSE);
+			gtk_widget_set_sensitive(md->bottomButton,FALSE);
+			gtk_widget_set_sensitive(md->upButton,TRUE);
+			gtk_widget_set_sensitive(md->topButton,TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(md->downButton,TRUE);
+			gtk_widget_set_sensitive(md->bottomButton,TRUE);
+			gtk_widget_set_sensitive(md->upButton,TRUE);
+			gtk_widget_set_sensitive(md->topButton,TRUE);
+		}
+
+	}
+
+
+	return;
+} 
+
+void layer_reordering_cb(GtkTreeModel *tree_model, GtkTreePath  *path,  GtkTreeIter  *iter, gpointer new_order, gpointer user_data) {
+	
+#if DEBUG == 1
+	fprintf(stdout,"Layer reordering detected\n");
+#endif
+
+}
+
+
+
+
+GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
+	GtkListStore *store;
 	GtkTreeIter iter;
+	GtkWidget *tree;
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
+	char *elementString;
+	GtkTreeSelection *select;
+	GtkWidget *mainbox, *mainbox2;
+	GtkWidget *buttonbox;
+	GtkWidget *addButton;
+	GtkWidget *editButton;
+	GtkWidget *deleteButton;
+	GtkWidget *topButton;
+	GtkWidget *upButton;
+	GtkWidget *downButton;
+	GtkWidget *bottomButton;
+	GtkRequisition size;
+	struct matrix_data *md;
 
-	int i;
+	int i,j;
 
+	size.width = 350;
+	size.height = 80;
+	
+
+	mainbox = gtk_hbox_new(FALSE, 5);
+	mainbox2 = gtk_vbox_new(FALSE, 5);
 
 	store = gtk_list_store_new(NCOLUMNS_MATRIX, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
-/*
-	for (i=0 ; i < composition
 
-	gtk_list_store_append(store, &iter,
-				N_ELEMENTS_COLUMN, "Number of elements",
-				ELEMENTS_COLUMN,"Elements",
-				DENSITY_COLUMN,"Density",
-				THICKNESS_COLUMN,"Thickness",
+	for (i=0 ; i < composition->n_layers ; i++) {
+		gtk_list_store_append(store, &iter);
+		elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
+			if (j != composition->layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+		}
+		gtk_list_store_set(store, &iter,
+				N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+				ELEMENTS_COLUMN,elementString,
+				DENSITY_COLUMN,composition->layers[i].density,
+				THICKNESS_COLUMN,composition->layers[i].thickness,
 				-1
 				);
+		free(elementString);
+	}
 
-*/
+	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+	//gtk_tree_view_set_reorderable(GTK_TREE_VIEW(tree),TRUE);
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Number of elements", renderer,"text",N_ELEMENTS_COLUMN,NULL);
+	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Elements", renderer,"text",ELEMENTS_COLUMN,NULL);
+	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Density", renderer,"text",DENSITY_COLUMN,NULL);
+	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Thickness", renderer,"text",THICKNESS_COLUMN,NULL);
+	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+
+
+
+	gtk_widget_size_request(tree,&size);
+	gtk_box_pack_start(GTK_BOX(mainbox),tree, FALSE, FALSE,3 );
+	
+
+	buttonbox = gtk_vbox_new(FALSE, 5);
+	topButton = gtk_button_new_from_stock(GTK_STOCK_GOTO_TOP);
+	upButton = gtk_button_new_from_stock(GTK_STOCK_GO_UP);
+	downButton = gtk_button_new_from_stock(GTK_STOCK_GO_DOWN);
+	bottomButton = gtk_button_new_from_stock(GTK_STOCK_GOTO_BOTTOM);
+	gtk_box_pack_start(GTK_BOX(buttonbox), topButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), upButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), downButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), bottomButton, FALSE, FALSE, 3);
+	//set insensitive at start
+	gtk_widget_set_sensitive(topButton, FALSE);
+	gtk_widget_set_sensitive(upButton, FALSE);
+	gtk_widget_set_sensitive(downButton, FALSE);
+	gtk_widget_set_sensitive(bottomButton, FALSE);
+
+
+
+	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
+
+
+	buttonbox = gtk_vbox_new(FALSE, 5);
+
+	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
+	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
+	deleteButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+
+	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), editButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), deleteButton, TRUE, FALSE, 3);
+
+	gtk_box_pack_end(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainbox2), mainbox, FALSE, FALSE, 2);
+
+	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
+	md->topButton = topButton;
+	md->upButton = upButton;
+	md->downButton = downButton;
+	md->bottomButton = bottomButton;
+	md->editButton = editButton;
+	md->addButton = addButton;
+	md->deleteButton = deleteButton;
+
+	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
+	g_signal_connect(G_OBJECT(select), "changed",
+			G_CALLBACK(layer_selection_changed_cb),
+			(gpointer) md
+		);
+	g_signal_connect(G_OBJECT(store), "rows-reordered", G_CALLBACK(layer_reordering_cb), GINT_TO_POINTER(COMPOSITION));	
+	if (kind == COMPOSITION)
+		compositionW = tree;
+
+	return mainbox2;
 }
 
 
@@ -411,6 +623,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *text;
 	GtkWidget *toolbar;
 	GtkWidget *scrolled_window;
+	GtkWidget *tempW;
 	char buffer[512];
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
@@ -467,7 +680,7 @@ int main (int argc, char *argv[]) {
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM");
-	gtk_window_set_default_size(GTK_WINDOW(window),700,150);
+	gtk_window_set_default_size(GTK_WINDOW(window),700,500);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
 
@@ -546,6 +759,7 @@ int main (int argc, char *argv[]) {
 
 	frame = gtk_frame_new("General");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 
 	//Append general
 	superframe = gtk_vbox_new(FALSE,5);
@@ -609,6 +823,15 @@ int main (int argc, char *argv[]) {
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
+	//composition
+	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
+
+	frame = gtk_frame_new("Composition");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),tempW);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 
 	gtk_widget_show_all(window);

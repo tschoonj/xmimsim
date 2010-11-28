@@ -41,20 +41,25 @@ void xmi_free_input(struct xmi_input *input) {
 	free(input->excitation);
 
 	//absorbers
-	if (input->absorbers->n_exc_layers > 0)
+	if (input->absorbers->n_exc_layers > 0) {
 		for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) 
 			xmi_free_layer(input->absorbers->exc_layers+i);
-		
-	if (input->absorbers->n_det_layers > 0)
+		free(input->absorbers->exc_layers);
+	}
+	if (input->absorbers->n_det_layers > 0) {
 		for (i = 0 ; i < input->absorbers->n_det_layers ; i++) 
 			xmi_free_layer(input->absorbers->det_layers+i);
+		free(input->absorbers->det_layers);
+	}
 
 	free(input->absorbers);
 
 	//detector
-	if (input->detector->n_crystal_layers > 0)	
+	if (input->detector->n_crystal_layers > 0) {
 		for (i = 0 ; i < input->detector->n_crystal_layers ; i++) 
 			xmi_free_layer(input->detector->crystal_layers+i);
+		free(input->detector->crystal_layers);
+	}
 
 	free(input->detector);
 
@@ -400,6 +405,32 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	after_detector:
 
 	return rv;
+
+
+}
+
+void xmi_free_composition(struct xmi_composition *composition) {
+	int i;
+
+	for (i = 0 ; i < composition->n_layers ; i++) 
+		xmi_free_layer(composition->layers+i);
+	 
+	free(composition->layers);
+
+	free(composition);
+}
+
+void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B) {
+	int i;
+
+	//allocate space for B
+	*B = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	(*B)->n_layers = A->n_layers;
+	(*B)->layers = (struct xmi_layer *) xmi_memdup((A)->layers,((A)->n_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < (A)->n_layers ; i++) {
+		(*B)->layers[i].Z = (int *) xmi_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));
+		(*B)->layers[i].weight = (double *) xmi_memdup((A)->layers[i].weight,((A)->layers[i].n_elements)*sizeof(double));
+	}
 
 
 }

@@ -13,7 +13,7 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
 xmimsim_gui_SOURCES = xmimsim-gui.c
-xmimsim_gui_CFLAGS = @gtk2_CFLAGS@
+xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
 
 
