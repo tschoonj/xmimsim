@@ -197,7 +197,85 @@ void layer_reordering_cb(GtkTreeModel *tree_model, GtkTreePath  *path,  GtkTreeI
 
 }
 
+enum {
+	BUTTON_UP,
+	BUTTON_DOWN,
+	BUTTON_TOP,
+	BUTTON_BOTTOM
+};
 
+struct matrix_button {
+	int buttonKind;
+	int matrixKind;
+	GtkTreeSelection *select;
+	GtkListStore *store;
+};
+
+
+static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	struct matrix_button *mb= (struct matrix_button *) data;
+	GtkTreeIter iter,temp_iter;
+	GtkTreeModel *model;
+	gboolean valid;
+	int index,nindices;
+	int n_elements;
+	gchar *elements;
+	double density,thickness;
+	gint *indices;
+	int i;
+
+#if DEBUG == 1
+	if (mb->buttonKind == BUTTON_TOP)
+		fprintf(stdout,"Top button clicked\n" );
+	else if (mb->buttonKind == BUTTON_DOWN)
+		fprintf(stdout,"Down button clicked\n" );
+	else if (mb->buttonKind == BUTTON_BOTTOM)
+		fprintf(stdout,"Bottom button clicked\n" );
+	else if (mb->buttonKind == BUTTON_UP)
+		fprintf(stdout,"Up button clicked\n" );
+#endif
+
+	//the olde switcharooooo
+	if (gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
+		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+		index = 0;
+		nindices = 0;
+		while(valid) {
+			if (gtk_tree_selection_iter_is_selected(mb->select, &temp_iter)) {
+#if DEBUG == 1
+				fprintf(stdout,"Index: %i\n",nindices);
+#endif
+				index = nindices;
+			}
+			nindices++;
+			valid = gtk_tree_model_iter_next(model, &temp_iter);
+		}
+		indices = (gint *) malloc(sizeof(gint)*nindices);
+		for (i = 0 ; i < nindices ; i++) 
+			indices[i] = i;
+
+		if (mb->buttonKind == BUTTON_TOP) {
+			indices[0] = index;
+			indices[index] = 0;
+		}
+		else if (mb->buttonKind == BUTTON_BOTTOM) {
+			indices[nindices-1] = index;
+			indices[index] = nindices-1;
+		}
+		else if (mb->buttonKind == BUTTON_UP) {
+			indices[index-1] = index;
+			indices[index] = index-1;
+		}
+		else if (mb->buttonKind == BUTTON_DOWN) {
+			indices[index+1] = index;
+			indices[index] = index+1;
+		}
+		gtk_list_store_reorder(mb->store,indices);	
+	}
+
+
+	return;
+}
 
 
 GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
@@ -219,6 +297,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	GtkWidget *bottomButton;
 	GtkRequisition size;
 	struct matrix_data *md;
+	struct matrix_button *mb;
 
 	int i,j;
 
@@ -290,6 +369,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_widget_size_request(tree,&size);
 	gtk_box_pack_start(GTK_BOX(mainbox),tree, FALSE, FALSE,3 );
 	
+	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
 	topButton = gtk_button_new_from_stock(GTK_STOCK_GOTO_TOP);
@@ -305,6 +385,32 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_widget_set_sensitive(upButton, FALSE);
 	gtk_widget_set_sensitive(downButton, FALSE);
 	gtk_widget_set_sensitive(bottomButton, FALSE);
+	//signals -> let's create some nice memory leaks...
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_TOP;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(topButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_BOTTOM;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(bottomButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_UP;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(upButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_DOWN;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(downButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	
 
 
 
@@ -333,7 +439,6 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	md->addButton = addButton;
 	md->deleteButton = deleteButton;
 
-	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
 	g_signal_connect(G_OBJECT(select), "changed",
 			G_CALLBACK(layer_selection_changed_cb),
