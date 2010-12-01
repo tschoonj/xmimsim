@@ -249,8 +249,8 @@ ENDSUBROUTINE
 FUNCTION strlen(s) BIND(C,NAME='strlen')
         USE,INTRINSIC :: ISO_C_BINDING
         IMPLICIT NONE
-        !TYPE (C_PTR), VALUE :: s
-        CHARACTER (KIND=C_CHAR,LEN=*) :: s
+        TYPE (C_PTR), VALUE :: s
+        !CHARACTER (KIND=C_CHAR), DIMENSION(*) :: s
         INTEGER (C_SIZE_T) :: strlen
 ENDFUNCTION strlen
 

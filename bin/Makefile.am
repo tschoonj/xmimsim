@@ -4,8 +4,9 @@ bin_PROGRAMS = xmimsim-db xmimsim-harvester xmimsim-gui\
 	xmimsim-test xmimsim-test-xml\
 	xmimsim
 xmimsim_db_SOURCES = xmimsim-db.F90
-xmimsim_db_FCFLAGS = @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@ 
-xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
+xmimsim_db_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@
+#xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
+xmimsim_db_LDADD = ../src/libxmimsim.la 
 xmimsim_db_LDFLAGS = 
 
 xmimsim_harvester_SOURCES = xmimsim-harvester.c
