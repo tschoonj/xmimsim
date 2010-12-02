@@ -7,7 +7,8 @@
 <!ELEMENT n_photons_line (#PCDATA)>
 <!ELEMENT n_interactions_trajectory (#PCDATA)>
 
-<!ELEMENT composition (layer+)>
+<!ELEMENT composition (layer+, reference_layer)>
+<!ELEMENT reference_layer (#PCDATA)>
 <!ELEMENT layer (element+,density,thickness)>
 <!ELEMENT element (atomic_number,weight_fraction)>
 <!ELEMENT atomic_number (#PCDATA)>

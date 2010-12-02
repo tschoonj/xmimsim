@@ -34,7 +34,7 @@ int main (int argc, char *argv[]) {
 		fprintf(stdout,"density: %lf\n",input->composition->layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->composition->layers[i].thickness);
 	} 
-
+	fprintf(stdout,"reference_layer: %i\n", input->composition->reference_layer);
 	fprintf(stdout,"d_sample_source: %lf\n",input->geometry->d_sample_source);
 	fprintf(stdout,"n_sample_orientation[0]: %lf\n",input->geometry->n_sample_orientation[0]);
 	fprintf(stdout,"n_sample_orientation[1]: %lf\n",input->geometry->n_sample_orientation[1]);
@@ -49,7 +49,7 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"acceptance_detector: %lf\n",input->geometry->acceptance_detector);
 	fprintf(stdout,"d_source_slit: %lf\n",input->geometry->d_source_slit);
 	fprintf(stdout,"slit_size_x: %lf\n",input->geometry->slit_size_x);
-	fprintf(stdout,"slit_size_y: %lf\ni\n",input->geometry->slit_size_y);
+	fprintf(stdout,"slit_size_y: %lf\n\n",input->geometry->slit_size_y);
 
 	fprintf(stdout,"excitation\n");
 	for (i = 0 ; i < input->excitation->n_discrete ; i++) { 

@@ -86,7 +86,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 
 static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
 	xmlNodePtr subnode;
-	
+	xmlChar *txt;
 
 	//allocate memory
 	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
@@ -103,6 +103,18 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 			if (readLayerXML(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
 				return 0;
 			}	
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "reference_layer")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%i",&((*composition)->reference_layer)) != 1) {
+				fprintf(stderr,"error reading in reference_layer of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+			if ((*composition)->reference_layer < 1 || (*composition)->reference_layer > (*composition)->n_layers) {
+				fprintf(stdout,"invalid reference_layer value detected\n");
+				return 0;
+			} 
 		}
 		subnode=subnode->next;
 	}
@@ -888,6 +900,10 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	
 		if (xmlTextWriterEndElement(writer) < 0) {
 			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "reference_layer","%i",input->composition->reference_layer) < 0) {
+			fprintf(stderr,"Error writing reference_layer\n");
 			return 0;
 		}
 	}

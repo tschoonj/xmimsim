@@ -1,6 +1,7 @@
 MODULE xmimsim_aux
 
 USE, INTRINSIC :: ISO_C_BINDING
+USE :: xraylib
 IMPLICIT NONE
 
 !
@@ -95,11 +96,13 @@ ENDTYPE
 TYPE, BIND(C) :: xmi_compositionC
         INTEGER (C_INT) :: n_layers
         TYPE (C_PTR) :: layers
+        INTEGER (C_INT) :: reference_layer 
 ENDTYPE
 
 TYPE :: xmi_composition
         INTEGER (C_INT) :: n_layers
         TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: layers
+        INTEGER (C_INT) :: reference_layer 
 ENDTYPE
 
 !  xmi_geometry
@@ -216,25 +219,54 @@ ENDTYPE
 TYPE :: xmi_photon
         !coordinates of the photon
         REAL (C_DOUBLE), DIMENSION(3) :: coords
+
         !direction of the photon
         REAL (C_DOUBLE), DIMENSION(3) :: dirv
+
         !electric field vector of the photon
         REAL (C_DOUBLE), DIMENSION(3) :: elecv
+
         !energy of the photon
         REAL (C_DOUBLE) :: energy
+
         !number of interactions the photon has experienced
         INTEGER (C_INT) :: n_interactions
+
         !offspring of the photon (the standard fluorescence photon is not
         !considered as offspring!!!)
         TYPE (xmi_photon),POINTER :: offspring
+
         !polar angle
         REAL (C_DOUBLE) :: theta
+
         !azimuthal angle
         REAL (C_DOUBLE) :: phi 
+
+        !energy changed from initial
+        LOGICAL (C_BOOL) :: energy_changed
+
+        !initial mu's
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
+
+        !weight of the photon
+        REAL (C_DOUBLE) :: weight
 ENDTYPE
 
+!
+!
+!       geometrical data types
+!
+!
 
+TYPE :: xmi_line
+        REAL (C_DOUBLE), DIMENSION(3) :: point
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv 
+ENDTYPE
 
+TYPE :: xmi_plane
+        REAL (C_DOUBLE), DIMENSION(3) :: point
+        REAL (C_DOUBLE), DIMENSION(3) :: normv 
+ENDTYPE
 
 INTERFACE
 !interface for the libc qsort function
@@ -270,6 +302,10 @@ INTERFACE ASSIGNMENT(=)
         MODULE PROCEDURE assign_interaction_prob
 ENDINTERFACE
 
+INTERFACE xmi_mu_calc
+        MODULE PROCEDURE xmi_mu_calc_xmi_layer_single_energy, &
+        xmi_mu_calc_xmi_composition_single_energy
+ENDINTERFACE
 
 CONTAINS
 
@@ -388,7 +424,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
 
         ALLOCATE(xmi_inputF)
 #if DEBUG == 1
-        WRITE (6,*) 'Entered xmi_input_C2F'
+        WRITE (*,'(A)') 'Entered xmi_input_C2F'
 #endif
 
 
@@ -404,7 +440,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !todo is outputfile... not so important actually  
         
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_general ok'
+        WRITE (*,'(A)') 'xmi_general ok'
 #endif
 
         !!
@@ -412,6 +448,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !!
         CALL C_F_POINTER (xmi_inputC_in%composition , xmi_composition_temp)
         xmi_inputF%composition%n_layers = xmi_composition_temp%n_layers
+        xmi_inputF%composition%reference_layer = &
+        xmi_composition_temp%reference_layer
         ALLOCATE(xmi_inputF%composition%layers(xmi_inputF%composition%n_layers))
         CALL C_F_POINTER (xmi_composition_temp%layers,xmi_layer_temp,[xmi_inputF%composition%n_layers])
 
@@ -433,7 +471,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         ENDDO
 
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_composition ok'
+        WRITE (*,'(A)') 'xmi_composition ok'
 #endif
         !!
         !! associate xmi_geometry
@@ -443,7 +481,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%geometry = xmi_geometry_temp
 
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_geometry ok'
+        WRITE (*,'(A)') 'xmi_geometry ok'
 #endif
 
         !!
@@ -469,7 +507,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         ENDIF
 
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_excitation ok'
+        WRITE (*,'(A)') 'xmi_excitation ok'
 #endif
         !!
         !! associate xmi_absorbers
@@ -480,8 +518,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%absorbers%n_det_layers = xmi_absorbers_temp%n_det_layers
 
 #if DEBUG == 1
-        WRITE (6,*) 'n_exc_layers: ',xmi_inputF%absorbers%n_exc_layers
-        WRITE (6,*) 'n_det_layers: ',xmi_inputF%absorbers%n_det_layers
+        WRITE (*,'(A,I)') 'n_exc_layers: ',xmi_inputF%absorbers%n_exc_layers
+        WRITE (*,'(A,I)') 'n_det_layers: ',xmi_inputF%absorbers%n_det_layers
 #endif
         IF (xmi_inputF%absorbers%n_exc_layers .GT. 0) THEN
                 ALLOCATE(xmi_inputF%absorbers%exc_layers(xmi_inputF%absorbers%n_exc_layers))
@@ -530,7 +568,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         ENDIF
 
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_absorbers ok'
+        WRITE (*,'(A)') 'xmi_absorbers ok'
 #endif
         !!
         !! associate xmi_detector
@@ -569,13 +607,13 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         ENDIF
 
 #if DEBUG == 1
-        WRITE (6,*) 'xmi_detector ok'
+        WRITE (*,'(A)') 'xmi_detector ok'
 #endif
         !!return value
         xmi_inputFPtr = C_LOC(xmi_inputF)
 
 #if DEBUG == 1
-        WRITE (6,*) 'Exiting xmi_input_C2F'
+        WRITE (*,'(A)') 'Exiting xmi_input_C2F'
 #endif
 
         RETURN
@@ -652,6 +690,47 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
 
 
 ENDSUBROUTINE xmi_free_input_F
+
+!
+!
+! xmi_mu_calc functions: xmi_composition/xmi_layer   single/multiple energies
+!
+!
+
+FUNCTION xmi_mu_calc_xmi_composition_single_energy(composition, energy) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_composition), INTENT(IN) :: composition
+        REAL (C_DOUBLE), INTENT(IN) :: energy
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: rv
+        INTEGER (C_INT) :: i
+
+        ALLOCATE(rv(composition%n_layers))
+        DO i=1,composition%n_layers
+                rv(i) = &
+                xmi_mu_calc_xmi_layer_single_energy(& 
+                composition%layers(i),energy)
+        ENDDO
+
+        RETURN
+ENDFUNCTION
+
+FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_layer), INTENT(IN) :: layer 
+        REAL (C_DOUBLE), INTENT(IN) :: energy
+        REAL (C_DOUBLE) :: rv
+        INTEGER (C_INT) :: i
+
+        rv = 0.0_C_DOUBLE
+
+        DO i=1,layer%n_elements
+                rv = rv + REAL(CS_Total_Kissel(layer%Z(i),&
+                REAL(energy,KIND=C_FLOAT))*layer%weight(i),KIND=C_FLOAT)
+        ENDDO
+                 
+
+        RETURN
+ENDFUNCTION
 
 
 

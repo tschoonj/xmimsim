@@ -51,7 +51,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
 #if DEBUG == 1
-        WRITE (6,*) 'Entering xmi_init_from_hdf5'
+        WRITE (*,'(A)') 'Entering xmi_init_from_hdf5'
 #endif
 
         !associate pointers C -> Fortran
@@ -64,7 +64,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDDO
 
 #if DEBUG == 1
-        WRITE (6,*) 'hdf5_file: ',xmi_hdf5_fileFF
+        WRITE (*,'(A)') 'hdf5_file: ',xmi_hdf5_fileFF
 #endif
 
         !determine the unique Z and sort them
@@ -81,8 +81,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
        CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
        INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 
-#if DEBUG == 1
-        WRITE (6,*) 'uniqZ', uniqZ
+#if DEBUG == 2
+        WRITE (*,'(A)') 'uniqZ', uniqZ
 #endif
 
 
@@ -94,10 +94,10 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !open file for reading
         CALL h5fopen_f(xmi_hdf5_fileFF, H5F_ACC_RDONLY_F, file_id, error)
 #if DEBUG == 1
-        WRITE (6,*) 'error code: ',error
+        WRITE (*,'(A,I)') 'error code: ',error
 #endif
         IF (error /= 0) THEN
-                WRITE (6,*) 'Error opening HDF5 file ',xmi_hdf5_fileFF
+                WRITE (*,*) 'Error opening HDF5 file ',xmi_hdf5_fileFF
                 rv = 0
                 RETURN
         ENDIF
@@ -113,14 +113,14 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dget_space_f(dset_id, dspace_id,error)
         CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
 #if DEBUG == 1
-        WRITE (6,*) 'ndims: ',ndims
+        WRITE (*,'(A,I)') 'ndims: ',ndims
 #endif
         !Allocate memory
         ALLOCATE(dims(ndims))
         ALLOCATE(maxdims(ndims))
         CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
 #if DEBUG == 1
-        WRITE (6,*) 'dims: ',dims
+        WRITE (*,'(A,2I)') 'dims: ',dims
 #endif
         !read the dataset
         ALLOCATE(xmi_hdf5F%RayleighPhi_ICDF(dims(1),dims(2)))
@@ -149,7 +149,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dget_space_f(dset_id, dspace_id,error)
         CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
 #if DEBUG == 1
-        WRITE (6,*) 'ndims: ',ndims
+        WRITE (*,'(A,I)') 'ndims: ',ndims
 #endif
         !Allocate memory
         DEALLOCATE(dims)
@@ -158,7 +158,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ALLOCATE(maxdims(ndims))
         CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
 #if DEBUG == 1
-        WRITE (6,*) 'dims: ',dims
+        WRITE (*,'(A,3I)') 'dims: ',dims
 #endif
         !read the dataset
         ALLOCATE(xmi_hdf5F%ComptonPhi_ICDF(dims(1),dims(2),dims(3)))
@@ -194,7 +194,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         DO i=1,SIZE(uniqZ) 
                 WRITE (element, '(I2)') uniqZ(i)
 #if DEBUG == 1
-                WRITE (6,*) 'Reading element: ',element
+                WRITE (*,'(A,A)') 'Reading element: ',element
 #endif
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
 
@@ -287,12 +287,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !close hdf5 fortran interface
         CALL h5close_f(error)
 
-#if DEBUG == 1
+#if DEBUG == 2
         ASSOCIATE (layers => xmi_inputF%composition%layers)
         !create pointers
         DO j=1,SIZE(layers)
                 DO k=1,SIZE(layers(j)%Z) 
-                        WRITE (6,*) 'Z confirmation: ',&
+                        WRITE (*,*) 'Z confirmation: ',&
                         layers(j)%xmi_hdf5_Z_local(k)%Ptr%Z
                 ENDDO
         ENDDO
@@ -317,7 +317,7 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
 #if DEBUG == 1
-        WRITE (*,*) 'Entering xmi_free_hdf5_F'
+        WRITE (*,'(A)') 'Entering xmi_free_hdf5_F'
 #endif
 
         DEALLOCATE(xmi_hdf5F%RayleighPhi_ICDF)
@@ -329,7 +329,7 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         DEALLOCATE(xmi_hdf5F%ComptonRandomNumbers)
 
 #if DEBUG == 1
-        WRITE (*,*) 'Beyond primary deallocates'
+        WRITE (*,'(A)') 'Beyond primary deallocates'
 #endif
         DO i=1,SIZE(xmi_hdf5F%xmi_hdf5_Zs)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF)
@@ -366,8 +366,10 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         REAL (C_DOUBLE) :: hor_ver_ratio
         INTEGER (C_LONG) :: n_photons
         REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
-
-
+        INTEGER :: ipol
+        REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
+        INTEGER (C_LONG) :: photons_simulated = 0
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         !begin...
         
         rv = 0
@@ -381,7 +383,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         max_threads = omp_get_max_threads()
 
 #if DEBUG == 1
-        WRITE (6,*) 'num_threads: ', max_threads
+        WRITE (*,'(A,I)') 'num_threads: ', max_threads
 #endif
 
         ALLOCATE(seeds(max_threads))
@@ -390,7 +392,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
 #if DEBUG == 1
-        WRITE (*,*) 'seeds: ',seeds
+        WRITE (*,'(A,4I)') 'seeds: ',seeds
 #endif
 
 !
@@ -404,7 +406,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy)
+!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus)
 
 !
 !
@@ -424,7 +426,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 !
 !        ASSOCIATE (exc => inputF%excitation)
 !
-!       Note : Intel Fortran 11.1 seems to have a serious problem with ASSOCIATE
+!       Note : Intel Fortran 11.1 and 12.0 seem to have a serious problem with ASSOCIATE
 !       constructs when compiling with openMP
 !
 !
@@ -493,6 +495,22 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                 (exc%discrete(i)%vertical_intensity+ &
                 exc%discrete(i)%horizontal_intensity)
                 n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
+#if DEBUG == 1
+!$omp critical                        
+                WRITE (*,'(A,I)') 'n_photons: ',n_photons
+!$omp end critical                        
+#endif
+                !Calculate initial mu's
+                !ALLOCATE(initial_mus(inputF%composition%n_layers))
+                initial_mus = xmi_mu_calc(inputF%composition,&
+                exc%discrete(i)%energy)
+#if DEBUG == 1
+!$omp master             
+                DO j=1,SIZE(initial_mus)
+                        WRITE (*,'(F14.6)') initial_mus(j)
+                ENDDO
+!$omp end master             
+#endif
 
                 DO j=1,n_photons
                         !Allocate the photon
@@ -502,9 +520,40 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         !Calculate energy with rng
                         photon%energy = exc%discrete(i)%energy 
 
+                        ipol = MOD(n_photons,2)
+
                         !Calculate its initial coordinates and direction
                         CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
                         photon)
+
+                        !Calculate its weight and electric field...
+                        IF (ipol .EQ. 0) THEN
+                                !horizontal
+                                photon%weight = exc%discrete(i)%horizontal_intensity/inputF%general%n_photons_line 
+                                photon%elecv(1) = 1.0_C_DOUBLE
+                                photon%elecv(2) = 0.0_C_DOUBLE
+                                photon%elecv(3) = 0.0_C_DOUBLE
+                        ELSE
+                                !vertical
+                                photon%weight = exc%discrete(i)%vertical_intensity/inputF%general%n_photons_line 
+                                photon%elecv(1) = 0.0_C_DOUBLE
+                                photon%elecv(2) = 1.0_C_DOUBLE
+                                photon%elecv(3) = 0.0_C_DOUBLE
+                        ENDIF
+
+                        cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
+
+                        IF (ABS(cosalfa) .GT. 1.0) THEN
+                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                CALL EXIT(1)
+                        ENDIF
+
+                        c_alfa = ACOS(cosalfa)
+                        c_ae = 1.0/SIN(c_alfa)
+                        c_be = -c_ae*cosalfa
+
+                        photon%elecv = c_ae*photon%elecv + c_be*photon%dirv
+
 
                         !Calculate the electric field vector
                         !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
@@ -514,12 +563,19 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         !        !vertical polarization
                         !ENDIF
                         
-
+                        !shift the position towards the first layer
+                        !calculate the intersection with the first plane
+                        CALL &
+                        photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
 
 
 
                         DEALLOCATE(photon)
+!$omp critical                        
+                        photons_simulated = photons_simulated + 1
+!$omp end critical                        
                 ENDDO
+                DEALLOCATE(initial_mus)
         ENDDO disc 
 
 #undef exc
@@ -530,6 +586,11 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         CALL fgsl_rng_free(rng)
 
 !$omp end parallel
+
+#if DEBUG == 1
+        WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
+#endif
+
 
         rv = 1
 
@@ -1145,5 +1206,25 @@ CALL h5fclose_f(file_id,h5error)
 CALL h5close_f(h5error)
 
 
-ENDSUBROUTINE
+ENDSUBROUTINE xmi_db
+
+SUBROUTINE photon_shift_first_layer(photon, composition, geometry)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_composition), INTENT(IN) :: composition
+        TYPE (xmi_line) :: line
+        TYPE (xmi_plane) :: plane
+
+        !Calculate intersection of photon trajectory with plane of first layer
+        line%point = photon%coords
+        line%dirv  = photon%dirv
+
+        !d_sample_source is to be corrected with thicknesses of the layers
+        !preceding reference_layer...
+        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, geometry%d_sample_source]
+
+
+ENDSUBROUTINE photon_shift_first_layer
+
 ENDMODULE

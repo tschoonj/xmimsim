@@ -84,6 +84,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	//composition
 	(*B)->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
 	(*B)->composition->n_layers = (A)->composition->n_layers;
+	(*B)->composition->reference_layer = (A)->composition->reference_layer;
 	(*B)->composition->layers = (struct xmi_layer *) xmi_memdup((A)->composition->layers,((A)->composition->n_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < (A)->composition->n_layers ; i++) {
 		(*B)->composition->layers[i].Z = (int *) xmi_memdup((A)->composition->layers[i].Z,((A)->composition->layers[i].n_elements)*sizeof(int));
@@ -180,6 +181,9 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 
 	//composition
 	if (A->composition->n_layers != B->composition->n_layers) {
+		rv |= XMI_COMPARE_COMPOSITION;
+	}
+	else if (A->composition->reference_layer != B->composition->reference_layer) {
 		rv |= XMI_COMPARE_COMPOSITION;
 	}
 	else {
@@ -426,6 +430,7 @@ void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B)
 	//allocate space for B
 	*B = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
 	(*B)->n_layers = A->n_layers;
+	(*B)->reference_layer = A->reference_layer;
 	(*B)->layers = (struct xmi_layer *) xmi_memdup((A)->layers,((A)->n_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < (A)->n_layers ; i++) {
 		(*B)->layers[i].Z = (int *) xmi_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));

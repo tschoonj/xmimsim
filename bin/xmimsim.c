@@ -51,15 +51,24 @@ int main (int argc, char *argv[]) {
 
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
+#if DEBUG == 1
+	fprintf(stdout,"Finished reading the inputfile\n");
+#endif
 
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
+#if DEBUG == 1
+	fprintf(stdout,"Copied to Fortran variable\n");
+#endif
 
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5("xmimsimdata.h5",inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
+#if DEBUG == 1
+	fprintf(stdout,"Reading from HDF5 file\n");
+#endif
 
 
 
@@ -68,6 +77,9 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}
 
+#if DEBUG == 1
+	fprintf(stdout,"After MC simulation\n");
+#endif
 	
 
 

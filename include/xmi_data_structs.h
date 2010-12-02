@@ -27,6 +27,7 @@ struct xmi_layer {
 struct xmi_composition {
 	int n_layers;
 	struct xmi_layer *layers;
+	int reference_layer;
 };
 
 
