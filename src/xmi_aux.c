@@ -10,13 +10,20 @@ static int xmi_cmp_int(const void *a, const void *b);
 void *xmi_memdup(const void *mem, size_t bytes) {
 	void *temp;
 
-	if (mem == NULL || bytes == 0)
+	if (mem == NULL || bytes == 0) {
+#if DEBUG == 1
+		fprintf(stdout,"Warning: xmi_memdup returns NULL\n");
+#endif
 		return NULL;
+	}
 	
 	temp = (void*) malloc(bytes);
-	if (temp == NULL)
+	if (temp == NULL) {
+#if DEBUG == 1
+		fprintf(stdout,"Warning: xmi_memdup returns NULL\n");
+#endif
 		return NULL;
-
+	}
 	memcpy(temp,mem,bytes);
 
 	return temp;

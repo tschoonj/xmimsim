@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin
 
 bin_PROGRAMS = xmimsim-db xmimsim-harvester xmimsim-gui\
 	xmimsim-test xmimsim-test-xml\
@@ -13,7 +13,7 @@ xmimsim_harvester_SOURCES = xmimsim-harvester.c
 xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
-xmimsim_gui_SOURCES = xmimsim-gui.c
+xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h
 xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
 

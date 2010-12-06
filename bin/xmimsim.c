@@ -57,6 +57,13 @@ int main (int argc, char *argv[]) {
 
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
+
+	//initialization
+	if (xmi_init_input(&inputFPtr) == 0) {
+		return 1;
+	}
+
+
 #if DEBUG == 1
 	fprintf(stdout,"Copied to Fortran variable\n");
 #endif

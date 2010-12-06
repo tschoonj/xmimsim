@@ -1,10 +1,11 @@
-#include <gtk/gtk.h>
+#include "xmimsim-gui-layer.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
 #include <stdlib.h>
 #include <glib.h>
+#include <glib/gprintf.h>
 #include <xraylib.h>
 
 
@@ -28,6 +29,7 @@ static GtkToolItem *saveasT;
 static GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
+struct layerWidget *layerW;
 
 
 //composition
@@ -56,6 +58,7 @@ struct xmi_composition *compositionS;
 struct xmi_composition *exc_compositionS;
 struct xmi_composition *det_compositionS;
 struct xmi_composition *crystal_compositionS;
+struct xmi_layer *layer;
 
 
 
@@ -113,6 +116,8 @@ enum {
 	N_INTERACTIONS_TRAJECTORY,
 	COMPOSITION,
 	COMPOSITION_ORDER,
+	COMPOSITION_REFERENCE,
+	COMPOSITION_DELETE,
 };
 
 
@@ -121,6 +126,7 @@ enum {
 	ELEMENTS_COLUMN,
 	DENSITY_COLUMN,
 	THICKNESS_COLUMN,
+	REFERENCE_COLUMN,
 	NCOLUMNS_MATRIX
 };
 
@@ -148,8 +154,8 @@ static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer da
 
 
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, N_ELEMENTS_COLUMN, &n_elements, ELEMENTS_COLUMN, &elements, DENSITY_COLUMN, &density, THICKNESS_COLUMN, &thickness, -1);
 #if DEBUG == 1
+		gtk_tree_model_get(model, &iter, N_ELEMENTS_COLUMN, &n_elements, ELEMENTS_COLUMN, &elements, DENSITY_COLUMN, &density, THICKNESS_COLUMN, &thickness, -1);
 		fprintf(stdout,"n_elements: %i elements: %s density: %lf thickness: %lf\n",n_elements, elements, density, thickness);	
 		g_free(elements);
 #endif
@@ -185,26 +191,98 @@ static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer da
 			gtk_widget_set_sensitive(md->upButton,TRUE);
 			gtk_widget_set_sensitive(md->topButton,TRUE);
 		}
+		gtk_widget_set_sensitive(md->deleteButton,TRUE);
+		gtk_widget_set_sensitive(md->editButton,TRUE);
+		gtk_widget_set_sensitive(md->addButton,TRUE);
 
+	}
+	else {
+		gtk_widget_set_sensitive(md->downButton,FALSE);
+		gtk_widget_set_sensitive(md->bottomButton,FALSE);
+		gtk_widget_set_sensitive(md->upButton,FALSE);
+		gtk_widget_set_sensitive(md->topButton,FALSE);
+		gtk_widget_set_sensitive(md->deleteButton,FALSE);
+		gtk_widget_set_sensitive(md->editButton,FALSE);
+		gtk_widget_set_sensitive(md->addButton,TRUE);
 	}
 
 
 	return;
 } 
 
+struct matrix_reorder {
+	int kind;
+	GtkTreeSelection *select;
+	GtkListStore *store;
+	GtkWidget *addButton;
+	GtkWidget *editButton;
+	GtkWidget *deleteButton;
+	GtkWidget *topButton;
+	GtkWidget *upButton;
+	GtkWidget *downButton;
+	GtkWidget *bottomButton;
+};
+
+
 void layer_reordering_cb(GtkTreeModel *tree_model, GtkTreePath  *path,  GtkTreeIter  *iter, gpointer new_order, gpointer user_data) {
-	
+	struct matrix_reorder *mr = (struct matrix_reorder *) user_data;	
+	GtkTreeModel *model;
+	GtkTreeIter iter2,temp_iter;
+	int index, nindices;
+	gboolean valid;
+
 #if DEBUG == 1
 	fprintf(stdout,"Layer reordering detected\n");
 #endif
 
+	//after pushing the move buttons... their sensivity needs to be checked
+	if (gtk_tree_selection_get_selected(mr->select, &model, &iter2)) {
+		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+		index = 0;
+		nindices = 0;
+		while(valid) {
+			if (gtk_tree_selection_iter_is_selected(mr->select, &temp_iter)) {
+#if DEBUG == 1
+				fprintf(stdout,"Index: %i\n",nindices);
+#endif
+				index = nindices;
+			}
+			nindices++;
+			valid = gtk_tree_model_iter_next(model, &temp_iter);
+		}
+
+		if (index == 0) {
+			gtk_widget_set_sensitive(mr->downButton,TRUE);
+			gtk_widget_set_sensitive(mr->bottomButton,TRUE);
+			gtk_widget_set_sensitive(mr->upButton,FALSE);
+			gtk_widget_set_sensitive(mr->topButton,FALSE);
+		}
+		else if(index == nindices-1) {
+			gtk_widget_set_sensitive(mr->downButton,FALSE);
+			gtk_widget_set_sensitive(mr->bottomButton,FALSE);
+			gtk_widget_set_sensitive(mr->upButton,TRUE);
+			gtk_widget_set_sensitive(mr->topButton,TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(mr->downButton,TRUE);
+			gtk_widget_set_sensitive(mr->bottomButton,TRUE);
+			gtk_widget_set_sensitive(mr->upButton,TRUE);
+			gtk_widget_set_sensitive(mr->topButton,TRUE);
+		}
+		gtk_widget_set_sensitive(mr->deleteButton,TRUE);
+		gtk_widget_set_sensitive(mr->editButton,TRUE);
+		
+	}
 }
 
 enum {
 	BUTTON_UP,
 	BUTTON_DOWN,
 	BUTTON_TOP,
-	BUTTON_BOTTOM
+	BUTTON_BOTTOM,
+	BUTTON_DELETE,
+	BUTTON_EDIT,
+	BUTTON_ADD,
 };
 
 struct matrix_button {
@@ -227,6 +305,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gint *indices;
 	int i;
 	struct xmi_layer temp;
+	struct xmi_composition *composition;
 
 #if DEBUG == 1
 	if (mb->buttonKind == BUTTON_TOP)
@@ -237,7 +316,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"Bottom button clicked\n" );
 	else if (mb->buttonKind == BUTTON_UP)
 		fprintf(stdout,"Up button clicked\n" );
+	else if (mb->buttonKind == BUTTON_DELETE)
+		fprintf(stdout,"Delete button clicked\n" );
 #endif
+	if (mb->matrixKind == COMPOSITION)
+		composition = compositionS;
+
 
 	//the olde switcharooooo
 	if (gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
@@ -260,42 +344,174 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 		if (mb->buttonKind == BUTTON_TOP) {
 			temp = compositionS->layers[index]; 
-			compositionS->layers[index] = compositionS->layers[0];
-			compositionS->layers[0] = temp;
 			indices[0] = index;
-			indices[index] = 0;
+			for (i = 1 ; i < index+1 ; i++) {
+				indices[i] = i-1;
+
+			}
+			for (i = index ; i > 0 ; i--) {
+				composition->layers[i] = composition->layers[i-1];
+			}
+			composition->layers[0] = temp;
+
+			if (mb->matrixKind == COMPOSITION) {
+				if (composition->reference_layer == index+1) {
+					//reference_layer is moved...
+					composition->reference_layer = 1;
+				}
+				else if (composition->reference_layer < index+1)
+					composition->reference_layer++;
+			}
+			gtk_list_store_reorder(mb->store,indices);	
+			if (mb->matrixKind == COMPOSITION)
+				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_BOTTOM) {
-			temp = compositionS->layers[index]; 
-			compositionS->layers[index] = compositionS->layers[nindices-1];
-			compositionS->layers[nindices-1] = temp;
+			temp = composition->layers[index]; 
 			indices[nindices-1] = index;
-			indices[index] = nindices-1;
+			for (i = nindices-2 ; i >= index ; i--)
+				indices[i] = i+1;
+			for (i = index ; i < nindices-1 ; i++)
+				composition->layers[i] = composition->layers[i+1];
+			composition->layers[nindices-1] = temp;
+
+			if (mb->matrixKind == COMPOSITION) {
+				if (composition->reference_layer == index+1) {
+					//reference_layer is moved...
+					composition->reference_layer = nindices;
+				}
+				else if (composition->reference_layer > index-1)
+					composition->reference_layer--;
+			}	
+			gtk_list_store_reorder(mb->store,indices);	
+			if (mb->matrixKind == COMPOSITION)
+				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_UP) {
-			temp = compositionS->layers[index]; 
-			compositionS->layers[index] = compositionS->layers[index-1];
-			compositionS->layers[index-1] = temp;
+			temp = composition->layers[index]; 
+			composition->layers[index] = composition->layers[index-1];
+			composition->layers[index-1] = temp;
 			indices[index-1] = index;
 			indices[index] = index-1;
+
+			if (mb->matrixKind == COMPOSITION) {
+				if (composition->reference_layer == index+1) {
+					//reference_layer is moved...
+					composition->reference_layer = index;
+				}
+				else if (composition->reference_layer == index)
+					composition->reference_layer++;
+			}
+			gtk_list_store_reorder(mb->store,indices);	
+			if (mb->matrixKind == COMPOSITION)
+				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_DOWN) {
-			temp = compositionS->layers[index]; 
-			compositionS->layers[index] = compositionS->layers[index+1];
-			compositionS->layers[index+1] = temp;
+			temp = composition->layers[index]; 
+			composition->layers[index] = composition->layers[index+1];
+			composition->layers[index+1] = temp;
 			indices[index+1] = index;
 			indices[index] = index+1;
+			if (mb->matrixKind == COMPOSITION) {
+				if (composition->reference_layer == index+1) {
+					//reference_layer is moved...
+					composition->reference_layer = index+2;
+				}
+				else if (composition->reference_layer == index+2)
+					composition->reference_layer--;
+			}
+			gtk_list_store_reorder(mb->store,indices);	
+			if (mb->matrixKind == COMPOSITION)
+				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
-		gtk_list_store_reorder(mb->store,indices);	
-#if DEBUG == 1
-		fprintf(stdout,"store pointer before %p\n",mb->store);
-#endif
-		update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+		else if (mb->buttonKind == BUTTON_DELETE) {
+			//delete the selected line
+			//watch out for reference layer... for now... leave it to the user
+			//update composition
+			for (i = index ;  i < nindices ; i++)
+				composition->layers[i] = composition->layers[i+1];
+			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+			composition->n_layers--;
+			gtk_list_store_remove(mb->store,&iter);
+			if (mb->matrixKind == COMPOSITION)
+				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+		}
+		else if (mb->buttonKind == BUTTON_ADD) {
+			//add line... testing only for now...
+			gtk_widget_show_all(layerW->window);
+		}
+
+
+		else {
+			fprintf(stdout,"Unknown button clicked\n");
+			exit(1);
+		}
+
 	}
 
 
 	return;
 }
+
+struct reference_toggle {
+	GtkListStore *store;
+	GtkTreeModel *model;
+};
+
+static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *path, gpointer data) {
+	struct reference_toggle *rt = (struct reference_toggle *) data;
+	GtkTreeIter iter,iter2;
+	GValue reference = {0};
+	int i;
+	gboolean valid;
+	GtkTreePath *tpath, *tpath2;
+	int new_reference;
+
+
+#if DEBUG == 1
+	fprintf(stdout,"reference_layer_toggled: path: %s\n",path);
+#endif
+
+	tpath=gtk_tree_path_new_from_string(path);
+	
+	//convert path to iter
+	if (gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(rt->store), &iter, path) == FALSE) {
+		fprintf(stdout,"Error in reference_layer_toggled_cb\n");
+		exit(1);
+	}
+
+	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(rt->store), &iter2);
+
+	while (valid) {
+		tpath2=gtk_tree_model_get_path(GTK_TREE_MODEL(rt->store), &iter2);
+		g_value_init(&reference, G_TYPE_BOOLEAN);
+		g_value_set_boolean(&reference, (gtk_tree_path_compare(tpath,tpath2) == 0)?TRUE:FALSE);
+		gtk_list_store_set_value(rt->store, &iter2, REFERENCE_COLUMN, &reference);
+		g_value_unset(&reference);
+		gtk_tree_path_free(tpath2);	
+		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(rt->store), &iter2);
+	}
+	gtk_tree_path_free(tpath);	
+
+	//update compositionS if necessary
+	new_reference = 1+ (int) g_ascii_strtoll(path, NULL, 10);
+	if (new_reference != compositionS->reference_layer) {
+		compositionS->reference_layer = new_reference;
+		//update undo buffer
+		update_undo_buffer(COMPOSITION_REFERENCE, (GtkWidget *) rt->store);
+	}
+}
+
+void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
+
+#if DEBUG == 1
+	fprintf(stdout,"row activation detected\n");
+#endif
+
+	return;
+}
+
+
 
 
 GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
@@ -318,6 +534,9 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	GtkRequisition size;
 	struct matrix_data *md;
 	struct matrix_button *mb;
+	struct reference_toggle *rt;
+	struct matrix_reorder *mr;
+	GtkWidget *scrolledWindow;
 
 	int i,j;
 
@@ -328,7 +547,13 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mainbox = gtk_hbox_new(FALSE, 5);
 	mainbox2 = gtk_vbox_new(FALSE, 5);
 
-	store = gtk_list_store_new(NCOLUMNS_MATRIX, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+
+	if (kind == COMPOSITION)
+		store = gtk_list_store_new(NCOLUMNS_MATRIX, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_BOOLEAN);
+	else
+		store = gtk_list_store_new(NCOLUMNS_MATRIX-1, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+
+
 
 	for (i=0 ; i < composition->n_layers ; i++) {
 		gtk_list_store_append(store, &iter);
@@ -340,22 +565,33 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 				strcat(elementString,", ");
 			}
 		}
-		gtk_list_store_set(store, &iter,
+		if (kind == COMPOSITION) {
+			gtk_list_store_set(store, &iter,
+				N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+				ELEMENTS_COLUMN,elementString,
+				DENSITY_COLUMN,composition->layers[i].density,
+				THICKNESS_COLUMN,composition->layers[i].thickness,
+				REFERENCE_COLUMN,(i+1 == composition->reference_layer) ? TRUE : FALSE,
+				-1
+				);
+		}
+		else {
+			gtk_list_store_set(store, &iter,
 				N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
 				ELEMENTS_COLUMN,elementString,
 				DENSITY_COLUMN,composition->layers[i].density,
 				THICKNESS_COLUMN,composition->layers[i].thickness,
 				-1
 				);
+		}
+	
 		free(elementString);
 	}
 
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-	//gtk_tree_view_set_reorderable(GTK_TREE_VIEW(tree),TRUE);
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Number of elements", renderer,"text",N_ELEMENTS_COLUMN,NULL);
-	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -363,7 +599,6 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Elements", renderer,"text",ELEMENTS_COLUMN,NULL);
-	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -384,10 +619,28 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
-
-
-	gtk_widget_size_request(tree,&size);
-	gtk_box_pack_start(GTK_BOX(mainbox),tree, FALSE, FALSE,3 );
+	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(matrix_row_activated_cb), NULL);
+	
+	if (kind == COMPOSITION) {
+		rt = (struct reference_toggle *) malloc(sizeof(struct reference_toggle));
+		rt->store = store;
+		rt->model = (GtkTreeModel *) tree;
+		renderer = gtk_cell_renderer_toggle_new();
+		gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+		gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+		g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(reference_layer_toggled_cb), rt);
+		column = gtk_tree_view_column_new_with_attributes("Reference layer?", renderer,"active",REFERENCE_COLUMN,NULL);
+		gtk_tree_view_column_set_resizable(column,TRUE);
+		gtk_tree_view_column_set_alignment(column, 0.5);
+		gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	}
+	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	//gtk_widget_size_request(scrolledWindow,&size);
+	gtk_widget_set_size_request(scrolledWindow, 550,100);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledWindow), tree);
+	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
 	
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
@@ -405,31 +658,36 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_widget_set_sensitive(upButton, FALSE);
 	gtk_widget_set_sensitive(downButton, FALSE);
 	gtk_widget_set_sensitive(bottomButton, FALSE);
-	//signals -> let's create some nice memory leaks...
+	//signals -> let's create some nice memory leaks..
+	//TOP button
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_TOP;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(topButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	//BOTTOM button
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_BOTTOM;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(bottomButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	//UP button
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_UP;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(upButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	//DOWN button
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_DOWN;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(downButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+
 	
 
 
@@ -447,8 +705,26 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_box_pack_start(GTK_BOX(buttonbox), editButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), deleteButton, TRUE, FALSE, 3);
 
-	gtk_box_pack_end(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainbox2), mainbox, FALSE, FALSE, 2);
+
+	gtk_widget_set_sensitive(editButton, FALSE);
+	gtk_widget_set_sensitive(deleteButton, FALSE);
+	//DELETE
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_DELETE;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(deleteButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+
+	//ADD
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_ADD;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(addButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 
 	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
 	md->topButton = topButton;
@@ -464,7 +740,19 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 			G_CALLBACK(layer_selection_changed_cb),
 			(gpointer) md
 		);
-	g_signal_connect(G_OBJECT(store), "rows-reordered", G_CALLBACK(layer_reordering_cb), GINT_TO_POINTER(COMPOSITION));	
+
+	mr = (struct matrix_reorder *) malloc(sizeof(struct matrix_reorder));
+	mr->kind=COMPOSITION;
+	mr->select=select;
+	mr->store=store;
+	mr->topButton = topButton;
+	mr->upButton = upButton;
+	mr->downButton = downButton;
+	mr->bottomButton = bottomButton;
+	mr->editButton = editButton;
+	mr->addButton = addButton;
+	mr->deleteButton = deleteButton;
+	g_signal_connect(G_OBJECT(store), "rows-reordered", G_CALLBACK(layer_reordering_cb), (gpointer) mr);	
 	if (kind == COMPOSITION) {
 		compositionW = tree;
 		xmi_copy_composition(composition,&compositionS);	
@@ -515,6 +803,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_interactions_trajectoryG);
 			break;
 		case COMPOSITION_ORDER:
+		case COMPOSITION_REFERENCE:
+		case COMPOSITION_DELETE:
 			//clear list and repopulate
 			store = (GtkListStore *) (current)->widget;
 #if DEBUG == 1
@@ -536,10 +826,14 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					ELEMENTS_COLUMN,elementString,
 					DENSITY_COLUMN,(current-1)->xi->composition->layers[i].density,
 					THICKNESS_COLUMN,(current-1)->xi->composition->layers[i].thickness,
+					REFERENCE_COLUMN,(i+1 == (current-1)->xi->composition->reference_layer) ? TRUE : FALSE,
 					-1
 					);
 				free(elementString);
 			}
+#if DEBUG == 1
+
+#endif
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
@@ -603,6 +897,8 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_interactions_trajectoryG);
 			break;
 		case COMPOSITION_ORDER:
+		case COMPOSITION_REFERENCE:
+		case COMPOSITION_DELETE:
 			//clear list and repopulate
 			store = (GtkListStore *) (current+1)->widget;
 			gtk_list_store_clear(store);
@@ -621,6 +917,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					ELEMENTS_COLUMN,elementString,
 					DENSITY_COLUMN,(current+1)->xi->composition->layers[i].density,
 					THICKNESS_COLUMN,(current+1)->xi->composition->layers[i].thickness,
+					REFERENCE_COLUMN,(i+1 == (current+1)->xi->composition->reference_layer) ? TRUE : FALSE,
 					-1
 					);
 				free(elementString);
@@ -629,6 +926,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_composition((current+1)->xi->composition, &compositionS);
 			break;
 	
+
 	}
 
 	
@@ -777,6 +1075,19 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
 #endif
 			break;
+		case COMPOSITION_REFERENCE:
+			strcpy(last->message, "change of reference layer");
+			last->xi->composition->reference_layer = compositionS->reference_layer;
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case COMPOSITION_DELETE:
+			strcpy(last->message,"removal of layer");
+			xmi_free_composition(last->xi->composition);
+			xmi_copy_composition(compositionS, &(last->xi->composition));
+			last->kind = kind;
+			last->widget = widget;
+			break;
 			
 	} 
 	current = last;
@@ -839,10 +1150,16 @@ int main (int argc, char *argv[]) {
  *
  */
 
+	//g_type_init
+	g_type_init();
+
+
 	//initialize undo system
 	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single ));		
 	current = redo_buffer;
 	last = current;
+
+
 
 #if DEBUG == 1
 	fprintf(stdout,"Initial undo buffer pointers\n");
@@ -876,9 +1193,11 @@ int main (int argc, char *argv[]) {
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM");
-	gtk_window_set_default_size(GTK_WINDOW(window),700,500);
+	gtk_window_set_default_size(GTK_WINDOW(window),800,800);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
+	//initialize layer widget
+	layerW = initialize_layer_widget(layer);
 
 	Main_vbox = gtk_vbox_new(FALSE,0);
 	gtk_container_add(GTK_CONTAINER(window),Main_vbox);
@@ -956,7 +1275,7 @@ int main (int argc, char *argv[]) {
 	frame = gtk_frame_new("General");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
-	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(frame)), "<span size=\"large\">General</span>");
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">General</span>");
 
 	//Append general
 	superframe = gtk_vbox_new(FALSE,5);
@@ -1026,7 +1345,7 @@ int main (int argc, char *argv[]) {
 	frame = gtk_frame_new("Composition");
 
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
-	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(frame)), "<span size=\"large\">Composition</span>");
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Composition</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),tempW);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);

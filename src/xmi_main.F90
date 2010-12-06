@@ -266,7 +266,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
                 DEALLOCATE(dims)
                 DEALLOCATE(maxdims)
-                ASSOCIATE (layers => xmi_inputF%composition%layers)
+                ASSOCIATE (layers => xmi_inputF%composition%layers, &
+                n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
                 !create pointers
                 DO j=1,SIZE(layers)
                         IF (.NOT. ALLOCATED(layers(j)%xmi_hdf5_Z_local)) & 
@@ -275,26 +276,56 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                                 IF (layers(j)%Z(k) == uniqZ(i)) &
                                 layers(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)   
                         ENDDO
+
                 ENDDO
+
                 ENDASSOCIATE
 
         ENDDO
 
+        ASSOCIATE (layers => xmi_inputF%composition%layers, &
+        n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
+        DO j=1,SIZE(layers)
+                !calculate thickness in Z direction
+                layers(j)%thickness_along_Z = &
+                layers(j)%thickness/SIN(ATAN(n_sample_orientation(3)/n_sample_orientation(2)))
+        ENDDO
 
+        layers(xmi_inputF%composition%reference_layer)%Z_coord_begin =&
+        0.0_C_DOUBLE
+        layers(xmi_inputF%composition%reference_layer)%Z_coord_end =&
+        layers(xmi_inputF%composition%reference_layer)%thickness_along_Z
+
+        DO j=xmi_inputF%composition%reference_layer+1,SIZE(layers)
+                layers(j)%Z_coord_begin =layers(j-1)%Z_coord_end
+                layers(j)%Z_coord_end = layers(j)%Z_coord_begin+layers(j)%thickness_along_Z
+        ENDDO
+        DO j=xmi_inputF%composition%reference_layer-1,1,-1
+                layers(j)%Z_coord_end = layers(j+1)%Z_coord_begin
+                layers(j)%Z_coord_begin = layers(j)%Z_coord_end-layers(j)%thickness_along_Z
+        ENDDO
+
+
+        ENDASSOCIATE
         !close file
         CALL h5fclose_f(file_id,error)
 
         !close hdf5 fortran interface
         CALL h5close_f(error)
 
-#if DEBUG == 2
+#if DEBUG == 1
         ASSOCIATE (layers => xmi_inputF%composition%layers)
         !create pointers
         DO j=1,SIZE(layers)
                 DO k=1,SIZE(layers(j)%Z) 
-                        WRITE (*,*) 'Z confirmation: ',&
+                        WRITE (*,'(A,I)') 'Z confirmation: ',&
                         layers(j)%xmi_hdf5_Z_local(k)%Ptr%Z
                 ENDDO
+                WRITE (*,'(A,F14.6)') 'thickness: ',layers(j)%thickness
+                WRITE (*,'(A,F14.6)') 'thickness_along_Z: ',&
+                layers(j)%thickness_along_Z
+                WRITE (*,'(A,F14.6)') 'Z_coord_begin: ',layers(j)%Z_coord_begin
+                WRITE (*,'(A,F14.6)') 'Z_coord_end: ',layers(j)%Z_coord_end
         ENDDO
         ENDASSOCIATE
 #endif
@@ -519,6 +550,9 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         NULLIFY(photon%offspring)
                         !Calculate energy with rng
                         photon%energy = exc%discrete(i)%energy 
+                        photon%energy_changed=.FALSE.
+                        photon%mus = initial_mus
+                        photon%current_layer = 1
 
                         ipol = MOD(n_photons,2)
 
@@ -565,9 +599,23 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         
                         !shift the position towards the first layer
                         !calculate the intersection with the first plane
+#if DEBUG == 1
+!$omp critical                        
+                        WRITE (*,'(A,3F12.6)') 'Coords before shift',&
+                        photon%coords
+!$omp end critical
+#endif
                         CALL &
-                        photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
+                        xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
 
+#if DEBUG == 1
+!$omp critical                        
+                        WRITE (*,'(A,3F12.6)') 'Coords after shift',&
+                        photon%coords
+!$omp end critical
+#endif
+
+                        !CALL xmi_simulate_photon(photon, inputF, hdf5F,rng)
 
 
                         DEALLOCATE(photon)
@@ -1208,7 +1256,7 @@ CALL h5close_f(h5error)
 
 ENDSUBROUTINE xmi_db
 
-SUBROUTINE photon_shift_first_layer(photon, composition, geometry)
+SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_geometry), INTENT(IN) :: geometry
@@ -1222,9 +1270,181 @@ SUBROUTINE photon_shift_first_layer(photon, composition, geometry)
 
         !d_sample_source is to be corrected with thicknesses of the layers
         !preceding reference_layer...
-        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, geometry%d_sample_source]
+        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+        composition%layers(1)%Z_coord_begin]
+        plane%normv = geometry%n_sample_orientation
 
+        IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0)  &
+                CALL EXIT(1)
 
-ENDSUBROUTINE photon_shift_first_layer
+        RETURN
+ENDSUBROUTINE xmi_photon_shift_first_layer
+
+FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: rv
+
+        LOGICAL :: terminated, inside
+        REAL (C_DOUBLE) :: interactionR
+        INTEGER (C_INT) :: i,j,k
+        TYPE (xmi_plane) :: plane
+        TYPE (xmi_line) :: line
+        REAL (C_DOUBLE), DIMENSION(3) :: intersect
+        REAL (C_DOUBLE) :: dist, max_random_layer, min_random_layer
+        REAL (C_DOUBLE) :: dist_prev, tempexp
+        INTEGER (C_INT) :: step_do_max, step_do_dir
+
+        rv = 0
+        terminated = .FALSE.
+
+        main:DO
+                !
+                !
+                !       Calculate steplength
+                !
+                !
+                
+                !Check in which layer it will interact
+                inside = .FALSE.
+                interactionR = fgsl_rng_uniform(rng)
+                min_random_layer = 0.0_C_DOUBLE
+                max_random_layer = 0.0_C_DOUBLE
+                !recalculate mus if necessary
+                IF (photon%energy_changed .EQ. .TRUE.) THEN
+                        DEALLOCATE(photon%initial_mus)
+                        mus = xmi_mu_calc(inputF%composition,&
+                        photon%energy)
+                        photon%energy_changed = .FALSE.
+                ENDIF
+        
+                IF (photon%dirv(3) .GT. 0.0_C_DOUBLE) THEN
+                        !moving towards higher layers
+                        step_do_max = inputF%composition%n_layers
+                        step_do_dir = 1
+                ELSE
+                        !moving towards lower layers
+                        step_do_max = 1 
+                        step_do_dir = -1
+                ENDIF
+
+                line%dirv  = photon%dirv
+                plane%normv = inputF%geometry%n_sample_orientation
+                dist_prev = 0.0_C_DOUBLE
+
+                DO i=photon%current_layer,step_do_max, step_do_dir
+                        !calculate distance between current coords and
+                        !intersection with next layer
+                        !determine next plane
+                        line%point = photon%coords
+                        IF (step_do_dir .EQ. 1) THEN
+                                plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                inputF%composition%layers(i)%Z_coord_end]
+                        ELSE
+                                plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                inputF%composition%layers(i)%Z_coord_begin]
+                        ENDIF
+
+                        IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                CALL EXIT(1)
+                        
+                        dist = xmi_distance_two_points(photon%coords,intersect)
+                        
+                        !calculate max value of random number
+                        tempexp = EXP(-1.0_C_DOUBLE*dist_prev*inputF%composition%layers(i)%density*&
+                        photon%mus(i))
+                        min_random_layer = max_random_layer
+                        max_random_layer = max_random_layer + 
+                        (tempexp - &
+                        EXP(-1.0_C_DOUBLE*dist*inputF%composition%layers(i)%density*&
+                        photon%mus(i)))
+                       
+                        IF (interactionR .LE. max_random_layer) THEN
+                                !interaction occurs in this layer!!!
+                                !update coordinates of photon
+                                dist = -1.0_C_DOUBLE*LOG(-1.0_C_DOUBLE*interactionR+min_random_layer+tempexp)&
+                                /photon%mus(i)/inputF%composition%layers(i)%density
+                                
+                                CALL xmi_move_photon_with_dist(photon,dist)
+                                !update current_layer
+                                photon%current_layer = i
+                                inside = .TRUE.
+                                !exit loop and calculate interaction type
+                                EXIT
+                        ELSE
+                                !goto next layer
+                                !coordinates equal to layer boundaries
+                                photon%coords = intersect
+                        
+                                !check if we are not leaving the system!
+                        ENDIF
+                ENDDO
+
+                IF (inside .EQ. .FALSE.) THEN
+                        !photon has left the system
+                        !check if it will make it to the detector
+                ENDIF
+
+        ENDDO main
+
+ENDFUNCTION xmi_simulate_photon
+
+FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN) :: xmi_inputFPtr
+        INTEGER (C_INT) :: rv
+
+        TYPE (xmi_input), POINTER :: inputF
+
+        !associate pointers
+        CALL C_F_POINTER(inputFPtr, inputF)
+
+        !investigate detector
+        inputF%detector%detector_radius = SQRT(inputF%geometry%area_detector/M_PI)
+        IF (inputF%geometry%acceptance_detector .GE. M_PI) THEN
+                inputF%detector%collimator_present = .FALSE.
+                inputF%detector%collimator_height = 0.0_C_DOUBLE 
+        ELSE
+                inputF%detector%collimator_present = .TRUE.
+                inputF%detector%collimator_height = inputF%detector%detector_radius&
+                *2.0_C_DOUBLE/TAN(inputF%geometry%acceptance_detector/2.0_C_DOUBLE) 
+        ENDIF
+
+        inputF%detector%n_detector_orientation_new_x = &
+        inputF%geometry%n_detector_orientation
+        IF (ABS(DOT_PRODUCT(inputF%detector%n_detector_orientation_new_x,[1.0,0.0,0.0]))-1.0_C_DOUBLE .LT. 1.0E-6) THEN
+                !use y for cross product
+                inputF%detector%n_detector_orientation_new_y = [0.0,1.0,0.0] 
+        ELSE
+                !use x
+                inputF%detector%n_detector_orientation_new_y = [0.0,1.0,0.0] 
+        ENDIF
+ENDFUNCTION xmi_init_input
+
+FUNCTION cross_product(a,b) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: a,b
+        REAL (C_DOUBLE), DIMENSION(3) :: rv
+
+        rv(1) = a(2)*b(3)-a(3)*b(2)
+        rv(2) = a(3)*b(1)-a(1)*b(3)
+        rv(3) = a(1)*b(3)-a(3)*b(1)
+
+        RETURN
+ENDFUNCTION cross_product
+
+SUBROUTINE normalize_vector(a)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(INOUT) :: a
+        REAL (C_DOUBLE) :: norm
+
+        norm = SQRT(a(1)*a(1) + a(2)*a(2) + a(3)*a(3))
+
+        a = a/norm
+
+ENDSUBROUTINE normalize_vector
 
 ENDMODULE

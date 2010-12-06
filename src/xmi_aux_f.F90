@@ -89,6 +89,9 @@ TYPE :: xmi_layer
         REAL (C_DOUBLE) :: density
         REAL (C_DOUBLE) :: thickness
         TYPE (xmi_hdf5_ZPtr), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Z_local
+        REAL (C_DOUBLE) :: thickness_along_Z
+        REAL (C_DOUBLE) :: Z_coord_begin
+        REAL (C_DOUBLE) :: Z_coord_end
 ENDTYPE
 
 !  xmi_composition
@@ -189,6 +192,13 @@ TYPE :: xmi_detector
         REAL (C_DOUBLE) :: max_convolution_energy
         INTEGER (C_INT) :: n_crystal_layers
         TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: crystal_layers
+        !below is not present in C variable!!!
+        LOGICAL :: collimator_present
+        REAL (C_DOUBLE) :: detector_radius
+        REAL (C_DOUBLE) :: collimator_height
+        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_x
+        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_y
+        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_z
 ENDTYPE
 
 !  xmi_input
@@ -243,13 +253,16 @@ TYPE :: xmi_photon
         REAL (C_DOUBLE) :: phi 
 
         !energy changed from initial
-        LOGICAL (C_BOOL) :: energy_changed
-
-        !initial mu's
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
+        LOGICAL :: energy_changed
 
         !weight of the photon
         REAL (C_DOUBLE) :: weight
+
+        !mus
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
+
+        !current_layer
+        INTEGER (C_INT) :: current_layer
 ENDTYPE
 
 !
@@ -732,6 +745,74 @@ FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
         RETURN
 ENDFUNCTION
 
+FUNCTION xmi_intersection_plane_line(plane, line, point) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_plane), INTENT(IN) :: plane
+        TYPE (xmi_line), INTENT(IN) :: line
+        REAL (C_DOUBLE), INTENT(INOUT), DIMENSION(3) :: point
+        INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE) :: ItimesN,d
+
+
+        rv = 0
+
+        ItimesN = DOT_PRODUCT(line%dirv,plane%normv)
+
+        IF (ItimesN .EQ. 0.0_C_DOUBLE) THEN
+                WRITE (*,'(A)') 'Parallel plane and line found'
+                RETURN
+        ENDIF
+
+        d = DOT_PRODUCT(plane%point-line%point, plane%normv)/ItimesN
+
+        point = d*line%dirv+line%point
+
+        rv = 1
+
+        RETURN
+ENDFUNCTION xmi_intersection_plane_line
+
+FUNCTION xmi_distance_two_points(point1, point2) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN), DIMENSION(3) :: point1, point2
+        REAL (C_DOUBLE) :: rv
+        
+        rv = SQRT((point1(1)-point2(1))**2 + &
+                (point1(2)-point2(2))**2 + &
+                (point1(3)-point2(3))**2)
+
+        RETURN 
+ENDFUNCTION xmi_distance_two_points
+
+SUBROUTINE xmi_move_photon_with_dist(photon, dist)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) photon
+        REAL (C_DOUBLE), INTENT(IN) :: dist
+
+        REAL (C_DOUBLE) :: theta, phi
+
+        !photon%dirv are normalized...
+        theta = ASIN(photon%dirv(3))
+        phi = ATAN(photon%dirv(2)/photon%dirv(1))
+
+        photon%coords(1) = photon%coords(1) + dist*COS(theta)*COS(phi)
+        photon%coords(2) = photon%coords(2) + dist*COS(theta)*SIN(phi)
+        photon%coords(3) = photon%coords(3) + dist*SIN(theta)
+
+        RETURN
+ENDSUBROUTINE xmi_move_photon_with_dist
+
+FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(IN) :: photon
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        LOGICAL :: rv
+
+        !assume 
+
+
+        RETURN
+ENDFUNCTION xmi_check_photon_detector_hit
 
 
 
