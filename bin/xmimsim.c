@@ -55,9 +55,16 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Finished reading the inputfile\n");
 #endif
 
+	if (rv != 1) {
+		return 1;
+	}
+
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
+#if DEBUG == 1
+	fprintf(stdout,"Copied to Fortran variable\n");
+#endif
 	//initialization
 	if (xmi_init_input(&inputFPtr) == 0) {
 		return 1;
@@ -65,9 +72,8 @@ int main (int argc, char *argv[]) {
 
 
 #if DEBUG == 1
-	fprintf(stdout,"Copied to Fortran variable\n");
+	fprintf(stdout,"xmi_init_input called\n");
 #endif
-
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5("xmimsimdata.h5",inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");

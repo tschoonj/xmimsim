@@ -199,6 +199,8 @@ TYPE :: xmi_detector
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_x
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_y
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_z
+        REAL (C_DOUBLE), DIMENSION(3,3) :: n_detector_orientation_inverse
+        REAL (C_DOUBLE), DIMENSION(3,3) :: n_detector_orientation_new
 ENDTYPE
 
 !  xmi_input
@@ -263,6 +265,9 @@ TYPE :: xmi_photon
 
         !current_layer
         INTEGER (C_INT) :: current_layer
+
+        !
+        LOGICAL :: detector_hit
 ENDTYPE
 
 !
@@ -308,6 +313,14 @@ FUNCTION xmi_get_random_numbers(numbers, n) BIND(C,NAME='xmi_get_random_numbers'
         INTEGER (C_LONG), VALUE :: n
         INTEGER (C_INT) :: xmi_get_random_numbers
 ENDFUNCTION xmi_get_random_numbers
+
+!interface for xmi_inverse_matrix function
+SUBROUTINE xmi_inverse_matrix(x, y, z, inverse) BIND(C,NAME='xmi_inverse_matrix')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
+        TYPE (C_PTR), INTENT(INOUT) :: inverse
+ENDSUBROUTINE
 
 ENDINTERFACE
 
@@ -786,7 +799,7 @@ ENDFUNCTION xmi_distance_two_points
 
 SUBROUTINE xmi_move_photon_with_dist(photon, dist)
         IMPLICIT NONE
-        TYPE (xmi_photon), INTENT(INOUT) photon
+        TYPE (xmi_photon), INTENT(INOUT)  :: photon
         REAL (C_DOUBLE), INTENT(IN) :: dist
 
         REAL (C_DOUBLE) :: theta, phi
@@ -802,18 +815,45 @@ SUBROUTINE xmi_move_photon_with_dist(photon, dist)
         RETURN
 ENDSUBROUTINE xmi_move_photon_with_dist
 
-FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
+FUNCTION cross_product(a,b) RESULT(rv)
         IMPLICIT NONE
-        TYPE (xmi_photon), INTENT(IN) :: photon
-        TYPE (xmi_input), INTENT(IN) :: inputF
-        LOGICAL :: rv
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: a,b
+        REAL (C_DOUBLE), DIMENSION(3) :: rv
 
-        !assume 
+        rv(1) = a(2)*b(3)-a(3)*b(2)
+        rv(2) = a(3)*b(1)-a(1)*b(3)
+        rv(3) = a(1)*b(2)-a(2)*b(1)
 
+#if DEBUG == 1
+        WRITE (*,'(A)') 'cross product'
+        WRITE (*,'(3F12.5)') a
+        WRITE (*,'(3F12.5)') b
+        WRITE (*,'(3F12.5)') rv
+#endif
 
         RETURN
-ENDFUNCTION xmi_check_photon_detector_hit
+ENDFUNCTION cross_product
 
+SUBROUTINE normalize_vector(a)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(INOUT) :: a
+        REAL (C_DOUBLE) :: norm
+
+        norm = SQRT(a(1)*a(1) + a(2)*a(2) + a(3)*a(3))
+
+        a = a/norm
+
+ENDSUBROUTINE normalize_vector
+
+FUNCTION norm(a)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: a
+        REAL (C_DOUBLE) :: norm
+
+        norm = SQRT(DOT_PRODUCT(a,a))
+        
+        RETURN
+ENDFUNCTION
 
 
 ENDMODULE

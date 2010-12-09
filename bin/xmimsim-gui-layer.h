@@ -8,5 +8,5 @@ struct layerWidget {
 	
 };
 
-struct layerWidget * initialize_layer_widget(struct xmi_layer *); 
+struct layerWidget * initialize_layer_widget(struct xmi_layer **); 
 

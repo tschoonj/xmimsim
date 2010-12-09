@@ -438,6 +438,9 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (mb->buttonKind == BUTTON_ADD) {
 			//add line... testing only for now...
+#if DEBUG == 1
+			fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
+#endif
 			gtk_widget_show_all(layerW->window);
 		}
 
@@ -1150,6 +1153,8 @@ int main (int argc, char *argv[]) {
  *
  */
 
+	//let's use the default C locale
+	gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
 
@@ -1197,7 +1202,7 @@ int main (int argc, char *argv[]) {
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
 	//initialize layer widget
-	layerW = initialize_layer_widget(layer);
+	layerW = initialize_layer_widget(&layer);
 
 	Main_vbox = gtk_vbox_new(FALSE,0);
 	gtk_container_add(GTK_CONTAINER(window),Main_vbox);

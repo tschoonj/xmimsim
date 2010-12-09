@@ -292,9 +292,10 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDDO
 
         layers(xmi_inputF%composition%reference_layer)%Z_coord_begin =&
-        0.0_C_DOUBLE
+        0.0_C_DOUBLE+xmi_inputF%geometry%d_sample_source
         layers(xmi_inputF%composition%reference_layer)%Z_coord_end =&
-        layers(xmi_inputF%composition%reference_layer)%thickness_along_Z
+        layers(xmi_inputF%composition%reference_layer)%thickness_along_Z+&
+        xmi_inputF%geometry%d_sample_source
 
         DO j=xmi_inputF%composition%reference_layer+1,SIZE(layers)
                 layers(j)%Z_coord_begin =layers(j-1)%Z_coord_end
@@ -399,12 +400,13 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
         INTEGER :: ipol
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
-        INTEGER (C_LONG) :: photons_simulated = 0
+        INTEGER (C_LONG) :: photons_simulated, detector_hits
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         !begin...
         
         rv = 0
-
+        photons_simulated = 0
+        detector_hits = 0
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -448,7 +450,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         rng_type = fgsl_rng_mt19937
 
         rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(thread_num))
+        CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
 !
 !
@@ -526,7 +528,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                 (exc%discrete(i)%vertical_intensity+ &
                 exc%discrete(i)%horizontal_intensity)
                 n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
-#if DEBUG == 1
+#if DEBUG == 2
 !$omp critical                        
                 WRITE (*,'(A,I)') 'n_photons: ',n_photons
 !$omp end critical                        
@@ -535,7 +537,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                 !ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
-#if DEBUG == 1
+#if DEBUG == 2
 !$omp master             
                 DO j=1,SIZE(initial_mus)
                         WRITE (*,'(F14.6)') initial_mus(j)
@@ -553,6 +555,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%energy_changed=.FALSE.
                         photon%mus = initial_mus
                         photon%current_layer = 1
+                        photon%detector_hit = .FALSE.
 
                         ipol = MOD(n_photons,2)
 
@@ -599,7 +602,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         
                         !shift the position towards the first layer
                         !calculate the intersection with the first plane
-#if DEBUG == 1
+#if DEBUG == 2
 !$omp critical                        
                         WRITE (*,'(A,3F12.6)') 'Coords before shift',&
                         photon%coords
@@ -608,20 +611,24 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         CALL &
                         xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
 
-#if DEBUG == 1
+#if DEBUG == 2
 !$omp critical                        
                         WRITE (*,'(A,3F12.6)') 'Coords after shift',&
                         photon%coords
 !$omp end critical
 #endif
 
-                        !CALL xmi_simulate_photon(photon, inputF, hdf5F,rng)
+                        IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
+                                CALL EXIT(1)
+                        ENDIF
 
 
-                        DEALLOCATE(photon)
 !$omp critical                        
                         photons_simulated = photons_simulated + 1
+                        IF (photon%detector_hit .EQ. .TRUE.) &
+                                detector_hits = detector_hits + 1
 !$omp end critical                        
+                        DEALLOCATE(photon)
                 ENDDO
                 DEALLOCATE(initial_mus)
         ENDDO disc 
@@ -637,6 +644,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 #if DEBUG == 1
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
+        WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
 #endif
 
 
@@ -1295,11 +1303,17 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         TYPE (xmi_line) :: line
         REAL (C_DOUBLE), DIMENSION(3) :: intersect
         REAL (C_DOUBLE) :: dist, max_random_layer, min_random_layer
-        REAL (C_DOUBLE) :: dist_prev, tempexp
+        REAL (C_DOUBLE) :: dist_prev, tempexp, dist_sum, blbs
         INTEGER (C_INT) :: step_do_max, step_do_dir
 
         rv = 0
         terminated = .FALSE.
+
+#if DEBUG == 2
+        WRITE (6,'(A)') 'Entering xmi_simulate_photon'
+#endif
+
+
 
         main:DO
                 !
@@ -1311,12 +1325,15 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !Check in which layer it will interact
                 inside = .FALSE.
                 interactionR = fgsl_rng_uniform(rng)
+#if DEBUG == 2
+                WRITE (*,'(A,F12.6)') 'interactionR= ',interactionR
+#endif
                 min_random_layer = 0.0_C_DOUBLE
                 max_random_layer = 0.0_C_DOUBLE
                 !recalculate mus if necessary
                 IF (photon%energy_changed .EQ. .TRUE.) THEN
-                        DEALLOCATE(photon%initial_mus)
-                        mus = xmi_mu_calc(inputF%composition,&
+                        DEALLOCATE(photon%mus)
+                        photon%mus = xmi_mu_calc(inputF%composition,&
                         photon%energy)
                         photon%energy_changed = .FALSE.
                 ENDIF
@@ -1334,6 +1351,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 line%dirv  = photon%dirv
                 plane%normv = inputF%geometry%n_sample_orientation
                 dist_prev = 0.0_C_DOUBLE
+                dist_sum = 0.0_C_DOUBLE
+                blbs = 1.0_C_DOUBLE
+                min_random_layer = 0.0_C_DOUBLE
+                max_random_layer = 0.0_C_DOUBLE
+
+#if DEBUG == 2
+                WRITE (*,'(A)') 'Before do loop'
+#endif
 
                 DO i=photon%current_layer,step_do_max, step_do_dir
                         !calculate distance between current coords and
@@ -1352,23 +1377,45 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 CALL EXIT(1)
                         
                         dist = xmi_distance_two_points(photon%coords,intersect)
-                        
+#if DEBUG == 2
+                        WRITE (*,'(A,F12.5)') 'dist: ', dist
+                        WRITE (*,'(A,3F12.5)') 'intersect: ', intersect
+#endif
+
                         !calculate max value of random number
-                        tempexp = EXP(-1.0_C_DOUBLE*dist_prev*inputF%composition%layers(i)%density*&
+                        !tempexp = EXP(-1.0_C_DOUBLE*(dist)*inputF%composition%layers(i)%density*&
+                        !photon%mus(i))
+                        tempexp = EXP(-1.0_C_DOUBLE*(dist)*&
+                        inputF%composition%layers(i)%density*&
                         photon%mus(i))
-                        min_random_layer = max_random_layer
-                        max_random_layer = max_random_layer + 
-                        (tempexp - &
-                        EXP(-1.0_C_DOUBLE*dist*inputF%composition%layers(i)%density*&
-                        photon%mus(i)))
+                        min_random_layer = max_random_layer 
+                        max_random_layer = max_random_layer + blbs*(&
+                        1.0_C_DOUBLE - tempexp)
+                        !dist here must be total dist: from previous interaction
+                        !until current layer
                        
+#if DEBUG == 2
+                        !WRITE (*,'(A,F12.5)') 'tempexp: ', tempexp
+                        WRITE (*,'(A,F12.5)') 'min_random_layer: ',&
+                        min_random_layer
+                        WRITE (*,'(A,F12.5)') 'max_random_layer: ',&
+                        max_random_layer
+#endif
                         IF (interactionR .LE. max_random_layer) THEN
                                 !interaction occurs in this layer!!!
                                 !update coordinates of photon
-                                dist = -1.0_C_DOUBLE*LOG(-1.0_C_DOUBLE*interactionR+min_random_layer+tempexp)&
+                                !this is WRONG!!! needs to be corrected for
+                                !total distance so far
+                                dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
+                                min_random_layer)/blbs)&
                                 /photon%mus(i)/inputF%composition%layers(i)%density
                                 
                                 CALL xmi_move_photon_with_dist(photon,dist)
+#if DEBUG == 2
+                                WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
+                                WRITE (*,'(A,3F12.5)') 'New coords: '&
+                                ,photon%coords
+#endif
                                 !update current_layer
                                 photon%current_layer = i
                                 inside = .TRUE.
@@ -1378,26 +1425,44 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 !goto next layer
                                 !coordinates equal to layer boundaries
                                 photon%coords = intersect
-                        
+                                dist_prev = dist_prev+dist
+                                blbs = blbs*tempexp
                                 !check if we are not leaving the system!
                         ENDIF
                 ENDDO
 
+#if DEBUG == 2
+                WRITE (*,'(A)') 'After do loop'
+#endif
+
                 IF (inside .EQ. .FALSE.) THEN
                         !photon has left the system
                         !check if it will make it to the detector
+                        photon%detector_hit=xmi_check_photon_detector_hit(&
+                        photon,inputF)
+                        EXIT main
                 ENDIF
+#if DEBUG == 1
+                EXIT main       
+#endif  
+                !determine interaction type
 
         ENDDO main
+
+        rv = 1
 
 ENDFUNCTION xmi_simulate_photon
 
 FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         IMPLICIT NONE
-        TYPE (C_PTR), INTENT(IN) :: xmi_inputFPtr
+        TYPE (C_PTR), INTENT(IN) :: inputFPtr
         INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: inverse
 
+        TYPE (C_PTR) :: inversePtr
         TYPE (xmi_input), POINTER :: inputF
+
+        rv = 0
 
         !associate pointers
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -1415,36 +1480,124 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
 
         inputF%detector%n_detector_orientation_new_x = &
         inputF%geometry%n_detector_orientation
-        IF (ABS(DOT_PRODUCT(inputF%detector%n_detector_orientation_new_x,[1.0,0.0,0.0]))-1.0_C_DOUBLE .LT. 1.0E-6) THEN
+
+#if DEBUG == 1
+        WRITE (*,'(A)') 'inputF%geometry%n_detector_orientation '
+        WRITE (*,'(3F12.5)') inputF%geometry%n_detector_orientation
+#endif
+
+        !IF (ABS(DOT_PRODUCT(inputF%detector%n_detector_orientation_new_x,[1.0,0.0,0.0]))-1.0_C_DOUBLE .LT. 1.0E-6) THEN
+        IF (ABS(DOT_PRODUCT(inputF%detector%n_detector_orientation_new_x,[1.0,0.0,0.0])) .GT. 1.0E-6) THEN
                 !use y for cross product
-                inputF%detector%n_detector_orientation_new_y = [0.0,1.0,0.0] 
+                inputF%detector%n_detector_orientation_new_y = &
+                cross_product([0.0_C_DOUBLE,1.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x) 
         ELSE
+#if DEBUG == 1
+                WRITE (*,'(A)') 'This line should appear'
+#endif
                 !use x
-                inputF%detector%n_detector_orientation_new_y = [0.0,1.0,0.0] 
+                inputF%detector%n_detector_orientation_new_y = &
+                cross_product([1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x) 
         ENDIF
-ENDFUNCTION xmi_init_input
+        CALL normalize_vector(inputF%detector%n_detector_orientation_new_y)
+        inputF%detector%n_detector_orientation_new_z = &
+        cross_product(inputF%detector%n_detector_orientation_new_x,&
+        inputF%detector%n_detector_orientation_new_y)
 
-FUNCTION cross_product(a,b) RESULT(rv)
-        IMPLICIT NONE
-        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: a,b
-        REAL (C_DOUBLE), DIMENSION(3) :: rv
+#if DEBUG == 1
+        WRITE (*,'(A)') 'before calling xmi_inverse_matrix'
+        WRITE (*,'(3F12.5)') inputF%detector%n_detector_orientation_new_x
+        WRITE (*,'(3F12.5)') inputF%detector%n_detector_orientation_new_y
+        WRITE (*,'(3F12.5)') inputF%detector%n_detector_orientation_new_z
+#endif
 
-        rv(1) = a(2)*b(3)-a(3)*b(2)
-        rv(2) = a(3)*b(1)-a(1)*b(3)
-        rv(3) = a(1)*b(3)-a(3)*b(1)
+        inputF%detector%n_detector_orientation_new(:,1)&
+        = inputF%detector%n_detector_orientation_new_x
+        inputF%detector%n_detector_orientation_new(:,2)&
+        = inputF%detector%n_detector_orientation_new_y
+        inputF%detector%n_detector_orientation_new(:,3)&
+        = inputF%detector%n_detector_orientation_new_z
+
+        !calculate inverse of n_detector_orientation_new -> C
+        CALL xmi_inverse_matrix(C_LOC(inputF%detector%n_detector_orientation_new_x),&
+        C_LOC(inputF%detector%n_detector_orientation_new_y),&
+        C_LOC(inputF%detector%n_detector_orientation_new_z), inversePtr)
+        CALL C_F_POINTER(inversePtr, inverse,[3,3]) 
+#if DEBUG == 1
+        WRITE (*,'(A)') 'before inverting'
+        WRITE (*,'(3(3F12.4,/))') inputF%detector%n_detector_orientation_new(1,:), &
+        inputF%detector%n_detector_orientation_new(2,:), &
+        inputF%detector%n_detector_orientation_new(3,:)
+        WRITE (*,'(A)') 'inverse'
+        WRITE (*,'(3(3F12.4,/))') inverse(1,:), inverse(2,:),inverse(3,:)
+#endif
+        inputF%detector%n_detector_orientation_inverse = inverse
+
+        rv = 1
 
         RETURN
-ENDFUNCTION cross_product
 
-SUBROUTINE normalize_vector(a)
+ENDFUNCTION xmi_init_input
+
+FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         IMPLICIT NONE
-        REAL (C_DOUBLE), DIMENSION(3), INTENT(INOUT) :: a
-        REAL (C_DOUBLE) :: norm
+        TYPE (xmi_photon), INTENT(IN) :: photon
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        LOGICAL :: rv
+        REAL (C_DOUBLE), DIMENSION(3) :: photon_dirv_det, photon_coords_det
+        TYPE (xmi_plane) :: plane_det_base, plane_det_coll
+        TYPE (xmi_line) :: photon_trajectory
+        REAL (C_DOUBLE), DIMENSION(3) :: intersect
 
-        norm = SQRT(a(1)*a(1) + a(2)*a(2) + a(3)*a(3))
+        !assume 
+        rv = .FALSE.
 
-        a = a/norm
+        !first thing to check: is the direction of the photon at least the
+        !opposite of the detector normal
+        !statistically speaking, one loses half of the photons this way
+        IF (DOT_PRODUCT(photon%dirv, inputF%geometry%n_detector_orientation)&
+        .GE. 0.0_C_DOUBLE) RETURN
 
-ENDSUBROUTINE normalize_vector
+        !second: calculate intersection with detector plane, using the detector
+        !coordinate system
+        photon_dirv_det = MATMUL(inputF%detector%n_detector_orientation_inverse, &
+                photon%dirv)
+        photon_coords_det = MATMUL(inputF%detector%n_detector_orientation_inverse, &
+                photon%coords-inputF%geometry%p_detector_window)
+        plane_det_base%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+        plane_det_base%normv = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+       
+        photon_trajectory%dirv = photon_dirv_det
+        photon_trajectory%point = photon_coords_det
+
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
+        intersect) == 0) CALL EXIT(1)
+
+        IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
+
+        !third: ok it will hit the detector, but will it make it through the
+        !collimator as well??
+        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+                !there is no collimator
+                rv = .TRUE.
+                RETURN
+        ENDIF
+        
+        !there is a collimator...
+        plane_det_base%point = [inputF%detector%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
+        intersect) == 0) CALL EXIT(1)
+
+        intersect(1) = 0.0_C_DOUBLE
+
+        IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
+
+        !ok, valid hit
+        rv = .TRUE.
+
+        RETURN
+ENDFUNCTION xmi_check_photon_detector_hit
+
 
 ENDMODULE
