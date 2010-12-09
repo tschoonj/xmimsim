@@ -266,8 +266,11 @@ TYPE :: xmi_photon
         !current_layer
         INTEGER (C_INT) :: current_layer
 
-        !
+        !did it hit the detector?
         LOGICAL :: detector_hit
+
+        !last interaction type
+        INTEGER :: last_interaction
 ENDTYPE
 
 !
@@ -853,7 +856,35 @@ FUNCTION norm(a)
         norm = SQRT(DOT_PRODUCT(a,a))
         
         RETURN
-ENDFUNCTION
+ENDFUNCTION norm
 
+FUNCTION interpolate_simple(a,b,c) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(2), INTENT(IN) :: a,b
+        REAL (C_DOUBLE), INTENT(IN) :: c 
+        REAL (C_DOUBLE) :: rv
+
+        rv = a(2) + ((b(2)-a(2))*(c-a(1))/(b(1)-a(1)))
+         
+        RETURN
+ENDFUNCTION interpolate_simple
+
+FUNCTION findpos(array, searchvalue)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
+        REAL (C_DOUBLE) , INTENT(IN) :: searchvalue
+        INTEGER (C_INT) :: findpos, i
+
+        findpos = -1
+
+        DO i=1, SIZE(array)
+                IF (searchvalue .LE. array(i)) THEN
+                        findpos = i-1
+                        RETURN
+                ENDIF
+        ENDDO
+        
+        RETURN
+ENDFUNCTION findpos
 
 ENDMODULE

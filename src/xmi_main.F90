@@ -13,6 +13,9 @@ USE :: fgsl
 
 
 !global variables
+INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
+INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
+INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
 
 
 
@@ -400,13 +403,17 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
         INTEGER :: ipol
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
-        INTEGER (C_LONG) :: photons_simulated, detector_hits
+        INTEGER (C_LONG) :: photons_simulated, detector_hits, rayleighs,&
+        comptons, einsteins
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         !begin...
         
         rv = 0
         photons_simulated = 0
         detector_hits = 0
+        rayleighs = 0
+        comptons = 0
+        einsteins = 0
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -518,6 +525,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
 
+                        DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
                 ENDDO
         ENDDO cont
@@ -625,9 +633,21 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 !$omp critical                        
                         photons_simulated = photons_simulated + 1
-                        IF (photon%detector_hit .EQ. .TRUE.) &
+                        IF (photon%detector_hit .EQ. .TRUE.) THEN
                                 detector_hits = detector_hits + 1
+                        ELSE
+                                SELECT CASE (photon%last_interaction)
+                                        CASE (RAYLEIGH_INTERACTION)
+                                                rayleighs = rayleighs + 1
+                                        CASE (COMPTON_INTERACTION)
+                                                comptons = comptons + 1
+                                        CASE (PHOTOELECTRIC_INTERACTION)
+                                                einsteins = einsteins + 1
+                                ENDSELECT
+                        ENDIF
+
 !$omp end critical                        
+                        DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
                 ENDDO
                 DEALLOCATE(initial_mus)
@@ -645,6 +665,9 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 #if DEBUG == 1
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
+        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
+        WRITE (*,'(A,I)') 'Comptons: ',comptons
+        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
 #endif
 
 
@@ -760,7 +783,8 @@ USE,INTRINSIC :: ISO_FORTRAN_ENV
 IMPLICIT NONE
 
 INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
-nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000
+nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
+nintervals_e_ip = 10000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,MEC2 = 510.998910
 CHARACTER(200) :: error_message
@@ -768,7 +792,8 @@ CHARACTER(200) :: error_message
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
         rayleigh_theta,compton_theta
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis
-REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies2
+REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 
 INTEGER :: stat,i,j,k,l,m,n
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
@@ -845,7 +870,7 @@ ENDDO
 
 !CALL OMP_SET_NUM_THREADS(1)
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies2,temp_energy)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy)
 
 #if DEBUG == 2
 WRITE(6,*) 'multiple allocs'
@@ -946,34 +971,38 @@ ENDIF
         !compilers... yes I'm talking about you Intel!!! (requires -assume lhs_alloc)
         !Gfortran 4.5 also doesn't appear to support automatic allocation when
         !initializing with REAL... sorry Intel!
-        ALLOCATE(energies2(SIZE(energies)))
-        energies2 = REAL(energies,KIND=C_FLOAT)
+        ALLOCATE(energies_flt(nintervals_e_ip))
+        DO j=1,nintervals_e_ip
+                energies_flt(j) = REAL(lowe + (maxe-lowe)*(REAL(j,C_DOUBLE)-1.0)&
+                /(nintervals_e_ip-1.0),KIND=C_DOUBLE)
+        ENDDO
+
         !add edge energies
         DO k=K_SHELL,L3_SHELL
                 temp_energy = EdgeEnergy(i,k)
                 IF (temp_energy > 0.0_C_FLOAT) THEN
-                        energies2 = [energies2,&
+                        energies_flt = [energies_flt,&
                          temp_energy+0.00001_C_FLOAT]
-                        energies2 = [energies2,&
+                        energies_flt = [energies_flt,&
                          temp_energy-0.00001_C_FLOAT]
                 ENDIF
         ENDDO
         
 
         !SORT them
-        CALL qsort(C_LOC(energies2),SIZE(energies2,KIND=C_SIZE_T),&
-        INT(KIND(energies2),KIND=C_SIZE_T),C_FUNLOC(C_FLOAT_CMP))
+        CALL qsort(C_LOC(energies_flt),SIZE(energies_flt,KIND=C_SIZE_T),&
+        INT(KIND(energies_flt),KIND=C_SIZE_T),C_FUNLOC(C_FLOAT_CMP))
         !calls assign_interaction_prob...
-        interaction_probs(i) = energies2
+        interaction_probs(i) = energies_flt
 
-        DO k=1,SIZE(energies2)
-                temp_total_cs = CS_Total_Kissel(i,energies2(k))
-                interaction_probs(i)%Rayl_and_Compt(k,1) = CS_Rayl(i,energies2(k))/temp_total_cs
-                interaction_probs(i)%Rayl_and_Compt(k,2) = CS_Compt(i,energies2(k))/temp_total_cs+&
+        DO k=1,SIZE(energies_flt)
+                temp_total_cs = CS_Total_Kissel(i,energies_flt(k))
+                interaction_probs(i)%Rayl_and_Compt(k,1) = CS_Rayl(i,energies_flt(k))/temp_total_cs
+                interaction_probs(i)%Rayl_and_Compt(k,2) = CS_Compt(i,energies_flt(k))/temp_total_cs+&
                   interaction_probs(i)%Rayl_and_Compt(k,1)
         ENDDO
 
-        DEALLOCATE(energies2)
+        DEALLOCATE(energies_flt)
 
 
 ENDDO Zloop
@@ -1306,6 +1335,10 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         REAL (C_DOUBLE) :: dist_prev, tempexp, dist_sum, blbs
         INTEGER (C_INT) :: step_do_max, step_do_dir
 
+        REAL (C_DOUBLE) :: atomsel_threshold
+        INTEGER (C_INT) :: current_element, current_element_index
+        INTEGER (C_INT) :: pos
+
         rv = 0
         terminated = .FALSE.
 
@@ -1404,8 +1437,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         IF (interactionR .LE. max_random_layer) THEN
                                 !interaction occurs in this layer!!!
                                 !update coordinates of photon
-                                !this is WRONG!!! needs to be corrected for
-                                !total distance so far
                                 dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
                                 min_random_layer)/blbs)&
                                 /photon%mus(i)/inputF%composition%layers(i)%density
@@ -1419,7 +1450,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 !update current_layer
                                 photon%current_layer = i
                                 inside = .TRUE.
-                                !exit loop and calculate interaction type
+                                !exit loop 
                                 EXIT
                         ELSE
                                 !goto next layer
@@ -1442,11 +1473,75 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon,inputF)
                         EXIT main
                 ENDIF
+                !selection of atom type
+                !get a new random number
+                !maybe this could be done faster... but I'm not sure
+                interactionR = fgsl_rng_uniform(rng)
+                atomsel_threshold = 0.0_C_DOUBLE
+                DO i = 1, inputF%composition%layers&
+                        (photon%current_layer)%n_elements
+                       atomsel_threshold = atomsel_threshold + &
+                       inputF%composition%layers(photon%current_layer)%weight(i)*&
+                       CS_Total_Kissel(inputF%composition%layers(photon%current_layer)%Z(i),&
+                       REAL(photon%energy,C_FLOAT))/photon%mus(photon%current_layer)
+                       IF (interactionR .LT. atomsel_threshold) THEN
+                                current_element = inputF%composition%layers &
+                                (photon%current_layer)%Z(i)
+                                current_element_index = i
+                                EXIT
+                       ENDIF
+                ENDDO
+
+#if DEBUG == 2
+                WRITE (*,'(A,I)') 'Element selected: ',current_element
+#endif
+
+
+                !selection of interaction type
+                interactionR = fgsl_rng_uniform(rng)                
+
+#if DEBUG == 2
+                WRITE (*,'(A,I)') 'random number interactionprob: ',interactionR
+#endif
+                !find energy in interaction_probs
+                ASSOCIATE (hdf5_Z => inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (current_element_index)%Ptr)
+
+                pos = findpos(hdf5_Z%interaction_probs%energies, photon%energy)
+                IF (pos .LT. 1_C_INT) THEN
+                        WRITE (*,'(A)') &
+                        'Invalid result for findpos interaction type'
+                        CALL EXIT(1)
+                ENDIF
+
+#if DEBUG == 2
+                WRITE (*,'(A,I,F12.6)') 'pos and energy: ',pos, hdf5_Z%interaction_probs%energies(pos)
+#endif
+                IF (interactionR .LT. interpolate_simple([hdf5_Z%interaction_probs%energies(pos),&
+                        hdf5_Z%interaction_probs%Rayl_and_Compt(pos,1)],&
+                        [hdf5_Z%interaction_probs%energies(pos+1),&
+                        hdf5_Z%interaction_probs%Rayl_and_Compt(pos+1,1)],&
+                        photon%energy)) THEN
+                        !we've got Rayleigh
+                        photon%last_interaction = RAYLEIGH_INTERACTION
+                ELSEIF (interactionR .LT. interpolate_simple([hdf5_Z%interaction_probs%energies(pos),&
+                        hdf5_Z%interaction_probs%Rayl_and_Compt(pos,2)],&
+                        [hdf5_Z%interaction_probs%energies(pos+1),&
+                        hdf5_Z%interaction_probs%Rayl_and_Compt(pos+1,2)],&
+                        photon%energy)) THEN
+                        !we've got Compton 
+                        photon%last_interaction = COMPTON_INTERACTION
+                ELSE
+                        !we've got photoelectric
+                        photon%last_interaction = PHOTOELECTRIC_INTERACTION
+                ENDIF
+
 #if DEBUG == 1
                 EXIT main       
 #endif  
-                !determine interaction type
 
+                ENDASSOCIATE
         ENDDO main
 
         rv = 1
