@@ -9,6 +9,8 @@ struct layerWidget {
 	GtkWidget *densityEntry;
 	GtkWidget *thicknessEntry;
 	GtkWidget *editButton;
+	GtkWidget *okButton;
+	GtkWidget *cancelButton;
 	GtkWidget *removeButton;
 	
 

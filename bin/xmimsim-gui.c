@@ -329,6 +329,9 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 		layer = NULL;
 		gtk_widget_show_all(layerW->window);
+#if DEBUG == 1
+		fprintf(stdout,"After widget show command\n" );
+#endif
 		return;
 	}
 

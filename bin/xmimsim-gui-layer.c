@@ -124,6 +124,7 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(lw->sumEntry),"0");
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
+		gtk_widget_set_sensitive(lw->okButton, FALSE);
 	
 	}
 
@@ -153,11 +154,90 @@ void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
 }
 
 
+void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
+	char *textPtr,*textPtr2,*endPtr,*lastPtr,*endPtr2,*lastPtr2, *textPtr3, *lastPtr3,*endPtr3 ;
+	struct layerWidget *lw = (struct layerWidget *) data;
+	int density_ok, thickness_ok, layer_ok;
+	double density, thickness, sum;
+
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(lw->densityEntry));
+	textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry));
+	textPtr3 = (char *) gtk_entry_get_text(GTK_ENTRY(lw->sumEntry));
+
+	density = strtod(textPtr, &endPtr);
+	thickness = strtod(textPtr2, &endPtr2);
+	sum = strtod(textPtr3, &endPtr3);
+	
+	lastPtr = textPtr + strlen(textPtr);
+	lastPtr2 = textPtr2 + strlen(textPtr2);
+	lastPtr3 = textPtr3 + strlen(textPtr3);
+
+	if (lastPtr == endPtr && density > 0.0)
+		density_ok = 1;
+	else
+		density_ok = 0;
+
+	if (lastPtr2 == endPtr2 && thickness > 0.0)
+		thickness_ok = 1;
+	else
+		thickness_ok = 0;
+
+	if (lastPtr3 == endPtr3 && sum > 0.0)
+		layer_ok = 1;
+	else
+		layer_ok = 0;
+
+	if (widget == lw->densityEntry) {
+		if (density_ok)
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+		else {
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+			gtk_widget_set_sensitive(lw->okButton,FALSE);
+		}
+	}
+	else if (widget ==  lw->thicknessEntry) {
+		if (thickness_ok) 
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+		else {
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+			gtk_widget_set_sensitive(lw->okButton,FALSE);
+		}
+	}
+
+	if (thickness_ok && density_ok && layer_ok) {
+		gtk_widget_set_sensitive(lw->okButton,TRUE);
+		(*(lw->my_layer))->thickness = thickness;
+		(*(lw->my_layer))->density = density;
+	}
+
+	return;
+}
+
+
 
 void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
-	GtkWidget *window = (GtkWidget *) data;
+	struct layerWidget *lw = (struct layerWidget *) data;
 
-	gtk_widget_hide_all(window);	
+	if (lw->okButton == widget) {
+		//ok button clicked
+#if DEBUG == 1
+		fprintf(stdout,"ok button clicked in layerwidget\n");
+#endif
+	}
+	else if (lw->cancelButton == widget) {
+		//cancel button clicked
+#if DEBUG == 1
+		fprintf(stdout,"cancel button clicked in layerwidget\n");
+#endif
+		if (*(lw->my_layer)) {
+			xmi_free_layer(*(lw->my_layer));
+			free(*(lw->my_layer));
+			*(lw->my_layer) = NULL;
+		}
+	}
+
+
+	gtk_widget_hide_all(lw->window);	
 
 }
 
@@ -266,6 +346,8 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		gtk_list_store_remove(ad->store, &iter);
 		sprintf(buffer,"%g", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
 		gtk_entry_set_text(GTK_ENTRY(ad->cw->lw->sumEntry), buffer);
+		if ((*(ad->cw->lw->my_layer))->n_elements == 0)
+			gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
 	}
 }
 
@@ -651,12 +733,14 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Density");
 	densityEntry = gtk_entry_new();
+	g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Thickness");
 	thicknessEntry = gtk_entry_new();
+	g_signal_connect(G_OBJECT(thicknessEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), thicknessEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -668,7 +752,8 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	//ok, cancel...
 	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-	g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(ok_cancel_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(ok_cancel_button_clicked_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(okButton),"clicked", G_CALLBACK(ok_cancel_button_clicked_cb), (gpointer) rv);
 	HBox = gtk_hbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(HBox), okButton, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, FALSE, FALSE, 2);
@@ -690,6 +775,8 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	rv->thicknessEntry = thicknessEntry;
 	rv->editButton = editButton;
 	rv->removeButton = removeButton;
+	rv->cancelButton = cancelButton;
+	rv->okButton = okButton;
 
 	ad->store = store;
 	ad->layer = my_layer;
