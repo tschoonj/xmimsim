@@ -322,6 +322,15 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
 
+	if (mb->buttonKind == BUTTON_ADD) {
+		//add line... testing only for now...
+#if DEBUG == 1
+		fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
+#endif
+		layer = NULL;
+		gtk_widget_show_all(layerW->window);
+		return;
+	}
 
 	//the olde switcharooooo
 	if (gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
@@ -343,7 +352,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			indices[i] = i;
 
 		if (mb->buttonKind == BUTTON_TOP) {
-			temp = compositionS->layers[index]; 
+			temp = composition->layers[index]; 
 			indices[0] = index;
 			for (i = 1 ; i < index+1 ; i++) {
 				indices[i] = i-1;
@@ -436,11 +445,14 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
 		}
-		else if (mb->buttonKind == BUTTON_ADD) {
+		else if (mb->buttonKind == BUTTON_EDIT) {
 			//add line... testing only for now...
 #if DEBUG == 1
 			fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
 #endif
+			//should work with a copy instead of the real thing
+		//	layer = composition->layers+index;	
+			xmi_copy_layer(composition->layers+index,&layer);
 			gtk_widget_show_all(layerW->window);
 		}
 
@@ -728,6 +740,18 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(addButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+
+	//EDIT
+	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb->buttonKind=BUTTON_EDIT;
+	mb->matrixKind=kind;
+	mb->select=select;
+	mb->store=store;
+	g_signal_connect(G_OBJECT(editButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+
+
+
+
 
 	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
 	md->topButton = topButton;

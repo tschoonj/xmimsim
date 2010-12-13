@@ -1336,8 +1336,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         INTEGER (C_INT) :: step_do_max, step_do_dir
 
         REAL (C_DOUBLE) :: atomsel_threshold
-        INTEGER (C_INT) :: current_element, current_element_index
         INTEGER (C_INT) :: pos
+        INTEGER (C_INT) :: rv_interaction 
 
         rv = 0
         terminated = .FALSE.
@@ -1485,15 +1485,15 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                        CS_Total_Kissel(inputF%composition%layers(photon%current_layer)%Z(i),&
                        REAL(photon%energy,C_FLOAT))/photon%mus(photon%current_layer)
                        IF (interactionR .LT. atomsel_threshold) THEN
-                                current_element = inputF%composition%layers &
-                                (photon%current_layer)%Z(i)
-                                current_element_index = i
+                                photon%current_element = inputF%composition&
+                                %layers(photon%current_layer)%Z(i)
+                                photon%current_element_index = i
                                 EXIT
                        ENDIF
                 ENDDO
 
 #if DEBUG == 2
-                WRITE (*,'(A,I)') 'Element selected: ',current_element
+                WRITE (*,'(A,I)') 'Element selected: ',photon%current_element
 #endif
 
 
@@ -1506,7 +1506,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !find energy in interaction_probs
                 ASSOCIATE (hdf5_Z => inputF%composition%layers&
                 (photon%current_layer)%xmi_hdf5_Z_local&
-                (current_element_index)%Ptr)
+                (photon%current_element_index)%Ptr)
 
                 pos = findpos(hdf5_Z%interaction_probs%energies, photon%energy)
                 IF (pos .LT. 1_C_INT) THEN
@@ -1525,6 +1525,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%energy)) THEN
                         !we've got Rayleigh
                         photon%last_interaction = RAYLEIGH_INTERACTION
+                        rv_interaction = xmi_simulate_photon_rayleigh(photon,&
+                        inputF, hdf5F, rng) 
                 ELSEIF (interactionR .LT. interpolate_simple([hdf5_Z%interaction_probs%energies(pos),&
                         hdf5_Z%interaction_probs%Rayl_and_Compt(pos,2)],&
                         [hdf5_Z%interaction_probs%energies(pos+1),&
@@ -1536,6 +1538,22 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !we've got photoelectric
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
                 ENDIF
+
+                !abort if necessary
+                IF (rv_interaction /= 1) THEN
+                        RETURN
+                ENDIF
+
+                
+
+
+
+
+                !update number of interactions
+                photon%n_interactions = photon%n_interactions + 1
+                !quit if maximum number of interactions has been reached...
+
+
 
 #if DEBUG == 1
                 EXIT main       
@@ -1694,5 +1712,81 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_check_photon_detector_hit
 
+FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE) :: theta_i, phi_i
+       
+        rv = 0
+
+        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (photon%current_element_index)%Ptr)
+
+
+
+        !calculate theta
+        theta_i = bilinear_interpolation(hdf5_Z%RayleighTheta_ICDF, &
+                hdf5_Z%Energies, hdf5_Z%RandomNumbers, photon%energy,&
+                fgsl_rng_uniform(rng)) 
+
+        !calculate phi
+        phi_i = bilinear_interpolation(hdf5F%RayleighPhi_ICDF, &
+                hdf5F%RayleighThetas, hdf5F%RayleighRandomNumbers,&
+                theta_i, fgsl_rng_uniform(rng))
+        
+        !according to laszlos code (around line 1360), some things need to get
+        !done here first involving the electric field and Theta_i and Phi_i of
+        !the previous run
+
+        !
+        !update photon%theta and photon%phi
+        !
+        CALL xmi_update_photon_dir(photon, theta_i, phi_i)
+
+
+        ENDASSOCIATE
+
+        rv = 1
+
+        RETURN
+ENDFUNCTION xmi_simulate_photon_rayleigh
+
+SUBROUTINE xmi_update_photon_dir(photon, theta_i, phi_i)
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(INOUT) :: theta_i, phi_i
+
+        REAL (C_DOUBLE) :: cosphi_i, sinphi_i
+        REAL (C_DOUBLE) :: costheta_i, sintheta_i
+        REAL (C_DOUBLE), DIMENSION(3,3) :: trans_m
+
+        !stability problems could arise here...
+
+        cosphi_i = COS(phi_i)
+        sinphi_i = SIN(phi_i)
+        costheta_i = COS(theta_i)
+        sintheta_i = SIN(theta_i)
+
+        trans_m(1,1) = costheta_i*cosphi_i
+        trans_m(1,2) = -sinphi_i
+        trans_m(1,3) = sintheta_i*cosphi_i
+
+        trans_m(2,1) = costheta_i*sinphi_i
+        trans_m(2,2) = cosphi_i
+        trans_m(2,3) = sintheta_i*sinphi_i
+
+        trans_m(3,1) = -sintheta_i
+        trans_m(3,2) = 0.0_C_DOUBLE
+        trans_m(3,3) = costheta_i
+
+        photon%dirv = MATMUL(trans_m,photon%dirv)
+
+
+        RETURN
+ENDSUBROUTINE
 
 ENDMODULE

@@ -5,7 +5,7 @@
 #include <math.h>
 
 
-static void xmi_free_layer (struct xmi_layer *layer) {
+void xmi_free_layer (struct xmi_layer *layer) {
 	free(layer->Z);
 	free(layer->weight);
 }
@@ -440,4 +440,16 @@ void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B)
 
 }
 
+void xmi_copy_layer(struct xmi_layer *A, struct xmi_layer **B) {
+	//allocate space for B
+	*B = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	(*B)->n_elements = A->n_elements;
+	(*B)->density = A->density;
+	(*B)->thickness = A->thickness;
+	(*B)->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
+	(*B)->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
+	
+
+
+}
 

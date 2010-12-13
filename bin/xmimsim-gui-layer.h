@@ -4,8 +4,14 @@
 struct layerWidget {
 	GtkWidget *window;
 	GtkListStore *store;
-	//something for undo...
+	struct xmi_layer ** my_layer;
+	GtkWidget *sumEntry;
+	GtkWidget *densityEntry;
+	GtkWidget *thicknessEntry;
+	GtkWidget *editButton;
+	GtkWidget *removeButton;
 	
+
 };
 
 struct layerWidget * initialize_layer_widget(struct xmi_layer **); 

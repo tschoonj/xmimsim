@@ -263,8 +263,14 @@ TYPE :: xmi_photon
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 
-        !current_layer
+        !current layer
         INTEGER (C_INT) :: current_layer
+
+        !current element
+        INTEGER (C_INT) :: current_element
+
+        !current element index
+        INTEGER (C_INT) :: current_element_index
 
         !did it hit the detector?
         LOGICAL :: detector_hit
@@ -887,4 +893,84 @@ FUNCTION findpos(array, searchvalue)
         RETURN
 ENDFUNCTION findpos
 
-ENDMODULE
+FUNCTION bilinear_interpolation(array2D, array1D_1, array1D_2, x_1, x_2 ) &
+RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(:,:), INTENT(IN) :: array2D
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_1
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_2
+        REAL (C_DOUBLE), INTENT(IN) :: x_1
+        REAL (C_DOUBLE), INTENT(IN) :: x_2
+        REAL (C_DOUBLE) :: rv
+
+        REAL (C_DOUBLE) :: c1, c2, c3, c4,denom
+        INTEGER (C_INT) :: pos_1, pos_2
+
+        !check if the dimensions are safe... to be removed later
+        IF (SIZE(array2D,DIM=1) .NE. SIZE(array1D_1) &
+        .OR. SIZE(array2D,DIM=2) .NE. SIZE(array1D_2)) THEN
+                WRITE (*,'(A)') &
+                'Array dimensions mismatch in bilinear interpolation'
+                CALL EXIT(1)
+        ENDIF
+
+        !get positions
+        pos_1 = findpos(array1D_1, x_1)        
+        IF (pos_1 .LT. 1_C_INT) THEN
+                WRITE (*,'(A)') &
+                'Invalid result for findpos bilinear interpolation'
+                CALL EXIT(1)
+        ENDIF
+
+        pos_2 = findpos(array1D_2, x_2)        
+        IF (pos_2 .LT. 1_C_INT) THEN
+                WRITE (*,'(A)') &
+                'Invalid result for findpos bilinear interpolation'
+                CALL EXIT(1)
+        ENDIF
+       
+        !looks good, calculate coefficients
+        denom = (array1D_1(pos_1+1)-array1D_1(pos_1))/(array1D_2(pos_2+1)-array1D_2(pos_2))
+        c1 = (array1D_1(pos_1+1)-x_1)*(array1D_2(pos_2+1)-x_2)/denom
+        c2 = (x_1-array1D_1(pos_1))*(array1D_2(pos_2+1)-x_2)/denom
+        c3 = (array1D_1(pos_1+1)-x_1)*(x_2-array1D_2(pos_2))/denom
+        c4 = (x_1-array1D_1(pos_1))*(x_2-array1D_2(pos_2))/denom
+
+        rv = c1*array2D(pos_1,pos_2) + c2*array2D(pos_1+1,pos_2) +&
+                c3*array2D(pos_1, pos_2+1) + c4*array2D(pos_1+1,pos_2+1)
+
+
+ENDFUNCTION bilinear_interpolation
+
+FUNCTION xmi_sum_double(array, n_elements) BIND(C,NAME='xmi_sum_double')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE) :: xmi_sum_double
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+
+        xmi_sum_double = 0.0_C_DOUBLE
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+
+
+        xmi_sum_double = SUM(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_sum_double
+
+SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_scale_double')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE), VALUE :: scale_factor
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+        
+        arrayF = scale_factor*arrayF
+
+ENDSUBROUTINE xmi_scale_double
+
+
+
+ENDMODULE 
