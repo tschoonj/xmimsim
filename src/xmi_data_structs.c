@@ -448,8 +448,13 @@ void xmi_copy_layer(struct xmi_layer *A, struct xmi_layer **B) {
 	(*B)->thickness = A->thickness;
 	(*B)->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
 	(*B)->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
-	
-
-
 }
 
+
+void xmi_copy_layer2(struct xmi_layer *A, struct xmi_layer *B) {
+	B->n_elements = A->n_elements;
+	B->density = A->density;
+	B->thickness = A->thickness;
+	B->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
+	B->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
+}

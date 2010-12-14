@@ -125,6 +125,7 @@ void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B)
 void xmi_free_layer (struct xmi_layer *layer); 
 
 void xmi_copy_layer(struct xmi_layer *, struct xmi_layer **B); 
+void xmi_copy_layer2(struct xmi_layer *, struct xmi_layer *B); 
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
 void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );

@@ -34,6 +34,7 @@ struct layerWidget *layerW;
 
 //composition
 static GtkWidget *compositionW;
+static GtkListStore *compositionL;
 
 
 
@@ -118,6 +119,8 @@ enum {
 	COMPOSITION_ORDER,
 	COMPOSITION_REFERENCE,
 	COMPOSITION_DELETE,
+	COMPOSITION_ADD,
+	COMPOSITION_EDIT,
 };
 
 
@@ -141,6 +144,83 @@ struct matrix_data {
 };
 
 static void update_undo_buffer(int kind, GtkWidget *widget);
+
+static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
+	struct layerWidget *lw = (struct layerWidget *) data;	
+	struct xmi_composition *composition;
+	GtkTreeIter iter;
+	GtkListStore *store;
+	char *elementString;
+	int i,j;
+	int updateKind;
+
+#if DEBUG == 1
+	fprintf(stdout,"layerWidget is hiding\n");
+#endif
+
+	if (lw->matrixKind == COMPOSITION) {
+		composition = compositionS;
+		store = compositionL;
+		if (lw->AddOrEdit == LW_ADD) 
+			updateKind = COMPOSITION_ADD;
+	}
+
+	if (*(lw->my_layer) != NULL) {
+		//OK button was clicked
+		//in case of editing and changing nothing.. undo should not be triggered
+		//requires xmi_compare_layer... too lazy for now
+		if (lw->AddOrEdit == LW_ADD) {
+			//adding layer
+			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
+
+			gtk_list_store_append(store, &iter);
+			i = composition->n_layers-1;
+			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
+			elementString[0] = '\0';
+			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
+				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
+				if (j != composition->layers[i].n_elements-1) {
+					strcat(elementString,", ");
+				}
+			}
+			if (lw->matrixKind == COMPOSITION) {
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					REFERENCE_COLUMN, FALSE,
+					-1
+					);
+			}
+			else {
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					-1
+					);
+			}
+	
+			free(elementString);
+	
+
+		}
+		update_undo_buffer(updateKind, (GtkWidget *) store);	
+	}  	
+	else
+		return;
+
+
+
+
+}
+
+
+
+
 
 static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	GtkTreeIter iter,temp_iter;
@@ -328,7 +408,8 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
 #endif
 		layer = NULL;
-		layerW->kind = LW_ADD;
+		layerW->AddOrEdit = LW_ADD;
+		layerW->matrixKind = mb->matrixKind;
 		gtk_widget_show_all(layerW->window);
 #if DEBUG == 1
 		fprintf(stdout,"After widget show command\n" );
@@ -441,6 +522,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			//delete the selected line
 			//watch out for reference layer... for now... leave it to the user
 			//update composition
+			xmi_free_layer(composition->layers+i);
 			for (i = index ;  i < nindices ; i++)
 				composition->layers[i] = composition->layers[i+1];
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
@@ -457,7 +539,9 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			//should work with a copy instead of the real thing
 		//	layer = composition->layers+index;	
 			xmi_copy_layer(composition->layers+index,&layer);
-			layerW->kind = LW_EDIT;
+			layerW->AddOrEdit = LW_EDIT;
+			layerW->matrixKind = mb->matrixKind;
+			layerW->layerNumber = index;
 			gtk_widget_show_all(layerW->window);
 		}
 
@@ -788,6 +872,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	if (kind == COMPOSITION) {
 		compositionW = tree;
 		xmi_copy_composition(composition,&compositionS);	
+		compositionL = store;
 	}
 	return mainbox2;
 }
@@ -837,6 +922,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_ORDER:
 		case COMPOSITION_REFERENCE:
 		case COMPOSITION_DELETE:
+		case COMPOSITION_ADD:
 			//clear list and repopulate
 			store = (GtkListStore *) (current)->widget;
 #if DEBUG == 1
@@ -931,6 +1017,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_ORDER:
 		case COMPOSITION_REFERENCE:
 		case COMPOSITION_DELETE:
+		case COMPOSITION_ADD:
 			//clear list and repopulate
 			store = (GtkListStore *) (current+1)->widget;
 			gtk_list_store_clear(store);
@@ -1115,6 +1202,13 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case COMPOSITION_DELETE:
 			strcpy(last->message,"removal of layer");
+			xmi_free_composition(last->xi->composition);
+			xmi_copy_composition(compositionS, &(last->xi->composition));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case COMPOSITION_ADD:
+			strcpy(last->message,"addition of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
 			last->kind = kind;
@@ -1375,6 +1469,8 @@ int main (int argc, char *argv[]) {
 
 	//initialize layer widget
 	layerW = initialize_layer_widget(&layer);
+	g_signal_connect(G_OBJECT(layerW->window),"hide",G_CALLBACK(layer_widget_hide_cb), (gpointer) layerW);
+
 
 	frame = gtk_frame_new("Composition");
 

@@ -125,7 +125,8 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
 		gtk_widget_set_sensitive(lw->okButton, FALSE);
-	
+		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,&white);
 	}
 
 }
@@ -232,8 +233,8 @@ void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		if (*(lw->my_layer)) {
 			xmi_free_layer(*(lw->my_layer));
 			free(*(lw->my_layer));
-			*(lw->my_layer) = NULL;
 		}
+		*(lw->my_layer) = NULL;
 	}
 
 
