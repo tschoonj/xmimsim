@@ -1,6 +1,11 @@
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
+enum {
+	LW_ADD,
+	LW_EDIT,
+};
+
 struct layerWidget {
 	GtkWidget *window;
 	GtkListStore *store;
@@ -12,6 +17,7 @@ struct layerWidget {
 	GtkWidget *okButton;
 	GtkWidget *cancelButton;
 	GtkWidget *removeButton;
+	int kind;
 	
 
 };

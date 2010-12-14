@@ -328,6 +328,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
 #endif
 		layer = NULL;
+		layerW->kind = LW_ADD;
 		gtk_widget_show_all(layerW->window);
 #if DEBUG == 1
 		fprintf(stdout,"After widget show command\n" );
@@ -456,6 +457,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			//should work with a copy instead of the real thing
 		//	layer = composition->layers+index;	
 			xmi_copy_layer(composition->layers+index,&layer);
+			layerW->kind = LW_EDIT;
 			gtk_widget_show_all(layerW->window);
 		}
 
@@ -1228,9 +1230,6 @@ int main (int argc, char *argv[]) {
 	gtk_window_set_default_size(GTK_WINDOW(window),800,800);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
-	//initialize layer widget
-	layerW = initialize_layer_widget(&layer);
-
 	Main_vbox = gtk_vbox_new(FALSE,0);
 	gtk_container_add(GTK_CONTAINER(window),Main_vbox);
 
@@ -1373,6 +1372,9 @@ int main (int argc, char *argv[]) {
 
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
+
+	//initialize layer widget
+	layerW = initialize_layer_widget(&layer);
 
 	frame = gtk_frame_new("Composition");
 

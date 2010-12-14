@@ -22,6 +22,7 @@ ENDTYPE
 TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighTheta_ICDF
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: ComptonTheta_ICDF
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: DopplerPz_ICDF
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
         !interaction_probs ...
@@ -893,7 +894,8 @@ FUNCTION findpos(array, searchvalue)
         RETURN
 ENDFUNCTION findpos
 
-FUNCTION bilinear_interpolation(array2D, array1D_1, array1D_2, x_1, x_2 ) &
+FUNCTION bilinear_interpolation(array2D, array1D_1, array1D_2, x_1, x_2, pos_1,&
+pos_2) &
 RESULT(rv)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(:,:), INTENT(IN) :: array2D
@@ -901,10 +903,10 @@ RESULT(rv)
         REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_2
         REAL (C_DOUBLE), INTENT(IN) :: x_1
         REAL (C_DOUBLE), INTENT(IN) :: x_2
+        INTEGER (C_INT), INTENT(INOUT) :: pos_1, pos_2
         REAL (C_DOUBLE) :: rv
 
         REAL (C_DOUBLE) :: c1, c2, c3, c4,denom
-        INTEGER (C_INT) :: pos_1, pos_2
 
         !check if the dimensions are safe... to be removed later
         IF (SIZE(array2D,DIM=1) .NE. SIZE(array1D_1) &
@@ -915,20 +917,22 @@ RESULT(rv)
         ENDIF
 
         !get positions
-        pos_1 = findpos(array1D_1, x_1)        
-        IF (pos_1 .LT. 1_C_INT) THEN
-                WRITE (*,'(A)') &
-                'Invalid result for findpos bilinear interpolation'
-                CALL EXIT(1)
+        IF (pos_1 == 0_C_INT .AND. pos_2 == 0_C_INT) THEN
+                pos_1 = findpos(array1D_1, x_1)        
+                IF (pos_1 .LT. 1_C_INT) THEN
+                        WRITE (*,'(A)') &
+                        'Invalid result for findpos bilinear interpolation'
+                        CALL EXIT(1)
+                ENDIF
+
+                pos_2 = findpos(array1D_2, x_2)        
+                IF (pos_2 .LT. 1_C_INT) THEN
+                        WRITE (*,'(A)') &
+                        'Invalid result for findpos bilinear interpolation'
+                        CALL EXIT(1)
+                ENDIF
         ENDIF
 
-        pos_2 = findpos(array1D_2, x_2)        
-        IF (pos_2 .LT. 1_C_INT) THEN
-                WRITE (*,'(A)') &
-                'Invalid result for findpos bilinear interpolation'
-                CALL EXIT(1)
-        ENDIF
-       
         !looks good, calculate coefficients
         denom = (array1D_1(pos_1+1)-array1D_1(pos_1))/(array1D_2(pos_2+1)-array1D_2(pos_2))
         c1 = (array1D_1(pos_1+1)-x_1)*(array1D_2(pos_2+1)-x_2)/denom
@@ -971,6 +975,56 @@ SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_sc
 
 ENDSUBROUTINE xmi_scale_double
 
+FUNCTION trilinear_interpolation(array3D, array1D_1, array1D_2, array1D_3, x_1,&
+x_2, x_3) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(:,:,:), INTENT(IN) :: array3D
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_1
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_2
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array1D_3
+        REAL (C_DOUBLE), INTENT(IN) :: x_1
+        REAL (C_DOUBLE), INTENT(IN) :: x_2
+        REAL (C_DOUBLE), INTENT(IN) :: x_3
+        REAL (C_DOUBLE) :: rv
+        REAL (C_DOUBLE) :: bi_rv_1, bi_rv_2 
 
+        INTEGER (C_INT) :: pos_1, pos_2, pos_3
+
+
+        !check if the dimensions are safe... to be removed later
+        IF (SIZE(array3D,DIM=1) .NE. SIZE(array1D_1) &
+        .OR. SIZE(array3D,DIM=2) .NE. SIZE(array1D_2) &
+        .OR. SIZE(array3D,DIM=3) .NE. SIZE(array1D_3) &
+        ) THEN
+                WRITE (*,'(A)') &
+                'Array dimensions mismatch in trilinear interpolation'
+                CALL EXIT(1)
+        ENDIF
+
+        !get positions
+        pos_3 = findpos(array1D_3, x_3)        
+        IF (pos_3 .LT. 1_C_INT) THEN
+                WRITE (*,'(A)') &
+                'Invalid result for findpos trilinear interpolation'
+                CALL EXIT(1)
+        ENDIF
+
+
+        !two bilinear interpolations...
+        pos_1 = 0_C_INT
+        pos_2 = 0_C_INT
+        bi_rv_1 = bilinear_interpolation(array3D(:,:,pos_3),array1D_1,&
+        array1D_2, x_1, x_2,pos_1,pos_2)
+
+        bi_rv_2 = bilinear_interpolation(array3D(:,:,pos_3+1),array1D_1,&
+        array1D_2, x_1, x_2,pos_1,pos_2)
+
+        !...and one linear interpolation
+        rv = interpolate_simple([array1D_3(pos_3), bi_rv_1], [array1D_3(pos_3+1), bi_rv_2],&
+        x_3)
+
+
+        RETURN
+ENDFUNCTION trilinear_interpolation
 
 ENDMODULE 

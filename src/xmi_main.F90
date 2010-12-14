@@ -17,6 +17,11 @@ INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
 INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
 INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
 
+!some physical constants
+REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
+        fgsl_const_mksa_speed_of_light**2/&
+        fgsl_const_mksa_electron_volt/1000.0_C_DOUBLE
+
 
 
 
@@ -223,6 +228,13 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF(dims(1),dims(2)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF,dims,error)
+                CALL h5dclose_f(dset_id,error)
+
+                !Read Doppler pz ICDF
+                CALL h5dopen_f(group_id,'Doppler_pz_ICDF',dset_id,error)
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF(dims(2)))
+                CALL h5dread_f(dset_id,&
+                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF,[dims(2)],error)
                 CALL h5dclose_f(dset_id,error)
 
                 !Read energies
@@ -784,16 +796,17 @@ IMPLICIT NONE
 
 INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
-nintervals_e_ip = 10000
+nintervals_e_ip = 10000, nintervals_pz=50000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
-        PI = 3.14159265359,MEC2 = 510.998910
+        PI = 3.14159265359,MEC2 = 510.998910,maxpz = 100.0
 CHARACTER(200) :: error_message
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
         rayleigh_theta,compton_theta
-REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis,trapez2
 REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
 
 INTEGER :: stat,i,j,k,l,m,n
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
@@ -820,6 +833,7 @@ REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs
 
 TYPE (interaction_prob), DIMENSION(maxz) :: interaction_probs
 
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: doppler_pz 
 
 CALL h5open_f(h5error)
 
@@ -829,7 +843,8 @@ CALL SetErrorMessages(0)
 ALLOCATE(rayleigh_theta(maxz, nintervals_e, nintervals_r),&
 compton_theta(maxz, nintervals_e, nintervals_r),&
 energies(nintervals_e), rs(nintervals_r),&
-thetas(nintervals_theta), STAT=stat, errmsg=error_message )
+thetas(nintervals_theta),&
+doppler_pz(maxz, nintervals_r), pzs(nintervals_pz), STAT=stat, errmsg=error_message )
 
 IF (stat /= 0) THEN 
         WRITE (error_unit,*) 'Allocation failure:',trim(error_message)
@@ -846,6 +861,11 @@ ENDDO
         WRITE (6,*) 'energies(1): ',energies(1)
         WRITE (6,*) 'energies(nintervals_e): ',energies(nintervals_e)
 #endif
+
+DO i=1,nintervals_pz
+        pzs(i) = 0.0_C_DOUBLE + maxpz*(REAL(i,C_DOUBLE)-1.0)/(nintervals_pz-1.0)
+ENDDO
+
 
 
 DO i=1,nintervals_r
@@ -870,12 +890,13 @@ ENDDO
 
 !CALL OMP_SET_NUM_THREADS(1)
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy,trapez2)
 
 #if DEBUG == 2
 WRITE(6,*) 'multiple allocs'
 #endif
 ALLOCATE(trapez(nintervals_theta-1))
+ALLOCATE(trapez2(nintervals_pz-1))
 ALLOCATE(sumz(nintervals_theta-1))
 !$OMP DO
 
@@ -1004,6 +1025,36 @@ ENDIF
 
         DEALLOCATE(energies_flt)
 
+        !
+        !
+        !       Doppler broadening
+        !
+        !
+        DO j=1,nintervals_pz-1
+                trapez2(j) = &
+                (ComptonProfile(i, REAL(pzs(j),KIND=C_FLOAT))+&
+                ComptonProfile(i, REAL(pzs(j+1),KIND=C_FLOAT)))*&
+                (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(i,KIND=C_DOUBLE)
+                !divide by atomic number because we want an average value per
+                !electron
+        ENDDO
+        trapez2 = trapez2/SUM(trapez2)
+
+        temp_sum = 0.0_C_DOUBLE
+        l=1
+        m=1
+        DO
+                temp_sum = trapez2(l)+temp_sum
+                IF (temp_sum >= rs(m)) THEN
+                       doppler_pz(i,m) = pzs(l)
+                        IF (m == nintervals_r) EXIT
+                        m = m+1
+                ENDIF
+                IF (l == nintervals_pz-1) EXIT
+                l = l+1
+        ENDDO
+        doppler_pz(i,nintervals_r) = maxpz
+        doppler_pz(i,1) = 0.0_C_DOUBLE
 
 ENDDO Zloop
 !$OMP END DO
@@ -1054,6 +1105,14 @@ DO i=1,maxz
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
 
+        !create doppler compton broadening
+        CALL h5screate_simple_f(1,[nintervals_r],dspace_id,h5error)
+        CALL h5dcreate_f(group_id2,'Doppler_pz_ICDF',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,doppler_pz(i,:),[nintervals_r],h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
+
+
         !group close -> theta_icdf
         CALL h5gclose_f(group_id2,h5error)
 
@@ -1077,6 +1136,10 @@ DO i=1,maxz
 
         !group close -> interaction_probs
         CALL h5gclose_f(group_id2,h5error)
+
+
+
+
 
         !group close -> element
         CALL h5gclose_f(group_id,h5error)
@@ -1720,6 +1783,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: theta_i, phi_i
+        INTEGER (C_INT) :: pos_1, pos_2
        
         rv = 0
 
@@ -1730,14 +1794,20 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
 
         !calculate theta
+        pos_1 = 0_C_INT
+        pos_2 = 0_C_INT
+
         theta_i = bilinear_interpolation(hdf5_Z%RayleighTheta_ICDF, &
                 hdf5_Z%Energies, hdf5_Z%RandomNumbers, photon%energy,&
-                fgsl_rng_uniform(rng)) 
+                fgsl_rng_uniform(rng), pos_1, pos_2) 
 
         !calculate phi
+        pos_1 = 0_C_INT
+        pos_2 = 0_C_INT
+
         phi_i = bilinear_interpolation(hdf5F%RayleighPhi_ICDF, &
                 hdf5F%RayleighThetas, hdf5F%RayleighRandomNumbers,&
-                theta_i, fgsl_rng_uniform(rng))
+                theta_i, fgsl_rng_uniform(rng), pos_1, pos_2)
         
         !according to laszlos code (around line 1360), some things need to get
         !done here first involving the electric field and Theta_i and Phi_i of
@@ -1746,7 +1816,14 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         !update photon%theta and photon%phi
         !
-        CALL xmi_update_photon_dir(photon, theta_i, phi_i)
+        CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
+
+        !
+        !update electric field
+        !
+        CALL xmi_update_photon_elecv(photon)
+
+        
 
 
         ENDASSOCIATE
@@ -1756,7 +1833,101 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_simulate_photon_rayleigh
 
-SUBROUTINE xmi_update_photon_dir(photon, theta_i, phi_i)
+FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: rv, pos_1, pos_2
+        REAL (C_DOUBLE) :: theta_i, phi_i
+       
+        rv = 0
+        pos_1 = 0
+        pos_2 = 0
+
+        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (photon%current_element_index)%Ptr)
+
+        !calculate theta
+        theta_i = bilinear_interpolation(hdf5_Z%ComptonTheta_ICDF, &
+                hdf5_Z%Energies, hdf5_Z%RandomNumbers, photon%energy,&
+                fgsl_rng_uniform(rng), pos_1, pos_2) 
+
+        !calculate phi
+        phi_i = trilinear_interpolation(hdf5F%ComptonPhi_ICDF, &
+                hdf5F%ComptonThetas, hdf5F%ComptonEnergies,&
+                hdf5F%ComptonRandomNumbers,&
+                theta_i, photon%energy,fgsl_rng_uniform(rng)) 
+
+        !again according to laszlo... some things need to happen here first...
+        !see comment with rayleigh
+
+        !
+        !update photon%theta and photon%phi
+        !
+        CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
+
+        !
+        !update electric field
+        !
+        CALL xmi_update_photon_elecv(photon)
+
+        !
+        !for compton, laszlo does a further manipulation, probably has to with
+        !change of degree of polarization
+        !
+
+        !
+        !update energy of photon!!!
+        !
+        CALL xmi_update_photon_energy_compton(photon, theta_i, rng, inputF,&
+        hdf5f)
+
+
+        ENDASSOCIATE
+
+        rv = 1
+
+        RETURN
+
+ENDFUNCTION xmi_simulate_photon_compton
+
+SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F) 
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+
+        REAL (C_DOUBLE) :: K0K,pz,r
+        INTEGER (C_INT) :: pos
+
+        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (photon%current_element_index)%Ptr)
+
+        K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+
+        r = fgsl_rng_uniform(rng)
+        pos = findpos(hdf5_Z%RandomNumbers, r)
+
+        pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
+        hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
+        hdf5_Z%DopplerPz_ICDF(pos+1)], r)
+
+        photon%energy = &
+        photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE))
+
+        ENDASSOCIATE
+
+        RETURN
+ENDSUBROUTINE xmi_update_photon_energy_compton
+
+SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
+        IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(INOUT) :: theta_i, phi_i
 
@@ -1785,8 +1956,36 @@ SUBROUTINE xmi_update_photon_dir(photon, theta_i, phi_i)
 
         photon%dirv = MATMUL(trans_m,photon%dirv)
 
+        !update theta and phi in photon
+        photon%theta = ACOS(photon%dirv(3))
+
+        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+                !processor dependent...
+                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        ELSE
+                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        ENDIF
+
 
         RETURN
-ENDSUBROUTINE
+ENDSUBROUTINE xmi_update_photon_dirv
+
+SUBROUTINE xmi_update_photon_elecv(photon)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+       
+        REAL (C_DOUBLE) :: cosalfa, c_alfa, sinalfa,c_ae, c_be
+
+        cosalfa = DOT_PRODUCT(photon%dirv,photon%elecv)
+
+        c_alfa = ACOS(cosalfa)
+        sinalfa = SIN(c_alfa)
+        c_ae = 1.0_C_DOUBLE/sinalfa
+        c_be = -c_ae*cosalfa
+
+        photon%elecv = c_ae * photon%elecv + c_be *photon%dirv
+
+ENDSUBROUTINE xmi_update_photon_elecv
 
 ENDMODULE
