@@ -20,6 +20,7 @@ struct layerWidget {
 	int matrixKind;
 	int AddOrEdit;
 	int layerNumber;
+	GtkTreeIter iter;
 	
 
 };

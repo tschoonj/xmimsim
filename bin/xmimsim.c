@@ -33,6 +33,8 @@ int main (int argc, char *argv[]) {
 	gsl_rng *rng;
 	unsigned long int seed;
 	double channels[2048];
+	FILE *outPtr;
+	int i;
 
 
 #ifdef HAVE_OPENMPI
@@ -83,7 +85,7 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Reading from HDF5 file\n");
 #endif
 
-
+	exit(1);
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
@@ -113,6 +115,18 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	MPI_Finalize();
 #endif
+
+
+	//write it to outputfile...
+	if ((outPtr=fopen(input->general->outputfile,"w")) == NULL ) {
+		fprintf(stdout,"Could not write to outputfile\n");
+		exit(1);
+	}
+	fprintf(outPtr,"$DATA:\n");
+	fprintf(outPtr,"0\t2047\n");
+	for (i=0 ; i < 2048 ; i++)
+		fprintf(outPtr,"%lg\n",channels[i]);
+	fclose(outPtr);
 
 
 	return 0;

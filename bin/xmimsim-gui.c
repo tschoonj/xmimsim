@@ -163,6 +163,8 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 		store = compositionL;
 		if (lw->AddOrEdit == LW_ADD) 
 			updateKind = COMPOSITION_ADD;
+		else if (lw->AddOrEdit == LW_EDIT) 
+			updateKind = COMPOSITION_EDIT;
 	}
 
 	if (*(lw->my_layer) != NULL) {
@@ -207,6 +209,43 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			free(elementString);
 	
 
+		}
+		else if (lw->AddOrEdit == LW_EDIT) {
+			//editing layer
+			i = lw->layerNumber;
+			free(composition->layers[i].Z);
+			free(composition->layers[i].weight);
+			xmi_copy_layer2(layer,composition->layers+lw->layerNumber);
+
+			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
+			elementString[0] = '\0';
+			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
+				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
+				if (j != composition->layers[i].n_elements-1) {
+					strcat(elementString,", ");
+				}
+			}
+			if (lw->matrixKind == COMPOSITION) {
+				gtk_list_store_set(store, &(lw->iter),
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					REFERENCE_COLUMN,(i+1 == composition->reference_layer) ? TRUE : FALSE ,
+					-1
+					);
+			}
+			else {
+				gtk_list_store_set(store, &(lw->iter),
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					-1
+					);
+			}
+	
+			free(elementString);
 		}
 		update_undo_buffer(updateKind, (GtkWidget *) store);	
 	}  	
@@ -542,6 +581,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			layerW->AddOrEdit = LW_EDIT;
 			layerW->matrixKind = mb->matrixKind;
 			layerW->layerNumber = index;
+			layerW->iter = iter;
 			gtk_widget_show_all(layerW->window);
 		}
 
@@ -923,6 +963,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_REFERENCE:
 		case COMPOSITION_DELETE:
 		case COMPOSITION_ADD:
+		case COMPOSITION_EDIT:
 			//clear list and repopulate
 			store = (GtkListStore *) (current)->widget;
 #if DEBUG == 1
@@ -1018,6 +1059,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_REFERENCE:
 		case COMPOSITION_DELETE:
 		case COMPOSITION_ADD:
+		case COMPOSITION_EDIT:
 			//clear list and repopulate
 			store = (GtkListStore *) (current+1)->widget;
 			gtk_list_store_clear(store);
@@ -1209,6 +1251,13 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case COMPOSITION_ADD:
 			strcpy(last->message,"addition of layer");
+			xmi_free_composition(last->xi->composition);
+			xmi_copy_composition(compositionS, &(last->xi->composition));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case COMPOSITION_EDIT:
+			strcpy(last->message,"editing of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
 			last->kind = kind;

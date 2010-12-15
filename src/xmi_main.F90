@@ -22,7 +22,7 @@ REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
         fgsl_const_mksa_speed_of_light**2/&
         fgsl_const_mksa_electron_volt/1000.0_C_DOUBLE
 
-
+REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
 
 
 CONTAINS
@@ -92,6 +92,9 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 #if DEBUG == 2
         WRITE (*,'(A)') 'uniqZ', uniqZ
 #endif
+        !DO i=1,SIZE(uniqZ)
+        !        WRITE (*,'(A,I2)') 'uniqZ: ',uniqZ(i)
+        !ENDDO
 
 
 
@@ -200,8 +203,9 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !read Z dependent part...
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
         DO i=1,SIZE(uniqZ) 
+                !WRITE (*,'(A,I2)') 'Elementi: ',uniqZ(i)
                 WRITE (element, '(I2)') uniqZ(i)
-#if DEBUG == 1
+#if DEBUG == 0
                 WRITE (*,'(A,A)') 'Reading element: ',element
 #endif
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
@@ -403,6 +407,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channelsF
         INTEGER :: max_threads, thread_num
 
         TYPE (fgsl_rng_type) :: rng_type
@@ -418,6 +423,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         INTEGER (C_LONG) :: photons_simulated, detector_hits, rayleighs,&
         comptons, einsteins
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
+        INTEGER (C_INT) :: channel
         !begin...
         
         rv = 0
@@ -430,6 +436,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
+        CALL C_F_POINTER(channelsPtr, channelsF,[nchannels])
 
         
         max_threads = omp_get_max_threads()
@@ -642,20 +649,37 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 CALL EXIT(1)
                         ENDIF
 
+                        IF (photon%energy .GE. energy_threshold) THEN
+                                channel = INT((photon%energy - &
+                                inputF%detector%zero)/inputF%detector%gain)
+                        ELSE
+                                channel = 0
+                        ENDIF
 
 !$omp critical                        
                         photons_simulated = photons_simulated + 1
                         IF (photon%detector_hit .EQ. .TRUE.) THEN
                                 detector_hits = detector_hits + 1
-                        ELSE
-                                SELECT CASE (photon%last_interaction)
-                                        CASE (RAYLEIGH_INTERACTION)
-                                                rayleighs = rayleighs + 1
-                                        CASE (COMPTON_INTERACTION)
-                                                comptons = comptons + 1
-                                        CASE (PHOTOELECTRIC_INTERACTION)
-                                                einsteins = einsteins + 1
-                                ENDSELECT
+                        ENDIF
+!                        ELSE
+!                                SELECT CASE (photon%last_interaction)
+!                                        CASE (RAYLEIGH_INTERACTION)
+!                                                rayleighs = rayleighs + 1
+!                                        CASE (COMPTON_INTERACTION)
+!                                                comptons = comptons + 1
+!                                        CASE (PHOTOELECTRIC_INTERACTION)
+!                                                einsteins = einsteins + 1
+!                                ENDSELECT
+!                        ENDIF
+
+!
+!
+!                       Add to channelsF
+!
+!
+                        !add to channelsF
+                        IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+                                channelsF(channel) = channelsF(channel)+photon%weight
                         ENDIF
 
 !$omp end critical                        
@@ -677,9 +701,9 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 #if DEBUG == 1
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
-        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
-        WRITE (*,'(A,I)') 'Comptons: ',comptons
-        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
+!        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
+!        WRITE (*,'(A,I)') 'Comptons: ',comptons
+!        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
 #endif
 
 
@@ -1417,7 +1441,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !       Calculate steplength
                 !
                 !
-                
+                IF (photon%energy .LT. energy_threshold .OR.&
+                photon%n_interactions .EQ.&
+                inputF%general%n_interactions_trajectory) THEN
+                        EXIT
+                ENDIF
                 !Check in which layer it will interact
                 inside = .FALSE.
                 interactionR = fgsl_rng_uniform(rng)
@@ -1597,18 +1625,19 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%energy)) THEN
                         !we've got Compton 
                         photon%last_interaction = COMPTON_INTERACTION
+                        rv_interaction = xmi_simulate_photon_compton(photon,&
+                        inputF, hdf5F, rng) 
                 ELSE
                         !we've got photoelectric
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
+                        rv_interaction = xmi_simulate_photon_fluorescence(photon,&
+                        inputF, hdf5F, rng) 
                 ENDIF
 
                 !abort if necessary
                 IF (rv_interaction /= 1) THEN
                         RETURN
                 ENDIF
-
-                
-
 
 
 
@@ -1618,7 +1647,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 
 
-#if DEBUG == 1
+#if DEBUG == 2
                 EXIT main       
 #endif  
 
@@ -1894,6 +1923,116 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
 ENDFUNCTION xmi_simulate_photon_compton
 
+FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: rv
+
+        REAL (C_FLOAT) :: photo_total, energy_flt
+        REAL (C_FLOAT) :: sumz
+        INTEGER (C_INT) :: shell,line_first, line_last, line
+        REAL (C_DOUBLE) :: r
+        REAL (C_DOUBLE) :: theta_i, phi_i
+        
+        LOGICAL :: shell_found, line_found
+
+        rv = 0
+
+        !so we've got photo electric effect
+        !first is to check which shell got lucky
+        energy_flt = REAL(photon%energy,C_FLOAT)
+        photo_total = CS_Photo_Total(photon%current_element, energy_flt)
+
+        sumz = 0.0_C_FLOAT
+        shell_found = .FALSE.
+
+        !for now let's just look at K- and L-lines
+        r = fgsl_rng_uniform(rng)
+        DO shell=K_SHELL,L3_SHELL
+                sumz = sumz + CS_Photo_Partial(photon%current_element, shell,&
+                energy_flt)/photo_total
+                IF (r .LT. sumz) THEN
+                        shell_found = .TRUE.
+                        EXIT
+                ENDIF
+        ENDDO
+        
+        IF (.NOT. shell_found) THEN
+                ! no shell matches -> probably M or higher...
+               photon%energy = 0.0_C_DOUBLE
+               rv = 1
+               RETURN
+        ENDIF
+
+        !so now that we determined the shell to be used, see if we get
+        !fluorescence...
+        r = fgsl_rng_uniform(rng)
+        IF (r .GT. FluorYield(photon%current_element,shell)) THEN
+                !no fluorescence but Auger...
+               photon%energy = 0.0_C_DOUBLE
+               rv = 1
+               RETURN
+        ENDIF
+
+        !so we have fluorescence... but which line?
+        r = fgsl_rng_uniform(rng)
+        sumz = 0.0_C_FLOAT
+        line_found = .FALSE.
+        IF (shell .EQ. K_SHELL) THEN
+                line_first = KL1_LINE
+                line_last = KP5_LINE
+        ELSEIF (shell .EQ. L1_SHELL) THEN
+                line_first = L1L2_LINE
+                line_last = L1P5_LINE
+        ELSEIF (shell .EQ. L2_SHELL) THEN
+                line_first = L2L3_LINE
+                line_last = L2Q1_LINE
+        ELSEIF (shell .EQ. L3_SHELL) THEN
+                line_first = L3M1_LINE
+                line_last = L3Q1_LINE
+        ENDIF
+
+        DO line=line_first,line_last,-1
+                sumz = sumz + RadRate(photon%current_element, line)
+                IF (r .LT. sumz) THEN
+                        !found it...
+                        line_found = .TRUE.
+                        EXIT
+                ENDIF
+        ENDDO
+
+        IF (line_found) THEN
+                photon%energy = LineEnergy(photon%current_element, line)
+                photon%energy_changed = .TRUE.
+        ELSE
+                photon%energy = 0.0_C_DOUBLE
+                rv = 1
+                RETURN
+        ENDIF
+
+        !calculate theta and phi
+        theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
+        phi_i = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+
+        !
+        !update photon%theta and photon%phi
+        !
+        CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
+
+        !
+        !update electric field
+        !
+        CALL xmi_update_photon_elecv(photon)
+
+        rv = 1
+
+        RETURN
+
+ENDFUNCTION xmi_simulate_photon_fluorescence
+
 SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F) 
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -1920,6 +2059,8 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
 
         photon%energy = &
         photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE))
+
+        photon%energy_changed = .TRUE.
 
         ENDASSOCIATE
 
