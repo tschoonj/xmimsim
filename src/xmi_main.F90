@@ -21,7 +21,13 @@ INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
 REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
         fgsl_const_mksa_speed_of_light**2/&
         fgsl_const_mksa_electron_volt/1000.0_C_DOUBLE
+        !source = NIST
+REAL (C_DOUBLE), PARAMETER :: momentum_atomic_unit = 1.992851565E-24
+REAL (C_DOUBLE), PARAMETER :: XMI_MEC = fgsl_const_mksa_mass_electron*&
+        fgsl_const_mksa_speed_of_light
+REAL (C_DOUBLE), PARAMETER :: XMI_MOM_MEC = momentum_atomic_unit/XMI_MEC
 
+!threshold is 1 keV
 REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
 
 
@@ -203,14 +209,20 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !read Z dependent part...
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
         DO i=1,SIZE(uniqZ) 
-                !WRITE (*,'(A,I2)') 'Elementi: ',uniqZ(i)
-                WRITE (element, '(I2)') uniqZ(i)
-#if DEBUG == 0
-                WRITE (*,'(A,A)') 'Reading element: ',element
+!
+!
+!       Internal files issue in intel fortran...
+!
+
+
+!WRITE (*,'(A,I2)') 'Elementi: ',uniqZ(i)
+!                WRITE (element, '(I2)') uniqZ(i)
+#if DEBUG == 1
+                WRITE (*,'(A,A)') 'Reading element: ',elements(uniqZ(i))
 #endif
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
 
-                CALL h5gopen_f(file_id,element // '/Theta_ICDF',group_id,error)
+                CALL h5gopen_f(file_id,elements(uniqZ(i)) // '/Theta_ICDF',group_id,error)
                 !Read Rayleigh Theta ICDF
                 CALL h5dopen_f(group_id,'RayleighTheta_ICDF',dset_id,error)
                 CALL h5dget_space_f(dset_id, dspace_id,error)
@@ -259,7 +271,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 DEALLOCATE(maxdims)
                 CALL h5gclose_f(group_id,error)
                 !Read interactions probabilities
-                CALL h5gopen_f(file_id,element // '/Interaction probabilities',group_id,error)
+                CALL h5gopen_f(file_id,elements(uniqZ(i))// '/Interaction probabilities',group_id,error)
                 !Read energies 
                 CALL h5dopen_f(group_id,'Energies',dset_id,error)
                 CALL h5dget_space_f(dset_id, dspace_id,error)
@@ -424,8 +436,11 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         comptons, einsteins
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: channelsFF 
         !begin...
         
+        CALL SetErrorMessages(0)
+
         rv = 0
         photons_simulated = 0
         detector_hits = 0
@@ -438,6 +453,8 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
         CALL C_F_POINTER(channelsPtr, channelsF,[nchannels])
 
+        channelsF = 0.0_C_DOUBLE
+        channelsFF = channelsF
         
         max_threads = omp_get_max_threads()
 
@@ -465,7 +482,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus)
+!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel) reduction(+:photons_simulated,detector_hits, channelsFF,rayleighs,comptons,einsteins)
 
 !
 !
@@ -656,33 +673,29 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 channel = 0
                         ENDIF
 
-!$omp critical                        
+!!!$omp critical                        
                         photons_simulated = photons_simulated + 1
                         IF (photon%detector_hit .EQ. .TRUE.) THEN
                                 detector_hits = detector_hits + 1
-                        ENDIF
-!                        ELSE
-!                                SELECT CASE (photon%last_interaction)
-!                                        CASE (RAYLEIGH_INTERACTION)
-!                                                rayleighs = rayleighs + 1
-!                                        CASE (COMPTON_INTERACTION)
-!                                                comptons = comptons + 1
-!                                        CASE (PHOTOELECTRIC_INTERACTION)
-!                                                einsteins = einsteins + 1
-!                                ENDSELECT
-!                        ENDIF
-
 !
 !
-!                       Add to channelsF
+!                              Add to channelsF
 !
 !
-                        !add to channelsF
-                        IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                                channelsF(channel) = channelsF(channel)+photon%weight
+                                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+                                        channelsFF(channel) = channelsFF(channel)+photon%weight
+                                ENDIF
+                                SELECT CASE (photon%last_interaction)
+                                        CASE (RAYLEIGH_INTERACTION)
+                                                rayleighs = rayleighs + 1
+                                        CASE (COMPTON_INTERACTION)
+                                                comptons = comptons + 1
+                                        CASE (PHOTOELECTRIC_INTERACTION)
+                                                einsteins = einsteins + 1
+                                ENDSELECT
                         ENDIF
 
-!$omp end critical                        
+!!!$omp end critical                        
                         DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
                 ENDDO
@@ -698,14 +711,15 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 !$omp end parallel
 
-#if DEBUG == 1
+#if DEBUG == 0
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
-!        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
-!        WRITE (*,'(A,I)') 'Comptons: ',comptons
-!        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
+        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
+        WRITE (*,'(A,I)') 'Comptons: ',comptons
+        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
 #endif
 
+        channelsF = channelsFF
 
         rv = 1
 
@@ -902,7 +916,7 @@ ENDDO
 #endif
 
 DO i=1,nintervals_theta
-        thetas(i) = PI/nintervals_theta+(PI-(PI/nintervals_theta))*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta-1.0)
+        thetas(i) = 0.0_C_DOUBLE+(PI)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta-1.0)
 ENDDO
 
 #if DEBUG == 2
@@ -1093,12 +1107,18 @@ CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F,file_id,h5error)
 
 !#if DEBUG != 1
 DO i=1,maxz
-        WRITE(element,'(I2)') i
-#if DEBUG == 2
-        WRITE (*,*) 'Writing element: ',element
-#endif
+!
+!
+!       Internal files are problematic in Intel Fortran...
+!
+!
+
+!        WRITE(element,'(I2)') i
+!#if DEBUG == 2
+!        WRITE (*,*) 'Writing element: ',element
+!#endif
         !group creation -> element
-        CALL h5gcreate_f(file_id,element,group_id,h5error)
+        CALL h5gcreate_f(file_id,elements(i),group_id,h5error)
 
         !group creation -> theta_icdf 
         CALL h5gcreate_f(group_id,'Theta_ICDF',group_id2,h5error)
@@ -1188,7 +1208,7 @@ IF (stat /= 0) THEN
 ENDIF
 
 DO i=1,nintervals_theta2
-        thetas(i) = PI/nintervals_theta2+(PI-(PI/nintervals_theta2))*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
+        thetas(i) = 0.0_C_DOUBLE+(PI-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
 ENDDO
 
 #if DEBUG == 1
@@ -1197,7 +1217,7 @@ ENDDO
 #endif
 
 DO i=1,nintervals_phi
-        phis(i)=2.0*PI/nintervals_phi+(2.0*PI-(2.0*PI/nintervals_phi))*(REAL(i,C_DOUBLE)-1.0)/(nintervals_phi-1.0)
+        phis(i)=0.0_C_DOUBLE+(2.0*PI-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_phi-1.0)
 ENDDO
 
 #if DEBUG == 1
@@ -1603,6 +1623,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 IF (pos .LT. 1_C_INT) THEN
                         WRITE (*,'(A)') &
                         'Invalid result for findpos interaction type'
+#if DEBUG == 0
+                        WRITE (*,'(A,I2)') 'last interaction type: '&
+                        ,photon%last_interaction
+                        WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
+#endif
                         CALL EXIT(1)
                 ENDIF
 
@@ -1627,6 +1652,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%last_interaction = COMPTON_INTERACTION
                         rv_interaction = xmi_simulate_photon_compton(photon,&
                         inputF, hdf5F, rng) 
+!                        photon%last_interaction = RAYLEIGH_INTERACTION
+!                        rv_interaction = xmi_simulate_photon_rayleigh(photon,&
+!                        inputF, hdf5F, rng) 
                 ELSE
                         !we've got photoelectric
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
@@ -1813,7 +1841,8 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: theta_i, phi_i
         INTEGER (C_INT) :: pos_1, pos_2
-       
+        REAL (C_DOUBLE) :: r
+
         rv = 0
 
         ASSOCIATE (hdf5_Z => inputF%composition%layers&
@@ -1825,10 +1854,28 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !calculate theta
         pos_1 = 0_C_INT
         pos_2 = 0_C_INT
+        r = fgsl_rng_uniform(rng)
+
+#if DEBUG == 2
+        WRITE (*,'(A,I2)') 'element: ',hdf5_Z%Z
+        WRITE (*,'(A,F12.6)') 'energy: ',photon%energy
+        WRITE (*,'(A,F12.6)') 'r: ',r
+        WRITE (*,'(A,F12.6)') 'hdf5_Z%Energies(1): ',hdf5_Z%Energies(1)
+        WRITE (*,'(A,F12.6)') 'hdf5_Z%Energies(last): ',hdf5_Z%Energies(SIZE(hdf5_Z%Energies))
+        WRITE (*,'(A,F12.6)') 'hdf5_Z%RandomNumbers(1): ',hdf5_Z%RandomNumbers(1)
+        WRITE (*,'(A,F12.6)') 'hdf5_Z%RandomNumbers(last): ',hdf5_Z%RandomNumbers(SIZE(hdf5_Z%RandomNumbers))
+        WRITE (*,'(A,F12.6)') 'hdf5_Z%RayleighTheta_ICDF(20,20): ',hdf5_Z%RayleighTheta_ICDF(20,20)
+#endif
+
 
         theta_i = bilinear_interpolation(hdf5_Z%RayleighTheta_ICDF, &
                 hdf5_Z%Energies, hdf5_Z%RandomNumbers, photon%energy,&
-                fgsl_rng_uniform(rng), pos_1, pos_2) 
+                r, pos_1, pos_2) 
+
+#if DEBUG == 2
+        WRITE (*,'(A,F12.6)') 'theta_i: ',theta_i
+#endif
+
 
         !calculate phi
         pos_1 = 0_C_INT
@@ -1838,6 +1885,9 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
                 hdf5F%RayleighThetas, hdf5F%RayleighRandomNumbers,&
                 theta_i, fgsl_rng_uniform(rng), pos_1, pos_2)
         
+#if DEBUG == 2
+        WRITE (*,'(A,F12.6)') 'phi_i: ',phi_i
+#endif
         !according to laszlos code (around line 1360), some things need to get
         !done here first involving the electric field and Theta_i and Phi_i of
         !the previous run
@@ -2043,26 +2093,59 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
 
         REAL (C_DOUBLE) :: K0K,pz,r
         INTEGER (C_INT) :: pos
+        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
+        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
+        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
+        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
+        REAL (C_DOUBLE) :: energy, sth2
 
         ASSOCIATE (hdf5_Z => inputF%composition%layers&
                 (photon%current_layer)%xmi_hdf5_Z_local&
                 (photon%current_element_index)%Ptr)
 
-        K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+        
+        !convert to eV
+        energy = photon%energy*1000.0_C_DOUBLE
+        c_lamb0 = c/(energy)
 
-        r = fgsl_rng_uniform(rng)
-        pos = findpos(hdf5_Z%RandomNumbers, r)
+        sth2 = SIN(theta_i/2.0_C_DOUBLE)
 
-        pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
-        hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
-        hdf5_Z%DopplerPz_ICDF(pos+1)], r)
+        DO
+                r = fgsl_rng_uniform(rng)
+                pos = findpos(hdf5_Z%RandomNumbers, r)
 
-        photon%energy = &
-        photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE))
+                pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
+                hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
+                hdf5_Z%DopplerPz_ICDF(pos+1)], r)
 
+#if DEBUG == 2
+                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
+                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
+                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
+                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+#endif
+
+                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+
+                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
+                c_lamb = c_lamb0+dlamb
+                energy = c/c_lamb/1000.0_C_DOUBLE
+                IF (energy .LE. photon%energy ) EXIT
+        ENDDO
+
+        !photon%energy = &
+        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
+
+        photon%energy = energy
+
+#if DEBUG == 2
+        WRITE (*,'(A,F12.5)') 'new photon energy: ',photon%energy
+#endif
         photon%energy_changed = .TRUE.
 
         ENDASSOCIATE
+
 
         RETURN
 ENDSUBROUTINE xmi_update_photon_energy_compton

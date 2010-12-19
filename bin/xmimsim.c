@@ -85,7 +85,6 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Reading from HDF5 file\n");
 #endif
 
-	exit(1);
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
@@ -124,8 +123,15 @@ int main (int argc, char *argv[]) {
 	}
 	fprintf(outPtr,"$DATA:\n");
 	fprintf(outPtr,"0\t2047\n");
-	for (i=0 ; i < 2048 ; i++)
-		fprintf(outPtr,"%lg\n",channels[i]);
+	for (i=0 ; i < 2048 ; i++) {
+		fprintf(outPtr,"%lg",channels[i]);
+		if (i % 8 == 0) {
+			fprintf(outPtr,"\n");
+		}
+		else {
+			fprintf(outPtr,"     ");
+		}
+	}
 	fclose(outPtr);
 
 

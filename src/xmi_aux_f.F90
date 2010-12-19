@@ -343,6 +343,19 @@ INTERFACE xmi_mu_calc
         xmi_mu_calc_xmi_composition_single_energy
 ENDINTERFACE
 
+CHARACTER (LEN=2), DIMENSION(99) :: elements = &
+       [' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9', '10',&
+        '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',&
+        '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',&
+        '31', '32', '33', '34', '35', '36', '37', '38', '39', '40',&
+        '41', '42', '43', '44', '45', '46', '47', '48', '49', '50',&
+        '51', '52', '53', '54', '55', '56', '57', '58', '59', '60',&
+        '61', '62', '63', '64', '65', '66', '67', '68', '69', '70',&
+        '71', '72', '73', '74', '75', '76', '77', '78', '79', '80',&
+        '81', '82', '83', '84', '85', '86', '87', '88', '89', '90',&
+        '91', '92', '93', '94', '95', '96', '97', '98', '99']
+
+
 CONTAINS
 
 !used to compare C_INT's with qsort
@@ -885,7 +898,7 @@ FUNCTION findpos(array, searchvalue)
         findpos = -1
 
         DO i=1, SIZE(array)
-                IF (searchvalue .LE. array(i)) THEN
+                IF (searchvalue .LT. array(i)) THEN
                         findpos = i-1
                         RETURN
                 ENDIF
@@ -908,6 +921,16 @@ RESULT(rv)
 
         REAL (C_DOUBLE) :: c1, c2, c3, c4,denom
 
+#if DEBUG == 2
+        WRITE (*,'(A,I5)') 'pos_1: ',pos_1
+        WRITE (*,'(A,I5)') 'pos_2: ',pos_2
+        WRITE (*,'(A,F12.6)') 'x_1: ',x_1
+        WRITE (*,'(A,F12.6)') 'x_2: ',x_2
+
+#endif
+
+
+
         !check if the dimensions are safe... to be removed later
         IF (SIZE(array2D,DIM=1) .NE. SIZE(array1D_1) &
         .OR. SIZE(array2D,DIM=2) .NE. SIZE(array1D_2)) THEN
@@ -920,25 +943,49 @@ RESULT(rv)
         IF (pos_1 == 0_C_INT .AND. pos_2 == 0_C_INT) THEN
                 pos_1 = findpos(array1D_1, x_1)        
                 IF (pos_1 .LT. 1_C_INT) THEN
-                        WRITE (*,'(A)') &
-                        'Invalid result for findpos bilinear interpolation'
+                        WRITE (*,'(A,I5)') &
+                        'Invalid result for findpos bilinear interpolation -> pos_1: ',&
+                        pos_1
+                        WRITE (*,'(A,F12.6)') 'array1D_1(1): ',array1D_1(1)
+                        WRITE (*,'(A,F12.6)') 'x_1: ',x_1
+                        WRITE (*,'(A,F12.6)') 'x_2: ',x_2
                         CALL EXIT(1)
                 ENDIF
 
                 pos_2 = findpos(array1D_2, x_2)        
                 IF (pos_2 .LT. 1_C_INT) THEN
-                        WRITE (*,'(A)') &
-                        'Invalid result for findpos bilinear interpolation'
+                        WRITE (*,'(A,I5)') &
+                        'Invalid result for findpos bilinear interpolation -> pos_2: ',&
+                        pos_2
+                        WRITE (*,'(A,F12.6)') 'x_1: ',x_1
+                        WRITE (*,'(A,F12.6)') 'x_2: ',x_2
                         CALL EXIT(1)
                 ENDIF
         ENDIF
 
+#if DEBUG == 2
+        WRITE (*,'(A,I5)') 'pos_1 result',pos_1
+        WRITE (*,'(A,I5)') 'pos_2 result',pos_2
+        WRITE (*,'(A,F12.6)') 'pos_1 eval',array1D_1(pos_1)
+        WRITE (*,'(A,F12.6)') 'pos_2 eval',array1D_2(pos_2)
+        WRITE (*,'(A,F12.6)') 'array2D: pos1, pos2',array2D(pos_1,pos_2)
+#endif
+
+
         !looks good, calculate coefficients
-        denom = (array1D_1(pos_1+1)-array1D_1(pos_1))/(array1D_2(pos_2+1)-array1D_2(pos_2))
+        denom = (array1D_1(pos_1+1)-array1D_1(pos_1))*(array1D_2(pos_2+1)-array1D_2(pos_2))
         c1 = (array1D_1(pos_1+1)-x_1)*(array1D_2(pos_2+1)-x_2)/denom
         c2 = (x_1-array1D_1(pos_1))*(array1D_2(pos_2+1)-x_2)/denom
         c3 = (array1D_1(pos_1+1)-x_1)*(x_2-array1D_2(pos_2))/denom
         c4 = (x_1-array1D_1(pos_1))*(x_2-array1D_2(pos_2))/denom
+#if DEBUG == 2
+        WRITE (*,'(A,F12.6)') 'denom: ',denom
+        WRITE (*,'(A,F12.6)') 'c1: ',c1
+        WRITE (*,'(A,F12.6)') 'c2: ',c2
+        WRITE (*,'(A,F12.6)') 'c3: ',c3
+        WRITE (*,'(A,F12.6)') 'c4: ',c4
+#endif
+
 
         rv = c1*array2D(pos_1,pos_2) + c2*array2D(pos_1+1,pos_2) +&
                 c3*array2D(pos_1, pos_2+1) + c4*array2D(pos_1+1,pos_2+1)

@@ -41,8 +41,8 @@ PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.14.0)
-PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.20.0)
-PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
+PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0)
+#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 
 
@@ -113,7 +113,7 @@ H5FC_INCLUDE=
 H5FC_LINKER=
 H5FC_STATIC=
 
-H5FC_PARSED=$($H5FC -show)
+H5FC_PARSED=$($H5FC -show -shlib)
 
 
 COUNTER="0"
