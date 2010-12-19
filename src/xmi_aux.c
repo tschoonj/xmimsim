@@ -8,6 +8,12 @@
 #include <gsl/gsl_linalg.h>
 
 
+//global variables
+int use_M_lines;
+int use_self_enhancement;
+int use_cascade;
+int use_variance_reduction;
+
 static int xmi_cmp_int(const void *a, const void *b);
 
 void *xmi_memdup(const void *mem, size_t bytes) {

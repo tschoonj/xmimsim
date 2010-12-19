@@ -9,7 +9,10 @@ USE :: fgsl
 
 
 !global variables, defined in C, external for Fortran
-
+INTEGER (C_INT), BIND(C,NAME='use_M_lines') :: use_M_lines
+INTEGER (C_INT), BIND(C,NAME='use_self_enhancement') :: use_self_enhancement
+INTEGER (C_INT), BIND(C,NAME='use_cascade') :: use_cascade
+INTEGER (C_INT), BIND(C,NAME='use_variance_reduction') :: use_variance_reduction
 
 
 !global variables
@@ -1979,15 +1982,15 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        INTEGER (C_INT) :: rv
+        INTEGER (C_INT) :: rv,trans
 
         REAL (C_FLOAT) :: photo_total, energy_flt
         REAL (C_FLOAT) :: sumz
         INTEGER (C_INT) :: shell,line_first, line_last, line
         REAL (C_DOUBLE) :: r
         REAL (C_DOUBLE) :: theta_i, phi_i
-        
-        LOGICAL :: shell_found, line_found
+
+        LOGICAL :: shell_found, line_found, trans_found
 
         rv = 0
 
@@ -2015,6 +2018,46 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                photon%energy = 0.0_C_DOUBLE
                rv = 1
                RETURN
+        ENDIF
+
+        !Coster-Kronig for L... and M?
+
+        IF (shell .EQ. L2_SHELL .OR. shell .EQ. L1_SHELL ) THEN
+                DO
+                        sumz = 0.0_C_DOUBLE
+                        trans_found = .FALSE.
+                        r = fgsl_rng_uniform(rng)
+                        IF (shell .EQ. L2_SHELL) THEN
+                                IF (r .LT. &
+                                CosKronTransProb(&
+                                photon%current_element, FL23_TRANS)) THEN
+                                        shell = L3_SHELL
+                                ENDIF
+                                EXIT
+                        ELSE IF (shell .EQ. L1_SHELL) THEN
+                                DO trans=FL12_TRANS,FL13_TRANS
+                                        sumz = sumz+CosKronTransProb(&
+                                        photon%current_element, trans)
+                                        IF (r .LT. sumz) THEN
+                                                trans_found = .TRUE.           
+                                                EXIT
+                                        ENDIF
+                                ENDDO
+                                IF (trans_found) THEN
+                                        SELECT CASE (trans)
+                                                CASE (FL12_TRANS)
+                                                        shell = L2_SHELL
+                                                        CYCLE
+                                                CASE (FL13_TRANS)
+                                                        shell = L3_SHELL
+                                                        EXIT
+                                        ENDSELECT
+                                ELSE
+                                        !nothing happened...exiting
+                                        EXIT
+                                ENDIF
+                        ENDIF
+                ENDDO
         ENDIF
 
         !so now that we determined the shell to be used, see if we get

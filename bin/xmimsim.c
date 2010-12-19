@@ -11,10 +11,16 @@
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_random.h"
+#include <glib.h>
+#include <locale.h>
 
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+
+
+
+
 
 int main (int argc, char *argv[]) {
 	
@@ -35,6 +41,40 @@ int main (int argc, char *argv[]) {
 	double channels[2048];
 	FILE *outPtr;
 	int i;
+	GError *error = NULL;
+	GOptionContext *context;
+
+	static GOptionEntry entries[] = {
+	  	{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &use_M_lines, "Enable M lines (default)", NULL },
+	  	{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_M_lines, "Disable M lines", NULL },
+	  	{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &use_self_enhancement, "Enable self-enhancement", NULL },
+	  	{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_self_enhancement, "Disable self-enhancement (default)", NULL },
+	  	{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &use_cascade, "Enable cascade effects (default)", NULL },
+	  	{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_cascade, "Disable cascade effects", NULL },
+	  	{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &use_variance_reduction, "Enable variance reduction (default)", NULL },
+	  	{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_variance_reduction, "Disable variance reduction", NULL },
+		{ NULL }
+	};
+
+
+	//locale...
+	setlocale(LC_ALL,"C");
+
+
+
+
+	//options...
+	//1) use M-lines
+	//2) use self-enhancement -> see paper of Fernandez/Scot
+	//3) use cascade effect
+	//4) use variance reduction
+
+	use_M_lines = 1;
+	use_self_enhancement = 0;
+	use_cascade = 1;
+	use_variance_reduction = 1;
+
+
 
 
 #ifdef HAVE_OPENMPI
@@ -43,6 +83,17 @@ int main (int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
 #endif
+
+	//parse options
+	context = g_option_context_new ("inputfile");
+  	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_print ("option parsing failed: %s\n", error->message);
+		exit (1);
+	}
+			      
+
 
 	//start random number acquisition
 	if (xmi_start_random_acquisition() == 0) {
