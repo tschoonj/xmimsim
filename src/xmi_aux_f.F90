@@ -862,7 +862,7 @@ SUBROUTINE normalize_vector(a)
         REAL (C_DOUBLE), DIMENSION(3), INTENT(INOUT) :: a
         REAL (C_DOUBLE) :: norm
 
-        norm = SQRT(a(1)*a(1) + a(2)*a(2) + a(3)*a(3))
+        norm = SQRT(DOT_PRODUCT(a,a))
 
         a = a/norm
 

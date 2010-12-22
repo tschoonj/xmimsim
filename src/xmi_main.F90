@@ -604,7 +604,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
 
-                        ipol = MOD(n_photons,2)
+                        ipol = MOD(j,2)
 
                         !Calculate its initial coordinates and direction
                         CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
@@ -624,6 +624,10 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
                         ENDIF
+
+#if DEBUG == 1
+                        WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
+#endif
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
@@ -1844,7 +1848,8 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: theta_i, phi_i
         INTEGER (C_INT) :: pos_1, pos_2
-        REAL (C_DOUBLE) :: r
+        REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
+        REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
 
         rv = 0
 
@@ -1894,11 +1899,24 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !according to laszlos code (around line 1360), some things need to get
         !done here first involving the electric field and Theta_i and Phi_i of
         !the previous run
+        cosphi = COS(photon%phi)
+        sinphi = SIN(photon%phi)
+        costheta = COS(photon%theta)
+        sintheta = SIN(photon%theta)
+
+        cosphi0 = DOT_PRODUCT(photon%elecv,[cosphi*costheta,&
+        costheta*sinphi,-sintheta])
+        sinphi0 = DOT_PRODUCT(photon%elecv,[-sinphi,&
+        cosphi, 0.0_C_DOUBLE])
+        IF (ABS(cosphi0) .GT. 1.0_C_DOUBLE) cosphi0 = SIGN(1.0_C_DOUBLE,cosphi0)
+        phi0 = ACOS(cosphi0)
+        IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
+
 
         !
         !update photon%theta and photon%phi
         !
-        CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
+        CALL xmi_update_photon_dirv(photon, theta_i, phi_i+phi0)
 
         !
         !update electric field
@@ -1923,6 +1941,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv, pos_1, pos_2
         REAL (C_DOUBLE) :: theta_i, phi_i
+        REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
+        REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
        
         rv = 0
         pos_1 = 0
@@ -1945,11 +1965,23 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !again according to laszlo... some things need to happen here first...
         !see comment with rayleigh
+        cosphi = COS(photon%phi)
+        sinphi = SIN(photon%phi)
+        costheta = COS(photon%theta)
+        sintheta = SIN(photon%theta)
+
+        cosphi0 = DOT_PRODUCT(photon%elecv,[cosphi*costheta,&
+        costheta*sinphi,-sintheta])
+        sinphi0 = DOT_PRODUCT(photon%elecv,[-sinphi,&
+        cosphi, 0.0_C_DOUBLE])
+        IF (ABS(cosphi0) .GT. 1.0_C_DOUBLE) cosphi0 = SIGN(1.0_C_DOUBLE,cosphi0)
+        phi0 = ACOS(cosphi0)
+        IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
 
         !
         !update photon%theta and photon%phi
         !
-        CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
+        CALL xmi_update_photon_dirv(photon, theta_i, phi_i+phi0)
 
         !
         !update electric field
@@ -2196,18 +2228,25 @@ ENDSUBROUTINE xmi_update_photon_energy_compton
 SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-        REAL (C_DOUBLE), INTENT(INOUT) :: theta_i, phi_i
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i, phi_i
 
         REAL (C_DOUBLE) :: cosphi_i, sinphi_i
         REAL (C_DOUBLE) :: costheta_i, sintheta_i
         REAL (C_DOUBLE), DIMENSION(3,3) :: trans_m
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv
+        REAL (C_DOUBLE) :: tempsin
 
         !stability problems could arise here...
+        !
+        !Warning formula in 1993 paper is wrong!!
+        !For actual formula consult the PhD thesis of Laszlo Vincze
+        !
 
-        cosphi_i = COS(phi_i)
-        sinphi_i = SIN(phi_i)
-        costheta_i = COS(theta_i)
-        sintheta_i = SIN(theta_i)
+
+        cosphi_i = COS(photon%phi)
+        sinphi_i = SIN(photon%phi)
+        costheta_i = COS(photon%theta)
+        sintheta_i = SIN(photon%theta)
 
         trans_m(1,1) = costheta_i*cosphi_i
         trans_m(1,2) = -sinphi_i
@@ -2221,7 +2260,12 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         trans_m(3,2) = 0.0_C_DOUBLE
         trans_m(3,3) = costheta_i
 
-        photon%dirv = MATMUL(trans_m,photon%dirv)
+        tempsin = SIN(theta_i)
+        dirv = [tempsin*COS(phi_i), tempsin*SIN(phi_i),COS(theta_i)]
+
+        photon%dirv = MATMUL(trans_m,dirv)
+
+        CALL normalize_vector(photon%dirv)
 
         !update theta and phi in photon
         photon%theta = ACOS(photon%dirv(3))

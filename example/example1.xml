@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE xmimsim SYSTEM "/Users/schoon/github/xmimsim/xml/xmimsim-1.0.dtd">
+<!DOCTYPE xmimsim SYSTEM "/Volumes/Home/schoon/github/xmimsim/xml/xmimsim-1.0.dtd">
 <xmimsim>
  <general version="1.0">
   <outputfile>test_output.txt</outputfile>
