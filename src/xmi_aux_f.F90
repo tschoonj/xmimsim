@@ -278,6 +278,9 @@ TYPE :: xmi_photon
 
         !last interaction type
         INTEGER :: last_interaction
+
+        !debug
+        LOGICAL :: detector_hit2
 ENDTYPE
 
 !
@@ -774,7 +777,7 @@ FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
 
         DO i=1,layer%n_elements
                 rv = rv + REAL(CS_Total_Kissel(layer%Z(i),&
-                REAL(energy,KIND=C_FLOAT))*layer%weight(i),KIND=C_FLOAT)
+                REAL(energy,KIND=C_FLOAT))*layer%weight(i),KIND=C_DOUBLE)
         ENDDO
                  
 

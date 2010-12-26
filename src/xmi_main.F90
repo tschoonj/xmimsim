@@ -16,6 +16,7 @@ INTEGER (C_INT), BIND(C,NAME='use_variance_reduction') :: use_variance_reduction
 
 
 !global variables
+INTEGER (C_INT), PARAMETER ::  NO_INTERACTION = 0
 INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
 INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
 INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
@@ -436,7 +437,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         INTEGER :: ipol
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
         INTEGER (C_LONG) :: photons_simulated, detector_hits, rayleighs,&
-        comptons, einsteins
+        comptons, einsteins,detector_hits2
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: channelsFF 
@@ -447,6 +448,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         rv = 0
         photons_simulated = 0
         detector_hits = 0
+        detector_hits2 = 0
         rayleighs = 0
         comptons = 0
         einsteins = 0
@@ -485,7 +487,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel) reduction(+:photons_simulated,detector_hits, channelsFF,rayleighs,comptons,einsteins)
+!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins)
 
 !
 !
@@ -603,6 +605,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%mus = initial_mus
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
+                        photon%detector_hit2 = .FALSE.
 
                         ipol = MOD(j,2)
 
@@ -673,12 +676,6 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 CALL EXIT(1)
                         ENDIF
 
-                        IF (photon%energy .GE. energy_threshold) THEN
-                                channel = INT((photon%energy - &
-                                inputF%detector%zero)/inputF%detector%gain)
-                        ELSE
-                                channel = 0
-                        ENDIF
 
 !!!$omp critical                        
                         photons_simulated = photons_simulated + 1
@@ -689,6 +686,13 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 !                              Add to channelsF
 !
 !
+                                IF (photon%energy .GE. energy_threshold) THEN
+                                        channel = INT((photon%energy - &
+                                        inputF%detector%zero)/inputF%detector%gain)
+                                ELSE
+                                        channel = 0
+                                ENDIF
+
                                 IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
                                         channelsFF(channel) = channelsFF(channel)+photon%weight
                                 ENDIF
@@ -700,6 +704,20 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                         CASE (PHOTOELECTRIC_INTERACTION)
                                                 einsteins = einsteins + 1
                                 ENDSELECT
+#if DEBUG == 2
+                        ELSE
+                                SELECT CASE (photon%last_interaction)
+                                        CASE (RAYLEIGH_INTERACTION)
+                                                rayleighs = rayleighs + 1
+                                        CASE (COMPTON_INTERACTION)
+                                                comptons = comptons + 1
+                                        CASE (PHOTOELECTRIC_INTERACTION)
+                                                einsteins = einsteins + 1
+                                ENDSELECT
+#endif
+                        ENDIF
+                        IF (photon%detector_hit2 .EQ. .TRUE.) THEN
+                                detector_hits2 = detector_hits2 + 1
                         ENDIF
 
 !!!$omp end critical                        
@@ -721,6 +739,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 #if DEBUG == 0
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
+        WRITE (*,'(A,I)') 'Photons hitting the detector2...: ',detector_hits2
         WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
         WRITE (*,'(A,I)') 'Comptons: ',comptons
         WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
@@ -770,14 +789,19 @@ SUBROUTINE xmi_coords_dir(rng, energy, geometry, photon)
 
         photon%theta = ACOS(photon%dirv(3))
 
-        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-                !processor dependent...
-                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-        ELSE
-                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
-
+!        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+!                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+!                !processor dependent...
+!                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+!        ELSE
+!#if DEBUG == 0
+!                WRITE (*,'(A)') 'Dont think we should get here'
+!#endif
+!                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+!        ENDIF
+        
+        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+        
         RETURN
 
 ENDSUBROUTINE xmi_coords_dir
@@ -1468,9 +1492,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !       Calculate steplength
                 !
                 !
-                IF (photon%energy .LT. energy_threshold .OR.&
-                photon%n_interactions .EQ.&
-                inputF%general%n_interactions_trajectory) THEN
+                IF (photon%energy .LT. energy_threshold) THEN
                         EXIT
                 ENDIF
                 !Check in which layer it will interact
@@ -1489,7 +1511,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%energy_changed = .FALSE.
                 ENDIF
         
-                IF (photon%dirv(3) .GT. 0.0_C_DOUBLE) THEN
+                IF (DOT_PRODUCT(photon%dirv,inputF%geometry%&
+                n_sample_orientation) .GT. 0.0_C_DOUBLE) THEN
                         !moving towards higher layers
                         step_do_max = inputF%composition%n_layers
                         step_do_dir = 1
@@ -1515,6 +1538,16 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !calculate distance between current coords and
                         !intersection with next layer
                         !determine next plane
+#if DEBUG == 1
+                        IF (photon%n_interactions .EQ. 1 .AND.&
+                        photon%detector_hit2 .EQ. .TRUE.) THEN
+                                WRITE (*,'(A,I2)') 'last interaction:',&
+                                photon%last_interaction
+                                WRITE (*,'(A,3F12.5)') 'photon%coords: ', photon%coords
+                                WRITE (*,'(A,I2)') 'step_do_dir: ', step_do_dir
+
+                        ENDIF
+#endif
                         line%point = photon%coords
                         IF (step_do_dir .EQ. 1) THEN
                                 plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
@@ -1528,9 +1561,15 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 CALL EXIT(1)
                         
                         dist = xmi_distance_two_points(photon%coords,intersect)
-#if DEBUG == 2
-                        WRITE (*,'(A,F12.5)') 'dist: ', dist
-                        WRITE (*,'(A,3F12.5)') 'intersect: ', intersect
+#if DEBUG == 1
+                        IF (photon%n_interactions .EQ. 1 .AND.&
+                        photon%detector_hit2 .EQ. .TRUE.) THEN
+                                WRITE (*,'(A,F12.5)') 'dist: ', dist
+                                WRITE (*,'(A,3F12.5)') 'intersect: ', intersect
+                                WRITE (*,'(A,3F12.5)') 'plane%point: ', plane%point
+                                WRITE (*,'(A,3F12.5)') 'plane%normv: ', plane%normv
+                                WRITE (*,'(A,F12.5)') 'mu: ', photon%mus(i)
+                        ENDIF
 #endif
 
                         !calculate max value of random number
@@ -1545,12 +1584,17 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !dist here must be total dist: from previous interaction
                         !until current layer
                        
-#if DEBUG == 2
+#if DEBUG == 1
                         !WRITE (*,'(A,F12.5)') 'tempexp: ', tempexp
-                        WRITE (*,'(A,F12.5)') 'min_random_layer: ',&
-                        min_random_layer
-                        WRITE (*,'(A,F12.5)') 'max_random_layer: ',&
-                        max_random_layer
+                        IF (photon%n_interactions .EQ. 1 .AND.&
+                        photon%detector_hit2 .EQ. .TRUE.) THEN
+                                WRITE (*,'(A,F12.5)') 'min_random_layer: ',&
+                                min_random_layer
+                                WRITE (*,'(A,F12.5)') 'max_random_layer: ',&
+                                max_random_layer
+                                WRITE (*,'(A,F12.5)') 'interactionR: ',&
+                                interactionR
+                        ENDIF
 #endif
                         IF (interactionR .LE. max_random_layer) THEN
                                 !interaction occurs in this layer!!!
@@ -1591,6 +1635,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon,inputF)
                         EXIT main
                 ENDIF
+
+ 
+                IF(photon%n_interactions .EQ.&
+                inputF%general%n_interactions_trajectory) THEN
+                        EXIT main
+                ENDIF
+
                 !selection of atom type
                 !get a new random number
                 !maybe this could be done faster... but I'm not sure
@@ -1674,6 +1725,16 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         RETURN
                 ENDIF
 
+#if DEBUG == 0
+                !photon has left the system
+                !check if it will make it to the detector
+                photon%detector_hit2=xmi_check_photon_detector_hit(&
+                        photon,inputF)
+                IF (photon%energy .LT. energy_threshold) THEN
+                        photon%detector_hit2 = .FALSE.
+                ENDIF
+
+#endif
 
 
                 !update number of interactions
@@ -2024,6 +2085,12 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         LOGICAL :: shell_found, line_found, trans_found
 
+#if DEBUG == 1
+        WRITE (*,'(A)') 'Entering fluorescence'
+        WRITE (*,'(A,I2)') 'element: ',photon%current_element
+#endif
+
+
         rv = 0
 
         !so we've got photo electric effect
@@ -2051,6 +2118,10 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                rv = 1
                RETURN
         ENDIF
+
+#if DEBUG == 1
+        WRITE (*,'(A,I2)') 'shell found: ',shell
+#endif
 
         !Coster-Kronig for L... and M?
 
@@ -2095,6 +2166,9 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         r = fgsl_rng_uniform(rng)
+#if DEBUG == 1
+        WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
+#endif
         IF (r .GT. FluorYield(photon%current_element,shell)) THEN
                 !no fluorescence but Auger...
                photon%energy = 0.0_C_DOUBLE
@@ -2138,15 +2212,41 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                 RETURN
         ENDIF
 
+#if DEBUG == 1
+        WRITE (*,'(A,I2)') 'Line found: ',line
+#endif
+
         !calculate theta and phi
         theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
         phi_i = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+
+#if DEBUG == 1
+        WRITE (*,'(A)') 'Before update_photon_dirv'
+        WRITE (*,'(A,I3)') 'photon%current_element: ',photon%current_element
+        WRITE (*,'(A,F12.5)') 'photon%energy: ',photon%energy
+        WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+        WRITE (*,'(A,F12.5)') 'phi_i: ',phi_i
+        WRITE (*,'(A,ES12.5)') 'photon%theta: ',photon%theta
+        WRITE (*,'(A,ES12.5)') 'photon%phi: ',photon%phi
+        WRITE (*,'(A,3ES12.5)') 'photon%coords: ',photon%coords
+        WRITE (*,'(A,3ES12.5)') 'photon%dirv: ',photon%dirv
+#endif
 
         !
         !update photon%theta and photon%phi
         !
         CALL xmi_update_photon_dirv(photon, theta_i, phi_i)
 
+#if DEBUG == 1
+        WRITE (*,'(A)') 'After update_photon_dirv'
+        WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+        WRITE (*,'(A,F12.5)') 'phi_i: ',phi_i
+        WRITE (*,'(A,F12.5)') 'photon%theta: ',photon%theta
+        WRITE (*,'(A,F12.5)') 'photon%phi: ',photon%phi
+        WRITE (*,'(A,3F12.5)') 'photon%coords: ',photon%coords
+        WRITE (*,'(A,3F12.5)') 'photon%dirv: ',photon%dirv
+        CALL EXIT(1)
+#endif
         !
         !update electric field
         !
@@ -2270,14 +2370,15 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         !update theta and phi in photon
         photon%theta = ACOS(photon%dirv(3))
 
-        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-                !processor dependent...
-                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-        ELSE
-                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
+!        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+!                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+!                !processor dependent...
+!                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+!        ELSE
+!                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+!        ENDIF
 
+        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
 
         RETURN
 ENDSUBROUTINE xmi_update_photon_dirv

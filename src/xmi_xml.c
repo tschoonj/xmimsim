@@ -681,6 +681,8 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		subnode = subnode->next;
 
 	}
+	//normalize weights...
+	xmi_scale_double(weight,n_elements,xmi_sum_double(weight,n_elements));	
 
 	//sort!
 	sorted_Z_ind = xmi_sort_idl_int(Z, n_elements);
