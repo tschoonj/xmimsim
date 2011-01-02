@@ -2400,4 +2400,83 @@ SUBROUTINE xmi_update_photon_elecv(photon)
 
 ENDSUBROUTINE xmi_update_photon_elecv
 
+SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, channels_convPtr,nchannels)
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channels_noconvPtr
+        INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
+        TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
+
+        TYPE (xmi_hdf5), POINTER :: hdf5F
+        TYPE (xmi_input), POINTER :: inputF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv, channels_conv
+        INTEGER (C_LONG) :: nlim
+        REAL (C_DOUBLE) :: a,b
+
+
+        CALL C_F_POINTER(inputFPtr, inputF)
+        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
+        CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
+
+        !allocate memory for results
+        ALLOCATE(channels_conv(nchannels))
+
+        !
+        nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
+
+        a = inputF%detector%noise**2
+        b = (2.3548)**2 * 3.85 *inputF%detector%fano
+
+        channels_conv = channels_noconv
+
+        !escape peak
+
+
+
+        RETURN
+ENDSUBROUTINE xmi_detector_convolute
+
+SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:) :: channels_conv
+
+        REAL (C_DOUBLE) :: omegaK, E_Si_Ka, E_Si_Kb, E_Si_Kedge, RR_Si_Ka,&
+        RR_Si_Kb, const, mu_si
+        INTEGER (C_LONG) :: i,i_esc_ka, i_esc_kb
+        REAL (C_DOUBLE) :: e,mu_e,esc_rat
+
+        omegaK = FluorYield(14, K_SHELL)
+        E_Si_Ka  = LineEnergy(14, KA_LINE)
+        E_Si_Kb  = LineEnergy(14, KB_LINE)
+        E_Si_Kedge = EdgeEnergy(14, K_SHELL)
+        RR_Si_Ka = RadRate(14,KA_LINE)
+        RR_Si_Kb = RadRate(14,KB_LINE)
+        const = omegaK*(1.0_C_DOUBLE-1.0_C_DOUBLE/JumpFactor(14,K_SHELL))
+        mu_si = CS_Total_Kissel(14,E_Si_Ka)
+
+        DO i=1,SIZE(channels_conv)
+                e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
+                        inputF%detector%zero
+                IF (e .LT. E_Si_Kedge) CYCLE
+                mu_e = CS_Total_Kissel(14,e)
+                esc_rat = 0.5_C_DOUBLE*(1.0_C_DOUBLE -&
+                mu_si/mu_e*LOG(1.0_C_DOUBLE + mu_e/mu_si))
+                esc_rat = const*esc_rat/(1.0_C_DOUBLE-const*esc_rat)
+                
+                i_esc_ka = &
+                INT((e-E_Si_Ka-inputF%detector%zero)/inputF%detector%gain)
+                i_esc_kb = &
+                INT((e-E_Si_Kb-inputF%detector%zero)/inputF%detector%gain)
+
+                channels_conv(i_esc_ka) = &
+                channels_conv(i_esc_ka)+esc_rat*channels_conv(i)*RR_Si_Ka
+                channels_conv(i_esc_kb) = &
+                channels_conv(i_esc_kb)+esc_rat*channels_conv(i)*RR_Si_Kb
+                channels_conv(i) = (1.0_C_DOUBLE-esc_rat)*channels_conv(i)
+
+        ENDDO
+
+
+        RETURN
+ENDSUBROUTINE xmi_detector_escape_SiLi
+
 ENDMODULE

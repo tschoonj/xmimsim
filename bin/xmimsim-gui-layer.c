@@ -601,11 +601,39 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	g_signal_connect(G_OBJECT(weightEntry), "changed", G_CALLBACK(compound_changed), rv);
 	g_signal_connect(G_OBJECT(dialog),"show", G_CALLBACK(dialog_show_cb), rv);
 	g_signal_connect(G_OBJECT(dialog),"hide", G_CALLBACK(dialog_hide_cb), rv);
+	g_signal_connect(G_OBJECT(dialog),"delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 
 	return rv;
 }
 
+void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
+	struct add_data *ad = (struct add_data *) user_data;
+	gint *indices;
+	gint depth;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gchar *element;
+	double weight;
+	char buffer[512];
+
+	indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(ad->store), &iter, path);
+	gtk_tree_model_get(GTK_TREE_MODEL(ad->store), &iter,  SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
+	gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
+	gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
+	ad->cw->kind = CW_EDIT;
+	sprintf(buffer,"%g", weight);
+	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
+	g_free(element);
+	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
+	ad->cw->index = indices[0];
+
+	gtk_widget_show_all(ad->cw->dialog);
+
+	return;
+}
 
 struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 #if DEBUG == 1
@@ -647,6 +675,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(window_show_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 	//initialize compound
 	cw = initialize_compound_widget(rv, GTK_WINDOW(window));	
@@ -713,6 +742,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	g_signal_connect(G_OBJECT(addButton),"clicked", G_CALLBACK(add_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(editButton),"clicked", G_CALLBACK(edit_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(removeButton),"clicked", G_CALLBACK(remove_button_clicked_cb), (gpointer) ad );
+	g_signal_connect(G_OBJECT(tree),"row-activated", G_CALLBACK(element_row_activated_cb), (gpointer) ad);
 
 	//Sum and normalize
 	HBox = gtk_hbox_new(FALSE,2);

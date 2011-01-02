@@ -458,3 +458,88 @@ void xmi_copy_layer2(struct xmi_layer *A, struct xmi_layer *B) {
 	B->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
 	B->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
 }
+
+struct xmi_input *xmi_init_empty_input(void) {
+
+	struct xmi_input *rv;
+
+	rv = (struct xmi_input *) malloc(sizeof(struct xmi_input));
+
+	//general
+	rv->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
+	rv->general->version = 1.0;
+	rv->general->outputfile = strdup("");
+	rv->general->n_photons_interval = 10000;
+	rv->general->n_photons_line = 10000;
+	rv->general->n_interactions_trajectory = 4;
+
+	//layer
+	rv->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	rv->composition->n_layers = 0;
+	rv->composition->layers = NULL;
+	rv->composition->reference_layer = 1;
+
+	//geometry
+	rv->geometry = (struct xmi_geometry *) malloc(sizeof(struct xmi_geometry));
+	rv->geometry->d_sample_source=100.0;
+	rv->geometry->n_sample_orientation[0] = 0.0;
+	rv->geometry->n_sample_orientation[1] = sqrt(2.0);
+	rv->geometry->n_sample_orientation[2] = sqrt(2.0);
+	rv->geometry->p_detector_window[0] = 0.0;
+	rv->geometry->p_detector_window[1] = -1.0;
+	rv->geometry->p_detector_window[2] = 100.0;
+	rv->geometry->n_detector_orientation[0] = 0.0;
+	rv->geometry->n_detector_orientation[1] = 1.0;
+	rv->geometry->n_detector_orientation[2] = 1.0;
+	rv->geometry->area_detector = 0.3;
+	rv->geometry->acceptance_detector = 1.57;
+	rv->geometry->d_source_slit = 100.0;
+	rv->geometry->slit_size_x = 0.001;
+	rv->geometry->slit_size_y = 0.001;
+
+	//excitation
+	rv->excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	rv->excitation->n_discrete = 1;
+	rv->excitation->n_continuous = 0;
+	rv->excitation->continuous = NULL;
+	rv->excitation->discrete = (struct xmi_energy *) malloc(sizeof(struct xmi_energy));
+	rv->excitation->discrete[0].energy = 28.0;
+	rv->excitation->discrete[0].horizontal_intensity= 1E12;
+	rv->excitation->discrete[0].vertical_intensity= 1E9;
+	rv->excitation->discrete[0].sigma_x= 0.0;
+	rv->excitation->discrete[0].sigma_xp= 0.0;
+	rv->excitation->discrete[0].sigma_y= 0.0;
+	rv->excitation->discrete[0].sigma_yp= 0.0;
+
+	//absorbers
+	rv->absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+	rv->absorbers->n_exc_layers = 0;
+	rv->absorbers->exc_layers = NULL;
+	rv->absorbers->n_det_layers = 0;
+	rv->absorbers->det_layers = NULL;
+
+	//detector
+	rv->detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
+	rv->detector->detector_type = XMI_DETECTOR_SILI;
+	rv->detector->gain = 20.0/1000.0;
+	rv->detector->zero = 0.0;
+	rv->detector->fano = 0.12;
+	rv->detector->noise = 0.1;
+	rv->detector->max_convolution_energy = 40.0;
+	rv->detector->n_crystal_layers = 1;
+	rv->detector->crystal_layers = malloc(sizeof(struct xmi_layer));
+	rv->detector->crystal_layers[0].n_elements = 1;
+	rv->detector->crystal_layers[0].Z = (int *) malloc(sizeof(int));
+	rv->detector->crystal_layers[0].weight = (double *) malloc(sizeof(double));
+	rv->detector->crystal_layers[0].Z[0] = 14;
+	rv->detector->crystal_layers[0].weight[0] = 1.0;
+	rv->detector->crystal_layers[0].density = 2.0;
+	rv->detector->crystal_layers[0].thickness = 0.5;
+
+
+
+	return rv;
+
+}
+
+

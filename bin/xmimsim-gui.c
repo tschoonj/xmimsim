@@ -29,12 +29,30 @@ static GtkToolItem *saveasT;
 static GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
-struct layerWidget *layerW;
 
 
 //composition
+struct layerWidget *layerW;
 static GtkWidget *compositionW;
 static GtkListStore *compositionL;
+
+//geometry
+static GtkWidget *d_sample_sourceW;
+static GtkWidget *n_sample_orientation_xW;
+static GtkWidget *n_sample_orientation_yW;
+static GtkWidget *n_sample_orientation_zW;
+static GtkWidget *p_detector_window_xW;
+static GtkWidget *p_detector_window_yW;
+static GtkWidget *p_detector_window_zW;
+static GtkWidget *n_detector_orientation_xW;
+static GtkWidget *n_detector_orientation_yW;
+static GtkWidget *n_detector_orientation_zW;
+static GtkWidget *area_detectorW;
+static GtkWidget *acceptance_detectorW;
+static GtkWidget *d_source_slitW;
+static GtkWidget *slit_size_xW;
+static GtkWidget *slit_size_yW;
+
 
 
 
@@ -44,9 +62,26 @@ static GtkListStore *compositionL;
  *
  */
 
+//general
 static gulong n_photons_intervalG;
 static gulong n_photons_lineG;
 static gulong n_interactions_trajectoryG;
+//geometry
+static gulong d_sample_sourceG;
+static gulong n_sample_orientation_xG;
+static gulong n_sample_orientation_yG;
+static gulong n_sample_orientation_zG;
+static gulong p_detector_window_xG;
+static gulong p_detector_window_yG;
+static gulong p_detector_window_zG;
+static gulong n_detector_orientation_xG;
+static gulong n_detector_orientation_yG;
+static gulong n_detector_orientation_zG;
+static gulong area_detectorG;
+static gulong acceptance_detectorG;
+static gulong d_source_slitG;
+static gulong slit_size_xG;
+static gulong slit_size_yG;
 
 
 /*
@@ -121,6 +156,23 @@ enum {
 	COMPOSITION_DELETE,
 	COMPOSITION_ADD,
 	COMPOSITION_EDIT,
+	OPEN_FILE,
+	D_SAMPLE_SOURCE,
+	N_SAMPLE_ORIENTATION_X,
+	N_SAMPLE_ORIENTATION_Y,
+	N_SAMPLE_ORIENTATION_Z,
+	P_DETECTOR_WINDOW_X,
+	P_DETECTOR_WINDOW_Y,
+	P_DETECTOR_WINDOW_Z,
+	N_DETECTOR_ORIENTATION_X,
+	N_DETECTOR_ORIENTATION_Y,
+	N_DETECTOR_ORIENTATION_Z,
+	AREA_DETECTOR,
+	ACCEPTANCE_DETECTOR,
+	D_SOURCE_SLIT,
+	SLIT_SIZE_X,
+	SLIT_SIZE_Y,
+
 };
 
 
@@ -142,6 +194,9 @@ struct matrix_data {
 	GtkWidget *downButton;
 	GtkWidget *bottomButton;
 };
+
+void change_all_values(struct xmi_input *);
+void load_from_file_cb(GtkWidget *, gpointer);
 
 static void update_undo_buffer(int kind, GtkWidget *widget);
 
@@ -292,23 +347,31 @@ static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer da
 			valid = gtk_tree_model_iter_next(model, &temp_iter);
 		}
 
-		if (index == 0) {
-			gtk_widget_set_sensitive(md->downButton,TRUE);
-			gtk_widget_set_sensitive(md->bottomButton,TRUE);
+		if (nindices == 1) {
+			gtk_widget_set_sensitive(md->downButton,FALSE);
+			gtk_widget_set_sensitive(md->bottomButton,FALSE);
 			gtk_widget_set_sensitive(md->upButton,FALSE);
 			gtk_widget_set_sensitive(md->topButton,FALSE);
 		}
-		else if(index == nindices-1) {
-			gtk_widget_set_sensitive(md->downButton,FALSE);
-			gtk_widget_set_sensitive(md->bottomButton,FALSE);
-			gtk_widget_set_sensitive(md->upButton,TRUE);
-			gtk_widget_set_sensitive(md->topButton,TRUE);
-		}
 		else {
-			gtk_widget_set_sensitive(md->downButton,TRUE);
-			gtk_widget_set_sensitive(md->bottomButton,TRUE);
-			gtk_widget_set_sensitive(md->upButton,TRUE);
-			gtk_widget_set_sensitive(md->topButton,TRUE);
+			if (index == 0) {
+				gtk_widget_set_sensitive(md->downButton,TRUE);
+				gtk_widget_set_sensitive(md->bottomButton,TRUE);
+				gtk_widget_set_sensitive(md->upButton,FALSE);
+				gtk_widget_set_sensitive(md->topButton,FALSE);
+			}
+			else if(index == nindices-1) {
+				gtk_widget_set_sensitive(md->downButton,FALSE);
+				gtk_widget_set_sensitive(md->bottomButton,FALSE);
+				gtk_widget_set_sensitive(md->upButton,TRUE);
+				gtk_widget_set_sensitive(md->topButton,TRUE);
+			}
+			else {
+				gtk_widget_set_sensitive(md->downButton,TRUE);
+				gtk_widget_set_sensitive(md->bottomButton,TRUE);
+				gtk_widget_set_sensitive(md->upButton,TRUE);
+				gtk_widget_set_sensitive(md->topButton,TRUE);
+			}
 		}
 		gtk_widget_set_sensitive(md->deleteButton,TRUE);
 		gtk_widget_set_sensitive(md->editButton,TRUE);
@@ -561,7 +624,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			//delete the selected line
 			//watch out for reference layer... for now... leave it to the user
 			//update composition
-			xmi_free_layer(composition->layers+i);
+			xmi_free_layer(composition->layers+index);
 			for (i = index ;  i < nindices ; i++)
 				composition->layers[i] = composition->layers[i+1];
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
@@ -647,10 +710,33 @@ static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *p
 }
 
 void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
+	struct matrix_button *mb = (struct matrix_button *) user_data;
+	gint *indices;
+	gint depth;
+	struct xmi_composition *composition;
+	GtkTreeIter iter;
+
 
 #if DEBUG == 1
 	fprintf(stdout,"row activation detected\n");
 #endif
+	indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+
+#if DEBUG == 1
+	fprintf(stdout,"depth: %i\n",depth);
+	fprintf(stdout,"indices: %i\n",indices[0]);
+#endif
+	if (mb->matrixKind == COMPOSITION)
+		composition = compositionS;
+
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(mb->store), &iter, path);
+	xmi_copy_layer(composition->layers+indices[0],&layer);
+	layerW->AddOrEdit = LW_EDIT;
+	layerW->matrixKind = mb->matrixKind;
+	layerW->layerNumber = indices[0];
+	layerW->iter = iter;
+	gtk_widget_show_all(layerW->window);
 
 	return;
 }
@@ -763,7 +849,6 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
-	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(matrix_row_activated_cb), NULL);
 	
 	if (kind == COMPOSITION) {
 		rt = (struct reference_toggle *) malloc(sizeof(struct reference_toggle));
@@ -832,6 +917,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->store=store;
 	g_signal_connect(G_OBJECT(downButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 
+
 	
 
 
@@ -877,6 +963,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(editButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(matrix_row_activated_cb), (gpointer) mb);
 
 
 
@@ -996,6 +1083,99 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
+		case OPEN_FILE:
+			change_all_values((current-1)->xi);
+			break;
+		case D_SAMPLE_SOURCE:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_sample_source);
+			g_signal_handler_block(G_OBJECT((current)->widget), d_sample_sourceG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), d_sample_sourceG);
+			break;
+		case N_SAMPLE_ORIENTATION_X:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[0]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_xG);
+			break;
+		case N_SAMPLE_ORIENTATION_Y:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[1]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_yG);
+			break;
+		case N_SAMPLE_ORIENTATION_Z:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[2]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_zG);
+			break;
+		case P_DETECTOR_WINDOW_X:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[0]);
+			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_xG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_xG);
+			break;
+		case P_DETECTOR_WINDOW_Y:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[1]);
+			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_yG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_yG);
+			break;
+		case P_DETECTOR_WINDOW_Z:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[2]);
+			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_zG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_zG);
+			break;
+		case N_DETECTOR_ORIENTATION_X:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[0]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_xG);
+			break;
+		case N_DETECTOR_ORIENTATION_Y:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[1]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_yG);
+			break;
+		case N_DETECTOR_ORIENTATION_Z:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[2]);
+			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_zG);
+			break;
+		case AREA_DETECTOR:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->area_detector);
+			g_signal_handler_block(G_OBJECT((current)->widget), area_detectorG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), area_detectorG);
+			break;
+		case ACCEPTANCE_DETECTOR:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->acceptance_detector);
+			g_signal_handler_block(G_OBJECT((current)->widget), acceptance_detectorG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), acceptance_detectorG);
+			break;
+		case D_SOURCE_SLIT:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_source_slit);
+			g_signal_handler_block(G_OBJECT((current)->widget), d_source_slitG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), d_source_slitG);
+			break;
+		case SLIT_SIZE_X:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_x);
+			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_xG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_xG);
+			break;
+		case SLIT_SIZE_Y:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_y);
+			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_yG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_yG);
+			break;
 	}
 	if (current-1 != redo_buffer) {
 		sprintf(buffer,"Undo: %s",(current-1)->message);
@@ -1086,6 +1266,99 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current+1)->xi->composition, &compositionS);
 			break;
+		case OPEN_FILE:
+			change_all_values((current+1)->xi);
+			break;
+		case D_SAMPLE_SOURCE:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_sample_source);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), d_sample_sourceG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_sample_sourceG);
+			break;
+		case N_SAMPLE_ORIENTATION_X:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[0]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
+			break;
+		case N_SAMPLE_ORIENTATION_Y:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[1]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
+			break;
+		case N_SAMPLE_ORIENTATION_Z:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[2]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
+			break;
+		case P_DETECTOR_WINDOW_X:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[0]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_xG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_xG);
+			break;
+		case P_DETECTOR_WINDOW_Y:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[1]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_yG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_yG);
+			break;
+		case P_DETECTOR_WINDOW_Z:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[2]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_zG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_zG);
+			break;
+		case N_DETECTOR_ORIENTATION_X:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[0]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
+			break;
+		case N_DETECTOR_ORIENTATION_Y:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[1]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
+			break;
+		case N_DETECTOR_ORIENTATION_Z:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[2]);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
+			break;
+		case AREA_DETECTOR:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->area_detector);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), area_detectorG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), area_detectorG);
+			break;
+		case ACCEPTANCE_DETECTOR:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->acceptance_detector);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), acceptance_detectorG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), acceptance_detectorG);
+			break;
+		case D_SOURCE_SLIT:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_source_slit);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), d_source_slitG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_source_slitG);
+			break;
+		case SLIT_SIZE_X:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_x);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_xG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_xG);
+			break;
+		case SLIT_SIZE_Y:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_y);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_yG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_yG);
+			break;
 	
 
 	}
@@ -1108,7 +1381,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	}
 	else {
-		sprintf(buffer,"Redo: %s",current->message);
+		sprintf(buffer,"Redo: %s",(current+1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
@@ -1127,8 +1400,64 @@ static void file_menu_click(GtkWidget *widget, gpointer data) {
 
 }
 
+static void double_changed(GtkWidget *widget, gpointer data) {
+	int kind = GPOINTER_TO_INT(data);
+	char buffer[512];
+	char *textPtr,*endPtr,*lastPtr;
 
+	double value;
 
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(widget));
+	value=strtod(textPtr, &endPtr);
+
+	lastPtr = textPtr + strlen(textPtr);
+
+	switch (kind) {
+		//strict positive
+		case D_SAMPLE_SOURCE:
+		case AREA_DETECTOR:
+		case ACCEPTANCE_DETECTOR:
+		case D_SOURCE_SLIT:
+		case SLIT_SIZE_X:
+		case SLIT_SIZE_Y:
+			if (lastPtr == endPtr && value > 0.0) {
+				//ok
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				update_undo_buffer(kind, widget);
+			}
+			else {
+				//bad value
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+			}
+			break;
+		//positive
+		
+		//no restrictions
+		case N_SAMPLE_ORIENTATION_X:
+		case N_SAMPLE_ORIENTATION_Y:
+		case N_SAMPLE_ORIENTATION_Z:
+		case P_DETECTOR_WINDOW_X:
+		case P_DETECTOR_WINDOW_Y:
+		case P_DETECTOR_WINDOW_Z:
+		case N_DETECTOR_ORIENTATION_X:
+		case N_DETECTOR_ORIENTATION_Y:
+		case N_DETECTOR_ORIENTATION_Z:
+			if (lastPtr == endPtr) {
+				//ok
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				update_undo_buffer(kind, widget);
+			}
+			else {
+				//bad value
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+			}
+			break;
+		default:
+			g_print("Unknown kind detected. Aborting\n");
+			exit(1);
+	}
+
+}
 
 static void pos_int_changed(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
@@ -1206,27 +1535,30 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 	last = redo_buffer + last_diff;
 	current = redo_buffer + current_diff;
 	last = current+1;
-	xmi_copy_input(current->xi, &(last->xi));
 	switch (kind) {
 		case N_PHOTONS_INTERVAL:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of photons per interval");
 			last->xi->general->n_photons_interval = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_PHOTONS_LINE:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of photons per line");
 			last->xi->general->n_photons_line = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of interactions per trajectory");
 			last->xi->general->n_interactions_trajectory = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_ORDER:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of composition ordering");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -1237,12 +1569,14 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 #endif
 			break;
 		case COMPOSITION_REFERENCE:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message, "change of reference layer");
 			last->xi->composition->reference_layer = compositionS->reference_layer;
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"removal of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -1250,6 +1584,7 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case COMPOSITION_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -1257,9 +1592,122 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case COMPOSITION_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case OPEN_FILE:
+			xmi_copy_input((struct xmi_input *) widget, &(last->xi));
+			strcpy(last->message,"opening of file");
+			xmi_free_composition(compositionS);
+			xmi_copy_composition(last->xi->composition,&compositionS);
+			last->kind = kind;
+			break;
+		case D_SAMPLE_SOURCE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of sample-source distance");
+			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_SAMPLE_ORIENTATION_X:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of sample orientation vector x");
+			last->xi->geometry->n_sample_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_SAMPLE_ORIENTATION_Y:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of sample orientation vector y");
+			last->xi->geometry->n_sample_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_SAMPLE_ORIENTATION_Z:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of sample orientation vector z");
+			last->xi->geometry->n_sample_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case P_DETECTOR_WINDOW_X:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector window position x");
+			last->xi->geometry->p_detector_window[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case P_DETECTOR_WINDOW_Y:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector window position y");
+			last->xi->geometry->p_detector_window[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case P_DETECTOR_WINDOW_Z:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector window position z");
+			last->xi->geometry->p_detector_window[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_DETECTOR_ORIENTATION_X:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector orientation x");
+			last->xi->geometry->n_detector_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_DETECTOR_ORIENTATION_Y:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector orientation y");
+			last->xi->geometry->n_detector_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case N_DETECTOR_ORIENTATION_Z:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector orientation z");
+			last->xi->geometry->n_detector_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case AREA_DETECTOR:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of active detector area");
+			last->xi->geometry->area_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case ACCEPTANCE_DETECTOR:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector acceptance");
+			last->xi->geometry->acceptance_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case D_SOURCE_SLIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of source-slits distance");
+			last->xi->geometry->d_source_slit = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case SLIT_SIZE_X:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of slit size x");
+			last->xi->geometry->slit_size_x = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case SLIT_SIZE_Y:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of slit size y");
+			last->xi->geometry->slit_size_y = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
@@ -1347,10 +1795,14 @@ int main (int argc, char *argv[]) {
 
 
 	//start by reading in the default file -> command-line args later to be arranged
-	if (xmi_read_input_xml(default_file1, &(current->xi)) == 0 && xmi_read_input_xml(default_file2, &(current->xi)) == 0) {
+/*	if (xmi_read_input_xml(default_file1, &(current->xi)) == 0 && xmi_read_input_xml(default_file2, &(current->xi)) == 0) {
 		fprintf(stderr,"Could not read in default xml file\n");
 		return 1;
 	}
+*/
+
+	//use an "empty" xmi_input structure when launching the application
+	current->xi = xmi_init_empty_input();	
 
 
 	//initialize regex patterns
@@ -1395,7 +1847,7 @@ int main (int argc, char *argv[]) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quit);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),file);
 	g_signal_connect(G_OBJECT(quit),"activate",G_CALLBACK(file_menu_click),(gpointer) "quit");
-	g_signal_connect(G_OBJECT(open),"activate",G_CALLBACK(file_menu_click),(gpointer) "open");
+	g_signal_connect(G_OBJECT(open),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save),"activate",G_CALLBACK(file_menu_click),(gpointer) "save");
 	g_signal_connect(G_OBJECT(save_as),"activate",G_CALLBACK(file_menu_click),(gpointer) "save as");
 	g_signal_connect(G_OBJECT(new),"activate",G_CALLBACK(file_menu_click),(gpointer) "new");
@@ -1434,6 +1886,7 @@ int main (int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(undoT),"clicked",G_CALLBACK(undo_menu_click),NULL);
 	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	g_signal_connect(G_OBJECT(redoT),"clicked",G_CALLBACK(redo_menu_click),NULL);
+	g_signal_connect(G_OBJECT(openT),"clicked",G_CALLBACK(load_from_file_cb),(gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 
@@ -1530,6 +1983,175 @@ int main (int argc, char *argv[]) {
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 
+	//geometry
+	//d_sample_source
+	vbox_notebook = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Sample-source distance");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	d_sample_sourceW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
+	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
+	d_sample_sourceG = g_signal_connect(G_OBJECT(d_sample_sourceW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(D_SAMPLE_SOURCE)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_sample_sourceW, FALSE, FALSE, 0);
+	//n_sample_orientation
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Sample orientation vector");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_sample_orientation_zW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_zW),10);
+	n_sample_orientation_zG = g_signal_connect(G_OBJECT(n_sample_orientation_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_Z)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_zW, FALSE, FALSE, 0);
+	label = gtk_label_new("z:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_sample_orientation_yW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_yW),10);
+	n_sample_orientation_yG = g_signal_connect(G_OBJECT(n_sample_orientation_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_Y)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_yW, FALSE, FALSE, 0);
+	label = gtk_label_new("y:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_sample_orientation_xW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_xW),10);
+	n_sample_orientation_xG = g_signal_connect(G_OBJECT(n_sample_orientation_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_X)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_xW, FALSE, FALSE, 0);
+	label = gtk_label_new("x:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+
+	//p_detector_window
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector window position");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	p_detector_window_zW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_zW),10);
+	p_detector_window_zG = g_signal_connect(G_OBJECT(p_detector_window_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_Z)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_zW, FALSE, FALSE, 0);
+	label = gtk_label_new("z:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	p_detector_window_yW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[1]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_yW),10);
+	p_detector_window_yG = g_signal_connect(G_OBJECT(p_detector_window_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_Y)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_yW, FALSE, FALSE, 0);
+	label = gtk_label_new("y:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	p_detector_window_xW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[0]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_xW),10);
+	p_detector_window_xG = g_signal_connect(G_OBJECT(p_detector_window_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_X)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_xW, FALSE, FALSE, 0);
+	label = gtk_label_new("x:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+
+	//n_detector_orientation
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector window normal vector");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_detector_orientation_zW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_zW),10);
+	n_detector_orientation_zG = g_signal_connect(G_OBJECT(n_detector_orientation_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_Z)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_zW, FALSE, FALSE, 0);
+	label = gtk_label_new("z:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_detector_orientation_yW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_yW),10);
+	n_detector_orientation_yG = g_signal_connect(G_OBJECT(n_detector_orientation_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_Y)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_yW, FALSE, FALSE, 0);
+	label = gtk_label_new("y:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	n_detector_orientation_xW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
+	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_xW),10);
+	n_detector_orientation_xG = g_signal_connect(G_OBJECT(n_detector_orientation_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_X)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_xW, FALSE, FALSE, 0);
+	label = gtk_label_new("x:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+
+	//area detector
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Active detector area");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	area_detectorW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->area_detector);
+	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
+	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(AREA_DETECTOR)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), area_detectorW, FALSE, FALSE, 0);
+
+	//acceptance_detector
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector acceptance");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	acceptance_detectorW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->acceptance_detector);
+	gtk_entry_set_text(GTK_ENTRY(acceptance_detectorW),buffer);
+	acceptance_detectorG = g_signal_connect(G_OBJECT(acceptance_detectorW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(ACCEPTANCE_DETECTOR)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), acceptance_detectorW, FALSE, FALSE, 0);
+
+	//d_source_slit
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Source-slits distance");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	d_source_slitW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
+	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
+	d_source_slitG = g_signal_connect(G_OBJECT(d_source_slitW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(D_SOURCE_SLIT)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_source_slitW, FALSE, FALSE, 0);
+
+	//slit sizes
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Slits size");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	slit_size_yW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
+	slit_size_yG = g_signal_connect(G_OBJECT(slit_size_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(SLIT_SIZE_Y)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_yW, FALSE, FALSE, 0);
+	label = gtk_label_new("y:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	slit_size_xW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->slit_size_x);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
+	slit_size_xG = g_signal_connect(G_OBJECT(slit_size_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(SLIT_SIZE_X)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_xW, FALSE, FALSE, 0);
+	label = gtk_label_new("x:");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+
+
+	frame = gtk_frame_new("Geometry");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Geometry</span>");
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+	
+	
+
+
+
 	gtk_widget_show_all(window);
 
 
@@ -1541,3 +2163,151 @@ int main (int argc, char *argv[]) {
 
 	return 0;
 }
+
+void change_all_values(struct xmi_input *new_input) {
+	char buffer[512], *elementString;
+	int i,j;
+	GtkTreeIter iter;
+
+	//disable signal handlers where necessary
+	g_signal_handler_block(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
+	g_signal_handler_block(G_OBJECT(n_photons_lineW), n_photons_lineG);
+	g_signal_handler_block(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
+	g_signal_handler_block(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
+	g_signal_handler_block(G_OBJECT(area_detectorW), area_detectorG);
+	g_signal_handler_block(G_OBJECT(acceptance_detectorW), acceptance_detectorG);
+	g_signal_handler_block(G_OBJECT(d_source_slitW), d_source_slitG);
+	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
+	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
+	
+
+	//general
+	gtk_entry_set_text(GTK_ENTRY(outputfileW),new_input->general->outputfile);
+	sprintf(buffer,"%li",new_input->general->n_photons_interval);
+	gtk_entry_set_text(GTK_ENTRY(n_photons_intervalW),buffer);
+	sprintf(buffer,"%li",new_input->general->n_photons_line);
+	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
+	sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
+	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
+
+	//composition
+	gtk_list_store_clear(compositionL);
+	for (i=0 ; i < new_input->composition->n_layers ; i++) {
+		gtk_list_store_append(compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->composition->layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->composition->layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->composition->layers[i].Z[j]));
+			if (j != new_input->composition->layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->composition->layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->composition->layers[i].density,
+			THICKNESS_COLUMN, new_input->composition->layers[i].thickness,
+			REFERENCE_COLUMN,(i+1 == new_input->composition->reference_layer) ? TRUE : FALSE,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(compositionS);
+	xmi_copy_composition(new_input->composition,&compositionS);	
+
+	//geometry
+	sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
+	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->area_detector);
+	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->acceptance_detector);
+	gtk_entry_set_text(GTK_ENTRY(acceptance_detectorW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
+	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
+	
+
+
+
+	//enable signal handlers where necessary
+	g_signal_handler_unblock(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
+	g_signal_handler_unblock(G_OBJECT(n_photons_lineW), n_photons_lineG);
+	g_signal_handler_unblock(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
+	g_signal_handler_unblock(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
+	g_signal_handler_unblock(G_OBJECT(area_detectorW), area_detectorG);
+	g_signal_handler_unblock(G_OBJECT(acceptance_detectorW), acceptance_detectorG);
+	g_signal_handler_unblock(G_OBJECT(d_source_slitW), d_source_slitG);
+	g_signal_handler_unblock(G_OBJECT(slit_size_xW), slit_size_xG);
+	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
+	
+	
+
+	return;
+}
+
+void load_from_file_cb(GtkWidget *widget, gpointer data) {
+	GtkWidget *dialog;
+	char *filename;
+	struct xmi_input *xi;
+	dialog = gtk_file_chooser_dialog_new ("Open simulation inputfile",
+		GTK_WINDOW((GtkWidget *) data),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+																
+		if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+			if (xmi_read_input_xml(filename, &xi) == 1) {
+				//success reading it in...
+				change_all_values(xi);
+				update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
+			}
+
+			g_free (filename);							
+		}
+		gtk_widget_destroy (dialog);
+}
+
+
+
