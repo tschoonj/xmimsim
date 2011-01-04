@@ -43,16 +43,21 @@ int main (int argc, char *argv[]) {
 	int i;
 	GError *error = NULL;
 	GOptionContext *context;
+	static struct xmi_main_options options;
+	int use_M_lines;
+        int use_self_enhancement;
+        int use_cascade;
+	int use_variance_reduction;
 
 	static GOptionEntry entries[] = {
-	  	{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &use_M_lines, "Enable M lines (default)", NULL },
-	  	{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_M_lines, "Disable M lines", NULL },
-	  	{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &use_self_enhancement, "Enable self-enhancement", NULL },
-	  	{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_self_enhancement, "Disable self-enhancement (default)", NULL },
-	  	{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &use_cascade, "Enable cascade effects (default)", NULL },
-	  	{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_cascade, "Disable cascade effects", NULL },
-	  	{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &use_variance_reduction, "Enable variance reduction (default)", NULL },
-	  	{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_variance_reduction, "Disable variance reduction", NULL },
+	  	{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
+	  	{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
+	  	{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable self-enhancement", NULL },
+	  	{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable self-enhancement (default)", NULL },
+	  	{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade), "Enable cascade effects (default)", NULL },
+	  	{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade), "Disable cascade effects", NULL },
+	  	{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
+	  	{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
 		{ NULL }
 	};
 
@@ -63,17 +68,6 @@ int main (int argc, char *argv[]) {
 
 
 
-	//options...
-	//1) use M-lines
-	//2) use self-enhancement -> see paper of Fernandez/Scot
-	//3) use cascade effect
-	//4) use variance reduction
-
-	use_M_lines = 1;
-	use_self_enhancement = 0;
-	use_cascade = 1;
-	use_variance_reduction = 1;
-
 
 
 
@@ -83,6 +77,18 @@ int main (int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
 #endif
+	//
+	//options...
+	//1) use M-lines
+	//2) use self-enhancement -> see paper of Fernandez/Scot
+	//3) use cascade effect
+	//4) use variance reduction
+
+	options.use_M_lines = 1;
+	options.use_self_enhancement = 0;
+	options.use_cascade = 1;
+	options.use_variance_reduction = 1;
+
 
 	//parse options
 	context = g_option_context_new ("inputfile");
@@ -92,7 +98,13 @@ int main (int argc, char *argv[]) {
 		g_print ("option parsing failed: %s\n", error->message);
 		exit (1);
 	}
-			      
+			     
+#if DEBUG == 1
+	fprintf(stdout,"use_M_lines: %i\n",options.use_M_lines);
+	fprintf(stdout,"use_self_enhancement: %i\n",options.use_self_enhancement);
+	fprintf(stdout,"use_cascade: %i\n",options.use_cascade);
+	fprintf(stdout,"use_variance_reduction: %i\n",options.use_variance_reduction);
+#endif
 
 
 	//start random number acquisition
@@ -137,7 +149,7 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048,options) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}

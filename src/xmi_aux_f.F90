@@ -224,6 +224,13 @@ TYPE :: xmi_input
        TYPE (xmi_detector) :: detector
 ENDTYPE
 
+TYPE, BIND(C) :: xmi_main_options 
+        INTEGER (C_INT) :: use_M_lines
+        INTEGER (C_INT) :: use_self_enhancement
+        INTEGER (C_INT) :: use_cascade
+        INTEGER (C_INT) :: use_variance_reduction
+ENDTYPE xmi_main_options
+
 !
 !
 !   xmi_photon: will hold all the properties of a photon during the simulations
@@ -281,6 +288,9 @@ TYPE :: xmi_photon
 
         !debug
         LOGICAL :: detector_hit2
+
+        !options
+        TYPE (xmi_main_options) :: options
 ENDTYPE
 
 !

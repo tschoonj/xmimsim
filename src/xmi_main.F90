@@ -8,11 +8,6 @@ USE :: fgsl
 
 
 
-!global variables, defined in C, external for Fortran
-INTEGER (C_INT), BIND(C,NAME='use_M_lines') :: use_M_lines
-INTEGER (C_INT), BIND(C,NAME='use_self_enhancement') :: use_self_enhancement
-INTEGER (C_INT), BIND(C,NAME='use_cascade') :: use_cascade
-INTEGER (C_INT), BIND(C,NAME='use_variance_reduction') :: use_variance_reduction
 
 
 !global variables
@@ -415,11 +410,12 @@ ENDSUBROUTINE xmi_free_hdf5_F
 
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
-nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channelsPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
         INTEGER (C_INT) :: rv 
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
@@ -606,6 +602,7 @@ nchannels) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
+                        photon%options = options
 
                         ipol = MOD(j,2)
 
@@ -1715,6 +1712,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 !                        inputF, hdf5F, rng) 
                 ELSE
                         !we've got photoelectric
+#if DEBUG == 1
+                        WRITE (*,'(A)') 'photoelectric'
+#endif
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
                         rv_interaction = xmi_simulate_photon_fluorescence(photon,&
                         inputF, hdf5F, rng) 
@@ -2083,7 +2083,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         REAL (C_DOUBLE) :: r
         REAL (C_DOUBLE) :: theta_i, phi_i
 
-        LOGICAL :: shell_found, line_found, trans_found
+        LOGICAL :: shell_found, line_found
+        INTEGER (C_INT) :: max_shell
 
 #if DEBUG == 1
         WRITE (*,'(A)') 'Entering fluorescence'
@@ -2103,7 +2104,16 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !for now let's just look at K- and L-lines
         r = fgsl_rng_uniform(rng)
-        DO shell=K_SHELL,L3_SHELL
+
+        IF (photon%options%use_M_lines .EQ. 1_C_INT) THEN
+                max_shell = M5_SHELL
+        ELSE
+                max_shell = L3_SHELL
+        ENDIF
+
+
+
+        DO shell=K_SHELL,max_shell
                 sumz = sumz + CS_Photo_Partial(photon%current_element, shell,&
                 energy_flt)/photo_total
                 IF (r .LT. sumz) THEN
@@ -2123,98 +2133,24 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A,I2)') 'shell found: ',shell
 #endif
 
-        !Coster-Kronig for L... and M?
+        !Coster-Kronig for L and M
+        CALL xmi_coster_kronig_check(rng, shell, photon%current_element)
 
-        IF (shell .EQ. L2_SHELL .OR. shell .EQ. L1_SHELL ) THEN
-                DO
-                        sumz = 0.0_C_DOUBLE
-                        trans_found = .FALSE.
-                        r = fgsl_rng_uniform(rng)
-                        IF (shell .EQ. L2_SHELL) THEN
-                                IF (r .LT. &
-                                CosKronTransProb(&
-                                photon%current_element, FL23_TRANS)) THEN
-                                        shell = L3_SHELL
-                                ENDIF
-                                EXIT
-                        ELSE IF (shell .EQ. L1_SHELL) THEN
-                                DO trans=FL12_TRANS,FL13_TRANS
-                                        sumz = sumz+CosKronTransProb(&
-                                        photon%current_element, trans)
-                                        IF (r .LT. sumz) THEN
-                                                trans_found = .TRUE.           
-                                                EXIT
-                                        ENDIF
-                                ENDDO
-                                IF (trans_found) THEN
-                                        SELECT CASE (trans)
-                                                CASE (FL12_TRANS)
-                                                        shell = L2_SHELL
-                                                        CYCLE
-                                                CASE (FL13_TRANS)
-                                                        shell = L3_SHELL
-                                                        EXIT
-                                        ENDSELECT
-                                ELSE
-                                        !nothing happened...exiting
-                                        EXIT
-                                ENDIF
-                        ENDIF
-                ENDDO
-        ENDIF
-
+#if DEBUG == 1
+        WRITE (*,'(A)') 'after CK check'
+#endif
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
-        r = fgsl_rng_uniform(rng)
-#if DEBUG == 1
-        WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
-#endif
-        IF (r .GT. FluorYield(photon%current_element,shell)) THEN
-                !no fluorescence but Auger...
-               photon%energy = 0.0_C_DOUBLE
-               rv = 1
-               RETURN
-        ENDIF
-
-        !so we have fluorescence... but which line?
-        r = fgsl_rng_uniform(rng)
-        sumz = 0.0_C_FLOAT
-        line_found = .FALSE.
-        IF (shell .EQ. K_SHELL) THEN
-                line_first = KL1_LINE
-                line_last = KP5_LINE
-        ELSEIF (shell .EQ. L1_SHELL) THEN
-                line_first = L1L2_LINE
-                line_last = L1P5_LINE
-        ELSEIF (shell .EQ. L2_SHELL) THEN
-                line_first = L2L3_LINE
-                line_last = L2Q1_LINE
-        ELSEIF (shell .EQ. L3_SHELL) THEN
-                line_first = L3M1_LINE
-                line_last = L3Q1_LINE
-        ENDIF
-
-        DO line=line_first,line_last,-1
-                sumz = sumz + RadRate(photon%current_element, line)
-                IF (r .LT. sumz) THEN
-                        !found it...
-                        line_found = .TRUE.
-                        EXIT
-                ENDIF
-        ENDDO
-
-        IF (line_found) THEN
-                photon%energy = LineEnergy(photon%current_element, line)
-                photon%energy_changed = .TRUE.
-        ELSE
-                photon%energy = 0.0_C_DOUBLE
+        IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
+        photon%energy) .EQ. 0_C_INT) THEN
                 rv = 1
                 RETURN
         ENDIF
 
 #if DEBUG == 1
-        WRITE (*,'(A,I2)') 'Line found: ',line
+        WRITE (*,'(A)') 'after fluor line check'
 #endif
+        photon%energy_changed = .TRUE.
 
         !calculate theta and phi
         theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
@@ -2252,11 +2188,171 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         CALL xmi_update_photon_elecv(photon)
 
+        IF (photon%options%use_cascade .EQ. 1_C_INT) THEN
+                CALL xmi_simulate_photon_cascade(photon,shell,line&
+                ,rng,inputF,hdf5F)
+        ENDIF
+
+
         rv = 1
 
         RETURN
 
 ENDFUNCTION xmi_simulate_photon_fluorescence
+
+SUBROUTINE xmi_simulate_photon_cascade(photon, shell, line,rng,inputF,hdf5F)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        INTEGER (C_INT), INTENT(INOUT) :: shell, line
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        INTEGER (C_INT) :: shell_new, line_new
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
+        
+        !
+        !
+        !       Calculate the cascade based on radiative transitions -> for now
+        !       no radiation less transitions such as Auger are considered
+        !
+        !
+        !
+        !       Default is to only consider the cascade L-lines.
+        !       IF the use_M_lines option is on, then the cascade M-lines will
+        !       also be considered
+        !
+        !       However: the energy of the line needs to be higher than the
+        !       energy_threshold for the photon to be used
+        !
+        !
+
+        IF (shell .EQ. K_SHELL) THEN
+                SELECT CASE (line)
+                        CASE (KL1_LINE)
+                                shell_new = L1_SHELL
+                        CASE (KL2_LINE)
+                                shell_new = L2_SHELL
+                        CASE (KL3_LINE)
+                                shell_new = L3_SHELL
+                        CASE (KM1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (KM2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (KM3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (KM4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (KM5_LINE)
+                                shell_new = M5_SHELL
+                        CASE DEFAULT
+                                shell_new = -1_C_INT
+                ENDSELECT
+                
+
+
+        ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
+        L3_SHELL) .AND. photon%options%use_M_lines) THEN
+                SELECT CASE (line)
+                        CASE (L1M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L1M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L1M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L1M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L1M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE (L2M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L2M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L2M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L2M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L2M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE (L3M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L3M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L3M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L3M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L3M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE DEFAULT
+                                shell_new = -1_C_INT
+                ENDSELECT 
+        ELSE
+                !nothing to do... probably an M-line
+                RETURN
+        ENDIF
+        
+        IF (shell_new .EQ. -1_C_INT) RETURN
+        !exit if an M shell was found while not allowed
+        IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&
+        photon%options%use_M_lines == 0) RETURN
+
+
+        !Coster Kronig check
+        CALL xmi_coster_kronig_check(rng, shell, photon%current_element)
+
+        !so now that we determined the shell to be used, see if we get
+        !fluorescence...
+        IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
+        energy) .EQ. 0_C_INT) RETURN
+
+        !leave if energy is too low
+        IF (energy .LE. energy_threshold) RETURN
+        
+        !create offspring
+        ALLOCATE(photon%offspring)
+        photon%offspring%energy = energy
+        photon%offspring%energy_changed = .FALSE.
+        photon%offspring%mus = xmi_mu_calc(inputF%composition,energy)
+        photon%offspring%current_layer = photon%current_layer
+        photon%offspring%detector_hit = .FALSE.
+        photon%offspring%detector_hit2 = .FALSE.
+        photon%offspring%options = photon%options
+        photon%offspring%weight = photon%weight
+        photon%offspring%coords = photon%coords
+        photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
+        photon%offspring%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        photon%offspring%dirv(1) = COS(photon%offspring%phi)
+        photon%offspring%dirv(2) = SIN(photon%offspring%phi)
+        photon%offspring%dirv(3) = COS(photon%offspring%theta)
+        CALL normalize_vector(photon%offspring%dirv)
+        photon%offspring%n_interactions=0
+        r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        photon%offspring%elecv(1) = COS(r)
+        photon%offspring%elecv(2) = SIN(r)
+        photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+        cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
+
+        IF (ABS(cosalfa) .GT. 1.0) THEN
+                WRITE (*,'(A)') 'cosalfa exception detected'
+                CALL EXIT(1)
+        ENDIF
+
+        c_alfa = ACOS(cosalfa)
+        c_ae = 1.0/SIN(c_alfa)
+        c_be = -c_ae*cosalfa
+
+        photon%offspring%elecv = c_ae*photon%offspring%elecv +&
+        c_be*photon%offspring%dirv
+
+        NULLIFY(photon%offspring%offspring)
+
+        !simulate offspring
+        IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
+                CALL EXIT(1)
+        ENDIF
+
+        RETURN
+ENDSUBROUTINE xmi_simulate_photon_cascade
 
 SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F) 
         IMPLICIT NONE
@@ -2478,5 +2574,230 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
 
         RETURN
 ENDSUBROUTINE xmi_detector_escape_SiLi
+
+SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER(C_INT), INTENT(INOUT) :: shell
+        INTEGER(C_INT), INTENT(IN) :: element
+        LOGICAL :: trans_found
+        REAL (C_DOUBLE) :: r, sumz
+        INTEGER (C_INT) :: trans
+
+        IF (shell .EQ. L2_SHELL .OR. shell .EQ. L1_SHELL ) THEN
+                DO
+                        sumz = 0.0_C_DOUBLE
+                        trans_found = .FALSE.
+                        r = fgsl_rng_uniform(rng)
+                        IF (shell .EQ. L2_SHELL) THEN
+                                IF (r .LT. &
+                                CosKronTransProb(&
+                                element, FL23_TRANS)) THEN
+                                        shell = L3_SHELL
+                                ENDIF
+                                EXIT
+                        ELSE IF (shell .EQ. L1_SHELL) THEN
+                                DO trans=FL12_TRANS,FL13_TRANS
+                                        sumz = sumz+CosKronTransProb(&
+                                        element, trans)
+                                        IF (r .LT. sumz) THEN
+                                                trans_found = .TRUE.           
+                                                EXIT
+                                        ENDIF
+                                ENDDO
+                                IF (trans_found) THEN
+                                        SELECT CASE (trans)
+                                                CASE (FL12_TRANS)
+                                                        shell = L2_SHELL
+                                                        CYCLE
+                                                CASE (FL13_TRANS)
+                                                        shell = L3_SHELL
+                                                        EXIT
+                                        ENDSELECT
+                                ELSE
+                                        !nothing happened...exiting
+                                        EXIT
+                                ENDIF
+                        ENDIF
+                ENDDO
+        ELSEIF (shell .EQ. M1_SHELL .OR. shell .EQ. M2_SHELL .OR.&
+                shell .EQ. M3_SHELL .OR. shell .EQ. M4_SHELL) THEN
+                DO
+                        sumz = 0.0_C_DOUBLE
+                        trans_found = .FALSE.
+                        r = fgsl_rng_uniform(rng)
+                        IF (shell .EQ. M4_SHELL) THEN
+                                IF (r .LT. &
+                                CosKronTransProb(&
+                                element, FM45_TRANS)) THEN
+                                        shell = M5_SHELL
+                                ENDIF
+                                EXIT
+                        ELSEIF (shell .EQ. M3_SHELL) THEN
+                                DO trans=FM34_TRANS,FM35_TRANS
+                                        sumz = sumz+CosKronTransProb(&
+                                        element, trans)
+                                        IF (r .LT. sumz) THEN
+                                                trans_found = .TRUE.           
+                                                EXIT
+                                        ENDIF
+                                ENDDO
+                                IF (trans_found) THEN
+                                        SELECT CASE (trans)
+                                                CASE (FM34_TRANS)
+                                                        shell = M4_SHELL
+                                                        CYCLE
+                                                CASE (FM35_TRANS)
+                                                        shell = M5_SHELL
+                                                        EXIT
+                                        ENDSELECT
+                                ELSE
+                                        !nothing happened...exiting
+                                        EXIT
+                                ENDIF
+                        ELSEIF (shell .EQ. M2_SHELL) THEN
+                                DO trans=FM23_TRANS,FM25_TRANS
+                                        sumz = sumz+CosKronTransProb(&
+                                        element, trans)
+                                        IF (r .LT. sumz) THEN
+                                                trans_found = .TRUE.           
+                                                EXIT
+                                        ENDIF
+                                ENDDO
+                                IF (trans_found) THEN
+                                        SELECT CASE (trans)
+                                                CASE (FM23_TRANS)
+                                                        shell = M3_SHELL
+                                                        CYCLE
+                                                CASE (FM24_TRANS)
+                                                        shell = M4_SHELL
+                                                        CYCLE
+                                                CASE (FM25_TRANS)
+                                                        shell = M5_SHELL
+                                                        EXIT
+                                        ENDSELECT
+                                ELSE
+                                        !nothing happened...exiting
+                                        EXIT
+                                ENDIF
+                        ELSEIF (shell .EQ. M1_SHELL) THEN
+                                DO trans=FM12_TRANS,FM15_TRANS
+                                        sumz = sumz+CosKronTransProb(&
+                                        element, trans)
+                                        IF (r .LT. sumz) THEN
+                                                trans_found = .TRUE.           
+                                                EXIT
+                                        ENDIF
+                                ENDDO
+                                IF (trans_found) THEN
+                                        SELECT CASE (trans)
+                                                CASE (FM12_TRANS)
+                                                        shell = M2_SHELL
+                                                        CYCLE
+                                                CASE (FM13_TRANS)
+                                                        shell = M3_SHELL
+                                                        CYCLE
+                                                CASE (FM14_TRANS)
+                                                        shell = M4_SHELL
+                                                        CYCLE
+                                                CASE (FM15_TRANS)
+                                                        shell = M5_SHELL
+                                                        EXIT
+                                        ENDSELECT
+                                ELSE
+                                        !nothing happened...exiting
+                                        EXIT
+                                ENDIF
+                        ENDIF
+                ENDDO
+        ENDIF
+
+
+        RETURN
+ENDSUBROUTINE xmi_coster_kronig_check
+
+FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy) RESULT(rv)
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN) :: shell, element
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy
+        INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE) :: r, sumz
+        LOGICAL :: line_found
+        INTEGER (C_INT) :: line_first, line_last
+        INTEGER (C_INT) :: line
+
+        rv = 0
+
+        r = fgsl_rng_uniform(rng)
+#if DEBUG == 1
+        WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
+#endif
+        IF (r .GT. FluorYield(element,shell)) THEN
+                !no fluorescence but Auger...
+                energy = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+
+        !so we have fluorescence... but which line?
+        r = fgsl_rng_uniform(rng)
+        sumz = 0.0_C_FLOAT
+        line_found = .FALSE.
+        IF (shell .EQ. K_SHELL) THEN
+                line_first = KL1_LINE
+                line_last = KP5_LINE
+        ELSEIF (shell .EQ. L1_SHELL) THEN
+                line_first = L1L2_LINE
+                line_last = L1P5_LINE
+        ELSEIF (shell .EQ. L2_SHELL) THEN
+                line_first = L2L3_LINE
+                line_last = L2Q1_LINE
+        ELSEIF (shell .EQ. L3_SHELL) THEN
+                line_first = L3M1_LINE
+                line_last = L3Q1_LINE
+        ELSEIF (shell .EQ. M1_SHELL) THEN
+                line_first = M1N1_LINE 
+                line_last = M1P5_LINE
+        ELSEIF (shell .EQ. M2_SHELL) THEN
+                line_first = M2N1_LINE 
+                line_last = M2P5_LINE
+        ELSEIF (shell .EQ. M3_SHELL) THEN
+                line_first = M3N1_LINE 
+                line_last = M3Q1_LINE
+        ELSEIF (shell .EQ. M4_SHELL) THEN
+                line_first = M4N1_LINE 
+                line_last = M4P5_LINE
+        ELSEIF (shell .EQ. M5_SHELL) THEN
+                line_first = M5N1_LINE 
+                line_last = M5P5_LINE
+        ENDIF
+
+        DO line=line_first,line_last,-1
+                sumz = sumz + RadRate(element, line)
+                IF (r .LT. sumz) THEN
+                        !found it...
+                        line_found = .TRUE.
+                        EXIT
+                ENDIF
+        ENDDO
+
+        IF (line_found) THEN
+                energy = LineEnergy(element, line)
+        ELSE
+                !this should not happen since the radiative rates within one
+                !linegroup must add up to 1.0
+                energy = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+
+#if DEBUG == 1
+        WRITE (*,'(A,I2)') 'Line found: ',line
+#endif
+        
+        rv = 1
+
+
+        RETURN
+ENDFUNCTION xmi_fluorescence_line_check
 
 ENDMODULE
