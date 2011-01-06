@@ -252,6 +252,13 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF,[dims(2)],error)
                 CALL h5dclose_f(dset_id,error)
 
+                !Read corrected fluorescence yields
+                CALL h5dopen_f(group_id,'Corrected fluorescence yields',dset_id,error)
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr(K_SHELL:M5_SHELL))
+                CALL h5dread_f(dset_id,&
+                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr,[INT(M5_SHELL-K_SHELL+1,KIND=HSIZE_T)],error)
+                CALL h5dclose_f(dset_id,error)
+
                 !Read energies
                 CALL h5dopen_f(group_id,'Energies',dset_id,error)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%Energies(dims(1)))
@@ -425,8 +432,8 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
-        INTEGER (C_LONG) :: i,j
-        TYPE (xmi_photon), POINTER :: photon
+        INTEGER (C_LONG) :: i,j,k
+        TYPE (xmi_photon), POINTER :: photon,photon_temp,photon_temp2
         REAL (C_DOUBLE) :: hor_ver_ratio
         INTEGER (C_LONG) :: n_photons
         REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
@@ -437,6 +444,8 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: channelsFF 
+        INTEGER (C_INT), DIMENSION(:,:,:), ALLOCATABLE :: history
+        INTEGER (C_INT) :: element
         !begin...
         
         CALL SetErrorMessages(0)
@@ -453,6 +462,7 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
         CALL C_F_POINTER(channelsPtr, channelsF,[nchannels])
+
 
         channelsF = 0.0_C_DOUBLE
         channelsFF = channelsF
@@ -480,10 +490,12 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 !
 !
 
+        ALLOCATE(history(100,383+2,inputF%general%n_interactions_trajectory)) 
+        history = 0_C_INT
 
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,photon,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins)
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins,history)
 
 !
 !
@@ -593,6 +605,8 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                 DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
                         !Calculate energy with rng
@@ -673,53 +687,81 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 CALL EXIT(1)
                         ENDIF
 
+                        photon_temp => photon
+                        DO
 
-!!!$omp critical                        
-                        photons_simulated = photons_simulated + 1
-                        IF (photon%detector_hit .EQ. .TRUE.) THEN
-                                detector_hits = detector_hits + 1
+                                photons_simulated = photons_simulated + 1
+                                IF (photon_temp%detector_hit .EQ. .TRUE.) THEN
+                                        detector_hits = detector_hits + 1
 !
 !
-!                              Add to channelsF
+!                                       Add to channelsF
 !
 !
-                                IF (photon%energy .GE. energy_threshold) THEN
-                                        channel = INT((photon%energy - &
-                                        inputF%detector%zero)/inputF%detector%gain)
+                                        IF (photon_temp%energy .GE. energy_threshold) THEN
+                                                channel = INT((photon_temp%energy - &
+                                                inputF%detector%zero)/inputF%detector%gain)
+                                        ELSE
+                                                channel = 0
+                                        ENDIF
+
+                                        IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+                                                channelsFF(channel) = channelsFF(channel)+photon_temp%weight
+                                        ENDIF
+                                        SELECT CASE (photon_temp%last_interaction)
+                                                CASE (RAYLEIGH_INTERACTION)
+                                                        rayleighs = rayleighs + 1
+                                                CASE (COMPTON_INTERACTION)
+                                                        comptons = comptons + 1
+                                                CASE (PHOTOELECTRIC_INTERACTION)
+                                                        einsteins = einsteins + 1
+                                        ENDSELECT
+                                        !update history
+                                        IF (photon_temp%n_interactions .GT. 0)&
+                                        THEN
+                                                DO k=1,photon_temp%n_interactions
+                                                        element =&
+                                                        photon_temp%history(k,2)
+                                                        IF (photon_temp%history(k,1) .LE. KL1_LINE .AND.&
+                                                        photon_temp%history(k,1) .GE. P3P5_LINE) THEN
+                                                                !fluorescence
+                                                                history(element,ABS(photon_temp%history(k,1)),k) = &
+                                                                history(element,ABS(photon_temp%history(k,1)),k) + 1
+                                                        ELSEIF &
+                                                        (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
+                                                                !rayleigh
+                                                                history(element,383+1,k) = &
+                                                                history(element,383+1,k) + 1
+                                                        ELSEIF &
+                                                        (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
+                                                                !compton
+                                                                history(element,383+2,k) = &
+                                                                history(element,383+2,k) + 1
+                                                        ENDIF
+                                                ENDDO
+                                        ENDIF
+
+                                ENDIF
+                                IF (photon_temp%detector_hit2 .EQ. .TRUE.) THEN
+                                        detector_hits2 = detector_hits2 + 1
+                                ENDIF
+
+                                IF (ASSOCIATED(photon_temp%offspring)) THEN
+                                        photon_temp2 => photon_temp%offspring
                                 ELSE
-                                        channel = 0
+                                        NULLIFY(photon_temp2)
+                                ENDIF
+                                
+                                DEALLOCATE(photon_temp%history)
+                                DEALLOCATE(photon_temp%mus)
+                                DEALLOCATE(photon_temp)
+                                IF (ASSOCIATED(photon_temp2)) THEN
+                                        photon_temp => photon_temp2
+                                ELSE
+                                        EXIT
                                 ENDIF
 
-                                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                                        channelsFF(channel) = channelsFF(channel)+photon%weight
-                                ENDIF
-                                SELECT CASE (photon%last_interaction)
-                                        CASE (RAYLEIGH_INTERACTION)
-                                                rayleighs = rayleighs + 1
-                                        CASE (COMPTON_INTERACTION)
-                                                comptons = comptons + 1
-                                        CASE (PHOTOELECTRIC_INTERACTION)
-                                                einsteins = einsteins + 1
-                                ENDSELECT
-#if DEBUG == 2
-                        ELSE
-                                SELECT CASE (photon%last_interaction)
-                                        CASE (RAYLEIGH_INTERACTION)
-                                                rayleighs = rayleighs + 1
-                                        CASE (COMPTON_INTERACTION)
-                                                comptons = comptons + 1
-                                        CASE (PHOTOELECTRIC_INTERACTION)
-                                                einsteins = einsteins + 1
-                                ENDSELECT
-#endif
-                        ENDIF
-                        IF (photon%detector_hit2 .EQ. .TRUE.) THEN
-                                detector_hits2 = detector_hits2 + 1
-                        ENDIF
-
-!!!$omp end critical                        
-                        DEALLOCATE(photon%mus)
-                        DEALLOCATE(photon)
+                        ENDDO
                 ENDDO
                 DEALLOCATE(initial_mus)
         ENDDO disc 
@@ -740,6 +782,22 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
         WRITE (*,'(A,I)') 'Comptons: ',comptons
         WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
+        WRITE (*,'(A,I)') 'Fe-KL2: ',history(26,ABS(KL2_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KL3: ',history(26,ABS(KL3_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KM2: ',history(26,ABS(KM2_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KM3: ',history(26,ABS(KM3_LINE),1)
+        WRITE (*,'(A,I)') 'Au-KM3: ',history(79,ABS(KM3_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LA1: ',history(79,ABS(LA1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LA2: ',history(79,ABS(LA2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB1: ',history(79,ABS(LB1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB2: ',history(79,ABS(LB2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB3: ',history(79,ABS(LB3_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB4: ',history(79,ABS(LB4_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LG2: ',history(79,ABS(LG2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MA1: ',history(79,ABS(MA1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MA2: ',history(79,ABS(MA2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MB: ',history(79,ABS(MB_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MG: ',history(79,ABS(MG_LINE),1)
 #endif
 
         channelsF = channelsFF
@@ -900,6 +958,8 @@ REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs
 TYPE (interaction_prob), DIMENSION(maxz) :: interaction_probs
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: doppler_pz 
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: fluor_yield_corr 
+
 
 CALL h5open_f(h5error)
 
@@ -910,7 +970,7 @@ ALLOCATE(rayleigh_theta(maxz, nintervals_e, nintervals_r),&
 compton_theta(maxz, nintervals_e, nintervals_r),&
 energies(nintervals_e), rs(nintervals_r),&
 thetas(nintervals_theta),&
-doppler_pz(maxz, nintervals_r), pzs(nintervals_pz), STAT=stat, errmsg=error_message )
+doppler_pz(maxz, nintervals_r), pzs(nintervals_pz), fluor_yield_corr(maxz,K_SHELL:M5_SHELL), STAT=stat, errmsg=error_message )
 
 IF (stat /= 0) THEN 
         WRITE (error_unit,*) 'Allocation failure:',trim(error_message)
@@ -1122,6 +1182,75 @@ ENDIF
         doppler_pz(i,nintervals_r) = maxpz
         doppler_pz(i,1) = 0.0_C_DOUBLE
 
+        !
+        !
+        !       Corrected fluorescence yields (in terms of the primary vacancy
+        !       distributions)
+        !
+        !
+#define CKTB CosKronTransProb
+        fluor_yield_corr(i,K_SHELL) = FluorYield(i,K_SHELL) 
+        fluor_yield_corr(i,L1_SHELL) = FluorYield(i,L1_SHELL)+&
+                        (CKTB(i,FL12_TRANS)*FluorYield(i,L2_SHELL))+&
+                        (CKTB(i,FL13_TRANS)+CKTB(i,FL12_TRANS)*CKTB(i,FL23_TRANS))*&
+                        FluorYield(i,L3_SHELL)
+        fluor_yield_corr(i,L2_SHELL) = FluorYield(i,L2_SHELL)+&
+                        (CKTB(i,FL23_TRANS)*FluorYield(i,L3_SHELL))
+        fluor_yield_corr(i,L3_SHELL) = FluorYield(i,L3_SHELL)
+        fluor_yield_corr(i,M1_SHELL) = &
+                        !M1_SHELL
+                        FluorYield(i,M1_SHELL)+&
+                        !M2_SHELL
+                        CKTB(i,FM12_TRANS)*FluorYield(i,M2_SHELL)+&
+                        !M3_SHELL
+                        (CKTB(i,FM13_TRANS)+CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS))*&
+                        FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        (CKTB(i,FM14_TRANS)+CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM15_TRANS)+&
+                        CKTB(i,FM14_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM13_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM25_TRANS)+&
+                        CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M2_SHELL) = &
+                        !M2_SHELL
+                        FluorYield(i,M2_SHELL)+&
+                        !M3_SHELL
+                        CKTB(i,FM23_TRANS)*FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        (CKTB(i,FM24_TRANS)+CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM25_TRANS)+CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M3_SHELL) = &
+                        !M3_SHELL
+                        FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        CKTB(i,FM34_TRANS)*FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM35_TRANS)+CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M4_SHELL) = &
+                        !M4_SHELL
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        CKTB(i,FM45_TRANS)*FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M5_SHELL) = &
+                        !M5_SHELL
+                        FluorYield(i,M5_SHELL)
+#undef CKTB
+
 ENDDO Zloop
 !$OMP END DO
 !$OMP END PARALLEL
@@ -1184,6 +1313,12 @@ DO i=1,maxz
         CALL h5sclose_f(dspace_id,h5error)
         CALL h5dclose_f(dset_id,h5error)
 
+        !create corrected fluorescence yields
+        CALL h5screate_simple_f(1,[INT(M5_SHELL-K_SHELL+1,KIND=HSIZE_T)],dspace_id,h5error)
+        CALL h5dcreate_f(group_id2,'Corrected fluorescence yields',H5T_NATIVE_DOUBLE,dspace_id,dset_id,h5error)
+        CALL h5dwrite_f(dset_id,H5T_NATIVE_DOUBLE,fluor_yield_corr(i,:),[INT(M5_SHELL-K_SHELL+1,KIND=HSIZE_T)],h5error)
+        CALL h5sclose_f(dspace_id,h5error)
+        CALL h5dclose_f(dset_id,h5error)
 
         !group close -> theta_icdf
         CALL h5gclose_f(group_id2,h5error)
@@ -1689,6 +1824,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #if DEBUG == 2
                 WRITE (*,'(A,I,F12.6)') 'pos and energy: ',pos, hdf5_Z%interaction_probs%energies(pos)
 #endif
+                !update number of interactions
+                photon%n_interactions = photon%n_interactions + 1
+
                 IF (interactionR .LT. interpolate_simple([hdf5_Z%interaction_probs%energies(pos),&
                         hdf5_Z%interaction_probs%Rayl_and_Compt(pos,1)],&
                         [hdf5_Z%interaction_probs%energies(pos+1),&
@@ -1737,8 +1875,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #endif
 
 
-                !update number of interactions
-                photon%n_interactions = photon%n_interactions + 1
                 !quit if maximum number of interactions has been reached...
 
 
@@ -1984,7 +2120,9 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         CALL xmi_update_photon_elecv(photon)
 
-        
+        !update history
+        photon%history(photon%n_interactions,1) = RAYLEIGH_INTERACTION
+        photon%history(photon%n_interactions,2) = photon%current_element 
 
 
         ENDASSOCIATE
@@ -2060,6 +2198,9 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         CALL xmi_update_photon_energy_compton(photon, theta_i, rng, inputF,&
         hdf5f)
 
+        !update history
+        photon%history(photon%n_interactions,1) = COMPTON_INTERACTION
+        photon%history(photon%n_interactions,2) = photon%current_element 
 
         ENDASSOCIATE
 
@@ -2133,6 +2274,16 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A,I2)') 'shell found: ',shell
 #endif
 
+        !first fluorescence yield check, then Coster-Kronig!!!
+        IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&
+            (photon%current_layer)%xmi_hdf5_Z_local&
+            (photon%current_element_index)%Ptr,&
+            photon%energy) .EQ. 0_C_INT) THEN
+                rv = 1
+                RETURN
+        ENDIF
+
+
         !Coster-Kronig for L and M
         CALL xmi_coster_kronig_check(rng, shell, photon%current_element)
 
@@ -2142,7 +2293,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
-        photon%energy) .EQ. 0_C_INT) THEN
+        photon%energy, line, photon%options%use_self_enhancement) .EQ. 0_C_INT) THEN
                 rv = 1
                 RETURN
         ENDIF
@@ -2187,6 +2338,10 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !update electric field
         !
         CALL xmi_update_photon_elecv(photon)
+
+        !update history
+        photon%history(photon%n_interactions,1) = line 
+        photon%history(photon%n_interactions,2) = photon%current_element 
 
         IF (photon%options%use_cascade .EQ. 1_C_INT) THEN
                 CALL xmi_simulate_photon_cascade(photon,shell,line&
@@ -2296,6 +2451,12 @@ SUBROUTINE xmi_simulate_photon_cascade(photon, shell, line,rng,inputF,hdf5F)
         IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&
         photon%options%use_M_lines == 0) RETURN
 
+        !first fluorescence yield check
+        IF (xmi_fluorescence_yield_check(rng, shell,&
+            inputF%composition%layers&
+            (photon%current_layer)%xmi_hdf5_Z_local&
+            (photon%current_element_index)%Ptr,&
+            energy) .EQ. 0_C_INT) RETURN
 
         !Coster Kronig check
         CALL xmi_coster_kronig_check(rng, shell, photon%current_element)
@@ -2303,13 +2464,15 @@ SUBROUTINE xmi_simulate_photon_cascade(photon, shell, line,rng,inputF,hdf5F)
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
-        energy) .EQ. 0_C_INT) RETURN
+        energy,line_new,photon%options%use_self_enhancement) .EQ. 0_C_INT) RETURN
 
         !leave if energy is too low
         IF (energy .LE. energy_threshold) RETURN
         
         !create offspring
         ALLOCATE(photon%offspring)
+        !take over its history!
+        photon%offspring%history=photon%history
         photon%offspring%energy = energy
         photon%offspring%energy_changed = .FALSE.
         photon%offspring%mus = xmi_mu_calc(inputF%composition,energy)
@@ -2325,11 +2488,16 @@ SUBROUTINE xmi_simulate_photon_cascade(photon, shell, line,rng,inputF,hdf5F)
         photon%offspring%dirv(2) = SIN(photon%offspring%phi)
         photon%offspring%dirv(3) = COS(photon%offspring%theta)
         CALL normalize_vector(photon%offspring%dirv)
-        photon%offspring%n_interactions=0
+        photon%offspring%n_interactions=photon%n_interactions
+        photon%offspring%history(photon%n_interactions,1) = line_new
+        photon%offspring%history(photon%n_interactions,2) =&
+        photon%current_element
         r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
         photon%offspring%elecv(1) = COS(r)
         photon%offspring%elecv(2) = SIN(r)
         photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+
+
         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
         IF (ABS(cosalfa) .GT. 1.0) THEN
@@ -2716,16 +2884,14 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
         RETURN
 ENDSUBROUTINE xmi_coster_kronig_check
 
-FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy) RESULT(rv)
+FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
         IMPLICIT NONE
-        INTEGER (C_INT), INTENT(IN) :: shell, element
         TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT), INTENT(IN) :: shell
+        TYPE (xmi_hdf5_Z), POINTER :: hdf5_Z
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         INTEGER (C_INT) :: rv
-        REAL (C_DOUBLE) :: r, sumz
-        LOGICAL :: line_found
-        INTEGER (C_INT) :: line_first, line_last
-        INTEGER (C_INT) :: line
+        REAL (C_DOUBLE) :: r,fluor_yield_corr
 
         rv = 0
 
@@ -2733,11 +2899,33 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy) RESULT(rv)
 #if DEBUG == 1
         WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
 #endif
-        IF (r .GT. FluorYield(element,shell)) THEN
+
+        IF (r .GT. hdf5_Z%FluorYieldsCorr(shell)) THEN
                 !no fluorescence but Auger...
                 energy = 0.0_C_DOUBLE
                 RETURN
         ENDIF
+
+        rv = 1
+
+        RETURN
+ENDFUNCTION xmi_fluorescence_yield_check
+
+FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
+        self_enhancement) RESULT(rv)
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN) :: shell, element
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy
+        INTEGER (C_INT), INTENT(INOUT) :: line_rv
+        INTEGER (C_INT), INTENT(IN) :: self_enhancement
+        INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE) :: r, sumz
+        LOGICAL :: line_found
+        INTEGER (C_INT) :: line_first, line_last, line
+
+        rv = 0
+
 
         !so we have fluorescence... but which line?
         r = fgsl_rng_uniform(rng)
@@ -2782,7 +2970,11 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy) RESULT(rv)
         ENDDO
 
         IF (line_found) THEN
-                energy = LineEnergy(element, line)
+                IF (self_enhancement .EQ. 1_C_INT) THEN
+                        CALL xmi_self_enhancement(rng, element, shell, line, energy)
+                ELSE
+                        energy = LineEnergy(element, line)
+                ENDIF
         ELSE
                 !this should not happen since the radiative rates within one
                 !linegroup must add up to 1.0
@@ -2793,11 +2985,135 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy) RESULT(rv)
 #if DEBUG == 1
         WRITE (*,'(A,I2)') 'Line found: ',line
 #endif
-        
+       line_rv = line
+
         rv = 1
 
 
         RETURN
 ENDFUNCTION xmi_fluorescence_line_check
+
+SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy) 
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN) :: element, shell, line
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: shell_new
+        REAL (C_DOUBLE) :: hwhm
+
+
+        SELECT CASE (line)
+                CASE (KL1_LINE)
+                        shell_new = L1_SHELL
+                CASE (KL2_LINE)
+                        shell_new = L2_SHELL
+                CASE (KL3_LINE)
+                        shell_new = L3_SHELL
+                CASE (KM1_LINE)
+                        shell_new = M1_SHELL
+                CASE (KM2_LINE)
+                        shell_new = M2_SHELL
+                CASE (KM3_LINE)
+                        shell_new = M3_SHELL
+                CASE (KM4_LINE)
+                        shell_new = M4_SHELL
+                CASE (KM5_LINE)
+                        shell_new = M5_SHELL
+                CASE (KN1_LINE)
+                        shell_new = N1_SHELL
+                CASE (KN2_LINE)
+                        shell_new = N2_SHELL
+                CASE (KN3_LINE)
+                        shell_new = N3_SHELL
+                CASE (KN4_LINE)
+                        shell_new = N4_SHELL
+                CASE (KN5_LINE)
+                        shell_new = N5_SHELL
+                CASE (KN6_LINE)
+                        shell_new = N6_SHELL
+                CASE (KN7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L1M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L1M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L1M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L1M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L1M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L1N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L1N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L1N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L1N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L1N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L1N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L1N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L2M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L2M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L2M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L2M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L2M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L2N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L2N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L2N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L2N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L2N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L2N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L2N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L3M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L3M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L3M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L3M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L3M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L3N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L3N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L3N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L3N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L3N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L3N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L3N7_LINE)
+                        shell_new = N7_SHELL
+        ENDSELECT
+
+        hwhm = 0.5_C_DOUBLE*(AtomicLevelWidth(element,shell)+&
+                    AtomicLevelWidth(element,shell_new))
+        energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
+
+        IF (energy .LT. energy_threshold) energy = 0.0_C_DOUBLE
+
+        RETURN
+ENDSUBROUTINE xmi_self_enhancement
 
 ENDMODULE

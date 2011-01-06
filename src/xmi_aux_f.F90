@@ -25,6 +25,7 @@ TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: DopplerPz_ICDF
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
         INTEGER (C_INT) :: Z
@@ -291,6 +292,8 @@ TYPE :: xmi_photon
 
         !options
         TYPE (xmi_main_options) :: options
+
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:,:) :: history
 ENDTYPE
 
 !
