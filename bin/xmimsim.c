@@ -28,6 +28,9 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	int numprocs, rank, namelen;
 	char processor_name[MPI_MAX_PROCESSOR_NAME];
+	double *all_channels;
+	int numreqs=0;
+	MPI_Request *reqs = 0;
 #endif
 
 	//general variables
@@ -38,9 +41,9 @@ int main (int argc, char *argv[]) {
 	const gsl_rng_type *rng_type;
 	gsl_rng *rng;
 	unsigned long int seed;
-	double channels[2048];
+	double *channels, *channelsdef, *results;
 	FILE *outPtr;
-	int i;
+	int i,j;
 	GError *error = NULL;
 	GOptionContext *context;
 	static struct xmi_main_options options;
@@ -76,7 +79,23 @@ int main (int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
+
+	if (rank == 0) {
+		reqs = (MPI_Request *) malloc(2*numprocs*sizeof(MPI_Request));
+		results = (double *) malloc(sizeof(numprocs)*2048*sizeof(double));
+		for (i=0 ; i < numprocs ; i++) {
+			MPI_Irecv(results+(i*2048), 2048, MPI_DOUBLE, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, reqs+numreqs++);
+		}
+	}
+	else {
+		reqs = (MPI_Request *) malloc(numprocs*sizeof(MPI_Request));
+	}
+
+
+
 #endif
+	channels = (double *) malloc(2048*sizeof(double));
+
 	//
 	//options...
 	//1) use M-lines
@@ -175,28 +194,50 @@ int main (int argc, char *argv[]) {
 
 
 #ifdef HAVE_OPENMPI
+	MPI_Isend(channels, 2048, MPI_DOUBLE, 0, rank, MPI_COMM_WORLD, reqs+numreqs);
+	MPI_Waitall(numreqs, reqs, MPI_STATUSES_IGNORE);
+
 	MPI_Finalize();
+
+
+#else
+	channelsdef = channels;
 #endif
 
 
-	//write it to outputfile...
-	if ((outPtr=fopen(input->general->outputfile,"w")) == NULL ) {
-		fprintf(stdout,"Could not write to outputfile\n");
-		exit(1);
-	}
-	fprintf(outPtr,"$DATA:\n");
-	fprintf(outPtr,"0\t2047\n");
-	for (i=0 ; i < 2048 ; i++) {
-		fprintf(outPtr,"%lg",channels[i]);
-		if (i % 8 == 0) {
-			fprintf(outPtr,"\n");
-		}
-		else {
-			fprintf(outPtr,"     ");
-		}
-	}
-	fclose(outPtr);
 
+#ifdef HAVE_OPENMPI
+	if (rank == 0) {
+		channelsdef = (double *) calloc(2048,sizeof(double));
+		
+
+		for (i = 0 ; i < numprocs ; i++ ) {
+			for (j = 0 ; j < 2048 ; j++) {
+				channelsdef[j] += results[j+i*2048];
+			}
+		}
+#endif
+		//write it to outputfile...
+		if ((outPtr=fopen(input->general->outputfile,"w")) == NULL ) {
+			fprintf(stdout,"Could not write to outputfile\n");
+			exit(1);
+		}
+		fprintf(outPtr,"$DATA:\n");
+		fprintf(outPtr,"0\t2047\n");
+		for (i=0 ; i < 2048 ; i++) {
+			fprintf(outPtr,"%lg",channelsdef[i]);
+			if ((i+1) % 8 == 0) {
+				fprintf(outPtr,"\n");
+			}
+			else {
+				fprintf(outPtr,"     ");
+			}
+		}
+		fclose(outPtr);
+
+#ifdef HAVE_OPENMPI
+	}	
+#endif
 
 	return 0;
 }

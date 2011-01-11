@@ -1,4 +1,5 @@
 #include "xmimsim-gui-layer.h"
+#include "xmimsim-gui-energies.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -114,7 +115,7 @@ struct undo_single {
 };
 
 static struct undo_single *redo_buffer;
-static struct undo_single *current;
+struct undo_single *current;
 static struct undo_single *last;
 
 
@@ -2148,7 +2149,15 @@ int main (int argc, char *argv[]) {
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 	
-	
+	//energies	
+
+	frame = gtk_frame_new("Energies");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Composition</span>");
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation));
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 
 

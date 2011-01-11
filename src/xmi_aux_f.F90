@@ -293,7 +293,11 @@ TYPE :: xmi_photon
         !options
         TYPE (xmi_main_options) :: options
 
+        !interaction history
         INTEGER (C_INT), ALLOCATABLE, DIMENSION(:,:) :: history
+
+        !last shell -> debugging
+        INTEGER (C_INT) :: last_shell
 ENDTYPE
 
 !
