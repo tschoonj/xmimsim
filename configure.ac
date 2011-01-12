@@ -30,7 +30,13 @@ AC_PROG_CC
 #this next line may never be reached...
 if test -z $CC ; then
         AC_MSG_ERROR([no C compiler was found on the system.])
-	fi
+fi
+
+#check for GUI
+AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enable_gui=$enableval],[enable_gui=check])
+
+
+
 #initialize pkg-config
 PKG_PROG_PKG_CONFIG
 
@@ -40,11 +46,19 @@ PKG_CHECK_MODULES([xraylib],libxrl >= 2.14.0)
 PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
-PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.14.0)
-PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0)
-#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
+if test "x$enable_gui" != xno ; then
+	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.14.0)
+	#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
+	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
+		AC_MSG_ERROR([no GTK found on the system.])
+	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
+		AC_MSG_WARN([no GTK found on the system. The GUI will not be built.])
+	fi
+fi
 
+AM_CONDITIONAL([ENABLE_GUI],[test x$GTK_FOUND = xyes])
 
 
 #check for headers
