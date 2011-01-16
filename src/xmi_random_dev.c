@@ -49,7 +49,7 @@ static void *xmi_random_thread(void *input) {
 #endif
 			if (fread(&temp_number,sizeof(unsigned long int),1,random_devicePtr) == 1) {
 				rv=pthread_mutex_lock(&xmi_random_mutex);
-				xmi_random_numbers[xmi_numbers_in_memory++]=temp_number;
+				xmi_random_numbers[xmi_numbers_in_memory++]=temp_number; 
 				rv=pthread_mutex_unlock(&xmi_random_mutex);
 #if DEBUG == 2
 				fprintf(stdout,"Found a new number: %lu\n",temp_number);

@@ -15,6 +15,9 @@ INTEGER (C_INT), PARAMETER ::  NO_INTERACTION = 0
 INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
 INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
 INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
+INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SILI = 0
+INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_GE = 1
+INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SI_SDD = 2
 
 !some physical constants
 REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
@@ -113,7 +116,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         WRITE (*,'(A,I)') 'error code: ',error
 #endif
         IF (error /= 0) THEN
-                WRITE (*,*) 'Error opening HDF5 file ',xmi_hdf5_fileFF
+                WRITE (*,'(A,A)') 'Error opening HDF5 file ',xmi_hdf5_fileFF
                 rv = 0
                 RETURN
         ENDIF
@@ -417,12 +420,13 @@ ENDSUBROUTINE xmi_free_hdf5_F
 
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
-nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channelsPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
         INTEGER (C_INT) :: rv 
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (C_PTR), INTENT(INOUT) :: historyPtr
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
@@ -445,8 +449,10 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: channelsFF 
         INTEGER (C_INT), DIMENSION(:,:,:), ALLOCATABLE :: history
+        INTEGER (C_INT), DIMENSION(:,:,:), POINTER :: historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
+        REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         !begin...
         
         CALL SetErrorMessages(0)
@@ -498,7 +504,7 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins,history, last_shell, children)
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins,history, last_shell, children)
 
 !
 !
@@ -583,11 +589,21 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         ENDDO cont
 
         disc:DO i=1,exc%n_discrete
-                hor_ver_ratio = &
-                exc%discrete(i)%horizontal_intensity/ &
-                (exc%discrete(i)%vertical_intensity+ &
-                exc%discrete(i)%horizontal_intensity)
                 n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
+                total_intensity=exc%discrete(i)%vertical_intensity+ &
+                exc%discrete(i)%horizontal_intensity
+                hor_ver_ratio = &
+                exc%discrete(i)%horizontal_intensity*n_photons/ &
+                total_intensity
+                !take into account the excitation absorber
+                exc_corr = 1.0_C_DOUBLE
+                DO j=1,inputF%absorbers%n_exc_layers
+                        exc_corr = exc_corr * EXP(-1.0_C_DOUBLE*&
+                        inputF%absorbers%exc_layers(j)%density*&
+                        inputF%absorbers%exc_layers(j)%thickness*&
+                        xmi_mu_calc(inputF%absorbers%exc_layers(j),exc%discrete(i)%energy))
+                ENDDO
+
 #if DEBUG == 2
 !$omp critical                        
                 WRITE (*,'(A,I)') 'n_photons: ',n_photons
@@ -621,22 +637,22 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
 
-                        ipol = MOD(j,2)
+                        !ipol = MOD(j,2)
 
                         !Calculate its initial coordinates and direction
                         CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
                         photon)
 
                         !Calculate its weight and electric field...
-                        IF (ipol .EQ. 0) THEN
+                        IF (j .LT. hor_ver_ratio) THEN
                                 !horizontal
-                                photon%weight = exc%discrete(i)%horizontal_intensity/inputF%general%n_photons_line 
+                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
                                 photon%elecv(1) = 1.0_C_DOUBLE
                                 photon%elecv(2) = 0.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
                         ELSE
                                 !vertical
-                                photon%weight = exc%discrete(i)%vertical_intensity/inputF%general%n_photons_line 
+                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
                                 photon%elecv(1) = 0.0_C_DOUBLE
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -802,6 +818,18 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         WRITE (*,'(A,I)') 'Fe-KL3: ',history(26,ABS(KL3_LINE),1)
         WRITE (*,'(A,I)') 'Fe-KM2: ',history(26,ABS(KM2_LINE),1)
         WRITE (*,'(A,I)') 'Fe-KM3: ',history(26,ABS(KM3_LINE),1)
+        !WRITE (*,'(A,I)') 'Fe-KL2: ',history(26,ABS(KL2_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KL3: ',history(26,ABS(KL3_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KM2: ',history(26,ABS(KM2_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KM3: ',history(26,ABS(KM3_LINE),2)
+        WRITE (*,'(A,I)') 'Ni-KL2: ',history(28,ABS(KL2_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KL3: ',history(28,ABS(KL3_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KM2: ',history(28,ABS(KM2_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KM3: ',history(28,ABS(KM3_LINE),1)
+        !WRITE (*,'(A,I)') 'Ni-KL2: ',history(28,ABS(KL2_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KL3: ',history(28,ABS(KL3_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KM2: ',history(28,ABS(KM2_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KM3: ',history(28,ABS(KM3_LINE),2)
         WRITE (*,'(A,I)') 'Au-KM3: ',history(79,ABS(KM3_LINE),1)
         WRITE (*,'(A,I)') 'Au-LA1: ',history(79,ABS(LA1_LINE),1)
         WRITE (*,'(A,I)') 'Au-LA2: ',history(79,ABS(LA2_LINE),1)
@@ -829,6 +857,31 @@ nchannels, options) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 #endif
 
         channelsF = channelsFF
+        !multiply with detector absorbers and detector crystal
+        DO i=1,2048
+                det_corr = 1.0_C_DOUBLE
+                DO j=1,inputF%absorbers%n_det_layers
+                        det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                        inputF%absorbers%det_layers(j)%density*&
+                        inputF%absorbers%det_layers(j)%thickness*&
+                        xmi_mu_calc(inputF%absorbers%det_layers(j),i*inputF%detector%gain+inputF%detector%zero)) 
+                ENDDO
+                DO j=1,inputF%detector%n_crystal_layers
+                        det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+                        inputF%detector%crystal_layers(j)%density*&
+                        inputF%detector%crystal_layers(j)%thickness*&
+                        xmi_mu_calc(inputF%detector%crystal_layers(j),i*inputF%detector%gain+inputF%detector%zero)) )
+                ENDDO
+                channelsF(i) = channelsF(i)*det_corr
+        ENDDO
+        
+
+        
+        !now we can access the history in C using the same indices...
+        ALLOCATE(historyF(inputF%general%n_interactions_trajectory,(383+2),100))
+        historyF = RESHAPE(history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
+
+        historyPtr = C_LOC(historyF)
 
         rv = 1
 
@@ -2170,6 +2223,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         REAL (C_DOUBLE) :: theta_i, phi_i
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
+        REAL (C_DOUBLE) :: pp, rat, rk, w_h
        
         rv = 0
         pos_1 = 0
@@ -2219,6 +2273,18 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !for compton, laszlo does a further manipulation, probably has to with
         !change of degree of polarization
         !
+        pp = 2.0_C_DOUBLE * ((COS(theta_i)*COS(phi_i))**2+SIN(phi_i)**2)
+        rat = 1.0_C_DOUBLE/(1.0_C_DOUBLE +&
+        (1-COS(theta_i))*photon%energy/510.998910)
+        rk = rat - 2.0_C_DOUBLE + 1.0_C_DOUBLE/rat
+        pp = pp/(rk+pp)
+        r = fgsl_rng_uniform(rng)
+        w_h = (1.0_C_DOUBLE+pp)/2.0_C_DOUBLE
+
+        IF (r .GT. w_h) THEN
+                photon%elecv = cross_product(photon%dirv, photon%elecv)
+        ENDIF
+
 
         !
         !update energy of photon!!!
@@ -3107,7 +3173,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%current_element_index = photon%current_element_index
 
         IF (.NOT.(shell_new1 .GE. M1_SHELL .AND. shell_new1 .LE. M5_SHELL&
-            .AND. photon%options%use_M_lines == 1) .AND.&
+            .AND. photon%options%use_M_lines == 0) .AND.&
             xmi_fluorescence_yield_check(rng, shell_new1,&
             inputF%composition%layers&
             (photon%current_layer)%xmi_hdf5_Z_local&
@@ -3166,7 +3232,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         ENDIF
         !second photon will be considered as the offspring
         IF (.NOT.(shell_new2 .GE. M1_SHELL .AND. shell_new2 .LE. M5_SHELL&
-            .AND. photon%offspring%options%use_M_lines == 1) .AND.&
+            .AND. photon%offspring%options%use_M_lines == 0) .AND.&
             xmi_fluorescence_yield_check(rng, shell_new2,&
             inputF%composition%layers&
             (photon%offspring%current_layer)%xmi_hdf5_Z_local&
@@ -3185,6 +3251,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                 IF (photon%offspring%energy .LE. energy_threshold) THEN
                         !deallocate photon
                         DEALLOCATE(photon%offspring%history)
+                        DEALLOCATE(photon%offspring%mus)
                         DEALLOCATE(photon%offspring)
                         !next line may be redundant
                         NULLIFY(photon%offspring)
@@ -3225,6 +3292,13 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                                 CALL EXIT(1)
                         ENDIF
                 ENDIF
+        ELSE
+                !deallocate photon
+                DEALLOCATE(photon%offspring%history)
+                DEALLOCATE(photon%offspring%mus)
+                DEALLOCATE(photon%offspring)
+                !next line may be redundant
+                NULLIFY(photon%offspring)
         ENDIF
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_auger
@@ -3561,9 +3635,16 @@ SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, chann
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv, channels_conv
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
+        channels_conv, channels_temp
         INTEGER (C_LONG) :: nlim
         REAL (C_DOUBLE) :: a,b
+        REAL (C_DOUBLE), PARAMETER :: c =&
+        SQRT(2.0_C_DOUBLE)/(2.0_C_DOUBLE*SQRT(2.0_C_DOUBLE*LOG(2.0_C_DOUBLE)))
+        REAL (C_DOUBLE), DIMENSION(4096) :: R 
+        INTEGER (C_INT) :: I0, I
+        REAL (C_DOUBLE) :: E0, E, B0, FWHM, A0, A3, A4, ALFA, X, G, F, my_sum,&
+        CBG
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -3571,19 +3652,70 @@ SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, chann
         CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
 
         !allocate memory for results
-        ALLOCATE(channels_conv(nchannels))
+        ALLOCATE(channels_conv(nchannels), channels_temp(nchannels))
 
         !
         nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
+        IF (nlim .GT. nchannels) nlim = nchannels
+
 
         a = inputF%detector%noise**2
         b = (2.3548)**2 * 3.85 *inputF%detector%fano
 
-        channels_conv = channels_noconv
+        channels_temp = channels_noconv
+        channels_conv = 0.0_C_DOUBLE
 
         !escape peak
+        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
+                CALL xmi_detector_escape_SiLi(channels_temp, inputF)
+        ELSE
+                WRITE (*,'(A)') 'Unsupported detector type'
+                CALL EXIT(1)
+        ENDIF
 
+        DO I0=1,nlim
+                E0 = inputF%detector%zero + inputF%detector%gain*I0
+                FWHM = SQRT(a+b*E0)
+                B0=C*FWHM
+                A0 = 1.0_C_DOUBLE/(B0*M_SQRTPI)
 
+                !IF (I0 .LE. 1800) THEN
+                        A3=2.73E-3*EXP(-0.21*E0)
+                        A4=0.000188*EXP(-0.00296*(E0**0.763))+&
+                          1.355E-5*EXP(0.968*(E0**0.498))
+                        ALFA=1.179*EXP(8.6E-4*(E0**1.877))-&
+                          7.793*EXP(-3.81*(E0**(-0.0716)))
+                !ENDIF
+                R = 0.0_C_DOUBLE
+                DO I=1,I0+100
+                        IF (I .GT. nchannels) THEN
+                                EXIT
+                        ENDIF
+                        E = inputF%detector%zero + inputF%detector%gain*I
+                        X=(E-E0)/B0
+                        G=EXP(-X*X)
+                        F=M_PI*ERFC(X)
+                        R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+A4*EXP(ALFA*(E-E0)))*F       
+
+                ENDDO
+                my_sum = SUM(R)
+                DO I=1,I0+200
+                        IF (I .GT. nchannels) THEN
+                                EXIT
+                        ENDIF
+                        channels_conv(I)=channels_conv(I)+R(I)*channels_temp(I0)/my_sum
+                ENDDO
+                my_sum = SUM(channels_temp(1:nlim))
+                DO I=1, NLIM
+                        E = inputF%detector%gain*I
+                        CBG=EXP(1./(0.15_C_DOUBLE+1.4E-2_C_DOUBLE*(E-1.0_C_DOUBLE)))*my_sum/1.0E7
+                        channels_conv(I)=channels_conv(I)+CBG*0.4_C_DOUBLE
+                ENDDO
+
+        ENDDO
+
+        DEALLOCATE(channels_temp)
+        channels_convPtr = C_LOC(channels_conv)
 
         RETURN
 ENDSUBROUTINE xmi_detector_convolute
@@ -3604,13 +3736,13 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
         RR_Si_Ka = RadRate(14,KA_LINE)
         RR_Si_Kb = RadRate(14,KB_LINE)
         const = omegaK*(1.0_C_DOUBLE-1.0_C_DOUBLE/JumpFactor(14,K_SHELL))
-        mu_si = CS_Total_Kissel(14,E_Si_Ka)
+        mu_si = CS_Total_Kissel(14,REAL(E_Si_Ka,KIND=C_FLOAT))
 
         DO i=1,SIZE(channels_conv)
                 e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
                         inputF%detector%zero
                 IF (e .LT. E_Si_Kedge) CYCLE
-                mu_e = CS_Total_Kissel(14,e)
+                mu_e = CS_Total_Kissel(14,REAL(e,KIND=C_FLOAT))
                 esc_rat = 0.5_C_DOUBLE*(1.0_C_DOUBLE -&
                 mu_si/mu_e*LOG(1.0_C_DOUBLE + mu_e/mu_si))
                 esc_rat = const*esc_rat/(1.0_C_DOUBLE-const*esc_rat)

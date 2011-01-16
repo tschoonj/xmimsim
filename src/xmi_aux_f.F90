@@ -781,7 +781,7 @@ FUNCTION xmi_mu_calc_xmi_composition_single_energy(composition, energy) RESULT(r
         ENDDO
 
         RETURN
-ENDFUNCTION
+ENDFUNCTION xmi_mu_calc_xmi_composition_single_energy
 
 FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
         IMPLICIT NONE

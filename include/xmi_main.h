@@ -14,7 +14,7 @@ struct xmi_main_options {
 
 
 
-int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double *channels, int nchannels, struct xmi_main_options);
+int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double *channels, int nchannels, struct xmi_main_options, int **history);
 
 
 

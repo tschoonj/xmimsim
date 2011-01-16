@@ -54,3 +54,16 @@
 <!ELEMENT noise (#PCDATA)>
 <!ELEMENT max_convolution_energy (#PCDATA)>
 <!ELEMENT crystal (layer+)>
+
+<!-- outputfile structure -->
+
+
+<!ELEMENT xmimsim-results (inputfile, spectrum, history)>
+<!ATTLIST xmimsim-results version CDATA #REQUIRED>
+<!ELEMENT inputfile (#PCDATA)>
+<!ELEMENT spectrum (channel_contents+)>
+<!ELEMENT channel_contents (#PCDATA)>
+<!ELEMENT history (element_history+, max_interactions)>
+<!ELEMENT element_line_history (atomic_number, line, interaction_number)>
+<!ELEMENT line (#PCDATA)>
+<!ELEMENT interaction_number (#PCDATA)>

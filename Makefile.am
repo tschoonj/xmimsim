@@ -1,4 +1,4 @@
-SUBDIRS = src bin include
+SUBDIRS = src bin include xml
 ACLOCAL_AMFLAGS = -I m4
 
 

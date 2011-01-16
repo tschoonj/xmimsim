@@ -36,6 +36,11 @@ struct add_data {
 	GtkTreeSelection *select;
 }; 
 
+
+static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
+	return TRUE;
+}
+
 static void element_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	GtkTreeIter iter,temp_iter;
 	GtkTreeModel *model;
@@ -675,7 +680,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(window_show_cb), (gpointer) rv);
-	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
 	//initialize compound
 	cw = initialize_compound_widget(rv, GTK_WINDOW(window));	

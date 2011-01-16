@@ -11,12 +11,16 @@
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_random.h"
+#include <unistd.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <locale.h>
+#include <xraylib.h>
 
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <string.h>
 
 
 
@@ -28,9 +32,8 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	int numprocs, rank, namelen;
 	char processor_name[MPI_MAX_PROCESSOR_NAME];
-	double *all_channels;
-	int numreqs=0;
-	MPI_Request *reqs = 0;
+//	int numreqs=0;
+//	MPI_Request *reqs = 0;
 #endif
 
 	//general variables
@@ -48,19 +51,23 @@ int main (int argc, char *argv[]) {
 	GOptionContext *context;
 	static struct xmi_main_options options;
 	int use_M_lines;
-        int use_self_enhancement;
-        int use_cascade;
+	int use_self_enhancement;
+	int use_cascade;
 	int use_variance_reduction;
+	int *history;
+	int *historydef;
+	static gchar *hdf5_file=NULL;
 
 	static GOptionEntry entries[] = {
-	  	{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
-	  	{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-	  	{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable self-enhancement", NULL },
-	  	{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable self-enhancement (default)", NULL },
-	  	{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade), "Enable cascade effects (default)", NULL },
-	  	{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade), "Disable cascade effects", NULL },
-	  	{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
-	  	{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
+		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
+		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
+		{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable self-enhancement", NULL },
+		{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable self-enhancement (default)", NULL },
+		{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade), "Enable cascade effects (default)", NULL },
+		{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade), "Disable cascade effects", NULL },
+		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
+		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
+		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{ NULL }
 	};
 
@@ -80,17 +87,18 @@ int main (int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
 
-	if (rank == 0) {
+
+	/*	if (rank == 0) {
 		reqs = (MPI_Request *) malloc(2*numprocs*sizeof(MPI_Request));
 		results = (double *) malloc(sizeof(numprocs)*2048*sizeof(double));
 		for (i=0 ; i < numprocs ; i++) {
-			MPI_Irecv(results+(i*2048), 2048, MPI_DOUBLE, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, reqs+numreqs++);
+		MPI_Irecv(results+(i*2048), 2048, MPI_DOUBLE, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, reqs+numreqs++);
 		}
-	}
-	else {
+		}
+		else {
 		reqs = (MPI_Request *) malloc(numprocs*sizeof(MPI_Request));
-	}
-
+		}
+		*/
 
 
 #endif
@@ -111,13 +119,28 @@ int main (int argc, char *argv[]) {
 
 	//parse options
 	context = g_option_context_new ("inputfile");
-  	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		exit (1);
 	}
-			     
+
+
+	if (hdf5_file == NULL) {
+		//no option detected
+		//first look at default file
+		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
+			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
+		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0)
+			hdf5_file = strdup("xmimsimdata.h5");
+		else {
+			//if not found abort...	
+			g_printf("Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
+			exit(1);
+		}
+	}
+
 #if DEBUG == 1
 	fprintf(stdout,"use_M_lines: %i\n",options.use_M_lines);
 	fprintf(stdout,"use_self_enhancement: %i\n",options.use_self_enhancement);
@@ -159,7 +182,7 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"xmi_init_input called\n");
 #endif
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5("xmimsimdata.h5",inputFPtr,&hdf5FPtr) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
@@ -168,7 +191,7 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048,options) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048,options, &history) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
@@ -176,7 +199,7 @@ int main (int argc, char *argv[]) {
 #if DEBUG == 1
 	fprintf(stdout,"After MC simulation\n");
 #endif
-	
+
 
 
 
@@ -194,28 +217,51 @@ int main (int argc, char *argv[]) {
 
 
 #ifdef HAVE_OPENMPI
-	MPI_Isend(channels, 2048, MPI_DOUBLE, 0, rank, MPI_COMM_WORLD, reqs+numreqs);
-	MPI_Waitall(numreqs, reqs, MPI_STATUSES_IGNORE);
+	/*	MPI_Isend(channels, 2048, MPI_DOUBLE, 0, rank, MPI_COMM_WORLD, reqs+numreqs);
+		MPI_Waitall(numreqs, reqs, MPI_STATUSES_IGNORE);
+		*/
 
+
+
+	if (rank == 0) {
+		channelsdef = (double *) calloc(2048,sizeof(double));
+		historydef = (int *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(int));	
+	}
+
+	//reduce channels
+	MPI_Reduce(channels, channelsdef,2048, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
+	//reduce history
+	MPI_Reduce(history, historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
+
+	
 	MPI_Finalize();
 
 
 #else
 	channelsdef = channels;
+	historydef = history;
 #endif
+
+
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+
 
 
 
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
-		channelsdef = (double *) calloc(2048,sizeof(double));
 		
+#if DEBUG == 1
+		fprintf(stdout,"Ba-KL2: %i\n",ARRAY3D_FORTRAN(historydef,56,abs(KL2_LINE),1,100,385,1));	
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(historydef,28,abs(KL3_LINE),1,100,385,2));	
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(historydef,26,abs(KL3_LINE),1,100,385,2));	
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(historydef,28,abs(KL3_LINE),2,100,385,2));	
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(historydef,26,abs(KL3_LINE),2,100,385,2));	
+#endif
 
-		for (i = 0 ; i < numprocs ; i++ ) {
-			for (j = 0 ; j < 2048 ; j++) {
-				channelsdef[j] += results[j+i*2048];
-			}
-		}
+
+
+
 #endif
 		//write it to outputfile...
 		if ((outPtr=fopen(input->general->outputfile,"w")) == NULL ) {

@@ -116,6 +116,9 @@ void xmi_free_input(struct xmi_input *);
 //returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_COMPARE_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
+//returns 0 when ok
+int xmi_validate_input(struct xmi_input *);
+
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
 
 void xmi_free_composition(struct xmi_composition *);
@@ -129,6 +132,13 @@ void xmi_copy_layer2(struct xmi_layer *, struct xmi_layer *B);
 
 struct xmi_input *xmi_init_empty_input(void);
 
+void xmi_free_absorbers(struct xmi_absorbers *);
+
+void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B);
+
+void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition); 
+
+void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers);
 
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable

@@ -542,4 +542,118 @@ struct xmi_input *xmi_init_empty_input(void) {
 
 }
 
+void xmi_free_absorbers(struct xmi_absorbers *A) {
+	int i;
+
+	for (i = 0 ; i < A->n_exc_layers ; i++) 
+		xmi_free_layer(A->exc_layers+i);
+	 
+	free(A->exc_layers);
+
+	for (i = 0 ; i < A->n_det_layers ; i++) 
+		xmi_free_layer(A->det_layers+i);
+	 
+	free(A->det_layers);
+
+	free(A);
+
+}
+
+void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B) {
+	int i;
+
+	//allocate space for B
+	*B = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+	(*B)->n_exc_layers = A->n_exc_layers;
+	(*B)->exc_layers = (struct xmi_layer *) xmi_memdup((A)->exc_layers,((A)->n_exc_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < (A)->n_exc_layers ; i++) {
+		(*B)->exc_layers[i].Z = (int *) xmi_memdup((A)->exc_layers[i].Z,((A)->exc_layers[i].n_elements)*sizeof(int));
+		(*B)->exc_layers[i].weight = (double *) xmi_memdup((A)->exc_layers[i].weight,((A)->exc_layers[i].n_elements)*sizeof(double));
+	}
+	
+	(*B)->n_det_layers = A->n_det_layers;
+	(*B)->det_layers = (struct xmi_layer *) xmi_memdup((A)->det_layers,((A)->n_det_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < (A)->n_det_layers ; i++) {
+		(*B)->det_layers[i].Z = (int *) xmi_memdup((A)->det_layers[i].Z,((A)->det_layers[i].n_elements)*sizeof(int));
+		(*B)->det_layers[i].weight = (double *) xmi_memdup((A)->det_layers[i].weight,((A)->det_layers[i].n_elements)*sizeof(double));
+	}
+
+}
+
+void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition) {
+	int i;
+
+	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	(*composition)->n_layers = n_layers;
+	if (n_layers > 0) {
+		(*composition)->layers = (struct xmi_layer *) malloc(sizeof(struct xmi_layer)*n_layers); 
+		for (i = 0 ; i < n_layers ; i++) 
+			xmi_copy_layer2(layers+i,(*composition)->layers+i);
+	}
+	else 
+		(*composition)->layers = NULL;
+
+}
+
+void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers) {
+	int i;
+	
+	*n_layers = composition->n_layers;
+
+	if (*n_layers > 0) {
+		*layers	= (struct xmi_layer *) malloc(sizeof(struct xmi_layer)**n_layers);
+		for (i = 0 ; i < *n_layers ; i++) {
+			xmi_copy_layer2(composition->layers+i, (*layers)+i);
+		}
+	}
+	else
+		*layers = NULL;
+
+	return;
+}
+
+int xmi_validate_input(struct xmi_input *a) {
+	int i,j;
+
+
+
+	//validate general
+	if (a->general->n_photons_interval <= 0) 
+		return 1;
+
+	if (a->general->n_photons_line <= 0) 
+		return 1;
+
+	if (a->general->n_interactions_trajectory <= 0) 
+		return 1;
+
+
+
+	//composition
+	if (a->composition->n_layers < 1)
+		return 1;
+
+	if (a->composition->reference_layer < 1 || a->composition->reference_layer > a->composition->n_layers)
+		return 1;
+
+	for (i = 0 ; i < a->composition->n_layers ; i++) {
+			if (a->composition->layers[i].density <= 0.0)
+				return 1;
+			if (a->composition->layers[i].thickness <= 0.0)
+				return 1;
+	}
+
+	//geometry
+	if (a->geometry->d_sample_source <= 0.0)
+		return 1;
+	if (a->geometry->area_detector <= 0.0)
+		return 1;
+
+	if (a->excitation->n_discrete < 1 && a->excitation->n_continuous < 2)
+		return 1;
+	if (a->excitation->n_discrete ==0  && a->excitation->n_continuous < 2)
+		return 1;
+
+	return 0;
+}
 

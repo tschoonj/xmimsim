@@ -1,3 +1,4 @@
+#include "xmimsim-gui.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
 #include <string.h>
@@ -8,6 +9,8 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <xraylib.h>
+
+#define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
 
 /*
@@ -24,6 +27,11 @@ static GtkWidget *n_photons_lineW;
 static GtkWidget *n_interactions_trajectoryW;
 static GtkWidget *undoW;
 static GtkWidget *redoW;
+static GtkWidget *newW;
+static GtkWidget *openW;
+static GtkWidget *saveW;
+static GtkWidget *save_asW;
+static GtkWidget *quitW;
 static GtkToolItem *newT;
 static GtkToolItem *openT;
 static GtkToolItem *saveasT;
@@ -32,10 +40,17 @@ static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 
 
-//composition
+//composition 
 struct layerWidget *layerW;
+
 static GtkWidget *compositionW;
 static GtkListStore *compositionL;
+static GtkWidget *exc_compositionW;
+static GtkListStore *exc_compositionL;
+static GtkWidget *det_compositionW;
+static GtkListStore *det_compositionL;
+static GtkWidget *crystal_compositionW;
+static GtkListStore *crystal_compositionL;
 
 //geometry
 static GtkWidget *d_sample_sourceW;
@@ -54,7 +69,13 @@ static GtkWidget *d_source_slitW;
 static GtkWidget *slit_size_xW;
 static GtkWidget *slit_size_yW;
 
-
+//detector
+static GtkWidget *detector_typeW;
+static GtkWidget *detector_gainW;
+static GtkWidget *detector_zeroW;
+static GtkWidget *detector_fanoW;
+static GtkWidget *detector_noiseW;
+static GtkWidget *detector_max_convolution_energyW;
 
 
 /*
@@ -64,6 +85,7 @@ static GtkWidget *slit_size_yW;
  */
 
 //general
+static gulong outputfileG;
 static gulong n_photons_intervalG;
 static gulong n_photons_lineG;
 static gulong n_interactions_trajectoryG;
@@ -84,6 +106,13 @@ static gulong d_source_slitG;
 static gulong slit_size_xG;
 static gulong slit_size_yG;
 
+//detector
+static gulong detector_typeG;
+static gulong detector_gainG;
+static gulong detector_zeroG;
+static gulong detector_fanoG;
+static gulong detector_noiseG;
+static gulong detector_max_convolution_energyG;
 
 /*
  *
@@ -107,16 +136,14 @@ struct xmi_layer *layer;
  *
  */
 
-struct undo_single {
-	struct xmi_input *xi;
-	char message[512];
-	int kind;
-	GtkWidget *widget;
-};
 
 static struct undo_single *redo_buffer;
 struct undo_single *current;
 static struct undo_single *last;
+static struct undo_single *opened_file;
+static char *opened_file_name;
+
+
 
 
 /*
@@ -140,41 +167,6 @@ GdkColor red = {.red = (guint16) 65535, .green = (guint16) 1000, .blue = (guint1
 
 
 
-/*
- *
- * enums
- *
- */
-
-enum {
-	OUTPUTFILE,
-	N_PHOTONS_INTERVAL,
-	N_PHOTONS_LINE,
-	N_INTERACTIONS_TRAJECTORY,
-	COMPOSITION,
-	COMPOSITION_ORDER,
-	COMPOSITION_REFERENCE,
-	COMPOSITION_DELETE,
-	COMPOSITION_ADD,
-	COMPOSITION_EDIT,
-	OPEN_FILE,
-	D_SAMPLE_SOURCE,
-	N_SAMPLE_ORIENTATION_X,
-	N_SAMPLE_ORIENTATION_Y,
-	N_SAMPLE_ORIENTATION_Z,
-	P_DETECTOR_WINDOW_X,
-	P_DETECTOR_WINDOW_Y,
-	P_DETECTOR_WINDOW_Z,
-	N_DETECTOR_ORIENTATION_X,
-	N_DETECTOR_ORIENTATION_Y,
-	N_DETECTOR_ORIENTATION_Z,
-	AREA_DETECTOR,
-	ACCEPTANCE_DETECTOR,
-	D_SOURCE_SLIT,
-	SLIT_SIZE_X,
-	SLIT_SIZE_Y,
-
-};
 
 
 enum {
@@ -198,8 +190,46 @@ struct matrix_data {
 
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
+void saveas_cb(GtkWidget *widget, gpointer data);
 
-static void update_undo_buffer(int kind, GtkWidget *widget);
+
+static void select_outputfile_cb(GtkButton *button, gpointer data) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	char *filename;
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_set_name(filter,"XMI MSIM outputfiles");
+
+	dialog = gtk_file_chooser_dialog_new("Select the outputfile for the simulation",
+		GTK_WINDOW((GtkWidget *) data),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
+	);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		//check extension
+		if (strcmp(filename+strlen(filename)-5, ".xmso") != 0) {
+			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
+			strcat(filename,".xmso");
+		}
+
+		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
+		update_undo_buffer(OUTPUTFILE,outputfileW);
+		g_free (filename);							
+	}
+
+	gtk_widget_destroy (dialog);
+
+	return;
+}
+
+
 
 static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 	struct layerWidget *lw = (struct layerWidget *) data;	
@@ -221,6 +251,30 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			updateKind = COMPOSITION_ADD;
 		else if (lw->AddOrEdit == LW_EDIT) 
 			updateKind = COMPOSITION_EDIT;
+	}
+	else if (lw->matrixKind == EXC_COMPOSITION) {
+		composition = exc_compositionS;
+		store = exc_compositionL;
+		if (lw->AddOrEdit == LW_ADD) 
+			updateKind = EXC_COMPOSITION_ADD;
+		else if (lw->AddOrEdit == LW_EDIT) 
+			updateKind = EXC_COMPOSITION_EDIT;
+	}
+	else if (lw->matrixKind == DET_COMPOSITION) {
+		composition = det_compositionS;
+		store = det_compositionL;
+		if (lw->AddOrEdit == LW_ADD) 
+			updateKind = DET_COMPOSITION_ADD;
+		else if (lw->AddOrEdit == LW_EDIT) 
+			updateKind = DET_COMPOSITION_EDIT;
+	}
+	else if (lw->matrixKind == CRYSTAL_COMPOSITION) {
+		composition = crystal_compositionS;
+		store = crystal_compositionL;
+		if (lw->AddOrEdit == LW_ADD) 
+			updateKind = CRYSTAL_COMPOSITION_ADD;
+		else if (lw->AddOrEdit == LW_EDIT) 
+			updateKind = CRYSTAL_COMPOSITION_EDIT;
 	}
 
 	if (*(lw->my_layer) != NULL) {
@@ -504,6 +558,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
+	else if (mb->matrixKind == EXC_COMPOSITION)
+		composition = exc_compositionS;
+	else if (mb->matrixKind == DET_COMPOSITION)
+		composition = det_compositionS;
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		composition = crystal_compositionS;
 
 	if (mb->buttonKind == BUTTON_ADD) {
 		//add line... testing only for now...
@@ -562,6 +622,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_reorder(mb->store,indices);	
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == EXC_COMPOSITION)
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == DET_COMPOSITION)
+				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_BOTTOM) {
 			temp = composition->layers[index]; 
@@ -583,6 +649,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_reorder(mb->store,indices);	
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == EXC_COMPOSITION)
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == DET_COMPOSITION)
+				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_UP) {
 			temp = composition->layers[index]; 
@@ -602,6 +674,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_reorder(mb->store,indices);	
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == EXC_COMPOSITION)
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == DET_COMPOSITION)
+				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_DOWN) {
 			temp = composition->layers[index]; 
@@ -620,6 +698,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_reorder(mb->store,indices);	
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == EXC_COMPOSITION)
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == DET_COMPOSITION)
+				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_DELETE) {
 			//delete the selected line
@@ -633,6 +717,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_remove(mb->store,&iter);
 			if (mb->matrixKind == COMPOSITION)
 				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == EXC_COMPOSITION)
+				update_undo_buffer(EXC_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == DET_COMPOSITION)
+				update_undo_buffer(DET_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
 			//add line... testing only for now...
@@ -729,6 +819,12 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 #endif
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
+	else if (mb->matrixKind == EXC_COMPOSITION)
+		composition = exc_compositionS;
+	else if (mb->matrixKind == DET_COMPOSITION)
+		composition = det_compositionS;
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		composition = crystal_compositionS;
 
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(mb->store), &iter, path);
@@ -986,7 +1082,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 		);
 
 	mr = (struct matrix_reorder *) malloc(sizeof(struct matrix_reorder));
-	mr->kind=COMPOSITION;
+	mr->kind=kind;
 	mr->select=select;
 	mr->store=store;
 	mr->topButton = topButton;
@@ -1001,6 +1097,21 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 		compositionW = tree;
 		xmi_copy_composition(composition,&compositionS);	
 		compositionL = store;
+	}
+	else if (kind == EXC_COMPOSITION) {
+		exc_compositionW = tree;
+		xmi_copy_composition(composition,&exc_compositionS);	
+		exc_compositionL = store;
+	}
+	else if (kind == DET_COMPOSITION) {
+		det_compositionW = tree;
+		xmi_copy_composition(composition,&det_compositionS);	
+		det_compositionL = store;
+	}
+	else if (kind == CRYSTAL_COMPOSITION) {
+		crystal_compositionW = tree;
+		xmi_copy_composition(composition,&crystal_compositionS);	
+		crystal_compositionL = store;
 	}
 	return mainbox2;
 }
@@ -1026,6 +1137,9 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 
 	switch (current->kind) {
+		case OUTPUTFILE:
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),(current-1)->xi->general->outputfile);
+			break;
 		case N_PHOTONS_INTERVAL:
 			sprintf(buffer,"%li",(current-1)->xi->general->n_photons_interval);
 #if DEBUG == 1
@@ -1177,6 +1291,182 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_yG);
 			break;
+		case DISCRETE_ENERGY_ADD:
+		case DISCRETE_ENERGY_EDIT:
+		case DISCRETE_ENERGY_DELETE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					-1);
+			}
+			break;
+		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_EDIT:
+		case CONTINUOUS_ENERGY_DELETE:
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			break;
+		case EXC_COMPOSITION_ORDER:
+		case EXC_COMPOSITION_DELETE:
+		case EXC_COMPOSITION_ADD:
+		case EXC_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = exc_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current-1)->xi->absorbers->n_exc_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->absorbers->exc_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current-1)->xi->absorbers->exc_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->absorbers->exc_layers[i].Z[j]));
+					if (j != (current-1)->xi->absorbers->exc_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->exc_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current-1)->xi->absorbers->exc_layers[i].density,
+					THICKNESS_COLUMN,(current-1)->xi->absorbers->exc_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(exc_compositionS);
+			xmi_copy_abs_or_crystal2composition((current-1)->xi->absorbers->exc_layers,(current-1)->xi->absorbers->n_exc_layers , &exc_compositionS);
+			break;
+		case DET_COMPOSITION_ORDER:
+		case DET_COMPOSITION_DELETE:
+		case DET_COMPOSITION_ADD:
+		case DET_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = det_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current-1)->xi->absorbers->n_det_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->absorbers->det_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current-1)->xi->absorbers->det_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->absorbers->det_layers[i].Z[j]));
+					if (j != (current-1)->xi->absorbers->det_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->det_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current-1)->xi->absorbers->det_layers[i].density,
+					THICKNESS_COLUMN,(current-1)->xi->absorbers->det_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(det_compositionS);
+			xmi_copy_abs_or_crystal2composition((current-1)->xi->absorbers->det_layers,(current-1)->xi->absorbers->n_det_layers , &det_compositionS);
+			break;
+		case CRYSTAL_COMPOSITION_ORDER:
+		case CRYSTAL_COMPOSITION_DELETE:
+		case CRYSTAL_COMPOSITION_ADD:
+		case CRYSTAL_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = crystal_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current-1)->xi->detector->n_crystal_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->detector->crystal_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current-1)->xi->detector->crystal_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->detector->crystal_layers[i].Z[j]));
+					if (j != (current-1)->xi->detector->crystal_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current-1)->xi->detector->crystal_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current-1)->xi->detector->crystal_layers[i].density,
+					THICKNESS_COLUMN,(current-1)->xi->detector->crystal_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(crystal_compositionS);
+			xmi_copy_abs_or_crystal2composition((current-1)->xi->detector->crystal_layers,(current-1)->xi->detector->n_crystal_layers , &crystal_compositionS);
+			break;
+		case DETECTOR_TYPE:
+			//sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_typeG);
+			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			gtk_combo_box_set_active(GTK_COMBO_BOX((current)->widget),(current-1)->xi->detector->detector_type);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_typeG);
+			break;
+		case DETECTOR_GAIN:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->gain);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_gainG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_gainG);
+			break;
+		case DETECTOR_ZERO:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->zero);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_zeroG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_zeroG);
+			break;
+		case DETECTOR_NOISE:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->noise);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_noiseG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_noiseG);
+			break;
+		case DETECTOR_FANO:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->fano);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_fanoG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_fanoG);
+			break;
+		case DETECTOR_MAX_CONVOLUTION_ENERGY:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->max_convolution_energy);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_max_convolution_energyG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_max_convolution_energyG);
+			break;
 	}
 	if (current-1 != redo_buffer) {
 		sprintf(buffer,"Undo: %s",(current-1)->message);
@@ -1218,6 +1508,9 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	fprintf(stdout,"Redo button clicked: current kind: %i\n",current->kind);
 #endif
 	switch ((current+1)->kind) {
+		case OUTPUTFILE:
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),(current+1)->xi->general->outputfile);
+			break;
 		case N_PHOTONS_INTERVAL:
 			sprintf(buffer,"%li",(current+1)->xi->general->n_photons_interval);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_photons_intervalG);
@@ -1360,7 +1653,183 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_yG);
 			break;
-	
+		case DISCRETE_ENERGY_ADD:
+		case DISCRETE_ENERGY_EDIT:
+		case DISCRETE_ENERGY_DELETE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					-1);
+			}
+			break;
+		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_EDIT:
+		case CONTINUOUS_ENERGY_DELETE:
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			break;
+		case EXC_COMPOSITION_ORDER:
+		case EXC_COMPOSITION_DELETE:
+		case EXC_COMPOSITION_ADD:
+		case EXC_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = exc_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current+1)->xi->absorbers->n_exc_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->absorbers->exc_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current+1)->xi->absorbers->exc_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->absorbers->exc_layers[i].Z[j]));
+					if (j != (current+1)->xi->absorbers->exc_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->exc_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current+1)->xi->absorbers->exc_layers[i].density,
+					THICKNESS_COLUMN,(current+1)->xi->absorbers->exc_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(exc_compositionS);
+			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->exc_layers,(current+1)->xi->absorbers->n_exc_layers , &exc_compositionS);
+			break;
+		case DET_COMPOSITION_ORDER:
+		case DET_COMPOSITION_DELETE:
+		case DET_COMPOSITION_ADD:
+		case DET_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = det_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current+1)->xi->absorbers->n_det_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->absorbers->det_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current+1)->xi->absorbers->det_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->absorbers->det_layers[i].Z[j]));
+					if (j != (current+1)->xi->absorbers->det_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->det_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current+1)->xi->absorbers->det_layers[i].density,
+					THICKNESS_COLUMN,(current+1)->xi->absorbers->det_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(det_compositionS);
+			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->det_layers,(current+1)->xi->absorbers->n_det_layers , &det_compositionS);
+			break;
+		case CRYSTAL_COMPOSITION_ORDER:
+		case CRYSTAL_COMPOSITION_DELETE:
+		case CRYSTAL_COMPOSITION_ADD:
+		case CRYSTAL_COMPOSITION_EDIT:
+			//clear list and repopulate
+			store = crystal_compositionL;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer in undo: %p\n",store);
+#endif
+			gtk_list_store_clear(store);
+			for (i=0 ; i < (current+1)->xi->detector->n_crystal_layers ; i++) {
+				gtk_list_store_append(store, &iter);
+				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->detector->crystal_layers[i].n_elements*5));
+				elementString[0] = '\0';
+				for (j = 0 ; j < (current+1)->xi->detector->crystal_layers[i].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->detector->crystal_layers[i].Z[j]));
+					if (j != (current+1)->xi->detector->crystal_layers[i].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, (current+1)->xi->detector->crystal_layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,(current+1)->xi->detector->crystal_layers[i].density,
+					THICKNESS_COLUMN,(current+1)->xi->detector->crystal_layers[i].thickness,
+					-1
+					);
+				free(elementString);
+			}
+#if DEBUG == 1
+
+#endif
+			xmi_free_composition(crystal_compositionS);
+			xmi_copy_abs_or_crystal2composition((current+1)->xi->detector->crystal_layers,(current+1)->xi->detector->n_crystal_layers , &crystal_compositionS);
+			break;
+		case DETECTOR_TYPE:
+			//sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_typeG);
+			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			gtk_combo_box_set_active(GTK_COMBO_BOX((current+1)->widget),(current+1)->xi->detector->detector_type);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_typeG);
+			break;
+		case DETECTOR_GAIN:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->gain);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_gainG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_gainG);
+			break;
+		case DETECTOR_ZERO:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->zero);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_zeroG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_zeroG);
+			break;
+		case DETECTOR_NOISE:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->noise);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_noiseG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_noiseG);
+			break;
+		case DETECTOR_FANO:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->fano);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_fanoG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_fanoG);
+			break;
+		case DETECTOR_MAX_CONVOLUTION_ENERGY:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->max_convolution_energy);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
+			break;
+			
 
 	}
 
@@ -1387,6 +1856,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
 
+
 }
 
 static void file_menu_click(GtkWidget *widget, gpointer data) {
@@ -1400,6 +1870,16 @@ static void file_menu_click(GtkWidget *widget, gpointer data) {
 
 
 }
+
+static void detector_type_changed(GtkComboBox *widget, gpointer data) {
+
+	//should always work out
+	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
+
+	return;
+}
+
+
 
 static void double_changed(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
@@ -1421,6 +1901,10 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case D_SOURCE_SLIT:
 		case SLIT_SIZE_X:
 		case SLIT_SIZE_Y:
+		case DETECTOR_GAIN:
+		case DETECTOR_FANO:
+		case DETECTOR_NOISE:
+		case DETECTOR_MAX_CONVOLUTION_ENERGY:
 			if (lastPtr == endPtr && value > 0.0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
@@ -1443,6 +1927,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case N_DETECTOR_ORIENTATION_X:
 		case N_DETECTOR_ORIENTATION_Y:
 		case N_DETECTOR_ORIENTATION_Z:
+		case DETECTOR_ZERO:
 			if (lastPtr == endPtr) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
@@ -1495,18 +1980,19 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 
 
 
-
 static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	g_print("delete event occured\n");
+	//should check if the user maybe would like to save his stuff...
 	return FALSE;
 
 }
 
 
-static void update_undo_buffer(int kind, GtkWidget *widget) {
+void update_undo_buffer(int kind, GtkWidget *widget) {
 	char buffer[512];
 	ptrdiff_t last_diff, current_diff;
 	struct undo_single *tempPtr;
+	int i;
 
 	//two cases... 
 	//current == last (NO REDO(s) used)
@@ -1537,6 +2023,13 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 	current = redo_buffer + current_diff;
 	last = current+1;
 	switch (kind) {
+		case OUTPUTFILE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"undo selection of outputfile");
+			strcpy(last->xi->general->outputfile,gtk_entry_get_text(GTK_ENTRY(widget)));
+			last->kind = kind;
+			last->widget = widget;
+			break;
 		case N_PHOTONS_INTERVAL:
 			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of photons per interval");
@@ -1558,6 +2051,13 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->kind = kind;
 			last->widget = widget;
 			break;
+		case COMPOSITION_REFERENCE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message, "change of reference layer");
+			last->xi->composition->reference_layer = compositionS->reference_layer;
+			last->kind = kind;
+			last->widget = widget;
+			break;
 		case COMPOSITION_ORDER:
 			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of composition ordering");
@@ -1568,13 +2068,6 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 #if DEBUG == 1
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
 #endif
-			break;
-		case COMPOSITION_REFERENCE:
-			xmi_copy_input(current->xi, &(last->xi));
-			strcpy(last->message, "change of reference layer");
-			last->xi->composition->reference_layer = compositionS->reference_layer;
-			last->kind = kind;
-			last->widget = widget;
 			break;
 		case COMPOSITION_DELETE:
 			xmi_copy_input(current->xi, &(last->xi));
@@ -1602,10 +2095,14 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case OPEN_FILE:
 			xmi_copy_input((struct xmi_input *) widget, &(last->xi));
-			strcpy(last->message,"opening of file");
+			sprintf(last->message,"opening of file: %s",g_path_get_basename(opened_file_name));
 			xmi_free_composition(compositionS);
 			xmi_copy_composition(last->xi->composition,&compositionS);
 			last->kind = kind;
+			opened_file = last;
+			last->filename=strdup(opened_file_name);
+			free(opened_file_name);
+			opened_file_name = NULL;
 			break;
 		case D_SAMPLE_SOURCE:
 			xmi_copy_input(current->xi, &(last->xi));
@@ -1712,6 +2209,249 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->kind = kind;
 			last->widget = widget;
 			break;
+		case DISCRETE_ENERGY_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"addition of discrete energy");
+			last->kind = kind;
+			//realloc discrete energies
+			last->xi->excitation->discrete = (struct xmi_energy*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy)*++last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy;
+			break;
+		case DISCRETE_ENERGY_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"editing of discrete energy");
+			last->kind = kind;
+			last->xi->excitation->discrete[current_index] = *energy;
+			break;
+		case DISCRETE_ENERGY_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"deletion of discrete energy");
+			last->kind = kind;
+			for (i = current_index ; i < current_nindices ; i++) {
+				last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
+			}	
+			last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*last->xi->excitation->n_discrete--);
+			break;
+		case CONTINUOUS_ENERGY_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"addition of continuous energy");
+			last->kind = kind;
+			//realloc continuous energies
+			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*++last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy;
+			break;
+		case CONTINUOUS_ENERGY_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"editing of continuous energy");
+			last->kind = kind;
+			last->xi->excitation->continuous[current_index] = *energy;
+			break;
+		case CONTINUOUS_ENERGY_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"deletion of continuous energy");
+			last->kind = kind;
+			for (i = current_index ; i < current_nindices ; i++) {
+				last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
+			}	
+			last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*last->xi->excitation->n_continuous--);
+			break;
+		case EXC_COMPOSITION_ORDER:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of excitation absorber ordering");
+			if (last->xi->absorbers->n_exc_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->exc_layers+i);
+				free(last->xi->absorbers->exc_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
+			last->kind = kind;
+			last->widget = widget;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer during update: %p\n",last->widget);
+#endif
+			break;
+		case EXC_COMPOSITION_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"removal of excitation absorber layer");
+			if (last->xi->absorbers->n_exc_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->exc_layers+i);
+				free(last->xi->absorbers->exc_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case EXC_COMPOSITION_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"addition of excitation absorber layer");
+			if (last->xi->absorbers->n_exc_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->exc_layers+i);
+				free(last->xi->absorbers->exc_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case EXC_COMPOSITION_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"editing of excitation absorber layer");
+			if (last->xi->absorbers->n_exc_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->exc_layers+i);
+				free(last->xi->absorbers->exc_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DET_COMPOSITION_ORDER:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector absorber ordering");
+			if (last->xi->absorbers->n_det_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->det_layers+i);
+				free(last->xi->absorbers->det_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
+			last->kind = kind;
+			last->widget = widget;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer during update: %p\n",last->widget);
+#endif
+			break;
+		case DET_COMPOSITION_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"removal of detector absorber layer");
+			if (last->xi->absorbers->n_det_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->det_layers+i);
+				free(last->xi->absorbers->det_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DET_COMPOSITION_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"addition of detector absorber layer");
+			if (last->xi->absorbers->n_det_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->det_layers+i);
+				free(last->xi->absorbers->det_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DET_COMPOSITION_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"editing of detector absorber layer");
+			if (last->xi->absorbers->n_det_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->det_layers+i);
+				free(last->xi->absorbers->det_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case CRYSTAL_COMPOSITION_ORDER:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of crystal absorber ordering");
+			if (last->xi->detector->n_crystal_layers > 0) {
+				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
+					xmi_free_layer(last->xi->detector->crystal_layers+i);
+				free(last->xi->detector->crystal_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
+			last->kind = kind;
+			last->widget = widget;
+#if DEBUG == 1
+			fprintf(stdout,"store pointer during update: %p\n",last->widget);
+#endif
+			break;
+		case CRYSTAL_COMPOSITION_DELETE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"removal of crystal absorber layer");
+			if (last->xi->detector->n_crystal_layers > 0) {
+				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
+					xmi_free_layer(last->xi->detector->crystal_layers+i);
+				free(last->xi->detector->crystal_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case CRYSTAL_COMPOSITION_ADD:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"addition of crystal absorber layer");
+			if (last->xi->detector->n_crystal_layers > 0) {
+				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
+					xmi_free_layer(last->xi->detector->crystal_layers+i);
+				free(last->xi->detector->crystal_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case CRYSTAL_COMPOSITION_EDIT:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"editing of crystal absorber layer");
+			if (last->xi->detector->n_crystal_layers > 0) {
+				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
+					xmi_free_layer(last->xi->detector->crystal_layers+i);
+				free(last->xi->detector->crystal_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_TYPE:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector type");
+			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_GAIN: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector gain");
+			last->xi->detector->gain = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_ZERO: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector zero");
+			last->xi->detector->zero = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_NOISE: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector noise");
+			last->xi->detector->noise = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_FANO: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector Fano factor");
+			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_MAX_CONVOLUTION_ENERGY: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of maximum convolution energy");
+			last->xi->detector->max_convolution_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+
+
 			
 	} 
 	current = last;
@@ -1722,7 +2462,16 @@ static void update_undo_buffer(int kind, GtkWidget *widget) {
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
 
 
-
+	if (opened_file == current || (opened_file != NULL && xmi_compare_input(current->xi,opened_file->xi) == 0)) {
+		//new file was opened or current settings are identical to those of opened file
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+	} 
+	
 
 	
 }
@@ -1738,11 +2487,6 @@ int main (int argc, char *argv[]) {
 	GtkWidget *menubar;
 	GtkWidget *filemenu;
 	GtkWidget *file;
-	GtkWidget *new;
-	GtkWidget *open;
-	GtkWidget *save;
-	GtkWidget *save_as;
-	GtkWidget *quit;
 	GtkWidget *editmenu;
 	GtkWidget *edit;
 	GtkWidget *notebook;
@@ -1756,6 +2500,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *scrolled_window;
 	GtkWidget *tempW;
 	char buffer[512];
+	struct xmi_composition *temp_composition;
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
 	//windows will be quite complicated here I'm sure...
@@ -1804,6 +2549,9 @@ int main (int argc, char *argv[]) {
 
 	//use an "empty" xmi_input structure when launching the application
 	current->xi = xmi_init_empty_input();	
+	current->filename = strdup(UNLIKELY_FILENAME);
+	opened_file = NULL;
+	opened_file_name = NULL;
 
 
 	//initialize regex patterns
@@ -1823,7 +2571,7 @@ int main (int argc, char *argv[]) {
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM");
-	gtk_window_set_default_size(GTK_WINDOW(window),800,800);
+	gtk_window_set_default_size(GTK_WINDOW(window),900,900);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
 	Main_vbox = gtk_vbox_new(FALSE,0);
@@ -1834,24 +2582,24 @@ int main (int argc, char *argv[]) {
 
 	file = gtk_menu_item_new_with_label("File");
 	//new = gtk_menu_item_new_with_label("New");
-	new = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,NULL);
-	open = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,NULL);
-	save = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,NULL);
-	save_as = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,NULL);
-	quit = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,NULL);
+	newW = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,NULL);
+	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,NULL);
+	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,NULL);
+	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,NULL);
+	quitW = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,NULL);
 
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file),filemenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),new);
-	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),open);
-	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save);
-	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_as);
-	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quit);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),newW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),saveW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quitW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),file);
-	g_signal_connect(G_OBJECT(quit),"activate",G_CALLBACK(file_menu_click),(gpointer) "quit");
-	g_signal_connect(G_OBJECT(open),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
-	g_signal_connect(G_OBJECT(save),"activate",G_CALLBACK(file_menu_click),(gpointer) "save");
-	g_signal_connect(G_OBJECT(save_as),"activate",G_CALLBACK(file_menu_click),(gpointer) "save as");
-	g_signal_connect(G_OBJECT(new),"activate",G_CALLBACK(file_menu_click),(gpointer) "new");
+	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(file_menu_click),(gpointer) "quit");
+	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(file_menu_click),(gpointer) "save");
+	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(file_menu_click),(gpointer) "new");
 	editmenu = gtk_menu_new();
 	edit = gtk_menu_item_new_with_label("Edit");
 	undoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_UNDO,NULL);
@@ -1888,6 +2636,7 @@ int main (int argc, char *argv[]) {
 	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	g_signal_connect(G_OBJECT(redoT),"clicked",G_CALLBACK(redo_menu_click),NULL);
 	g_signal_connect(G_OBJECT(openT),"clicked",G_CALLBACK(load_from_file_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 
@@ -1915,9 +2664,14 @@ int main (int argc, char *argv[]) {
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Outputfile");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	label = gtk_button_new_from_stock(GTK_STOCK_SAVE);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	g_signal_connect(G_OBJECT(label),"clicked",G_CALLBACK(select_outputfile_cb), (gpointer) window);
 	text = gtk_entry_new();
+	gtk_entry_set_width_chars(GTK_ENTRY(text),80);
 	outputfileW = text;
 	gtk_entry_set_text(GTK_ENTRY(text),current->xi->general->outputfile);
+	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_photons_interval
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -2154,11 +2908,128 @@ int main (int argc, char *argv[]) {
 	frame = gtk_frame_new("Energies");
 
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
-	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Composition</span>");
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Excitation</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation));
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
+
+	//absorbers
+	//convert to composition struct
+	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->exc_layers, current->xi->absorbers->n_exc_layers   ,&temp_composition)	;
+	tempW = initialize_matrix(temp_composition  , EXC_COMPOSITION); 
+
+
+	frame = gtk_frame_new("Beam absorbers");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Beam absorbers</span>");
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),tempW);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
+	xmi_free_composition(temp_composition);
+	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->det_layers, current->xi->absorbers->n_det_layers   ,&temp_composition);	
+	tempW = initialize_matrix(temp_composition  , DET_COMPOSITION); 
+
+
+	frame = gtk_frame_new("Detection absorbers");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Detection absorbers</span>");
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),tempW);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
+	xmi_free_composition(temp_composition);
+
+	//detector
+	//detector type
+	vbox_notebook = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector type");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_typeW = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Si(Li)");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Ge");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"SDD");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),current->xi->detector->detector_type);
+	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);
+	
+	//gain
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector gain");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_gainW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->gain);
+	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
+	detector_gainG = g_signal_connect(G_OBJECT(detector_gainW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_GAIN)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_gainW, FALSE, FALSE, 0);
+	
+	//zero
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector zero");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_zeroW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->zero);
+	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
+	detector_zeroG = g_signal_connect(G_OBJECT(detector_zeroW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_ZERO)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_zeroW, FALSE, FALSE, 0);
+
+	//fano
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector Fano factor");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_fanoW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->fano);
+	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
+	detector_fanoG = g_signal_connect(G_OBJECT(detector_fanoW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_FANO)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_fanoW, FALSE, FALSE, 0);
+
+	//noise
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Detector electronic noise");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_noiseW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->noise);
+	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
+	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_NOISE)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_noiseW, FALSE, FALSE, 0);
+
+	//max_convolution_energy
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Max convolution energy");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_max_convolution_energyW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);
+	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
+	detector_max_convolution_energyG = g_signal_connect(G_OBJECT(detector_max_convolution_energyW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_MAX_CONVOLUTION_ENERGY)  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_max_convolution_energyW, FALSE, FALSE, 0);
+
+	//crystal
+	xmi_copy_abs_or_crystal2composition(current->xi->detector->crystal_layers, current->xi->detector->n_crystal_layers   ,&temp_composition);	
+	tempW = initialize_matrix(temp_composition  , CRYSTAL_COMPOSITION); 
+	
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), tempW, TRUE, FALSE, 3);
+	xmi_free_composition(temp_composition);
+
+	frame = gtk_frame_new("Detector settings");
+
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Detector settings</span>");
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 
 	gtk_widget_show_all(window);
@@ -2197,6 +3068,12 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(d_source_slitW), d_source_slitG);
 	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
 	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
+	g_signal_handler_block(G_OBJECT(detector_typeW), detector_typeG);
+	g_signal_handler_block(G_OBJECT(detector_gainW), detector_gainG);
+	g_signal_handler_block(G_OBJECT(detector_zeroW), detector_zeroG);
+	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
+	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
+	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 	
 
 	//general
@@ -2267,6 +3144,126 @@ void change_all_values(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
 	
 
+	//energies
+	gtk_list_store_clear(discWidget->store);
+	for (i = 0 ; i < (new_input)->excitation->n_discrete ; i++) {
+		gtk_list_store_append(discWidget->store, &iter);
+		gtk_list_store_set(discWidget->store, &iter,
+			ENERGY_COLUMN, (new_input)->excitation->discrete[i].energy,
+			HOR_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].vertical_intensity,
+			SIGMA_X_COLUMN, (new_input)->excitation->discrete[i].sigma_x,
+			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
+			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
+			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
+			-1);
+	}
+	gtk_list_store_clear(contWidget->store);
+	for (i = 0 ; i < (new_input)->excitation->n_continuous ; i++) {
+		gtk_list_store_append(contWidget->store, &iter);
+		gtk_list_store_set(contWidget->store, &iter,
+			ENERGY_COLUMN, (new_input)->excitation->continuous[i].energy,
+			HOR_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].vertical_intensity,
+			SIGMA_X_COLUMN, (new_input)->excitation->continuous[i].sigma_x,
+			SIGMA_XP_COLUMN,(new_input)->excitation->continuous[i].sigma_xp,
+			SIGMA_Y_COLUMN,(new_input)->excitation->continuous[i].sigma_y,
+			SIGMA_YP_COLUMN,(new_input)->excitation->continuous[i].sigma_yp,
+			-1);
+	}
+
+	//absorbers
+	gtk_list_store_clear(exc_compositionL);
+	for (i=0 ; i < new_input->absorbers->n_exc_layers ; i++) {
+		gtk_list_store_append(exc_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->exc_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->absorbers->exc_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->exc_layers[i].Z[j]));
+			if (j != new_input->absorbers->exc_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(exc_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->absorbers->exc_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->absorbers->exc_layers[i].density,
+			THICKNESS_COLUMN, new_input->absorbers->exc_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(exc_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->absorbers->exc_layers, new_input->absorbers->n_exc_layers,&exc_compositionS);	
+
+	gtk_list_store_clear(det_compositionL);
+	for (i=0 ; i < new_input->absorbers->n_det_layers ; i++) {
+		gtk_list_store_append(det_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->det_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->absorbers->det_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->det_layers[i].Z[j]));
+			if (j != new_input->absorbers->det_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(det_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->absorbers->det_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->absorbers->det_layers[i].density,
+			THICKNESS_COLUMN, new_input->absorbers->det_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(det_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->absorbers->det_layers, new_input->absorbers->n_det_layers,&det_compositionS);	
+
+	//detector
+	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
+	
+	sprintf(buffer,"%lg",new_input->detector->gain);
+#if DEBUG == 1
+	fprintf(stdout,"gain: %s\n",buffer);
+#endif
+	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->zero);
+#if DEBUG == 1
+	fprintf(stdout,"zero: %s\n",buffer);
+#endif
+	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->fano);
+	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->noise);
+	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
+	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
+
+	gtk_list_store_clear(crystal_compositionL);
+	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
+		gtk_list_store_append(crystal_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->detector->crystal_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->detector->crystal_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->detector->crystal_layers[i].Z[j]));
+			if (j != new_input->detector->crystal_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(crystal_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->detector->crystal_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->detector->crystal_layers[i].density,
+			THICKNESS_COLUMN, new_input->detector->crystal_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(crystal_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->detector->crystal_layers, new_input->detector->n_crystal_layers,&crystal_compositionS);	
 
 
 	//enable signal handlers where necessary
@@ -2288,6 +3285,12 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(d_source_slitW), d_source_slitG);
 	g_signal_handler_unblock(G_OBJECT(slit_size_xW), slit_size_xG);
 	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
+	g_signal_handler_unblock(G_OBJECT(detector_typeW), detector_typeG);
+	g_signal_handler_unblock(G_OBJECT(detector_gainW), detector_gainG);
+	g_signal_handler_unblock(G_OBJECT(detector_zeroW), detector_zeroG);
+	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
+	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
+	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 	
 	
 
@@ -2296,27 +3299,94 @@ void change_all_values(struct xmi_input *new_input) {
 
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
+	GtkFileFilter *filter;
 	char *filename;
 	struct xmi_input *xi;
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_set_name(filter,"XMI MSIM inputfiles");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation inputfile",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 		NULL);
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 																
 		if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
-				change_all_values(xi);
-				update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
-			}
-
+				if (opened_file_name != NULL) {
+					free(opened_file_name);
+				}	
+				opened_file_name = strdup(filename);
+					change_all_values(xi);
+					update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
+				}
 			g_free (filename);							
 		}
 		gtk_widget_destroy (dialog);
 }
 
+void saveas_cb(GtkWidget *widget, gpointer data) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	char *filename;
+	if (xmi_validate_input(current->xi) != 0)  {
+		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+		        GTK_MESSAGE_ERROR,
+		        GTK_BUTTONS_CLOSE,
+		        "Could not write to file: model is incomplete/invalid"
+	                );
+	     gtk_dialog_run (GTK_DIALOG (dialog));
+	     gtk_widget_destroy (dialog);
+	     return;
+	}
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_set_name(filter,"XMI MSIM inputfiles");
+	dialog = gtk_file_chooser_dialog_new ("Save simulation inputfile",
+		GTK_WINDOW((GtkWidget *) data),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+		NULL);
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+																
+		if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+			if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
+				strcat(filename,".xmsi");
+			}
+			if (xmi_write_input_xml(filename, current->xi) == 1) {
+				g_free (filename);							
+				gtk_widget_destroy (dialog);
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: model is incomplete/invalid",filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				g_free (filename);							
+				return;
+			}
 
+		}
+		else {
+	     		gtk_widget_destroy (dialog);
+			
+		}
+
+
+	return;
+}
 

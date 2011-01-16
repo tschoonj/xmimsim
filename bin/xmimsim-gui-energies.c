@@ -1,25 +1,9 @@
 #include "xmimsim-gui-energies.h"
+#include "xmimsim-gui.h"
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include <string.h>
 
-struct undo_single {
-	struct xmi_input *xi;
-	char message[512];
-	int kind;
-	GtkWidget *widget;
-};
-
-/*
- *
- * Gdk colors
- *
- */
-
-extern GdkColor white;
-extern GdkColor red;
-
-extern struct undo_single *current;
 
 struct energyWidget {
 	GtkWidget *okButton;
@@ -32,6 +16,13 @@ struct energyWidget {
 	GtkWidget *sigma_xpEntry;
 	GtkWidget *sigma_ypEntry;
 	GtkWidget *window;
+	gulong energyGulong;
+	gulong hor_intensityGulong;
+	gulong ver_intensityGulong;
+	gulong sigma_xGulong;
+	gulong sigma_yGulong;
+	gulong sigma_xpGulong;
+	gulong sigma_ypGulong;
 };
 
 struct xmi_energy *energy;
@@ -54,31 +45,38 @@ int current_index;
 int current_nindices;
 GtkTreeIter current_iter;
 
-struct energiesWidget {
-	GtkListStore *store;
-	GtkWidget *widget;
-};
 
 struct energiesWidget *contWidget;
 struct energiesWidget *discWidget;
 
 
 
-enum {
-	ENERGY_COLUMN,
-	HOR_INTENSITY_COLUMN,
-	VER_INTENSITY_COLUMN,
-	SIGMA_X_COLUMN,
-	SIGMA_XP_COLUMN,
-	SIGMA_Y_COLUMN,
-	SIGMA_YP_COLUMN,
-	NCOLUMNS_ENERGIES,
-};
-
 struct energyButtons {
 	GtkWidget *editButton;
 	GtkWidget *deleteButton;
 };
+
+static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
+	return TRUE;
+}
+
+void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	struct energyWidget *ew = (struct energyWidget *) data;
+	
+	if (widget == ew->okButton) {
+		//ok clicked
+	} 
+	else if (widget == ew->cancelButton) {
+		//cancel clicked
+		free(energy);
+		energy = NULL;
+	}
+
+	gtk_widget_hide_all(ew->window);
+
+
+	return;
+}
 
 
 
@@ -120,6 +118,11 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 	int ok1, ok2, ok3, ok4, ok5, ok6, ok7;
 	double value1, value2, value3, value4, value5, value6, value7;
 
+	
+	
+
+
+
 	textPtr1 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->energyEntry));
 	textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->hor_intensityEntry));
 	textPtr3 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->ver_intensityEntry));
@@ -130,7 +133,7 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 
 #define energy_short(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
 	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
-	if (lastPtr ## n == endPtr ## n && value ## n) \
+	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0) \
 		ok ## n = 1;\
 	else\
 		ok ## n = 0;\
@@ -170,18 +173,13 @@ void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int i;
 
 	if (kind == DISCRETE) {
-		for (i = current_index ; i < current_nindices ; i++) {
-			current->xi->excitation->discrete[i] = current->xi->excitation->discrete[i+1];	
-		}	
-		current->xi->excitation->discrete = (struct xmi_energy *) realloc(current->xi->excitation->discrete, sizeof(struct xmi_energy)*current->xi->excitation->n_discrete--);
+		//update undo buffer... and then the store
 		gtk_list_store_remove(discWidget->store, &current_iter);
+		update_undo_buffer(DISCRETE_ENERGY_DELETE,NULL);
 	}
 	else if (kind == CONTINUOUS) {
-		for (i = current_index ; i < current_nindices ; i++) {
-			current->xi->excitation->continuous[i] = current->xi->excitation->continuous[i+1];	
-		}	
-		current->xi->excitation->continuous = (struct xmi_energy *) realloc(current->xi->excitation->continuous, sizeof(struct xmi_energy)*current->xi->excitation->n_continuous--);
 		gtk_list_store_remove(contWidget->store, &current_iter);
+		update_undo_buffer(CONTINUOUS_ENERGY_DELETE,NULL);
 	}
 
 
@@ -204,16 +202,26 @@ void energy_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
 
+#if DEBUG == 1
+	fprintf(stdout,"current_index: %i\n",current_index);
+	fprintf(stdout,"current discrete hor intensity: %lg\n",current->xi->excitation->discrete[0].horizontal_intensity);
+#endif
+
 	if (kind == DISCRETE) {
 		energy = xmi_memdup(current->xi->excitation->discrete+current_index, sizeof(struct xmi_energy));	
 	}
 	else if (kind == CONTINUOUS) {
 		energy = xmi_memdup(current->xi->excitation->continuous+current_index, sizeof(struct xmi_energy));	
 	}
+	else {
+		fprintf(stderr,"Invalid kind detected\n");
+		exit(1);
+	}
+	fprintf(stdout,"energy discrete hor intensity: %lg\n",energy->horizontal_intensity);
 	addOrEdit = ENERGY_EDIT;
 	discOrCont = kind; 
 
-	gtk_widget_show(kind == DISCRETE ? energyWidget_disc->window :  energyWidget_cont->window);
+	gtk_widget_show_all(kind == DISCRETE ? energyWidget_disc->window :  energyWidget_cont->window);
 	
 	return;
 }
@@ -347,6 +355,69 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 }
 
 void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
+	int i;
+	GtkTreeIter iter;
+
+
+
+	//window is hiding
+	if (energy == NULL) {
+		return;
+	}	
+
+	if (addOrEdit == ENERGY_ADD) {
+		//update undo buffer and afterwards update store
+		if (discOrCont == DISCRETE) {
+			update_undo_buffer(DISCRETE_ENERGY_ADD,NULL);
+
+		}
+		else if (discOrCont == CONTINUOUS) {
+			update_undo_buffer(CONTINUOUS_ENERGY_ADD,NULL);
+
+		}
+	} 
+	else if (addOrEdit == ENERGY_EDIT) {
+		//update undo buffer and afterwards update store
+		if (discOrCont == DISCRETE) {
+			update_undo_buffer(DISCRETE_ENERGY_EDIT,NULL);
+
+		}
+		else if (discOrCont == CONTINUOUS) {
+			update_undo_buffer(CONTINUOUS_ENERGY_EDIT,NULL);
+
+		}
+	}
+
+	if (discOrCont == DISCRETE) {
+		gtk_list_store_clear(discWidget->store);
+		for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
+			gtk_list_store_append(discWidget->store, &iter);
+			gtk_list_store_set(discWidget->store, &iter,
+				ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
+				HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+				VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+				SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
+				SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
+				SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
+				SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+				-1);
+		}
+	}
+	else if (discOrCont == CONTINUOUS) {
+		gtk_list_store_clear(contWidget->store);
+		for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
+			gtk_list_store_append(contWidget->store, &iter);
+			gtk_list_store_set(contWidget->store, &iter,
+				ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
+				HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+				VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+				SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
+				SIGMA_XP_COLUMN,(current)->xi->excitation->continuous[i].sigma_xp,
+				SIGMA_Y_COLUMN,(current)->xi->excitation->continuous[i].sigma_y,
+				SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
+				-1);
+		}
+	}
 
 
 }
@@ -355,6 +426,16 @@ void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
 void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	struct energyWidget *ew = (struct energyWidget *) data;
 	char buffer[512];
+
+
+	g_signal_handler_block(G_OBJECT(ew->energyEntry),ew->energyGulong);
+	g_signal_handler_block(G_OBJECT(ew->hor_intensityEntry),ew->hor_intensityGulong);
+	g_signal_handler_block(G_OBJECT(ew->ver_intensityEntry),ew->ver_intensityGulong);
+	g_signal_handler_block(G_OBJECT(ew->sigma_xEntry),ew->sigma_xGulong);
+	g_signal_handler_block(G_OBJECT(ew->sigma_yEntry),ew->sigma_yGulong);
+	g_signal_handler_block(G_OBJECT(ew->sigma_xpEntry),ew->sigma_xpGulong);
+	g_signal_handler_block(G_OBJECT(ew->sigma_ypEntry),ew->sigma_ypGulong);
+
 
 
 	
@@ -397,6 +478,13 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 	}
 
+	g_signal_handler_unblock(G_OBJECT(ew->energyEntry),ew->energyGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->hor_intensityEntry),ew->hor_intensityGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->ver_intensityEntry),ew->ver_intensityGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->sigma_xEntry),ew->sigma_xGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->sigma_yEntry),ew->sigma_yGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->sigma_xpEntry),ew->sigma_xpGulong);
+	g_signal_handler_unblock(G_OBJECT(ew->sigma_ypEntry),ew->sigma_ypGulong);
 
 	return;	
 }
@@ -422,7 +510,8 @@ struct energyWidget *initialize_energy_widget() {
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(energy_window_show_cb), (gpointer) rv);
-	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(G_OBJECT(window), "hide",G_CALLBACK(energy_window_hide_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
 	mainVBox = gtk_vbox_new(FALSE, 5);
 	gtk_container_add(GTK_CONTAINER(window), mainVBox);
@@ -431,7 +520,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Energy");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->energyGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -441,7 +530,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Horizontally polarized intensity");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->hor_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -451,7 +540,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Vertically polarized intensity");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->ver_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -461,7 +550,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source size x");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->sigma_xGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -471,7 +560,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source size y");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->sigma_yGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -481,7 +570,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source divergence x");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->sigma_xpGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -491,7 +580,7 @@ struct energyWidget *initialize_energy_widget() {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source divergence y");
 	entry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+	rv->sigma_ypGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -504,8 +593,8 @@ struct energyWidget *initialize_energy_widget() {
 	//ok, cancel...
 	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-	//g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
-	//g_signal_connect(G_OBJECT(okButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(okButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
 	HBox = gtk_hbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(HBox), okButton, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, FALSE, FALSE, 2);
@@ -520,6 +609,7 @@ struct energyWidget *initialize_energy_widget() {
 
 GtkWidget *initialize_energies(struct xmi_excitation *excitation) {
 	GtkWidget *mainvbox;
+	GtkWidget *separator;
 
 
 
@@ -527,11 +617,17 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation) {
 	energyWidget_disc = initialize_energy_widget(); 
 	energyWidget_cont = initialize_energy_widget(); 
 
-	mainvbox = gtk_hbox_new(FALSE, 5);
+	mainvbox = gtk_vbox_new(FALSE, 5);
 
 	//discrete first...
 	discWidget = initialize_single_energies(excitation->discrete, excitation->n_discrete,DISCRETE);
+	contWidget = initialize_single_energies(excitation->continuous, excitation->n_continuous,CONTINUOUS);
+	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Discrete energies"), FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainvbox), discWidget->widget, FALSE, FALSE, 2);
+	separator = gtk_hseparator_new();
+	gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
 
 
 

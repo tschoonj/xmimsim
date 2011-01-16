@@ -3,8 +3,10 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
+#include <libxml/catalog.h>
 #include <string.h>
 #include <math.h>
+#include <glib.h>
 
 
 
@@ -707,16 +709,16 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
-	//char catalog[] = XMI_CATALOG;
+	char catalog[] = XMI_CATALOG;
 
 	LIBXML_TEST_VERSION
 
 	//catalog code
-/*	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load xmi_catalog.xml\n");
+	if (xmlLoadCatalog(catalog) != 0) {
+		fprintf(stderr,"Could not load %s\n",catalog);
 		return 0;
 	}
-*/
+
 
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
@@ -819,6 +821,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	char version[100];
 	char detector_type[20];
 	int i,j;
+	char buffer[1024];
 
 
 
@@ -844,6 +847,31 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 	
+	//start off with some comments about user, time, date, hostname...
+	if (xmlTextWriterStartComment(writer) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+	
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator",g_get_real_name(),g_get_user_name) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+	
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname",g_get_host_name()) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndComment(writer) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
 	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
 		fprintf(stderr,"Error writing xmimsim tag\n");
 		return 0;
