@@ -19,4 +19,6 @@ double xmi_sum_double(double *array, int n);
 //multiplies each element of array with scale_factor
 void xmi_scale_double(double *array, int n, double scale_factor);
 
+//to be used in qsort or bsearch for comparing integers
+int xmi_cmp_int(const void *a, const void *b);
 #endif

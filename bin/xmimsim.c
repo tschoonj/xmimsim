@@ -45,6 +45,7 @@ int main (int argc, char *argv[]) {
 	gsl_rng *rng;
 	unsigned long int seed;
 	double *channels, *channelsdef, *results;
+	double *channels_conv;
 	FILE *outPtr;
 	int i,j;
 	GError *error = NULL;
@@ -57,17 +58,23 @@ int main (int argc, char *argv[]) {
 	int *history;
 	int *historydef;
 	static gchar *hdf5_file=NULL;
+	static gchar *spe_file_noconv=NULL;
+	static gchar *spe_file_conv=NULL;
+	static int nchannels=2048;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
 		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-		{ "enable-self-enhancement", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable self-enhancement", NULL },
-		{ "disable-self-enhancement", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable self-enhancement (default)", NULL },
+		{ "enable-lorentzian-broadening", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable Lorentzian line broadening", NULL },
+		{ "disable-lorentzian-broadening", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable Lorentzian line broadening (default)", NULL },
 		{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade), "Enable cascade effects (default)", NULL },
 		{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade), "Disable cascade effects", NULL },
 		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
 		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectrum to file",NULL},
+		{"spe-file-convoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectrum to file",NULL},
+		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
 		{ NULL }
 	};
 
@@ -102,7 +109,7 @@ int main (int argc, char *argv[]) {
 
 
 #endif
-	channels = (double *) malloc(2048*sizeof(double));
+	channels = (double *) malloc(nchannels*sizeof(double));
 
 	//
 	//options...
@@ -191,7 +198,7 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, 2048,options, &history) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, nchannels,options, &history) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
@@ -204,9 +211,14 @@ int main (int argc, char *argv[]) {
 
 
 	//free what needs freeing 
-	xmi_free_input_F(&inputFPtr);
-	xmi_free_hdf5_F(&hdf5FPtr);
-
+#ifdef HAVE_OPENMPI
+	if (rank != 0) {
+#endif
+		xmi_free_input_F(&inputFPtr);
+		xmi_free_hdf5_F(&hdf5FPtr);
+#ifdef HAVE_OPENMPI
+	}
+#endif
 
 	if (xmi_end_random_acquisition() == 0) {
 		return 1;
@@ -224,12 +236,12 @@ int main (int argc, char *argv[]) {
 
 
 	if (rank == 0) {
-		channelsdef = (double *) calloc(2048,sizeof(double));
+		channelsdef = (double *) calloc(nchannels,sizeof(double));
 		historydef = (int *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(int));	
 	}
 
 	//reduce channels
-	MPI_Reduce(channels, channelsdef,2048, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(channels, channelsdef,nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce history
 	MPI_Reduce(history, historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
 
@@ -263,23 +275,62 @@ int main (int argc, char *argv[]) {
 
 
 #endif
+		//convolute spectrum
+		xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef, &channels_conv, nchannels);
+#if DEBUG == 1
+		fprintf(stdout,"After detector convolution\n");
+#endif
+
 		//write it to outputfile...
-		if ((outPtr=fopen(input->general->outputfile,"w")) == NULL ) {
-			fprintf(stdout,"Could not write to outputfile\n");
-			exit(1);
-		}
-		fprintf(outPtr,"$DATA:\n");
-		fprintf(outPtr,"0\t2047\n");
-		for (i=0 ; i < 2048 ; i++) {
-			fprintf(outPtr,"%lg",channelsdef[i]);
-			if ((i+1) % 8 == 0) {
-				fprintf(outPtr,"\n");
+		if (spe_file_noconv != NULL) {
+			if ((outPtr=fopen(spe_file_noconv,"w")) == NULL ) {
+				fprintf(stdout,"Could not write to %s\n",spe_file_noconv);
+				exit(1);
 			}
-			else {
-				fprintf(outPtr,"     ");
+			fprintf(outPtr,"$DATA:\n");
+			fprintf(outPtr,"0\t%i\n",nchannels-1);
+			for (i=0 ; i < nchannels ; i++) {
+				fprintf(outPtr,"%lg",channelsdef[i]);
+				if ((i+1) % 8 == 0) {
+					fprintf(outPtr,"\n");
+				}
+				else {
+					fprintf(outPtr,"     ");
+				}
 			}
+			fclose(outPtr);
 		}
-		fclose(outPtr);
+		//convoluted spectrum
+		if (spe_file_conv != NULL) {
+			if ((outPtr=fopen(spe_file_conv,"w")) == NULL ) {
+				fprintf(stdout,"Could not write to %s\n",spe_file_conv);
+				exit(1);
+			}
+			fprintf(outPtr,"$DATA:\n");
+			fprintf(outPtr,"0\t%i\n",nchannels-1);
+			for (i=0 ; i < nchannels ; i++) {
+				fprintf(outPtr,"%lg",channels_conv[i]);
+				if ((i+1) % 8 == 0) {
+					fprintf(outPtr,"\n");
+				}
+				else {
+					fprintf(outPtr,"     ");
+				}
+			}
+			fclose(outPtr);
+		}
+
+#if DEBUG == 1
+		fprintf(stdout,"Writing outputfile\n");
+#endif
+
+		//write to xml outputfile
+		if (xmi_write_output_xml(input->general->outputfile, input, history, channels_conv, channelsdef, nchannels, argv[1] ) == 0) {
+			return 1;
+		}
+
+
+
 
 #ifdef HAVE_OPENMPI
 	}	

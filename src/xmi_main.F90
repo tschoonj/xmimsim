@@ -858,7 +858,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
         channelsF = channelsFF
         !multiply with detector absorbers and detector crystal
-        DO i=1,2048
+        DO i=1,nchannels
                 det_corr = 1.0_C_DOUBLE
                 DO j=1,inputF%absorbers%n_det_layers
                         det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
@@ -1097,7 +1097,7 @@ ENDDO
 
 !CALL OMP_SET_NUM_THREADS(1)
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy,trapez2)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy,trapez2)
 
 #if DEBUG == 2
 WRITE(6,*) 'multiple allocs'
@@ -1108,8 +1108,10 @@ ALLOCATE(sumz(nintervals_theta-1))
 !$OMP DO
 
 Zloop:DO i=1,maxz 
-#if DEBUG == 1
-!WRITE (6,*) 'Element: ',i
+#if DEBUG == 0
+!$omp critical 
+WRITE (6,'(A,I)') 'Element: ',i
+!$omp end critical
 !IF (i == 26) THEN
 !        OPEN(UNIT=100,file='fe_cdf.txt',status='replace',action='write')
 !ENDIF
@@ -1475,7 +1477,7 @@ ENDDO
 
 !OPEN(UNIT=100,file='rayleigh_phi_cdf.txt',status='replace',action='write')
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,cdfs)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,cdfs)
 
 ALLOCATE(cdfs(nintervals_phi))
 
@@ -3627,7 +3629,8 @@ SUBROUTINE xmi_update_photon_elecv(photon)
 
 ENDSUBROUTINE xmi_update_photon_elecv
 
-SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, channels_convPtr,nchannels)
+SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr,&
+channels_convPtr,nchannels) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channels_noconvPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
@@ -3660,7 +3663,7 @@ SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, chann
 
 
         a = inputF%detector%noise**2
-        b = (2.3548)**2 * 3.85 *inputF%detector%fano
+        b = (2.3548)**2 * 3.85 *inputF%detector%fano/1000.0
 
         channels_temp = channels_noconv
         channels_conv = 0.0_C_DOUBLE
@@ -3673,20 +3676,38 @@ SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, chann
                 CALL EXIT(1)
         ENDIF
 
+#if DEBUG == 0
+        WRITE (*,'(A,F14.6)') 'a: ',a
+        WRITE (*,'(A,F14.6)') 'b: ',b
+        WRITE (*,'(A,I)') 'nlim: ',nlim
+#endif
+
+
+!!!$omp parallel do default(private) shared(a,b,inputF,I0,nlim,nchannels)
         DO I0=1,nlim
                 E0 = inputF%detector%zero + inputF%detector%gain*I0
                 FWHM = SQRT(a+b*E0)
                 B0=C*FWHM
                 A0 = 1.0_C_DOUBLE/(B0*M_SQRTPI)
+#if DEBUG == 0
+                IF (I0 .EQ. 100) THEN
+                WRITE (*,'(A,F14.5)') 'E0: ',E0
+                WRITE (*,'(A,F14.5)') 'FWHM: ',FWHM
+                WRITE (*,'(A,F14.5)') 'B0: ',B0
+                WRITE (*,'(A,F14.5)') 'A0: ',A0
+                ENDIF
+#endif
+
 
                 !IF (I0 .LE. 1800) THEN
-                        A3=2.73E-3*EXP(-0.21*E0)
+                        A3=2.73E-3*EXP(-0.21*E0)+1.E-4_C_DOUBLE
                         A4=0.000188*EXP(-0.00296*(E0**0.763))+&
                           1.355E-5*EXP(0.968*(E0**0.498))
                         ALFA=1.179*EXP(8.6E-4*(E0**1.877))-&
                           7.793*EXP(-3.81*(E0**(-0.0716)))
                 !ENDIF
-                R = 0.0_C_DOUBLE
+                !R = 0.0_C_DOUBLE
+                my_sum = 0.0_C_DOUBLE
                 DO I=1,I0+100
                         IF (I .GT. nchannels) THEN
                                 EXIT
@@ -3695,24 +3716,31 @@ SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr, chann
                         X=(E-E0)/B0
                         G=EXP(-X*X)
                         F=M_PI*ERFC(X)
-                        R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+A4*EXP(ALFA*(E-E0)))*F       
-
+                        R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+#if DEBUG == 0
+                        IF (I .EQ. 150 .AND. I0 .EQ. 100) THEN
+                                WRITE (*,'(A,F14.5)') 'R(I): ',R(I) 
+                                WRITE (*,'(A,F14.5)') 'F: ',F 
+                        ENDIF
+#endif
+                        my_sum = my_sum + R(I)
                 ENDDO
-                my_sum = SUM(R)
+                !my_sum = SUM(R)
                 DO I=1,I0+200
                         IF (I .GT. nchannels) THEN
                                 EXIT
                         ENDIF
                         channels_conv(I)=channels_conv(I)+R(I)*channels_temp(I0)/my_sum
                 ENDDO
-                my_sum = SUM(channels_temp(1:nlim))
-                DO I=1, NLIM
-                        E = inputF%detector%gain*I
-                        CBG=EXP(1./(0.15_C_DOUBLE+1.4E-2_C_DOUBLE*(E-1.0_C_DOUBLE)))*my_sum/1.0E7
-                        channels_conv(I)=channels_conv(I)+CBG*0.4_C_DOUBLE
-                ENDDO
 
         ENDDO
+!!!omp end parallel do
+!        my_sum = SUM(channels_conv(1:nlim))
+!        DO I=1, NLIM
+!                E = inputF%detector%gain*I
+!                CBG=EXP(1./(0.15_C_DOUBLE+1.4E-2_C_DOUBLE*(E-1.0_C_DOUBLE)))*my_sum/1.0E7
+!                channels_conv(I)=channels_conv(I)+CBG*0.4_C_DOUBLE
+!        ENDDO
 
         DEALLOCATE(channels_temp)
         channels_convPtr = C_LOC(channels_conv)

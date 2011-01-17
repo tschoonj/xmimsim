@@ -16,7 +16,7 @@ struct xmi_main_options {
 
 int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double *channels, int nchannels, struct xmi_main_options, int **history);
 
-
+void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels);
 
 
 #endif

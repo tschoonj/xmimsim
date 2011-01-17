@@ -9,7 +9,6 @@
 
 
 
-static int xmi_cmp_int(const void *a, const void *b);
 
 void *xmi_memdup(const void *mem, size_t bytes) {
 	void *temp;
@@ -65,7 +64,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 
 
 
-static int xmi_cmp_int(const void *a, const void *b) {
+int xmi_cmp_int(const void *a, const void *b) {
 	return *((int *) a) - *((int *) b);
 }
 

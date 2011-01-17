@@ -1,5 +1,6 @@
 #include "xmi_xml.h"
 #include "xmi_aux.h"
+#include "xmi_lines.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
@@ -18,6 +19,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excit
 static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
+static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 
 
 
@@ -819,7 +821,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	xmlTextWriterPtr writer;
 	xmlDocPtr doc;
 	char version[100];
-	char detector_type[20];
 	int i,j;
 	char buffer[1024];
 
@@ -877,14 +878,328 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 
+	if (xmi_write_input_xml_body(writer, input) == 0)
+		return 0;
+	
+	
+	//end it
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDocument(writer) < 0) {
+		fprintf(stderr,"Error ending document\n");
+		return 0;
+	}
+
+	xmlFreeTextWriter(writer);
+	xmlSaveFileEnc(xmlfile,doc,NULL);
+	xmlFreeDoc(doc);
+
+	return 1;
+
+}
+static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
+	
+	if (diff > 0.0)
+		return 1;
+	else if (diff < 0.0)
+		return -1;
+	return 0;
+
+}
+
+
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, double *channels_conv, double *channels_unconv, int nchannels, char *inputfile ) {
+
+	xmlTextWriterPtr writer;
+	xmlDocPtr doc;
+	char version[100];
+	char detector_type[20];
+	int i,j,k;
+	char buffer[1024];
+	int *uniqZ = NULL;
+	int nuniqZ = 1;
+	int found;
+
+
+
+	LIBXML_TEST_VERSION
+
+	//get unique Z's
+
+/*
+       uniqZ = [layers(1)%Z(1)]
+       DO i=1,SIZE(layers)
+	       DO j=1,SIZE(layers(i)%Z)
+		       IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
+		               [uniqZ,layers(i)%Z(j)]
+	       ENDDO
+       ENDDO
+       CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
+	     INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
+*/
+
+#if DEBUG == 1
+	fprintf(stdout,"Before uniqZ\n");
+#endif
+	uniqZ = (int *) realloc(uniqZ, sizeof(int));
+	uniqZ[0] = input->composition->layers[0].Z[0];
+	for (i = 0 ; i < input->composition->n_layers ; i++) {
+		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			found = 0;
+			for (k = 0 ; k < nuniqZ ; k++) {
+				if (uniqZ[k] == input->composition->layers[i].Z[j]) {
+					found = 1;
+					break;
+				}
+			}
+			if (found == 0) {
+				//enlarge uniqZ
+				uniqZ = (int *) realloc(uniqZ, sizeof(int)*++nuniqZ);
+				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j]; 
+			}
+		}
+	}
+#if DEBUG == 1
+	fprintf(stdout,"After uniqZ\n");
+#endif
+	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
+#if DEBUG == 1
+	for (i = 0 ; i < nuniqZ ; i++)
+		fprintf(stdout,"Z: %i\n",uniqZ[i]);
+#endif
+
+
+
+	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+		return 0;
+	}
+	xmlTextWriterSetIndent(writer,2);
+	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
+		return 0;
+	}
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-results", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+		fprintf(stderr,"Error starting DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDTD(writer) < 0) {
+		fprintf(stderr,"Error ending DTD\n");
+		return 0;
+	}
+	
+	//start off with some comments about user, time, date, hostname...
+	if (xmlTextWriterStartComment(writer) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+	
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator",g_get_real_name(),g_get_user_name) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+	
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname",g_get_host_name()) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndComment(writer) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-results") < 0) {
+		fprintf(stderr,"Error writing xmimsim-results tag\n");
+		return 0;
+	}
+
+	sprintf(version,"%.1f",input->general->version);
+	if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "version","%.1f",input->general->version) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "inputfile","%s",inputfile) < 0) {
+		fprintf(stderr,"Error writing inputfile\n");
+		return 0;
+	}
+
+	//spectrum convoluted
+	if (xmlTextWriterStartElement(writer, BAD_CAST "spectrum_conv") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement spectrum_conv\n");
+		return 0;
+	}
+
+	for (i = 0 ; i < nchannels ; i++) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",i+1) < 0) {
+			fprintf(stderr,"Error writing channelnr\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*i+input->detector->zero) < 0) {
+			fprintf(stderr,"Error writing energy\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_conv[i]) < 0) {
+			fprintf(stderr,"Error writing counts\n");
+			return 0;
+		}
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending channel\n");
+			return 0;
+		}
+	}	
+
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending spectrum_conv\n");
+		return 0;
+	}
+
+	//spectrum unconvoluted
+	if (xmlTextWriterStartElement(writer, BAD_CAST "spectrum_unconv") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement spectrum_unconv\n");
+		return 0;
+	}
+
+	for (i = 0 ; i < nchannels ; i++) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",i+1) < 0) {
+			fprintf(stderr,"Error writing channelnr\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*i+input->detector->zero) < 0) {
+			fprintf(stderr,"Error writing energy\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_unconv[i]) < 0) {
+			fprintf(stderr,"Error writing counts\n");
+			return 0;
+		}
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending channel\n");
+			return 0;
+		}
+	}	
+
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending spectrum_unconv\n");
+		return 0;
+	}
+
+	//history.. only print the relevant elements...
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+
+	if (xmlTextWriterStartElement(writer, BAD_CAST "history") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement history\n");
+		return 0;
+	}
+
+	for (i = 0 ; i < nuniqZ ; i++) {
+#if DEBUG == 1
+		fprintf(stdout,"Element: %i\n",uniqZ[i]);
+#endif
+		for (j = 1 ; j <= 385 ; j++) {
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				if (ARRAY3D_FORTRAN(history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
+					continue;
+				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+					fprintf(stderr,"Error writing atomic_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
+					fprintf(stderr,"Error writing line_type\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",k) < 0) {
+					fprintf(stderr,"Error writing interaction_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatString(writer,"%i",ARRAY3D_FORTRAN(history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+					fprintf(stderr,"Error writing counts\n");
+					return 0;
+				}
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error ending fluorescence_line_counts\n");
+					return 0;
+				}
+			}
+		}
+	}
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending history\n");
+		return 0;
+	}
+
+	//write inputfile
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
+		fprintf(stderr,"Error writing xmimsim tag\n");
+		return 0;
+	}
+
+	if (xmi_write_input_xml_body(writer, input) == 0)
+		return 0;
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim-input\n");
+		return 0;
+	}
+
+
+	//end it
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim-results\n");
+		return 0;
+	}
+	if (xmlTextWriterEndDocument(writer) < 0) {
+		fprintf(stderr,"Error ending document\n");
+		return 0;
+	}
+
+	xmlFreeTextWriter(writer);
+	xmlSaveFileEnc(xmlfile,doc,NULL);
+	xmlFreeDoc(doc);
+
+	return 1;
+
+}
+
+
+static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
+	int i,j;
+	char detector_type[20];
+
+
 	//general
 	if (xmlTextWriterStartElement(writer, BAD_CAST "general") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
 
-	sprintf(version,"%.1f",input->general->version);
-	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "version", BAD_CAST version) < 0) {
+	if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "version", "%.1f",input->general->version) < 0) {
 		fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
 		return 0;
 	}
@@ -1363,32 +1678,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 	
-	//end it
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim\n");
-		return 0;
-	}
-	if (xmlTextWriterEndDocument(writer) < 0) {
-		fprintf(stderr,"Error ending document\n");
-		return 0;
-	}
-
-	xmlFreeTextWriter(writer);
-	xmlSaveFileEnc(xmlfile,doc,NULL);
-	xmlFreeDoc(doc);
-
 	return 1;
-
 }
-static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
-	double diff;
 
-	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
-	
-	if (diff > 0.0)
-		return 1;
-	else if (diff < 0.0)
-		return -1;
-	return 0;
 
-}
+
