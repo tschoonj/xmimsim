@@ -44,9 +44,10 @@ int main (int argc, char *argv[]) {
 	const gsl_rng_type *rng_type;
 	gsl_rng *rng;
 	unsigned long int seed;
-	double *channels, *channelsdef, *results;
-	double *channels_conv;
-	FILE *outPtr;
+	double *channels, *channelsdef;
+	double **channels_conv;
+	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
+	char filename[512];
 	int i,j;
 	GError *error = NULL;
 	GOptionContext *context;
@@ -60,7 +61,10 @@ int main (int argc, char *argv[]) {
 	static gchar *hdf5_file=NULL;
 	static gchar *spe_file_noconv=NULL;
 	static gchar *spe_file_conv=NULL;
+	static gchar *csv_file_noconv=NULL;
+	static gchar *csv_file_conv=NULL;
 	static int nchannels=2048;
+	double zero_sum;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -72,8 +76,10 @@ int main (int argc, char *argv[]) {
 		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
 		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
-		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectrum to file",NULL},
-		{"spe-file-convoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectrum to file",NULL},
+		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
+		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
+		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
+		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
 		{ NULL }
 	};
@@ -109,7 +115,6 @@ int main (int argc, char *argv[]) {
 
 
 #endif
-	channels = (double *) malloc(nchannels*sizeof(double));
 
 	//
 	//options...
@@ -197,8 +202,9 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Reading from HDF5 file\n");
 #endif
 
+	//channels = (double *) malloc(input->general->n_interactions_trajectory*nchannels*sizeof(double));
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, channels, nchannels,options, &history) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &history) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
@@ -236,12 +242,12 @@ int main (int argc, char *argv[]) {
 
 
 	if (rank == 0) {
-		channelsdef = (double *) calloc(nchannels,sizeof(double));
+		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*nchannels,sizeof(double));
 		historydef = (int *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(int));	
 	}
 
 	//reduce channels
-	MPI_Reduce(channels, channelsdef,nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce history
 	MPI_Reduce(history, historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
 
@@ -256,6 +262,8 @@ int main (int argc, char *argv[]) {
 
 
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+//watch out, I'm doing something naughty here :-)
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 
 
@@ -275,57 +283,122 @@ int main (int argc, char *argv[]) {
 
 
 #endif
+		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
+		zero_sum = xmi_sum_double(channelsdef, nchannels);
+
+#if DEBUG == 1
+		fprintf(stdout,"zero_sum: %lf\n",zero_sum);
+#endif
+
+
+
+
 		//convolute spectrum
-		xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef, &channels_conv, nchannels);
+		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+
+		
+		for (i=zero_sum > 0.0 ? 0 : 1 ; i <= input->general->n_interactions_trajectory ; i++)
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, channels_conv+i, nchannels);
 #if DEBUG == 1
 		fprintf(stdout,"After detector convolution\n");
 #endif
 
-		//write it to outputfile...
-		if (spe_file_noconv != NULL) {
-			if ((outPtr=fopen(spe_file_noconv,"w")) == NULL ) {
-				fprintf(stdout,"Could not write to %s\n",spe_file_noconv);
-				exit(1);
+		csv_convPtr = csv_noconvPtr = NULL;
+
+		if (csv_file_noconv != NULL) {
+			if ((csv_noconvPtr = fopen(csv_file_noconv,"w")) == NULL) {
+				fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
+				return 1;
 			}
-			fprintf(outPtr,"$DATA:\n");
-			fprintf(outPtr,"0\t%i\n",nchannels-1);
-			for (i=0 ; i < nchannels ; i++) {
-				fprintf(outPtr,"%lg",channelsdef[i]);
-				if ((i+1) % 8 == 0) {
-					fprintf(outPtr,"\n");
-				}
-				else {
-					fprintf(outPtr,"     ");
-				}
-			}
-			fclose(outPtr);
 		}
-		//convoluted spectrum
-		if (spe_file_conv != NULL) {
-			if ((outPtr=fopen(spe_file_conv,"w")) == NULL ) {
-				fprintf(stdout,"Could not write to %s\n",spe_file_conv);
-				exit(1);
+		if (csv_file_conv != NULL) {
+			if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
+				fprintf(stdout,"Could not write to %s\n",csv_file_conv);
+				return 1;
 			}
-			fprintf(outPtr,"$DATA:\n");
-			fprintf(outPtr,"0\t%i\n",nchannels-1);
-			for (i=0 ; i < nchannels ; i++) {
-				fprintf(outPtr,"%lg",channels_conv[i]);
-				if ((i+1) % 8 == 0) {
-					fprintf(outPtr,"\n");
-				}
-				else {
-					fprintf(outPtr,"     ");
-				}
-			}
-			fclose(outPtr);
 		}
+
+
+		for (i =zero_sum > 0.0 ? 0 : 1 ; i <= input->general->n_interactions_trajectory ; i++) {
+
+			//write it to outputfile... spe style
+			if (spe_file_noconv != NULL) {
+				sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+				if ((outPtr=fopen(filename,"w")) == NULL ) {
+					fprintf(stdout,"Could not write to %s\n",filename);
+					exit(1);
+				}
+				fprintf(outPtr,"$DATA:\n");
+				fprintf(outPtr,"1\t%i\n",nchannels);
+				for (j=1 ; j <= nchannels ; j++) {
+					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
+					if ((j+1) % 8 == 0) {
+						fprintf(outPtr,"\n");
+					}
+					else {
+						fprintf(outPtr,"     ");
+					}
+				}
+				fclose(outPtr);
+			}
+			//convoluted spectrum
+			if (spe_file_conv != NULL) {
+				sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+				if ((outPtr=fopen(filename,"w")) == NULL ) {
+					fprintf(stdout,"Could not write to %s\n",filename);
+					exit(1);
+				}
+				fprintf(outPtr,"$DATA:\n");
+				fprintf(outPtr,"1\t%i\n",nchannels);
+				for (j=0 ; j < nchannels ; j++) {
+					fprintf(outPtr,"%lg",channels_conv[i][j]);
+					if ((j+1) % 8 == 0) {
+						fprintf(outPtr,"\n");
+					}
+					else {
+						fprintf(outPtr,"     ");
+					}
+				}
+				fclose(outPtr);
+			}
+		}
+
+
+
+		//csv file unconvoluted
+		if (csv_noconvPtr != NULL) {
+			for (j=1 ; j <= nchannels ; j++) {
+				fprintf(csv_noconvPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
+				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+					//channel number, energy, counts...
+					fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
+				}
+				fprintf(csv_noconvPtr,"\n");
+			}
+			fclose(csv_noconvPtr);
+		}
+
+		//csv file convoluted
+		if (csv_convPtr != NULL) {
+			for (j=0 ; j < nchannels ; j++) {
+				fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*input->detector->gain+input->detector->zero);	
+				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+					//channel number, energy, counts...
+					fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
+				}
+				fprintf(csv_convPtr,"\n");
+			}
+			fclose(csv_convPtr);
+		}
+
+
 
 #if DEBUG == 1
 		fprintf(stdout,"Writing outputfile\n");
 #endif
 
 		//write to xml outputfile
-		if (xmi_write_output_xml(input->general->outputfile, input, history, channels_conv, channelsdef, nchannels, argv[1] ) == 0) {
+		if (xmi_write_output_xml(input->general->outputfile, input, history, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
 		}
 

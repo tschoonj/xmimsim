@@ -422,15 +422,15 @@ ENDSUBROUTINE xmi_free_hdf5_F
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
 nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         IMPLICIT NONE
-        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channelsPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
         INTEGER (C_INT) :: rv 
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
-        TYPE (C_PTR), INTENT(INOUT) :: historyPtr
+        TYPE (C_PTR), INTENT(INOUT) :: historyPtr, channelsPtr
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channelsF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: channelsF
         INTEGER :: max_threads, thread_num
 
         TYPE (fgsl_rng_type) :: rng_type
@@ -447,7 +447,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         comptons, einsteins,detector_hits2,children
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: channelsFF 
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: channels 
         INTEGER (C_INT), DIMENSION(:,:,:), ALLOCATABLE :: history
         INTEGER (C_INT), DIMENSION(:,:,:), POINTER :: historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
@@ -469,11 +469,12 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
-        CALL C_F_POINTER(channelsPtr, channelsF,[nchannels])
+        !CALL C_F_POINTER(channelsPtr,&
+        !channelsF,[0:inputF%general%n_interactions_trajectory,nchannels])
 
 
-        channelsF = 0.0_C_DOUBLE
-        channelsFF = channelsF
+        !channelsF = 0.0_C_DOUBLE
+        !channelsFF = channelsF
         
         max_threads = omp_get_max_threads()
 
@@ -502,9 +503,11 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         history = 0_C_INT
         last_shell = 0_C_INT
 
+        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,nchannels))
+        channels = 0.0_C_DOUBLE
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channelsFF,rayleighs,comptons,einsteins,history, last_shell, children)
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,history, last_shell, children)
 
 !
 !
@@ -728,7 +731,8 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                         ENDIF
 
                                         IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                                                channelsFF(channel) = channelsFF(channel)+photon_temp%weight
+                                                channels(photon_temp%n_interactions:, channel) =&
+                                                channels(photon_temp%n_interactions:, channel)+photon_temp%weight
                                         ENDIF
                                         SELECT CASE (photon_temp%last_interaction)
                                                 CASE (RAYLEIGH_INTERACTION)
@@ -856,7 +860,6 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         WRITE (*,'(A,I)') 'children: ',children
 #endif
 
-        channelsF = channelsFF
         !multiply with detector absorbers and detector crystal
         DO i=1,nchannels
                 det_corr = 1.0_C_DOUBLE
@@ -872,7 +875,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         inputF%detector%crystal_layers(j)%thickness*&
                         xmi_mu_calc(inputF%detector%crystal_layers(j),i*inputF%detector%gain+inputF%detector%zero)) )
                 ENDDO
-                channelsF(i) = channelsF(i)*det_corr
+                channels(:,i) = channels(:,i)*det_corr
         ENDDO
         
 
@@ -882,6 +885,17 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         historyF = RESHAPE(history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
 
         historyPtr = C_LOC(historyF)
+
+
+#if DEBUG == 0
+        WRITE (6,'(A,ES14.5)') 'zero_sum:' ,SUM(channels(0,:))
+#endif
+        
+
+        ALLOCATE(channelsF(nchannels,0:inputF%general%n_interactions_trajectory))
+        channelsF = RESHAPE(channels, [nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
+
+        channelsPtr = C_LOC(channelsF)
 
         rv = 1
 

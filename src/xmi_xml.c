@@ -914,7 +914,7 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 }
 
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, double *channels_conv, double *channels_unconv, int nchannels, char *inputfile ) {
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
 
 	xmlTextWriterPtr writer;
 	xmlDocPtr doc;
@@ -1041,22 +1041,44 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 		return 0;
 	}
 
-	for (i = 0 ; i < nchannels ; i++) {
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+	for (j = 0 ; j < nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",i+1) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j+1) < 0) {
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*i+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*(j+1)+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_conv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_conv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
+		}*/
+
+		for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+
+			if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",i) < 0) {
+				fprintf(stderr,"Error writing interaction_number attribute\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatString(writer,"%lf",channels_conv[i][j]) < 0) {
+				fprintf(stderr,"Error writing counts\n");
+				return 0;
+			}
+
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error ending counts\n");
+				return 0;
+			}
 		}
 		if (xmlTextWriterEndElement(writer) < 0) {
 			fprintf(stderr,"Error ending channel\n");
@@ -1076,22 +1098,41 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 		return 0;
 	}
 
-	for (i = 0 ; i < nchannels ; i++) {
+	for (j = 1 ; j <= nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",i+1) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j) < 0) {
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*i+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*j+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_unconv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_unconv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
+		}*/
+		for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+			if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",i) < 0) {
+				fprintf(stderr,"Error writing interaction_number attribute\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatString(writer,"%lf",ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels)) < 0) {
+				fprintf(stderr,"Error writing counts\n");
+				return 0;
+			}
+
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error ending counts\n");
+				return 0;
+			}
 		}
 		if (xmlTextWriterEndElement(writer) < 0) {
 			fprintf(stderr,"Error ending channel\n");

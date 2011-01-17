@@ -63,8 +63,9 @@
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
 <!ELEMENT spectrum_unconv (channel+)>
-<!ELEMENT channel (channelnr,energy,counts)>
+<!ELEMENT channel (channelnr,energy,counts+)>
 <!ELEMENT counts (#PCDATA)>
+<!ATTLIST counts interaction_number CDATA #REQUIRED>
 <!ELEMENT channelnr (#PCDATA)>
 <!ELEMENT history (fluorescence_line_counts*)>
 <!ELEMENT fluorescence_line_counts (#PCDATA)>
