@@ -71,8 +71,10 @@ int main (int argc, char *argv[]) {
 		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
 		{ "enable-lorentzian-broadening", 0, 0, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable Lorentzian line broadening", NULL },
 		{ "disable-lorentzian-broadening", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable Lorentzian line broadening (default)", NULL },
-		{ "enable-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade), "Enable cascade effects (default)", NULL },
-		{ "disable-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade), "Disable cascade effects", NULL },
+		{ "enable-auger-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Enable Auger (non radiative) cascade effects (default)", NULL },
+		{ "disable-auger-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Disable Auger cascade effects", NULL },
+		{ "enable-radiative-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Enable radiative cascade effects (default)", NULL },
+		{ "disable-radiative-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Disable radiative cascade effects", NULL },
 		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
 		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
@@ -125,7 +127,8 @@ int main (int argc, char *argv[]) {
 
 	options.use_M_lines = 1;
 	options.use_self_enhancement = 0;
-	options.use_cascade = 1;
+	options.use_cascade_auger = 1;
+	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
 
 
@@ -153,10 +156,9 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"use_M_lines: %i\n",options.use_M_lines);
 	fprintf(stdout,"use_self_enhancement: %i\n",options.use_self_enhancement);
-	fprintf(stdout,"use_cascade: %i\n",options.use_cascade);
 	fprintf(stdout,"use_variance_reduction: %i\n",options.use_variance_reduction);
 #endif
 
@@ -170,7 +172,7 @@ int main (int argc, char *argv[]) {
 
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"Finished reading the inputfile\n");
 #endif
 
@@ -181,7 +183,7 @@ int main (int argc, char *argv[]) {
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"Copied to Fortran variable\n");
 #endif
 	//initialization
@@ -190,7 +192,7 @@ int main (int argc, char *argv[]) {
 	}
 
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"xmi_init_input called\n");
 #endif
 	//read from HDF5 file what needs to be read in
@@ -286,7 +288,7 @@ int main (int argc, char *argv[]) {
 		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
 		zero_sum = xmi_sum_double(channelsdef, nchannels);
 
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"zero_sum: %lf\n",zero_sum);
 #endif
 
@@ -295,11 +297,25 @@ int main (int argc, char *argv[]) {
 
 		//convolute spectrum
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+#if DEBUG == 2
+		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
+			fprintf(stdout,"channel 223 contents unspoiled: %lf\n",channelsdef[i*nchannels+222]);
+
+#endif
+
 
 		
-		for (i=zero_sum > 0.0 ? 0 : 1 ; i <= input->general->n_interactions_trajectory ; i++)
+		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+#if DEBUG == 2
+			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
+#endif
 			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, channels_conv+i, nchannels);
-#if DEBUG == 1
+#if DEBUG == 2
+			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
+			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*nchannels+222]);
+#endif
+		}
+#if DEBUG == 2
 		fprintf(stdout,"After detector convolution\n");
 #endif
 
@@ -319,7 +335,7 @@ int main (int argc, char *argv[]) {
 		}
 
 
-		for (i =zero_sum > 0.0 ? 0 : 1 ; i <= input->general->n_interactions_trajectory ; i++) {
+		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 
 			//write it to outputfile... spe style
 			if (spe_file_noconv != NULL) {

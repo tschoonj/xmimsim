@@ -203,6 +203,8 @@ TYPE :: xmi_detector
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_z
         REAL (C_DOUBLE), DIMENSION(3,3) :: n_detector_orientation_inverse
         REAL (C_DOUBLE), DIMENSION(3,3) :: n_detector_orientation_new
+        REAL (C_DOUBLE) :: detector_solid_angle
+        REAL (C_DOUBLE), DIMENSION(3) :: n_sample_orientation_det
 ENDTYPE
 
 !  xmi_input
@@ -228,9 +230,24 @@ ENDTYPE
 TYPE, BIND(C) :: xmi_main_options 
         INTEGER (C_INT) :: use_M_lines
         INTEGER (C_INT) :: use_self_enhancement
-        INTEGER (C_INT) :: use_cascade
+        INTEGER (C_INT) :: use_cascade_auger
+        INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction
 ENDTYPE xmi_main_options
+
+!
+!
+!       xmi_var_red_layer: Datatype that will hold information about the
+!       variance reduction
+!
+!
+
+
+TYPE :: xmi_var_red_layer
+        !dimensions should be (n_elements, 383+1+1)
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: weight
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: energy 
+ENDTYPE xmi_var_red_layer
 
 !
 !
@@ -298,7 +315,10 @@ TYPE :: xmi_photon
 
         !last shell -> debugging
         INTEGER (C_INT) :: last_shell
-ENDTYPE
+
+        !variance reduction
+        TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
+ENDTYPE xmi_photon
 
 !
 !
@@ -351,6 +371,14 @@ SUBROUTINE xmi_inverse_matrix(x, y, z, inverse) BIND(C,NAME='xmi_inverse_matrix'
         TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
         TYPE (C_PTR), INTENT(INOUT) :: inverse
 ENDSUBROUTINE
+
+!interface for xmi_determinant_matrix function
+SUBROUTINE xmi_determinant_matrix(x, y, z) BIND(C,NAME='xmi_determinant_matrix')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
+ENDSUBROUTINE
+
 
 ENDINTERFACE
 
@@ -770,10 +798,9 @@ FUNCTION xmi_mu_calc_xmi_composition_single_energy(composition, energy) RESULT(r
         IMPLICIT NONE
         TYPE (xmi_composition), INTENT(IN) :: composition
         REAL (C_DOUBLE), INTENT(IN) :: energy
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: rv
+        REAL (C_DOUBLE), DIMENSION(composition%n_layers) :: rv
         INTEGER (C_INT) :: i
 
-        ALLOCATE(rv(composition%n_layers))
         DO i=1,composition%n_layers
                 rv(i) = &
                 xmi_mu_calc_xmi_layer_single_energy(& 

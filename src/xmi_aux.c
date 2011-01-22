@@ -91,7 +91,7 @@ void xmi_inverse_matrix(double x[3], double y[3], double z[3], double **inverseF
 	gsl_matrix_set(m,1,2, z[1]);
 	gsl_matrix_set(m,2,2, z[2]);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"input matrix\n");
 	gsl_matrix_fprintf(stdout,m , "%g");
 #endif
@@ -99,13 +99,13 @@ void xmi_inverse_matrix(double x[3], double y[3], double z[3], double **inverseF
 	//invert the sucker
 	gsl_linalg_LU_decomp(m,p,&signum);
 	gsl_linalg_LU_invert(m,p,inverse);
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"inverted matrix\n");
 	gsl_matrix_fprintf(stdout,inverse , "%g");
 #endif
 
 	gsl_matrix_transpose(inverse);
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"transposed inverted matrix\n");
 	gsl_matrix_fprintf(stdout,inverse , "%g");
 #endif
@@ -125,5 +125,26 @@ void xmi_inverse_matrix(double x[3], double y[3], double z[3], double **inverseF
 	*inverseF = rv;
 }
 
+void xmi_determinant_matrix(double x[3], double y[3], double z[3]) {
+	gsl_matrix *m = gsl_matrix_alloc(3,3);
+	gsl_permutation *p = gsl_permutation_calloc(3);
+	int signum;
+	int i,j,k;
+	double det;
+	gsl_matrix_set(m,0,0, x[0]);
+	gsl_matrix_set(m,1,0, x[1]);
+	gsl_matrix_set(m,2,0, x[2]);
 
+	gsl_matrix_set(m,0,1, y[0]);
+	gsl_matrix_set(m,1,1, y[1]);
+	gsl_matrix_set(m,2,1, y[2]);
 
+	gsl_matrix_set(m,0,2, z[0]);
+	gsl_matrix_set(m,1,2, z[1]);
+	gsl_matrix_set(m,2,2, z[2]);
+	gsl_linalg_LU_decomp(m,p,&signum);
+	det=gsl_linalg_LU_det(m,signum);
+
+	fprintf(stdout,"Determinant is: %lf\n",det);
+	return;
+}

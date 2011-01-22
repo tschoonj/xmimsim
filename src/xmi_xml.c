@@ -854,17 +854,17 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator",g_get_real_name(),g_get_user_name) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator","%s (%s)",g_get_real_name(),g_get_user_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
 
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
 	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname",g_get_host_name()) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
@@ -1001,17 +1001,17 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 		return 0;
 	}
 	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator",g_get_real_name(),g_get_user_name) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator","%s (%s)",g_get_real_name(),g_get_user_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
 
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
 	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname",g_get_host_name()) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}

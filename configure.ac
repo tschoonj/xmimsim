@@ -47,7 +47,7 @@ PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
-PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.12.0)
+PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.26.0)
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
 	#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
@@ -192,39 +192,41 @@ OPENMPI_CFLAGS=
 if test x$MPICC != xfail ; then
 	if test x$MPICC = xmpicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])
-		OPENMPI_CFLAGS=$($MPICC -showme:compile)
-		OPENMPI_LINK=$($MPICC -showme:link)
-		for i in $OPENMPI_LINK 
-		do
-			if test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
-				OPENMPI_LIBADD+="$i "
-			else
-				OPENMPI_LDFLAGS+="$i "
-			fi
-		done
+		#OPENMPI_CFLAGS=$($MPICC -showme:compile)
+		#OPENMPI_LINK=$($MPICC -showme:link)
+		#for i in $OPENMPI_LINK 
+		#do
+		#	if test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
+		#		OPENMPI_LIBADD+="$i "
+		#	else
+		#		OPENMPI_LDFLAGS+="$i "
+		#	fi
+		#done
 	elif test x$MPICC = xmpiicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[Intel MPI support detected])
-		OPENMPI_SHOW=$($MPICC -show)
-		counter=0
-		dont_use_next=0
-		for i in $OPENMPI_SHOW
-		do
-			if test $counter = 0 ; then
-				#maybe a compiler check wouldn't be a bad thing here...
-				counter++
-			elif test $dont_use_next = 1 ; then
-				OPENMPI_LDFLAGS+="$i "
-				dont_use_next=0
-			elif test  x${i:0:2} = "x-I" ; then
-				OPENMPI_CFLAGS+="$i "
-			elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
-				OPENMPI_LIBADD+="$i "
-			elif test x${i:0:8} = "x-Xlinker"  ; then
-				OPENMPI_LDFLAGS+="$i "
-				dont_use_next=1
-			fi
-		done
 	fi
+	OPENMPI_SHOW=$($MPICC -show)
+	counter=0
+	dont_use_next=0
+	for i in $OPENMPI_SHOW
+	do
+		if test $counter = 0 ; then
+			#maybe a compiler check wouldn't be a bad thing here...
+			counter=counter+1
+		elif test $dont_use_next = 1 ; then
+			OPENMPI_LDFLAGS+="$i "
+			dont_use_next=0
+		elif test  x${i:0:2} = "x-I" || test x${i:0:2} = "x-D" ; then
+			OPENMPI_CFLAGS+="$i "
+		elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
+			OPENMPI_LIBADD+="$i "
+		elif test x${i:0:8} = "x-Xlinker"  ; then
+			OPENMPI_LDFLAGS+="$i "
+			dont_use_next=1
+		elif test x${i:0:3} = "x-Wl"  ; then
+			OPENMPI_LDFLAGS+="$i "
+		fi
+	done
 fi
 
 AC_SUBST(OPENMPI_LDFLAGS)

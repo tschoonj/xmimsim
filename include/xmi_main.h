@@ -8,7 +8,8 @@
 struct xmi_main_options {
 	int use_M_lines;
 	int use_self_enhancement;
-	int use_cascade;
+	int use_cascade_auger;
+	int use_cascade_radiative;
 	int use_variance_reduction;
 };
 
