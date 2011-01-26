@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 
 
 //#define LOCKFILE "/var/run/xmi_harvester.pid"
@@ -176,13 +178,34 @@ int main (int argc, char *argv[]) {
 	struct harvester *sh;
 	pthread_t *ht;
 	pthread_attr_t ha;
+	GError *error = NULL;
+	GOptionContext *context;
+	static int use_daemonize = 1;
+	static GOptionEntry entries[] = {
+		{"disable-daemonize", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &use_daemonize, "do not daemonize", NULL},
+		{NULL}
+	};
+
+
+	context = g_option_context_new ("launch seed harvester");
+	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_set_summary(context, "xmimsim-harvester: a daemon that gathers seeds from /dev/random...");
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_print ("option parsing failed: %s\n", error->message);
+		exit (1);
+	}
 
 	if ((cmd = strrchr(argv[0], '/')) == NULL)
 		cmd = argv[0];
 	else
 		cmd++;
 
-	daemonize(cmd);
+	if (use_daemonize)
+		daemonize(cmd);
+	else {
+		openlog(cmd, LOG_CONS | LOG_PID, LOG_DAEMON);
+		setlogmask(LOG_UPTO(LOG_DEBUG));
+	}
 
 	if (already_running()) {
 		syslog(LOG_ERR, "daemon already running");

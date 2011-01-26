@@ -28,6 +28,9 @@ int xmi_start_random_acquisition(void) {
 		return xmi_start_random_acquisition_dev();
 	}
 	else {
+#if DEBUG == 1
+		fprintf(stdout,"xmi_start_random_acquisition: Daemon is already running\n");
+#endif
 		//daemon is running...
 		//initialize counter and mutex;
 		pthread_mutex_init(&counter_mutex,NULL);
@@ -79,6 +82,9 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		}
 	}
 	else {
+#if DEBUG == 1
+		fprintf(stdout,"xmi_get_random_numbers: Daemon is already running\n");
+#endif
 		//daemon is running...
 		pthread_mutex_lock(&counter_mutex);
 		counter_local = counter++;

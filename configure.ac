@@ -8,6 +8,15 @@ AS_INIT
 
 AC_CANONICAL_HOST
 
+
+#if platform is Mac OS X, take care of the launchd plist file
+AM_CONDITIONAL(OS_DARWIN, [echo $host_os | grep '^darwin' > /dev/null])
+
+#similar will have to happen for linux in /etc/init.d
+
+
+
+
 LIB_CURRENT=0
 LIB_REVISION=0
 LIB_AGE=0
@@ -235,7 +244,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT
