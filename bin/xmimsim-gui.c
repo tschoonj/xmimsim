@@ -116,6 +116,46 @@ static gulong detector_max_convolution_energyG;
 
 /*
  *
+ *	values that check validity of entry widgets
+ *
+ */
+
+//general
+//static int outputfileC;
+static int n_photons_intervalC;
+static int n_photons_lineC;
+static int n_interactions_trajectoryC;
+//geometry
+static int d_sample_sourceC;
+static int n_sample_orientation_xC;
+static int n_sample_orientation_yC;
+static int n_sample_orientation_zC;
+static int p_detector_window_xC;
+static int p_detector_window_yC;
+static int p_detector_window_zC;
+static int n_detector_orientation_xC;
+static int n_detector_orientation_yC;
+static int n_detector_orientation_zC;
+static int area_detectorC;
+static int acceptance_detectorC;
+static int d_source_slitC;
+static int slit_size_xC;
+static int slit_size_yC;
+
+//detector
+static int detector_typeC;
+static int detector_gainC;
+static int detector_zeroC;
+static int detector_fanoC;
+static int detector_noiseC;
+static int detector_max_convolution_energyC;
+
+
+
+
+
+/*
+ *
  *  xmi_composition structs
  *
  */
@@ -140,7 +180,7 @@ struct xmi_layer *layer;
 static struct undo_single *redo_buffer;
 struct undo_single *current;
 static struct undo_single *last;
-static struct undo_single *opened_file;
+static struct undo_single *last_saved;
 static char *opened_file_name;
 
 
@@ -191,6 +231,44 @@ struct matrix_data {
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
+void save_cb(GtkWidget *widget, gpointer data);
+static int check_changeables(void);
+
+enum {
+	CHECK_CHANGES_JUST_SAVED,
+	CHECK_CHANGES_SAVED_BEFORE,
+	CHECK_CHANGES_NEVER_SAVED,
+};
+
+
+struct undo_single *check_changes_saved(int *status) {
+	struct undo_single *temp = current;
+
+	if (last_saved == NULL) {
+		*status = CHECK_CHANGES_NEVER_SAVED;
+		temp = NULL;
+	}
+	else if (last_saved == current) {
+		//found filename different from unlikely one... and it's in the current variable
+		//meaning it was just saved!
+		*status = CHECK_CHANGES_JUST_SAVED;
+		temp = current;
+	}
+	else if (xmi_compare_input(current->xi,last_saved->xi) == 1) {
+		//it was saved before, but there are no changes compared to before
+		*status = CHECK_CHANGES_JUST_SAVED;
+		temp = last_saved;
+	}
+	else {
+		//it was saved before, and now the status has changed
+		*status = CHECK_CHANGES_SAVED_BEFORE;
+		temp = last_saved;
+	}
+
+	return temp;
+}
+
+
 
 
 static void select_outputfile_cb(GtkButton *button, gpointer data) {
@@ -1198,9 +1276,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
-		case OPEN_FILE:
-			change_all_values((current-1)->xi);
-			break;
 		case D_SAMPLE_SOURCE:
 			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current)->widget), d_sample_sourceG);
@@ -1560,9 +1635,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current+1)->xi->composition, &compositionS);
 			break;
-		case OPEN_FILE:
-			change_all_values((current+1)->xi);
-			break;
 		case D_SAMPLE_SOURCE:
 			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), d_sample_sourceG);
@@ -1880,9 +1952,18 @@ static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 }
 
 
+struct val_changed {
+	int kind;
+	int *check;
+};
+
+
 
 static void double_changed(GtkWidget *widget, gpointer data) {
-	int kind = GPOINTER_TO_INT(data);
+	struct val_changed *vc = (struct val_changed *) data;
+
+	int kind = vc->kind;
+	int *check = vc->check;
 	char buffer[512];
 	char *textPtr,*endPtr,*lastPtr;
 
@@ -1908,10 +1989,12 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			if (lastPtr == endPtr && value > 0.0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				*check = 1;
 				update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
+				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			}
 			break;
@@ -1931,10 +2014,12 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			if (lastPtr == endPtr) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				*check = 1;
 				update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
+				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			}
 			break;
@@ -1946,7 +2031,10 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 }
 
 static void pos_int_changed(GtkWidget *widget, gpointer data) {
-	int kind = GPOINTER_TO_INT(data);
+	struct val_changed *vc = (struct val_changed *) data;
+
+	int kind = vc->kind;
+	int *check = vc->check;
 	char buffer[512];
 	char *textPtr;
 
@@ -1963,10 +2051,12 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				*check = 1;
 				update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
+				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			}
 			break;
@@ -1975,6 +2065,18 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			exit(1);
 	}
 
+	if(check_changeables() == 1) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 
 }
 
@@ -1986,6 +2088,44 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 	return FALSE;
 
 }
+
+void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
+	struct undo_single *iter;
+	char buffer[10];
+
+	for (iter = redo_buffer ; iter <= current ; iter++) {
+		free(iter->filename);
+		xmi_free_input(iter->xi);
+	}
+	free(redo_buffer);
+	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single));
+	current = redo_buffer;
+	last = redo_buffer;
+	redo_buffer->filename = strdup(filename);
+	redo_buffer->xi = xi_new;
+	if (filename != NULL) {
+		if (last_saved != NULL) {
+			free(last_saved->filename);
+			xmi_free_input(last_saved->xi);
+		}
+		xmi_copy_input(xi_new, &(last_saved->xi));
+		last_saved->filename = strdup(filename);
+	}
+	//clear undo/redo messages
+	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+	gtk_widget_set_sensitive(undoW,FALSE);
+	gtk_widget_set_sensitive(redoW,FALSE);
+	sprintf(buffer,"Undo");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
+	gtk_tool_item_set_tooltip_text(undoT,buffer);
+	sprintf(buffer,"Redo");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
+	gtk_tool_item_set_tooltip_text(redoT,buffer);
+
+	return;
+}
+
 
 
 void update_undo_buffer(int kind, GtkWidget *widget) {
@@ -2022,6 +2162,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	last = redo_buffer + last_diff;
 	current = redo_buffer + current_diff;
 	last = current+1;
+	last->filename=strdup(UNLIKELY_FILENAME);
 	switch (kind) {
 		case OUTPUTFILE:
 			xmi_copy_input(current->xi, &(last->xi));
@@ -2092,17 +2233,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			xmi_copy_composition(compositionS, &(last->xi->composition));
 			last->kind = kind;
 			last->widget = widget;
-			break;
-		case OPEN_FILE:
-			xmi_copy_input((struct xmi_input *) widget, &(last->xi));
-			sprintf(last->message,"opening of file: %s",g_path_get_basename(opened_file_name));
-			xmi_free_composition(compositionS);
-			xmi_copy_composition(last->xi->composition,&compositionS);
-			last->kind = kind;
-			opened_file = last;
-			last->filename=strdup(opened_file_name);
-			free(opened_file_name);
-			opened_file_name = NULL;
 			break;
 		case D_SAMPLE_SOURCE:
 			xmi_copy_input(current->xi, &(last->xi));
@@ -2462,6 +2592,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
 
 
+/*
 	if (opened_file == current || (opened_file != NULL && xmi_compare_input(current->xi,opened_file->xi) == 0)) {
 		//new file was opened or current settings are identical to those of opened file
 		gtk_widget_set_sensitive(saveW,FALSE);
@@ -2471,7 +2602,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		gtk_widget_set_sensitive(saveW,TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
 	} 
-	
+*/	
 
 	
 }
@@ -2501,6 +2632,7 @@ int main (int argc, char *argv[]) {
 	GtkWidget *tempW;
 	char buffer[512];
 	struct xmi_composition *temp_composition;
+	struct val_changed *vc;
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
 	//windows will be quite complicated here I'm sure...
@@ -2529,6 +2661,7 @@ int main (int argc, char *argv[]) {
 	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single ));		
 	current = redo_buffer;
 	last = current;
+	last_saved = NULL;
 
 
 
@@ -2550,9 +2683,31 @@ int main (int argc, char *argv[]) {
 	//use an "empty" xmi_input structure when launching the application
 	current->xi = xmi_init_empty_input();	
 	current->filename = strdup(UNLIKELY_FILENAME);
-	opened_file = NULL;
-	opened_file_name = NULL;
 
+	n_photons_intervalC = 1;
+	n_photons_lineC = 1;
+	n_interactions_trajectoryC = 1;
+	d_sample_sourceC = 1;
+	n_sample_orientation_xC = 1;
+	n_sample_orientation_yC = 1;
+	n_sample_orientation_zC = 1;
+	p_detector_window_xC = 1;
+	p_detector_window_yC = 1;
+	p_detector_window_zC = 1;
+	n_detector_orientation_xC = 1;
+	n_detector_orientation_yC = 1;
+	n_detector_orientation_zC = 1;
+	area_detectorC = 1;
+	acceptance_detectorC = 1;
+	d_source_slitC = 1;
+	slit_size_xC = 1;
+	slit_size_yC = 1;
+	detector_typeC = 1;
+	detector_gainC = 1;
+	detector_zeroC = 1;
+	detector_fanoC = 1;
+	detector_noiseC = 1;
+	detector_max_convolution_energyC = 1;
 
 	//initialize regex patterns
 	/*
@@ -2597,7 +2752,7 @@ int main (int argc, char *argv[]) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),file);
 	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(file_menu_click),(gpointer) "quit");
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
-	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(file_menu_click),(gpointer) "save");
+	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(file_menu_click),(gpointer) "new");
 	editmenu = gtk_menu_new();
@@ -2613,6 +2768,8 @@ int main (int argc, char *argv[]) {
 	//both should be greyed out in the beginning
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
+	gtk_widget_set_sensitive(saveW,FALSE);
+	gtk_widget_set_sensitive(save_asW,FALSE);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
 
@@ -2632,11 +2789,14 @@ int main (int argc, char *argv[]) {
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) 4);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) 5);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
 	g_signal_connect(G_OBJECT(undoT),"clicked",G_CALLBACK(undo_menu_click),NULL);
 	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	g_signal_connect(G_OBJECT(redoT),"clicked",G_CALLBACK(redo_menu_click),NULL);
 	g_signal_connect(G_OBJECT(openT),"clicked",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 
@@ -2682,7 +2842,10 @@ int main (int argc, char *argv[]) {
 	n_photons_intervalW = text;
 	sprintf(buffer,"%li",current->xi->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_PHOTONS_INTERVAL)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_PHOTONS_INTERVAL;
+	vc->check = &n_photons_intervalC;
+	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_photons_line
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -2693,7 +2856,10 @@ int main (int argc, char *argv[]) {
 	n_photons_lineW = text;
 	sprintf(buffer,"%li",current->xi->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_PHOTONS_LINE)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_PHOTONS_LINE;
+	vc->check = &n_photons_lineC;
+	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_interactions_trajectory
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -2704,7 +2870,10 @@ int main (int argc, char *argv[]) {
 	n_interactions_trajectoryW = text;
 	sprintf(buffer,"%i",current->xi->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), GINT_TO_POINTER(N_INTERACTIONS_TRAJECTORY));
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_INTERACTIONS_TRAJECTORY;
+	vc->check = &n_interactions_trajectoryC;
+	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
@@ -2749,7 +2918,10 @@ int main (int argc, char *argv[]) {
 	d_sample_sourceW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
 	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
-	d_sample_sourceG = g_signal_connect(G_OBJECT(d_sample_sourceW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(D_SAMPLE_SOURCE)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = D_SAMPLE_SOURCE;
+	vc->check = &d_sample_sourceC;
+	d_sample_sourceG = g_signal_connect(G_OBJECT(d_sample_sourceW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_sample_sourceW, FALSE, FALSE, 0);
 	//n_sample_orientation
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -2760,7 +2932,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_zW),10);
-	n_sample_orientation_zG = g_signal_connect(G_OBJECT(n_sample_orientation_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_Z)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_SAMPLE_ORIENTATION_Z;
+	vc->check = &n_sample_orientation_zC;
+	n_sample_orientation_zG = g_signal_connect(G_OBJECT(n_sample_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2768,7 +2943,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_yW),10);
-	n_sample_orientation_yG = g_signal_connect(G_OBJECT(n_sample_orientation_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_Y)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_SAMPLE_ORIENTATION_Y;
+	vc->check = &n_sample_orientation_yC;
+	n_sample_orientation_yG = g_signal_connect(G_OBJECT(n_sample_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2776,7 +2954,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_xW),10);
-	n_sample_orientation_xG = g_signal_connect(G_OBJECT(n_sample_orientation_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_SAMPLE_ORIENTATION_X)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_SAMPLE_ORIENTATION_X;
+	vc->check = &n_sample_orientation_xC;
+	n_sample_orientation_xG = g_signal_connect(G_OBJECT(n_sample_orientation_xW),"changed",G_CALLBACK(double_changed),(gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2790,7 +2971,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_zW),10);
-	p_detector_window_zG = g_signal_connect(G_OBJECT(p_detector_window_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_Z)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = P_DETECTOR_WINDOW_Z;
+	vc->check = &p_detector_window_zC;
+	p_detector_window_zG = g_signal_connect(G_OBJECT(p_detector_window_zW),"changed",G_CALLBACK(double_changed), vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2798,7 +2982,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[1]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_yW),10);
-	p_detector_window_yG = g_signal_connect(G_OBJECT(p_detector_window_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_Y)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = P_DETECTOR_WINDOW_Y;
+	vc->check = &p_detector_window_yC;
+	p_detector_window_yG = g_signal_connect(G_OBJECT(p_detector_window_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2806,7 +2993,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[0]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_xW),10);
-	p_detector_window_xG = g_signal_connect(G_OBJECT(p_detector_window_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(P_DETECTOR_WINDOW_X)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = P_DETECTOR_WINDOW_X;
+	vc->check = &p_detector_window_xC;
+	p_detector_window_xG = g_signal_connect(G_OBJECT(p_detector_window_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2820,7 +3010,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_zW),10);
-	n_detector_orientation_zG = g_signal_connect(G_OBJECT(n_detector_orientation_zW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_Z)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_DETECTOR_ORIENTATION_Z;
+	vc->check = &n_detector_orientation_zC ;
+	n_detector_orientation_zG = g_signal_connect(G_OBJECT(n_detector_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2828,7 +3021,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_yW),10);
-	n_detector_orientation_yG = g_signal_connect(G_OBJECT(n_detector_orientation_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_Y)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_DETECTOR_ORIENTATION_Y;
+	vc->check = &n_detector_orientation_yC ;
+	n_detector_orientation_yG = g_signal_connect(G_OBJECT(n_detector_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2836,7 +3032,10 @@ int main (int argc, char *argv[]) {
 	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_xW),10);
-	n_detector_orientation_xG = g_signal_connect(G_OBJECT(n_detector_orientation_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(N_DETECTOR_ORIENTATION_X)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = N_DETECTOR_ORIENTATION_X;
+	vc->check = &n_detector_orientation_xC ;
+	n_detector_orientation_xG = g_signal_connect(G_OBJECT(n_detector_orientation_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2849,7 +3048,10 @@ int main (int argc, char *argv[]) {
 	area_detectorW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(AREA_DETECTOR)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = AREA_DETECTOR;
+	vc->check = &area_detectorC;
+	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), area_detectorW, FALSE, FALSE, 0);
 
 	//acceptance_detector
@@ -2860,7 +3062,10 @@ int main (int argc, char *argv[]) {
 	acceptance_detectorW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->acceptance_detector);
 	gtk_entry_set_text(GTK_ENTRY(acceptance_detectorW),buffer);
-	acceptance_detectorG = g_signal_connect(G_OBJECT(acceptance_detectorW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(ACCEPTANCE_DETECTOR)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = ACCEPTANCE_DETECTOR;
+	vc->check = &acceptance_detectorC ;
+	acceptance_detectorG = g_signal_connect(G_OBJECT(acceptance_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), acceptance_detectorW, FALSE, FALSE, 0);
 
 	//d_source_slit
@@ -2871,7 +3076,10 @@ int main (int argc, char *argv[]) {
 	d_source_slitW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
-	d_source_slitG = g_signal_connect(G_OBJECT(d_source_slitW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(D_SOURCE_SLIT)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = D_SOURCE_SLIT;
+	vc->check = &d_source_slitC ;
+	d_source_slitG = g_signal_connect(G_OBJECT(d_source_slitW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_source_slitW, FALSE, FALSE, 0);
 
 	//slit sizes
@@ -2882,14 +3090,20 @@ int main (int argc, char *argv[]) {
 	slit_size_yW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
-	slit_size_yG = g_signal_connect(G_OBJECT(slit_size_yW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(SLIT_SIZE_Y)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = SLIT_SIZE_Y;
+	vc->check = &slit_size_yC;
+	slit_size_yG = g_signal_connect(G_OBJECT(slit_size_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_xW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->slit_size_x);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
-	slit_size_xG = g_signal_connect(G_OBJECT(slit_size_xW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(SLIT_SIZE_X)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = SLIT_SIZE_X;
+	vc->check = &slit_size_xC;
+	slit_size_xG = g_signal_connect(G_OBJECT(slit_size_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -2969,7 +3183,10 @@ int main (int argc, char *argv[]) {
 	detector_gainW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->gain);
 	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
-	detector_gainG = g_signal_connect(G_OBJECT(detector_gainW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_GAIN)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_GAIN;
+	vc->check = &detector_gainC;
+	detector_gainG = g_signal_connect(G_OBJECT(detector_gainW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_gainW, FALSE, FALSE, 0);
 	
 	//zero
@@ -2980,7 +3197,10 @@ int main (int argc, char *argv[]) {
 	detector_zeroW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->zero);
 	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
-	detector_zeroG = g_signal_connect(G_OBJECT(detector_zeroW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_ZERO)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_ZERO;
+	vc->check = &detector_zeroC;
+	detector_zeroG = g_signal_connect(G_OBJECT(detector_zeroW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_zeroW, FALSE, FALSE, 0);
 
 	//fano
@@ -2991,7 +3211,10 @@ int main (int argc, char *argv[]) {
 	detector_fanoW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->fano);
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
-	detector_fanoG = g_signal_connect(G_OBJECT(detector_fanoW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_FANO)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_FANO;
+	vc->check = &detector_fanoC;
+	detector_fanoG = g_signal_connect(G_OBJECT(detector_fanoW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_fanoW, FALSE, FALSE, 0);
 
 	//noise
@@ -3002,7 +3225,10 @@ int main (int argc, char *argv[]) {
 	detector_noiseW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_NOISE)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_NOISE;
+	vc->check = &detector_noiseC;
+	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_noiseW, FALSE, FALSE, 0);
 
 	//max_convolution_energy
@@ -3013,7 +3239,10 @@ int main (int argc, char *argv[]) {
 	detector_max_convolution_energyW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);
 	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
-	detector_max_convolution_energyG = g_signal_connect(G_OBJECT(detector_max_convolution_energyW),"changed",G_CALLBACK(double_changed), GINT_TO_POINTER(DETECTOR_MAX_CONVOLUTION_ENERGY)  );
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_MAX_CONVOLUTION_ENERGY;
+	vc->check = &detector_max_convolution_energyC;
+	detector_max_convolution_energyG = g_signal_connect(G_OBJECT(detector_max_convolution_energyW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_max_convolution_energyW, FALSE, FALSE, 0);
 
 	//crystal
@@ -3048,6 +3277,32 @@ void change_all_values(struct xmi_input *new_input) {
 	char buffer[512], *elementString;
 	int i,j;
 	GtkTreeIter iter;
+
+	//checkeable values
+	n_photons_intervalC = 1;
+	n_photons_lineC = 1;
+	n_interactions_trajectoryC = 1;
+	d_sample_sourceC = 1;
+	n_sample_orientation_xC = 1;
+	n_sample_orientation_yC = 1;
+	n_sample_orientation_zC = 1;
+	p_detector_window_xC = 1;
+	p_detector_window_yC = 1;
+	p_detector_window_zC = 1;
+	n_detector_orientation_xC = 1;
+	n_detector_orientation_yC = 1;
+	n_detector_orientation_zC = 1;
+	area_detectorC = 1;
+	acceptance_detectorC = 1;
+	d_source_slitC = 1;
+	slit_size_xC = 1;
+	slit_size_yC = 1;
+	detector_typeC = 1;
+	detector_gainC = 1;
+	detector_zeroC = 1;
+	detector_fanoC = 1;
+	detector_noiseC = 1;
+	detector_max_convolution_energyC = 1;
 
 	//disable signal handlers where necessary
 	g_signal_handler_block(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
@@ -3297,11 +3552,96 @@ void change_all_values(struct xmi_input *new_input) {
 	return;
 }
 
+enum {
+	GTK_RESPONSE_SAVEAS,
+	GTK_RESPONSE_SAVE,
+	GTK_RESPONSE_NOSAVE
+};
+
+
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
-	GtkWidget *dialog;
+	GtkWidget *dialog = NULL;
 	GtkFileFilter *filter;
 	char *filename;
 	struct xmi_input *xi;
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+
+	//check if last changes have been saved, because they will be lost otherwise!
+	check_rv = check_changes_saved(&check_status);
+
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	}
+
+	if (dialog != NULL) {
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		else if (dialog_rv == GTK_RESPONSE_NO) {
+			//do nothing
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
+			//run saveas dialog
+			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
+			saveas_cb(dialog, (gpointer) dialog);
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//update file
+			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return;
+			}
+
+		}
+
+
+		gtk_widget_destroy(dialog);
+	}
+
+
+
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmsi");
 	gtk_file_filter_set_name(filter,"XMI MSIM inputfiles");
@@ -3317,23 +3657,62 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
-				if (opened_file_name != NULL) {
-					free(opened_file_name);
-				}	
-				opened_file_name = strdup(filename);
-					change_all_values(xi);
-					update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
-				}
+				change_all_values(xi);
+				//reset redo_buffer
+				reset_undo_buffer(xi, filename);	
+				
+				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not read file %s: model is incomplete/invalid",filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+			}
 			g_free (filename);							
 		}
 		gtk_widget_destroy (dialog);
 }
 
+static int check_changeables(void) {
+
+ return n_photons_intervalC &&
+ n_photons_lineC &&
+ n_interactions_trajectoryC &&
+ d_sample_sourceC &&
+ n_sample_orientation_xC &&
+ n_sample_orientation_yC &&
+ n_sample_orientation_zC &&
+ p_detector_window_xC &&
+ p_detector_window_yC &&
+ p_detector_window_zC &&
+ n_detector_orientation_xC &&
+ n_detector_orientation_yC &&
+ n_detector_orientation_zC &&
+ area_detectorC &&
+ acceptance_detectorC &&
+ d_source_slitC &&
+ slit_size_xC &&
+ slit_size_yC &&
+ detector_typeC &&
+ detector_gainC &&
+ detector_zeroC &&
+ detector_fanoC &&
+ detector_noiseC &&
+ detector_max_convolution_energyC;
+}
+
+
+
 void saveas_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	char *filename;
-	if (xmi_validate_input(current->xi) != 0)  {
+	if (check_changeables() == 0 && xmi_validate_input(current->xi) != 0)  {
 		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 		        GTK_MESSAGE_ERROR,
@@ -3356,37 +3735,76 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 																
-		if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-			if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-				strcat(filename,".xmsi");
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
+			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
+			strcat(filename,".xmsi");
+		}
+		if (xmi_write_input_xml(filename, current->xi) == 1) {
+			gtk_widget_destroy (dialog);
+			if (last_saved != NULL) {
+				free(last_saved->filename);
+				xmi_free_input(last_saved->xi);
 			}
-			if (xmi_write_input_xml(filename, current->xi) == 1) {
-				g_free (filename);							
-				gtk_widget_destroy (dialog);
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: model is incomplete/invalid",filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				g_free (filename);							
-				return;
-			}
-
+			xmi_copy_input(current->xi, &(last_saved->xi));
+			last_saved->filename = strdup(filename);
+			g_free (filename);							
 		}
 		else {
-	     		gtk_widget_destroy (dialog);
-			
+			gtk_widget_destroy (dialog);
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+	        		GTK_MESSAGE_ERROR,
+	        		GTK_BUTTONS_CLOSE,
+	        		"Could not write to file %s: model is incomplete/invalid",filename
+                	);
+     			gtk_dialog_run (GTK_DIALOG (dialog));
+     			gtk_widget_destroy (dialog);
+			g_free (filename);							
+			return;
 		}
+
+	}
+	else {
+     		gtk_widget_destroy (dialog);
+		
+	}
 
 
 	return;
 }
 
+void save_cb(GtkWidget *widget, gpointer data) {
+	int check_status;
+	GtkWidget *dialog;
+	struct undo_single *check_rv; 
+
+	check_rv = check_changes_saved(&check_status);
+	//check if it was saved before... otherwise call saveas
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not read file %s: model is incomplete/invalid",check_rv->filename
+	               	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+
+		}
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		//never saved -> call saveas
+		saveas_cb(widget, data);
+	}
+	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
+		//do nothing
+	}
+
+
+
+	return;
+
+
+}

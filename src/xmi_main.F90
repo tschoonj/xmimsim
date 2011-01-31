@@ -762,7 +762,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 !                                       Add to channelsF
 !
 !
-                                        !IF (options%use_variance_reduction .EQ. 0) THEN
+                                        IF (options%use_variance_reduction .EQ. 0) THEN
                                         IF (photon_temp%energy .GE. energy_threshold) THEN
                                                 channel = INT((photon_temp%energy - &
                                                 inputF%detector%zero)/inputF%detector%gain)
@@ -774,7 +774,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                                 channels(photon_temp%n_interactions:, channel) =&
                                                 channels(photon_temp%n_interactions:, channel)+photon_temp%weight
                                         ENDIF
-                                        !ENDIF
+                                        ENDIF
                                         SELECT CASE (photon_temp%last_interaction)
                                                 CASE (RAYLEIGH_INTERACTION)
                                                         rayleighs = rayleighs + 1
@@ -1917,9 +1917,18 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         EXIT main
                 ENDIF
 
+                !update number of interactions
+                photon%n_interactions = photon%n_interactions + 1
+
+                !variance reduction
+                IF (photon%options%use_variance_reduction .EQ. 1) THEN
+                        CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
+                ENDIF
+
+
  
                 IF(photon%n_interactions .EQ.&
-                inputF%general%n_interactions_trajectory) THEN
+                inputF%general%n_interactions_trajectory-1) THEN
                         EXIT main
                 ENDIF
 
@@ -1973,8 +1982,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #if DEBUG == 2
                 WRITE (*,'(A,I,F12.6)') 'pos and energy: ',pos, hdf5_Z%interaction_probs%energies(pos)
 #endif
-                !update number of interactions
-                photon%n_interactions = photon%n_interactions + 1
 
                 IF (interactionR .LT. interpolate_simple([hdf5_Z%interaction_probs%energies(pos),&
                         hdf5_Z%interaction_probs%Rayl_and_Compt(pos,1)],&
@@ -2280,9 +2287,6 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
 
 
-        IF (photon%options%use_variance_reduction .EQ. 1) THEN
-                CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
-        ENDIF
 
         !
         !update photon%theta and photon%phi
@@ -2353,9 +2357,6 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
 
 
-        IF (photon%options%use_variance_reduction .EQ. 1) THEN
-                CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
-        ENDIF
 
         !
         !update energy of photon!!!
@@ -2499,9 +2500,6 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #if DEBUG == 1
         WRITE (*,'(A)') 'after CK check'
 #endif
-        IF (photon%options%use_variance_reduction .EQ. 1) THEN
-                CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
-        ENDIF
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
