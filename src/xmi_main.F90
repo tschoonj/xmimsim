@@ -1920,6 +1920,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !update number of interactions
                 photon%n_interactions = photon%n_interactions + 1
 
+                IF(photon%n_interactions-1 .EQ.&
+                inputF%general%n_interactions_trajectory) THEN
+                        EXIT main
+                ENDIF
+                
                 !variance reduction
                 IF (photon%options%use_variance_reduction .EQ. 1) THEN
                         CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
@@ -1927,10 +1932,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 
  
-                IF(photon%n_interactions .EQ.&
-                inputF%general%n_interactions_trajectory-1) THEN
-                        EXIT main
-                ENDIF
 
                 !selection of atom type
                 !get a new random number
