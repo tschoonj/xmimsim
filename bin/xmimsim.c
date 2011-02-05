@@ -36,6 +36,10 @@ int main (int argc, char *argv[]) {
 //	MPI_Request *reqs = 0;
 #endif
 
+	int argc_orig = argc;
+	char **argv_orig = argv;
+
+
 	//general variables
 	struct xmi_input *input;
 	int rv;

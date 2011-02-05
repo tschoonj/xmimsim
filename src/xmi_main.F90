@@ -33,6 +33,11 @@ REAL (C_DOUBLE), PARAMETER :: XMI_MOM_MEC = momentum_atomic_unit/XMI_MEC
 REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
 
 
+!function pointer for XRF cross section
+PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
+
+
+
 CONTAINS
 
 
@@ -466,6 +471,26 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         einsteins = 0
 
 
+        !set the XRF cross sections according to the options
+        IF (options%use_cascade_auger .EQ. 0 .AND.&
+        options%use_cascade_radiative .EQ.0 ) THEN
+                xmi_CS_FluorLine => CS_FluorLine_Kissel_no_cascade
+        ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
+        options%use_cascade_radiative .EQ.0 ) THEN
+                xmi_CS_FluorLine => CS_FluorLine_Kissel_nonradiative_cascade
+        ELSEIF (options%use_cascade_auger .EQ. 0 .AND.&
+        options%use_cascade_radiative .EQ.1 ) THEN
+                xmi_CS_FluorLine => CS_FluorLine_Kissel_radiative_cascade
+        ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
+        options%use_cascade_radiative .EQ.1 ) THEN
+#if DEBUG == 0
+                WRITE (6,'(A)') 'Full cascade'
+#endif
+                xmi_CS_FluorLine => CS_FluorLine_Kissel_cascade
+        ENDIF
+
+
+
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
         !CALL C_F_POINTER(channelsPtr,&
@@ -606,22 +631,10 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         xmi_mu_calc(inputF%absorbers%exc_layers(j),exc%discrete(i)%energy))
                 ENDDO
 
-#if DEBUG == 2
-!$omp critical                        
-                WRITE (*,'(A,I)') 'n_photons: ',n_photons
-!$omp end critical                        
-#endif
                 !Calculate initial mu's
                 ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
-#if DEBUG == 2
-!$omp master             
-                DO j=1,SIZE(initial_mus)
-                        WRITE (*,'(F14.6)') initial_mus(j)
-                ENDDO
-!$omp end master             
-#endif
 
                 DO j=1,n_photons
                         !Allocate the photon
@@ -783,30 +796,31 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                                 CASE (PHOTOELECTRIC_INTERACTION)
                                                         einsteins = einsteins + 1
                                         ENDSELECT
-                                        !update history
+                                        !update history -> record only the last
+                                        !interaction
                                         IF (photon_temp%n_interactions .GT. 0)&
                                         THEN
-                                                DO k=1,photon_temp%n_interactions
-                                                        element =&
-                                                        photon_temp%history(k,2)
-                                                        IF (photon_temp%history(k,1) .LE. KL1_LINE .AND.&
-                                                        photon_temp%history(k,1) .GE. P3P5_LINE) THEN
-                                                                !fluorescence
-                                                                history(element,ABS(photon_temp%history(k,1)),k) = &
-                                                                history(element,ABS(photon_temp%history(k,1)),k) + 1
-                                                        ELSEIF &
+                                                k=photon_temp%n_interactions
+                                                element =&
+                                                photon_temp%history(k,2)
+                                                IF (photon_temp%history(k,1) .LE. KL1_LINE .AND.&
+                                                photon_temp%history(k,1) .GE. P3P5_LINE) THEN
+                                                        !fluorescence
+                                                        history(element,ABS(photon_temp%history(k,1)),k) = &
+                                                        history(element,ABS(photon_temp%history(k,1)),k) + 1
+                                                ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
-                                                                !rayleigh
-                                                                history(element,383+1,k) = &
-                                                                history(element,383+1,k) + 1
-                                                        ELSEIF &
-                                                        (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
-                                                                !compton
-                                                                history(element,383+2,k) = &
-                                                                history(element,383+2,k) + 1
-                                                        ENDIF
-                                                ENDDO
-#if DEBUG == 0
+                                                        !rayleigh
+                                                        history(element,383+1,k) = &
+                                                        history(element,383+1,k) + 1
+                                                ELSEIF &
+                                                (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
+                                                        !compton
+                                                        history(element,383+2,k) = &
+                                                        history(element,383+2,k) + 1
+                                                ENDIF
+                                                !ENDDO
+#if DEBUG == 1
                                                 IF (photon_temp%last_interaction .EQ. PHOTOELECTRIC_INTERACTION) THEN
                                                 last_shell(photon_temp%last_shell) =&
                                                 last_shell(photon_temp%last_shell)+1
@@ -2483,7 +2497,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
             (photon%current_layer)%xmi_hdf5_Z_local&
             (photon%current_element_index)%Ptr,&
             photon%energy) .EQ. 0_C_INT) THEN
-                IF (photon%options%use_cascade_auger .EQ. 1_C_INT) THEN
+                IF (photon%options%use_cascade_auger .EQ. 1_C_INT .AND.&
+                photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                         CALL xmi_simulate_photon_cascade_auger(photon,shell&
                         ,rng,inputF,hdf5F)
                 ENDIF
@@ -2557,7 +2572,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         photon%history(photon%n_interactions,1) = line 
         photon%history(photon%n_interactions,2) = photon%current_element 
 
-        IF (photon%options%use_cascade_radiative .EQ. 1_C_INT) THEN
+        IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
+        photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                 CALL xmi_simulate_photon_cascade_radiative(photon,shell,line&
                 ,rng,inputF,hdf5F)
         ENDIF
@@ -4572,7 +4588,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         !Laszlo's implementation which seems to ignore
                         !Coster-Kronig transitions
                         Pconv = &
-                        layer%weight(i)*CS_FluorLine_Kissel(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                        layer%weight(i)*xmi_CS_FluorLine(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                        !layer%weight(i)*CS_FluorLine_Kissel_cascade(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
                         photon%mus(photon%current_layer)
                         mus=xmi_mu_calc(inputF%composition,&
                         energy_fluo)
