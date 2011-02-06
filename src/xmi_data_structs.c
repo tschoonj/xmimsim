@@ -627,7 +627,8 @@ int xmi_validate_input(struct xmi_input *a) {
 	if (a->general->n_interactions_trajectory <= 0) 
 		return 1;
 
-
+	if (strlen(a->general->outputfile) == 0)
+		return 1;
 
 	//composition
 	if (a->composition->n_layers < 1)
@@ -653,6 +654,33 @@ int xmi_validate_input(struct xmi_input *a) {
 		return 1;
 	if (a->excitation->n_discrete ==0  && a->excitation->n_continuous < 2)
 		return 1;
+
+
+	//absorbers
+	for (i = 0 ; i < a->absorbers->n_exc_layers ; i++) {
+			if (a->absorbers->exc_layers[i].density <= 0.0)
+				return 1;
+			if (a->absorbers->exc_layers[i].thickness <= 0.0)
+				return 1;
+	}
+
+	for (i = 0 ; i < a->absorbers->n_det_layers ; i++) {
+			if (a->absorbers->det_layers[i].density <= 0.0)
+				return 1;
+			if (a->absorbers->det_layers[i].thickness <= 0.0)
+				return 1;
+	}
+
+	//crystal
+	if (a->detector->n_crystal_layers < 1)
+		return 1;
+
+	for (i = 0 ; i < a->detector->n_crystal_layers ; i++) {
+			if (a->detector->crystal_layers[i].density <= 0.0)
+				return 1;
+			if (a->detector->crystal_layers[i].thickness <= 0.0)
+				return 1;
+	}
 
 	return 0;
 }

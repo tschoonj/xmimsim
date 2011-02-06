@@ -18,6 +18,10 @@ INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SILI = 0
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_GE = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SI_SDD = 2
+INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_FULL = 1 
+INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_RADIATIVE = 2 
+INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONRADIATIVE = 3 
+INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONE = 4 
 
 !some physical constants
 REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
@@ -34,7 +38,7 @@ REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
 
 
 !function pointer for XRF cross section
-PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
+!PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
 
 
 
@@ -458,6 +462,7 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
+        INTEGER (C_INT) :: xmi_cascade_type
         !begin...
         
         CALL SetErrorMessages(0)
@@ -474,19 +479,25 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         !set the XRF cross sections according to the options
         IF (options%use_cascade_auger .EQ. 0 .AND.&
         options%use_cascade_radiative .EQ.0 ) THEN
-                xmi_CS_FluorLine => CS_FluorLine_Kissel_no_cascade
+                xmi_cascade_type = XMI_CASCADE_NONE
         ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
         options%use_cascade_radiative .EQ.0 ) THEN
-                xmi_CS_FluorLine => CS_FluorLine_Kissel_nonradiative_cascade
+                xmi_cascade_type = XMI_CASCADE_NONRADIATIVE
         ELSEIF (options%use_cascade_auger .EQ. 0 .AND.&
         options%use_cascade_radiative .EQ.1 ) THEN
-                xmi_CS_FluorLine => CS_FluorLine_Kissel_radiative_cascade
+                xmi_cascade_type = XMI_CASCADE_RADIATIVE
+!#if DEBUG == 0
+!                WRITE (6,'(A)') 'Radiative cascade'
+!                WRITE (6,'(A,F12.6)') 'Testvalue: '&
+!                ,xmi_CS_FluorLine(56,LA1_LINE, 40.0)
+!#endif
+
         ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
         options%use_cascade_radiative .EQ.1 ) THEN
-#if DEBUG == 0
-                WRITE (6,'(A)') 'Full cascade'
-#endif
-                xmi_CS_FluorLine => CS_FluorLine_Kissel_cascade
+                xmi_cascade_type = XMI_CASCADE_FULL
+!#if DEBUG == 0
+!                WRITE (6,'(A)') 'Full cascade'
+!#endif
         ENDIF
 
 
@@ -668,6 +679,8 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
+                        photon%xmi_cascade_type = xmi_cascade_type
+
 
                         !ipol = MOD(j,2)
 
@@ -4395,6 +4408,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: Pconv, Pdir, Pesc, Pesc_comp, Pesc_rayl, Pdir_fluo
         REAL (C_DOUBLE) :: temp_murhod, energy_compton, energy_fluo, dotprod
         INTEGER (C_INT) :: line_last
+        !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
 
 
 #if DEBUG == 1
@@ -4405,7 +4419,6 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
         !ignore negative energies
         IF (photon%energy .LE. energy_threshold) RETURN
-
 
 
         !select random coordinate on detector surface
@@ -4587,10 +4600,36 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         !effects... but at least it will be much better than
                         !Laszlo's implementation which seems to ignore
                         !Coster-Kronig transitions
-                        Pconv = &
-                        layer%weight(i)*xmi_CS_FluorLine(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
-                        !layer%weight(i)*CS_FluorLine_Kissel_cascade(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
-                        photon%mus(photon%current_layer)
+                        !set the XRF cross sections according to the options
+                        SELECT CASE (photon%xmi_cascade_type)
+                                CASE(XMI_CASCADE_NONE)
+                !xmi_CS_FluorLine => CS_FluorLine_Kissel_no_cascade
+                                Pconv = &
+                                layer%weight(i)*CS_FluorLine_Kissel_no_cascade&
+                                (layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                                photon%mus(photon%current_layer)
+                                CASE(XMI_CASCADE_NONRADIATIVE)
+                !xmi_CS_FluorLine => CS_FluorLine_Kissel_nonradiative_cascade
+                                Pconv = &
+                                layer%weight(i)*CS_FluorLine_Kissel_nonradiative_cascade&
+                                (layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                                photon%mus(photon%current_layer)
+                                CASE(XMI_CASCADE_RADIATIVE)
+                !xmi_CS_FluorLine => CS_FluorLine_Kissel_radiative_cascade
+                                Pconv = &
+                                layer%weight(i)*CS_FluorLine_Kissel_radiative_cascade&
+                                (layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                                photon%mus(photon%current_layer)
+                                CASE(XMI_CASCADE_FULL)
+                !xmi_CS_FluorLine => CS_FluorLine_Kissel_cascade
+                                Pconv = &
+                                layer%weight(i)*CS_FluorLine_Kissel_cascade&
+                                (layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
+                                photon%mus(photon%current_layer)
+                                CASE DEFAULT
+                                        WRITE (*,'(A)') 'Unsupported cascade type'
+                                        CALL EXIT(1)
+                        ENDSELECT
                         mus=xmi_mu_calc(inputF%composition,&
                         energy_fluo)
                         temp_murhod = 0.0_C_DOUBLE

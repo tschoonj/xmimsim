@@ -83,3 +83,11 @@ enum {
 };
 
 void update_undo_buffer(int kind, GtkWidget *widget);
+
+int check_changeables(void);
+
+
+extern GtkWidget *saveW;
+extern GtkWidget *save_asW;
+extern GtkToolItem *saveasT;
+extern GtkToolItem *saveT;

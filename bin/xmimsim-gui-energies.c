@@ -182,6 +182,18 @@ void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		update_undo_buffer(CONTINUOUS_ENERGY_DELETE,NULL);
 	}
 
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 
 	
 	return;
@@ -418,7 +430,19 @@ void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
 				-1);
 		}
 	}
-
+	
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 
 }
 

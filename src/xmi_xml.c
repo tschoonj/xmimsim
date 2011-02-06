@@ -1245,7 +1245,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		return 0;
 	}
 
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "outputfile","%s",input->general->outputfile) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "outputfile","%s",(xmlChar *) input->general->outputfile) < 0) {
 		fprintf(stderr,"Error writing outputfile\n");
 		return 0;
 	}

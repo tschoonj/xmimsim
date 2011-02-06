@@ -29,13 +29,13 @@ static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
-static GtkWidget *saveW;
-static GtkWidget *save_asW;
+GtkWidget *saveW;
+GtkWidget *save_asW;
 static GtkWidget *quitW;
 static GtkToolItem *newT;
 static GtkToolItem *openT;
-static GtkToolItem *saveasT;
-static GtkToolItem *saveT;
+GtkToolItem *saveasT;
+GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 
@@ -232,7 +232,8 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
-static int check_changeables(void);
+
+int check_changeables(void);
 
 enum {
 	CHECK_CHANGES_JUST_SAVED,
@@ -254,7 +255,7 @@ struct undo_single *check_changes_saved(int *status) {
 		*status = CHECK_CHANGES_JUST_SAVED;
 		temp = current;
 	}
-	else if (xmi_compare_input(current->xi,last_saved->xi) == 1) {
+	else if (xmi_compare_input(current->xi,last_saved->xi) == 0) {
 		//it was saved before, but there are no changes compared to before
 		*status = CHECK_CHANGES_JUST_SAVED;
 		temp = last_saved;
@@ -364,6 +365,9 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
 			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
 
+			if (composition->n_layers == 1)
+				composition->reference_layer = 1;
+
 			gtk_list_store_append(store, &iter);
 			i = composition->n_layers-1;
 			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
@@ -380,9 +384,10 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 					ELEMENTS_COLUMN,elementString,
 					DENSITY_COLUMN,composition->layers[i].density,
 					THICKNESS_COLUMN,composition->layers[i].thickness,
-					REFERENCE_COLUMN, FALSE,
+					REFERENCE_COLUMN, composition->n_layers == 1 ? TRUE : FALSE,
 					-1
 					);
+
 			}
 			else {
 				gtk_list_store_set(store, &iter,
@@ -436,12 +441,26 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			free(elementString);
 		}
 		update_undo_buffer(updateKind, (GtkWidget *) store);	
+
+		if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+			gtk_widget_set_sensitive(saveW,TRUE);
+			gtk_widget_set_sensitive(save_asW,TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(saveW,FALSE);
+			gtk_widget_set_sensitive(save_asW,FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+		}
+
 	}  	
 	else
 		return;
 
 
-
+	return;
 
 }
 
@@ -801,6 +820,19 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				update_undo_buffer(DET_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+		
+			if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+				gtk_widget_set_sensitive(saveW,TRUE);
+				gtk_widget_set_sensitive(save_asW,TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+			}
+			else {
+				gtk_widget_set_sensitive(saveW,FALSE);
+				gtk_widget_set_sensitive(save_asW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+			}
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
 			//add line... testing only for now...
@@ -1569,6 +1601,18 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"current: %p\n",current);
 		fprintf(stdout,"last: %p\n",last);
 #endif
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 
 }
 
@@ -1928,6 +1972,18 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
 
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 
 }
 
@@ -2028,6 +2084,18 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			exit(1);
 	}
 
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 }
 
 static void pos_int_changed(GtkWidget *widget, gpointer data) {
@@ -2065,7 +2133,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			exit(1);
 	}
 
-	if(check_changeables() == 1) {
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
 		gtk_widget_set_sensitive(saveW,TRUE);
 		gtk_widget_set_sensitive(save_asW,TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
@@ -2093,6 +2161,11 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	struct undo_single *iter;
 	char buffer[10];
 
+#if DEBUG == 1
+	fprintf(stdout,"resetting undo_buffer\n");
+#endif
+
+
 	for (iter = redo_buffer ; iter <= current ; iter++) {
 		free(iter->filename);
 		xmi_free_input(iter->xi);
@@ -2107,7 +2180,9 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 		if (last_saved != NULL) {
 			free(last_saved->filename);
 			xmi_free_input(last_saved->xi);
+			free(last_saved);
 		}
+		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
 		last_saved->filename = strdup(filename);
 	}
@@ -3660,6 +3735,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				change_all_values(xi);
 				//reset redo_buffer
 				reset_undo_buffer(xi, filename);	
+
 				
 				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
@@ -3678,7 +3754,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		gtk_widget_destroy (dialog);
 }
 
-static int check_changeables(void) {
+int check_changeables(void) {
 
  return n_photons_intervalC &&
  n_photons_lineC &&
@@ -3712,7 +3788,7 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	char *filename;
-	if (check_changeables() == 0 && xmi_validate_input(current->xi) != 0)  {
+	if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
 		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 		        GTK_MESSAGE_ERROR,
@@ -3746,7 +3822,9 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 			if (last_saved != NULL) {
 				free(last_saved->filename);
 				xmi_free_input(last_saved->xi);
+				free(last_saved);
 			}
+			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 			xmi_copy_input(current->xi, &(last_saved->xi));
 			last_saved->filename = strdup(filename);
 			g_free (filename);							
@@ -3766,10 +3844,9 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 		}
 
 	}
-	else {
-     		gtk_widget_destroy (dialog);
+	else 
+   		gtk_widget_destroy (dialog);
 		
-	}
 
 
 	return;

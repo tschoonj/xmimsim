@@ -318,6 +318,10 @@ TYPE :: xmi_photon
 
         !variance reduction
         TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
+        
+        !cascade type
+        INTEGER (C_INT) :: xmi_cascade_type
+
 ENDTYPE xmi_photon
 
 !
