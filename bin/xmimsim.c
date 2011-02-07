@@ -60,8 +60,10 @@ int main (int argc, char *argv[]) {
 	int use_self_enhancement;
 	int use_cascade;
 	int use_variance_reduction;
-	int *history;
-	int *historydef;
+	long int *brute_history;
+	long int *brute_historydef;
+	double *var_red_history;
+	double *var_red_historydef;
 	static gchar *hdf5_file=NULL;
 	static gchar *spe_file_noconv=NULL;
 	static gchar *spe_file_conv=NULL;
@@ -210,7 +212,7 @@ int main (int argc, char *argv[]) {
 
 	//channels = (double *) malloc(input->general->n_interactions_trajectory*nchannels*sizeof(double));
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &history) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
@@ -249,13 +251,18 @@ int main (int argc, char *argv[]) {
 
 	if (rank == 0) {
 		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*nchannels,sizeof(double));
-		historydef = (int *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(int));	
+		brute_historydef = (long int *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(long int));	
+		if (options.use_variance_reduction == 1)
+			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
 	}
 
 	//reduce channels
 	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
-	//reduce history
-	MPI_Reduce(history, historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
+	//reduce brute_history
+	MPI_Reduce(brute_history, brute_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_LONG,MPI_SUM, 0, MPI_COMM_WORLD);
+	//reduce var_red_history
+	if (options.use_variance_reduction == 1)
+		MPI_Reduce(var_red_history, var_red_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 
 	
 	MPI_Finalize();
@@ -263,7 +270,8 @@ int main (int argc, char *argv[]) {
 
 #else
 	channelsdef = channels;
-	historydef = history;
+	brute_historydef = brute_history;
+	var_red_historydef = var_red_history;
 #endif
 
 
@@ -278,11 +286,11 @@ int main (int argc, char *argv[]) {
 	if (rank == 0) {
 		
 #if DEBUG == 1
-		fprintf(stdout,"Ba-KL2: %i\n",ARRAY3D_FORTRAN(historydef,56,abs(KL2_LINE),1,100,385,1));	
-//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(historydef,28,abs(KL3_LINE),1,100,385,2));	
-//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(historydef,26,abs(KL3_LINE),1,100,385,2));	
-//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(historydef,28,abs(KL3_LINE),2,100,385,2));	
-//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(historydef,26,abs(KL3_LINE),2,100,385,2));	
+		fprintf(stdout,"Ba-KL2: %li\n",ARRAY3D_FORTRAN(brute_historydef,56,abs(KL2_LINE),1,100,385,1));	
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),1,100,385,2));	
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),1,100,385,2));	
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),2,100,385,2));	
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),2,100,385,2));	
 #endif
 
 
@@ -418,7 +426,7 @@ int main (int argc, char *argv[]) {
 #endif
 
 		//write to xml outputfile
-		if (xmi_write_output_xml(input->general->outputfile, input, history, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		if (xmi_write_output_xml(input->general->outputfile, input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
 		}
 

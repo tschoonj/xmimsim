@@ -429,13 +429,14 @@ ENDSUBROUTINE xmi_free_hdf5_F
 
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
-nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+nchannels, options, brute_historyPtr, var_red_historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
         INTEGER (C_INT) :: rv 
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
-        TYPE (C_PTR), INTENT(INOUT) :: historyPtr, channelsPtr
+        TYPE (C_PTR), INTENT(INOUT) :: brute_historyPtr, channelsPtr,&
+        var_red_historyPtr
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
@@ -455,14 +456,17 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         INTEGER (C_LONG) :: photons_simulated, detector_hits, rayleighs,&
         comptons, einsteins,detector_hits2
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
-        INTEGER (C_INT) :: channel
+        INTEGER (C_INT) :: channel,line
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: channels 
-        INTEGER (C_INT), DIMENSION(:,:,:), ALLOCATABLE :: history
-        INTEGER (C_INT), DIMENSION(:,:,:), POINTER :: historyF
+        INTEGER (C_LONG), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
+        INTEGER (C_LONG), DIMENSION(:,:,:), POINTER :: brute_historyF
+        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: var_red_history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
+        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE :: det_corr_all
         !begin...
         
         CALL SetErrorMessages(0)
@@ -534,18 +538,56 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 !
 !
 
-        ALLOCATE(history(100,383+2,inputF%general%n_interactions_trajectory)) 
-        history = 0_C_INT
+        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
+        brute_history = 0_C_LONG
         last_shell = 0_C_INT
 
         ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,nchannels))
         channels = 0.0_C_DOUBLE
 
+        ALLOCATE(det_corr_all(100,383+2))
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,history, last_shell)
+        det_corr_all = 1.0_C_DOUBLE
+
+        DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
+#if DEBUG == 0
+                WRITE (6,'(A,I3)') 'Det cor for element: ',hdf5F%xmi_hdf5_Zs(i)%Z
+#endif
+                DO line=KL1_LINE, P3P5_LINE, -1
+                        det_corr = 1.0_C_DOUBLE
+                        DO j=1,inputF%absorbers%n_det_layers
+                                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                                inputF%absorbers%det_layers(j)%density*&
+                                inputF%absorbers%det_layers(j)%thickness*&
+                                xmi_mu_calc(inputF%absorbers%det_layers(j),REAL(LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line),KIND=C_DOUBLE))) 
+                        ENDDO
+                        DO j=1,inputF%detector%n_crystal_layers
+                                det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+                                inputF%detector%crystal_layers(j)%density*&
+                                inputF%detector%crystal_layers(j)%thickness*&
+                                xmi_mu_calc(inputF%detector%crystal_layers(j),REAL(LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line),KIND=C_DOUBLE))))
+                        ENDDO
+                        det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
+#if DEBUG == 1
+                        IF (line .EQ. KL3_LINE) WRITE (6,'(A,ES12.5)') 'Det cor for KL3_LINE: ',det_corr
+#endif
+                ENDDO
+        ENDDO
+
+
+
+        !because it's unsure how openmp reduction will work with unallocated
+        !variables... just allocate it anyway..
+        !IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
+                ALLOCATE(var_red_history(100,383+2,inputF%general%n_interactions_trajectory)) 
+                var_red_history = 0_C_INT
+        !ENDIF
+
+
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history)
 
 !
-!
+
 !       Initialize random number generator
 !
 !
@@ -703,8 +745,11 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                 photon%elecv(3) = 0.0_C_DOUBLE
                         ENDIF
 
+                        photon%weight_long = INT(photon%weight,KIND=C_LONG)
+
+
 #if DEBUG == 1
-                        WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
+                        IF (j .EQ. 1 ) WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
 #endif
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
@@ -775,7 +820,12 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                                         channels(l:, channel) =&
                                                         channels(l:, channel)+photon_temp%weight*&
                                                         photon_temp%variance_reduction(k,l)%weight(m,n)
+                                                        var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
+                                                        var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
+                                                        photon_temp%variance_reduction(k,l)%weight(m,n)&
+                                                        *photon_temp%weight*det_corr_all(inputF%composition%layers(k)%Z(m),n)
                                                 ENDIF
+
                                                ENDDO
                                              ENDDO
                                            ENDDO 
@@ -819,18 +869,20 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
                                                 IF (photon_temp%history(k,1) .LE. KL1_LINE .AND.&
                                                 photon_temp%history(k,1) .GE. P3P5_LINE) THEN
                                                         !fluorescence
-                                                        history(element,ABS(photon_temp%history(k,1)),k) = &
-                                                        history(element,ABS(photon_temp%history(k,1)),k) + 1
+                                                        brute_history(element,ABS(photon_temp%history(k,1)),k) = &
+                                                        brute_history(element,ABS(photon_temp%history(k,1)),k) + &
+                                                        INT(photon_temp%weight*det_corr_all(element,ABS(photon_temp%history(k,1))),KIND=C_LONG)
+                                                         
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
                                                         !rayleigh
-                                                        history(element,383+1,k) = &
-                                                        history(element,383+1,k) + 1
+                                                        brute_history(element,383+1,k) = &
+                                                        brute_history(element,383+1,k) + photon_temp%weight_long
                                                 ELSEIF &
                                                 (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
                                                         !compton
-                                                        history(element,383+2,k) = &
-                                                        history(element,383+2,k) + 1
+                                                        brute_history(element,383+2,k) = &
+                                                        brute_history(element,383+2,k) + photon_temp%weight_long
                                                 ENDIF
                                                 !ENDDO
 #if DEBUG == 1
@@ -899,45 +951,45 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
         WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
         WRITE (*,'(A,I)') 'Comptons: ',comptons
         WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
-        WRITE (*,'(A,I)') 'Fe-KL2: ',history(26,ABS(KL2_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KL3: ',history(26,ABS(KL3_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KM2: ',history(26,ABS(KM2_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KM3: ',history(26,ABS(KM3_LINE),1)
-        !WRITE (*,'(A,I)') 'Fe-KL2: ',history(26,ABS(KL2_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KL3: ',history(26,ABS(KL3_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KM2: ',history(26,ABS(KM2_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KM3: ',history(26,ABS(KM3_LINE),2)
-        WRITE (*,'(A,I)') 'Ni-KL2: ',history(28,ABS(KL2_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KL3: ',history(28,ABS(KL3_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KM2: ',history(28,ABS(KM2_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KM3: ',history(28,ABS(KM3_LINE),1)
-        !WRITE (*,'(A,I)') 'Ni-KL2: ',history(28,ABS(KL2_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KL3: ',history(28,ABS(KL3_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KM2: ',history(28,ABS(KM2_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KM3: ',history(28,ABS(KM3_LINE),2)
-        WRITE (*,'(A,I)') 'Au-KM3: ',history(79,ABS(KM3_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LA1: ',history(79,ABS(LA1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LA2: ',history(79,ABS(LA2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB1: ',history(79,ABS(LB1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB2: ',history(79,ABS(LB2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB3: ',history(79,ABS(LB3_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB4: ',history(79,ABS(LB4_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LG2: ',history(79,ABS(LG2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MA1: ',history(79,ABS(MA1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MA2: ',history(79,ABS(MA2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MB: ',history(79,ABS(MB_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MG: ',history(79,ABS(MG_LINE),1)
-        WRITE (*,'(A,I)') 'Ba-KL2: ',SUM(history(56,ABS(KL2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KL3: ',SUM(history(56,ABS(KL3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KM2: ',SUM(history(56,ABS(KM2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KM3: ',SUM(history(56,ABS(KM3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LA1: ',SUM(history(56,ABS(LA1_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LA2: ',SUM(history(56,ABS(LA2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB1: ',SUM(history(56,ABS(LB1_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB2: ',SUM(history(56,ABS(LB2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB3: ',SUM(history(56,ABS(LB3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB4: ',SUM(history(56,ABS(LB4_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LG2: ',SUM(history(56,ABS(LG2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Fe-KL2: ',brute_history(26,ABS(KL2_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KL3: ',brute_history(26,ABS(KL3_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KM2: ',brute_history(26,ABS(KM2_LINE),1)
+        WRITE (*,'(A,I)') 'Fe-KM3: ',brute_history(26,ABS(KM3_LINE),1)
+        !WRITE (*,'(A,I)') 'Fe-KL2: ',brute_history(26,ABS(KL2_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KL3: ',brute_history(26,ABS(KL3_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KM2: ',brute_history(26,ABS(KM2_LINE),2)
+        !WRITE (*,'(A,I)') 'Fe-KM3: ',brute_history(26,ABS(KM3_LINE),2)
+        WRITE (*,'(A,I)') 'Ni-KL2: ',brute_history(28,ABS(KL2_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KL3: ',brute_history(28,ABS(KL3_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KM2: ',brute_history(28,ABS(KM2_LINE),1)
+        WRITE (*,'(A,I)') 'Ni-KM3: ',brute_history(28,ABS(KM3_LINE),1)
+        !WRITE (*,'(A,I)') 'Ni-KL2: ',brute_history(28,ABS(KL2_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KL3: ',brute_history(28,ABS(KL3_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KM2: ',brute_history(28,ABS(KM2_LINE),2)
+        !WRITE (*,'(A,I)') 'Ni-KM3: ',brute_history(28,ABS(KM3_LINE),2)
+        WRITE (*,'(A,I)') 'Au-KM3: ',brute_history(79,ABS(KM3_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LA1: ',brute_history(79,ABS(LA1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LA2: ',brute_history(79,ABS(LA2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB1: ',brute_history(79,ABS(LB1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB2: ',brute_history(79,ABS(LB2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB3: ',brute_history(79,ABS(LB3_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LB4: ',brute_history(79,ABS(LB4_LINE),1)
+        WRITE (*,'(A,I)') 'Au-LG2: ',brute_history(79,ABS(LG2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MA1: ',brute_history(79,ABS(MA1_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MA2: ',brute_history(79,ABS(MA2_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MB: ',brute_history(79,ABS(MB_LINE),1)
+        WRITE (*,'(A,I)') 'Au-MG: ',brute_history(79,ABS(MG_LINE),1)
+        WRITE (*,'(A,I)') 'Ba-KL2: ',SUM(brute_history(56,ABS(KL2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-KL3: ',SUM(brute_history(56,ABS(KL3_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-KM2: ',SUM(brute_history(56,ABS(KM2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-KM3: ',SUM(brute_history(56,ABS(KM3_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LA1: ',SUM(brute_history(56,ABS(LA1_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LA2: ',SUM(brute_history(56,ABS(LA2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LB1: ',SUM(brute_history(56,ABS(LB1_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LB2: ',SUM(brute_history(56,ABS(LB2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LB3: ',SUM(brute_history(56,ABS(LB3_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LB4: ',SUM(brute_history(56,ABS(LB4_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,I)') 'Ba-LG2: ',SUM(brute_history(56,ABS(LG2_LINE),1:inputF%general%n_interactions_trajectory))
 #endif
 
         !multiply with detector absorbers and detector crystal
@@ -961,16 +1013,26 @@ nchannels, options, historyPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
         
         !now we can access the history in C using the same indices...
-        ALLOCATE(historyF(inputF%general%n_interactions_trajectory,(383+2),100))
-        historyF = RESHAPE(history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
+        ALLOCATE(brute_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
+        brute_historyF = RESHAPE(brute_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
 
-        historyPtr = C_LOC(historyF)
+        brute_historyPtr = C_LOC(brute_historyF)
 
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A,ES14.5)') 'zero_sum:' ,SUM(channels(0,:))
 #endif
-        
+       
+        IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
+                ALLOCATE(var_red_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
+                var_red_historyF = RESHAPE(var_red_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
+
+                var_red_historyPtr = C_LOC(var_red_historyF)
+        ELSE
+                var_red_historyPtr = C_NULL_PTR
+        ENDIF
+
+
 
         ALLOCATE(channelsF(nchannels,0:inputF%general%n_interactions_trajectory))
         channelsF = RESHAPE(channels, [nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
@@ -3306,6 +3368,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%history=photon%history
         photon%offspring%current_layer = photon%current_layer
         photon%offspring%weight = photon%weight
+        photon%offspring%weight_long = photon%weight_long
         photon%offspring%coords = photon%coords
         photon%offspring%detector_hit = .FALSE.
         photon%offspring%detector_hit2 = .FALSE.
@@ -3599,6 +3662,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%options%use_cascade_radiative = 0_C_INT
         photon%offspring%options%use_variance_reduction = 0_C_INT
         photon%offspring%weight = photon%weight
+        photon%offspring%weight_long = photon%weight_long
         photon%offspring%coords = photon%coords
         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
         !photon%offspring%theta = M_PI *fgsl_rng_uniform(rng)

@@ -58,7 +58,7 @@
 <!-- outputfile structure -->
 
 
-<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,history, xmimsim-input)>
+<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history?, xmimsim-input)>
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
@@ -67,7 +67,8 @@
 <!ELEMENT counts (#PCDATA)>
 <!ATTLIST counts interaction_number CDATA #REQUIRED>
 <!ELEMENT channelnr (#PCDATA)>
-<!ELEMENT history (fluorescence_line_counts*)>
+<!ELEMENT brute_force_history (fluorescence_line_counts*)>
+<!ELEMENT variance_reduction_history (fluorescence_line_counts*)>
 <!ELEMENT fluorescence_line_counts (#PCDATA)>
 <!ATTLIST fluorescence_line_counts atomic_number CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts line_type CDATA #REQUIRED>

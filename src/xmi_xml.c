@@ -914,7 +914,8 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 }
 
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+
 
 	xmlTextWriterPtr writer;
 	xmlDocPtr doc;
@@ -1146,11 +1147,11 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 		return 0;
 	}
 
-	//history.. only print the relevant elements...
+	//brute_history.. only print the relevant elements...
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
 
-	if (xmlTextWriterStartElement(writer, BAD_CAST "history") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement history\n");
+	if (xmlTextWriterStartElement(writer, BAD_CAST "brute_force_history") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement brute_force_history\n");
 		return 0;
 	}
 
@@ -1160,7 +1161,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 #endif
 		for (j = 1 ; j <= 385 ; j++) {
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
-				if (ARRAY3D_FORTRAN(history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
+				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
 					continue;
 				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
 					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
@@ -1178,7 +1179,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 					fprintf(stderr,"Error writing interaction_number\n");
 					return 0;
 				}
-				if (xmlTextWriterWriteFormatString(writer,"%i",ARRAY3D_FORTRAN(history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+				if (xmlTextWriterWriteFormatString(writer,"%li",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
 				}
@@ -1191,10 +1192,57 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, int *history, d
 	}
 
 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending history\n");
+		fprintf(stderr,"Error ending brute_force_history\n");
 		return 0;
 	}
 
+	if (var_red_history != NULL) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
+			return 0;
+		}
+
+		for (i = 0 ; i < nuniqZ ; i++) {
+	#if DEBUG == 1
+			fprintf(stdout,"Element: %i\n",uniqZ[i]);
+	#endif
+			for (j = 1 ; j <= 385 ; j++) {
+				for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
+						continue;
+					if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+						fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+						fprintf(stderr,"Error writing atomic_number\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
+						fprintf(stderr,"Error writing line_type\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",k) < 0) {
+						fprintf(stderr,"Error writing interaction_number\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+						fprintf(stderr,"Error writing counts\n");
+						return 0;
+					}
+					if (xmlTextWriterEndElement(writer) < 0) {
+						fprintf(stderr,"Error ending fluorescence_line_counts\n");
+						return 0;
+					}
+				}
+			}
+		}
+
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending variance_reduction_history\n");
+			return 0;
+		}
+	}
 	//write inputfile
 	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
 		fprintf(stderr,"Error writing xmimsim tag\n");
