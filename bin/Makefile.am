@@ -2,7 +2,8 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 
 bin_PROGRAMS = xmimsim-db xmimsim-harvester \
 	xmimsim-test xmimsim-test-xml \
-	xmimsim xmimsim-test-alloc
+	xmimsim xmimsim-test-alloc \
+	xmimsim-pymca
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -40,3 +41,6 @@ xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
 xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
 #xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
 xmimsim_test_alloc_LDADD = ../src/libxmimsim.la 
+
+xmimsim_pymca_SOURCES = xmimsim-pymca.c
+xmimsim_pymca_LDADD = ../src/libxmimsim.la
