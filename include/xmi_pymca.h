@@ -7,7 +7,7 @@
 
 
 struct xmi_pymca {
-	double *z_arr;
+	int *z_arr;
 	int n_peaks;
 	//KL2 and KL3 + escape peaks
 	double *k_alpha;

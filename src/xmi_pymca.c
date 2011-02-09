@@ -175,7 +175,183 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 
 }
 
-//int get_peak_areas
+int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca **pymca_input) {
+	int rv = 0;
+	gchar **elements, **lines;
+	gsize n_elements, n_lines;
+	GError *error;
+	int i, Z, j;
+	int K_found, Ka_found, Kb_found, L_found, L1_found, L2_found, L3_found;
+	int use_K, use_L;
+	gchar buffer[128];
+
+
+	//first examine result.config.peaks...
+	elements = g_key_file_get_keys(pymcaFile, "result.config.peaks", &n_elements, &error);
+	if (elements == NULL || n_elements == 0) {
+		fprintf(stderr,"No peaks were configured for the fit: aborting\n");
+		return rv;
+	}
+	
+	//malloc memory...
+	*pymca_input = (struct xmi_pymca *) malloc(sizeof(struct xmi_pymca)); 
+	(*pymca_input)->n_peaks = n_elements;
+	(*pymca_input)->z_arr = (int *) malloc(sizeof(int)*n_elements);
+	(*pymca_input)->k_alpha = (double *) malloc(sizeof(double)*n_elements);
+	(*pymca_input)->l_alpha = (double *) malloc(sizeof(double)*n_elements);
+
+	for (i = 0 ; i < n_elements ; i++) {
+#if DEBUG == 1
+		fprintf(stdout,"Examining peaks of %s\n",elements[i]);
+#endif
+		Z = SymbolToAtomicNumber(g_strstrip(elements[i]));
+		(*pymca_input)->z_arr[i] = Z;
+
+		//check the lines 
+		K_found = Ka_found = Kb_found = L_found = L1_found = L2_found = L3_found = 0;
+
+		lines = g_key_file_get_string_list(pymcaFile, "result.config.peaks",elements[i], &n_lines, &error);
+		
+		if (lines == NULL || n_lines == 0) {
+			fprintf(stderr,"Element %s appears to have no peaks configured although mentioned in result.config.peaks\n",elements[i]);
+			return rv;
+		}
+
+		//check lines
+		for (j = 0 ; j < n_lines ; j++) {
+			if (strcmp("K",g_strstrip(lines[j])) == 0) {
+				K_found = 1;
+			}
+			else if (strcmp("Ka",g_strstrip(lines[j])) == 0) {
+				Ka_found = 1;
+			}
+			else if (strcmp("Kb",g_strstrip(lines[j])) == 0) {
+				Kb_found = 1;
+			}
+			else if (strcmp("L",g_strstrip(lines[j])) == 0) {
+				L_found = 1;
+			}
+			else if (strcmp("L1",g_strstrip(lines[j])) == 0) {
+				L1_found = 1;
+			}
+			else if (strcmp("L2",g_strstrip(lines[j])) == 0) {
+				L2_found = 1;
+			}
+			else if (strcmp("L3",g_strstrip(lines[j])) == 0) {
+				L3_found = 1;
+			}
+			else if (strcmp("M",g_strstrip(lines[j])) == 0) {
+				fprintf(stdout,"M-lines are not yet supported...\n");
+			}
+		}
+
+		g_strfreev(lines);
+
+                //K-line
+		if ( (K_found && (Ka_found || Kb_found))) {
+			fprintf(stderr,"Invalid combination of K-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!K_found && Ka_found && !Kb_found) {
+			fprintf(stderr,"Invalid combination of K-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!K_found && !Ka_found && Kb_found) {
+			fprintf(stderr,"Invalid combination of K-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (K_found)
+			use_K=TRUE;
+		else
+			use_K=FALSE;
+		//L-line
+		if ( (L_found && (L1_found || L2_found || L3_found))) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && !L1_found && !L2_found && L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && !L1_found && L2_found && !L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && !L1_found && L2_found && L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && L1_found && !L2_found && L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && L1_found && L2_found && !L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (!L_found && L1_found && !L2_found && !L3_found) {
+			fprintf(stderr,"Invalid combination of L-lines detected for element %s\n",elements[i]);
+			return rv;
+		}
+		else if (L_found)
+			use_L=TRUE;
+		else
+			use_L=FALSE;
+
+
+		(*pymca_input)->k_alpha[i] = 0.0;
+		(*pymca_input)->l_alpha[i] = 0.0;
+
+		//check all keys
+		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+
+
+#if DEBUG == 1
+		fprintf(stdout,"k_alpha: %lf\n",(*pymca_input)->k_alpha[i]);
+		fprintf(stdout,"l_alpha: %lf\n",(*pymca_input)->l_alpha[i]);
+#endif
+
+	}
+
+	g_strfreev(elements);
+
+	rv = 1;
+	return rv;
+}
 
 int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input) {
 	int rv = 0;
@@ -199,7 +375,11 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		return rv;
 	
 
-
+	//read multilayer
+	
+	//get_peak_areas
+	if (get_peak_areas(pymcaFile, pymca_input) == 0)
+		return rv;
 
 
 
