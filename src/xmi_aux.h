@@ -2,6 +2,7 @@
 #define XMI_AUX_X
 
 #include <stddef.h>
+#include "xmi_data_structs.h"
 
 //returns NULL on error
 void *xmi_memdup(const void *mem, size_t bytes);
@@ -21,4 +22,9 @@ void xmi_scale_double(double *array, int n, double scale_factor);
 
 //to be used in qsort or bsearch for comparing integers
 int xmi_cmp_int(const void *a, const void *b);
+
+struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl);
+
+struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
+
 #endif

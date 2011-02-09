@@ -6,6 +6,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_linalg.h>
+#include <xraylib-parser.h>
 
 
 
@@ -147,4 +148,31 @@ void xmi_determinant_matrix(double x[3], double y[3], double z[3]) {
 
 	fprintf(stdout,"Determinant is: %lf\n",det);
 	return;
+
+}
+struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
+	struct compoundData *rv;
+
+	rv = (struct compoundData *) malloc(sizeof(struct compoundData));
+
+	if (xl != NULL) {
+		rv->nElements = xl->n_elements;
+		rv->Elements = (int *) xmi_memdup(xl->Z, sizeof(int)*xl->n_elements);
+		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
+	}
+	else {
+		rv->nElements = 0; 
+	}
+	return rv;
+}
+
+struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
+	struct xmi_layer *rv;
+
+	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+
+		rv->n_elements = cd->nElements;
+		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
+		rv->weight = (double *) xmi_memdup(cd->massFractions, sizeof(double)*cd->nElements);
+	return rv;
 }

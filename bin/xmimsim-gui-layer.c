@@ -434,32 +434,6 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 
 }
 
-struct compoundData *compoundData2xmi_layer(struct xmi_layer *xl) {
-	struct compoundData *rv;
-
-	rv = (struct compoundData *) malloc(sizeof(struct compoundData));
-
-	if (xl != NULL) {
-		rv->nElements = xl->n_elements;
-		rv->Elements = (int *) xmi_memdup(xl->Z, sizeof(int)*xl->n_elements);
-		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
-	}
-	else {
-		rv->nElements = 0; 
-	}
-	return rv;
-}
-
-struct xmi_layer *xmi_layer2compoundData( struct compoundData *cd) {
-	struct xmi_layer *rv;
-
-	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
-
-		rv->n_elements = cd->nElements;
-		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
-		rv->weight = (double *) xmi_memdup(cd->massFractions, sizeof(double)*cd->nElements);
-	return rv;
-}
 
 
 void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer data) {
@@ -502,26 +476,26 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 #endif
 			if (*(cw->lw->my_layer) != NULL && (*(cw->lw->my_layer))->n_elements > 0) {
 				//copy xmi_layer to compoundData and add current contents
-				cd = compoundData2xmi_layer(*(cw->lw->my_layer)  );
+				cd = xmi_layer2compoundData(*(cw->lw->my_layer)  );
 				//calculate sum
 				cdsum = add_compound_data(*cd, 1.0, *cd2, weight/100.0);
 				density =(*(cw->lw->my_layer))->density; 
 				thickness=(*(cw->lw->my_layer))->thickness; 
 				xmi_free_layer(*(cw->lw->my_layer));
 				free( *(cw->lw->my_layer));
-				*(cw->lw->my_layer) = xmi_layer2compoundData (cdsum);
+				*(cw->lw->my_layer) = compoundData2xmi_layer (cdsum);
 				(*(cw->lw->my_layer))->thickness = thickness;
 				(*(cw->lw->my_layer))->density = density;
 			}
 			else if (*(cw->lw->my_layer) == NULL) {
-				*(cw->lw->my_layer) = xmi_layer2compoundData (cd2);
+				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
 				(*(cw->lw->my_layer))->thickness = 0.0;
 				(*(cw->lw->my_layer))->density = 0.0;
 				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);	
 			}
 			else if ((*(cw->lw->my_layer))->n_elements == 0) {
 				free( *(cw->lw->my_layer));
-				*(cw->lw->my_layer) = xmi_layer2compoundData (cd2);
+				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
 				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);	
 			}
 			else {
