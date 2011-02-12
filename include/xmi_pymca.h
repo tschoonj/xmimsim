@@ -13,6 +13,13 @@ struct xmi_pymca {
 	double *k_alpha;
 	//L3M5 and L3M4 + escape peaks
 	double *l_alpha;
+	//layer that will be quantified
+	int ilay_pymca;
+	//elements that will be quantified... trace elements
+	int *z_arr_quant;
+	int n_z_arr_quant;
+	//matrix flags
+	int flags[100];
 };
 
 

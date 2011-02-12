@@ -1,7 +1,7 @@
 #ifndef XMI_DATA_STRUCTS_H
 #define XMI_DATA_STRUCTS_H
 
-
+#include <stdio.h>
 
 struct xmi_general {
 	float version;
@@ -155,5 +155,11 @@ void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
 
 //Fortran function that further initializes the input
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
+
+//prints the contents of the structure... useful when debugging
+void xmi_print_input(FILE *fPtr, struct xmi_input *input);
+
+void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
+
 
 #endif
