@@ -44,7 +44,79 @@ REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
 
 CONTAINS
 
+FUNCTION xmi_update_input_from_hdf5(xmi_inputFPtr, xmi_hdf5FPtr) &
+BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: xmi_inputFPtr, xmi_hdf5FPtr
+        TYPE (xmi_input), POINTER :: xmi_inputF
+        TYPE (xmi_hdf5),  POINTER :: xmi_hdf5F
+        INTEGER :: i,j,k
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ
+        INTEGER (C_INT) :: rv
+        
+        CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
+        CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
+        !determine the unique Z and sort them
+        ASSOCIATE (layers => xmi_inputF%composition%layers)
+        uniqZ = [layers(1)%Z(1)]
+        DO i=1,SIZE(layers)
+                DO j=1,SIZE(layers(i)%Z) 
+                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
+                        [uniqZ,layers(i)%Z(j)]
+                ENDDO
+        ENDDO
+        ENDASSOCIATE
+
+        CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
+        INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
+
+        DO i=1,SIZE(uniqZ) 
+                xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
+                ASSOCIATE (layers => xmi_inputF%composition%layers, &
+                n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
+                !create pointers
+                DO j=1,SIZE(layers)
+                        IF (.NOT. ALLOCATED(layers(j)%xmi_hdf5_Z_local)) & 
+                        ALLOCATE(layers(j)%xmi_hdf5_Z_local(layers(j)%n_elements))
+                        DO k=1,layers(j)%n_elements 
+                                IF (layers(j)%Z(k) == uniqZ(i)) &
+                                layers(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)   
+                        ENDDO
+
+                ENDDO
+
+                ENDASSOCIATE
+        ENDDO
+        ASSOCIATE (layers => xmi_inputF%composition%layers, &
+        n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
+        DO j=1,SIZE(layers)
+                !calculate thickness in Z direction
+                layers(j)%thickness_along_Z = &
+                layers(j)%thickness/SIN(ATAN(n_sample_orientation(3)/n_sample_orientation(2)))
+        ENDDO
+
+        layers(xmi_inputF%composition%reference_layer)%Z_coord_begin =&
+        0.0_C_DOUBLE+xmi_inputF%geometry%d_sample_source
+        layers(xmi_inputF%composition%reference_layer)%Z_coord_end =&
+        layers(xmi_inputF%composition%reference_layer)%thickness_along_Z+&
+        xmi_inputF%geometry%d_sample_source
+
+        DO j=xmi_inputF%composition%reference_layer+1,SIZE(layers)
+                layers(j)%Z_coord_begin =layers(j-1)%Z_coord_end
+                layers(j)%Z_coord_end = layers(j)%Z_coord_begin+layers(j)%thickness_along_Z
+        ENDDO
+        DO j=xmi_inputF%composition%reference_layer-1,1,-1
+                layers(j)%Z_coord_end = layers(j+1)%Z_coord_begin
+                layers(j)%Z_coord_begin = layers(j)%Z_coord_end-layers(j)%thickness_along_Z
+        ENDDO
+
+
+        ENDASSOCIATE
+        rv=1
+        RETURN
+
+ENDFUNCTION xmi_update_input_from_hdf5
 
 FUNCTION xmi_init_from_hdf5(xmi_hdf5_file, xmi_inputFPtr, xmi_hdf5FPtr ) &
 BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)

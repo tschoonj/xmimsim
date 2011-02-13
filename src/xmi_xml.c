@@ -945,7 +945,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	     INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 */
 
-#if DEBUG == 1
+#if DEBUG == 0
 	fprintf(stdout,"Before uniqZ\n");
 #endif
 	uniqZ = (int *) realloc(uniqZ, sizeof(int));
@@ -966,11 +966,11 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 			}
 		}
 	}
-#if DEBUG == 1
+#if DEBUG == 0
 	fprintf(stdout,"After uniqZ\n");
 #endif
 	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
-#if DEBUG == 1
+#if DEBUG == 0
 	for (i = 0 ; i < nuniqZ ; i++)
 		fprintf(stdout,"Z: %i\n",uniqZ[i]);
 #endif
@@ -1156,7 +1156,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	}
 
 	for (i = 0 ; i < nuniqZ ; i++) {
-#if DEBUG == 1
+#if DEBUG == 0
 		fprintf(stdout,"Element: %i\n",uniqZ[i]);
 #endif
 		for (j = 1 ; j <= 385 ; j++) {
@@ -1203,7 +1203,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 		}
 
 		for (i = 0 ; i < nuniqZ ; i++) {
-	#if DEBUG == 1
+	#if DEBUG == 0
 			fprintf(stdout,"Element: %i\n",uniqZ[i]);
 	#endif
 			for (j = 1 ; j <= 385 ; j++) {

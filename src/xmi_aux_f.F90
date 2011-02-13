@@ -737,6 +737,11 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
         !nothing to do
 
         !free composition
+#if DEBUG == 0
+        WRITE (6,'(A,I2)') 'n_layers: ',xmi_inputF%composition%n_layers
+#endif
+
+
         DO i=1,xmi_inputF%composition%n_layers
                 DEALLOCATE(xmi_inputF%composition%layers(i)%Z)
                 DEALLOCATE(xmi_inputF%composition%layers(i)%weight)

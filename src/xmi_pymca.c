@@ -457,7 +457,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 	return rv;
 }
 
-int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca **pymca_input) {
+int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int rv = 0;
 	gchar **elements, **lines;
 	gsize n_elements, n_lines;
@@ -476,18 +476,17 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca **pymca_input) {
 	}
 	
 	//malloc memory...
-	*pymca_input = (struct xmi_pymca *) malloc(sizeof(struct xmi_pymca)); 
-	(*pymca_input)->n_peaks = n_elements;
-	(*pymca_input)->z_arr = (int *) malloc(sizeof(int)*n_elements);
-	(*pymca_input)->k_alpha = (double *) malloc(sizeof(double)*n_elements);
-	(*pymca_input)->l_alpha = (double *) malloc(sizeof(double)*n_elements);
+	(pymca_input)->n_peaks = n_elements;
+	(pymca_input)->z_arr = (int *) malloc(sizeof(int)*n_elements);
+	(pymca_input)->k_alpha = (double *) malloc(sizeof(double)*n_elements);
+	(pymca_input)->l_alpha = (double *) malloc(sizeof(double)*n_elements);
 
 	for (i = 0 ; i < n_elements ; i++) {
 #if DEBUG == 1
 		fprintf(stdout,"Examining peaks of %s\n",elements[i]);
 #endif
 		Z = SymbolToAtomicNumber(g_strstrip(elements[i]));
-		(*pymca_input)->z_arr[i] = Z;
+		(pymca_input)->z_arr[i] = Z;
 
 		//check the lines 
 		K_found = Ka_found = Kb_found = L_found = L1_found = L2_found = L3_found = 0;
@@ -581,50 +580,50 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca **pymca_input) {
 			use_L=FALSE;
 
 
-		(*pymca_input)->k_alpha[i] = 0.0;
-		(*pymca_input)->l_alpha[i] = 0.0;
+		(pymca_input)->k_alpha[i] = 0.0;
+		(pymca_input)->l_alpha[i] = 0.0;
 
 		//check all keys
 		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
-		(*pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
-		(*pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 
 #if DEBUG == 1
-		fprintf(stdout,"k_alpha: %lf\n",(*pymca_input)->k_alpha[i]);
-		fprintf(stdout,"l_alpha: %lf\n",(*pymca_input)->l_alpha[i]);
+		fprintf(stdout,"k_alpha: %lf\n",(pymca_input)->k_alpha[i]);
+		fprintf(stdout,"l_alpha: %lf\n",(pymca_input)->l_alpha[i]);
 #endif
 
 	}
@@ -735,6 +734,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	struct xmi_excitation *excitation = NULL;
 	struct xmi_detector *detector = NULL;
 	struct xmi_general *general = NULL;
+	gchar **strings;
+	gsize length;
 
 	//read the file...
 	pymcaFile = g_key_file_new();
@@ -760,6 +761,9 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		return rv;
 	}
 
+#if DEBUG == 1
+	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
+#endif
 
 
 	//read atmosphere composition
@@ -780,7 +784,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #endif
 
 	//get_peak_areas
-	if (get_peak_areas(pymcaFile, pymca_input) == 0)
+	if (get_peak_areas(pymcaFile, *pymca_input) == 0)
 		return rv;
 
 #if DEBUG == 1
@@ -904,9 +908,55 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	detector->n_crystal_layers = n_crystal_layers;
 	detector->crystal_layers = crystal_layers;
 
+	//adjust ilay_pymca if necessary
+	if (atmosphere_layer == NULL)
+		(*pymca_input)->ilay_pymca = 0;			
 
+#if DEBUG == 1
+	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
+#endif
+	//nchannels
+	strings = g_key_file_get_string_list(pymcaFile,"result","energy", &length, NULL);
+	(*pymca_input)->nchannels = (int) length;	
+	g_strfreev(strings);
 
 	rv = 1;
+
+	return rv;
+}
+
+struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant) {
+	
+	struct xmi_layer rv;
+	double sum_quant, sum_matrix;
+	int i;
+
+	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
+	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
+	rv.density = matrix->density;
+	rv.thickness = matrix->thickness;
+
+
+	//calculate sum 
+	sum_quant = xmi_sum_double(weights_arr_quant, pymca_aux->n_z_arr_quant);
+	sum_matrix = xmi_sum_double(matrix->weight, matrix->n_elements);
+	xmi_scale_double(matrix->weight, matrix->n_elements, 1.0/sum_matrix);
+
+
+	for (i = 0 ; i < matrix->n_elements ; i++) {
+		rv.Z[i] = matrix->Z[i];
+		rv.weight[i] = matrix->weight[i]*(1.0-sum_quant);
+	}
+
+	for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
+		rv.Z[i+matrix->n_elements] = pymca_aux->z_arr_quant[i];
+		rv.weight[i+matrix->n_elements] = weights_arr_quant[i];
+	}
+	rv.n_elements = matrix->n_elements+pymca_aux->n_z_arr_quant;
+	rv.density = matrix->density;
+	rv.thickness= matrix->thickness;
+
+
 
 	return rv;
 }

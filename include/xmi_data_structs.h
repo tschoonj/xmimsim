@@ -153,6 +153,8 @@ int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *h
 //Fortran function that frees a Fortran xmi_hdf5 TYPE variable. The value of the pointer shall be set to NULL afterwards.
 void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
 
+int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
+
 //Fortran function that further initializes the input
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
 

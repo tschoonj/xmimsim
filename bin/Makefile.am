@@ -44,3 +44,6 @@ xmimsim_test_alloc_LDADD = ../src/libxmimsim.la
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la
+xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+

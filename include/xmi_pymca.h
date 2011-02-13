@@ -6,6 +6,12 @@
 #include "xmi_data_structs.h"
 
 
+
+#define XMI_PYMCA_START_CONC 0.0001
+#define XMI_PYMCA_MAX_ITERATIONS 100
+#define XMI_PYMCA_CONV_THRESHOLD 0.001
+
+
 struct xmi_pymca {
 	int *z_arr;
 	int n_peaks;
@@ -20,6 +26,8 @@ struct xmi_pymca {
 	int n_z_arr_quant;
 	//matrix flags
 	int flags[100];
+	//nchannels
+	int nchannels;
 };
 
 
@@ -28,5 +36,8 @@ struct xmi_pymca {
 
 //allocation of input occurs in function!
 int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **);
+
+struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant);
+
 
 #endif
