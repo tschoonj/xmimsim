@@ -11,6 +11,7 @@ struct xmi_main_options {
 	int use_cascade_auger;
 	int use_cascade_radiative;
 	int use_variance_reduction;
+	int use_optimizations;
 };
 
 

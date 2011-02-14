@@ -1919,6 +1919,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         REAL (C_DOUBLE) :: atomsel_threshold
         INTEGER (C_INT) :: pos
         INTEGER (C_INT) :: rv_interaction 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: distances, r_random_layer
+        REAL (C_DOUBLE) :: r_random_layer_sum
 
         rv = 0
         terminated = .FALSE.
@@ -1940,7 +1942,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ENDIF
                 !Check in which layer it will interact
                 inside = .FALSE.
-                interactionR = fgsl_rng_uniform(rng)
 #if DEBUG == 2
                 WRITE (*,'(A,F12.6)') 'interactionR= ',interactionR
 #endif
@@ -1971,100 +1972,219 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 blbs = 1.0_C_DOUBLE
                 min_random_layer = 0.0_C_DOUBLE
                 max_random_layer = 0.0_C_DOUBLE
+                interactionR = fgsl_rng_uniform(rng)
 
-#if DEBUG == 2
+#if DEBUG == 1
                 WRITE (*,'(A)') 'Before do loop'
+                WRITE (*,'(A,I2)') 'optimizations: ',photon%options%use_optimizations
+                
 #endif
-
-                DO i=photon%current_layer,step_do_max, step_do_dir
-                        !calculate distance between current coords and
-                        !intersection with next layer
-                        !determine next plane
+                IF (photon%options%use_optimizations .EQ. 0_C_INT .OR.&
+                photon%n_interactions .GT. 0_C_INT) THEN
+                        DO i=photon%current_layer,step_do_max, step_do_dir
+                                !calculate distance between current coords and
+                                !intersection with next layer
+                                !determine next plane
 #if DEBUG == 1
-                        IF (photon%n_interactions .EQ. 1 .AND.&
-                        photon%detector_hit2 .EQ. .TRUE.) THEN
-                                WRITE (*,'(A,I2)') 'last interaction:',&
-                                photon%last_interaction
-                                WRITE (*,'(A,3F12.5)') 'photon%coords: ', photon%coords
-                                WRITE (*,'(A,I2)') 'step_do_dir: ', step_do_dir
-
-                        ENDIF
+                               IF (photon%n_interactions .EQ. 1 .AND.&
+                                photon%detector_hit2 .EQ. .TRUE.) THEN
+                                        WRITE (*,'(A,I2)') 'last interaction:',&
+                                        photon%last_interaction
+                                        WRITE (*,'(A,3F12.5)') 'photon%coords: ', photon%coords
+                                        WRITE (*,'(A,I2)') 'step_do_dir: ', step_do_dir
+        
+                                ENDIF
 #endif
-                        line%point = photon%coords
-                        IF (step_do_dir .EQ. 1) THEN
-                                plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                inputF%composition%layers(i)%Z_coord_end]
-                        ELSE
-                                plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                inputF%composition%layers(i)%Z_coord_begin]
-                        ENDIF
+                                line%point = photon%coords
+                                IF (step_do_dir .EQ. 1) THEN
+                                        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(i)%Z_coord_end]
+                                ELSE
+                                        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(i)%Z_coord_begin]
+                                ENDIF
 
-                        IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
-                                CALL EXIT(1)
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                        CALL EXIT(1)
                         
-                        dist = xmi_distance_two_points(photon%coords,intersect)
+                                dist = xmi_distance_two_points(photon%coords,intersect)
 #if DEBUG == 1
-                        IF (photon%n_interactions .EQ. 1 .AND.&
-                        photon%detector_hit2 .EQ. .TRUE.) THEN
-                                WRITE (*,'(A,F12.5)') 'dist: ', dist
-                                WRITE (*,'(A,3F12.5)') 'intersect: ', intersect
-                                WRITE (*,'(A,3F12.5)') 'plane%point: ', plane%point
-                                WRITE (*,'(A,3F12.5)') 'plane%normv: ', plane%normv
-                                WRITE (*,'(A,F12.5)') 'mu: ', photon%mus(i)
-                        ENDIF
+                                IF (photon%n_interactions .EQ. 1 .AND.&
+                                photon%detector_hit2 .EQ. .TRUE.) THEN
+                                      WRITE (*,'(A,F12.5)') 'dist: ', dist
+                                        WRITE (*,'(A,3F12.5)') 'intersect: ', intersect
+                                        WRITE (*,'(A,3F12.5)') 'plane%point: ', plane%point
+                                        WRITE (*,'(A,3F12.5)') 'plane%normv: ', plane%normv
+                                        WRITE (*,'(A,F12.5)') 'mu: ', photon%mus(i)
+                                ENDIF
 #endif
 
-                        !calculate max value of random number
-                        !tempexp = EXP(-1.0_C_DOUBLE*(dist)*inputF%composition%layers(i)%density*&
-                        !photon%mus(i))
-                        tempexp = EXP(-1.0_C_DOUBLE*(dist)*&
-                        inputF%composition%layers(i)%density*&
-                        photon%mus(i))
-                        min_random_layer = max_random_layer 
-                        max_random_layer = max_random_layer + blbs*(&
-                        1.0_C_DOUBLE - tempexp)
-                        !dist here must be total dist: from previous interaction
-                        !until current layer
+                                !calculate max value of random number
+                                !tempexp = EXP(-1.0_C_DOUBLE*(dist)*inputF%composition%layers(i)%density*&
+                                !photon%mus(i))
+                                tempexp = EXP(-1.0_C_DOUBLE*(dist)*&
+                                inputF%composition%layers(i)%density*&
+                                photon%mus(i))
+                                min_random_layer = max_random_layer 
+                                max_random_layer = max_random_layer + blbs*(&
+                                1.0_C_DOUBLE - tempexp)
+                                !dist here must be total dist: from previous interaction
+                                !until current layer
                        
 #if DEBUG == 1
-                        !WRITE (*,'(A,F12.5)') 'tempexp: ', tempexp
-                        IF (photon%n_interactions .EQ. 1 .AND.&
-                        photon%detector_hit2 .EQ. .TRUE.) THEN
-                                WRITE (*,'(A,F12.5)') 'min_random_layer: ',&
-                                min_random_layer
-                                WRITE (*,'(A,F12.5)') 'max_random_layer: ',&
-                                max_random_layer
-                                WRITE (*,'(A,F12.5)') 'interactionR: ',&
-                                interactionR
-                        ENDIF
+                                !WRITE (*,'(A,F12.5)') 'tempexp: ', tempexp
+                                IF (photon%n_interactions .EQ. 1 .AND.&
+                                photon%detector_hit2 .EQ. .TRUE.) THEN
+                                        WRITE (*,'(A,F12.5)') 'min_random_layer: ',&
+                                       min_random_layer
+                                        WRITE (*,'(A,F12.5)') 'max_random_layer: ',&
+                                        max_random_layer
+                                        WRITE (*,'(A,F12.5)') 'interactionR: ',&
+                                        interactionR
+                                ENDIF
 #endif
-                        IF (interactionR .LE. max_random_layer) THEN
-                                !interaction occurs in this layer!!!
-                                !update coordinates of photon
-                                dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
-                                min_random_layer)/blbs)&
-                                /photon%mus(i)/inputF%composition%layers(i)%density
+                                IF (interactionR .LE. max_random_layer) THEN
+                                        !interaction occurs in this layer!!!
+                                        !update coordinates of photon
+                                        dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
+                                        min_random_layer)/blbs)&
+                                        /photon%mus(i)/inputF%composition%layers(i)%density
                                 
-                                CALL xmi_move_photon_with_dist(photon,dist)
+                                         CALL xmi_move_photon_with_dist(photon,dist)
 #if DEBUG == 2
-                                WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
-                                WRITE (*,'(A,3F12.5)') 'New coords: '&
-                                ,photon%coords
+                                        WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
+                                        WRITE (*,'(A,3F12.5)') 'New coords: '&
+                                        ,photon%coords
 #endif
-                                !update current_layer
-                                photon%current_layer = i
-                                inside = .TRUE.
-                                !exit loop 
-                                EXIT
+                                        !update current_layer
+                                        photon%current_layer = i
+                                        inside = .TRUE.
+                                        !exit loop 
+                                        EXIT
+                                ELSE
+                                        !goto next layer
+                                        !coordinates equal to layer boundaries
+                                        photon%coords = intersect
+                                        dist_prev = dist_prev+dist
+                                        blbs = blbs*tempexp
+                                        !check if we are not leaving the system!
+                                ENDIF
+                        ENDDO
+                ELSEIF (photon%options%use_optimizations .EQ. 1_C_INT) THEN
+                        !optimize by forcing interactions
+                        IF (step_do_dir  .GT. 0) THEN
+                                ALLOCATE(distances(photon%current_layer:step_do_max))
+                                ALLOCATE(r_random_layer(photon%current_layer:step_do_max))
                         ELSE
-                                !goto next layer
-                                !coordinates equal to layer boundaries
-                                photon%coords = intersect
-                                dist_prev = dist_prev+dist
-                                blbs = blbs*tempexp
-                                !check if we are not leaving the system!
+                                ALLOCATE(distances(step_do_max:photon%current_layer))
+                                ALLOCATE(r_random_layer(step_do_max:photon%current_layer))
                         ENDIF
-                ENDDO
+
+
+                        line%point = photon%coords
+
+                        !calculate distances and r_random_layer values
+                        DO i=photon%current_layer,step_do_max, step_do_dir
+                                IF (step_do_dir .EQ. 1) THEN
+                                        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(i)%Z_coord_end]
+                                ELSE
+                                        plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(i)%Z_coord_begin]
+                                ENDIF
+
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                        CALL EXIT(1)
+                        
+                                distances(i) = xmi_distance_two_points(line%point,intersect)
+                                r_random_layer(i) = 1.0_C_DOUBLE
+                                DO j=i,photon%current_layer,-1*step_do_dir
+                                        IF (i .EQ. j) THEN
+                                                r_random_layer(i) =&
+                                                r_random_layer(i)*(1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*inputF%composition%layers(i)%density*distances(i)*photon%mus(i)))
+                                        ELSE
+                                                r_random_layer(i) =&
+                                                r_random_layer(i)*EXP(-1.0_C_DOUBLE*inputF%composition%layers(j)%density*distances(j)*photon%mus(j))
+                                        ENDIF
+                                ENDDO
+                                !update line%point
+                                line%point = intersect
+
+
+
+#if DEBUG == 0
+                        WRITE (6,'(A,ES14.5)') 'distances(i): ',distances(i)
+                        WRITE (6,'(A,ES14.5)') 'r_random_layer(i): ', r_random_layer(i)
+#endif
+                        ENDDO
+
+                        r_random_layer_sum = SUM(r_random_layer)
+                        !adjust photon weight
+                        photon%weight = photon%weight*r_random_layer_sum
+
+                        interactionR = interactionR*r_random_layer_sum
+#if DEBUG == 0
+                        WRITE (6,'(A,F14.6)') 'r_random_layer_sum: ',&
+                        r_random_layer_sum
+#endif
+                        DO i=photon%current_layer,step_do_max, step_do_dir
+                                !calculate distance between current coords and
+                                !intersection with next layer
+                                !determine next plane
+                                line%point = photon%coords
+
+                                !calculate max value of random number
+                                tempexp = EXP(-1.0_C_DOUBLE*(distances(i))*&
+                                inputF%composition%layers(i)%density*&
+                                photon%mus(i))
+                                min_random_layer = max_random_layer 
+                                !max_random_layer = max_random_layer + blbs*(&
+                                !1.0_C_DOUBLE - tempexp)
+#if DEBUG == 1
+                                WRITE (6, '(A,F12.5)') 'old max_random_layer:',&
+                                max_random_layer+ blbs*(&
+                                1.0_C_DOUBLE - tempexp)
+
+#endif
+                                max_random_layer = max_random_layer +&
+                                r_random_layer(i)
+
+#if DEBUG == 1
+                                WRITE (6, '(A,F12.5)') 'new max_random_layer:',&
+                                max_random_layer
+#endif
+
+                                IF (interactionR .LE. max_random_layer) THEN
+                                        dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
+                                        min_random_layer)/blbs)&
+                                        /photon%mus(i)/inputF%composition%layers(i)%density
+                                
+                                         CALL xmi_move_photon_with_dist(photon,dist)
+#if DEBUG == 2
+                                        WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
+                                        WRITE (*,'(A,3F12.5)') 'New coords: '&
+                                        ,photon%coords
+#endif
+                                        !update current_layer
+                                        photon%current_layer = i
+                                        inside = .TRUE.
+                                        !exit loop 
+                                        EXIT
+                                ELSE
+                                        !goto next layer
+                                        !coordinates equal to layer boundaries
+                                        photon%coords = intersect
+                                        dist_prev = dist_prev+dist
+                                        blbs = blbs*tempexp
+                                        !check if we are not leaving the system!
+                                ENDIF
+
+                        ENDDO
+                        DEALLOCATE(distances)
+                        DEALLOCATE(r_random_layer)
+
+                ENDIF
+
 
 #if DEBUG == 2
                 WRITE (*,'(A)') 'After do loop'
@@ -4544,6 +4664,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: Pconv, Pdir, Pesc, Pesc_comp, Pesc_rayl, Pdir_fluo
         REAL (C_DOUBLE) :: temp_murhod, energy_compton, energy_fluo, dotprod
         INTEGER (C_INT) :: line_last
+        REAL (C_DOUBLE) :: total_distance
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
 
 
@@ -4572,6 +4693,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 photon%dirv) 
         line_coll%dirv = detector_point-line_coll%point 
 
+        total_distance = xmi_distance_two_points(detector_point,&
+        line_coll%point)
+
+
         CALL normalize_vector(dirv)
         CALL normalize_vector(line_coll%dirv)
 
@@ -4591,6 +4716,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         ENDIF
         new_dirv_coords = MATMUL(inputF%detector%n_detector_orientation_new,line_coll%dirv)
 
+        
 
         !so we survived the collimator...
         !calculate the angle between the photon*dirv and line_coll%dirv
@@ -4629,6 +4755,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         line%dirv  = new_dirv_coords 
         plane%normv = inputF%geometry%n_sample_orientation
 
+        distances = 0.0_C_DOUBLE
+
         DO i=photon%current_layer,step_do_max,step_do_dir
                 !if in current_layer, then calculate distance from point to
                 !plane
@@ -4654,7 +4782,12 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
                         
                 distances(i) = xmi_distance_two_points(temp_coords,intersect)
+                IF (distances(i) .GT. total_distance) THEN
+                        distances(i) = total_distance
+                        EXIT
+                ENDIF
                 temp_coords = intersect
+                total_distance = total_distance - distances(i)
         ENDDO
 
 #if DEBUG == 1

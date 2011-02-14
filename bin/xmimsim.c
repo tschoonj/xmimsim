@@ -89,6 +89,8 @@ int main (int argc, char *argv[]) {
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
+		{ "enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
+		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{ NULL }
 	};
 
@@ -136,6 +138,8 @@ int main (int argc, char *argv[]) {
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
+	options.use_optimizations= 1;
+
 
 
 	//parse options
