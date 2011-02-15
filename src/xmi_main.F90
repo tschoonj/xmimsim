@@ -1983,7 +1983,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #endif
 
 !!old
-                IF (photon%options%use_optimizations .EQ. 0_C_INT) THEN
+                IF (photon%options%use_optimizations .EQ. 0_C_INT .OR.&
+                photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                         DO i=photon%current_layer,step_do_max, step_do_dir
                                 !calculate distance between current coords and
                                 !intersection with next layer
@@ -2076,6 +2077,10 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ELSEIF (photon%options%use_optimizations .EQ. 1_C_INT) THEN
                         !new version of stepsize selection!!!
                         !optimize by forcing interactions
+                        IF(photon%n_interactions .EQ.&
+                        inputF%general%n_interactions_trajectory) THEN
+                                EXIT main
+                        ENDIF
                         IF (step_do_dir  .GT. 0) THEN
                                 ALLOCATE(distances(photon%current_layer:step_do_max))
                         ELSE
@@ -2098,7 +2103,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 
                                 distances(i) = xmi_distance_two_points(line%point,intersect)
                                 line%point = intersect
-#if DEBUG == 0
+#if DEBUG == 1
                                 WRITE (6,'(A,ES14.5)') 'distances(i): ',distances(i)
 #endif
                         ENDDO
@@ -2111,6 +2116,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
                         Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*Pabs)
                         photon%weight = photon%weight * Pabs
+
+
 
                         negln = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE - interactionR*Pabs)
 
@@ -2132,6 +2139,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         temp_sum = temp_sum - 1.0_C_DOUBLE*LOG(1.0_C_DOUBLE -&
                         interactionR*Pabs)/(photon%mus(my_index)*inputF%composition%layers(my_index)%density)
                         CALL xmi_move_photon_with_dist(photon,temp_sum)
+#if DEBUG == 1
+                        WRITE (*,'(A,F12.4)') 'Pabs: ',Pabs
+                        WRITE (*,'(A,I2)') 'my_index: ',my_index
+                        WRITE (*,'(A,F12.4)') 'temp_sum: ', temp_sum
+                        WRITE (*,'(A,F12.4)') 'negln: ', negln
+                        WRITE (*,'(A,F12.4)') 'R: ',interactionR
+#endif
                         DEALLOCATE(distances)
                         inside = .TRUE.
                         photon%current_layer = my_index
