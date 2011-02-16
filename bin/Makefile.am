@@ -3,7 +3,8 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 bin_PROGRAMS = xmimsim-db xmimsim-harvester \
 	xmimsim-test xmimsim-test-xml \
 	xmimsim xmimsim-test-alloc \
-	xmimsim-pymca
+	xmimsim-pymca \
+	xmimsim-test-solid-angle
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -47,3 +48,5 @@ xmimsim_pymca_LDADD = ../src/libxmimsim.la
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 
+xmimsim_test_solid_angle_SOURCES = xmimsim-test-solid-angle.c
+xmimsim_test_solid_angle_LDADD = ../src/libxmimsim.la
