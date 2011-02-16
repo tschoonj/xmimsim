@@ -622,7 +622,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr) BIND(C,NAME='xmi_main_
         det_corr_all = 1.0_C_DOUBLE
 
         DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
-#if DEBUG == 0
+#if DEBUG == 1
                 WRITE (6,'(A,I3)') 'Det cor for element: ',hdf5F%xmi_hdf5_Zs(i)%Z
 #endif
                 DO line=KL1_LINE, P3P5_LINE, -1
@@ -1979,7 +1979,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #if DEBUG == 1
                 WRITE (*,'(A)') 'Before do loop'
                 WRITE (*,'(A,I2)') 'optimizations: ',photon%options%use_optimizations
-                
+                WRITE (*,'(A,3F12.4)') 'initial photon%coords:',photon%coords
+                WRITE (*,'(A,3F12.4)') 'initial photon%dirv:',photon%dirv
+                WRITE (*,'(A,I2)') 'step_do_dir: ',step_do_dir
 #endif
 
 !!old
@@ -2013,6 +2015,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         
                                 dist = xmi_distance_two_points(photon%coords,intersect)
 #if DEBUG == 1
+                                WRITE (6,'(A,F12.6)') 'dist:',dist
+                                WRITE (6,'(A,F12.6)') 'mus(i):',photon%mus(i)
+                                WRITE (6,'(A,3F12.6)') 'intersect:',intersect
+#endif
+
+
+#if DEBUG == 1
                                 IF (photon%n_interactions .EQ. 1 .AND.&
                                 photon%detector_hit2 .EQ. .TRUE.) THEN
                                       WRITE (*,'(A,F12.5)') 'dist: ', dist
@@ -2036,6 +2045,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 !until current layer
                        
 #if DEBUG == 1
+                                WRITE (6,'(A,F12.4)') 'tempexp: ',tempexp
+                                WRITE (6,'(A,F12.4)') 'min_random_layer: ',min_random_layer
+                                WRITE (6,'(A,F12.4)') 'max_random_layer: ',max_random_layer
+                                WRITE (*,'(A,F12.5)') 'interactionR: ',&
+                                interactionR
+#endif
+#if DEBUG == 1
                                 !WRITE (*,'(A,F12.5)') 'tempexp: ', tempexp
                                 IF (photon%n_interactions .EQ. 1 .AND.&
                                 photon%detector_hit2 .EQ. .TRUE.) THEN
@@ -2053,9 +2069,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
                                         min_random_layer)/blbs)&
                                         /photon%mus(i)/inputF%composition%layers(i)%density
-                                
-                                         CALL xmi_move_photon_with_dist(photon,dist)
-#if DEBUG == 2
+                                        CALL xmi_move_photon_with_dist(photon,dist)
+#if DEBUG == 1
                                         WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
                                         WRITE (*,'(A,3F12.5)') 'New coords: '&
                                         ,photon%coords
@@ -2130,7 +2145,10 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         EXIT
                                 ENDIF
                         ENDDO
-
+#if DEBUG == 1
+                        WRITE (*,'(A,F12.4)') 'my_sum: ',my_sum
+                        WRITE (*,'(A,F12.4)') 'negln: ',negln
+#endif
                         temp_sum = 0.0_C_DOUBLE
                         DO i=photon%current_layer,my_index, step_do_dir
                                 temp_sum = temp_sum + (1.0_C_DOUBLE-(photon%mus(i)*inputF%composition%layers(i)%density/(photon%mus(my_index)*inputF%composition%layers(my_index)%density)))*distances(i)
@@ -2173,6 +2191,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ENDIF
                 
                 !variance reduction
+#if DEBUG == 1
+                WRITE (6,'(A,I2)') 'current_layer:',photon%current_layer
+#endif
                 IF (photon%options%use_variance_reduction .EQ. 1) THEN
                         CALL xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 ENDIF
@@ -2219,7 +2240,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 IF (pos .LT. 1_C_INT) THEN
                         WRITE (*,'(A)') &
                         'Invalid result for findpos interaction type'
-#if DEBUG == 0
+#if DEBUG == 1
                         WRITE (*,'(A,I2)') 'last interaction type: '&
                         ,photon%last_interaction
                         WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
@@ -2267,7 +2288,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         RETURN
                 ENDIF
 
-#if DEBUG == 0
+#if DEBUG == 1
                 !photon has left the system
                 !check if it will make it to the detector
                 photon%detector_hit2=xmi_check_photon_detector_hit(&
@@ -2703,7 +2724,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                 ENDIF
         ENDDO
 
-#if DEBUG == 0
+#if DEBUG == 1
         photon%last_shell = shell
 #endif
 
@@ -4687,7 +4708,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !so we survived the collimator...
         !calculate the angle between the photon*dirv and line_coll%dirv
         dotprod = DOT_PRODUCT(dirv, line_coll%dirv)
-        IF (dotprod .GE. 1.0 .OR. dotprod .LT. -1.0) THEN
+        IF (dotprod .GE. 1.0 .OR. dotprod .LE. -1.0) THEN
                 WRITE(*,'(A,3F12.5)') 'dirv: ',dirv
                 WRITE(*,'(A,3F12.5)') 'line_coll%dirv: ',line_coll%dirv
         ENDIF
@@ -4695,6 +4716,12 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !WRITE (*,'(A,F12.5)') 'dotprod: ',dotprod
 
 #if DEBUG == 1
+        WRITE(*,'(A,3F12.5)') 'photon%coords: ',photon%coords
+        WRITE(*,'(A,3F12.5)') 'p_detector_window: ',inputF%geometry%p_detector_window
+        WRITE(*,'(A,3F12.5)') 'dirv: ',dirv
+        WRITE(*,'(A,3F12.5)') 'line_coll%dirv: ',line_coll%dirv
+        WRITE(*,'(A,3F12.5)') 'line_coll%point: ',line_coll%point
+        WRITE(*,'(A,3F12.5)') 'detector_point: ',detector_point
         WRITE (*,'(A,F18.10)') 'theta: ',theta
         WRITE (*,'(A,F18.10)') 'DOTPRODUCT n and dirv: ',&
         DOT_PRODUCT(inputF%detector%n_sample_orientation_det,line_coll%dirv)

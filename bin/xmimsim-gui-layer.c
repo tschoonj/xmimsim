@@ -354,11 +354,21 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(ad->cw->lw->sumEntry), buffer);
 		if ((*(ad->cw->lw->my_layer))->n_elements == 0)
 			gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
+		else{
+			//select next line if available
+			if (index == nindices -1)
+				gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(nindices-2,-1));
+			else 
+				gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(index,-1));
+
+		}
 	}
 }
 
 void dialog_hide_cb(GtkWidget *widget, gpointer data) {
+	struct compoundWidget * cw = (struct compoundWidget *) data;
 
+	//check if OK button in layerwidget should be activated
 
 
 
@@ -579,7 +589,7 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	g_signal_connect(G_OBJECT(compoundEntry), "changed", G_CALLBACK(compound_changed), rv);
 	g_signal_connect(G_OBJECT(weightEntry), "changed", G_CALLBACK(compound_changed), rv);
 	g_signal_connect(G_OBJECT(dialog),"show", G_CALLBACK(dialog_show_cb), rv);
-	g_signal_connect(G_OBJECT(dialog),"hide", G_CALLBACK(dialog_hide_cb), rv);
+	g_signal_connect(G_OBJECT(dialog),"hide", G_CALLBACK(density_thickness_changed_cb), rv->lw);
 	g_signal_connect(G_OBJECT(dialog),"delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 

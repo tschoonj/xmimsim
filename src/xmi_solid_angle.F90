@@ -6,6 +6,7 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE :: fgsl
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 100, grid_dims_theta_n = 100 
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 100000
 
 
 
@@ -75,27 +76,31 @@ SUBROUTINE xmi_solid_angle_calculation(inputF)
 
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
+        solid_angles = 0.0_C_DOUBLE
 
-!omp parallel default(shared)
+!omp parallel default(shared) private(j)
         thread_num = omp_get_thread_num()
         rng_type = fgsl_rng_mt19937
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
-!$omp workshare
-        FORALL (i=1:grid_dims_r_n, j=1:grid_dims_theta_n)
+!$omp do
+        DO i=1,grid_dims_r_n
+        DO j=1,grid_dims_theta_n
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
-        ENDFORALL
-!$omp end workshare
+        ENDDO
+        ENDDO
+!$omp end do
+
 !omp end parallel
 
 
 ENDSUBROUTINE xmi_solid_angle_calculation
 
 
-PURE FUNCTION xmi_single_solid_angle_calculation(inputF, r, theta, rng) &
+FUNCTION xmi_single_solid_angle_calculation(inputF, r, theta, rng) &
 RESULT(rv)
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (fgsl_rng), INTENT(IN) :: rng
@@ -106,17 +111,69 @@ RESULT(rv)
         REAL (C_DOUBLE), DIMENSION(3), PARAMETER :: detector_normal = [0.0,&
         0.0,1.0]
         REAL (C_DOUBLE), DIMENSION(3) :: cone_base_normal
+        REAL (C_DOUBLE) :: full_cone_solid_angle
+        REAL (C_DOUBLE) :: full_cone_base_radius
+        REAL (C_DOUBLE) :: full_cone_apex
+        REAL (C_DOUBLE), DIMENSION(3,3) :: rotation_matrix
+        REAL (C_DOUBLE) :: theta_rng, phi_rng
+        INTEGER (C_LONG) :: detector_hits
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv_from_cone
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv_from_detector
+        TYPE (xmi_plane) :: detector_plane
+        TYPE (xmi_line) :: photon_line
+        REAL (C_DOUBLE), DIMENSION(3) :: intersection_point
+
 
         !define proper cone
         !calculate angle between actual detector plane and base of new cone
-        cone_base_normal = [0.0_C_DOUBLE, REAL(COS(theta),KIND=C_DOUBLE), REAL(SIN(theta), KIND=C_DOUBLE)]
-        theta_planes = DOT_PRODUCT(detector_normal, cone_base_normal)
+        cone_base_normal(1) = 0.0_C_DOUBLE
+        cone_base_normal(2) = COS(theta)
+        cone_base_normal(3) = SIN(theta)
         
+        
+        !calculate full_cone_base_radius
+        full_cone_base_radius = &
+        inputF%detector%detector_radius/((M_PI/2.0_C_DOUBLE) - theta)
+        full_cone_apex = ATAN(full_cone_base_radius/r)
+        full_cone_solid_angle = 2*M_PI*(1.0_C_DOUBLE -&
+        COS(full_cone_apex))
+
+        rotation_matrix(:,1) = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+        rotation_matrix(:,2) = [0.0_C_DOUBLE,&
+        -1.0_C_DOUBLE*SIN(theta),COS(theta)]
+        rotation_matrix(:,3) = [0.0_C_DOUBLE,&
+        -1.0_C_DOUBLE*COS(theta),-1.0_C_DOUBLE*SIN(theta)]
+
+        detector_hits = 0_C_LONG
+
+        DO i=1,hits_per_single
+            theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
+            phi_rng = fgsl_rng_uniform(rng)*2.0_C_DOUBLE*M_PI
+
+                dirv_from_cone(1) = SIN(theta_rng)*COS(phi_rng)
+                dirv_from_cone(2) = SIN(theta_rng)*SIN(phi_rng)
+                dirv_from_cone(3) = COS(theta_rng)
+                dirv_from_detector = MATMUL(rotation_matrix, dirv_from_cone)
+
+                !calculate intersection with detector plane
+                detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+                detector_plane%normv = detector_normal
+                photon_line%point = [0.0_C_DOUBLE, r*COS(theta), r*sin(theta)]
+                photon_line%dirv = dirv_from_detector
+
+                IF (xmi_intersection_plane_line(detector_plane, photon_line,&
+                intersection_point) == 0) CALL EXIT(1)
+
+                intersection_point(3) = 0.0_C_DOUBLE
+                IF (norm(intersection_point) .GT. inputF%detector%detector_radius) &
+                        detector_hits = detector_hits +1
+        ENDDO
 
 
 
 
-        rv = 0.0_C_DOUBLE
+        rv = full_cone_solid_angle &
+        *REAL(detector_hits,C_DOUBLE)/REAL(hits_per_single,C_DOUBLE)
 
         RETURN
 ENDFUNCTION xmi_single_solid_angle_calculation

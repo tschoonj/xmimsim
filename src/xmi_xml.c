@@ -1362,10 +1362,10 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "reference_layer","%i",input->composition->reference_layer) < 0) {
-			fprintf(stderr,"Error writing reference_layer\n");
-			return 0;
-		}
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "reference_layer","%i",input->composition->reference_layer) < 0) {
+		fprintf(stderr,"Error writing reference_layer\n");
+		return 0;
 	}
 
 	if (xmlTextWriterEndElement(writer) < 0) {
