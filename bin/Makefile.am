@@ -9,6 +9,11 @@ if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
 
+noinst_PROGRAMS = xmimsim-init-solid-angles
+
+xmimsim_hdf5dir = $(datadir)/xmimsim
+xmimsim_hdf5_DATA = xmimsim-solid-angles.h5  
+
 
 xmimsim_db_SOURCES = xmimsim-db.F90
 xmimsim_db_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
@@ -50,3 +55,19 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
 
 xmimsim_test_solid_angle_SOURCES = xmimsim-test-solid-angle.c
 xmimsim_test_solid_angle_LDADD = ../src/libxmimsim.la
+xmimsim_test_solid_angle_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\"
+
+xmimsim_init_solid_angles_SOURCES = xmimsim-init-solid-angles.c
+xmimsim_init_solid_angles_LDADD = ../src/libxmimsim.la
+xmimsim_init_solid_angles_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" @glib2_CFLAGS@
+
+xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
+	./xmimsim-init-solid-angles$(EXEEXT)
+
+install-data-hook:
+	chmod a+rw  $(datadir)/xmimsim/xmimsim-solid-angles.h5
+
+
+clean-local:
+	rm -f xmimsim-solid-angles.h5
+

@@ -1771,4 +1771,50 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 }
 
 
+int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength) {
+
+	xmlDocPtr doc;
+	xmlNodePtr root, subroot;
+	xmlParserCtxtPtr ctx;
+	char catalog[] = XMI_CATALOG;
+	int buffersize;
+
+	//catalog code
+	if (xmlLoadCatalog(catalog) != 0) {
+		fprintf(stderr,"Could not load %s\n",catalog);
+		return 0;
+	}
+
+
+
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmlfile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmlfile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmlfile);
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	if ((root = xmlDocGetRootElement(doc)) == NULL) {
+		fprintf(stderr,"Error getting root element in file %s\n",xmlfile);
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, xmlstringlength);
+
+	return 1;
+}
+
 

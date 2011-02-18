@@ -7,22 +7,34 @@ USE :: fgsl
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 100, grid_dims_theta_n = 100 
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 100000
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 1000
+
+TYPE, BIND(C) :: xmi_solid_angle
+        TYPE (C_PTR) :: solid_angles
+        INTEGER (C_LONG) :: grid_dims_r_n
+        INTEGER (C_LONG) :: grid_dims_theta_n
+        TYPE (C_PTR) :: grid_dims_r_vals
+        TYPE (C_PTR) :: grid_dims_theta_vals
+        TYPE (C_PTR) :: xmi_input_string
+ENDTYPE
 
 
 
 CONTAINS
 
-SUBROUTINE xmi_solid_angle_calculation(inputFPtr)&
+SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_file)&
 BIND(C,NAME='xmi_solid_angle_calculation')
 
         IMPLICIT NONE
 
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
+        TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
+        TYPE (C_PTR), VALUE, INTENT(IN) :: input_file
+        TYPE (xmi_solid_angle), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE  :: grid_dims_r_vals,&
+        REAL (C_DOUBLE), DIMENSION(:), POINTER  :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
@@ -30,6 +42,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+        INTEGER (C_INT) :: xmlstringlength
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -67,8 +80,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 /REAL(grid_dims_r_n-1,C_DOUBLE)
         ENDDO
         DO i=1,grid_dims_theta_n
-                grid_dims_theta_vals(i) = grid_dims_r(1) + &
-                (grid_dims_r(grid_dims_theta_n)-grid_dims_r(1))*REAL(i-1,C_DOUBLE)&
+                grid_dims_theta_vals(i) = grid_dims_theta(1) + &
+                (grid_dims_theta(grid_dims_theta_n)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
                 /REAL(grid_dims_theta_n-1,C_DOUBLE)
         ENDDO
         
@@ -104,6 +117,20 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 !$omp end do
 
 !$omp end parallel
+
+        !put everything in the structure
+        ALLOCATE(solid_angle)
+        solid_angle%solid_angles = C_LOC(solid_angles)
+        solid_angle%grid_dims_r_n = grid_dims_r_n
+        solid_angle%grid_dims_theta_n = grid_dims_theta_n
+        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals)
+        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals)
+
+        IF (xmi_xmlfile_to_string(input_file, solid_angle%xmi_input_string,&
+        xmlstringlength) .EQ. 0_C_INT) CALL EXIT(1)
+#if DEBUG == 0
+        WRITE (6,'(A,I7)') 'xmlstringlength:',xmlstringlength
+#endif
 
 
 ENDSUBROUTINE xmi_solid_angle_calculation
@@ -192,7 +219,11 @@ RESULT(rv)
                 photon_line%dirv = dirv_from_detector
 
                 IF (xmi_intersection_plane_line(detector_plane, photon_line,&
-                intersection_point) == 0) CALL EXIT(1)
+                intersection_point) == 0) THEN
+                        WRITE(*,'(A,F12.7)') 'theta: ',theta
+                        WRITE(*,'(A,F12.7)') 'r: ',r
+                        CALL EXIT(1)
+                ENDIF
 
                 intersection_point(3) = 0.0_C_DOUBLE
                 IF (norm(intersection_point) .LE. inputF%detector%detector_radius) &

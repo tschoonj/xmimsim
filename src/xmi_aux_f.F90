@@ -386,6 +386,15 @@ SUBROUTINE xmi_determinant_matrix(x, y, z) BIND(C,NAME='xmi_determinant_matrix')
         TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
 ENDSUBROUTINE
 
+FUNCTION xmi_xmlfile_to_string(xmlfile, xmlstring, xmlstringlength) &
+BIND(C,NAME='xmi_xmlfile_to_string') RESULT(rv)
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: xmlfile
+        TYPE (C_PTR), INTENT(INOUT) :: xmlstring
+        INTEGER (C_INT), INTENT(INOUT) :: xmlstringlength
+        INTEGER (C_INT) :: rv
+ENDFUNCTION xmi_xmlfile_to_string
 
 ENDINTERFACE
 
@@ -855,6 +864,8 @@ FUNCTION xmi_intersection_plane_line(plane, line, point) RESULT(rv)
 
         IF (ItimesN .EQ. 0.0_C_DOUBLE) THEN
                 WRITE (*,'(A)') 'Parallel plane and line found'
+                WRITE (*,'(A,3F12.5)') 'line%dirv:',line%dirv
+                WRITE (*,'(A,3F12.5)') 'plane%normv:',plane%normv
                 RETURN
         ENDIF
 
