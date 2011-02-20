@@ -224,12 +224,14 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	}	
 
 	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
+	//should compare normalized orientations...
 	XMI_IF_COMPARE_GEOMETRY(n_sample_orientation[0])
 	XMI_IF_COMPARE_GEOMETRY(n_sample_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY(n_sample_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY(p_detector_window[0])
 	XMI_IF_COMPARE_GEOMETRY(p_detector_window[1])
 	XMI_IF_COMPARE_GEOMETRY(p_detector_window[2])
+	//should compare normalized orientations...
 	XMI_IF_COMPARE_GEOMETRY(n_detector_orientation[0])
 	XMI_IF_COMPARE_GEOMETRY(n_detector_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY(n_detector_orientation[2])

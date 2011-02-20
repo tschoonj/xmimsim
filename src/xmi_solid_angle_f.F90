@@ -5,9 +5,9 @@ USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: fgsl
 
-INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 100, grid_dims_theta_n = 100 
+INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 199, grid_dims_theta_n = 200 
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 1000
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 100000
 
 TYPE, BIND(C) :: xmi_solid_angle
         TYPE (C_PTR) :: solid_angles
@@ -57,8 +57,20 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                                         xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
                                         inputF%composition%layers(inputF%composition%n_layers)&
                                         %Z_coord_end],&
-                                        inputF%geometry%p_detector_window))
+                                        inputF%geometry%p_detector_window))*1.10_C_DOUBLE
         grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
+
+#if DEBUG == 0
+        WRITE (*,'(A,2ES14.5)') 'grid_dims_r: ',grid_dims_r
+        WRITE (*,'(A,2ES14.5)') 'distances: ',xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(1)%Z_coord_begin],&
+                                        inputF%geometry%p_detector_window),&
+                                        xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(inputF%composition%n_layers)&
+                                        %Z_coord_end],&
+                                        inputF%geometry%p_detector_window)
+#endif
+
 
         !calculate useful theta range
         grid_dims_theta(2) = M_PI/2.0
@@ -76,12 +88,12 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         DO i=1,grid_dims_r_n
                 grid_dims_r_vals(i) = grid_dims_r(1) + &
-                (grid_dims_r(grid_dims_r_n)-grid_dims_r(1))*REAL(i-1,C_DOUBLE)&
+                (grid_dims_r(2)-grid_dims_r(1))*REAL(i-1,C_DOUBLE)&
                 /REAL(grid_dims_r_n-1,C_DOUBLE)
         ENDDO
         DO i=1,grid_dims_theta_n
                 grid_dims_theta_vals(i) = grid_dims_theta(1) + &
-                (grid_dims_theta(grid_dims_theta_n)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
+                (grid_dims_theta(2)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
                 /REAL(grid_dims_theta_n-1,C_DOUBLE)
         ENDDO
         
@@ -98,7 +110,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         solid_angles = 0.0_C_DOUBLE
 
-!$omp parallel default(shared) private(j)
+!$omp parallel default(shared) private(j,rng, thread_num)
         thread_num = omp_get_thread_num()
         rng_type = fgsl_rng_mt19937
 
@@ -130,7 +142,11 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         xmlstringlength) .EQ. 0_C_INT) CALL EXIT(1)
 #if DEBUG == 0
         WRITE (6,'(A,I7)') 'xmlstringlength:',xmlstringlength
+        WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)
+        WRITE (6,'(A,5F13.5)') 'grid_dims_theta_vals:',grid_dims_theta_vals(1:5)
 #endif
+
+        solid_anglePtr = C_LOC(solid_angle)
 
 
 ENDSUBROUTINE xmi_solid_angle_calculation

@@ -19,5 +19,10 @@ void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file);
 int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *solid_angle);
 
 
+//these functions could be made far more efficient...
+int xmi_read_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle **solid_angles, int *n_solid_angles);
+
+//return 1 on success, 0 on no match
+int xmi_check_solid_angle_match(struct xmi_input *input_in, struct xmi_input *input_h5);
 
 #endif

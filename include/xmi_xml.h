@@ -15,5 +15,6 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 
 int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength);
 
+int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input);
 
 #endif
