@@ -71,6 +71,7 @@ int main (int argc, char *argv[]) {
 	static gchar *csv_file_conv=NULL;
 	static int nchannels=2048;
 	double zero_sum;
+	struct xmi_solid_angle *solid_angle_def;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -214,9 +215,48 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Reading from HDF5 file\n");
 #endif
 
+	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+
+
 	//channels = (double *) malloc(input->general->n_interactions_trajectory*nchannels*sizeof(double));
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history) == 0) {
+	//check solid_angles
+#ifdef HAVE_OPENMPI
+	if (rank == 0) {
+#endif
+		//check if solid angles are already precalculated
+		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+			return 1;
+		if (solid_angle_def == NULL) {
+			//doesn't exist yet
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, argv[1]);
+			//update hdf5 file
+			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
+			return 1;
+		}
+
+
+
+#ifdef HAVE_OPENMPI
+	}
+#endif
+
+#ifdef HAVE_OPENMPI
+	MPI_Barrier(MPI_COMM_WORLD);
+	//read solid angles for the others
+	if (rank != 0) {
+		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+			return 1;
+		if (solid_angle_def == NULL) {
+			fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
+			return 1;
+		}	
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
+
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}

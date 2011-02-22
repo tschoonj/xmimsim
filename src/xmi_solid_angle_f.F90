@@ -7,9 +7,9 @@ USE :: fgsl
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 199, grid_dims_theta_n = 200 
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 100000
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 10000
 
-TYPE, BIND(C) :: xmi_solid_angle
+TYPE, BIND(C) :: xmi_solid_angleC
         TYPE (C_PTR) :: solid_angles
         INTEGER (C_LONG) :: grid_dims_r_n
         INTEGER (C_LONG) :: grid_dims_theta_n
@@ -18,6 +18,13 @@ TYPE, BIND(C) :: xmi_solid_angle
         TYPE (C_PTR) :: xmi_input_string
 ENDTYPE
 
+TYPE :: xmi_solid_angle
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: solid_angles
+        INTEGER (C_LONG) :: grid_dims_r_n
+        INTEGER (C_LONG) :: grid_dims_theta_n
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_r_vals
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_theta_vals
+ENDTYPE
 
 
 CONTAINS
@@ -30,7 +37,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_file
-        TYPE (xmi_solid_angle), POINTER :: solid_angle
+        TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
@@ -130,6 +137,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
 !$omp end parallel
 
+
         !put everything in the structure
         ALLOCATE(solid_angle)
         solid_angle%solid_angles = C_LOC(solid_angles)
@@ -191,7 +199,7 @@ RESULT(rv)
         
         !calculate full_cone_base_radius
         full_cone_base_radius = &
-        inputF%detector%detector_radius/SIN(theta)
+        inputF%detector%detector_radius!/SIN(theta)
         full_cone_apex = ATAN(full_cone_base_radius/r)
         full_cone_solid_angle = 2*M_PI*(1.0_C_DOUBLE -&
         COS(full_cone_apex))
@@ -202,8 +210,10 @@ RESULT(rv)
         rotation_matrix(:,3) = [0.0_C_DOUBLE,&
         -1.0_C_DOUBLE*COS(theta),-1.0_C_DOUBLE*SIN(theta)]
 
-#if DEBUG ==1
+#if DEBUG == 1
         WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex 
+        WRITE (6,'(A,F12.6)') 'full_cone_solid_angle' , full_cone_solid_angle
+
 #endif
 
         detector_hits = 0_C_LONG
@@ -240,6 +250,10 @@ RESULT(rv)
                         WRITE(*,'(A,F12.7)') 'r: ',r
                         CALL EXIT(1)
                 ENDIF
+#if DEBUG ==1
+                WRITE (*,'(A,3F12.4)') 'intersection_point: ',intersection_point
+#endif
+
 
                 intersection_point(3) = 0.0_C_DOUBLE
                 IF (norm(intersection_point) .LE. inputF%detector%detector_radius) &

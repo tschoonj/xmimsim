@@ -39,7 +39,7 @@ xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @OPENMP_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\"
 xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 
@@ -66,7 +66,7 @@ xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 	./xmimsim-init-solid-angles$(EXEEXT)
 
 install-data-hook:
-	chmod a+rw  $(datadir)/xmimsim/xmimsim-solid-angles.h5
+	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
 
 #install-exec-hook:
 #	chmod u+s $(bindir)/xmimsim-test-solid-angle

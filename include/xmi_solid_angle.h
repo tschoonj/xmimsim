@@ -25,4 +25,8 @@ int xmi_read_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle **sol
 //return 1 on success, 0 on no match
 int xmi_check_solid_angle_match(struct xmi_input *input_in, struct xmi_input *input_h5);
 
+int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv);
+
+void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle);
+
 #endif

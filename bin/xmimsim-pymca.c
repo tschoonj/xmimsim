@@ -112,6 +112,7 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}	
 
+	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//everything is read in... start iteration
 	i = 0;

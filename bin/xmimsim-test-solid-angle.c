@@ -2,6 +2,7 @@
 #include "xmi_xml.h"
 #include "xmi_random.h"
 #include <stdlib.h>
+#include <unistd.h>
 
 
 int main(int argc, char *argv[]) {
@@ -14,7 +15,8 @@ int main(int argc, char *argv[]) {
 	int n_solid_angle_h5;
 	struct xmi_input **solid_angle_inputs;
 	int i;
-/*
+	struct xmi_solid_angle *solid_angle_def;
+
 	if (argc != 2)
 		return 1;
 
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
 	if (rv != 1) {
 		return 1;
 	}
-
+	
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 	//initialization
@@ -40,12 +42,16 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
+	
+	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+/*
 	xmi_solid_angle_calculation(inputFPtr, &solid_angle, argv[1]);
 
 	//update hdf5 file
 	if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle) == 0)
 		return 1;
 */
+/*	
 
 	//read solid angles HDF5 file
 	if (xmi_read_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, &solid_angle_h5, &n_solid_angle_h5) == 0)
@@ -54,11 +60,24 @@ int main(int argc, char *argv[]) {
 	solid_angle_inputs = (struct xmi_input **) malloc(sizeof(struct xmi_input *)*n_solid_angle_h5);
 
 	for (i = 0 ; i < n_solid_angle_h5 ; i++)  {
-		fprintf(stdout,"xmlfile: %s\n",solid_angle_h5[i].xmi_input_string);
+		//fprintf(stdout,"xmlfile: %s\n",solid_angle_h5[i].xmi_input_string);
 		if (xmi_read_input_xml_from_string(solid_angle_h5[i].xmi_input_string, &solid_angle_inputs[i]) == 0)
 			return 1;
+		//look for matches
+		fprintf(stdout,"match: %i\n",xmi_check_solid_angle_match(input,solid_angle_inputs[i]));
 	}
-		
+*/		
+	if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+		return 0;
+
+	if (solid_angle_def == NULL)
+		fprintf(stdout,"should not be NULL pointer\n");
+	else {
+		fprintf(stdout,"solid_angle_def->grid_dims_r_n: %li\n",solid_angle_def->grid_dims_r_n);
+		fprintf(stdout,"solid_angle_def->grid_dims_theta_n: %li\n",solid_angle_def->grid_dims_theta_n);
+	}
+
+
 
 
 	xmi_end_random_acquisition();

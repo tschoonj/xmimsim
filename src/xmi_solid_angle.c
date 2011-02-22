@@ -4,6 +4,8 @@
 #include <strings.h>
 #include <math.h>
 #include <stdlib.h>
+#include "xmi_aux.h"
+#include "xmi_xml.h"
 
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
@@ -92,7 +94,18 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 
 
 	H5Gclose(group_id);
-	
+
+	//look for open objects
+#if DEBUG == 1
+	fprintf(stdout,"open objects: %i\n",(int) H5Fget_obj_count(file_id, H5F_OBJ_ALL));
+#endif
+
+
+	H5Fflush(file_id, H5F_SCOPE_GLOBAL);
+#if DEBUG == 1
+	fprintf(stdout,"open objects: %i\n",(int) H5Fget_obj_count(file_id, H5F_OBJ_ALL));
+#endif
+
 	H5Fclose(file_id);
 
 	return 1;
@@ -134,6 +147,7 @@ int xmi_read_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle **sol
 	*solid_angles = msa->solid_angles;
 	*n_solid_angles = msa->n_solid_angles;
 
+	H5Fclose(file_id);
 	return 1;
 }
 
@@ -148,7 +162,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 #endif
 
 
-	msa->solid_angles = (struct xmi_solid_angle *) realloc(msa->solid_angles, sizeof(struct xmi_solid_angle *)*++msa->n_solid_angles);
+	msa->solid_angles = (struct xmi_solid_angle *) realloc(msa->solid_angles, sizeof(struct xmi_solid_angle)*++msa->n_solid_angles);
 
 
 	//open group
@@ -177,6 +191,11 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,msa->solid_angles[msa->n_solid_angles-1].solid_angles );
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
+
+#if DEBUG == 1
+	fprintf(stdout,"solid angles processed\n");
+#endif
+
 
 	dset_id = H5Dopen(group_id, "grid_dims_r_vals", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
@@ -225,10 +244,90 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 			return 0;
 		}
 	}
+	//
+	//geometry
+#define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/A->geometry->a > XMI_COMPARE_THRESHOLD){\
+	return 0;\
+	}	
+#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabsl(A->geometry->a - B->geometry->a) > XMI_COMPARE_THRESHOLD){\
+	return 0;\
+	}	
 
+	//should compare normalized orientations...
+	xmi_scale_double(A->geometry->n_sample_orientation, 3, 1.0/xmi_sum_double(A->geometry->n_sample_orientation,3));	
+	xmi_scale_double(B->geometry->n_sample_orientation, 3, 1.0/xmi_sum_double(B->geometry->n_sample_orientation,3));	
+	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
+	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
+	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
+	if (fabsl((A->geometry->p_detector_window[2]-A->geometry->d_sample_source)-(B->geometry->p_detector_window[2]-B->geometry->d_sample_source)) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	//should compare normalized orientations...
+	xmi_scale_double(A->geometry->n_detector_orientation, 3, 1.0/xmi_sum_double(A->geometry->n_detector_orientation,3));	
+	xmi_scale_double(B->geometry->n_detector_orientation, 3, 1.0/xmi_sum_double(B->geometry->n_detector_orientation,3));	
+	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[0])
+	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[1])
+	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[2])
+	XMI_IF_COMPARE_GEOMETRY(area_detector)
+	XMI_IF_COMPARE_GEOMETRY(acceptance_detector)
 
 
 	return 1;
+}
+
+int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv) {
+
+	struct xmi_solid_angle *hdf5_solid_angles;
+	int n_hdf5_solid_angles;
+	struct xmi_input **hdf5_inputs;
+	int i;
+
+	if (xmi_read_solid_angle_hdf5_file(hdf5_file, &hdf5_solid_angles, &n_hdf5_solid_angles) == 0 )
+		return 0;
+
+	if (n_hdf5_solid_angles == 0) {
+		//not found
+		*rv = NULL;
+		return 1;
+	}
+
+	//compare
+	hdf5_inputs = (struct xmi_input **) malloc(sizeof(struct xmi_input *)*n_hdf5_solid_angles);
+
+	*rv = NULL;
+
+	for (i = 0 ; i < n_hdf5_solid_angles ; i++) {
+		if (*rv == NULL) {
+			if (xmi_read_input_xml_from_string(hdf5_solid_angles[i].xmi_input_string, &hdf5_inputs[i]) == 0)
+				return 0;
+			//check if it matches.
+			if (xmi_check_solid_angle_match(A, hdf5_inputs[i]) == 1) {
+				//match!
+				*rv = hdf5_solid_angles+i;
+			}		
+			else {
+				//no match
+				xmi_free_solid_angle(hdf5_solid_angles+i);
+			}
+			xmi_free_input(hdf5_inputs[i]);
+		}
+		else {
+			xmi_free_solid_angle(&hdf5_solid_angles[i]);
+		}
+	}
+
+
+	return 1;
+}
+
+
+void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
+
+	free(solid_angle->solid_angles);
+	free(solid_angle->grid_dims_r_vals);
+	free(solid_angle->grid_dims_theta_vals);
+	free(solid_angle->xmi_input_string);
 }
 
 
