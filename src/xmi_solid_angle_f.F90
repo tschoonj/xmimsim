@@ -5,9 +5,9 @@ USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: fgsl
 
-INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 199, grid_dims_theta_n = 200 
+INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 2000, grid_dims_theta_n = 2000 
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 10000
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 1000
 
 TYPE, BIND(C) :: xmi_solid_angleC
         TYPE (C_PTR) :: solid_angles
@@ -18,13 +18,6 @@ TYPE, BIND(C) :: xmi_solid_angleC
         TYPE (C_PTR) :: xmi_input_string
 ENDTYPE
 
-TYPE :: xmi_solid_angle
-        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: solid_angles
-        INTEGER (C_LONG) :: grid_dims_r_n
-        INTEGER (C_LONG) :: grid_dims_theta_n
-        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_r_vals
-        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_theta_vals
-ENDTYPE
 
 
 CONTAINS
@@ -80,7 +73,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
 
         !calculate useful theta range
-        grid_dims_theta(2) = M_PI/2.0
+        grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
         IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
                 grid_dims_theta(1)= 0.00001_C_DOUBLE
         ELSE
@@ -274,4 +267,68 @@ RESULT(rv)
         RETURN
 ENDFUNCTION xmi_single_solid_angle_calculation
 
+FUNCTION xmi_get_solid_angle(solid_angles, inputF, detector_solid_angle, rng,&
+coords)&
+RESULT(rv)
+        IMPLICIT NONE
+        INTEGER (C_LONG) :: rv
+        TYPE (xmi_solid_angle), INTENT(IN) :: solid_angles
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), INTENT(OUT) :: detector_solid_angle
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: coords
+        REAL (C_DOUBLE) :: r, theta
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv
+        REAL (C_DOUBLE) :: temp_theta
+        INTEGER (C_INT) :: pos_1, pos_2
+
+        rv = 0
+
+        !calculate angle and distance
+        r = xmi_distance_two_points(inputF%geometry%p_detector_window, coords)
+        dirv = coords-inputF%geometry%p_detector_window
+        CALL normalize_vector(dirv)
+
+
+
+        temp_theta = ACOS(DOT_PRODUCT(dirv, inputF%geometry%n_detector_orientation))
+
+        IF (temp_theta .GT. M_PI/2.0_C_DOUBLE) THEN
+                !supplement
+                temp_theta = M_PI - temp_theta
+        ENDIF
+
+        !complement
+        theta = (M_PI/2.0_C_DOUBLE) - temp_theta
+
+        !find positions
+        pos_1 = findpos(solid_angles%grid_dims_r_vals,r)
+        pos_2 = findpos(solid_angles%grid_dims_theta_vals,theta)
+
+#if DEBUG == 1
+        WRITE (6,'(A,ES14.6)') 'r: ',r
+        WRITE (6,'(A,ES14.6)') 'theta: ',theta
+        WRITE (6,'(A,I)') 'pos_1:',pos_1
+        WRITE (6,'(A,I)') 'pos_2:',pos_2
+#endif
+
+        IF (pos_1 == -1 .OR. pos_2 == -1) THEN
+                !not found in solid angles!
+                !baddddddd
+                !calculate it ourself...
+                detector_solid_angle =&
+                xmi_single_solid_angle_calculation(inputF, r, theta, rng)
+                rv=1
+        ELSE
+                !found! interpolate...
+                detector_solid_angle =&
+                bilinear_interpolation(solid_angles%solid_angles,&
+                solid_angles%grid_dims_r_vals,&
+                solid_angles%grid_dims_theta_vals,&
+                r, theta, pos_1, pos_2)
+                rv=0
+        ENDIF
+
+        RETURN
+ENDFUNCTION xmi_get_solid_angle
 ENDMODULE xmimsim_solid_angle

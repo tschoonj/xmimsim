@@ -28,7 +28,7 @@ int xmi_start_random_acquisition(void) {
 		return xmi_start_random_acquisition_dev();
 	}
 	else {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"xmi_start_random_acquisition: Daemon is already running\n");
 #endif
 		//daemon is running...
@@ -82,7 +82,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		}
 	}
 	else {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"xmi_get_random_numbers: Daemon is already running\n");
 #endif
 		//daemon is running...

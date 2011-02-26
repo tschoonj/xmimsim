@@ -235,6 +235,19 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_variance_reduction
         INTEGER (C_INT) :: use_optimizations
 ENDTYPE xmi_main_options
+!
+!
+!       xmi_solid_angle: Contains the solid angles for a particular geometry
+!
+!
+TYPE :: xmi_solid_angle
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: solid_angles
+        INTEGER (C_LONG) :: grid_dims_r_n
+        INTEGER (C_LONG) :: grid_dims_theta_n
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_r_vals
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: grid_dims_theta_vals
+ENDTYPE
+
 
 !
 !
@@ -325,6 +338,11 @@ TYPE :: xmi_photon
         !cascade type
         INTEGER (C_INT) :: xmi_cascade_type
 
+        !solid angles pointer
+        TYPE (xmi_solid_angle), POINTER :: solid_angle
+
+        !detector_solid_angle_not_found
+        INTEGER (C_LONG) :: detector_solid_angle_not_found
 ENDTYPE xmi_photon
 
 !
@@ -972,7 +990,7 @@ FUNCTION findpos(array, searchvalue)
         findpos = -1
 
         DO i=1, SIZE(array)
-                IF (searchvalue .LT. array(i)) THEN
+                IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
                         RETURN
                 ENDIF

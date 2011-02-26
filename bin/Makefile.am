@@ -65,11 +65,12 @@ xmimsim_init_solid_angles_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmim
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 	./xmimsim-init-solid-angles$(EXEEXT)
 
-install-data-hook:
-	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
+#install-data-hook:
+#	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
 
-#install-exec-hook:
-#	chmod u+s $(bindir)/xmimsim-test-solid-angle
+install-exec-hook:
+	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-test-solid-angle
+	chmod u+s $(DESTDIR)/$(bindir)/xmimsim
 
 
 clean-local:

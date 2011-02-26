@@ -157,7 +157,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	hid_t group_id;
 	struct multiple_solid_angles *msa = (struct multiple_solid_angles *) op_data;
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"Group name: %s\n",name);
 #endif
 
@@ -192,7 +192,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"solid angles processed\n");
 #endif
 
@@ -214,7 +214,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"dims_string: %i\n",dims_string[0]);
 #endif
 	msa->solid_angles[msa->n_solid_angles-1].xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);

@@ -11,6 +11,11 @@ AC_CANONICAL_HOST
 
 #if platform is Mac OS X, take care of the launchd plist file
 AM_CONDITIONAL(OS_DARWIN, [echo $host_os | grep '^darwin' > /dev/null])
+if test "x$OS_DARWIN_TRUE" = "x" ; then
+AC_SUBST(OS_DARWIN, 1)
+else
+AC_SUBST(OS_DARWIN, 0)
+fi
 
 #similar will have to happen for linux in /etc/init.d
 
@@ -107,6 +112,8 @@ AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(setuid,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(getuid,,[AC_MSG_ERROR([Required libc function not found])])
 
 #check for types
 AC_CHECK_TYPE([ptrdiff_t],,[AC_MSG_ERROR([ptrdiff_t type not found])])
@@ -121,6 +128,13 @@ ACX_PTHREAD(,
 AC_CHECK_PROG([XMLCATALOG],[xmlcatalog],[xmlcatalog],[fail])
 if test x$XMLCATALOG = xfail ; then
 	AC_MSG_ERROR([xmlcatalog was not found. This should be a part of the libxml2 installation which was detected on the system. Consider verifying your PATH variable.])
+fi
+
+
+#search for chmod
+AC_CHECK_PROG([CHMOD],[chmod],[chmod],[fail])
+if test x$CHMOD = xfail ; then
+	AC_MSG_ERROR([chmod was not found.])
 fi
 
 
@@ -191,14 +205,34 @@ AC_LANG_PUSH(C)
 AC_OPENMP
 AC_LANG_POP(C)
 
+XLINKER=""
+LDFLAGS_XMIMSIM_LIB=""
+#when we have Intel Fortran on Mac OS X, add the openmp static link option
+#let's hope they won't remove it anytime soon...
+if test "x${FC:0:5}" = "xifort" && test "x$OS_DARWIN" = "x1" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Xlinker $OPENMP_FCFLAGS -Xlinker -threads"
+	LDFLAGS_XMIMSIM_LIB+=" -Xlinker -openmp-link -Xlinker static"
+elif test "x${FC:0:5}" = "xifort" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Xcompiler $OPENMP_FCFLAGS -Xcompiler -threads -lpthread"
+fi
+
+#LDFLAGS_XMIMSIM_LIB=
+#if test "x$FC" = "xifort" ; then
+#	LDFLAGS_XMIMSIM_LIB="$XLINKER -threads "
+#fi
+
+AC_SUBST(XLINKER)
+AC_SUBST(LDFLAGS_XMIMSIM_LIB)
 
 
 #search for MPI
-AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
 OPENMPI_LDFLAGS=
 OPENMPI_LIBADD=
 OPENMPI_CFLAGS=
-if test x$MPICC != xfail ; then
+AC_ARG_ENABLE([mpi],[AS_HELP_STRING([--disable-mpi],[build without MPI support])],[enable_mpi=$enableval],[enable_mpi=check])
+
+AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
+if test x$MPICC != xfail && test x$enable_mpi != "xno" ; then
 	if test x$MPICC = xmpicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])
 		#OPENMPI_CFLAGS=$($MPICC -showme:compile)
@@ -236,6 +270,8 @@ if test x$MPICC != xfail ; then
 			OPENMPI_LDFLAGS+="$i "
 		fi
 	done
+elif test x$MPICC = xfail && test x$enable_mpi = "xyes" ; then
+	AC_MSG_ERROR([no MPI compiler found on the system. Open-MPI and Intel MPI are supported])
 fi
 
 AC_SUBST(OPENMPI_LDFLAGS)

@@ -480,7 +480,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
         REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE :: det_corr_all
-        TYPE (xmi_solid_angle), ALLOCATABLE :: solid_angles
+        TYPE (xmi_solid_angle), ALLOCATABLE, TARGET :: solid_angles
+        INTEGER (C_LONG) :: detector_solid_angle_not_found
         !begin...
         
         CALL SetErrorMessages(0)
@@ -492,6 +493,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         rayleighs = 0
         comptons = 0
         einsteins = 0
+        detector_solid_angle_not_found = 0
 
 
         !set the XRF cross sections according to the options
@@ -541,6 +543,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 CALL C_F_POINTER(solid_anglesCPtr%solid_angles, &
                 solid_angles%solid_angles,&
                 [solid_angles%grid_dims_r_n,solid_angles%grid_dims_theta_n])
+
+#if DEBUG == 1
+                WRITE (6,'(A,I6)') 'solid_angles%grid_dims_r_n: ',solid_angles%grid_dims_r_n
+                WRITE (6,'(A,I6)') 'solid_angles%grid_dims_theta_n: ',solid_angles%grid_dims_theta_n
+#endif
 
         ENDIF
 
@@ -613,7 +620,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !ENDIF
 
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history)
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found)
 
 !
 
@@ -738,6 +745,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         0.0_C_DOUBLE
                                   ENDDO
                                 ENDDO
+                                photon%solid_angle => solid_angles 
+                                photon%detector_solid_angle_not_found = 0
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
@@ -859,6 +868,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                              ENDDO
                                            ENDDO 
                                         ENDDO
+                                        detector_solid_angle_not_found =&
+                                        photon%detector_solid_angle_not_found+&
+                                        detector_solid_angle_not_found
                                 ENDIF var_red
                                 det_hit:IF (photon_temp%detector_hit .EQ. .TRUE.) THEN
                                         detector_hits = detector_hits + 1
@@ -980,6 +992,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
         WRITE (*,'(A,I)') 'Comptons: ',comptons
         WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
+        WRITE (*,'(A,I)') 'detector_solid_angle_not_found: ',&
+        detector_solid_angle_not_found
         WRITE (*,'(A,I)') 'Fe-KL2: ',brute_history(26,ABS(KL2_LINE),1)
         WRITE (*,'(A,I)') 'Fe-KL3: ',brute_history(26,ABS(KL3_LINE),1)
         WRITE (*,'(A,I)') 'Fe-KM2: ',brute_history(26,ABS(KM2_LINE),1)
@@ -4634,6 +4648,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: temp_murhod, energy_compton, energy_fluo, dotprod
         INTEGER (C_INT) :: line_last
         REAL (C_DOUBLE) :: total_distance
+        REAL (C_DOUBLE) :: detector_solid_angle
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
 
 
@@ -4786,7 +4801,20 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         Pesc_rayl = EXP(-temp_murhod) 
 
 
-        Pdir_fluo = inputF%detector%detector_solid_angle/4.0_C_DOUBLE/M_PI
+        !
+        !
+        !       Calculate detector solid angle
+        !
+        photon%detector_solid_angle_not_found = xmi_get_solid_angle(photon%solid_angle,&
+        inputF,detector_solid_angle,rng,photon%coords)+&
+        photon%detector_solid_angle_not_found
+#if DEBUG == 1
+        WRITE (6,'(A,ES14.5)')&
+        'detector_solid_angle_diff:',(inputF%detector%detector_solid_angle-detector_solid_angle)/&
+        detector_solid_angle
+#endif
+
+        Pdir_fluo = detector_solid_angle/4.0_C_DOUBLE/M_PI
 
         IF (photon%options%use_M_lines .EQ. 1) THEN 
                 line_last = M5P5_LINE 
@@ -4801,7 +4829,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !       starting with RAYLEIGH
                 !
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
-                Pdir = inputF%detector%detector_solid_angle&
+                Pdir = detector_solid_angle&
                 *DCS_Rayl(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),REAL(theta,KIND=C_FLOAT))
 
                 !find position in history
@@ -4825,7 +4853,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 ENDDO
                 Pesc_comp = EXP(-temp_murhod) 
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
-                Pdir = inputF%detector%detector_solid_angle&
+                Pdir = detector_solid_angle&
                 *DCS_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),REAL(theta,KIND=C_FLOAT))
                 photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
                 = Pconv*Pdir*Pesc_comp

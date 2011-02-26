@@ -34,6 +34,8 @@ int main (int argc, char *argv[]) {
 	char processor_name[MPI_MAX_PROCESSOR_NAME];
 //	int numreqs=0;
 //	MPI_Request *reqs = 0;
+#else
+	int numprocs = 1;
 #endif
 
 	int argc_orig = argc;
@@ -72,6 +74,7 @@ int main (int argc, char *argv[]) {
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def;
+	uid_t uid, euid;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -96,8 +99,9 @@ int main (int argc, char *argv[]) {
 	};
 
 
-	//locale...
-	setlocale(LC_ALL,"C");
+
+
+
 
 
 
@@ -107,6 +111,20 @@ int main (int argc, char *argv[]) {
 
 #ifdef HAVE_OPENMPI
 	MPI_Init(&argc, &argv);
+#endif
+
+	//change euid to uid
+	uid = getuid();
+	euid = geteuid();
+
+#if DEBUG == 1
+	fprintf(stdout,"Begin uid: %i\n",(int) uid);
+	fprintf(stdout,"Begin euid: %i\n",(int) euid);
+#endif
+	//start without privileges
+	seteuid(uid);
+
+#ifdef HAVE_OPENMPI
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
@@ -127,6 +145,8 @@ int main (int argc, char *argv[]) {
 
 #endif
 
+	//locale...
+	setlocale(LC_ALL,"C");
 	//
 	//options...
 	//1) use M-lines
@@ -231,8 +251,10 @@ int main (int argc, char *argv[]) {
 			//doesn't exist yet
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, argv[1]);
 			//update hdf5 file
+			seteuid(euid);
 			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
-			return 1;
+				return 1;
+			seteuid(uid);
 		}
 
 
@@ -271,10 +293,8 @@ int main (int argc, char *argv[]) {
 	//free what needs freeing 
 #ifdef HAVE_OPENMPI
 	if (rank != 0) {
-#endif
 		xmi_free_input_F(&inputFPtr);
 		xmi_free_hdf5_F(&hdf5FPtr);
-#ifdef HAVE_OPENMPI
 	}
 #endif
 

@@ -154,7 +154,7 @@ int xmi_end_random_acquisition_dev(void){
 }
 int xmi_get_random_number_dev(unsigned long int *number) {
 	int rv;
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"Entering xmi_get_random_number\n");	
 #endif
 	struct timespec sleep_time = {.tv_sec = (time_t) SLEEP_TIME*2,.tv_nsec = 0};
@@ -171,7 +171,7 @@ int xmi_get_random_number_dev(unsigned long int *number) {
 #if DEBUG == 2
 	fprintf(stdout,"After lock\n",rv);
 #endif
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"xmi_numbers_in_memory: %i\n",xmi_numbers_in_memory);
 #endif
 	if (xmi_numbers_in_memory > 0) {
