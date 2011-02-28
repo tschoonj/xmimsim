@@ -11,6 +11,8 @@ int xmi_read_input_xml(char *xmlfile, struct xmi_input **input);
 
 int xmi_write_input_xml(char *xmlfile, struct xmi_input *input);
 
+int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input);
+
 int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute_history, double *var_red_history, double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
 int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength);

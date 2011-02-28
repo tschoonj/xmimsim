@@ -20,6 +20,9 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	struct xmi_layer *temp1,*temp2;
 	struct compoundData *cd1, *cd2, *cd_sum;
 	int i;
+	double *weight;
+	int *sorted_Z_ind;
+	int *Z;
 
 
 	//remove any leading spaces
@@ -142,6 +145,20 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	}
 #endif
 
+	//sort
+	Z = (int *) xmi_memdup((*layer)->Z, sizeof(int)*(*layer)->n_elements);
+	weight = (double *) xmi_memdup((*layer)->weight, sizeof(double)*(*layer)->n_elements);
+	sorted_Z_ind = xmi_sort_idl_int(Z,(*layer)->n_elements*sizeof(int));
+
+	for (i = 0 ; i < (*layer)->n_elements ; i++) {
+		(*layer)->Z[i] = Z[sorted_Z_ind[i]];
+		(*layer)->weight[i] = weight[sorted_Z_ind[i]];
+	}
+
+
+	free(Z);
+	free(weight);
+	free(sorted_Z_ind);
 
 
 	rv = 1;
@@ -937,6 +954,9 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	struct xmi_layer rv;
 	double sum_quant, sum_matrix;
 	int i;
+	double *weight;
+	int *sorted_Z_ind;
+	int *Z;
 
 	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
@@ -959,7 +979,27 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 		rv.Z[i+matrix->n_elements] = pymca_aux->z_arr_quant[i];
 		rv.weight[i+matrix->n_elements] = weights_arr_quant[i];
 	}
+
+
+
 	rv.n_elements = matrix->n_elements+pymca_aux->n_z_arr_quant;
+
+	//sort
+	Z = (int *) xmi_memdup(rv.Z, sizeof(int)*rv.n_elements);
+	weight = (double *) xmi_memdup(rv.weight, sizeof(double)*rv.n_elements);
+	sorted_Z_ind = xmi_sort_idl_int(Z,rv.n_elements*sizeof(int));
+
+	for (i = 0 ; i < rv.n_elements ; i++) {
+		rv.Z[i] = Z[sorted_Z_ind[i]];
+		rv.weight[i] = weight[sorted_Z_ind[i]];
+	}
+
+
+	free(Z);
+	free(weight);
+	free(sorted_Z_ind);
+	
+	
 	rv.density = matrix->density;
 	rv.thickness= matrix->thickness;
 

@@ -824,6 +824,66 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 
 }
 
+int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
+	xmlTextWriterPtr writer;
+	xmlDocPtr doc;
+	char version[100];
+	int i,j;
+	char buffer[1024];
+	int xmlstringlength;
+
+
+
+	LIBXML_TEST_VERSION
+
+
+	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+		return 0;
+	}
+	xmlTextWriterSetIndent(writer,2);
+	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
+		return 0;
+	}
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+		fprintf(stderr,"Error starting DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDTD(writer) < 0) {
+		fprintf(stderr,"Error ending DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
+		fprintf(stderr,"Error writing xmimsim tag\n");
+		return 0;
+	}
+
+	if (xmi_write_input_xml_body(writer, input) == 0)
+		return 0;
+	
+	
+	//end it
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDocument(writer) < 0) {
+		fprintf(stderr,"Error ending document\n");
+		return 0;
+	}
+
+	xmlFreeTextWriter(writer);
+	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, &xmlstringlength);
+	xmlFreeDoc(doc);
+
+	return 1;
+
+}
+
 int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 
 	xmlTextWriterPtr writer;
@@ -1825,6 +1885,7 @@ int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength)
 	}
 
 	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, xmlstringlength);
+	xmlFreeDoc(doc);
 
 	return 1;
 }

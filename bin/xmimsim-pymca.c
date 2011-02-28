@@ -46,6 +46,7 @@ int main (int argc, char *argv[]) {
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
+	options.use_optimizations = 1;
 
 
 	//parse options
@@ -114,6 +115,20 @@ int main (int argc, char *argv[]) {
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
+/*
+	//check if solid angles are already precalculated
+	if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, pymca_input, &solid_angle_def) == 0)
+		return 1;
+	if (solid_angle_def == NULL) {
+		//doesn't exist yet
+		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, argv[1]);
+		//update hdf5 file
+		seteuid(euid);
+		if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
+			return 1;
+		seteuid(uid);
+	}
+*/
 	//everything is read in... start iteration
 	i = 0;
 

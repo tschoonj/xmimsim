@@ -265,7 +265,7 @@ int main (int argc, char *argv[]) {
 
 #ifdef HAVE_OPENMPI
 	MPI_Barrier(MPI_COMM_WORLD);
-	//read solid angles for the others
+	//read solid angles for the other nodes
 	if (rank != 0) {
 		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
 			return 1;
