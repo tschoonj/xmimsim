@@ -16,13 +16,15 @@
 <!ELEMENT density (#PCDATA)>
 <!ELEMENT thickness (#PCDATA)>
 
-<!ELEMENT geometry (d_sample_source, n_sample_orientation, p_detector_window, n_detector_orientation, area_detector, acceptance_detector,  d_source_slit, slit_size)>
+<!ELEMENT geometry (d_sample_source, n_sample_orientation, p_detector_window, n_detector_orientation, area_detector, collimator_height, collimator_diameter, d_source_slit, slit_size)>
 <!ELEMENT d_sample_source (#PCDATA)>
 <!ELEMENT n_sample_orientation (x,y,z)>
 <!ELEMENT p_detector_window (x,y,z)>
 <!ELEMENT n_detector_orientation (x,y,z)>
 <!ELEMENT area_detector (#PCDATA)>
-<!ELEMENT acceptance_detector (#PCDATA)>
+<!--<!ELEMENT acceptance_detector (#PCDATA)>-->
+<!ELEMENT collimator_height (#PCDATA)>
+<!ELEMENT collimator_diameter (#PCDATA)>
 <!ELEMENT d_source_slit (#PCDATA)>
 <!ELEMENT slit_size (slit_size_x,slit_size_y)>
 <!ELEMENT x (#PCDATA)>

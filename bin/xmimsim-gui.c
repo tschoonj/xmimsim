@@ -64,7 +64,8 @@ static GtkWidget *n_detector_orientation_xW;
 static GtkWidget *n_detector_orientation_yW;
 static GtkWidget *n_detector_orientation_zW;
 static GtkWidget *area_detectorW;
-static GtkWidget *acceptance_detectorW;
+static GtkWidget *collimator_heightW;
+static GtkWidget *collimator_diameterW;
 static GtkWidget *d_source_slitW;
 static GtkWidget *slit_size_xW;
 static GtkWidget *slit_size_yW;
@@ -101,7 +102,8 @@ static gulong n_detector_orientation_xG;
 static gulong n_detector_orientation_yG;
 static gulong n_detector_orientation_zG;
 static gulong area_detectorG;
-static gulong acceptance_detectorG;
+static gulong collimator_heightG;
+static gulong collimator_diameterG;
 static gulong d_source_slitG;
 static gulong slit_size_xG;
 static gulong slit_size_yG;
@@ -137,7 +139,8 @@ static int n_detector_orientation_xC;
 static int n_detector_orientation_yC;
 static int n_detector_orientation_zC;
 static int area_detectorC;
-static int acceptance_detectorC;
+static int collimator_heightC;
+static int collimator_diameterC;
 static int d_source_slitC;
 static int slit_size_xC;
 static int slit_size_yC;
@@ -1374,11 +1377,17 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), area_detectorG);
 			break;
-		case ACCEPTANCE_DETECTOR:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->acceptance_detector);
-			g_signal_handler_block(G_OBJECT((current)->widget), acceptance_detectorG);
+		case COLLIMATOR_HEIGHT:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_height);
+			g_signal_handler_block(G_OBJECT((current)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
-			g_signal_handler_unblock(G_OBJECT((current)->widget), acceptance_detectorG);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_heightG);
+			break;
+		case COLLIMATOR_DIAMETER:
+			sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_diameter);
+			g_signal_handler_block(G_OBJECT((current)->widget), collimator_diameterG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
 			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_source_slit);
@@ -1745,11 +1754,17 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), area_detectorG);
 			break;
-		case ACCEPTANCE_DETECTOR:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->acceptance_detector);
-			g_signal_handler_block(G_OBJECT((current+1)->widget), acceptance_detectorG);
+		case COLLIMATOR_HEIGHT:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_height);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
-			g_signal_handler_unblock(G_OBJECT((current+1)->widget), acceptance_detectorG);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_heightG);
+			break;
+		case COLLIMATOR_DIAMETER:
+			sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_diameter);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_diameterG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
 			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_source_slit);
@@ -2034,7 +2049,6 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		//strict positive
 		case D_SAMPLE_SOURCE:
 		case AREA_DETECTOR:
-		case ACCEPTANCE_DETECTOR:
 		case D_SOURCE_SLIT:
 		case SLIT_SIZE_X:
 		case SLIT_SIZE_Y:
@@ -2055,6 +2069,20 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		//positive
+		case COLLIMATOR_HEIGHT:
+		case COLLIMATOR_DIAMETER:
+			if (lastPtr == endPtr && value >= 0.0) {
+				//ok
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				*check = 1;
+				update_undo_buffer(kind, widget);
+			}
+			else {
+				//bad value
+				*check = 0;
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+			}
+			break;
 		
 		//no restrictions
 		case N_SAMPLE_ORIENTATION_X:
@@ -2386,10 +2414,17 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->kind = kind;
 			last->widget = widget;
 			break;
-		case ACCEPTANCE_DETECTOR:
+		case COLLIMATOR_HEIGHT:
 			xmi_copy_input(current->xi, &(last->xi));
-			strcpy(last->message,"change of detector acceptance");
-			last->xi->geometry->acceptance_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			strcpy(last->message,"change of collimator height");
+			last->xi->geometry->collimator_height = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case COLLIMATOR_DIAMETER:
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of collimator opening diameter");
+			last->xi->geometry->collimator_diameter = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
@@ -2773,7 +2808,8 @@ int main (int argc, char *argv[]) {
 	n_detector_orientation_yC = 1;
 	n_detector_orientation_zC = 1;
 	area_detectorC = 1;
-	acceptance_detectorC = 1;
+	collimator_heightC = 1;
+	collimator_diameterC = 1;
 	d_source_slitC = 1;
 	slit_size_xC = 1;
 	slit_size_yC = 1;
@@ -3129,19 +3165,33 @@ int main (int argc, char *argv[]) {
 	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), area_detectorW, FALSE, FALSE, 0);
 
-	//acceptance_detector
+	//collimator_height
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Detector acceptance");
+	label = gtk_label_new("Collimator height");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
-	acceptance_detectorW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->acceptance_detector);
-	gtk_entry_set_text(GTK_ENTRY(acceptance_detectorW),buffer);
+	collimator_heightW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->collimator_height);
+	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
-	vc->kind = ACCEPTANCE_DETECTOR;
-	vc->check = &acceptance_detectorC ;
-	acceptance_detectorG = g_signal_connect(G_OBJECT(acceptance_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
-	gtk_box_pack_end(GTK_BOX(hbox_text_label), acceptance_detectorW, FALSE, FALSE, 0);
+	vc->kind = COLLIMATOR_HEIGHT;
+	vc->check = &collimator_heightC ;
+	collimator_heightG = g_signal_connect(G_OBJECT(collimator_heightW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), collimator_heightW, FALSE, FALSE, 0);
+
+	//collimator_diameter
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Collimator diameter");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	collimator_diameterW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->geometry->collimator_diameter);
+	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = COLLIMATOR_DIAMETER;
+	vc->check = &collimator_diameterC ;
+	collimator_diameterG = g_signal_connect(G_OBJECT(collimator_diameterW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), collimator_diameterW, FALSE, FALSE, 0);
 
 	//d_source_slit
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -3368,7 +3418,8 @@ void change_all_values(struct xmi_input *new_input) {
 	n_detector_orientation_yC = 1;
 	n_detector_orientation_zC = 1;
 	area_detectorC = 1;
-	acceptance_detectorC = 1;
+	collimator_heightC = 1;
+	collimator_diameterC = 1;
 	d_source_slitC = 1;
 	slit_size_xC = 1;
 	slit_size_yC = 1;
@@ -3394,7 +3445,8 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
 	g_signal_handler_block(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
 	g_signal_handler_block(G_OBJECT(area_detectorW), area_detectorG);
-	g_signal_handler_block(G_OBJECT(acceptance_detectorW), acceptance_detectorG);
+	g_signal_handler_block(G_OBJECT(collimator_heightW), collimator_heightG);
+	g_signal_handler_block(G_OBJECT(collimator_diameterW), collimator_diameterG);
 	g_signal_handler_block(G_OBJECT(d_source_slitW), d_source_slitG);
 	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
 	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
@@ -3464,8 +3516,10 @@ void change_all_values(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
 	sprintf(buffer,"%lg",new_input->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->acceptance_detector);
-	gtk_entry_set_text(GTK_ENTRY(acceptance_detectorW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->collimator_height);
+	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
+	sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
+	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
 	sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
 	sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
@@ -3611,7 +3665,8 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
 	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
 	g_signal_handler_unblock(G_OBJECT(area_detectorW), area_detectorG);
-	g_signal_handler_unblock(G_OBJECT(acceptance_detectorW), acceptance_detectorG);
+	g_signal_handler_unblock(G_OBJECT(collimator_heightW), collimator_heightG);
+	g_signal_handler_unblock(G_OBJECT(collimator_diameterW), collimator_diameterG);
 	g_signal_handler_unblock(G_OBJECT(d_source_slitW), d_source_slitG);
 	g_signal_handler_unblock(G_OBJECT(slit_size_xW), slit_size_xG);
 	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
@@ -3770,7 +3825,8 @@ int check_changeables(void) {
  n_detector_orientation_yC &&
  n_detector_orientation_zC &&
  area_detectorC &&
- acceptance_detectorC &&
+ collimator_heightC &&
+ collimator_diameterC &&
  d_source_slitC &&
  slit_size_xC &&
  slit_size_yC &&

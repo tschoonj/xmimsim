@@ -5,9 +5,9 @@ USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: fgsl
 
-INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 2000, grid_dims_theta_n = 2000 
+INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000 
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 1000
+INTEGER (C_LONG), PARAMETER :: hits_per_single = 5000
 
 TYPE, BIND(C) :: xmi_solid_angleC
         TYPE (C_PTR) :: solid_angles
@@ -60,7 +60,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                                         inputF%geometry%p_detector_window))*1.10_C_DOUBLE
         grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (*,'(A,2ES14.5)') 'grid_dims_r: ',grid_dims_r
         WRITE (*,'(A,2ES14.5)') 'distances: ',xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
                                         inputF%composition%layers(1)%Z_coord_begin],&
@@ -79,8 +79,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         ELSE
                 !assume cylindrical collimator for now
                 grid_dims_theta(1) = &
-                ATAN(2*inputF%detector%detector_radius/&
-                inputF%detector%collimator_height)
+                ATAN(inputF%geometry%collimator_height/&
+                (inputF%detector%collimator_radius+inputF%detector%detector_radius))
         ENDIF
 
         ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
@@ -123,7 +123,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
 !                solid_angles(1,1) = xmi_single_solid_angle_calculation(inputF,&
-!                1.0_C_DOUBLE, M_PI/4.0_C_DOUBLE, rng)
+!                2.0_C_DOUBLE, M_PI/2.0_C_DOUBLE, rng)
         ENDDO
         ENDDO
 !$omp end do
@@ -141,7 +141,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         IF (xmi_xmlfile_to_string(input_file, solid_angle%xmi_input_string,&
         xmlstringlength) .EQ. 0_C_INT) CALL EXIT(1)
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A,I7)') 'xmlstringlength:',xmlstringlength
         WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)
         WRITE (6,'(A,5F13.5)') 'grid_dims_theta_vals:',grid_dims_theta_vals(1:5)
@@ -150,10 +150,12 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_anglePtr = C_LOC(solid_angle)
 
 
+
+        RETURN
 ENDSUBROUTINE xmi_solid_angle_calculation
 
 
-FUNCTION xmi_single_solid_angle_calculation(inputF, r, theta, rng) &
+FUNCTION xmi_single_solid_angle_calculation(inputF, r1, theta1, rng) &
 RESULT(rv)
 
         IMPLICIT NONE
@@ -162,7 +164,7 @@ RESULT(rv)
 
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        REAL (C_DOUBLE), INTENT(IN) :: r, theta
+        REAL (C_DOUBLE), INTENT(IN) :: r1, theta1
         REAL (C_DOUBLE) :: rv
 
         REAL (C_DOUBLE) :: theta_planes
@@ -181,6 +183,63 @@ RESULT(rv)
         TYPE (xmi_line) :: photon_line
         REAL (C_DOUBLE), DIMENSION(3) :: intersection_point
         INTEGER (C_LONG) :: i
+        REAL (C_DOUBLE) :: r2, r
+        REAL (C_DOUBLE) :: theta2, theta
+
+
+        !make distinction between several cases: no collimator, cilindrical
+        !collimator, conical collimator
+        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+                !no collimator
+                r = r1
+                theta = theta1
+                full_cone_base_radius = &
+                inputF%detector%detector_radius!/SIN(theta)
+        ELSEIF &
+        (ABS(inputF%detector%collimator_radius-inputF%detector%detector_radius)&
+        .LT. 0.000001_C_DOUBLE) THEN
+                !cilindrical collimator
+                !if position is within the cylinder, ignore the collimator
+                !if not, use the collimator opening as base cone
+                IF (r1*COS(theta1) .LE. inputF%detector%detector_radius) THEN
+                        r = r1
+                        theta = theta1
+                        full_cone_base_radius = &
+                        inputF%detector%detector_radius!/SIN(theta)
+                ELSE
+                        r = SQRT(r1**2 - &
+                        2.0_C_DOUBLE*r1*SIN(theta1)*inputF%geometry%collimator_height + &
+                        inputF%geometry%collimator_height**2)
+                        theta = ACOS(r1*COS(theta1)/r)
+                        full_cone_base_radius = &
+                        inputF%detector%collimator_radius!/SIN(theta)
+                ENDIF
+        ELSE
+                !conical collimator
+                !if position is within cone (FULL cone!), ignore the collimator
+                !otherwise use collimator opening as base
+                IF (r1*COS(theta1) .LE. inputF%detector%detector_radius .AND.&
+                r1*SIN(theta1) .LE.&
+                (inputF%geometry%collimator_height)*(r1*COS(theta1)-&
+                inputF%detector%detector_radius)/(inputF%detector%collimator_radius&
+                -inputF%detector%detector_radius)) THEN
+                        r = r1
+                        theta = theta1
+                        full_cone_base_radius = &
+                        inputF%detector%detector_radius!/SIN(theta)
+                ELSEIF (r1*SIN(theta1) .LE. inputF%geometry%collimator_height)&
+                THEN
+                        rv = 0.0_C_DOUBLE
+                        RETURN
+                ELSE
+                        r = SQRT(r1**2 - &
+                        2.0_C_DOUBLE*r1*SIN(theta1)*inputF%geometry%collimator_height + &
+                        inputF%geometry%collimator_height**2)
+                        theta = ACOS(r1*COS(theta1)/r)
+                        full_cone_base_radius = &
+                        inputF%detector%collimator_radius!/SIN(theta)
+                ENDIF
+        ENDIF
 
 
         !define proper cone
@@ -191,8 +250,6 @@ RESULT(rv)
         
         
         !calculate full_cone_base_radius
-        full_cone_base_radius = &
-        inputF%detector%detector_radius!/SIN(theta)
         full_cone_apex = ATAN(full_cone_base_radius/r)
         full_cone_solid_angle = 2*M_PI*(1.0_C_DOUBLE -&
         COS(full_cone_apex))
@@ -204,12 +261,18 @@ RESULT(rv)
         -1.0_C_DOUBLE*COS(theta),-1.0_C_DOUBLE*SIN(theta)]
 
 #if DEBUG == 1
+        WRITE (6,'(A,F12.6)') 'r: ',r
+        WRITE (6,'(A,F12.6)') 'theta: ',theta
         WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex 
         WRITE (6,'(A,F12.6)') 'full_cone_solid_angle' , full_cone_solid_angle
 
 #endif
 
         detector_hits = 0_C_LONG
+
+        detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+        detector_plane%normv = detector_normal
+        photon_line%point = [0.0_C_DOUBLE, r1*COS(theta1), r1*SIN(theta1)]
 
         DO i=1,hits_per_single
             theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
@@ -232,9 +295,6 @@ RESULT(rv)
                 WRITE (*,'(A,3F12.5)') 'dirv_from_detector:',dirv_from_detector
 #endif
                 !calculate intersection with detector plane
-                detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
-                detector_plane%normv = detector_normal
-                photon_line%point = [0.0_C_DOUBLE, r*COS(theta), r*sin(theta)]
                 photon_line%dirv = dirv_from_detector
 
                 IF (xmi_intersection_plane_line(detector_plane, photon_line,&
@@ -248,7 +308,6 @@ RESULT(rv)
 #endif
 
 
-                intersection_point(3) = 0.0_C_DOUBLE
                 IF (norm(intersection_point) .LE. inputF%detector%detector_radius) &
                         detector_hits = detector_hits +1
         ENDDO
@@ -300,6 +359,12 @@ RESULT(rv)
 
         !complement
         theta = (M_PI/2.0_C_DOUBLE) - temp_theta
+
+        IF (theta .LT. solid_angles%grid_dims_theta_vals(1)) THEN
+                rv = 0
+                detector_solid_angle = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
 
         !find positions
         pos_1 = findpos(solid_angles%grid_dims_r_vals,r)

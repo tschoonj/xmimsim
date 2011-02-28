@@ -853,17 +853,25 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                 ELSE
                                                         channel = 0
                                                 ENDIF
+#if DEBUG == 2
+                                IF (m == 1 .AND. n == 383+1) THEN 
+                                WRITE (*,'(A,ES14.5)') 'energy Cr-Rayl:',photon_temp%variance_reduction(k,l)%energy(m,n)
+                                        WRITE (*,'(A, ES14.5)') 'var_red_history Cr-Rayl:',&
+                                        photon_temp%variance_reduction(k,l)%weight(m,n)&
+                                        *photon_temp%weight*det_corr_all(inputF%composition%layers(k)%Z(m),n)
+
+                                ENDIF
+#endif
 
                                                 IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
                                                         channels(l:, channel) =&
-                                                        channels(l:, channel)+photon_temp%weight*&
+                                                        channels(l:, channel)+&
                                                         photon_temp%variance_reduction(k,l)%weight(m,n)
-                                                        var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
-                                                        var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
-                                                        photon_temp%variance_reduction(k,l)%weight(m,n)&
-                                                        *photon_temp%weight*det_corr_all(inputF%composition%layers(k)%Z(m),n)
                                                 ENDIF
-
+                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
+                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
+                                                photon_temp%variance_reduction(k,l)%weight(m,n)&
+                                                *det_corr_all(inputF%composition%layers(k)%Z(m),n)
                                                ENDDO
                                              ENDDO
                                            ENDDO 
@@ -1033,6 +1041,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         WRITE (*,'(A,I)') 'Ba-LB3: ',SUM(brute_history(56,ABS(LB3_LINE),1:inputF%general%n_interactions_trajectory))
         WRITE (*,'(A,I)') 'Ba-LB4: ',SUM(brute_history(56,ABS(LB4_LINE),1:inputF%general%n_interactions_trajectory))
         WRITE (*,'(A,I)') 'Ba-LG2: ',SUM(brute_history(56,ABS(LG2_LINE),1:inputF%general%n_interactions_trajectory))
+        WRITE (*,'(A,ES14.5)') 'Cr-KL2: ',var_red_history(24,ABS(KL2_LINE),1)
+        WRITE (*,'(A,ES14.5)') 'Cr-Rayleight: ',var_red_history(24,383+1,1)
 #endif
 
         !multiply with detector absorbers and detector crystal
@@ -2303,14 +2313,26 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
 
         !investigate detector
         inputF%detector%detector_radius = SQRT(inputF%geometry%area_detector/M_PI)
-        IF (inputF%geometry%acceptance_detector .GE. M_PI) THEN
-                inputF%detector%collimator_present = .FALSE.
-                inputF%detector%collimator_height = 0.0_C_DOUBLE 
-        ELSE
+        !IF (inputF%geometry%acceptance_detector .GE. M_PI) THEN
+        !        inputF%detector%collimator_present = .FALSE.
+        !        inputF%detector%collimator_height = 0.0_C_DOUBLE 
+        !ELSE
+        !        inputF%detector%collimator_present = .TRUE.
+        !        inputF%detector%collimator_height = inputF%detector%detector_radius&
+        !        *2.0_C_DOUBLE/TAN(inputF%geometry%acceptance_detector/2.0_C_DOUBLE) 
+        !ENDIF
+
+        !check for presence of collimator
+        IF (inputF%geometry%collimator_height .GT. 0.0_C_DOUBLE .AND.&
+        inputF%geometry%collimator_diameter .GT. 0.0_C_DOUBLE) THEN
                 inputF%detector%collimator_present = .TRUE.
-                inputF%detector%collimator_height = inputF%detector%detector_radius&
-                *2.0_C_DOUBLE/TAN(inputF%geometry%acceptance_detector/2.0_C_DOUBLE) 
+                inputF%detector%collimator_radius = &
+                inputF%geometry%collimator_diameter/2.0_C_DOUBLE
+        ELSE
+                inputF%detector%collimator_present = .FALSE.
         ENDIF
+
+
 
         inputF%detector%n_detector_orientation_new_x = &
         inputF%geometry%n_detector_orientation
@@ -2463,14 +2485,14 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         ENDIF
         
         !there is a collimator...
-        plane_det_base%point = [inputF%detector%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+        plane_det_base%point = [inputF%geometry%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 
         IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
         intersect) == 0) CALL EXIT(1)
 
         intersect(1) = 0.0_C_DOUBLE
 
-        IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
+        IF (norm(intersect) .GT. inputF%detector%collimator_radius) RETURN
 
         !ok, valid hit
         rv = .TRUE.
@@ -4685,19 +4707,24 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         CALL normalize_vector(line_coll%dirv)
 
         !if it hits the collimator -> game over
-        IF (inputF%detector%collimator_present .EQ. .TRUE.) THEN
-                !there is a collimator
-                plane_coll%point = detector_point
-                plane_coll%point(1)=inputF%detector%collimator_height
-                plane_coll%normv = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
-
-                IF (xmi_intersection_plane_line(plane_coll, line_coll,&
-                point_coll) == 0) CALL EXIT(1)
-
-                point_coll(1) = 0.0_C_DOUBLE
-                
-                IF (norm(point_coll) .GT. inputF%detector%detector_radius) RETURN
-        ENDIF
+!        IF (inputF%detector%collimator_present .EQ. .TRUE.) THEN
+!                !there is a collimator
+!                plane_coll%point = detector_point
+!                plane_coll%point(1)=inputF%geometry%collimator_height
+!                plane_coll%normv = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
+!
+!                IF (xmi_intersection_plane_line(plane_coll, line_coll,&
+!                point_coll) == 0) CALL EXIT(1)
+!
+!                point_coll(1) = 0.0_C_DOUBLE
+!                
+!                IF (norm(point_coll) .GT. inputF%detector%collimator_radius) THEN
+!#if DEBUG == 0
+!
+!#endif
+!                        RETURN
+!                ENDIF
+!        ENDIF
         new_dirv_coords = MATMUL(inputF%detector%n_detector_orientation_new,line_coll%dirv)
 
         
@@ -4799,6 +4826,11 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 inputF%composition%layers(j)%density*distances(j)
         ENDDO
         Pesc_rayl = EXP(-temp_murhod) 
+#if DEBUG == 1
+        WRITE (*,'(A,ES14.5)') 'distances',distances(1)
+        WRITE (*,'(A,ES12.4)') 'Pesc_rayl: ',Pesc_rayl
+#endif
+
 
 
         !
@@ -4809,8 +4841,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         inputF,detector_solid_angle,rng,photon%coords)+&
         photon%detector_solid_angle_not_found
 #if DEBUG == 1
-        WRITE (6,'(A,ES14.5)')&
-        'detector_solid_angle_diff:',(inputF%detector%detector_solid_angle-detector_solid_angle)/&
+        WRITE (6,'(A,ES14.5)') 'detector_solid_angle:',&
+        !'detector_solid_angle_diff:',(inputF%detector%detector_solid_angle-detector_solid_angle)/&
         detector_solid_angle
 #endif
 
@@ -4834,9 +4866,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
                 !find position in history
                 photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)&
-                = Pconv*Pdir*Pesc_rayl
+                = Pconv*Pdir*Pesc_rayl*photon%weight
                 photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+1)&
                 = photon%energy
+#if DEBUG == 2
+                IF (i == 1) &
+                WRITE (*,'(A,F12.5)') 'Cr-Rayleigh: ',&
+                photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)
+#endif
 
                 !
                 !       moving on with COMPTON
@@ -4856,7 +4893,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 Pdir = detector_solid_angle&
                 *DCS_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),REAL(theta,KIND=C_FLOAT))
                 photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
-                = Pconv*Pdir*Pesc_comp
+                = Pconv*Pdir*Pesc_comp*photon%weight
                 photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
                 = energy_compton
 
@@ -4911,7 +4948,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         ENDDO
                         Pesc = EXP(-temp_murhod) 
                         photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
-                        = Pconv*Pdir_fluo*Pesc
+                        = Pconv*Pdir_fluo*Pesc*photon%weight
                         photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
                         = energy_fluo
 #if DEBUG == 1

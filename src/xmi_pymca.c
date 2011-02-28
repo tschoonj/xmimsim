@@ -291,10 +291,17 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 		return rv;
 	}
 	
-	//acceptance_angle
-	(*geometry)->acceptance_detector = g_key_file_get_double(pymcaFile, "xrfmc.setup", "detector_acceptance_angle",NULL); 
-	if ((*geometry)->acceptance_detector <= 0.0) {
-		fprintf(stderr,"Detector acceptance angle must be positive... Fatal error\n");
+	//collimator_height
+	(*geometry)->collimator_height = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_height",NULL); 
+	if ((*geometry)->collimator_height < 0.0) {
+		fprintf(stderr,"Collimator height must be greater or equal to zero... Fatal error\n");
+		return rv;
+	}
+	
+	//collimator_diameter
+	(*geometry)->collimator_diameter = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_diameter",NULL); 
+	if ((*geometry)->collimator_diameter < 0.0) {
+		fprintf(stderr,"Collimator opening diameter must be greater or equal to zero... Fatal error\n");
 		return rv;
 	}
 	

@@ -269,10 +269,18 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "acceptance_detector")){
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_height")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->acceptance_detector)) != 1) {
-				fprintf(stderr,"error reading in acceptance_detector of xml file\n");
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_height)) != 1) {
+				fprintf(stderr,"error reading in collimator_height of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_diameter")){
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_diameter)) != 1) {
+				fprintf(stderr,"error reading in collimator_diameter of xml file\n");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1446,8 +1454,12 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error writing area_detector\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "acceptance_detector","%lf",input->geometry->acceptance_detector) < 0) {
-		fprintf(stderr,"Error writing acceptance_detector\n");
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_height","%lf",input->geometry->collimator_height) < 0) {
+		fprintf(stderr,"Error writing collimator_height\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_diameter","%lf",input->geometry->collimator_diameter) < 0) {
+		fprintf(stderr,"Error writing collimator_diameter\n");
 		return 0;
 	}
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%lf",input->geometry->d_source_slit) < 0) {

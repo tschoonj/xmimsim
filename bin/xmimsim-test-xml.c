@@ -46,7 +46,6 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"n_detector_orientation[1]: %lf\n",input->geometry->n_detector_orientation[1]);
 	fprintf(stdout,"n_detector_orientation[2]: %lf\n",input->geometry->n_detector_orientation[2]);
 	fprintf(stdout,"area_detector: %lf\n",input->geometry->area_detector);
-	fprintf(stdout,"acceptance_detector: %lf\n",input->geometry->acceptance_detector);
 	fprintf(stdout,"d_source_slit: %lf\n",input->geometry->d_source_slit);
 	fprintf(stdout,"slit_size_x: %lf\n",input->geometry->slit_size_x);
 	fprintf(stdout,"slit_size_y: %lf\n\n",input->geometry->slit_size_y);

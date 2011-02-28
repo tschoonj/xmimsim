@@ -244,7 +244,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
-	XMI_IF_COMPARE_GEOMETRY(acceptance_detector)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
 	XMI_IF_COMPARE_GEOMETRY2(d_source_slit)
 	XMI_IF_COMPARE_GEOMETRY2(slit_size_x)
 	XMI_IF_COMPARE_GEOMETRY2(slit_size_y)
@@ -502,7 +503,9 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->geometry->n_detector_orientation[1] = 1.0;
 	rv->geometry->n_detector_orientation[2] = 1.0;
 	rv->geometry->area_detector = 0.3;
-	rv->geometry->acceptance_detector = 1.57;
+	//default is NO collimator
+	rv->geometry->collimator_height = 0.0;
+	rv->geometry->collimator_diameter= 0.0;
 	rv->geometry->d_source_slit = 100.0;
 	rv->geometry->slit_size_x = 0.001;
 	rv->geometry->slit_size_y = 0.001;
@@ -659,6 +662,11 @@ int xmi_validate_input(struct xmi_input *a) {
 		return 1;
 	if (a->geometry->area_detector <= 0.0)
 		return 1;
+	if (a->geometry->collimator_height < 0.0)
+		return 1;
+	if (a->geometry->collimator_diameter < 0.0)
+		return 1;
+	
 
 	if (a->excitation->n_discrete < 1 && a->excitation->n_continuous < 2)
 		return 1;
@@ -734,7 +742,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "p_detector_window: %lf  %lf  %lf\n",input->geometry->p_detector_window[0],input->geometry->p_detector_window[1],input->geometry->p_detector_window[2]);
 	fprintf(fPtr, "n_detector_orientation: %lf  %lf  %lf\n",input->geometry->n_detector_orientation[0],input->geometry->n_detector_orientation[1],input->geometry->n_detector_orientation[2]);
 	fprintf(fPtr, "area_detector: %lf\n",input->geometry->area_detector);
-	fprintf(fPtr, "acceptance_detector: %lf\n",input->geometry->acceptance_detector);
+	fprintf(fPtr, "collimator_height: %lf\n",input->geometry->collimator_height);
+	fprintf(fPtr, "collimator_diameter: %lf\n",input->geometry->collimator_diameter);
 	fprintf(fPtr, "d_source_slit: %lf\n",input->geometry->d_source_slit);
 	fprintf(fPtr, "slit_size_x: %lf\n",input->geometry->slit_size_x);
 	fprintf(fPtr, "slit_size_y: %lf\n",input->geometry->slit_size_y);

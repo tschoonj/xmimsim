@@ -58,7 +58,7 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	dims[0] = solid_angle->grid_dims_theta_n;
 
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"r_values:\n");
 	for (i = 0 ; i < 5 ; i++)
 		fprintf(stdout,"%lf\n",solid_angle->grid_dims_r_vals[i]);
@@ -96,13 +96,13 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	H5Gclose(group_id);
 
 	//look for open objects
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"open objects: %i\n",(int) H5Fget_obj_count(file_id, H5F_OBJ_ALL));
 #endif
 
 
 	H5Fflush(file_id, H5F_SCOPE_GLOBAL);
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"open objects: %i\n",(int) H5Fget_obj_count(file_id, H5F_OBJ_ALL));
 #endif
 
@@ -270,7 +270,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
-	XMI_IF_COMPARE_GEOMETRY(acceptance_detector)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
 
 
 	return 1;

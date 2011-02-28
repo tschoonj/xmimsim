@@ -37,7 +37,8 @@ struct xmi_geometry {
 	double p_detector_window[3];
 	double n_detector_orientation[3];
 	double area_detector;
-	double acceptance_detector;
+	double collimator_height;
+	double collimator_diameter;
 	double d_source_slit;
 	double slit_size_x;
 	double slit_size_y;
@@ -108,8 +109,7 @@ typedef void* xmi_hdf5FPtr;
 #define XMI_COMPARE_ABSORBERS 16
 #define XMI_COMPARE_DETECTOR 32
 
-// 0.01%
-#define XMI_COMPARE_THRESHOLD 0.0001
+#define XMI_COMPARE_THRESHOLD 0.000001
 
 void xmi_free_input(struct xmi_input *);
 

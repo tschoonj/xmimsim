@@ -118,7 +118,8 @@ TYPE, BIND(C) :: xmi_geometry
         REAL (C_DOUBLE), DIMENSION(3) :: p_detector_window;
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation;
         REAL (C_DOUBLE) :: area_detector;
-        REAL (C_DOUBLE) :: acceptance_detector;
+        REAL (C_DOUBLE) :: collimator_height
+        REAL (C_DOUBLE) :: collimator_diameter
         REAL (C_DOUBLE) :: d_source_slit;
         REAL (C_DOUBLE) :: slit_size_x;
         REAL (C_DOUBLE) :: slit_size_y;
@@ -197,7 +198,7 @@ TYPE :: xmi_detector
         !below is not present in C variable!!!
         LOGICAL :: collimator_present
         REAL (C_DOUBLE) :: detector_radius
-        REAL (C_DOUBLE) :: collimator_height
+        REAL (C_DOUBLE) :: collimator_radius
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_x
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_y
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_z
