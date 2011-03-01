@@ -37,6 +37,17 @@ int main (int argc, char *argv[]) {
 	double *var_red_history;
 	double sum_k, sum_l, sum_temp;
 	double sum_k_history, sum_l_history;
+	struct xmi_solid_angle *solid_angle_def;
+	uid_t uid, euid;
+	char *xmi_input_string;
+
+
+	//change euid to uid
+	uid = getuid();
+	euid = geteuid();
+
+	//start without privileges
+	seteuid(uid);
 
 
 
@@ -115,20 +126,24 @@ int main (int argc, char *argv[]) {
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
-/*
+
 	//check if solid angles are already precalculated
 	if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, pymca_input, &solid_angle_def) == 0)
 		return 1;
 	if (solid_angle_def == NULL) {
 		//doesn't exist yet
-		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, argv[1]);
+		//convert input to string
+		if (xmi_write_input_xml_to_string(&xmi_input_string, pymca_input) == 0) {
+			return 1;
+		}
+		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
 		//update hdf5 file
 		seteuid(euid);
 		if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
 			return 1;
 		seteuid(uid);
 	}
-*/
+
 	//everything is read in... start iteration
 	i = 0;
 
@@ -161,7 +176,7 @@ int main (int argc, char *argv[]) {
 		}
 
 		//launch simulation
-/*		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history) == 0) {
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
@@ -212,7 +227,7 @@ int main (int argc, char *argv[]) {
 		free(pymca_input->composition->layers[xp->ilay_pymca].Z);
 		free(pymca_input->composition->layers[xp->ilay_pymca].weight);
 		pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
-*/	
+	
 #if DEBUG == 1
 		fprintf(stdout,"Iteration: %i\n",i);
 		fprintf(stdout,"sum_k: %lf\n",sum_k);
@@ -229,7 +244,6 @@ int main (int argc, char *argv[]) {
 
 	}
 
-	return 0;
 
 	zero_sum = xmi_sum_double(channels, xp->nchannels);
 	//convolute_spectrum

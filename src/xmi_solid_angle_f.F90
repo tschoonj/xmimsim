@@ -22,14 +22,14 @@ ENDTYPE
 
 CONTAINS
 
-SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_file)&
+SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_string)&
 BIND(C,NAME='xmi_solid_angle_calculation')
 
         IMPLICIT NONE
 
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
-        TYPE (C_PTR), VALUE, INTENT(IN) :: input_file
+        TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 
@@ -57,7 +57,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                                         xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
                                         inputF%composition%layers(inputF%composition%n_layers)&
                                         %Z_coord_end],&
-                                        inputF%geometry%p_detector_window))*1.10_C_DOUBLE
+                                        inputF%geometry%p_detector_window))*2.0_C_DOUBLE
         grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
 
 #if DEBUG == 1
@@ -138,11 +138,9 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_angle%grid_dims_theta_n = grid_dims_theta_n
         solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals)
         solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals)
+        solid_angle%xmi_input_string = input_string 
 
-        IF (xmi_xmlfile_to_string(input_file, solid_angle%xmi_input_string,&
-        xmlstringlength) .EQ. 0_C_INT) CALL EXIT(1)
 #if DEBUG == 1
-        WRITE (6,'(A,I7)') 'xmlstringlength:',xmlstringlength
         WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)
         WRITE (6,'(A,5F13.5)') 'grid_dims_theta_vals:',grid_dims_theta_vals(1:5)
 #endif
@@ -179,12 +177,13 @@ RESULT(rv)
         INTEGER (C_LONG) :: detector_hits
         REAL (C_DOUBLE), DIMENSION(3) :: dirv_from_cone
         REAL (C_DOUBLE), DIMENSION(3) :: dirv_from_detector
-        TYPE (xmi_plane) :: detector_plane
+        TYPE (xmi_plane) :: detector_plane,collimator_plane
         TYPE (xmi_line) :: photon_line
         REAL (C_DOUBLE), DIMENSION(3) :: intersection_point
         INTEGER (C_LONG) :: i
         REAL (C_DOUBLE) :: r2, r
         REAL (C_DOUBLE) :: theta2, theta
+        LOGICAL :: outside_collimator
 
 
         !make distinction between several cases: no collimator, cilindrical
@@ -195,6 +194,7 @@ RESULT(rv)
                 theta = theta1
                 full_cone_base_radius = &
                 inputF%detector%detector_radius!/SIN(theta)
+                outside_collimator = .FALSE.
         ELSEIF &
         (ABS(inputF%detector%collimator_radius-inputF%detector%detector_radius)&
         .LT. 0.000001_C_DOUBLE) THEN
@@ -213,6 +213,11 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
+                ENDIF
+                IF (r1*SIN(theta1) .GT. inputF%geometry%collimator_height) THEN
+                        outside_collimator = .TRUE.
+                ELSE
+                        outside_collimator = .FALSE.
                 ENDIF
         ELSE
                 !conical collimator
@@ -238,6 +243,11 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
+                ENDIF
+                IF (r1*SIN(theta1) .GT. inputF%geometry%collimator_height) THEN
+                        outside_collimator = .TRUE.
+                ELSE
+                        outside_collimator = .FALSE.
                 ENDIF
         ENDIF
 
@@ -272,6 +282,11 @@ RESULT(rv)
 
         detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
         detector_plane%normv = detector_normal
+        IF (outside_collimator .EQ. .TRUE.) THEN
+                collimator_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, inputF%geometry%collimator_height]
+                collimator_plane%normv = detector_normal
+        ENDIF
+        
         photon_line%point = [0.0_C_DOUBLE, r1*COS(theta1), r1*SIN(theta1)]
 
         DO i=1,hits_per_single
@@ -297,6 +312,21 @@ RESULT(rv)
                 !calculate intersection with detector plane
                 photon_line%dirv = dirv_from_detector
 
+
+                IF (outside_collimator .EQ. .TRUE.) THEN
+                        !calculate intersection with collimator opening
+                        IF (xmi_intersection_plane_line(collimator_plane, photon_line,&
+                        intersection_point) == 0) THEN
+                                WRITE(*,'(A,F12.7)') 'theta: ',theta
+                                WRITE(*,'(A,F12.7)') 'r: ',r
+                                CALL EXIT(1)
+                        ENDIF
+                        intersection_point(3) = 0.0_C_DOUBLE
+                        IF (norm(intersection_point) .GT. inputF%detector%collimator_radius) &
+                                CYCLE
+
+                ENDIF
+
                 IF (xmi_intersection_plane_line(detector_plane, photon_line,&
                 intersection_point) == 0) THEN
                         WRITE(*,'(A,F12.7)') 'theta: ',theta
@@ -306,7 +336,6 @@ RESULT(rv)
 #if DEBUG ==1
                 WRITE (*,'(A,3F12.4)') 'intersection_point: ',intersection_point
 #endif
-
 
                 IF (norm(intersection_point) .LE. inputF%detector%detector_radius) &
                         detector_hits = detector_hits +1

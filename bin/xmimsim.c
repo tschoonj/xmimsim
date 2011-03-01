@@ -75,6 +75,7 @@ int main (int argc, char *argv[]) {
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def;
 	uid_t uid, euid;
+	char *xmi_input_string;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -244,12 +245,17 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif
+	if (options.use_variance_reduction == 1) {
 		//check if solid angles are already precalculated
 		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			//doesn't exist yet
-			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, argv[1]);
+			//convert input to string
+			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
+				return 1;
+			}
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
 			//update hdf5 file
 			seteuid(euid);
 			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
@@ -257,7 +263,7 @@ int main (int argc, char *argv[]) {
 			seteuid(uid);
 		}
 
-
+	}
 
 #ifdef HAVE_OPENMPI
 	}

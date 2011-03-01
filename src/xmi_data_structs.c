@@ -727,6 +727,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "outputfile: %s\n",input->general->outputfile);
 	fprintf(fPtr, "n_photons_interval: %li\n", input->general->n_photons_interval);
 	fprintf(fPtr, "n_photons_line: %li\n", input->general->n_photons_line);
+	fprintf(fPtr, "n_interactions_trajectory: %li\n", input->general->n_interactions_trajectory);
 	fprintf(fPtr, "\n");
 
 	//composition

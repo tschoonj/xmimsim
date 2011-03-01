@@ -51,7 +51,8 @@ xmimsim_test_alloc_LDADD = ../src/libxmimsim.la
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+-DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\"
 
 xmimsim_test_solid_angle_SOURCES = xmimsim-test-solid-angle.c
 xmimsim_test_solid_angle_LDADD = ../src/libxmimsim.la
@@ -71,6 +72,7 @@ xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 install-exec-hook:
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-test-solid-angle
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim
+	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-pymca
 
 
 clean-local:

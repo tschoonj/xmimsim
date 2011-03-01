@@ -1002,47 +1002,18 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
         WRITE (*,'(A,I)') 'detector_solid_angle_not_found: ',&
         detector_solid_angle_not_found
-        WRITE (*,'(A,I)') 'Fe-KL2: ',brute_history(26,ABS(KL2_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KL3: ',brute_history(26,ABS(KL3_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KM2: ',brute_history(26,ABS(KM2_LINE),1)
-        WRITE (*,'(A,I)') 'Fe-KM3: ',brute_history(26,ABS(KM3_LINE),1)
-        !WRITE (*,'(A,I)') 'Fe-KL2: ',brute_history(26,ABS(KL2_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KL3: ',brute_history(26,ABS(KL3_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KM2: ',brute_history(26,ABS(KM2_LINE),2)
-        !WRITE (*,'(A,I)') 'Fe-KM3: ',brute_history(26,ABS(KM3_LINE),2)
-        WRITE (*,'(A,I)') 'Ni-KL2: ',brute_history(28,ABS(KL2_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KL3: ',brute_history(28,ABS(KL3_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KM2: ',brute_history(28,ABS(KM2_LINE),1)
-        WRITE (*,'(A,I)') 'Ni-KM3: ',brute_history(28,ABS(KM3_LINE),1)
-        !WRITE (*,'(A,I)') 'Ni-KL2: ',brute_history(28,ABS(KL2_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KL3: ',brute_history(28,ABS(KL3_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KM2: ',brute_history(28,ABS(KM2_LINE),2)
-        !WRITE (*,'(A,I)') 'Ni-KM3: ',brute_history(28,ABS(KM3_LINE),2)
-        WRITE (*,'(A,I)') 'Au-KM3: ',brute_history(79,ABS(KM3_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LA1: ',brute_history(79,ABS(LA1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LA2: ',brute_history(79,ABS(LA2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB1: ',brute_history(79,ABS(LB1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB2: ',brute_history(79,ABS(LB2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB3: ',brute_history(79,ABS(LB3_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LB4: ',brute_history(79,ABS(LB4_LINE),1)
-        WRITE (*,'(A,I)') 'Au-LG2: ',brute_history(79,ABS(LG2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MA1: ',brute_history(79,ABS(MA1_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MA2: ',brute_history(79,ABS(MA2_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MB: ',brute_history(79,ABS(MB_LINE),1)
-        WRITE (*,'(A,I)') 'Au-MG: ',brute_history(79,ABS(MG_LINE),1)
-        WRITE (*,'(A,I)') 'Ba-KL2: ',SUM(brute_history(56,ABS(KL2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KL3: ',SUM(brute_history(56,ABS(KL3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KM2: ',SUM(brute_history(56,ABS(KM2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-KM3: ',SUM(brute_history(56,ABS(KM3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LA1: ',SUM(brute_history(56,ABS(LA1_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LA2: ',SUM(brute_history(56,ABS(LA2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB1: ',SUM(brute_history(56,ABS(LB1_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB2: ',SUM(brute_history(56,ABS(LB2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB3: ',SUM(brute_history(56,ABS(LB3_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LB4: ',SUM(brute_history(56,ABS(LB4_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,I)') 'Ba-LG2: ',SUM(brute_history(56,ABS(LG2_LINE),1:inputF%general%n_interactions_trajectory))
-        WRITE (*,'(A,ES14.5)') 'Cr-KL2: ',var_red_history(24,ABS(KL2_LINE),1)
-        WRITE (*,'(A,ES14.5)') 'Cr-Rayleight: ',var_red_history(24,383+1,1)
+!        WRITE (*,'(A)') 'Brute force'
+!        WRITE (*,'(A,I)') 'Ba-KL3: ',brute_history(56,ABS(KL3_LINE),1)
+!        WRITE (*,'(A,I)') 'Ba-KL3-4: ',brute_history(56,ABS(KL3_LINE),4)
+!        WRITE (*,'(A,I)') 'Ba-LA1: ',brute_history(56,ABS(LA1_LINE),1)
+!        WRITE (*,'(A,I)') 'Ba-LA1-4: ',brute_history(56,ABS(LA1_LINE),4)
+!        WRITE (*,'(A)') 'variance reduction'
+!        WRITE (*,'(A,ES14.5)') 'Cr-KL2: ',var_red_history(24,ABS(KL2_LINE),1)
+!        WRITE (*,'(A,ES14.5)') 'Cr-Rayleight: ',var_red_history(24,383+1,1)
+!        WRITE (*,'(A,ES14.5)') 'Ba-KL3: ',var_red_history(56,ABS(KL3_LINE),1)
+!        WRITE (*,'(A,ES14.5)') 'Ba-KL3-4: ',var_red_history(56,ABS(KL3_LINE),4)
+!        WRITE (*,'(A,ES14.5)') 'Ba-LA1: ',var_red_history(56,ABS(LA1_LINE),1)
+!        WRITE (*,'(A,ES14.5)') 'Ba-LA1-4: ',var_red_history(56,ABS(LA1_LINE),4)
 #endif
 
         !multiply with detector absorbers and detector crystal
@@ -2765,22 +2736,31 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
 
         !first fluorescence yield check, then Coster-Kronig!!!
-        IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&
-            (photon%current_layer)%xmi_hdf5_Z_local&
-            (photon%current_element_index)%Ptr,&
-            photon%energy) .EQ. 0_C_INT) THEN
-                IF (photon%options%use_cascade_auger .EQ. 1_C_INT .AND.&
-                photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
-                        CALL xmi_simulate_photon_cascade_auger(photon,shell&
-                        ,rng,inputF,hdf5F)
-                ENDIF
+        IF (photon%options%use_optimizations .EQ. 0_C_INT .OR. &
+        photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+                !no optimizations // no variance reduction
+                IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (photon%current_element_index)%Ptr,&
+                photon%energy) .EQ. 0_C_INT) THEN
+                        IF (photon%options%use_cascade_auger .EQ. 1_C_INT .AND.&
+                        photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+                                CALL xmi_simulate_photon_cascade_auger(photon,shell&
+                                ,rng,inputF,hdf5F)
+                        ENDIF
 #if DEBUG == 1
-              WRITE (*,'(A)') 'No fluorescence: Auger'
+                        WRITE (*,'(A)') 'No fluorescence: Auger'
 #endif
-                rv = 1
-                RETURN
+                        rv = 1
+                        RETURN
+                ENDIF
+        ELSE
+                !optimizations and variance reduction
+                CALL xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, &
+                inputF%composition%layers&
+                (photon%current_layer)%xmi_hdf5_Z_local&
+                (photon%current_element_index)%Ptr)
         ENDIF
-
 
         !Coster-Kronig for L and M
         CALL xmi_coster_kronig_check(rng, shell, photon%current_element)
@@ -4230,10 +4210,16 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
                 i_esc_kb = &
                 INT((e-E_Si_Kb-inputF%detector%zero)/inputF%detector%gain)
 
-                channels_conv(i_esc_ka) = &
-                channels_conv(i_esc_ka)+esc_rat*channels_conv(i)*RR_Si_Ka
-                channels_conv(i_esc_kb) = &
-                channels_conv(i_esc_kb)+esc_rat*channels_conv(i)*RR_Si_Kb
+                IF (i_esc_ka .GE. 1 .AND. i_esc_ka .LE. SIZE(channels_conv))&
+                THEN
+                        channels_conv(i_esc_ka) = &
+                        channels_conv(i_esc_ka)+esc_rat*channels_conv(i)*RR_Si_Ka
+                ENDIF
+                IF (i_esc_kb .GE. 1 .AND. i_esc_kb .LE. SIZE(channels_conv))&
+                THEN
+                        channels_conv(i_esc_kb) = &
+                        channels_conv(i_esc_kb)+esc_rat*channels_conv(i)*RR_Si_Kb
+                ENDIF
                 channels_conv(i) = (1.0_C_DOUBLE-esc_rat)*channels_conv(i)
 
         ENDDO
@@ -4409,6 +4395,26 @@ FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
 
         RETURN
 ENDFUNCTION xmi_fluorescence_yield_check
+
+SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT), INTENT(IN) :: shell
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        TYPE (xmi_hdf5_Z), POINTER :: hdf5_Z
+        REAL (C_DOUBLE) :: r,fluor_yield_corr
+
+
+        r = fgsl_rng_uniform(rng)
+#if DEBUG == 1
+        WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
+#endif
+
+        photon%weight = photon%weight * hdf5_Z%FluorYieldsCorr(shell)
+
+
+        RETURN
+ENDSUBROUTINE xmi_fluorescence_yield_check_varred_optim
 
 FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
         self_enhancement) RESULT(rv)

@@ -28,7 +28,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	//remove any leading spaces
 	g_strchug(compositionString);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"composition without leading space: x%sx\n",compositionString);
 #endif
 
@@ -37,14 +37,14 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	strcpy(predefGroup,"result.config.materials.");
 	strcat(predefGroup,compositionString);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"predefGroup: %s\n",predefGroup);
 #endif
 
 
 	//First check if it's not one of the predefined layers...
 	if (g_key_file_has_group(pymcaFile, predefGroup) == TRUE) {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"Found predefGroup\n");
 #endif
 		//don't get density and thickness here! Just the composition...
@@ -138,7 +138,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 		free(cd1);
 	}
 
-#if DEBUG == 1
+#if DEBUG == 2
 	for (i = 0 ; i < (*layer)->n_elements ; i++) {
 		fprintf(stdout,"Element: %i\n",(*layer)->Z[i]);
 		fprintf(stdout,"Weight: %lf\n",(*layer)->weight[i]);
@@ -148,7 +148,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	//sort
 	Z = (int *) xmi_memdup((*layer)->Z, sizeof(int)*(*layer)->n_elements);
 	weight = (double *) xmi_memdup((*layer)->weight, sizeof(double)*(*layer)->n_elements);
-	sorted_Z_ind = xmi_sort_idl_int(Z,(*layer)->n_elements*sizeof(int));
+	sorted_Z_ind = xmi_sort_idl_int(Z,(*layer)->n_elements);
 
 	for (i = 0 ; i < (*layer)->n_elements ; i++) {
 		(*layer)->Z[i] = Z[sorted_Z_ind[i]];
@@ -239,7 +239,7 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 
 	
 	for (i = 0 ; names[i] !=NULL ; i++) {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"names: %s\n",names[i]);
 #endif
 		if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", names[i], &length, NULL)) == NULL) {
@@ -376,7 +376,7 @@ int read_atmosphere_composition(GKeyFile *pymcaFile, struct xmi_layer **atmosphe
 	}
 
 
-#if DEBUG == 1
+#if DEBUG == 2
 	for (i=0 ; i < length ; i++)
 		fprintf(stdout,"x%sx\n",strings[i]);
 #endif
@@ -470,7 +470,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 
 	g_strfreev(strings);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	for (i = 1 ; i < 100 ; i++)
 		if (flags[i] == 1) 
 			fprintf(stdout,"Element flagged: %s\n",AtomicNumberToSymbol(i));
@@ -506,7 +506,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	(pymca_input)->l_alpha = (double *) malloc(sizeof(double)*n_elements);
 
 	for (i = 0 ; i < n_elements ; i++) {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"Examining peaks of %s\n",elements[i]);
 #endif
 		Z = SymbolToAtomicNumber(g_strstrip(elements[i]));
@@ -645,7 +645,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
 
 
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stdout,"k_alpha: %lf\n",(pymca_input)->k_alpha[i]);
 		fprintf(stdout,"l_alpha: %lf\n",(pymca_input)->l_alpha[i]);
 #endif
@@ -688,7 +688,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	energyweight = g_key_file_get_double_list(pymcaFile, "result.config.fit","energyweight", &n_energyweight, NULL);
 	energyflag = g_key_file_get_integer_list(pymcaFile, "result.config.fit","energyflag", &n_energyflag, NULL);
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"n_energy: %i\n",n_energy);
 	fprintf(stdout,"n_energyweight: %i\n",n_energyweight);
 	fprintf(stdout,"n_energyflag: %i\n",n_energyflag);
@@ -758,8 +758,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	struct xmi_excitation *excitation = NULL;
 	struct xmi_detector *detector = NULL;
 	struct xmi_general *general = NULL;
-	gchar **strings;
-	gsize length;
+	gchar **strings, *energy_string;
 
 	//read the file...
 	pymcaFile = g_key_file_new();
@@ -785,7 +784,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		return rv;
 	}
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
 #endif
 
@@ -803,7 +802,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (read_multilayer_composition(pymcaFile, &multilayer_layers, &n_multilayer_layers, (*pymca_input)->flags, (*pymca_input)->ilay_pymca) == 0)
 		return rv;
 	
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"Before get_peak_areas\n");
 #endif
 
@@ -811,7 +810,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (get_peak_areas(pymcaFile, *pymca_input) == 0)
 		return rv;
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"After get_peak_areas\n");
 #endif
 	//determine elements that will actually be quantified (non-matrix)
@@ -821,7 +820,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	(*pymca_input)->z_arr_quant = NULL;
 	(*pymca_input)->n_z_arr_quant = 0;
 	for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
-#if DEBUG == 1
+#if DEBUG == 2
 		fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
 #endif
 		found = 0;
@@ -850,7 +849,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 			//found
 			(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
 			(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
-#if DEBUG == 1
+#if DEBUG == 2
 			fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
 #endif
 		}
@@ -936,13 +935,22 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (atmosphere_layer == NULL)
 		(*pymca_input)->ilay_pymca = 0;			
 
-#if DEBUG == 1
+#if DEBUG == 2
 	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
 #endif
 	//nchannels
-	strings = g_key_file_get_string_list(pymcaFile,"result","energy", &length, NULL);
-	(*pymca_input)->nchannels = (int) length;	
+	energy_string = g_key_file_get_string(pymcaFile, "result", "energy", NULL);
+
+	strings = g_strsplit(energy_string," ",100000);
+	(*pymca_input)->nchannels = (int) g_strv_length(strings)-2;
+
+#if DEBUG == 2
+	fprintf(stdout,"nchannels: %i\n",(*pymca_input)->nchannels);
+	fprintf(stdout,"channel[0]: %s\n",strings[0]);
+	fprintf(stdout,"channel[last]: %s\n",strings[(*pymca_input)->nchannels-1]);
+#endif
 	g_strfreev(strings);
+	g_free(energy_string);
 
 	rv = 1;
 
@@ -987,7 +995,7 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	//sort
 	Z = (int *) xmi_memdup(rv.Z, sizeof(int)*rv.n_elements);
 	weight = (double *) xmi_memdup(rv.weight, sizeof(double)*rv.n_elements);
-	sorted_Z_ind = xmi_sort_idl_int(Z,rv.n_elements*sizeof(int));
+	sorted_Z_ind = xmi_sort_idl_int(Z,rv.n_elements);
 
 	for (i = 0 ; i < rv.n_elements ; i++) {
 		rv.Z[i] = Z[sorted_Z_ind[i]];
