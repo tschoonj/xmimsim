@@ -725,6 +725,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
 
+#if DEBUG == 1
+                WRITE (*,'(A,I)') 'n_photons: ',n_photons
+#endif
+
+
                 DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
@@ -772,22 +777,28 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         IF (j .LT. hor_ver_ratio) THEN
                                 !horizontal
                                 photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
-                                photon%elecv(1) = 1.0_C_DOUBLE
-                                photon%elecv(2) = 0.0_C_DOUBLE
-                                photon%elecv(3) = 0.0_C_DOUBLE
-                        ELSE
-                                !vertical
-                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
                                 photon%elecv(1) = 0.0_C_DOUBLE
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
+#if DEBUG == 1
+                                WRITE (*,'(A)') 'horizontal'
+#endif
+                        ELSE
+                                !vertical
+                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
+                                photon%elecv(1) = 1.0_C_DOUBLE
+                                photon%elecv(2) = 0.0_C_DOUBLE
+                                photon%elecv(3) = 0.0_C_DOUBLE
+#if DEBUG == 1
+                                WRITE (*,'(A)') 'vertical'
+#endif
                         ENDIF
 
                         photon%weight_long = INT(photon%weight,KIND=C_LONG)
 
 
 #if DEBUG == 1
-                        IF (j .EQ. 1 ) WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
+                        WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
 #endif
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
@@ -896,6 +907,14 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         ENDIF
 
                                         IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+#if DEBUG == 1
+!$omp critical                        
+                                        WRITE (*,'(A,I)') 'channel:'&
+                                        ,channel
+                                        WRITE (*,'(A,ES14.4)') &
+                                        'photon_temp%weight:',photon_temp%weight
+!$omp end critical
+#endif
                                                 channels(photon_temp%n_interactions:, channel) =&
                                                 channels(photon_temp%n_interactions:, channel)+photon_temp%weight
                                         ENDIF
@@ -4677,6 +4696,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         INTEGER (C_INT) :: line_last
         REAL (C_DOUBLE) :: total_distance
         REAL (C_DOUBLE) :: detector_solid_angle
+        REAL (C_DOUBLE) :: phi
+        REAL (C_DOUBLE), DIMENSION(3) :: new_dirv_proj
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
 
 
@@ -4758,6 +4779,21 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         WRITE (*,'(A,F18.10)') 'DOTPRODUCT n and dirv: ',&
         DOT_PRODUCT(inputF%geometry%n_sample_orientation,new_dirv_coords)
 #endif
+
+        !calculate the azimutal scattering angle phi
+        new_dirv_proj = new_dirv_coords - &
+        DOT_PRODUCT(new_dirv_coords,photon%dirv)* &
+        photon%dirv
+        CALL normalize_vector(new_dirv_proj)
+        phi = ACOS(DOT_PRODUCT(new_dirv_proj,photon%elecv))
+
+#if DEBUG == 0
+        WRITE (6,'(A,3ES12.4)') 'new_dirv_proj:',new_dirv_proj
+        WRITE (6,'(A,3ES12.4)') 'elecv:',photon%elecv
+        WRITE (6,'(A,F12.4)') 'phi: ',phi
+#endif
+
+
 
         !calculate the distances that will be traversed through the layers
         !switching back to lab coordinates
@@ -4868,7 +4904,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
-                *DCS_Rayl(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),REAL(theta,KIND=C_FLOAT))
+                *DCSP_Rayl(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),&
+                REAL(theta,KIND=C_FLOAT), REAL(phi,KIND=C_FLOAT))
 
                 !find position in history
                 photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)&
@@ -4897,7 +4934,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 Pesc_comp = EXP(-temp_murhod) 
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
-                *DCS_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),REAL(theta,KIND=C_FLOAT))
+                *DCSP_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),&
+                REAL(theta,KIND=C_FLOAT),REAL(phi, KIND=C_FLOAT))
                 photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
                 = Pconv*Pdir*Pesc_comp*photon%weight
                 photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
