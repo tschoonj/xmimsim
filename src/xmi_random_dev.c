@@ -6,7 +6,7 @@
 #include <errno.h>
 
 #define SLEEP_TIME 1
-#define MAX_NUMBERS 512
+#define MAX_NUMBERS 8192
 #define RANDOM_DEVICE "/dev/random"
 
 static unsigned long int *xmi_random_numbers;

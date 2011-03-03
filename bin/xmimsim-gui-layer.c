@@ -94,6 +94,10 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		fprintf(stdout,"EDIT button clicked\n");
 #endif
 
+	g_signal_handler_block(G_OBJECT(lw->densityEntry),lw->densityG);
+	g_signal_handler_block(G_OBJECT(lw->thicknessEntry),lw->thicknessG);
+
+
 	if (*(lw->my_layer) != NULL) {
 		//editing layer
 		//density
@@ -133,6 +137,9 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,&white);
 	}
+
+	g_signal_handler_unblock(G_OBJECT(lw->densityEntry),lw->densityG);
+	g_signal_handler_unblock(G_OBJECT(lw->thicknessEntry),lw->thicknessG);
 
 }
 
@@ -753,14 +760,14 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Density");
 	densityEntry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
+	rv->densityG =g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Thickness");
 	thicknessEntry = gtk_entry_new();
-	g_signal_connect(G_OBJECT(thicknessEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
+	rv->thicknessG = g_signal_connect(G_OBJECT(thicknessEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), thicknessEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);

@@ -491,6 +491,11 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int use_K, use_L;
 	gchar buffer[128];
 
+	//sort variables
+	int *z_arr, *sorted_Z_ind;
+	double *k_alpha, *l_alpha;
+
+
 
 	//first examine result.config.peaks...
 	elements = g_key_file_get_keys(pymcaFile, "result.config.peaks", &n_elements, &error);
@@ -652,6 +657,26 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 	}
 
+	//sort
+	z_arr = (int *) xmi_memdup(pymca_input->z_arr, sizeof(int)*n_elements);
+	k_alpha = (double *) xmi_memdup(pymca_input->k_alpha, sizeof(double)*n_elements);
+	l_alpha = (double *) xmi_memdup(pymca_input->l_alpha, sizeof(double)*n_elements);
+	sorted_Z_ind = xmi_sort_idl_int(z_arr, n_elements);	
+	
+	for (i = 0 ; i < n_elements ; i++) {
+		pymca_input->z_arr[i] = z_arr[sorted_Z_ind[i]];
+		pymca_input->k_alpha[i] = k_alpha[sorted_Z_ind[i]];
+		pymca_input->l_alpha[i] = l_alpha[sorted_Z_ind[i]];
+#if DEBUG == 1
+		fprintf(stdout,"pymca_input->z_arr[%i]: %i\n",i,pymca_input->z_arr[i]);
+		fprintf(stdout,"pymca_input->k_alpha[%i]: %lf\n",i,pymca_input->k_alpha[i]);
+#endif
+	}
+
+	free(z_arr);
+	free(k_alpha);
+	free(l_alpha);
+	free(sorted_Z_ind);
 	g_strfreev(elements);
 
 	rv = 1;
@@ -855,6 +880,9 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		}
 	}
 
+	//sort
+	qsort((*pymca_input)->z_arr_quant, (*pymca_input)->n_z_arr_quant, sizeof(int),xmi_cmp_int  );
+
 
 
 	//absorbers and  crystal
@@ -998,6 +1026,10 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	sorted_Z_ind = xmi_sort_idl_int(Z,rv.n_elements);
 
 	for (i = 0 ; i < rv.n_elements ; i++) {
+#if DEBUG == 2
+		fprintf(stdout,"indices sorted: %i\n",sorted_Z_ind[i]);
+		fprintf(stdout,"Z sorted: %i\n",Z[sorted_Z_ind[i]]);
+#endif
 		rv.Z[i] = Z[sorted_Z_ind[i]];
 		rv.weight[i] = weight[sorted_Z_ind[i]];
 	}

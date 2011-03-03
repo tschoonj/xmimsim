@@ -426,6 +426,7 @@ int main (int argc, char *argv[]) {
 					fprintf(stdout,"Could not write to %s\n",filename);
 					exit(1);
 				}
+				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
 				for (j=1 ; j <= nchannels ; j++) {
@@ -446,6 +447,7 @@ int main (int argc, char *argv[]) {
 					fprintf(stdout,"Could not write to %s\n",filename);
 					exit(1);
 				}
+				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
 				for (j=0 ; j < nchannels ; j++) {

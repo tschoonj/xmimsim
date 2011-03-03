@@ -92,7 +92,8 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}
 
-	xmi_read_input_pymca(argv[1], &pymca_input, &xp);
+	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp) == 0)
+		return 1;
 
 #if DEBUG == 1
 	xmi_print_input(stdout,pymca_input);
@@ -199,28 +200,35 @@ int main (int argc, char *argv[]) {
 				sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
 				sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
 			}
+			
+			for (k = 0 ; k < xp->n_peaks ; k++) {
+				if (xp->z_arr[k] == xp->z_arr_quant[j])
+					break;
+			}
+
+
 #if DEBUG == 1
 			fprintf(stdout,"sum_k_history: %lf\n",sum_k_history);
-			fprintf(stdout,"xp->k_alpha[j]: %lf\n",xp->k_alpha[j]);
+			fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->k_alpha[k]);
 #endif
 
 
 
-			if (xp->k_alpha[j] > 0.0 && sum_k_history > 0.0  ) {
+			if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
 				sum_temp = 0.0;
-				sum_temp += (xp->k_alpha[j]-sum_k_history)*(xp->k_alpha[j]-sum_k_history);
-				sum_temp /= xp->k_alpha[j];
-				sum_temp /= xp->k_alpha[j];
+				sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
+				sum_temp /= xp->k_alpha[k];
+				sum_temp /= xp->k_alpha[k];
 				sum_k += sum_temp;
-				weights_arr_quant[j] *= xp->k_alpha[j]/sum_k_history;
+				weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
 			}
 			else if (xp->l_alpha[j] > 0.0 && sum_l_history > 0.0  ) {
 				sum_temp = 0.0;
-				sum_temp += (xp->l_alpha[j]-sum_l_history)*(xp->l_alpha[j]-sum_l_history);
-				sum_temp /= xp->l_alpha[j];
-				sum_temp /= xp->l_alpha[j];
+				sum_temp += (xp->l_alpha[k]-sum_l_history)*(xp->l_alpha[k]-sum_l_history);
+				sum_temp /= xp->l_alpha[k];
+				sum_temp /= xp->l_alpha[k];
 				sum_l += sum_temp;
-				weights_arr_quant[j] *= xp->l_alpha[j]/sum_l_history;
+				weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
 			}
 		}
 		//update concentrations in input	

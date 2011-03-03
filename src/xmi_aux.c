@@ -36,7 +36,7 @@ void *xmi_memdup(const void *mem, size_t bytes) {
 int *xmi_sort_idl_int(int *array,int n_elements) {
 	int *rv;
 	int *array_copy;
-	int i;
+	int i,j;
 	int *res;
 
 	if (n_elements < 1) {
@@ -48,14 +48,23 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	array_copy = (int *) xmi_memdup(array,n_elements*sizeof(int));
 	qsort(array_copy,(size_t) n_elements, sizeof(int),xmi_cmp_int);
 
+#if DEBUG == 2
+	fprintf(stdout,"xmi_sort_idl_int check\n");
+	for (i=0 ; i < n_elements ; i++)
+		fprintf(stdout,"%i\n",array_copy[i]);
+#endif
+
 
 
 
 	rv = (int *) malloc(sizeof(int)*n_elements);
 
 	for (i = 0 ; i < n_elements ; i++) {
-		res = bsearch(array+i,array_copy, (size_t) n_elements, sizeof(int), xmi_cmp_int);
-		rv[i] = res-array_copy;
+		for (j = 0 ; j < n_elements ; j++)
+			if (array_copy[i] == array[j]) {
+				rv[i] = j;
+				break;
+			}
 	}
 
 	free(array_copy);

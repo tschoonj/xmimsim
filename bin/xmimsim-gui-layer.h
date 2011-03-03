@@ -21,6 +21,8 @@ struct layerWidget {
 	int AddOrEdit;
 	int layerNumber;
 	GtkTreeIter iter;
+	gulong densityG;
+	gulong thicknessG;
 	
 
 };
