@@ -344,6 +344,10 @@ TYPE :: xmi_photon
 
         !detector_solid_angle_not_found
         INTEGER (C_LONG) :: detector_solid_angle_not_found
+
+        !debug variables
+        REAL (C_DOUBLE) :: theta_i
+        REAL (C_DOUBLE) :: phi_i
 ENDTYPE xmi_photon
 
 !
@@ -766,7 +770,7 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
         !nothing to do
 
         !free composition
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A,I2)') 'n_layers: ',xmi_inputF%composition%n_layers
 #endif
 
@@ -1146,6 +1150,9 @@ x_2, x_3) RESULT(rv)
         IF (pos_3 .LT. 1_C_INT) THEN
                 WRITE (*,'(A)') &
                 'Invalid result for findpos trilinear interpolation'
+                WRITE (*,'(A,ES12.4)') 'Requested valued x_3: ',x_3
+                WRITE (*,'(A,ES12.4)') 'array1D_3(1): ',array1D_3(1)
+                WRITE (*,'(A,ES12.4)') 'array1D_3(last): ',array1D_3(SIZE(array1D_3))
                 CALL EXIT(1)
         ENDIF
 
@@ -1166,5 +1173,25 @@ x_2, x_3) RESULT(rv)
 
         RETURN
 ENDFUNCTION trilinear_interpolation
+
+FUNCTION xmi_dindgen(n) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: rv
+        INTEGER (C_INT), INTENT(IN) :: n
+        INTEGER (C_INT) :: i
+
+        IF (n .LT. 1) THEN
+                WRITE (6,'(A)') 'xmi_dindgen expects a strict positive integer'
+                CALL EXIT(1)
+        ENDIF
+
+        ALLOCATE(rv(n))
+        DO i=0_C_INT,n-1
+                rv(i) = REAL(i,KIND=C_DOUBLE)
+        ENDDO
+        
+        RETURN
+ENDFUNCTION xmi_dindgen
+
 
 ENDMODULE 
