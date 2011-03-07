@@ -348,6 +348,8 @@ TYPE :: xmi_photon
         !debug variables
         REAL (C_DOUBLE) :: theta_i
         REAL (C_DOUBLE) :: phi_i
+        REAL (C_DOUBLE) :: theta_i2
+        REAL (C_DOUBLE) :: phi_i2
 ENDTYPE xmi_photon
 
 !
@@ -1043,9 +1045,9 @@ RESULT(rv)
                         WRITE (*,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_1: ',&
                         pos_1
-                        WRITE (*,'(A,F12.6)') 'array1D_1(1): ',array1D_1(1)
-                        WRITE (*,'(A,F12.6)') 'x_1: ',x_1
-                        WRITE (*,'(A,F12.6)') 'x_2: ',x_2
+                        WRITE (*,'(A,ES14.6)') 'array1D_1(1): ',array1D_1(1)
+                        WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
+                        WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
                         CALL EXIT(1)
                 ENDIF
 
@@ -1054,8 +1056,9 @@ RESULT(rv)
                         WRITE (*,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_2: ',&
                         pos_2
-                        WRITE (*,'(A,F12.6)') 'x_1: ',x_1
-                        WRITE (*,'(A,F12.6)') 'x_2: ',x_2
+                        WRITE (*,'(A,ES14.6)') 'array1D_2(1): ',array1D_2(1)
+                        WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
+                        WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
                         CALL EXIT(1)
                 ENDIF
         ENDIF
@@ -1187,7 +1190,7 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
 
         ALLOCATE(rv(n))
         DO i=0_C_INT,n-1
-                rv(i) = REAL(i,KIND=C_DOUBLE)
+                rv(i+1) = REAL(i,KIND=C_DOUBLE)
         ENDDO
         
         RETURN

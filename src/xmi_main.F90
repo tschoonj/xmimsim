@@ -485,6 +485,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
         INTEGER (C_INT), DIMENSION(:), ALLOCATABLE :: theta_i_hist, phi_i_hist
         !begin...
+        REAL(C_DOUBLE) :: dirv_z_angle
         
         CALL SetErrorMessages(0)
 
@@ -630,8 +631,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 var_red_history = 0_C_INT
         !ENDIF
 
+        rng_type = fgsl_rng_mt19937
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found, theta_i_hist, phi_i_hist)
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity,dirv_z_angle) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found, theta_i_hist, phi_i_hist )
 
 !
 
@@ -639,7 +641,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !
 !
         thread_num = omp_get_thread_num()
-        rng_type = fgsl_rng_mt19937
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
@@ -737,7 +738,13 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 exc%discrete(i)%energy)
 
 #if DEBUG == 1
+!$omp critical
                 WRITE (*,'(A,I)') 'n_photons: ',n_photons
+                WRITE (*,'(A,ES12.4)') 'total_intensity:',total_intensity
+                WRITE (*,'(A,ES12.4)') 'hor_ver_ratio:',hor_ver_ratio
+                WRITE (*,'(A,ES12.4)') 'horizontal_intensity:',exc%discrete(i)%horizontal_intensity
+                WRITE (*,'(A,ES12.4)') 'vertical_intensity:',exc%discrete(i)%vertical_intensity
+!$omp end critical
 #endif
 
 
@@ -784,8 +791,16 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
                         photon)
 
+
+#if DEBUG == 2
+                        dirv_z_angle=ACOS(DOT_PRODUCT(photon%dirv,[0.0,0.0,1.0]))
+!$omp critical
+                        WRITE (*,'(A,ES14.6)') 'dirv_z_angle',dirv_z_angle
+!$omp end critical
+#endif
+
                         !Calculate its weight and electric field...
-                        IF (j .LT. hor_ver_ratio) THEN
+                        IF (j .LE. hor_ver_ratio) THEN
                                 !horizontal
                                 photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
                                 photon%elecv(1) = 0.0_C_DOUBLE
@@ -809,7 +824,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 #if DEBUG == 1
-                        WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
+                        IF (j)WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
 #endif
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
@@ -824,6 +839,12 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         c_be = -c_ae*cosalfa
 
                         photon%elecv = c_ae*photon%elecv + c_be*photon%dirv
+#if DEBUG == 2
+                        dirv_z_angle=ACOS(DOT_PRODUCT(photon%elecv,[0.0,1.0,0.0]))
+!$omp critical
+                        WRITE (*,'(A,ES14.6)') 'dirv_z_angle',dirv_z_angle
+!$omp end critical
+#endif
 
 
                         !Calculate the electric field vector
@@ -906,33 +927,26 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         detector_solid_angle_not_found =&
                                         photon%detector_solid_angle_not_found+&
                                         detector_solid_angle_not_found
+#if DEBUG == 0
+                                        IF (INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
+                                        INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1&
+                                        .LT. 1) CALL EXIT(1)
+                                        IF (photon_temp%last_interaction ==&
+                                        RAYLEIGH_INTERACTION .OR. &
+                                        photon_temp%last_interaction ==&
+                                        COMPTON_INTERACTION) THEN
+                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)=&
+                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)+1
+                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
+                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
+                                        ENDIF
+#endif
                                 ENDIF var_red
                                 !
                                 !
                                 !       Brute force histories
                                 !
                                 !
-#if DEBUG == 0
-                                IF (photon_temp%last_interaction ==&
-                                RAYLEIGH_INTERACTION) THEN
-
-!!!$omp critical                        
-
-         !                       WRITE (*,'(A,I)') 'int: ',INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)
-                                IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
-                                INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
-                                .LT. 1) CALL EXIT(1)
-!!!$omp end critical                        
-                                theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)=&
-                                theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)+1
-                                IF (photon_temp%theta_i .GT. M_PI*11.0/24.0&
-                                .AND. photon_temp%theta_i .LT. M_PI*13.0/24.0)&
-                                THEN
-                                phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
-                                phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
-                                ENDIF
-                                ENDIF
-#endif
 
                                 det_hit:IF (photon_temp%detector_hit .EQ. .TRUE.) THEN
                                         detector_hits = detector_hits + 1
@@ -942,6 +956,20 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !
 !
                                         IF (options%use_variance_reduction .EQ. 0) THEN
+#if DEBUG == 0
+                                        IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
+                                        INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
+                                        .LT. 1) CALL EXIT(1)
+                                        IF (photon_temp%last_interaction ==&
+                                        RAYLEIGH_INTERACTION .OR. &
+                                        photon_temp%last_interaction ==&
+                                        COMPTON_INTERACTION) THEN
+                                        theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)=&
+                                        theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)+1
+                                        phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
+                                        phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
+                                        ENDIF
+#endif
                                         IF (photon_temp%energy .GE. energy_threshold) THEN
                                                 channel = INT((photon_temp%energy - &
                                                 inputF%detector%zero)/inputF%detector%gain)
@@ -1183,18 +1211,18 @@ SUBROUTINE xmi_coords_dir(rng, energy, geometry, photon)
 
         photon%theta = ACOS(photon%dirv(3))
 
-!        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-!                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-!                !processor dependent...
-!                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-!        ELSE
-!#if DEBUG == 0
-!                WRITE (*,'(A)') 'Dont think we should get here'
-!#endif
-!                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-!        ENDIF
+        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+                !processor dependent...
+                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        ELSE
+#if DEBUG == 2
+                WRITE (*,'(A)') 'Dont think we should get here'
+#endif
+                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        ENDIF
         
-        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
         
         RETURN
 
@@ -2616,8 +2644,8 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
         cosphi0 = DOT_PRODUCT(photon%elecv,[cosphi*costheta,&
         costheta*sinphi,-sintheta])
-        sinphi0 = DOT_PRODUCT(photon%elecv,[-sinphi,&
-        cosphi, 0.0_C_DOUBLE])
+        sinphi0 = DOT_PRODUCT(photon%elecv,[sinphi,&
+        -cosphi, 0.0_C_DOUBLE])
         IF (ABS(cosphi0) .GT. 1.0_C_DOUBLE) cosphi0 = SIGN(1.0_C_DOUBLE,cosphi0)
         phi0 = ACOS(cosphi0)
         IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
@@ -2633,7 +2661,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         !update photon%theta and photon%phi
         !
-        CALL xmi_update_photon_dirv(photon, theta_i, phi_i+phi0)
+        CALL xmi_update_photon_dirv(photon, theta_i, phi0+phi_i)
 
         !
         !update electric field
@@ -2693,8 +2721,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
         cosphi0 = DOT_PRODUCT(photon%elecv,[cosphi*costheta,&
         costheta*sinphi,-sintheta])
-        sinphi0 = DOT_PRODUCT(photon%elecv,[-sinphi,&
-        cosphi, 0.0_C_DOUBLE])
+        sinphi0 = DOT_PRODUCT(photon%elecv,[sinphi,&
+        -cosphi, 0.0_C_DOUBLE])
         IF (ABS(cosphi0) .GT. 1.0_C_DOUBLE) cosphi0 = SIGN(1.0_C_DOUBLE,cosphi0)
         phi0 = ACOS(cosphi0)
         IF (sinphi0 .GT. 0.0_C_DOUBLE) phi0 = -phi0
@@ -4111,15 +4139,15 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         !update theta and phi in photon
         photon%theta = ACOS(photon%dirv(3))
 
-!        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-!                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-!                !processor dependent...
-!                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-!        ELSE
-!                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-!        ENDIF
+        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+                !processor dependent...
+                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        ELSE
+                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        ENDIF
 
-        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
 
         photon%theta_i = theta_i
         photon%phi_i = phi_i_new
@@ -4972,7 +5000,9 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !'detector_solid_angle_diff:',(inputF%detector%detector_solid_angle-detector_solid_angle)/&
         detector_solid_angle
 #endif
-
+#if DEBUG == 2
+        detector_solid_angle = inputF%detector%detector_solid_angle
+#endif
         Pdir_fluo = detector_solid_angle/4.0_C_DOUBLE/M_PI
 
         IF (photon%options%use_M_lines .EQ. 1) THEN 
@@ -5106,6 +5136,11 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
 
         ENDASSOCIATE
+#if DEBUG == 0
+        photon%theta_i2 = theta
+        photon%phi_i2 = phi
+#endif
+
 
 
         RETURN
@@ -5189,5 +5224,112 @@ inputF, hdf5F, energy_new)
 
 ENDSUBROUTINE xmi_update_photon_energy_compton_var_red
 
+SUBROUTINE xmi_test_phis
+
+IMPLICIT NONE
+
+REAL (C_DOUBLE) :: theta = M_PI/2.0_C_DOUBLE
+REAL (C_DOUBLE),ALLOCATABLE, DIMENSION(:) :: phis
+
+TYPE (fgsl_rng_type) :: rng_type
+TYPE (fgsl_rng) :: rng
+INTEGER (HID_T) :: file_id
+INTEGER (HID_T) :: group_id,group_id2
+INTEGER (HID_T) :: dset_id
+INTEGER (HID_T) :: dspace_id
+INTEGER :: ndims
+INTEGER (HSIZE_T),DIMENSION(:), ALLOCATABLE:: dims,maxdims
+INTEGER :: error
+
+REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: RayleighPhi_ICDF
+REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: RayleighThetas,RayleighRandomNumbers
+
+INTEGER :: i
+REAL (C_DOUBLE) :: r
+INTEGER (C_INT) :: pos_1, pos_2
+INTEGER (C_LONG),PARAMETER :: nphis = 10000000
+
+
+
+rng_type = fgsl_rng_mt19937
+rng = fgsl_rng_alloc(rng_type)
+CALL fgsl_rng_set(rng, 314)
+
+CALL h5open_f(error)
+
+!open file for reading
+CALL h5fopen_f(XMIMSIM_HDF5_DEFAULT, H5F_ACC_RDONLY_F, file_id, error)
+#if DEBUG == 1
+WRITE (*,'(A,I)') 'error code: ',error
+#endif
+IF (error /= 0) THEN
+        WRITE (*,'(A,A)') 'Error opening HDF5 file ',XMIMSIM_HDF5_DEFAULT
+        STOP
+ENDIF
+
+!RayleighPhi
+CALL h5gopen_f(file_id,'RayleighPhi',group_id,error)
+CALL h5dopen_f(group_id,'RayleighPhi_ICDF',dset_id,error)
+CALL h5dget_space_f(dset_id, dspace_id,error)
+CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
+WRITE (*,'(A,I)') 'ndims: ',ndims
+!Allocate memory
+ALLOCATE(dims(ndims))
+ALLOCATE(maxdims(ndims))
+CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
+WRITE (*,'(A,2I)') 'dims: ',dims
+!read the dataset
+ALLOCATE(RayleighPhi_ICDF(dims(1),dims(2)))
+CALL h5dread_f(dset_id,&
+H5T_NATIVE_DOUBLE,RayleighPhi_ICDF,dims,error)
+
+CALL h5sclose_f(dspace_id,error)
+CALL h5dclose_f(dset_id,error)
+WRITE (*,'(A)') 'After RayleighPhi_ICDF'
+!Read RayleighThetas and RayleighRandomNumbers
+ALLOCATE(RayleighThetas(dims(1)))
+CALL h5dopen_f(group_id,'Thetas',dset_id,error)
+CALL h5dread_f(dset_id,&
+H5T_NATIVE_DOUBLE,RayleighThetas,[dims(1)],error)
+CALL h5dclose_f(dset_id,error)
+WRITE (*,'(A)') 'After RayleighThetas'
+ALLOCATE(RayleighRandomNumbers(dims(2)))
+CALL h5dopen_f(group_id,'Random numbers',dset_id,error)
+CALL h5dread_f(dset_id,&
+H5T_NATIVE_DOUBLE,RayleighRandomNumbers,[dims(2)],error)
+CALL h5dclose_f(dset_id,error)
+!close group
+CALL h5gclose_f(group_id,error)
+WRITE (*,'(A)') 'After RayleighRandomNumbers'
+
+
+!close file
+CALL h5fclose_f(file_id,error)
+
+!close hdf5 fortran interface
+CALL h5close_f(error)
+
+
+
+!everything read in... calculate the phis
+ALLOCATE(phis(nphis))
+
+DO i=1, nphis 
+        pos_1=0
+        pos_2=0
+        phis(i) = bilinear_interpolation(RayleighPhi_ICDF, &
+                RayleighThetas, RayleighRandomNumbers,&
+                theta, fgsl_rng_uniform(rng), pos_1, pos_2)
+
+ENDDO
+
+OPEN(UNIT=500,FILE='rayleigh_phis_pi2.txt',STATUS='replace',ACTION='write')
+WRITE (500,'(I15)') nphis 
+DO i=1,nphis
+        WRITE (500,'(ES14.5)') phis(i)
+ENDDO
+        CLOSE(UNIT=500)
+
+ENDSUBROUTINE xmi_test_phis
 
 ENDMODULE
