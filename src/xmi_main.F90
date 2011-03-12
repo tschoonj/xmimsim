@@ -498,7 +498,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         einsteins = 0
         detector_solid_angle_not_found = 0
 
-#if DEBUG == 0
+#if DEBUG == 1
         theta_i_s = xmi_dindgen(1000)*M_PI/999.0_C_DOUBLE
         phi_i_s = xmi_dindgen(1000)*2.0_C_DOUBLE*M_PI/999.0_C_DOUBLE
         ALLOCATE(theta_i_hist(1000))
@@ -633,7 +633,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         rng_type = fgsl_rng_mt19937
 
-!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity,dirv_z_angle) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found, theta_i_hist, phi_i_hist )
+!$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity,dirv_z_angle) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found  )
 
 !
 
@@ -927,7 +927,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         detector_solid_angle_not_found =&
                                         photon%detector_solid_angle_not_found+&
                                         detector_solid_angle_not_found
-#if DEBUG == 0
+#if DEBUG == 1
                                         IF (INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
                                         INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1&
                                         .LT. 1) CALL EXIT(1)
@@ -956,7 +956,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !
 !
                                         IF (options%use_variance_reduction .EQ. 0) THEN
-#if DEBUG == 0
+#if DEBUG == 1
                                         IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
                                         INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
                                         .LT. 1) CALL EXIT(1)
@@ -1124,7 +1124,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 channels(:,i) = channels(:,i)*det_corr
         ENDDO
         
-#if DEBUG == 0
+#if DEBUG == 1
         OPEN(UNIT=500,FILE='rayleigh_theta_hist.txt',STATUS='replace',ACTION='write')
         WRITE (500,'(I5)') 1000
         DO i=1,1000
@@ -1287,7 +1287,7 @@ IMPLICIT NONE
 
 INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
-nintervals_e_ip = 10000, nintervals_pz=50000
+nintervals_e_ip = 10000, nintervals_pz=500000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,MEC2 = 510.998910,maxpz = 100.0
 CHARACTER(200) :: error_message
@@ -4029,6 +4029,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
         REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
         REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
         REAL (C_DOUBLE) :: energy, sth2
+        INTEGER (C_INT) :: np
 
         ASSOCIATE (hdf5_Z => inputF%composition%layers&
                 (photon%current_layer)%xmi_hdf5_Z_local&
@@ -4049,6 +4050,9 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
                 pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
                 hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
                 hdf5_Z%DopplerPz_ICDF(pos+1)], r)
+
+!                np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
+!                pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
 
 #if DEBUG == 2
                 WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
@@ -4825,7 +4829,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
 
         !select random coordinate on detector surface
-        radius = fgsl_rng_uniform(rng)*inputF%detector%detector_radius
+        radius = SQRT(fgsl_rng_uniform(rng))*inputF%detector%detector_radius
         theta = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
 
         detector_point(1) = 0.0_C_DOUBLE
@@ -5164,6 +5168,7 @@ inputF, hdf5F, energy_new)
         REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
         REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
         REAL (C_DOUBLE) :: energy, sth2
+        INTEGER (C_INT) :: np
         INTEGER :: i
 
         ASSOCIATE (hdf5_Z => inputF%composition%layers&
@@ -5190,6 +5195,8 @@ inputF, hdf5F, energy_new)
                 pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
                 hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
                 hdf5_Z%DopplerPz_ICDF(pos+1)], r)
+                !np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
+                !pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
 
 #if DEBUG == 2
                 WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
@@ -5331,5 +5338,6 @@ ENDDO
         CLOSE(UNIT=500)
 
 ENDSUBROUTINE xmi_test_phis
+
 
 ENDMODULE

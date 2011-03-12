@@ -996,6 +996,14 @@ FUNCTION findpos(array, searchvalue)
 
         findpos = -1
 
+        !this would appear to be necessary... the rng generates exactly 0.0
+        !sometimes...
+        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+                findpos = 1
+                RETURN
+        ENDIF
+
+
         DO i=1, SIZE(array)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
@@ -1048,6 +1056,7 @@ RESULT(rv)
                         WRITE (*,'(A,ES14.6)') 'array1D_1(1): ',array1D_1(1)
                         WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
                         WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
+                        WRITE (*,'(A,I4)') 'pos_1: ',pos_1
                         CALL EXIT(1)
                 ENDIF
 
@@ -1059,6 +1068,7 @@ RESULT(rv)
                         WRITE (*,'(A,ES14.6)') 'array1D_2(1): ',array1D_2(1)
                         WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
                         WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
+                        WRITE (*,'(A,I4)') 'pos_2: ',pos_2
                         CALL EXIT(1)
                 ENDIF
         ENDIF
@@ -1156,6 +1166,7 @@ x_2, x_3) RESULT(rv)
                 WRITE (*,'(A,ES12.4)') 'Requested valued x_3: ',x_3
                 WRITE (*,'(A,ES12.4)') 'array1D_3(1): ',array1D_3(1)
                 WRITE (*,'(A,ES12.4)') 'array1D_3(last): ',array1D_3(SIZE(array1D_3))
+                WRITE (*,'(A,I4)') 'pos_3: ',pos_3
                 CALL EXIT(1)
         ENDIF
 
