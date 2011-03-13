@@ -303,6 +303,19 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 
 		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
 		update_undo_buffer(OUTPUTFILE,outputfileW);
+
+		if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+			gtk_widget_set_sensitive(saveW,TRUE);
+			gtk_widget_set_sensitive(save_asW,TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(saveW,FALSE);
+			gtk_widget_set_sensitive(save_asW,FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+		}
 		g_free (filename);							
 	}
 
@@ -2270,7 +2283,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case OUTPUTFILE:
 			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"undo selection of outputfile");
-			strcpy(last->xi->general->outputfile,gtk_entry_get_text(GTK_ENTRY(widget)));
+			free(last->xi->general->outputfile);
+			last->xi->general->outputfile=strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
 			last->kind = kind;
 			last->widget = widget;
 			break;

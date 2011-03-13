@@ -4,7 +4,7 @@
 	#include <mpi.h>
 #endif
 
-#include <omp.h>
+//#include <omp.h>
 
 #include "xmi_main.h"
 #include "xmi_data_structs.h"
