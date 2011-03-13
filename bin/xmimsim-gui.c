@@ -235,6 +235,8 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
+void quit_program_cb(GtkWidget *widget, gpointer data);
+void new_cb(GtkWidget *widget, gpointer data);
 
 int check_changeables(void);
 
@@ -2194,7 +2196,9 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	g_print("delete event occured\n");
 	//should check if the user maybe would like to save his stuff...
-	return FALSE;
+	
+	quit_program_cb(widget,data);
+	return TRUE;
 
 }
 
@@ -2850,7 +2854,7 @@ int main (int argc, char *argv[]) {
 	gtk_init(&argc, &argv);
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM");
+	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM: New file");
 	gtk_window_set_default_size(GTK_WINDOW(window),900,900);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
@@ -2875,11 +2879,11 @@ int main (int argc, char *argv[]) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quitW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),file);
-	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(file_menu_click),(gpointer) "quit");
+	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(quit_program_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
-	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(file_menu_click),(gpointer) "new");
+	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(new_cb),(gpointer) window);
 	editmenu = gtk_menu_new();
 	edit = gtk_menu_item_new_with_label("Edit");
 	undoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_UNDO,NULL);
@@ -2922,12 +2926,13 @@ int main (int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(openT),"clicked",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 
 
-	g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit),NULL);
-	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),NULL);
+	//g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(quit_program_cb),(gpointer) window);
+	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),window);
 
 	//notebook
 	notebook = gtk_notebook_new();
@@ -3702,6 +3707,183 @@ enum {
 	GTK_RESPONSE_NOSAVE
 };
 
+void new_cb(GtkWidget *widget, gpointer data) {
+	struct undo_single *check_rv;
+	struct xmi_input *xi;
+	int check_status;
+	GtkWidget *dialog = NULL;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+	char *title;
+	
+
+
+	//start a new inputfile, using default settings
+
+	//check if last changes have been saved, because they will be lost otherwise!
+	check_rv = check_changes_saved(&check_status);
+
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	}
+
+	if (dialog != NULL) {
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		else if (dialog_rv == GTK_RESPONSE_NO) {
+			//do nothing
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
+			//run saveas dialog
+			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
+			saveas_cb(dialog, (gpointer) dialog);
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//update file
+			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return;
+			}
+
+		}
+
+
+		gtk_widget_destroy(dialog);
+	}
+
+	xi = xmi_init_empty_input();
+	change_all_values(xi);
+	reset_undo_buffer(xi,UNLIKELY_FILENAME);
+
+	gtk_window_set_title(GTK_WINDOW((GtkWidget *)data),"XMI MSIM: New file");
+
+
+	return;
+}
+
+void quit_program_cb(GtkWidget *widget, gpointer data) {
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *dialog = NULL;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+
+
+	//check if last changes have been saved, because they will be lost otherwise!
+	check_rv = check_changes_saved(&check_status);
+
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	}
+
+	if (dialog != NULL) {
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		else if (dialog_rv == GTK_RESPONSE_NO) {
+			//do nothing
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
+			//run saveas dialog
+			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
+			saveas_cb(dialog, (gpointer) dialog);
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//update file
+			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return;
+			}
+
+		}
+
+
+		gtk_widget_destroy(dialog);
+	}
+
+	gtk_main_quit();
+
+	return;
+}
 
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog = NULL;
@@ -3713,6 +3895,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *content;
 	gint dialog_rv;
 	GtkWidget *label;
+	char *title;
 
 	//check if last changes have been saved, because they will be lost otherwise!
 	check_rv = check_changes_saved(&check_status);
@@ -3805,6 +3988,11 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				//reset redo_buffer
 				reset_undo_buffer(xi, filename);	
 
+				title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
+				strcpy(title,"XMI MSIM: ");
+				strcat(title,filename);
+				gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+				free(title);
 				
 				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
@@ -3858,6 +4046,8 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	char *filename;
+	char *title;
+
 	if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
 		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -3897,6 +4087,11 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 			xmi_copy_input(current->xi, &(last_saved->xi));
 			last_saved->filename = strdup(filename);
+			title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
+			strcpy(title,"XMI MSIM: ");
+			strcat(title,filename);
+			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+			free(title);
 			g_free (filename);							
 		}
 		else {
