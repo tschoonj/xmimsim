@@ -442,6 +442,11 @@ ENDSUBROUTINE xmi_free_hdf5_F
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
 nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+
+#if DEBUG == 0
+        USE, INTRINSIC :: ieee_exceptions
+#endif
+
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
@@ -488,6 +493,43 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         REAL(C_DOUBLE) :: dirv_z_angle
         
         CALL SetErrorMessages(0)
+
+#if DEBUG == 0
+        WRITE (*,'(A)') 'Testing IEEE FPE features'
+        IF (ieee_support_flag(ieee_overflow) .EQ. .TRUE.) THEN
+                WRITE (*,'(A)') 'Overflow supported'
+        ELSE
+                WRITE (*,'(A)') 'Overflow not supported'
+                CALL EXIT(1)
+        ENDIF
+        IF (ieee_support_flag(ieee_underflow) .EQ. .TRUE.) THEN
+                WRITE (*,'(A)') 'Underflow supported'
+        ELSE
+                WRITE (*,'(A)') 'Underflow not supported'
+                CALL EXIT(1)
+        ENDIF
+        IF (ieee_support_flag(ieee_divide_by_zero) .EQ. .TRUE.) THEN
+                WRITE (*,'(A)') 'Divide by zero supported'
+        ELSE
+                WRITE (*,'(A)') 'Divide by zero not supported'
+                CALL EXIT(1)
+        ENDIF
+        IF (ieee_support_flag(ieee_invalid) .EQ. .TRUE.) THEN
+                WRITE (*,'(A)') 'Invalid supported'
+        ELSE
+                WRITE (*,'(A)') 'Invalid not supported'
+                CALL EXIT(1)
+        ENDIF
+        IF (ieee_support_flag(ieee_inexact) .EQ. .TRUE.) THEN
+                WRITE (*,'(A)') 'Inexact supported'
+        ELSE
+                WRITE (*,'(A)') 'Inexact not supported'
+                CALL EXIT(1)
+        ENDIF
+#endif
+
+
+
 
         rv = 0
         photons_simulated = 0
@@ -1287,7 +1329,7 @@ IMPLICIT NONE
 
 INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
-nintervals_e_ip = 10000, nintervals_pz=500000
+nintervals_e_ip = 10000, nintervals_pz=1000000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,MEC2 = 510.998910,maxpz = 100.0
 CHARACTER(200) :: error_message
@@ -4160,14 +4202,30 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
 ENDSUBROUTINE xmi_update_photon_dirv
 
 SUBROUTINE xmi_update_photon_elecv(photon)
+#if DEBUG == 0
+        USE, INTRINSIC :: ieee_exceptions
+#endif
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
        
         REAL (C_DOUBLE) :: cosalfa, c_alfa, sinalfa,c_ae, c_be
 
+#if DEBUG == 0
+        LOGICAL, DIMENSION(3) :: flag_value
+
+        CALL ieee_set_flag(ieee_usual,.FALSE.)
+#endif
         cosalfa = DOT_PRODUCT(photon%dirv,photon%elecv)
 
         c_alfa = ACOS(cosalfa)
+#if DEBUG == 0
+        CALL ieee_get_flag(ieee_usual, flag_value)
+        IF (ANY(flag_value)) THEN
+                WRITE (*,'(A)') &
+                'xmi_update_photon_elecv FPE'
+                STOP
+        ENDIF
+#endif
         sinalfa = SIN(c_alfa)
         c_ae = 1.0_C_DOUBLE/sinalfa
         c_be = -c_ae*cosalfa
@@ -4793,6 +4851,13 @@ ENDSUBROUTINE xmi_force_photon_to_detector
 
 
 SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
+        !let's use some of that cool Fortran 2003 floating point exception
+        !handling as there seems to be a problem with the ACOS calls...
+#if DEBUG == 0
+        USE, INTRINSIC :: ieee_exceptions
+#endif
+
+
         !to be called before xmi_update_photon_dirv!!!
         !this way we can still deal with the old dirv
         IMPLICIT NONE
@@ -4814,8 +4879,15 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: total_distance
         REAL (C_DOUBLE) :: detector_solid_angle
         REAL (C_DOUBLE) :: phi
-        REAL (C_DOUBLE), DIMENSION(3) :: new_dirv_proj
+        REAL (C_DOUBLE), DIMENSION(3) :: new_dirv_proj, elecv_norm
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
+
+#if DEBUG == 0
+        LOGICAL, DIMENSION(3) :: flag_value
+
+        CALL ieee_set_flag(ieee_usual,.FALSE.)
+#endif
+
 
 
 #if DEBUG == 1
@@ -4836,6 +4908,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         detector_point(2) = COS(theta)*radius
         detector_point(3) = SIN(theta)*radius
 
+#if DEBUG == 0
+        CALL ieee_get_flag(ieee_usual, flag_value)
+        IF (ANY(flag_value)) THEN
+                WRITE (*,'(A)') &
+                'after detector_point assignment'
+                STOP
+        ENDIF
+#endif
         !work in detector coordinate system
         line_coll%point = MATMUL(inputF%detector%n_detector_orientation_inverse, &
                 photon%coords-inputF%geometry%p_detector_window) 
@@ -4846,6 +4926,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         total_distance = xmi_distance_two_points(detector_point,&
         line_coll%point)
 
+#if DEBUG == 0
+        CALL ieee_get_flag(ieee_usual, flag_value)
+        IF (ANY(flag_value)) THEN
+                WRITE (*,'(A)') &
+                'after total_distance calculation'
+                STOP
+        ENDIF
+#endif
 
         CALL normalize_vector(dirv)
         CALL normalize_vector(line_coll%dirv)
@@ -4882,6 +4970,20 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         ENDIF
         theta = ACOS(dotprod)
         !WRITE (*,'(A,F12.5)') 'dotprod: ',dotprod
+        
+#if DEBUG == 0
+        CALL ieee_get_flag(ieee_usual, flag_value)
+        IF (ANY(flag_value)) THEN
+                WRITE (*,'(A)') &
+                'ACOS theta FPE detected, although unlikely to happen'
+                WRITE (*,'(A,ES13.5)') 'theta: ',theta
+                WRITE (*,'(A,ES13.5)') 'dotprod: ',dotprod
+                STOP
+        ENDIF
+#endif
+
+
+
 
 #if DEBUG == 1
         WRITE(*,'(A,3F12.5)') 'photon%coords: ',photon%coords
@@ -4902,14 +5004,25 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         DOT_PRODUCT(new_dirv_coords,photon%dirv)* &
         photon%dirv
         CALL normalize_vector(new_dirv_proj)
-        phi = ACOS(DOT_PRODUCT(new_dirv_proj,photon%elecv))
+        elecv_norm = photon%elecv/norm(photon%elecv)
+        phi = ACOS(DOT_PRODUCT(new_dirv_proj,elecv_norm))
 
 #if DEBUG == 1
         WRITE (6,'(A,3ES12.4)') 'new_dirv_proj:',new_dirv_proj
-        WRITE (6,'(A,3ES12.4)') 'elecv:',photon%elecv
+        WRITE (6,'(A,3ES12.4)') 'elecv:',elecv_norm
         WRITE (6,'(A,F12.4)') 'phi: ',phi
 #endif
 
+#if DEBUG == 0
+        CALL ieee_get_flag(ieee_usual, flag_value)
+        IF (ANY(flag_value)) THEN
+                WRITE (*,'(A)') &
+                'ACOS phi FPE detected'
+                WRITE (*,'(A,ES13.5)') 'DOT_PRODUCT is',&
+                DOT_PRODUCT(new_dirv_proj,elecv_norm)
+                STOP
+        ENDIF
+#endif
 
 
         !calculate the distances that will be traversed through the layers
