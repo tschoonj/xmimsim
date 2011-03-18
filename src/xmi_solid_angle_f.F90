@@ -184,6 +184,8 @@ RESULT(rv)
         REAL (C_DOUBLE) :: r2, r
         REAL (C_DOUBLE) :: theta2, theta
         LOGICAL :: outside_collimator
+        REAL (C_DOUBLE) :: alpha1, alpha2, beta
+        REAL (C_DOUBLE) :: cos_full_cone_apex
 
 
         !make distinction between several cases: no collimator, cilindrical
@@ -260,9 +262,23 @@ RESULT(rv)
         
         
         !calculate full_cone_base_radius
-        full_cone_apex = ATAN(full_cone_base_radius/r)
+        beta = ATAN(full_cone_base_radius/r)
+        alpha1 = ATAN(full_cone_base_radius*SIN(theta)/&
+        (r - full_cone_base_radius*COS(theta)))
+        alpha2 = ATAN(full_cone_base_radius*SIN(theta)/&
+        (r + full_cone_base_radius*COS(theta)))
+
+        !full_cone_apex must always be at least equal to beta...
+        IF (beta .GT. alpha1 .AND. beta .GT. alpha2) THEN
+                full_cone_apex = beta
+        ELSE
+                full_cone_apex = MAX(alpha1, alpha2)
+        ENDIF
+                
+        cos_full_cone_apex = COS(full_cone_apex)
+
         full_cone_solid_angle = 2*M_PI*(1.0_C_DOUBLE -&
-        COS(full_cone_apex))
+        cos_full_cone_apex)
 
         rotation_matrix(:,1) = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
         rotation_matrix(:,2) = [0.0_C_DOUBLE,&
@@ -290,7 +306,8 @@ RESULT(rv)
         photon_line%point = [0.0_C_DOUBLE, r1*COS(theta1), r1*SIN(theta1)]
 
         DO i=1,hits_per_single
-            theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
+            theta_rng = ACOS(1.0_C_DOUBLE-fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
+            !theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
             phi_rng = fgsl_rng_uniform(rng)*2.0_C_DOUBLE*M_PI
 
 #if DEBUG == 1
