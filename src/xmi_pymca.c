@@ -9,6 +9,93 @@
 
 
 
+int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+
+	int rv = 0;
+	gchar **strings, **peaks, **escapepeaks;
+	gsize length, npeaks, nescapepeaks;
+	int i,j;
+	double scatter_energy = 0.0;
+	double scatter_intensity = 0.0;
+	gchar buffer[128];
+
+
+	pymca_input->scatter_energy = 0.0;
+	pymca_input->scatter_intensity = 0.0;
+	
+	//check parameters
+	strings = g_key_file_get_string_list(pymcaFile, "result","parameters",&length, NULL);
+
+	if (strings == NULL) {
+		/*
+		*/
+		fprintf(stderr,"Could not find parameters tag in pymca fit file\nAborting\n");
+		rv = 0;
+		return rv;
+	}
+
+	for (i = 0 ; i < length ; i++) {
+		//remove leading spaces
+		g_strchug(strings[i]);
+		if (strncmp(strings[i],"Scatter Peak",12) != 0) 
+			continue;
+
+		//scatter peak found
+		sprintf(buffer,"result.%s",strings[i]);
+		peaks = g_key_file_get_string_list(pymcaFile, buffer,"peaks",&npeaks,NULL);
+		if (peaks == NULL) {
+			fprintf(stderr,"Scatter Peak found but no peaks were defined\nAborting\n");
+			rv = 0;
+			return rv;
+		}
+		scatter_energy = 0.0;
+		scatter_intensity = 0.0;
+
+		//there should be only one peak... if there are more, ignore the rest
+		g_strchug(peaks[0]);
+		sprintf(buffer,"result.%s.%s",strings[i],peaks[0]);
+		scatter_energy = g_key_file_get_double(pymcaFile, buffer, "energy",NULL);
+		scatter_intensity += g_key_file_get_double(pymcaFile, buffer, "fitarea",NULL);
+
+		g_strfreev(peaks);
+
+		//escape peaks should be added
+		sprintf(buffer,"result.%s",strings[i]);
+		escapepeaks = g_key_file_get_string_list(pymcaFile, buffer,"escapepeaks",&nescapepeaks,NULL);
+		if (escapepeaks != NULL) {
+			for (j = 0 ; j < nescapepeaks ; j++) {
+				g_strchug(escapepeaks[j]);
+				sprintf(buffer,"result.%s.%sesc",strings[i],escapepeaks[j]);
+#if DEBUG == 2
+				fprintf(stdout,"buffer: %s\n",buffer);
+#endif
+				scatter_intensity += g_key_file_get_double(pymcaFile, buffer, "fitarea",NULL);
+
+			}
+			g_strfreev(escapepeaks);
+		}
+
+		if (scatter_intensity > pymca_input->scatter_intensity) {
+			pymca_input->scatter_energy = scatter_energy;
+			pymca_input->scatter_intensity = scatter_intensity;
+		}
+
+	}	
+
+#if DEBUG == 1
+	fprintf(stdout,"scatter_energy: %lf\n",pymca_input->scatter_energy);
+	fprintf(stdout,"scatter_intensity: %lf\n",pymca_input->scatter_intensity);
+#endif
+
+	g_strfreev(strings);
+
+	rv = 1;
+
+	return rv;
+}
+
+
+
 int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_layer **layer, int alloc) {
 	int rv = 0;
 	gchar *predefGroup;
@@ -979,6 +1066,14 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #endif
 	g_strfreev(strings);
 	g_free(energy_string);
+
+	//see if we find a nice scatter peak, which can be used for adjusting the beam intensity afterwards
+	if (read_scatter_intensity(pymcaFile, *pymca_input) == 0) {
+		rv = 0;
+		return rv;
+	}
+
+
 
 	rv = 1;
 

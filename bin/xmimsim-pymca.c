@@ -25,9 +25,22 @@ int main (int argc, char *argv[]) {
 	GOptionContext *context;
 	static gchar *hdf5_file=NULL;
 	struct xmi_main_options options;
-	
+	static gchar *spe_file_noconv=NULL;
+	static gchar *spe_file_conv=NULL;
+	static gchar *csv_file_noconv=NULL;
+	static gchar *csv_file_conv=NULL;
+	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
+	char filename[512];
+	static int use_rayleigh_normalization = 1;
+	int rayleigh_channel;
+
 	static GOptionEntry entries[] = {
+		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
+		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
+		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
+		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"disable-scatter-normalization", 0, 0, G_OPTION_FLAG_REVERSE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization"},
 		{NULL}
 	};
 	double *channels;
@@ -95,7 +108,7 @@ int main (int argc, char *argv[]) {
 	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp) == 0)
 		return 1;
 
-#if DEBUG == 1
+#if DEBUG == 2
 	xmi_print_input(stdout,pymca_input);
 #endif
 
@@ -108,7 +121,7 @@ int main (int argc, char *argv[]) {
 
 	pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
 
-#if DEBUG == 1
+#if DEBUG == 2
 	xmi_print_layer(stdout,pymca_input->composition->layers+xp->ilay_pymca,1);
 #endif
 
@@ -160,6 +173,14 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"\n\nEntering iterative loop\n\n");
 #endif
 
+	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
+		rayleigh_channel = (int) ((xp->scatter_energy - pymca_input->detector->zero)/pymca_input->detector->gain);
+#if DEBUG == 1
+		fprintf(stdout,"rayleigh_channel: %i\n", rayleigh_channel);
+#endif
+	}
+
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
 		if (channels != NULL)
@@ -183,58 +204,97 @@ int main (int argc, char *argv[]) {
 		}
 	
 		//optimize concentrations
-		sum_k = sum_l = 0.0;
-		for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
+		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
+		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i==1)) {
+			sum_k = sum_l = 0.0;
+			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
 #if DEBUG == 1
-			fprintf(stdout,"Element :%i\n",xp->z_arr_quant[j]);
+				fprintf(stdout,"Element :%i\n",xp->z_arr_quant[j]);
 #endif
-			//K-lines
-			//make history_sum
-			sum_k_history = 0.0;
-			sum_l_history = 0.0;
-			for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-				sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-				sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-			}
-			for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-				sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-				sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-			}
+				//K-lines
+				//make history_sum
+				sum_k_history = 0.0;
+				sum_l_history = 0.0;
+				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
+					sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+					sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				}
+				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
+					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				}
 			
-			for (k = 0 ; k < xp->n_peaks ; k++) {
-				if (xp->z_arr[k] == xp->z_arr_quant[j])
-					break;
-			}
+				for (k = 0 ; k < xp->n_peaks ; k++) {
+					if (xp->z_arr[k] == xp->z_arr_quant[j])
+						break;
+				}
 
 
 #if DEBUG == 1
-			fprintf(stdout,"sum_k_history: %lf\n",sum_k_history);
-			fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->k_alpha[k]);
+				fprintf(stdout,"sum_k_history: %lf\n",sum_k_history);
+				fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->k_alpha[k]);
+				fprintf(stdout,"scatter_intensity from file: %lf\n",xp->scatter_intensity);
+				fprintf(stdout,"scatter_intensity from MC: %lf\n",ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
 #endif
 
 
 
-			if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
-				sum_temp = 0.0;
-				sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
-				sum_temp /= xp->k_alpha[k];
-				sum_temp /= xp->k_alpha[k];
-				sum_k += sum_temp;
-				weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
-			}
-			else if (xp->l_alpha[j] > 0.0 && sum_l_history > 0.0  ) {
-				sum_temp = 0.0;
-				sum_temp += (xp->l_alpha[k]-sum_l_history)*(xp->l_alpha[k]-sum_l_history);
-				sum_temp /= xp->l_alpha[k];
-				sum_temp /= xp->l_alpha[k];
-				sum_l += sum_temp;
-				weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
+				if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
+					sum_temp = 0.0;
+					sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
+					sum_temp /= xp->k_alpha[k];
+					sum_temp /= xp->k_alpha[k];
+					sum_k += sum_temp;
+					weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
+				}
+				else if (xp->l_alpha[j] > 0.0 && sum_l_history > 0.0  ) {
+					sum_temp = 0.0;
+					sum_temp += (xp->l_alpha[k]-sum_l_history)*(xp->l_alpha[k]-sum_l_history);
+					sum_temp /= xp->l_alpha[k];
+					sum_temp /= xp->l_alpha[k];
+					sum_l += sum_temp;
+					weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
+				}
 			}
 		}
-		//update concentrations in input	
-		free(pymca_input->composition->layers[xp->ilay_pymca].Z);
-		free(pymca_input->composition->layers[xp->ilay_pymca].weight);
-		pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+		//update energy intensities when required
+		if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
+			for (j = 0 ; j < pymca_input->excitation->n_discrete ; j++) {
+				pymca_input->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+				pymca_input->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+			}
+
+			for (j = 0 ; j < pymca_input->excitation->n_continuous ; j++) {
+				pymca_input->excitation->continuous[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+				pymca_input->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+			}
+			if (i > 1) {
+				//update concentrations in input	
+				free(pymca_input->composition->layers[xp->ilay_pymca].Z);
+				free(pymca_input->composition->layers[xp->ilay_pymca].weight);
+				pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+			}
+			//reload fortran input
+			xmi_free_input_F(&inputFPtr);
+			xmi_input_C2F(pymca_input, &inputFPtr);
+			if (xmi_init_input(&inputFPtr) == 0) {
+				return 1;
+			}
+			xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+		}
+		else {
+			//update concentrations in input	
+			free(pymca_input->composition->layers[xp->ilay_pymca].Z);
+			free(pymca_input->composition->layers[xp->ilay_pymca].weight);
+			pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+			//reload fortran input
+			xmi_free_input_F(&inputFPtr);
+			xmi_input_C2F(pymca_input, &inputFPtr);
+			if (xmi_init_input(&inputFPtr) == 0) {
+				return 1;
+			}
+			xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+		}
 	
 #if DEBUG == 1
 		fprintf(stdout,"Iteration: %i\n",i);
@@ -242,13 +302,6 @@ int main (int argc, char *argv[]) {
 		fprintf(stdout,"sum_l: %lf\n",sum_l);
 #endif
 
-		//reload fortran input
-		xmi_free_input_F(&inputFPtr);
-		xmi_input_C2F(pymca_input, &inputFPtr);
-		if (xmi_init_input(&inputFPtr) == 0) {
-			return 1;
-		}
-		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	}
 
@@ -273,6 +326,96 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}
 
+	//write to CSV and SPE if necessary...
+	csv_convPtr = csv_noconvPtr = NULL;
+
+	if (csv_file_noconv != NULL) {
+		if ((csv_noconvPtr = fopen(csv_file_noconv,"w")) == NULL) {
+			fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
+			return 1;
+		}
+	}
+	if (csv_file_conv != NULL) {
+		if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
+			fprintf(stdout,"Could not write to %s\n",csv_file_conv);
+			return 1;
+		}
+	}
+
+
+	for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+
+		//write it to outputfile... spe style
+		if (spe_file_noconv != NULL) {
+			sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+			if ((outPtr=fopen(filename,"w")) == NULL ) {
+				fprintf(stdout,"Could not write to %s\n",filename);
+				exit(1);
+			}
+			fprintf(outPtr,"$SPEC_ID:\n\n");
+			fprintf(outPtr,"$DATA:\n");
+			fprintf(outPtr,"1\t%i\n",xp->nchannels);
+			for (j=1 ; j <= xp->nchannels ; j++) {
+				fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channels,i,j,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
+				if ((j+1) % 8 == 0) {
+					fprintf(outPtr,"\n");
+				}
+				else {
+					fprintf(outPtr,"     ");
+				}
+			}
+			fclose(outPtr);
+		}
+		//convoluted spectrum
+		if (spe_file_conv != NULL) {
+			sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+			if ((outPtr=fopen(filename,"w")) == NULL ) {
+				fprintf(stdout,"Could not write to %s\n",filename);
+				exit(1);
+			}
+			fprintf(outPtr,"$SPEC_ID:\n\n");
+			fprintf(outPtr,"$DATA:\n");
+			fprintf(outPtr,"1\t%i\n",xp->nchannels);
+			for (j=0 ; j < xp->nchannels ; j++) {
+				fprintf(outPtr,"%lg",channels_conv[i][j]);
+				if ((j+1) % 8 == 0) {
+					fprintf(outPtr,"\n");
+				}
+				else {
+					fprintf(outPtr,"     ");
+				}
+			}
+			fclose(outPtr);
+		}
+	}
+
+
+
+	//csv file unconvoluted
+	if (csv_noconvPtr != NULL) {
+		for (j=1 ; j <= xp->nchannels ; j++) {
+			fprintf(csv_noconvPtr,"%i,%lf",j,(j)*pymca_input->detector->gain+pymca_input->detector->zero);	
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+				//channel number, energy, counts...
+				fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channels,i,j,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
+			}
+			fprintf(csv_noconvPtr,"\n");
+		}
+		fclose(csv_noconvPtr);
+	}
+
+	//csv file convoluted
+	if (csv_convPtr != NULL) {
+		for (j=0 ; j < xp->nchannels ; j++) {
+			fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*pymca_input->detector->gain+pymca_input->detector->zero);	
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+				//channel number, energy, counts...
+				fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
+			}
+			fprintf(csv_convPtr,"\n");
+		}
+		fclose(csv_convPtr);
+	}
 
 
 	return 0;

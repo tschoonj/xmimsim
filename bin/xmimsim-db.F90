@@ -2,7 +2,7 @@
 
 PROGRAM xmimsim_db
 
-USE :: xmimsim_main
+USE :: xmimsim_hdf5
 IMPLICIT NONE
 
 !short main, innit?

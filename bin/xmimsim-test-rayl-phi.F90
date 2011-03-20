@@ -1,6 +1,6 @@
 PROGRAM test
 
-USE :: xmimsim_main
+USE :: xmimsim_hdf5
 
 IMPLICIT NONE
 

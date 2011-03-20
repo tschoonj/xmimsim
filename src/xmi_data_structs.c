@@ -528,8 +528,15 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
 	rv->absorbers->n_exc_layers = 0;
 	rv->absorbers->exc_layers = NULL;
-	rv->absorbers->n_det_layers = 0;
-	rv->absorbers->det_layers = NULL;
+	rv->absorbers->n_det_layers = 1;
+	rv->absorbers->det_layers = malloc(sizeof(struct xmi_layer));
+	rv->absorbers->det_layers[0].n_elements = 1;
+	rv->absorbers->det_layers[0].Z = (int *) malloc(sizeof(int));
+	rv->absorbers->det_layers[0].weight = (double *) malloc(sizeof(double));
+	rv->absorbers->det_layers[0].Z[0] = 4;
+	rv->absorbers->det_layers[0].weight[0] = 1.0;
+	rv->absorbers->det_layers[0].density = 1.85;
+	rv->absorbers->det_layers[0].thickness = 0.002;
 
 	//detector
 	rv->detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
@@ -546,7 +553,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->detector->crystal_layers[0].weight = (double *) malloc(sizeof(double));
 	rv->detector->crystal_layers[0].Z[0] = 14;
 	rv->detector->crystal_layers[0].weight[0] = 1.0;
-	rv->detector->crystal_layers[0].density = 2.0;
+	rv->detector->crystal_layers[0].density = 2.33;
 	rv->detector->crystal_layers[0].thickness = 0.5;
 
 

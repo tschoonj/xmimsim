@@ -28,6 +28,10 @@ struct xmi_pymca {
 	int flags[100];
 	//nchannels
 	int nchannels;
+	//scatter intensity
+	//to be used for adjusting the beam intensity
+	double scatter_energy;
+	double scatter_intensity;
 };
 
 
