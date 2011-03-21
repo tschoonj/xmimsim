@@ -8,6 +8,10 @@
 #include <string.h>
 #include <math.h>
 #include <glib.h>
+#include <libxslt/xslt.h>
+#include <libxslt/xsltInternals.h>
+#include <libxslt/transform.h>
+#include <libxslt/xsltutils.h>
 
 
 
@@ -21,8 +25,9 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detecto
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 
+static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
-
+extern int xmlLoadExtDtdDefaultValue;
 
 static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
 	xmlNodePtr subnode;
@@ -982,11 +987,8 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 }
 
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
 
-
-	xmlTextWriterPtr writer;
-	xmlDocPtr doc;
 	char version[100];
 	char detector_type[20];
 	int i,j,k;
@@ -994,7 +996,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	int *uniqZ = NULL;
 	int nuniqZ = 1;
 	int found;
-
+	xmlTextWriterPtr writer;
 
 
 	LIBXML_TEST_VERSION
@@ -1045,7 +1047,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 
 
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+	if ((writer = xmlNewTextWriterDoc(doc,0)) == NULL) {
 		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
 		return 0;
 	}
@@ -1337,6 +1339,23 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	}
 
 	xmlFreeTextWriter(writer);
+
+	return 1;
+}
+
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+
+
+	xmlDocPtr doc;
+
+
+
+	LIBXML_TEST_VERSION
+
+	if (xmi_write_output(&doc, input, brute_history, var_red_history, channels_conv, channels_unconv, nchannels, inputfile, use_zero_interactions) == 0)
+		return 0;
+
+
 	xmlSaveFileEnc(xmlfile,doc,NULL);
 	xmlFreeDoc(doc);
 
@@ -2000,3 +2019,40 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 }
 
+int xmi_write_output_svg_from_file(char *svgprefix, char *xmlfile) {
+
+	xmlDocPtr doc;
+	xsltStylesheetPtr cur = NULL;
+	char *xsl_params[5] = {"interaction","'1'","min-value", "'1'", "step"};
+
+
+	LIBXML_TEST_VERSION
+
+	xmlSubstituteEntitiesDefault(1);
+	xmlLoadExtDtdDefaultValue = 1;
+
+
+	/*if (xmi_write_output(&doc, input, brute_history, var_red_history, channels_conv, channels_unconv, nchannels, inputfile, use_zero_interactions) == 0)
+		return 0;
+	*/
+
+	doc = xmlParseFile(xmlfile);
+	if (doc == NULL) {
+		fprintf(stderr,"Could not parse XMSO file %s\n",xmlfile);
+		return 0;
+	}
+
+
+	cur = xsltParseStylesheetFile(XMI_SVG_STYLESHEET);
+	//assuming this will return NULL on error... API is not clear on this :-(
+	if (cur == NULL) {
+		fprintf(stderr,"Could not parse SVG stylesheet %s\nAborting\n",XMI_SVG_STYLESHEET );
+		return 0;
+	}
+
+
+	xmlFreeDoc(doc);
+
+	return 1;
+
+}
