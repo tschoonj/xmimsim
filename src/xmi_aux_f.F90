@@ -1157,7 +1157,7 @@ BIND(C, NAME='xmi_add_val_to_array_double')
         arrayF = arrayF+increment
 
         RETURN
-ENDSUBROUTINE xmi_scale_double
+ENDSUBROUTINE xmi_add_val_to_array_double 
 
 
 
@@ -1242,11 +1242,17 @@ BIND(C,NAME='xmi_dindgen')
         TYPE (C_PTR) :: rv
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: array
         INTEGER (C_INT), INTENT(IN), VALUE :: n
+        INTEGER (C_INT) :: i
 
         IF (n .LT. 1) THEN
                 WRITE (6,'(A)') 'xmi_dindgen_c expects a strict positive integer'
                 CALL EXIT(1)
         ENDIF
+
+#if DEBUG == 0
+        WRITE (6,'(A,I)') 'xmi_dindgen n:',n
+#endif
+
 
         ALLOCATE(array(n))
         DO i=0_C_INT,n-1

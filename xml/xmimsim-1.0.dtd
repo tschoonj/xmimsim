@@ -79,10 +79,10 @@
 
 <!-- svg stuff...  -->
 <!ELEMENT svg_graphs (svg_graph+)>
-<!ELEMENT svg_graph (svg:rect*, svg:path*, svg:text*)>
+<!ELEMENT svg_graph (svg:rect | svg:path | svg:text)*>
 <!ATTLIST svg_graph 
 	interaction_number CDATA #REQUIRED
-	spectrum_kind (convoluted|unconvoluted)	
+	spectrum_kind (convoluted|unconvoluted) #REQUIRED	
 >
 
 <!ELEMENT svg:rect EMPTY>
@@ -98,18 +98,18 @@
 <!ATTLIST svg:path 
 	d CDATA #REQUIRED
 	stroke CDATA #REQUIRED
-	stroke-width CDATA
-	fill CDATA
->
+	stroke-width CDATA #IMPLIED
+	fill CDATA #IMPLIED
+	>
 
-<!ELEMENT svg:text CDATA #REQUIRED>
+<!ELEMENT svg:text (#PCDATA)>
 <!ATTLIST svg:text
 	x CDATA #REQUIRED
 	y CDATA #REQUIRED
-	transform CDATA
+	transform CDATA #IMPLIED
 	font-size CDATA #REQUIRED
 	text-anchor CDATA #REQUIRED
-	text-align CDATA
-	font-family CDATA
+	text-align CDATA #IMPLIED
+	font-family CDATA #IMPLIED
 >
 

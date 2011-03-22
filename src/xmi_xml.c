@@ -34,7 +34,7 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorb
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, double *channels, int channels); 
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, double *channels, int nchannels); 
 
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
@@ -1338,6 +1338,66 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, long in
 		return 0;
 	}
 
+	//write svg stuff
+	if (xmlTextWriterStartElement(writer,BAD_CAST "svg_graphs") < 0) {
+		fprintf(stderr,"Error writing svg_graphs tag\n");
+		return 0;
+	}
+
+	for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+
+		//convoluted first
+		if (xmlTextWriterStartElement(writer,BAD_CAST "svg_graph") < 0) {
+			fprintf(stderr,"Error writing svg_graph tag\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "spectrum_kind",BAD_CAST "convoluted") < 0) {
+			fprintf(stderr,"Error writing spectrum_kind tag\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "interaction_number","%i",i) < 0) {
+			fprintf(stderr,"Error writing spectrum_kind tag\n");
+			return 0;
+		}
+
+		if (xmi_write_input_xml_svg(writer, input, channels_conv[i], nchannels) == 0) {
+			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
+			return 0;
+		}
+
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending svg_graph tag\n");
+			return 0;
+		}
+		//unconvoluted first
+		if (xmlTextWriterStartElement(writer,BAD_CAST "svg_graph") < 0) {
+			fprintf(stderr,"Error writing svg_graph tag\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "spectrum_kind",BAD_CAST "unconvoluted") < 0) {
+			fprintf(stderr,"Error writing spectrum_kind tag\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "interaction_number","%i",i) < 0) {
+			fprintf(stderr,"Error writing spectrum_kind tag\n");
+			return 0;
+		}
+
+		if (xmi_write_input_xml_svg(writer, input, channels_unconv+i*nchannels, nchannels) == 0) {
+			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
+			return 0;
+		}
+
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending svg_graph tag\n");
+			return 0;
+		}
+	}
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending svg_graphs tag\n");
+		return 0;
+	}
 
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
@@ -2076,7 +2136,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 	//
 	double minimum, maximum;
 	double minimum_log, maximum_log;
-	double *energies = xmi_dindgen(nchannels);
+	double *energies;
 	int max_channel;
 	int i;
 	double energy;
@@ -2090,6 +2150,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 
 
 	//
+	energies = xmi_dindgen(nchannels);
 	xmi_add_val_to_array_double(energies, nchannels, 1.0);
 	xmi_scale_double(energies, nchannels, input->detector->gain);
 	xmi_add_val_to_array_double(energies, nchannels, input->detector->zero);
@@ -2119,11 +2180,11 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 		fprintf(stderr,"Error writing svg:rect height\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "fill", "#fff") < 0) {
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "fill", BAD_CAST "#fff") < 0) {
 		fprintf(stderr,"Error writing svg:rect fill\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", "#000") < 0) {
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", BAD_CAST "#000") < 0) {
 		fprintf(stderr,"Error writing svg:rect stroke\n");
 		return 0;
 	}
@@ -2152,6 +2213,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 
 	//estimate last energy to be used
 	//reverse find where spectrum > 1.0
+	max_channel = 0;
 	for (i = nchannels-1 ; i >= 0 ; i--) {
 		if (channels[i] >= 1) {
 			max_channel = i;
@@ -2176,23 +2238,23 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 			fprintf(stderr,"Error writing svg:text X-axis energy x\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "y", "%lf",SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y+15) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "y", "%lf",(double) (SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y+15)) < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy y\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-size", "10px") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-size", BAD_CAST "10px") < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy font-size\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-anchor", "middle") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-anchor", BAD_CAST "middle") < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy text-anchor\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-align", "end") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-align", BAD_CAST "end") < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy text-align\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-family", "Helvetica Condensed") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-family", BAD_CAST "Helvetica Condensed") < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy font-family\n");
 			return 0;
 		}
@@ -2210,11 +2272,11 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 			fprintf(stderr,"Error writing svg:path X-axis tick\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "d", "M %lf,%lf L %lf,%lf",SVG_ENERGY_TO_SVG_COORDS(energy), SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y-5,SVG_ENERGY_TO_SVG_COORDS(energy), SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "d", "M %lf,%lf L %lf,%lf",SVG_ENERGY_TO_SVG_COORDS(energy), (double) (SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y-5),SVG_ENERGY_TO_SVG_COORDS(energy), (double) (SVG_DEFAULT_BOX_HEIGHT+SVG_DEFAULT_BOX_OFFSET_Y)) < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy x\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", "#000") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", BAD_CAST "#000") < 0) {
 			fprintf(stderr,"Error writing svg:text X-axis energy text-align\n");
 			return 0;
 		}
@@ -2251,7 +2313,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 			fprintf(stderr,"Error writing svg:text Y-axis intensity\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "x", "%lf",SVG_DEFAULT_BOX_OFFSET_X-2) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "x", "BAD_CAST %lf",(double) (SVG_DEFAULT_BOX_OFFSET_X-2)) < 0) {
 			fprintf(stderr,"Error writing svg:text Y-axis intensity x\n");
 			return 0;
 		}
@@ -2259,19 +2321,19 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 			fprintf(stderr,"Error writing svg:text Y-axis intensity y\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-size", "10px") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-size", BAD_CAST "10px") < 0) {
 			fprintf(stderr,"Error writing svg:text Y-axis intensity font-size\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-anchor", "end") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-anchor", BAD_CAST "end") < 0) {
 			fprintf(stderr,"Error writing svg:text Y-axis intensity text-anchor\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-align", "end") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "text-align", BAD_CAST "end") < 0) {
 			fprintf(stderr,"Error writing svg:text Y-axis intensity text-align\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-family", "Helvetica Condensed") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "font-family", BAD_CAST "Helvetica Condensed") < 0) {
 			fprintf(stderr,"Error writing svg:text Y-axis intensity font-family\n");
 			return 0;
 		}
@@ -2289,11 +2351,11 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 			fprintf(stderr,"Error writing svg:path Y-axis tick\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "d", "M %lf,%lf L %lf,%lf", SVG_DEFAULT_BOX_OFFSET_X,SVG_INTENSITY_TO_SVG_COORDS(intensity), SVG_DEFAULT_BOX_OFFSET_X+5,SVG_INTENSITY_TO_SVG_COORDS(intensity)) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "d", "M %lf,%lf L %lf,%lf", (double) (SVG_DEFAULT_BOX_OFFSET_X),SVG_INTENSITY_TO_SVG_COORDS(intensity), (double) (SVG_DEFAULT_BOX_OFFSET_X+5),SVG_INTENSITY_TO_SVG_COORDS(intensity)) < 0) {
 			fprintf(stderr,"Error writing svg:path Y-axis tick\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", "#000") < 0) {
+		if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", BAD_CAST "#000") < 0) {
 			fprintf(stderr,"Error writing svg:path Y-axis intensity stroke\n");
 			return 0;
 		}
@@ -2312,8 +2374,6 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 	}
 	
 	//print actual spectrum now...
-	temp_path = (char *) malloc(sizeof(char));
-	temp_path[0] = '\0'; 
 	full_path_length = 0;
 	for (i = 0 ; i <= max_channel ; i++) {
 		if (i == 0) {
@@ -2329,6 +2389,20 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 		strcat(full_path,temp_path);	
 
 
+	}
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "d", BAD_CAST full_path) < 0) {
+		fprintf(stderr,"Error writing svg:path spectrum full_path\n");
+		return 0;
+	}
+
+	free(full_path);
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke", BAD_CAST "blue") < 0) {
+		fprintf(stderr,"Error writing svg:path spectrum stroke\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteAttribute(writer, BAD_CAST "stroke-width", BAD_CAST "1") < 0) {
+		fprintf(stderr,"Error writing svg:path spectrum fill\n");
+		return 0;
 	}
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending element svg:path spectrum\n");
