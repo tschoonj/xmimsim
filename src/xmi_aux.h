@@ -20,6 +20,18 @@ double xmi_sum_double(double *array, int n);
 //multiplies each element of array with scale_factor
 void xmi_scale_double(double *array, int n, double scale_factor);
 
+//returns maximum value in array
+double xmi_maxval_double(double *array, int n);
+
+//returns an IDL style dindgen array
+double *xmi_dindgen(int n);
+
+//returns minimum value in array
+double xmi_minval_double(double *array, int n);
+
+//increase array with value (can also be negative of course)
+void xmi_add_val_to_array_double(double *array, int n, double increment);
+
 //to be used in qsort or bsearch for comparing integers
 int xmi_cmp_int(const void *a, const void *b);
 

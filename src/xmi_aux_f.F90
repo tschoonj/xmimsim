@@ -1141,7 +1141,25 @@ SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_sc
         
         arrayF = scale_factor*arrayF
 
+        RETURN
 ENDSUBROUTINE xmi_scale_double
+
+SUBROUTINE xmi_add_val_to_array_double(array, n_elements,increment)&
+BIND(C, NAME='xmi_add_val_to_array_double')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE), VALUE :: increment
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+        
+        arrayF = arrayF+increment
+
+        RETURN
+ENDSUBROUTINE xmi_scale_double
+
+
 
 FUNCTION trilinear_interpolation(array3D, array1D_1, array1D_2, array1D_3, x_1,&
 x_2, x_3) RESULT(rv)
@@ -1218,5 +1236,57 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_dindgen
 
+FUNCTION xmi_dindgen_c(n) RESULT(rv)&
+BIND(C,NAME='xmi_dindgen')
+        IMPLICIT NONE
+        TYPE (C_PTR) :: rv
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: array
+        INTEGER (C_INT), INTENT(IN), VALUE :: n
+
+        IF (n .LT. 1) THEN
+                WRITE (6,'(A)') 'xmi_dindgen_c expects a strict positive integer'
+                CALL EXIT(1)
+        ENDIF
+
+        ALLOCATE(array(n))
+        DO i=0_C_INT,n-1
+                array(i+1) = REAL(i,KIND=C_DOUBLE)
+        ENDDO
+        
+        rv = C_LOC(array)
+
+        RETURN
+
+ENDFUNCTION xmi_dindgen_c
+
+FUNCTION xmi_maxval_double(array, n) RESULT(rv)&
+BIND(C,NAME='xmi_maxval_double')
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        INTEGER (C_INT), INTENT(IN), VALUE :: n
+        REAL (C_DOUBLE) :: rv
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: arrayF
+
+        CALL C_F_POINTER(array, arrayF, [n])
+
+        rv = MAXVAL(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_maxval_double
+
+FUNCTION xmi_minval_double(array, n) RESULT(rv)&
+BIND(C,NAME='xmi_minval_double')
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        INTEGER (C_INT), INTENT(IN), VALUE :: n
+        REAL (C_DOUBLE) :: rv
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: arrayF
+
+        CALL C_F_POINTER(array, arrayF, [n])
+
+        rv = MINVAL(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_minval_double
 
 ENDMODULE 
