@@ -420,7 +420,7 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 
 	(*geometry)->p_detector_window[0] = 0.0;
 	(*geometry)->p_detector_window[1] = -1.0*det_dist*sin(alpha+beta);
-	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source - det_dist*cos(alpha+beta) ;
+	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source + det_dist*cos(alpha+beta) ;
 	
 	(*geometry)->n_detector_orientation[0] = 0.0;
 	(*geometry)->n_detector_orientation[1] = sin(alpha+beta);
@@ -428,7 +428,7 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 
 	(*geometry)->n_sample_orientation[0] = 0.0;
 	(*geometry)->n_sample_orientation[1] = sin(alpha);
-	(*geometry)->n_sample_orientation[2] = cos(alpha);
+	(*geometry)->n_sample_orientation[2] = -1.0 * cos(alpha);
 
 	//simplify slits by using default values!!!
 	(*geometry)->d_source_slit = (*geometry)->d_sample_source;
