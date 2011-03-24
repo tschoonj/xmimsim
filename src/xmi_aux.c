@@ -185,3 +185,23 @@ struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
 		rv->weight = (double *) xmi_memdup(cd->massFractions, sizeof(double)*cd->nElements);
 	return rv;
 }
+
+double *xmi_dindgen(int n) {
+	double *rv;
+	int i;
+
+	if (n < 1) {
+		fprintf(stderr,"xmi_dindgen requires a strictly positive argument\n");
+		return NULL;
+	}
+
+	rv = (double *) malloc(sizeof(double)*n);
+	
+	for (i = 0 ; i < n ; i++) {
+		rv[i] = (double )i;
+	}
+
+	return rv;
+}
+
+

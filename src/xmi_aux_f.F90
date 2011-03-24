@@ -1236,34 +1236,6 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_dindgen
 
-FUNCTION xmi_dindgen_c(n) RESULT(rv)&
-BIND(C,NAME='xmi_dindgen')
-        IMPLICIT NONE
-        TYPE (C_PTR) :: rv
-        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: array
-        INTEGER (C_INT), INTENT(IN), VALUE :: n
-        INTEGER (C_INT) :: i
-
-        IF (n .LT. 1) THEN
-                WRITE (6,'(A)') 'xmi_dindgen_c expects a strict positive integer'
-                CALL EXIT(1)
-        ENDIF
-
-#if DEBUG == 0
-        WRITE (6,'(A,I)') 'xmi_dindgen n:',n
-#endif
-
-
-        ALLOCATE(array(n))
-        DO i=0_C_INT,n-1
-                array(i+1) = REAL(i,KIND=C_DOUBLE)
-        ENDDO
-        
-        rv = C_LOC(array)
-
-        RETURN
-
-ENDFUNCTION xmi_dindgen_c
 
 FUNCTION xmi_maxval_double(array, n) RESULT(rv)&
 BIND(C,NAME='xmi_maxval_double')
