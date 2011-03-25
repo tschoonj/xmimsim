@@ -427,8 +427,8 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	(*geometry)->n_detector_orientation[2] = cos(alpha+beta);
 
 	(*geometry)->n_sample_orientation[0] = 0.0;
-	(*geometry)->n_sample_orientation[1] = sin(alpha);
-	(*geometry)->n_sample_orientation[2] = -1.0 * cos(alpha);
+	(*geometry)->n_sample_orientation[1] = cos(alpha);
+	(*geometry)->n_sample_orientation[2] = sin(alpha);
 
 	//simplify slits by using default values!!!
 	(*geometry)->d_source_slit = (*geometry)->d_sample_source;
