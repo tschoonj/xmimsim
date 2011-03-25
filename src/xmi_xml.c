@@ -215,7 +215,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
 					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[2])) != 1) {
-						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
+						fprintf(stderr,"error reading in p_detector_window z of xml file\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -245,7 +245,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
 					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[2])) != 1) {
-						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
+						fprintf(stderr,"error reading in n_detector_orientation z of xml file\n");
 						return 0;
 					}
 					xmlFree(txt);

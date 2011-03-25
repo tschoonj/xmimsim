@@ -202,7 +202,13 @@ int main (int argc, char *argv[]) {
 			fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
-	
+#if DEBUG == 1
+		//write input structure
+		xmi_print_input(stdout,pymca_input);
+
+#endif
+
+
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
 		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i==1)) {

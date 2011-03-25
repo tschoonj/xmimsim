@@ -376,10 +376,10 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	//calculate sample normal using Matrix angles alpha and beta
 	strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL);
 	//no need to do checking here... it has been done before
-	alpha = 90.0 - g_ascii_strtod(strings[4], NULL);
-	beta = 90.0 - g_ascii_strtod(strings[5], NULL);
-  	alpha = alpha/180.*M_PI;
-  	beta  = beta/180.*M_PI;
+	alpha = g_ascii_strtod(strings[4], NULL);
+	beta = g_ascii_strtod(strings[5], NULL);
+  	alpha = alpha*M_PI/180.0;
+  	beta  = beta*M_PI/180.0;
 
 	//detector area	
 	(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "result.config.concentrations", "area",NULL)/100.0; 
@@ -415,20 +415,31 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 		fprintf(stderr,"Detector-sample distance must be positive... Fatal error\n");
 		return rv;
 	}
+#if DEBUG == 1
+	fprintf(stdout,"det_dist: %lf\n",det_dist);
+#endif
 
 
 
 	(*geometry)->p_detector_window[0] = 0.0;
-	(*geometry)->p_detector_window[1] = -1.0*det_dist*sin(alpha+beta);
-	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source + det_dist*cos(alpha+beta) ;
+	(*geometry)->p_detector_window[1] = det_dist*cos(alpha+beta);
+	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source - det_dist*sin(alpha+beta) ;
 	
 	(*geometry)->n_detector_orientation[0] = 0.0;
 	(*geometry)->n_detector_orientation[1] = sin(alpha+beta);
-	(*geometry)->n_detector_orientation[2] = cos(alpha+beta);
+	(*geometry)->n_detector_orientation[2] = -1.0*cos(alpha+beta);
 
 	(*geometry)->n_sample_orientation[0] = 0.0;
 	(*geometry)->n_sample_orientation[1] = cos(alpha);
 	(*geometry)->n_sample_orientation[2] = sin(alpha);
+			
+	//make sure that the Z component is positive!
+	//weird things will happen btw if Z is equal to zero...
+	if ((*geometry)->n_sample_orientation[2] < 0.0) {
+		(*geometry)->n_sample_orientation[0] *= -1.0;
+		(*geometry)->n_sample_orientation[1] *= -1.0;
+		(*geometry)->n_sample_orientation[2] *= -1.0;
+	}
 
 	//simplify slits by using default values!!!
 	(*geometry)->d_source_slit = (*geometry)->d_sample_source;

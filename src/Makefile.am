@@ -15,4 +15,4 @@ libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xml2_LIBS@ @xraylib_f2003_L
 
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod
