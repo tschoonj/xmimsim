@@ -82,6 +82,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (C_INT), DIMENSION(:), ALLOCATABLE :: theta_i_hist, phi_i_hist
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
+        TYPE (xmi_precalc_xrf_cs), DIMENSION(:), ALLOCATABLE, TARGET :: precalc_xrf_cs 
         
         CALL SetErrorMessages(0)
 
@@ -380,8 +381,49 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !$omp end critical
 #endif
 
+                IF (options%use_variance_reduction .EQ. 1 .AND. &
+                options%use_optimizations .EQ. 1) THEN
+                        !precalculate the XRF cross sections for the initial
+                        !energy
+                        ALLOCATE(precalc_xrf_cs(inputF%composition%n_layers))
+                        DO k=1,inputF%composition%n_layers
+                                ALLOCATE(precalc_xrf_cs(k)%cs(inputF%composition%layers(k)%n_elements,ABS(M5P5_LINE)))
+                                DO l=1,inputF%composition%layers(k)%n_elements
+                                  DO m=KL1_LINE,M5P5_LINE,-1
 
-                DO j=1,n_photons
+                                        !set the XRF cross sections according to the options
+                                        SELECT CASE (photon%xmi_cascade_type)
+                                                CASE(XMI_CASCADE_NONE)
+                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                CS_FluorLine_Kissel_no_Cascade(inputF%composition%layers(k)&
+                                                %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
+                                                CASE(XMI_CASCADE_NONRADIATIVE)
+                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                CS_FluorLine_Kissel_Nonradiative_Cascade(inputF%composition%layers(k)&
+                                                %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
+                                                CASE(XMI_CASCADE_RADIATIVE)
+                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                CS_FluorLine_Kissel_Radiative_Cascade(inputF%composition%layers(k)&
+                                                %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
+                                                CASE(XMI_CASCADE_FULL)
+                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                CS_FluorLine_Kissel_Cascade(inputF%composition%layers(k)&
+                                                %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
+
+                                                CASE DEFAULT
+                                                        WRITE (*,'(A)') 'Unsupported cascade type'
+                                                        CALL EXIT(1)
+                                        ENDSELECT
+                                    
+                                  ENDDO
+                                ENDDO
+                        ENDDO
+
+
+                ENDIF
+
+
+                photons:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
@@ -409,6 +451,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         NULLIFY(photon%offspring)
                         !Calculate energy with rng
                         photon%energy = exc%discrete(i)%energy 
+                        photon%initial_energy = exc%discrete(i)%energy 
                         photon%energy_changed=.FALSE.
                         photon%mus = initial_mus
                         photon%current_layer = 1
@@ -417,7 +460,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
 
-
+                        IF (options%use_variance_reduction .EQ. 1 .AND. &
+                        options%use_optimizations .EQ. 1) THEN
+                                photon%precalc_xrf_cs => precalc_xrf_cs
+                        ENDIF
                         !ipol = MOD(j,2)
 
                         !Calculate its initial coordinates and direction
@@ -703,8 +749,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 ENDIF
 
                         ENDDO photon_eval
-                ENDDO
+                ENDDO photons
                 DEALLOCATE(initial_mus)
+                IF (options%use_variance_reduction .EQ. 1 .AND. &
+                options%use_optimizations .EQ. 1) THEN
+                        DO k=1,inputF%composition%n_layers
+                                DEALLOCATE(precalc_xrf_cs(k)%cs)
+                        ENDDO
+                        DEALLOCATE(precalc_xrf_cs)
+                ENDIF
         ENDDO disc 
 
 #undef exc

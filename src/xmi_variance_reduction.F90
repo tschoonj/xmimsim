@@ -333,6 +333,56 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !      and finishing with FLUORESCENCE 
                 !
+                IF (photon%options%use_optimizations .EQ. 1 .AND.&
+                photon%energy .EQ. photon%initial_energy) THEN
+                
+                DO line_new=KL1_LINE,line_last,-1
+                        !needs to be checked for each line... will take
+                        !forever...
+                        energy_fluo = LineEnergy(layer%Z(i), line_new)
+                        IF (energy_fluo .LT. energy_threshold) CYCLE
+
+                        !Pconv calculation...
+                        Pconv = &
+                        layer%weight(i)*photon%precalc_xrf_cs(photon%current_layer)&
+                        %cs(layer%Z(i),line_new)/&
+                        photon%mus(photon%current_layer)
+                        mus=xmi_mu_calc(inputF%composition,&
+                        energy_fluo)
+                        temp_murhod = 0.0_C_DOUBLE
+                        DO j=photon%current_layer,step_do_max,step_do_dir
+                                temp_murhod = temp_murhod + mus(j)*&
+                                inputF%composition%layers(j)%density*distances(j)
+                        ENDDO
+                        Pesc = EXP(-temp_murhod) 
+                        photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
+                        = Pconv*Pdir_fluo*Pesc*photon%weight
+                        photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
+                        = energy_fluo
+#if DEBUG == 1
+                        IF(line_new .EQ. LA1_LINE) THEN
+                                WRITE (*,'(A,F12.4)') 'original energy: ',&
+                                photon%energy
+                                WRITE (*,'(A,F12.4)') 'new energy: ',&
+                                energy_fluo
+                                WRITE (*,'(A,F12.4)') 'original mu: ' ,&
+                                photon%mus(1)
+                                WRITE (*,'(A,F12.4)') 'new mu: ' ,&
+                                mus(1)
+                                WRITE (*,'(A,ES12.4)') 'Pesc: ' ,&
+                                Pesc
+                                WRITE (*,'(A,ES12.4)') 'Pconv: ' ,&
+                                Pconv
+                                WRITE (*,'(A,ES12.4)') 'Pdir_fluo: ' ,&
+                                Pdir_fluo
+                                WRITE (*,'(A,ES12.4)') 'P: ' ,&
+                        photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))
+                        ENDIF
+#endif
+                ENDDO
+
+                ELSE
+
                 PK = 0.0_C_DOUBLE
                 PL1 = 0.0_C_DOUBLE
                 PL2 = 0.0_C_DOUBLE
@@ -544,6 +594,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         ENDIF
 #endif
                 ENDDO
+                ENDIF
 
         ENDDO var_red
 

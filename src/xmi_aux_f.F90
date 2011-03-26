@@ -262,6 +262,21 @@ ENDTYPE xmi_var_red_layer
 
 !
 !
+!       xmi_precalc_xrf_cs: an array of these (dimensions corresponding with the
+!       number of layers), will contain the precalculated xrf cross sections
+!
+!
+
+TYPE :: xmi_precalc_xrf_cs
+        REAL (C_FLOAT), ALLOCATABLE, DIMENSION(:,:) :: cs
+ENDTYPE xmi_precalc_xrf_cs
+
+
+
+
+
+!
+!
 !   xmi_photon: will hold all the properties of a photon during the simulations
 !
 !
@@ -278,6 +293,9 @@ TYPE :: xmi_photon
         !energy of the photon
         REAL (C_DOUBLE) :: energy
 
+        !initial energy of the photon
+        REAL (C_DOUBLE) :: initial_energy
+
         !number of interactions the photon has experienced
         INTEGER (C_INT) :: n_interactions
 
@@ -291,7 +309,7 @@ TYPE :: xmi_photon
         !azimuthal angle
         REAL (C_DOUBLE) :: phi 
 
-        !energy changed from initial
+        !energy changed compared to previous interaction 
         LOGICAL :: energy_changed
 
         !weight of the photon
@@ -340,6 +358,9 @@ TYPE :: xmi_photon
 
         !detector_solid_angle_not_found
         INTEGER (C_LONG) :: detector_solid_angle_not_found
+
+        !precalculated XRF cross sections
+        TYPE (xmi_precalc_xrf_cs), DIMENSION(:), POINTER :: precalc_xrf_cs
 
         !debug variables
         REAL (C_DOUBLE) :: theta_i
