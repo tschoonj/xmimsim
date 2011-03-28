@@ -1808,6 +1808,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         LOGICAL :: shell_found, line_found
         INTEGER (C_INT) :: max_shell
+        INTEGER :: i
 
 #if DEBUG == 1
         WRITE (*,'(A)') 'Entering fluorescence'
@@ -1910,7 +1911,14 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A)') 'after fluor line check'
 #endif
         photon%energy_changed = .FALSE.
-        photon%mus = xmi_mu_calc(inputF%composition, photon%energy)
+        IF (photon%options%use_self_enhancement .EQ. 1) THEN
+                photon%mus = xmi_mu_calc(inputF%composition, photon%energy)
+        ELSE
+                DO i=1,inputF%composition%n_layers
+                photon%mus(i) = &
+                photon%precalc_mu_cs(i)%mu(photon%current_element_index,ABS(line)) 
+                ENDDO
+        ENDIF
 
         !calculate theta and phi
         theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)

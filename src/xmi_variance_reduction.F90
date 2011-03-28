@@ -517,7 +517,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         temp_murhod = 0.0_C_DOUBLE
                         DO j=photon%current_layer,step_do_max,step_do_dir
                                 temp_murhod = temp_murhod +&
-                                photon%precalc_mu_cs(j)%mu(layer%Z(i),ABS(line_new))*&
+                                photon%precalc_mu_cs(j)%mu(i,ABS(line_new))*&
                                 inputF%composition%layers(j)%density*distances(j)
                         ENDDO
                         Pesc = EXP(-temp_murhod) 
