@@ -317,6 +317,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                 ENDIF
 
+!$omp do
                 DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
@@ -348,10 +349,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
                 ENDDO
+!$omp end do
         ENDDO cont
 
         disc:DO i=1,exc%n_discrete
-                n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
+                n_photons = inputF%general%n_photons_line/n_mpi_hosts
                 total_intensity=exc%discrete(i)%vertical_intensity+ &
                 exc%discrete(i)%horizontal_intensity
                 hor_ver_ratio = &
@@ -381,6 +383,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !$omp end critical
 #endif
 
+!$omp single 
                 IF (options%use_variance_reduction .EQ. 1 .AND. &
                 options%use_optimizations .EQ. 1) THEN
                         !precalculate the XRF cross sections for the initial
@@ -392,21 +395,21 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                   DO m=KL1_LINE,M5P5_LINE,-1
 
                                         !set the XRF cross sections according to the options
-                                        SELECT CASE (photon%xmi_cascade_type)
+                                        SELECT CASE (xmi_cascade_type)
                                                 CASE(XMI_CASCADE_NONE)
-                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                precalc_xrf_cs(k)%cs(l,ABS(m)) =&
                                                 CS_FluorLine_Kissel_no_Cascade(inputF%composition%layers(k)&
                                                 %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
                                                 CASE(XMI_CASCADE_NONRADIATIVE)
-                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                precalc_xrf_cs(k)%cs(l,ABS(m)) =&
                                                 CS_FluorLine_Kissel_Nonradiative_Cascade(inputF%composition%layers(k)&
                                                 %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
                                                 CASE(XMI_CASCADE_RADIATIVE)
-                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                precalc_xrf_cs(k)%cs(l,ABS(m)) =&
                                                 CS_FluorLine_Kissel_Radiative_Cascade(inputF%composition%layers(k)&
                                                 %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
                                                 CASE(XMI_CASCADE_FULL)
-                                                precalc_xrf_cs(k)%cs(l,m) =&
+                                                precalc_xrf_cs(k)%cs(l,ABS(m)) =&
                                                 CS_FluorLine_Kissel_Cascade(inputF%composition%layers(k)&
                                                 %Z(l),INT(m,C_INT),REAL(exc%discrete(i)%energy,KIND=C_FLOAT))
 
@@ -418,11 +421,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                   ENDDO
                                 ENDDO
                         ENDDO
-
-
                 ENDIF
+!$omp end single 
 
 
+!$omp do
                 photons:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
@@ -750,7 +753,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                         ENDDO photon_eval
                 ENDDO photons
+!$omp end do
                 DEALLOCATE(initial_mus)
+!$omp single 
                 IF (options%use_variance_reduction .EQ. 1 .AND. &
                 options%use_optimizations .EQ. 1) THEN
                         DO k=1,inputF%composition%n_layers
@@ -758,6 +763,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         ENDDO
                         DEALLOCATE(precalc_xrf_cs)
                 ENDIF
+!$omp end single 
         ENDDO disc 
 
 #undef exc
@@ -1071,7 +1077,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #endif
 
 !!old
-                IF (photon%options%use_optimizations .EQ. 0_C_INT .OR.&
+                IF (photon%options%use_optimizations .EQ. 2_C_INT .OR.&
                 photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                         DO i=photon%current_layer,step_do_max, step_do_dir
                                 !calculate distance between current coords and
@@ -1175,7 +1181,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         !check if we are not leaving the system!
                                 ENDIF
                         ENDDO
-                ELSEIF (photon%options%use_optimizations .EQ. 1_C_INT) THEN
+                ELSE
                         !new version of stepsize selection!!!
                         !optimize by forcing interactions
                         IF(photon%n_interactions .EQ.&
@@ -1883,7 +1889,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
 
         !first fluorescence yield check, then Coster-Kronig!!!
-        IF (photon%options%use_optimizations .EQ. 0_C_INT .OR. &
+        IF (photon%options%use_optimizations .EQ. 2_C_INT .OR. &
         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                 !no optimizations // no variance reduction
                 IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&

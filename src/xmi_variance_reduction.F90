@@ -335,7 +335,9 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 IF (photon%options%use_optimizations .EQ. 1 .AND.&
                 photon%energy .EQ. photon%initial_energy) THEN
-                
+
+
+
                 DO line_new=KL1_LINE,line_last,-1
                         !needs to be checked for each line... will take
                         !forever...
@@ -345,7 +347,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         !Pconv calculation...
                         Pconv = &
                         layer%weight(i)*photon%precalc_xrf_cs(photon%current_layer)&
-                        %cs(layer%Z(i),line_new)/&
+                        %cs(i,ABS(line_new))/&
                         photon%mus(photon%current_layer)
                         mus=xmi_mu_calc(inputF%composition,&
                         energy_fluo)
@@ -484,7 +486,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         ENDIF
 
                         CASE DEFAULT
-                                WRITE (*,'(A)') 'Unsupported cascade type'
+                                WRITE (*,'(A)') &
+                                'Unsupported cascade type in varred'
                                 CALL EXIT(1)
                 ENDSELECT
 
