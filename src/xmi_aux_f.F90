@@ -260,6 +260,24 @@ TYPE :: xmi_var_red_layer
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: energy 
 ENDTYPE xmi_var_red_layer
 
+
+
+!
+!
+!       xmi_precalc_mu_cs: contains precalculated absorption coefficients for
+!       XRF photons
+!
+!
+
+TYPE :: xmi_precalc_mu_cs
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: mu
+ENDTYPE xmi_precalc_mu_cs
+
+
+
+
+
+
 !
 !
 !   xmi_photon: will hold all the properties of a photon during the simulations
@@ -277,6 +295,9 @@ TYPE :: xmi_photon
 
         !energy of the photon
         REAL (C_DOUBLE) :: energy
+
+        !initial energy of the photon
+        REAL (C_DOUBLE) :: initial_energy
 
         !number of interactions the photon has experienced
         INTEGER (C_INT) :: n_interactions
@@ -301,6 +322,9 @@ TYPE :: xmi_photon
 
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
+
+        !initial mus
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
 
         !current layer
         INTEGER (C_INT) :: current_layer
@@ -340,6 +364,9 @@ TYPE :: xmi_photon
 
         !detector_solid_angle_not_found
         INTEGER (C_LONG) :: detector_solid_angle_not_found
+
+        !xmi_precalc_mu_cs
+        TYPE (xmi_precalc_mu_cs), DIMENSION(:), POINTER :: precalc_mu_cs
 
         !debug variables
         REAL (C_DOUBLE) :: theta_i
