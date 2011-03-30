@@ -82,6 +82,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (C_INT), DIMENSION(:), ALLOCATABLE :: theta_i_hist, phi_i_hist
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
+        INTEGER, PARAMETER :: maxz = 94
 
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
@@ -223,11 +224,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !
         ALLOCATE(precalc_mu_cs(inputF%composition%n_layers))
         DO k=1,inputF%composition%n_layers
-                ALLOCATE(precalc_mu_cs(k)%mu(inputF%composition%layers(k)%n_elements,ABS(M5P5_LINE)))
-                DO l=1,inputF%composition%layers(k)%n_elements
+                ALLOCATE(precalc_mu_cs(k)%mu(maxz,ABS(M5P5_LINE)))
+                DO l=1,maxz
                         DO m=KL1_LINE,M5P5_LINE,-1
                                precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
-                               REAL(LineEnergy(inputF%composition%layers(k)%Z(l),INT(m,C_INT)),C_DOUBLE)) 
+                               REAL(LineEnergy(INT(l,C_INT),INT(m,C_INT)),C_DOUBLE)) 
                         ENDDO
                 ENDDO
 
@@ -1916,7 +1917,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         ELSE
                 DO i=1,inputF%composition%n_layers
                 photon%mus(i) = &
-                photon%precalc_mu_cs(i)%mu(photon%current_element_index,ABS(line)) 
+                photon%precalc_mu_cs(i)%mu(photon%current_element,ABS(line)) 
                 ENDDO
         ENDIF
 
