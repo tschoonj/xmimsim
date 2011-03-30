@@ -259,11 +259,17 @@ struct undo_single *check_changes_saved(int *status) {
 		//meaning it was just saved!
 		*status = CHECK_CHANGES_JUST_SAVED;
 		temp = current;
+#if DEBUG == 1
+		fprintf(stdout,"last saved == current\n");
+#endif
 	}
 	else if (xmi_compare_input(current->xi,last_saved->xi) == 0) {
 		//it was saved before, but there are no changes compared to before
 		*status = CHECK_CHANGES_JUST_SAVED;
 		temp = last_saved;
+#if DEBUG == 1
+		fprintf(stdout,"last saved and current are equal\n");
+#endif
 	}
 	else {
 		//it was saved before, and now the status has changed
@@ -4121,8 +4127,12 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	int check_status;
 	GtkWidget *dialog;
 	struct undo_single *check_rv; 
+	char *filename;
 
 	check_rv = check_changes_saved(&check_status);
+#if DEBUG == 1
+	fprintf(stdout,"check_status: %i\n",check_status);
+#endif
 	//check if it was saved before... otherwise call saveas
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
 		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
@@ -4134,6 +4144,16 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 
+		}
+		else {
+			filename = strdup(last_saved->filename);
+			free(last_saved->filename);
+			xmi_free_input(last_saved->xi);
+			free(last_saved);
+			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+			xmi_copy_input(current->xi, &(last_saved->xi));
+			last_saved->filename = strdup(filename);
+			free(filename);
 		}
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
