@@ -82,6 +82,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (C_INT), DIMENSION(:), ALLOCATABLE :: theta_i_hist, phi_i_hist
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
+        INTEGER, PARAMETER :: maxz = 94
+
+        TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
+        precalc_mu_cs
+
         
         CALL SetErrorMessages(0)
 
@@ -210,6 +215,29 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #if DEBUG == 1
         WRITE (*,'(A,4I)') 'seeds: ',seeds
 #endif
+
+
+        !
+        !
+        !       Precalculate the absorption coefficients of the XRF photons
+        !
+        !
+        ALLOCATE(precalc_mu_cs(inputF%composition%n_layers))
+        DO k=1,inputF%composition%n_layers
+                ALLOCATE(precalc_mu_cs(k)%mu(maxz,ABS(M5P5_LINE)))
+                DO l=1,maxz
+                        DO m=KL1_LINE,M5P5_LINE,-1
+                               precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
+                               REAL(LineEnergy(INT(l,C_INT),INT(m,C_INT)),C_DOUBLE)) 
+                        ENDDO
+                ENDDO
+
+        ENDDO
+        
+
+
+
+
 
 !
 !
@@ -370,6 +398,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
 
+
 #if DEBUG == 1
 !$omp critical
                 WRITE (*,'(A,I)') 'n_photons: ',n_photons
@@ -411,11 +440,13 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy = exc%discrete(i)%energy 
                         photon%energy_changed=.FALSE.
                         photon%mus = initial_mus
+                        photon%initial_mus = initial_mus
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
+                        photon%precalc_mu_cs => precalc_mu_cs
 
 
                         !ipol = MOD(j,2)
@@ -738,6 +769,12 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !        WRITE (*,'(A,ES14.5)') 'Ba-LA1: ',var_red_history(56,ABS(LA1_LINE),1)
 !        WRITE (*,'(A,ES14.5)') 'Ba-LA1-4: ',var_red_history(56,ABS(LA1_LINE),4)
 #endif
+
+
+        DO k=1,inputF%composition%n_layers
+                DEALLOCATE(precalc_mu_cs(k)%mu)
+        ENDDO
+        DEALLOCATE(precalc_mu_cs)
 
         !multiply with detector absorbers and detector crystal
         DO i=1,nchannels
@@ -1772,6 +1809,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         LOGICAL :: shell_found, line_found
         INTEGER (C_INT) :: max_shell
+        INTEGER :: i
 
 #if DEBUG == 1
         WRITE (*,'(A)') 'Entering fluorescence'
@@ -1874,7 +1912,14 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A)') 'after fluor line check'
 #endif
         photon%energy_changed = .FALSE.
-        photon%mus = xmi_mu_calc(inputF%composition, photon%energy)
+        IF (photon%options%use_self_enhancement .EQ. 1) THEN
+                photon%mus = xmi_mu_calc(inputF%composition, photon%energy)
+        ELSE
+                DO i=1,inputF%composition%n_layers
+                photon%mus(i) = &
+                photon%precalc_mu_cs(i)%mu(photon%current_element,ABS(line)) 
+                ENDDO
+        ENDIF
 
         !calculate theta and phi
         theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
