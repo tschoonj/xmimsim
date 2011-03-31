@@ -45,6 +45,8 @@ int main (int argc, char *argv[]) {
 	};
 	double *channels;
 	double **channels_conv;
+	double **channels_conv_temp;
+	char tempFile[100];
 	double zero_sum;
 	long int *brute_history;
 	double *var_red_history;
@@ -175,6 +177,10 @@ int main (int argc, char *argv[]) {
 
 	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
 		rayleigh_channel = (int) ((xp->scatter_energy - pymca_input->detector->zero)/pymca_input->detector->gain);
+		if (rayleigh_channel > xp->nchannels) {
+			fprintf(stderr,"Channel of excitation energy is not included in spectrum from pymca\n");
+			return 1;
+		}
 #if DEBUG == 1
 		fprintf(stdout,"rayleigh_channel: %i\n", rayleigh_channel);
 #endif
@@ -196,6 +202,12 @@ int main (int argc, char *argv[]) {
 			fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
 			return 0;
 		}
+#if DEBUG == 1
+		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmsi",i);
+		xmi_write_input_xml(tempFile, pymca_input);	
+#endif
+
+
 
 		//launch simulation
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
@@ -204,7 +216,22 @@ int main (int argc, char *argv[]) {
 		}
 #if DEBUG == 1
 		//write input structure
-		xmi_print_input(stdout,pymca_input);
+		//xmi_print_input(stdout,pymca_input);
+		zero_sum = xmi_sum_double(channels, xp->nchannels);
+		//convolute_spectrum
+		channels_conv_temp = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
+	
+		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= pymca_input->general->n_interactions_trajectory ; j++) {
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, channels_conv_temp+j, xp->nchannels);
+
+		}
+		//write to xml outputfile
+		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
+		if (xmi_write_output_xml(tempFile, pymca_input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+			return 1;
+		}
+
+
 
 #endif
 

@@ -254,8 +254,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	}	
 
 	//should compare normalized orientations...
-	xmi_scale_double(A->geometry->n_sample_orientation, 3, 1.0/xmi_sum_double(A->geometry->n_sample_orientation,3));	
-	xmi_scale_double(B->geometry->n_sample_orientation, 3, 1.0/xmi_sum_double(B->geometry->n_sample_orientation,3));	
+	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
+	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
 	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
 	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
@@ -264,8 +264,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	if (fabsl((A->geometry->p_detector_window[2]-A->geometry->d_sample_source)-(B->geometry->p_detector_window[2]-B->geometry->d_sample_source)) > XMI_COMPARE_THRESHOLD)
 		return 0;
 	//should compare normalized orientations...
-	xmi_scale_double(A->geometry->n_detector_orientation, 3, 1.0/xmi_sum_double(A->geometry->n_detector_orientation,3));	
-	xmi_scale_double(B->geometry->n_detector_orientation, 3, 1.0/xmi_sum_double(B->geometry->n_detector_orientation,3));	
+	xmi_normalize_vector_double(A->geometry->n_detector_orientation, 3);	
+	xmi_normalize_vector_double(B->geometry->n_detector_orientation, 3);	
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[0])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[2])

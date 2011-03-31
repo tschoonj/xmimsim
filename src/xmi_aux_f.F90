@@ -1015,6 +1015,33 @@ FUNCTION norm(a)
         RETURN
 ENDFUNCTION norm
 
+SUBROUTINE xmi_normalize_vector_double(array, n_elements) BIND(C, NAME='xmi_normalize_vector_double')
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_elements
+
+        CALL C_F_POINTER(array,arrayF,[n_elements])
+
+        CALL normalize_vector(arrayF)
+
+        RETURN
+ENDSUBROUTINE xmi_normalize_vector_double
+
+FUNCTION xmi_norm_double(array, n_elements) BIND(C, NAME='xmi_norm_double')
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_elements
+        REAL (C_DOUBLE) :: xmi_norm_double
+
+        CALL C_F_POINTER(array,arrayF,[n_elements])
+
+        xmi_norm_double = norm(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_norm_double
+
 FUNCTION interpolate_simple(a,b,c) RESULT(rv)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(2), INTENT(IN) :: a,b

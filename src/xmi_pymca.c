@@ -396,14 +396,14 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	}
 	
 	//collimator_height
-	(*geometry)->collimator_height = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_height",NULL); 
+	(*geometry)->collimator_height = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_height",NULL)/10.0; 
 	if ((*geometry)->collimator_height < 0.0) {
 		fprintf(stderr,"Collimator height must be greater or equal to zero... Fatal error\n");
 		return rv;
 	}
 	
 	//collimator_diameter
-	(*geometry)->collimator_diameter = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_diameter",NULL); 
+	(*geometry)->collimator_diameter = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_diameter",NULL)/10.0; 
 	if ((*geometry)->collimator_diameter < 0.0) {
 		fprintf(stderr,"Collimator opening diameter must be greater or equal to zero... Fatal error\n");
 		return rv;
@@ -417,13 +417,15 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	}
 #if DEBUG == 1
 	fprintf(stdout,"det_dist: %lf\n",det_dist);
+	fprintf(stdout,"alpha: %lf\n",alpha);
+	fprintf(stdout,"beta: %lf\n",beta);
 #endif
 
 
 
 	(*geometry)->p_detector_window[0] = 0.0;
-	(*geometry)->p_detector_window[1] = det_dist*cos(alpha+beta);
-	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source - det_dist*sin(alpha+beta) ;
+	(*geometry)->p_detector_window[1] = -1.0*det_dist*sin(alpha+beta);
+	(*geometry)->p_detector_window[2] = (*geometry)->d_sample_source + det_dist*cos(alpha+beta) ;
 	
 	(*geometry)->n_detector_orientation[0] = 0.0;
 	(*geometry)->n_detector_orientation[1] = sin(alpha+beta);
@@ -441,6 +443,10 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 		(*geometry)->n_sample_orientation[2] *= -1.0;
 	}
 
+#if DEBUG == 1
+	fprintf(stdout,"(*geometry)->n_sample_orientation[1]: %lf\n",(*geometry)->n_sample_orientation[1]);
+	fprintf(stdout,"(*geometry)->n_sample_orientation[2]: %lf\n",(*geometry)->n_sample_orientation[2]);
+#endif
 	//simplify slits by using default values!!!
 	(*geometry)->d_source_slit = (*geometry)->d_sample_source;
 	(*geometry)->slit_size_x = 10E-4;
@@ -1065,15 +1071,13 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
 #endif
 	//nchannels
-	energy_string = g_key_file_get_string(pymcaFile, "result", "energy", NULL);
+	energy_string = g_key_file_get_string(pymcaFile, "result", "xdata", NULL);
 
 	strings = g_strsplit(energy_string," ",100000);
-	(*pymca_input)->nchannels = (int) g_strv_length(strings)-2;
+	(*pymca_input)->nchannels = (int) strtol(strings[g_strv_length(strings)-2], NULL, 10);
 
-#if DEBUG == 2
+#if DEBUG == 1
 	fprintf(stdout,"nchannels: %i\n",(*pymca_input)->nchannels);
-	fprintf(stdout,"channel[0]: %s\n",strings[0]);
-	fprintf(stdout,"channel[last]: %s\n",strings[(*pymca_input)->nchannels-1]);
 #endif
 	g_strfreev(strings);
 	g_free(energy_string);
