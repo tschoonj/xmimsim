@@ -774,6 +774,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 #if DEBUG == 1
 		fprintf(stdout,"pymca_input->z_arr[%i]: %i\n",i,pymca_input->z_arr[i]);
 		fprintf(stdout,"pymca_input->k_alpha[%i]: %lf\n",i,pymca_input->k_alpha[i]);
+		fprintf(stdout,"pymca_input->l_alpha[%i]: %lf\n",i,pymca_input->l_alpha[i]);
 #endif
 	}
 

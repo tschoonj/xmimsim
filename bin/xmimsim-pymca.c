@@ -33,6 +33,7 @@ int main (int argc, char *argv[]) {
 	char filename[512];
 	static int use_rayleigh_normalization = 1;
 	int rayleigh_channel;
+	int matched;
 
 	static GOptionEntry entries[] = {
 		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
@@ -40,7 +41,7 @@ int main (int argc, char *argv[]) {
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
-		{"disable-scatter-normalization", 0, 0, G_OPTION_FLAG_REVERSE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization"},
+		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization",NULL},
 		{NULL}
 	};
 	double *channels;
@@ -256,16 +257,25 @@ int main (int argc, char *argv[]) {
 					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
 					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
 				}
-			
+		
+				matched = 0;
 				for (k = 0 ; k < xp->n_peaks ; k++) {
-					if (xp->z_arr[k] == xp->z_arr_quant[j])
+					if (xp->z_arr[k] == xp->z_arr_quant[j]) {
+						matched = 1;
 						break;
+					}
+				}
+				if (matched == 0) {
+					fprintf(stdout,"no match found for element %i\n",xp->z_arr_quant[j]);
+					return 1;
 				}
 
 
 #if DEBUG == 1
 				fprintf(stdout,"sum_k_history: %lf\n",sum_k_history);
 				fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->k_alpha[k]);
+				fprintf(stdout,"sum_l_history: %lf\n",sum_l_history);
+				fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->l_alpha[k]);
 				fprintf(stdout,"scatter_intensity from file: %lf\n",xp->scatter_intensity);
 				fprintf(stdout,"scatter_intensity from MC: %lf\n",ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
 #endif
@@ -280,7 +290,7 @@ int main (int argc, char *argv[]) {
 					sum_k += sum_temp;
 					weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
 				}
-				else if (xp->l_alpha[j] > 0.0 && sum_l_history > 0.0  ) {
+				else if (xp->l_alpha[k] > 0.0 && sum_l_history > 0.0  ) {
 					sum_temp = 0.0;
 					sum_temp += (xp->l_alpha[k]-sum_l_history)*(xp->l_alpha[k]-sum_l_history);
 					sum_temp /= xp->l_alpha[k];
