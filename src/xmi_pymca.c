@@ -1124,6 +1124,10 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
 		rv.Z[i+matrix->n_elements] = pymca_aux->z_arr_quant[i];
 		rv.weight[i+matrix->n_elements] = weights_arr_quant[i];
+		if (weights_arr_quant[i] <= 0.0 ) {
+			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
+			exit(1);
+		}
 	}
 
 
@@ -1142,6 +1146,10 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 #endif
 		rv.Z[i] = Z[sorted_Z_ind[i]];
 		rv.weight[i] = weight[sorted_Z_ind[i]];
+		if (weight[sorted_Z_ind[i]] <= 0.0 ) {
+			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
+			exit(1);
+		}
 	}
 
 
