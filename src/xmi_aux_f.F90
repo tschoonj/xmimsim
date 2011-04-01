@@ -1168,6 +1168,39 @@ RESULT(rv)
 
 ENDFUNCTION bilinear_interpolation
 
+FUNCTION xmi_maxloc_double(array, n_elements) BIND(C,NAME='xmi_maxloc_double')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        INTEGER (C_INT) :: xmi_maxloc_double
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+
+        INTEGER, DIMENSION(1) :: loc
+
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+        loc = MAXLOC(arrayF)
+
+        xmi_maxloc_double = loc(1)-1
+
+        RETURN
+ENDFUNCTION xmi_maxloc_double
+
+FUNCTION xmi_maxval_double(array, n_elements) BIND(C,NAME='xmi_maxval_double')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        REAL (C_DOUBLE) :: xmi_maxval_double
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
+
+
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+
+        xmi_maxval_double = MAXVAL(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_maxval_double
+
+
 FUNCTION xmi_sum_double(array, n_elements) BIND(C,NAME='xmi_sum_double')
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN),VALUE :: n_elements

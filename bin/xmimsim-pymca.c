@@ -281,14 +281,19 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-
+				//do not allow too large jumps! maximum times 100...
 				if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
 					sum_temp = 0.0;
 					sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
 					sum_temp /= xp->k_alpha[k];
 					sum_temp /= xp->k_alpha[k];
 					sum_k += sum_temp;
-					weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
+					if (xp->k_alpha[k]/sum_k_history > 100.0) {
+						weights_arr_quant[j] *=	100.0;
+					}
+					else {
+						weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
+					}
 				}
 				else if (xp->l_alpha[k] > 0.0 && sum_l_history > 0.0  ) {
 					sum_temp = 0.0;
@@ -296,7 +301,12 @@ int main (int argc, char *argv[]) {
 					sum_temp /= xp->l_alpha[k];
 					sum_temp /= xp->l_alpha[k];
 					sum_l += sum_temp;
-					weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
+					if (xp->l_alpha[k]/sum_l_history > 100.0) {
+						weights_arr_quant[j] *=	100.0;
+					}
+					else {
+						weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
+					}
 				}
 			}
 		}

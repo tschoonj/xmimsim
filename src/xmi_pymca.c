@@ -1104,6 +1104,8 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	double *weight;
 	int *sorted_Z_ind;
 	int *Z;
+	int maxloc;
+	double maxval;
 
 	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
@@ -1116,6 +1118,28 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	sum_matrix = xmi_sum_double(matrix->weight, matrix->n_elements);
 	xmi_scale_double(matrix->weight, matrix->n_elements, 1.0/sum_matrix);
 
+	if (sum_quant > 1.0) {
+		fprintf(stdout,"weights sum of quantifiable elements > 1.0\nRescaling...\n");
+		//look up maximum in array
+		//if value is > 1.0... abort...
+		//else keep this value and scale the others accordingly. Matrix will be set to zero
+		maxval = xmi_maxval_double(weights_arr_quant, pymca_aux->n_z_arr_quant);
+		maxloc = xmi_maxloc_double(weights_arr_quant, pymca_aux->n_z_arr_quant);
+#if DEBUG == 1
+		for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
+			fprintf(stdout,"Element %i: %lf %%\n",pymca_aux->z_arr_quant[i],weights_arr_quant[i]*100.0);
+		}
+		fprintf(stdout,"maxval: %lf\n",maxval);
+		fprintf(stdout,"maxloc: %i\n",maxloc);
+#endif
+		if (maxval > 1.0) {
+			fprintf(stderr,"Maximum weight is above 100 %%: element %i (%lf %%)\nAborting",pymca_aux->z_arr_quant[maxloc],maxval*100.0);
+			exit(1);
+		}
+		xmi_scale_double(weights_arr_quant, pymca_aux->n_z_arr_quant, 1.0/(sum_quant-maxval));
+		weights_arr_quant[maxloc] = maxval;
+		sum_quant = 1.0;
+	}
 
 	for (i = 0 ; i < matrix->n_elements ; i++) {
 		rv.Z[i] = matrix->Z[i];
@@ -1125,7 +1149,7 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
 		rv.Z[i+matrix->n_elements] = pymca_aux->z_arr_quant[i];
 		rv.weight[i+matrix->n_elements] = weights_arr_quant[i];
-		if (weights_arr_quant[i] <= 0.0 ) {
+		if (weights_arr_quant[i] < 0.0 ) {
 			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
 			exit(1);
 		}
@@ -1147,7 +1171,7 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 #endif
 		rv.Z[i] = Z[sorted_Z_ind[i]];
 		rv.weight[i] = weight[sorted_Z_ind[i]];
-		if (weight[sorted_Z_ind[i]] <= 0.0 ) {
+		if (weight[sorted_Z_ind[i]] < 0.0 ) {
 			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
 			exit(1);
 		}

@@ -23,6 +23,12 @@ void xmi_scale_double(double *array, int n, double scale_factor);
 //calculates the norm of the vector array
 double xmi_norm_double(double *array, int n);
 
+//returns the maximum value of the vector array
+double xmi_maxval_double(double *array, int n);
+
+//returns the location of the maximum in vector array
+int xmi_maxloc_double(double *array, int n);
+
 //normalizes the vector array
 void xmi_normalize_vector_double(double *array, int n);
 
