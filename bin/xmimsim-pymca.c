@@ -24,7 +24,7 @@ int main (int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
 	static gchar *hdf5_file=NULL;
-	struct xmi_main_options options;
+	static struct xmi_main_options options;
 	static gchar *spe_file_noconv=NULL;
 	static gchar *spe_file_conv=NULL;
 	static gchar *csv_file_noconv=NULL;
@@ -34,8 +34,11 @@ int main (int argc, char *argv[]) {
 	static int use_rayleigh_normalization = 1;
 	int rayleigh_channel;
 	int matched;
+	double max_scale;
 
 	static GOptionEntry entries[] = {
+		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
+		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
 		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
@@ -281,15 +284,40 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-				//do not allow too large jumps! maximum times 100...
+				//do not allow too large jumps! 
+				//if weight <= 0.0001 then max is 100
+				//else if weight <= 0.01 then max is 10
+				//else if weight <= 0.1 then max is 2.5
+				//else if weight <= 0.25 then max is 1.5
+				//else if weight <= 0.375 then max is 1.20
+
+				if (weights_arr_quant[j] <= 0.0001)
+					max_scale = 100.0;
+				else if (weights_arr_quant[j] <= 0.01)
+					max_scale = 10.0;
+				else if (weights_arr_quant[j] <= 0.1)
+					max_scale = 2.5;
+				else if (weights_arr_quant[j] <= 0.25)
+					max_scale = 1.5;
+				else if (weights_arr_quant[j] <= 0.375)
+					max_scale = 1.2;
+				else if (weights_arr_quant[j] <= 0.50)
+					max_scale = 1.1;
+				else if (weights_arr_quant[j] <= 0.6)
+					max_scale = 1.05;
+				else if (weights_arr_quant[j] <= 0.7)
+					max_scale = 1.025;
+				else 
+					max_scale = 1.01;
+
 				if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
 					sum_temp = 0.0;
 					sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
 					sum_temp /= xp->k_alpha[k];
 					sum_temp /= xp->k_alpha[k];
 					sum_k += sum_temp;
-					if (xp->k_alpha[k]/sum_k_history > 100.0) {
-						weights_arr_quant[j] *=	100.0;
+					if (xp->k_alpha[k]/sum_k_history > max_scale) {
+						weights_arr_quant[j] *=	max_scale;
 					}
 					else {
 						weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
@@ -301,8 +329,8 @@ int main (int argc, char *argv[]) {
 					sum_temp /= xp->l_alpha[k];
 					sum_temp /= xp->l_alpha[k];
 					sum_l += sum_temp;
-					if (xp->l_alpha[k]/sum_l_history > 100.0) {
-						weights_arr_quant[j] *=	100.0;
+					if (xp->l_alpha[k]/sum_l_history > max_scale) {
+						weights_arr_quant[j] *=	max_scale;
 					}
 					else {
 						weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;

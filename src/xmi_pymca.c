@@ -1099,13 +1099,14 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant) {
 	
 	struct xmi_layer rv;
-	double sum_quant, sum_matrix;
-	int i;
+	double sum_quant, sum_matrix, sum_above;
+	int i,j;
 	double *weight;
 	int *sorted_Z_ind;
 	int *Z;
 	int maxloc;
 	double maxval;
+	double max_net_intensity;
 
 	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
@@ -1125,6 +1126,51 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 		//else keep this value and scale the others accordingly. Matrix will be set to zero
 		maxval = xmi_maxval_double(weights_arr_quant, pymca_aux->n_z_arr_quant);
 		maxloc = xmi_maxloc_double(weights_arr_quant, pymca_aux->n_z_arr_quant);
+
+		//check if there are multiple values with this maxval
+		//if so use the one with the highest pymca net-line intensity
+		for (i = 0 ; i < pymca_aux->n_peaks ; i++) {
+			if (pymca_aux->z_arr[i] == pymca_aux->z_arr_quant[maxloc]) {
+				if (pymca_aux->k_alpha[i] > 0.0) {
+					max_net_intensity=pymca_aux->k_alpha[i];
+				}
+				else if (pymca_aux->l_alpha[i] > 0.0) {
+					max_net_intensity=pymca_aux->l_alpha[i];
+				}
+				break;
+			}
+		}
+#if DEBUG == 1
+		fprintf(stdout,"initial max_net_intensity: %lf\n",max_net_intensity);
+#endif
+
+		for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
+			if (weights_arr_quant[i] == maxval && i != maxloc) {
+				//another maximum found
+				//check pymca net-line intensity
+				for (j = 0 ; j < pymca_aux->n_peaks ; j++) {
+					if (pymca_aux->z_arr[j] == pymca_aux->z_arr_quant[i]) {
+						if (pymca_aux->k_alpha[j] > max_net_intensity) {
+							max_net_intensity=pymca_aux->k_alpha[j];
+							maxloc = i;
+						}
+						else if (pymca_aux->l_alpha[i] > max_net_intensity) {
+							max_net_intensity=pymca_aux->l_alpha[i];
+							maxloc = i;
+						}
+						break;
+					}
+					
+
+				}
+			}
+		}
+
+#if DEBUG == 1
+		fprintf(stdout,"initial max_net_intensity: %lf\n",max_net_intensity);
+#endif
+
+
 #if DEBUG == 1
 		for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
 			fprintf(stdout,"Element %i: %lf %%\n",pymca_aux->z_arr_quant[i],weights_arr_quant[i]*100.0);
@@ -1136,10 +1182,18 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 			fprintf(stderr,"Maximum weight is above 100 %%: element %i (%lf %%)\nAborting",pymca_aux->z_arr_quant[maxloc],maxval*100.0);
 			exit(1);
 		}
-		xmi_scale_double(weights_arr_quant, pymca_aux->n_z_arr_quant, 1.0/(sum_quant-maxval));
-		weights_arr_quant[maxloc] = maxval;
+		//calculate sum of elements before the one with maximal line intensity
+		sum_above = xmi_sum_double(weights_arr_quant, maxloc+1);
+		xmi_scale_double(weights_arr_quant, maxloc+1, (1.0-(sum_quant-sum_above))/(sum_above));
+		//weights_arr_quant[maxloc] = maxval;
 		sum_quant = 1.0;
 	}
+
+#if DEBUG == 1
+	for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
+		fprintf(stdout,"Element %i: %lf %%\n",pymca_aux->z_arr_quant[i],weights_arr_quant[i]*100.0);
+	}
+#endif
 
 	for (i = 0 ; i < matrix->n_elements ; i++) {
 		rv.Z[i] = matrix->Z[i];
