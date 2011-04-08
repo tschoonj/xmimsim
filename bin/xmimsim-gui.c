@@ -2040,6 +2040,18 @@ static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 	//should always work out
 	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
 
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
+		gtk_widget_set_sensitive(saveW,TRUE);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
 	return;
 }
 
@@ -2767,6 +2779,8 @@ int main (int argc, char *argv[]) {
 	char buffer[512];
 	struct xmi_composition *temp_composition;
 	struct val_changed *vc;
+	struct xmi_input *xi_temp;
+	char *title;
 
 	//should be changed later using a cpp macro that will point to the data folder of the package
 	//windows will be quite complicated here I'm sure...
@@ -2814,7 +2828,7 @@ int main (int argc, char *argv[]) {
 	}
 */
 
-	//use an "empty" xmi_input structure when launching the application
+
 	current->xi = xmi_init_empty_input();	
 	current->filename = strdup(UNLIKELY_FILENAME);
 
@@ -2860,7 +2874,6 @@ int main (int argc, char *argv[]) {
 	gtk_init(&argc, &argv);
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM: New file");
 	gtk_window_set_default_size(GTK_WINDOW(window),900,900);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
@@ -3409,6 +3422,30 @@ int main (int argc, char *argv[]) {
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
+	if (argc == 2) {
+		if (xmi_read_input_xml(argv[1], &xi_temp) == 1) {
+			//success reading it in...
+			change_all_values(xi_temp);
+			//reset redo_buffer
+			reset_undo_buffer(xi_temp, argv[1]);	
+			title = (char *) malloc(sizeof(char)*(strlen(argv[1])+11));
+			strcpy(title,"XMI MSIM: ");
+			strcat(title,argv[1]);
+			gtk_window_set_title(GTK_WINDOW(window),title);
+			free(title);
+		}
+		else {
+			fprintf(stderr,"Could not read in xml file %s\n",argv[1]);
+			return 1;
+		}
+	}
+	else 
+		gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM: New file");
+
+
+
 
 
 	gtk_widget_show_all(window);
