@@ -3265,7 +3265,8 @@ channels_convPtr,nchannels) BIND(C,NAME='xmi_detector_convolute')
 
 
         !escape peak
-        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
+        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI .OR.&
+        inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
                 CALL xmi_detector_escape_SiLi(channels_temp, inputF)
         ELSE
                 WRITE (*,'(A)') 'Unsupported detector type'
@@ -3312,8 +3313,12 @@ channels_convPtr,nchannels) BIND(C,NAME='xmi_detector_convolute')
                         E = inputF%detector%zero + inputF%detector%gain*I
                         X=(E-E0)/B0
                         G=EXP(-X*X)
-                        F=M_PI*ERFC(X)
-                        R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                        F=ERFC(X)
+                        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
+                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                        ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
+                                R(I)= A0*G+1.0_C_DOUBLE*(0.63_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                        ENDIF
 #if DEBUG == 1
                         IF (I .EQ. 150 .AND. I0 .EQ. 100) THEN
                                 WRITE (*,'(A,F14.5)') 'R(I): ',R(I) 
