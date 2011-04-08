@@ -77,6 +77,8 @@ struct xmi_absorbers {
 
 struct xmi_detector {
 	int detector_type;
+	double live_time;
+	double pulse_width;
 	double gain;
 	double zero;
 	double fano;

@@ -788,7 +788,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	return rv;
 }
 
-int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excitation) {
+int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excitation, struct xmi_detector *detector) {
 	gchar **energy = NULL;
 	gdouble *energyweight = NULL;
 	gint *energyflag = NULL;
@@ -813,6 +813,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 		return rv;
 	}
 
+	detector->live_time = livetime;
 
 	energy = g_key_file_get_string_list(pymcaFile, "result.config.fit","energy",&n_energy, NULL);
 	energyweight = g_key_file_get_double_list(pymcaFile, "result.config.fit","energyweight", &n_energyweight, NULL);
@@ -848,8 +849,8 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 			fprintf(stderr,"A flagged energy turned out to be negative or zero... Fatal error\n");
 			return rv;
 		}
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].horizontal_intensity = energyweight[i]*flux*livetime*(1.0+pdeg)/2.0;
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].vertical_intensity = energyweight[i]*flux*livetime*(1.0-pdeg)/2.0;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].horizontal_intensity = energyweight[i]*flux*(1.0+pdeg)/2.0;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].vertical_intensity = energyweight[i]*flux*(1.0-pdeg)/2.0;
 		//assume point source
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_x = 0.0;
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_y = 0.0;
@@ -1010,12 +1011,12 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (read_geometry(pymcaFile, &geometry) == 0)
 		return rv;
 	
-	//energy
-	if (read_excitation_spectrum(pymcaFile, &excitation) == 0)
-		return rv;
-
 	//detector parameters
 	if (read_detector_params(pymcaFile, &detector) == 0)
+		return rv;
+
+	//energy
+	if (read_excitation_spectrum(pymcaFile, &excitation, detector) == 0)
 		return rv;
 
 	//general

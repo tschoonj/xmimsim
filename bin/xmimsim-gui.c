@@ -73,6 +73,8 @@ static GtkWidget *slit_size_yW;
 //detector
 static GtkWidget *detector_typeW;
 static GtkWidget *detector_gainW;
+static GtkWidget *detector_live_timeW;
+static GtkWidget *detector_pulse_widthW;
 static GtkWidget *detector_zeroW;
 static GtkWidget *detector_fanoW;
 static GtkWidget *detector_noiseW;
@@ -111,6 +113,8 @@ static gulong slit_size_yG;
 //detector
 static gulong detector_typeG;
 static gulong detector_gainG;
+static gulong detector_live_timeG;
+static gulong detector_pulse_widthG;
 static gulong detector_zeroG;
 static gulong detector_fanoG;
 static gulong detector_noiseG;
@@ -148,6 +152,8 @@ static int slit_size_yC;
 //detector
 static int detector_typeC;
 static int detector_gainC;
+static int detector_live_timeC;
+static int detector_pulse_widthC;
 static int detector_zeroC;
 static int detector_fanoC;
 static int detector_noiseC;
@@ -1580,6 +1586,18 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_gainG);
 			break;
+		case DETECTOR_LIVE_TIME:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->live_time);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_live_timeG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_live_timeG);
+			break;
+		case DETECTOR_PULSE_WIDTH:
+			sprintf(buffer,"%lg",(current-1)->xi->detector->pulse_width);
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_pulse_widthG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_pulse_widthG);
+			break;
 		case DETECTOR_ZERO:
 			sprintf(buffer,"%lg",(current-1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_zeroG);
@@ -1957,6 +1975,18 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_gainG);
 			break;
+		case DETECTOR_LIVE_TIME:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->live_time);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_live_timeG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_live_timeG);
+			break;
+		case DETECTOR_PULSE_WIDTH:
+			sprintf(buffer,"%lg",(current+1)->xi->detector->pulse_width);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_pulse_widthG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_pulse_widthG);
+			break;
 		case DETECTOR_ZERO:
 			sprintf(buffer,"%lg",(current+1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_zeroG);
@@ -2086,6 +2116,8 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case SLIT_SIZE_X:
 		case SLIT_SIZE_Y:
 		case DETECTOR_GAIN:
+		case DETECTOR_PULSE_WIDTH:
+		case DETECTOR_LIVE_TIME:
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
@@ -2698,6 +2730,20 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->kind = kind;
 			last->widget = widget;
 			break;
+		case DETECTOR_LIVE_TIME: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of live time");
+			last->xi->detector->live_time = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
+		case DETECTOR_PULSE_WIDTH: 
+			xmi_copy_input(current->xi, &(last->xi));
+			strcpy(last->message,"change of detector pulse width");
+			last->xi->detector->pulse_width= strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->kind = kind;
+			last->widget = widget;
+			break;
 		case DETECTOR_ZERO: 
 			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector zero");
@@ -2853,6 +2899,8 @@ int main (int argc, char *argv[]) {
 	slit_size_yC = 1;
 	detector_typeC = 1;
 	detector_gainC = 1;
+	detector_pulse_widthC = 1;
+	detector_live_timeC = 1;
 	detector_zeroC = 1;
 	detector_fanoC = 1;
 	detector_noiseC = 1;
@@ -3338,6 +3386,20 @@ int main (int argc, char *argv[]) {
 	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);
 	
+	//live time
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Live time (s)");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_live_timeW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->live_time);
+	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_LIVE_TIME;
+	vc->check = &detector_live_timeC;
+	detector_live_timeG = g_signal_connect(G_OBJECT(detector_live_timeW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_live_timeW, FALSE, FALSE, 0);
+	
 	//gain
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -3394,6 +3456,20 @@ int main (int argc, char *argv[]) {
 	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_noiseW, FALSE, FALSE, 0);
 
+	//pulse_width
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Pulse width (s)");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_pulse_widthW = gtk_entry_new();
+	sprintf(buffer,"%lg",current->xi->detector->pulse_width);
+	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_PULSE_WIDTH;
+	vc->check = &detector_pulse_widthC;
+	detector_pulse_widthG = g_signal_connect(G_OBJECT(detector_pulse_widthW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_pulse_widthW, FALSE, FALSE, 0);
+	
 	//max_convolution_energy
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -3487,6 +3563,8 @@ void change_all_values(struct xmi_input *new_input) {
 	slit_size_yC = 1;
 	detector_typeC = 1;
 	detector_gainC = 1;
+	detector_live_timeC = 1;
+	detector_pulse_widthC = 1;
 	detector_zeroC = 1;
 	detector_fanoC = 1;
 	detector_noiseC = 1;
@@ -3514,6 +3592,8 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
 	g_signal_handler_block(G_OBJECT(detector_typeW), detector_typeG);
 	g_signal_handler_block(G_OBJECT(detector_gainW), detector_gainG);
+	g_signal_handler_block(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
+	g_signal_handler_block(G_OBJECT(detector_live_timeW), detector_live_timeG);
 	g_signal_handler_block(G_OBJECT(detector_zeroW), detector_zeroG);
 	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
@@ -3686,6 +3766,10 @@ void change_all_values(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
 	sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
 	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->live_time);
+	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
+	sprintf(buffer,"%lg",new_input->detector->pulse_width);
+	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
 
 	gtk_list_store_clear(crystal_compositionL);
 	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
@@ -3735,6 +3819,8 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(detector_typeW), detector_typeG);
 	g_signal_handler_unblock(G_OBJECT(detector_gainW), detector_gainG);
 	g_signal_handler_unblock(G_OBJECT(detector_zeroW), detector_zeroG);
+	g_signal_handler_unblock(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
+	g_signal_handler_unblock(G_OBJECT(detector_live_timeW), detector_live_timeG);
 	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
@@ -4077,6 +4163,8 @@ int check_changeables(void) {
  slit_size_yC &&
  detector_typeC &&
  detector_gainC &&
+ detector_live_timeC &&
+ detector_pulse_widthC &&
  detector_zeroC &&
  detector_fanoC &&
  detector_noiseC &&

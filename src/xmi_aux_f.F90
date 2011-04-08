@@ -173,6 +173,8 @@ ENDTYPE
 
 TYPE, BIND(C) :: xmi_detectorC
         INTEGER (C_INT) :: detector_type
+        REAL (C_DOUBLE) :: live_time 
+        REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain
         REAL (C_DOUBLE) :: zero 
         REAL (C_DOUBLE) :: fano 
@@ -184,6 +186,8 @@ ENDTYPE
 
 TYPE :: xmi_detector
         INTEGER (C_INT) :: detector_type
+        REAL (C_DOUBLE) :: live_time 
+        REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain
         REAL (C_DOUBLE) :: zero 
         REAL (C_DOUBLE) :: fano 
@@ -751,6 +755,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !!
         CALL C_F_POINTER (xmi_inputC_in%detector,xmi_detector_temp)
         xmi_inputF%detector%detector_type = xmi_detector_temp%detector_type 
+        xmi_inputF%detector%pulse_width= xmi_detector_temp%pulse_width
+        xmi_inputF%detector%live_time= xmi_detector_temp%live_time
         xmi_inputF%detector%gain= xmi_detector_temp%gain
         xmi_inputF%detector%zero= xmi_detector_temp%zero
         xmi_inputF%detector%fano= xmi_detector_temp%fano

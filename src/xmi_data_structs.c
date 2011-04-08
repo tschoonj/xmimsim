@@ -378,6 +378,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	goto after_detector;\
 	}
 
+	XMI_IF_COMPARE_DETECTOR(live_time)
+	XMI_IF_COMPARE_DETECTOR(pulse_width)
 	XMI_IF_COMPARE_DETECTOR(gain)
 	XMI_IF_COMPARE_DETECTOR(zero)
 	XMI_IF_COMPARE_DETECTOR(fano)
@@ -542,6 +544,8 @@ struct xmi_input *xmi_init_empty_input(void) {
 	//detector
 	rv->detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
 	rv->detector->detector_type = XMI_DETECTOR_SILI;
+	rv->detector->live_time = 1;
+	rv->detector->pulse_width= 0.01;
 	rv->detector->gain = 20.0/1000.0;
 	rv->detector->zero = 0.0;
 	rv->detector->fano = 0.12;
@@ -698,6 +702,11 @@ int xmi_validate_input(struct xmi_input *a) {
 	}
 
 	//crystal
+	if (a->detector->live_time <= 0.0) 
+		return 1;
+	if (a->detector->pulse_width <= 0.0)
+		return 1;
+
 	if (a->detector->n_crystal_layers < 1)
 		return 1;
 
@@ -794,6 +803,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "Detector\n");
 	fprintf(fPtr, "detectortype: %i\n",input->detector->detector_type);
 	fprintf(fPtr, "gain: %lf\n", input->detector->gain);
+	fprintf(fPtr, "live_time: %lf\n", input->detector->live_time);
+	fprintf(fPtr, "pulse_width: %lf\n", input->detector->pulse_width);
 	fprintf(fPtr, "zero: %lf\n", input->detector->zero);
 	fprintf(fPtr, "fano: %lf\n", input->detector->fano);
 	fprintf(fPtr, "noise: %lf\n", input->detector->noise);

@@ -561,6 +561,22 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 				return 0;
 			}
 		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "live_time")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->live_time)) != 1) {
+				fprintf(stderr,"error reading in live_time of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "pulse_width")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%lf",&((*detector)->pulse_width)) != 1) {
+				fprintf(stderr,"error reading in pulse_width of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "gain")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
 			if(sscanf((const char *)txt,"%lf",&((*detector)->gain)) != 1) {
@@ -1763,6 +1779,14 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "detector_type","%s",detector_type) < 0) {
 		fprintf(stderr,"Error writing detector_type\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "live_time","%lf",input->detector->live_time) < 0) {
+		fprintf(stderr,"Error writing live_time\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "pulse_width","%lf",input->detector->pulse_width) < 0) {
+		fprintf(stderr,"Error writing pulse_width\n");
 		return 0;
 	}
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%lf",input->detector->gain) < 0) {
