@@ -545,7 +545,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
 	rv->detector->detector_type = XMI_DETECTOR_SILI;
 	rv->detector->live_time = 1;
-	rv->detector->pulse_width= 0.01;
+	rv->detector->pulse_width= 10E-6;
 	rv->detector->gain = 20.0/1000.0;
 	rv->detector->zero = 0.0;
 	rv->detector->fano = 0.12;

@@ -298,7 +298,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy, iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,element,exc_corr,det_corr,total_intensity,dirv_z_angle) reduction(+:photons_simulated,detector_hits, detector_hits2,channels,rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found  )
 
 !
-
+!
 !       Initialize random number generator
 !
 !

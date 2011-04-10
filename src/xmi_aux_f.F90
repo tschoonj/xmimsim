@@ -235,6 +235,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction
         INTEGER (C_INT) :: use_optimizations
+        INTEGER (C_INT) :: use_sum_peaks
 ENDTYPE xmi_main_options
 !
 !

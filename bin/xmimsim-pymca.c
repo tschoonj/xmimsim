@@ -45,6 +45,8 @@ int main (int argc, char *argv[]) {
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization",NULL},
+		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up (default)", NULL },
+		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -77,6 +79,7 @@ int main (int argc, char *argv[]) {
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
 	options.use_optimizations = 1;
+	options.use_sum_peaks = 1;
 
 
 	//parse options
@@ -226,7 +229,7 @@ int main (int argc, char *argv[]) {
 		channels_conv_temp = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
 	
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= pymca_input->general->n_interactions_trajectory ; j++) {
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, channels_conv_temp+j, xp->nchannels);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, channels_conv_temp+j, xp->nchannels, options);
 
 		}
 		//write to xml outputfile
@@ -392,7 +395,7 @@ int main (int argc, char *argv[]) {
 	channels_conv = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
 	
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+i*xp->nchannels, channels_conv+i, xp->nchannels);
+		xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+i*xp->nchannels, channels_conv+i, xp->nchannels, options);
 
 
 

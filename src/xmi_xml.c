@@ -1433,11 +1433,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				return 0;
 			}
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->composition->layers[i].density) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->composition->layers[i].density) < 0) {
 			fprintf(stderr,"Error writing density\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->composition->layers[i].thickness) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->composition->layers[i].thickness) < 0) {
 			fprintf(stderr,"Error writing thickness\n");
 			return 0;
 		}
@@ -1689,11 +1689,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 					return 0;
 				}
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->absorbers->exc_layers[i].density) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->absorbers->exc_layers[i].density) < 0) {
 				fprintf(stderr,"Error writing density\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->absorbers->exc_layers[i].thickness) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->absorbers->exc_layers[i].thickness) < 0) {
 				fprintf(stderr,"Error writing thickness\n");
 				return 0;
 			}
@@ -1739,11 +1739,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 					return 0;
 				}
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->absorbers->det_layers[i].density) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->absorbers->det_layers[i].density) < 0) {
 				fprintf(stderr,"Error writing density\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->absorbers->det_layers[i].thickness) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->absorbers->det_layers[i].thickness) < 0) {
 				fprintf(stderr,"Error writing thickness\n");
 				return 0;
 			}
@@ -1785,27 +1785,27 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error writing live_time\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "pulse_width","%lf",input->detector->pulse_width) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "pulse_width","%lg",input->detector->pulse_width) < 0) {
 		fprintf(stderr,"Error writing pulse_width\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%lf",input->detector->gain) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%lg",input->detector->gain) < 0) {
 		fprintf(stderr,"Error writing gain\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "zero","%lf",input->detector->zero) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "zero","%lg",input->detector->zero) < 0) {
 		fprintf(stderr,"Error writing zero\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "fano","%lf",input->detector->fano) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "fano","%lg",input->detector->fano) < 0) {
 		fprintf(stderr,"Error writing fano\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "noise","%lf",input->detector->noise) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "noise","%lg",input->detector->noise) < 0) {
 		fprintf(stderr,"Error writing noise\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "max_convolution_energy","%lf",input->detector->max_convolution_energy) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "max_convolution_energy","%lg",input->detector->max_convolution_energy) < 0) {
 		fprintf(stderr,"Error writing max_convolution_energy\n");
 		return 0;
 	}
@@ -1838,11 +1838,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				return 0;
 			}
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lf",input->detector->crystal_layers[i].density) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->detector->crystal_layers[i].density) < 0) {
 			fprintf(stderr,"Error writing density\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lf",input->detector->crystal_layers[i].thickness) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->detector->crystal_layers[i].thickness) < 0) {
 			fprintf(stderr,"Error writing thickness\n");
 			return 0;
 		}

@@ -12,40 +12,159 @@ CONTAINS
 SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         IMPLICIT NONE
         TYPE (xmi_input), POINTER, INTENT(IN) :: inputF
-        REAL (C_DOUBLE), DIMENSION(*), INTENT(INOUT) :: channels
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT) :: channels
         
         REAL (C_DOUBLE) :: Nt
         INTEGER (C_LONG) :: Nt_long
-        REAL (C_DOUBLE), DIMENSION(:) :: H_cdf, h_pdf
         INTEGER (C_INT) :: nchannels
         INTEGER (C_LONG) :: i,j
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: new_channels
+        INTEGER :: max_threads, thread_num
+
+        TYPE (fgsl_rng_type) :: rng_type
+        TYPE (fgsl_rng) :: rng
+        INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+        INTEGER (fgsl_size_t), DIMENSION(100) :: pulses
+        INTEGER (C_LONG) :: npulses, npulses_all
+        TYPE (fgsl_ran_discrete_t) :: preproc
+        REAL (C_DOUBLE) :: lambda, mu, energies_sum
+        REAL (C_DOUBLE), DIMENSION(100) :: deltaT
+        INTEGER (C_LONG) :: n_sum_counts
+        INTEGER (fgsl_size_t) :: pulses_sum
+
+#if DEBUG == 0
+        WRITE (6,'(A)') 'Entering xmi_detector_sum_peaks'
+#endif
+
+
 
         nchannels = SIZE(channels)
         Nt = SUM(channels)
         Nt_long = INT(Nt, KIND=C_LONG)
+        lambda = Nt/inputF%detector%live_time
+        mu = 1.0_C_DOUBLE/lambda
 
-        ALLOCATE(h_pdf(nchannels), H_cdf(nchannels))
+#if DEBUG == 0
+        WRITE (6,'(A,ES12.4)') 'Nt: ',Nt
+        WRITE (6,'(A,ES12.4)') 'lambda: ',lambda
+        WRITE (6,'(A,ES12.4)') 'mu: ',mu
+        WRITE (6,'(A,ES12.4)') 'pulse_widht: ',inputF%detector%pulse_width
+#endif
 
-        h_pdf = channels/Nt
-        
+        ALLOCATE(new_channels(nchannels))
 
-        H_cdf(1) = h_pdf(1)
-        DO i=2, nchannels
-              H_cdf(i) = H_cdf(i-1)+h_pdf(i)  
-        ENDDO
+        new_channels = 0.0_C_DOUBLE
+        n_sum_counts = 0
+
+        !prepare discrete distribution
+        preproc = &
+        fgsl_ran_discrete_preproc(INT(nchannels,KIND=fgsl_size_t),channels)
 
 
+        max_threads = omp_get_max_threads()
+        ALLOCATE(seeds(max_threads))
+
+        max_threads=1
+
+        !fetch some seeds
+        IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
 
+        rng_type = fgsl_rng_mt19937
+
+!!!$omp parallel default(shared) private(pulses_sum,energies_sum,deltaT,pulses,npulses,npulses_all,i,rng,thread_num) reduction(+:new_channels,n_sum_counts)
+
+!
+!
+!       Initialize random number generator
+!
+!
+        thread_num = omp_get_thread_num()
+
+        rng = fgsl_rng_alloc(rng_type)
+        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+
+        !i=1,Nt_long/max_threads
+       
+        npulses = 0_C_LONG
+        npulses_all = 0_C_LONG
+
+        gardner:DO 
+                !get pulse        
+                npulses = npulses+1
+                npulses_all = npulses_all+1
+       
+                IF (npulses .GT. 100) THEN
+                        WRITE (6,'(A)') 'npulses maximum reached'
+                        CALL EXIT(1)
+                ENDIF
+
+                pulses(npulses) = fgsl_ran_discrete(rng, preproc)+1
+
+                !check deltaT
+                deltaT(npulses) = fgsl_ran_exponential(rng,mu)
+
+#if DEBUG == 1
+                WRITE (6,'(A,I)') 'npulses: ',npulses
+                WRITE (6,'(A,I)') 'npulses_all: ',npulses_all
+                WRITE (6,'(A,I)') 'pulses: ',pulses(npulses)
+                WRITE (6,'(A,ES13.4)') 'deltaT: ',deltaT(npulses)
+#endif
+                IF (deltaT(npulses) .GT. &
+                inputF%detector%pulse_width) THEN
+                        !deltaT is larger than pulse_width =>
+                        !separate pulses detected!
+                        !add count to appropriate channel
+                        IF (npulses .EQ. 1) THEN
+                                !just one pulse...
+                                IF (pulses(1) .LT. 0 .OR. pulses(1) .GE.&
+                                nchannels) THEN
+                                        WRITE (6,'(A,I)') 'pulses exception:',&
+                                        pulses(1)
+                                ENDIF
+                                new_channels(pulses(1)) = &
+                                new_channels(pulses(1)) + 1
+                        ELSE
+                                !more than one pulse...
+                                energies_sum = SUM((pulses(1:npulses)*inputF%detector%gain)+&
+                                inputF%detector%zero)
+                                pulses_sum = &
+                                (energies_sum-inputF%detector%zero)/&
+                                inputF%detector%gain
+                                n_sum_counts = n_sum_counts + 1
+                                IF (pulses_sum .GT. 0 .AND. pulses_sum .LE.&
+                                nchannels) THEN
+                                        new_channels(pulses_sum) = &
+                                        new_channels(pulses_sum) + 1
+                                ENDIF
+                        ENDIF
+                        IF (npulses_all .EQ. Nt_long/max_threads) EXIT
+                        npulses = 0
+                ENDIF
+        ENDDO gardner
+
+        CALL fgsl_rng_free(rng) 
+
+!!!$omp end parallel
+
+     CALL fgsl_ran_discrete_free(preproc)
+
+#if DEBUG == 0
+        WRITE (6,'(A,I)') 'Nt_long: ',Nt_long
+        WRITE (6,'(A,I)') 'n_sum_counts: ',n_sum_counts
+#endif
+
+        channels = new_channels
 
 ENDSUBROUTINE xmi_detector_sum_peaks
 
 SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr,&
-channels_convPtr,nchannels) BIND(C,NAME='xmi_detector_convolute')
+channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channels_noconvPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
@@ -91,6 +210,11 @@ channels_convPtr,nchannels) BIND(C,NAME='xmi_detector_convolute')
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
 
+        !sum peaks
+        IF (options.use_sum_peaks .EQ. 1_C_INT) THEN
+                CALL xmi_detector_sum_peaks(inputF, channels_temp)
+        ENDIF
+        
 
         !escape peak
         IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI .OR.&

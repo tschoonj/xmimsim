@@ -96,6 +96,8 @@ int main (int argc, char *argv[]) {
 		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
 		{ "enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
+		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up (default)", NULL },
+		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up", NULL },
 		{ NULL }
 	};
 
@@ -160,7 +162,8 @@ int main (int argc, char *argv[]) {
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
-	options.use_optimizations= 1;
+	options.use_optimizations = 1;
+	options.use_sum_peaks = 1;
 
 
 
@@ -391,7 +394,7 @@ int main (int argc, char *argv[]) {
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, channels_conv+i, nchannels);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, channels_conv+i, nchannels,options);
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
 			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*nchannels+222]);

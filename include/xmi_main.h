@@ -13,13 +13,14 @@ struct xmi_main_options {
 	int use_cascade_radiative;
 	int use_variance_reduction;
 	int use_optimizations;
+	int use_sum_peaks;
 };
 
 
 
 int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double **channels, int nchannels, struct xmi_main_options, long int **brute_history, double **var_red_history, struct xmi_solid_angle *solid_angles);
 
-void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels);
+void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels, struct xmi_main_options);
 
 
 #endif
