@@ -35,6 +35,7 @@ int main (int argc, char *argv[]) {
 	int rayleigh_channel;
 	int matched;
 	double max_scale;
+	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -57,7 +58,6 @@ int main (int argc, char *argv[]) {
 	long int *brute_history;
 	double *var_red_history;
 	double sum_k, sum_l, sum_temp;
-	double sum_k_history, sum_l_history;
 	struct xmi_solid_angle *solid_angle_def;
 	uid_t uid, euid;
 	char *xmi_input_string;
@@ -125,8 +125,28 @@ int main (int argc, char *argv[]) {
 	xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
 	weights_arr_quant = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
 
-	for (i = 0 ; i < xp->n_z_arr_quant ; i++)
-		weights_arr_quant[i] = XMI_PYMCA_START_CONC;
+	if (xp->n_z_arr_pymca_conc == 0) {
+		for (i = 0 ; i < xp->n_z_arr_quant ; i++)
+			weights_arr_quant[i] = XMI_PYMCA_START_CONC;
+	}
+	else {
+#if DEBUG == 1
+		fprintf(stdout,"using pymca concentrations\n");
+#endif
+		for (i = 0 ; i < xp->n_z_arr_quant ; i++) {
+			weights_arr_quant[i] = XMI_PYMCA_START_CONC;
+			for (j = 0 ; j < xp->n_z_arr_pymca_conc ; j++) {
+				if (xp->z_arr_quant[i] == xp->z_arr_pymca_conc[j]) {
+					weights_arr_quant[i] = xp->weight_arr_pymca_conc[j];
+#if DEBUG == 1
+					fprintf(stdout,"Element %i weight: %lf\n",xp->z_arr_quant[i],weights_arr_quant[i]);
+#endif
+					break;
+				}	
+			}
+		}	
+	}
+
 
 	pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
 
@@ -193,6 +213,35 @@ int main (int argc, char *argv[]) {
 #endif
 	}
 
+	scale = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	k_exp= (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	k_sim = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	l_exp = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	l_sim= (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+
+
+	//fill up k_exp and l_exp
+	for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
+		for (k = 0 ; k < xp->n_peaks ; k++) {
+			if (xp->z_arr[k] == xp->z_arr_quant[j]) {
+				if (xp->k_alpha[k] > 0.0) {
+					k_exp[j] = xp->k_alpha[k];
+					l_exp[j] = 0.0;
+				}
+				else if (xp->l_alpha[k] > 0.0) {
+					l_exp[j] = xp->l_alpha[k];
+					k_exp[j] = 0.0;
+				}
+				else {
+					fprintf(stdout,"k_exp/l_exp problem detected\n");
+					return 1;
+				}
+				break;
+			}
+		}
+	}
+
+
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
@@ -242,57 +291,63 @@ int main (int argc, char *argv[]) {
 
 #endif
 
+		
 
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
 		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i==1)) {
 			sum_k = sum_l = 0.0;
+			sum_scale = 0.0;
 			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
 #if DEBUG == 1
 				fprintf(stdout,"Element :%i\n",xp->z_arr_quant[j]);
 #endif
+
+				k_sim[j] = 0.0;	
+				l_sim[j] = 0.0;	
+
+				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				}
+				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				}
+
+				if (k_exp[j] > 0.0 && k_sim[j] > 0.0) {
+					scale[j] = k_exp[j]/k_sim[j];
+				}
+				else if (l_exp[j] > 0.0 && l_sim[j] > 0.0) {
+					scale[j] = l_exp[j]/l_sim[j];
+				}
+				sum_scale += scale[j]*weights_arr_quant[j];
+
 				//K-lines
 				//make history_sum
-				sum_k_history = 0.0;
-				sum_l_history = 0.0;
-				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-					sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-					sum_k_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-				}
-				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-					sum_l_history += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-				}
 		
-				matched = 0;
-				for (k = 0 ; k < xp->n_peaks ; k++) {
-					if (xp->z_arr[k] == xp->z_arr_quant[j]) {
-						matched = 1;
-						break;
-					}
-				}
-				if (matched == 0) {
-					fprintf(stdout,"no match found for element %i\n",xp->z_arr_quant[j]);
-					return 1;
-				}
 
 
 #if DEBUG == 1
-				fprintf(stdout,"sum_k_history: %lf\n",sum_k_history);
-				fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->k_alpha[k]);
-				fprintf(stdout,"sum_l_history: %lf\n",sum_l_history);
-				fprintf(stdout,"xp->k_alpha[k]: %lf\n",xp->l_alpha[k]);
+				fprintf(stdout,"k_exp[j]: %lf\n",k_exp[j]);
+				fprintf(stdout,"k_sim[j]: %lf\n",k_sim[j]);
+				fprintf(stdout,"l_exp[j]: %lf\n",l_exp[j]);
+				fprintf(stdout,"l_sim[j]: %lf\n",l_sim[j]);
+				fprintf(stdout,"scale[j]: %lf\n",scale[j]);
 				fprintf(stdout,"scatter_intensity from file: %lf\n",xp->scatter_intensity);
 				fprintf(stdout,"scatter_intensity from MC: %lf\n",ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
 #endif
 
-
+			}
+			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
 				//do not allow too large jumps! 
 				//if weight <= 0.0001 then max is 100
 				//else if weight <= 0.01 then max is 10
 				//else if weight <= 0.1 then max is 2.5
 				//else if weight <= 0.25 then max is 1.5
 				//else if weight <= 0.375 then max is 1.20
+
+				//scale[j] /= sum_scale;
 
 				if (weights_arr_quant[j] <= 0.0001)
 					max_scale = 100.0;
@@ -313,30 +368,30 @@ int main (int argc, char *argv[]) {
 				else 
 					max_scale = 1.01;
 
-				if (xp->k_alpha[k] > 0.0 && sum_k_history > 0.0  ) {
+				if (k_exp[j] > 0.0 && k_sim[j] > 0.0  ) {
 					sum_temp = 0.0;
-					sum_temp += (xp->k_alpha[k]-sum_k_history)*(xp->k_alpha[k]-sum_k_history);
-					sum_temp /= xp->k_alpha[k];
-					sum_temp /= xp->k_alpha[k];
+					sum_temp += (k_exp[j]-k_sim[j])*(k_exp[j]-k_sim[j]);
+					sum_temp /= k_exp[j];
+					sum_temp /= k_exp[j];
 					sum_k += sum_temp;
-					if (xp->k_alpha[k]/sum_k_history > max_scale) {
+					if (scale[j] > max_scale) {
 						weights_arr_quant[j] *=	max_scale;
 					}
 					else {
-						weights_arr_quant[j] *= xp->k_alpha[k]/sum_k_history;
+						weights_arr_quant[j] *= scale[j];
 					}
 				}
-				else if (xp->l_alpha[k] > 0.0 && sum_l_history > 0.0  ) {
+				else if (l_exp[j] > 0.0 && l_sim[j] > 0.0  ) {
 					sum_temp = 0.0;
-					sum_temp += (xp->l_alpha[k]-sum_l_history)*(xp->l_alpha[k]-sum_l_history);
-					sum_temp /= xp->l_alpha[k];
-					sum_temp /= xp->l_alpha[k];
+					sum_temp += (l_exp[j]-l_sim[j])*(l_exp[j]-l_sim[j]);
+					sum_temp /= l_exp[j];
+					sum_temp /= l_exp[j];
 					sum_l += sum_temp;
-					if (xp->l_alpha[k]/sum_l_history > max_scale) {
+					if (scale[j] > max_scale) {
 						weights_arr_quant[j] *=	max_scale;
 					}
 					else {
-						weights_arr_quant[j] *= xp->l_alpha[k]/sum_l_history;
+						weights_arr_quant[j] *= scale[j];
 					}
 				}
 			}

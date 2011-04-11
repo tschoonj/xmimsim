@@ -32,6 +32,9 @@ struct xmi_pymca {
 	//to be used for adjusting the beam intensity
 	double scatter_energy;
 	double scatter_intensity;
+	int *z_arr_pymca_conc;
+	int n_z_arr_pymca_conc;
+	double *weight_arr_pymca_conc;
 };
 
 

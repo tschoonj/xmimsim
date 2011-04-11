@@ -8,6 +8,115 @@
 #include <math.h>
 
 
+int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+
+	//this function will read the concentrations calculated by PyMCA, of course only if they were calculated in the first place
+	int rv = 0;
+	gchar **elements;
+	gsize nelements;
+	gint i;
+	gchar *temp_string;
+	gdouble temp_double;
+	
+
+
+	pymca_input->z_arr_pymca_conc = NULL;
+	pymca_input->weight_arr_pymca_conc = NULL;
+	pymca_input->n_z_arr_pymca_conc = 0;
+
+	if (g_key_file_has_group(pymcaFile, "concentrations") == FALSE) {
+		//concentrations not found
+		fprintf(stdout,"No concentrations were calculated by PyMca... Using default values\n");
+		rv = 1;
+		return rv;
+	}
+
+	//check for all elements in "elements"
+	elements = g_key_file_get_string_list(pymcaFile,"concentrations", "elements", &nelements,NULL);
+
+	if (elements == NULL) {
+		fprintf(stdout,"No elements key found in concentrations\nAborting\n");
+		return rv;
+	}
+
+	for (i = 0 ; i < nelements ; i++) {
+		//check for K, Ka, L and L3
+		g_strchug(elements[i]);
+
+		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+1+1));
+		sprintf(temp_string,"%s K",elements[i]);
+		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		if (temp_double > 0.0) {
+			pymca_input->n_z_arr_pymca_conc++;
+			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);  
+			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;  
+			free(temp_string);
+#if DEBUG == 1
+			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
+#endif
+			continue;
+		}
+	
+		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+2+1));
+		sprintf(temp_string,"%s Ka",elements[i]);
+		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		if (temp_double > 0.0) {
+			pymca_input->n_z_arr_pymca_conc++;
+			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);  
+			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;  
+			free(temp_string);
+#if DEBUG == 1
+			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
+#endif
+			continue;
+		}
+	
+		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+1+1));
+		sprintf(temp_string,"%s L",elements[i]);
+		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		if (temp_double > 0.0) {
+			pymca_input->n_z_arr_pymca_conc++;
+			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);  
+			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;  
+			free(temp_string);
+#if DEBUG == 1
+			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
+#endif
+			continue;
+		}
+	
+		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+2+1));
+		sprintf(temp_string,"%s La",elements[i]);
+		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		if (temp_double > 0.0) {
+			pymca_input->n_z_arr_pymca_conc++;
+			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);  
+			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;  
+			free(temp_string);
+#if DEBUG == 1
+			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
+#endif
+			continue;
+		}
+	
+	}
+
+	g_strfreev(elements);
+
+	rv = 1;
+	return rv;
+
+}
+
+
 
 int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
@@ -265,6 +374,7 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL);
 	(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", NULL);
 	(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", NULL);
+	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
 
 	type = g_key_file_get_string(pymcaFile, "result.config.detector", "detele", NULL);
 
@@ -1086,6 +1196,11 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 	//see if we find a nice scatter peak, which can be used for adjusting the beam intensity afterwards
 	if (read_scatter_intensity(pymcaFile, *pymca_input) == 0) {
+		rv = 0;
+		return rv;
+	}
+
+	if (read_pymca_concentrations(pymcaFile, *pymca_input) == 0) {
 		rv = 0;
 		return rv;
 	}
