@@ -147,7 +147,9 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
 !!!$omp end parallel
 
-     CALL fgsl_ran_discrete_free(preproc)
+     !for some reason does ifort not put this function into the fgsl module
+     !file!!!
+     !CALL fgsl_ran_discrete_free(preproc)
 
 #if DEBUG == 0
         WRITE (6,'(A,I)') 'Nt_long: ',Nt_long
