@@ -67,16 +67,16 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         comptons, einsteins,detector_hits2
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel,line
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: channels 
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels 
         INTEGER (C_LONG), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         INTEGER (C_LONG), DIMENSION(:,:,:), POINTER :: brute_historyF
-        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: var_red_history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
-        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE :: det_corr_all
+        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         TYPE (xmi_solid_angle), ALLOCATABLE, TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
@@ -554,39 +554,39 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 !       Variance reduction histories
                                 !
                                 !
-                                var_red:IF (photon_temp%options%use_variance_reduction .EQ. 1 .AND.&
-                                ALLOCATED(photon_temp%variance_reduction))&
-                                THEN
-                                        !add the variance reductio contribution
-                                        !to the channels
-                                        DO k=1,inputF%composition%n_layers
-                                           DO l=1,inputF%general%n_interactions_trajectory
-                                             DO m=1,inputF%composition%layers(k)%n_elements
-                                               DO n=1,385
-                                                IF (photon_temp%variance_reduction(k,l)%energy(m,n) .GE. energy_threshold) THEN
-                                                        channel = INT((photon_temp%variance_reduction(k,l)%energy(m,n) - &
-                                                        inputF%detector%zero)/inputF%detector%gain)
-                                                ELSE
-                                                        channel = 0
-                                                ENDIF
+!                                var_red:IF (photon_temp%options%use_variance_reduction .EQ. 1 .AND.&
+!                                ALLOCATED(photon_temp%variance_reduction))&
+!                                THEN
+!                                        !add the variance reductio contribution
+!                                        !to the channels
+!                                        DO k=1,inputF%composition%n_layers
+!                                           DO l=1,inputF%general%n_interactions_trajectory
+!                                             DO m=1,inputF%composition%layers(k)%n_elements
+!                                               DO n=1,385
+!                                                IF (photon_temp%variance_reduction(k,l)%energy(m,n) .GE. energy_threshold) THEN
+!                                                        channel = INT((photon_temp%variance_reduction(k,l)%energy(m,n) - &
+!                                                        inputF%detector%zero)/inputF%detector%gain)
+!                                                ELSE
+!                                                        channel = 0
+!                                                ENDIF
 
-                                                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                                                        channels(l:, channel) =&
-                                                        channels(l:, channel)+&
-                                                        photon_temp%variance_reduction(k,l)%weight(m,n)
-                                                ENDIF
-                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
-                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
-                                                photon_temp%variance_reduction(k,l)%weight(m,n)&
-                                                *det_corr_all(inputF%composition%layers(k)%Z(m),n)
-                                               ENDDO
-                                             ENDDO
-                                           ENDDO 
-                                        ENDDO
-                                        detector_solid_angle_not_found =&
-                                        photon%detector_solid_angle_not_found+&
-                                        detector_solid_angle_not_found
-                                ENDIF var_red
+!                                                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+!                                                        channels(l:, channel) =&
+!                                                        channels(l:, channel)+&
+!                                                        photon_temp%variance_reduction(k,l)%weight(m,n)
+!                                                ENDIF
+!                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
+!                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
+!                                                photon_temp%variance_reduction(k,l)%weight(m,n)&
+!                                                *det_corr_all(inputF%composition%layers(k)%Z(m),n)
+!                                               ENDDO
+!                                             ENDDO
+!                                           ENDDO 
+!                                        ENDDO
+!                                        detector_solid_angle_not_found =&
+!                                        photon%detector_solid_angle_not_found+&
+!                                        detector_solid_angle_not_found
+!                                ENDIF var_red
                                 !
                                 !
                                 !       Brute force histories

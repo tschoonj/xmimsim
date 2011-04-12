@@ -359,7 +359,7 @@ TYPE :: xmi_photon
         INTEGER (C_INT) :: last_shell
 
         !variance reduction
-        TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
+        !TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
         
         !cascade type
         INTEGER (C_INT) :: xmi_cascade_type

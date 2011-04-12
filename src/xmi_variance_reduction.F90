@@ -39,6 +39,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
         REAL (C_FLOAT) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
+        REAL (C_DOUBLE) :: temp_weight
 
 #if DEBUG == 0
         LOGICAL, DIMENSION(3) :: flag_value
@@ -298,11 +299,28 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 REAL(theta,KIND=C_FLOAT), REAL(phi,KIND=C_FLOAT))
 
                 !find position in history
-                photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)&
-                = Pconv*Pdir*Pesc_rayl*photon%weight
-                photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+1)&
-                = photon%energy
+                !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)&
+                != Pconv*Pdir*Pesc_rayl*photon%weight
+                !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+1)&
+                != photon%energy
                 
+                temp_weight = Pconv*Pdir*Pesc_rayl*photon%weight
+                photon%var_red_history(layer%Z(i),383+1,n_ia) =&
+                photon%var_red_history(layer%Z(i),383+1,n_ia)+temp_weight
+                !should be multiplied with detector absorption
+
+                IF (photon%energy .GE. energy_threshold) THEN
+                        channel = INT((photon%energy - &
+                        inputF%detector%zero)/inputF%detector%gain)
+                ELSE
+                        channel = 0
+                ENDIF
+
+                IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                        photon%channels(n_ia:, channel) =&
+                        photon%channels(n_ia:, channel)+&
+                        temp_weight
+                ENDIF
 
 #if DEBUG == 2
                 IF (i == 1) &
@@ -330,26 +348,25 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 REAL(theta,KIND=C_FLOAT),REAL(phi, KIND=C_FLOAT))
                 !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
                 != Pconv*Pdir*Pesc_comp*photon%weight
-                photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
-                = energy_compton
+                !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
+                != energy_compton
 
+                temp_weight = Pconv*Pdir*Pesc_comp*photon%weight
                 photon%var_red_history(layer%Z(i),383+2,n_ia) =&
-                photon%var_red_history(layer%Z(i),383+2,n_ia)+Pconv*Pdir*Pesc_comp*photon%weight
+                photon%var_red_history(layer%Z(i),383+2,n_ia)+temp_weight
+                !should be multiplied with detector absorption
 
-                IF (photon_temp%variance_reduction(k,l)%energy(m,n) .GE. energy_threshold) THEN
-                        channel = INT((photon_temp%variance_reduction(k,l)%energy(m,n) - &
+                IF (energy_compton .GE. energy_threshold) THEN
+                        channel = INT((energy_compton - &
                         inputF%detector%zero)/inputF%detector%gain)
                 ELSE
                         channel = 0
                 ENDIF
 
-MARK
-check if channels dimensions are ok (probably not)
-
-                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                        channels(l:, channel) =&
-                        channels(l:, channel)+&
-                        photon_temp%variance_reduction(k,l)%weight(m,n)
+                IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                        photon%channels(n_ia:, channel) =&
+                        photon%channels(n_ia:, channel)+&
+                        temp_weight
                 ENDIF
 
                 !
@@ -543,10 +560,27 @@ check if channels dimensions are ok (probably not)
                                 inputF%composition%layers(j)%density*distances(j)
                         ENDDO
                         Pesc = EXP(-temp_murhod) 
-                        photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
-                        = Pconv*Pdir_fluo*Pesc*photon%weight
-                        photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
-                        = energy_fluo
+                        !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
+                        != Pconv*Pdir_fluo*Pesc*photon%weight
+                        !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
+                        != energy_fluo
+                        temp_weight=Pconv*Pdir_fluo*Pesc*photon%weight
+                        photon%var_red_history(layer%Z(i),ABS(line_new),n_ia) =&
+                        photon%var_red_history(layer%Z(i),ABS(line_new),n_ia)+temp_weight*&
+                        photon%det_corr_all(layer%Z(i),ABS(line_new))
+
+                        IF (energy_fluo .GE. energy_threshold) THEN
+                                channel = INT((energy_fluo - &
+                                inputF%detector%zero)/inputF%detector%gain)
+                        ELSE
+                                channel = 0
+                        ENDIF
+
+                        IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                                photon%channels(n_ia:, channel) =&
+                                photon%channels(n_ia:, channel)+&
+                                temp_weight
+                        ENDIF
 #if DEBUG == 1
                         IF(line_new .EQ. LA1_LINE) THEN
                                 WRITE (*,'(A,F12.4)') 'original energy: ',&
