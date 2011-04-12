@@ -565,6 +565,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
                         != energy_fluo
                         temp_weight=Pconv*Pdir_fluo*Pesc*photon%weight
+                        IF (temp_weight .EQ. 0.0_C_DOUBLE) CYCLE
                         photon%var_red_history(layer%Z(i),ABS(line_new),n_ia) =&
                         photon%var_red_history(layer%Z(i),ABS(line_new),n_ia)+temp_weight*&
                         photon%det_corr_all(layer%Z(i),ABS(line_new))
@@ -657,7 +658,9 @@ inputF, hdf5F, energy_new)
 
         DO
                 r = fgsl_rng_uniform(rng)
-                pos = findpos(hdf5_Z%RandomNumbers, r)
+                !pos = findpos(hdf5_Z%RandomNumbers, r)
+
+                pos = INT(r/(hdf5_Z%RandomNumbers(2)-hdf5_Z%RandomNumbers(1)))+1
 
                 pz = interpolate_simple([hdf5_Z%RandomNumbers(pos),&
                 hdf5_Z%DopplerPz_ICDF(pos)],[hdf5_Z%RandomNumbers(pos+1),&
