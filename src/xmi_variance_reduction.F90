@@ -38,6 +38,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE), DIMENSION(3) :: new_dirv_proj, elecv_norm
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
         REAL (C_FLOAT) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
+        INTEGER (C_INT) :: channel
 
 #if DEBUG == 0
         LOGICAL, DIMENSION(3) :: flag_value
@@ -301,6 +302,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 = Pconv*Pdir*Pesc_rayl*photon%weight
                 photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+1)&
                 = photon%energy
+                
+
 #if DEBUG == 2
                 IF (i == 1) &
                 WRITE (*,'(A,F12.5)') 'Cr-Rayleigh: ',&
@@ -325,10 +328,29 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 Pdir = detector_solid_angle&
                 *DCSP_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),&
                 REAL(theta,KIND=C_FLOAT),REAL(phi, KIND=C_FLOAT))
-                photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
-                = Pconv*Pdir*Pesc_comp*photon%weight
+                !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
+                != Pconv*Pdir*Pesc_comp*photon%weight
                 photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
                 = energy_compton
+
+                photon%var_red_history(layer%Z(i),383+2,n_ia) =&
+                photon%var_red_history(layer%Z(i),383+2,n_ia)+Pconv*Pdir*Pesc_comp*photon%weight
+
+                IF (photon_temp%variance_reduction(k,l)%energy(m,n) .GE. energy_threshold) THEN
+                        channel = INT((photon_temp%variance_reduction(k,l)%energy(m,n) - &
+                        inputF%detector%zero)/inputF%detector%gain)
+                ELSE
+                        channel = 0
+                ENDIF
+
+MARK
+check if channels dimensions are ok (probably not)
+
+                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+                        channels(l:, channel) =&
+                        channels(l:, channel)+&
+                        photon_temp%variance_reduction(k,l)%weight(m,n)
+                ENDIF
 
                 !
                 !      and finishing with FLUORESCENCE 

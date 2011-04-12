@@ -416,23 +416,25 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
                         IF (options%use_variance_reduction .EQ. 1) THEN
-                                ALLOCATE(photon%variance_reduction(inputF%composition%n_layers,&
-                                inputF%general%n_interactions_trajectory))
-                                DO k=1,inputF%composition%n_layers
-                                   DO &
-                                   l=1,inputF%general%n_interactions_trajectory
-                                        ALLOCATE(photon%variance_reduction(k,l)%&
-                                        weight(inputF%composition%layers(k)%n_elements,383+1+1))
-                                        ALLOCATE(photon%variance_reduction(k,l)%&
-                                        energy(inputF%composition%layers(k)%n_elements,383+1+1))
-                                        photon%variance_reduction(k,l)%weight =&
-                                        0.0_C_DOUBLE
-                                        photon%variance_reduction(k,l)%energy =&
-                                        0.0_C_DOUBLE
-                                  ENDDO
-                                ENDDO
+                                !ALLOCATE(photon%variance_reduction(inputF%composition%n_layers,&
+                                !inputF%general%n_interactions_trajectory))
+                                !DO k=1,inputF%composition%n_layers
+                                !   DO &
+                                !   l=1,inputF%general%n_interactions_trajectory
+                                !        ALLOCATE(photon%variance_reduction(k,l)%&
+                                !        weight(inputF%composition%layers(k)%n_elements,383+1+1))
+                                !        ALLOCATE(photon%variance_reduction(k,l)%&
+                                !        energy(inputF%composition%layers(k)%n_elements,383+1+1))
+                                !        photon%variance_reduction(k,l)%weight =&
+                                !        0.0_C_DOUBLE
+                                !        photon%variance_reduction(k,l)%energy =&
+                                !        0.0_C_DOUBLE
+                                !  ENDDO
+                                !ENDDO
                                 photon%solid_angle => solid_angles 
                                 photon%detector_solid_angle_not_found = 0
+                                photon%var_red_history => var_red_history
+                                photon%channels => channels
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
@@ -448,6 +450,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
+                        photon%det_corr_all => det_corr_all
 
 
                         !ipol = MOD(j,2)
@@ -566,15 +569,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                 ELSE
                                                         channel = 0
                                                 ENDIF
-#if DEBUG == 2
-                                IF (m == 1 .AND. n == 383+1) THEN 
-                                WRITE (*,'(A,ES14.5)') 'energy Cr-Rayl:',photon_temp%variance_reduction(k,l)%energy(m,n)
-                                        WRITE (*,'(A, ES14.5)') 'var_red_history Cr-Rayl:',&
-                                        photon_temp%variance_reduction(k,l)%weight(m,n)&
-                                        *photon_temp%weight*det_corr_all(inputF%composition%layers(k)%Z(m),n)
-
-                                ENDIF
-#endif
 
                                                 IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
                                                         channels(l:, channel) =&
@@ -592,20 +586,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         detector_solid_angle_not_found =&
                                         photon%detector_solid_angle_not_found+&
                                         detector_solid_angle_not_found
-#if DEBUG == 1
-                                        IF (INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
-                                        INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1&
-                                        .LT. 1) CALL EXIT(1)
-                                        IF (photon_temp%last_interaction ==&
-                                        RAYLEIGH_INTERACTION .OR. &
-                                        photon_temp%last_interaction ==&
-                                        COMPTON_INTERACTION) THEN
-                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)=&
-                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)+1
-                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
-                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
-                                        ENDIF
-#endif
                                 ENDIF var_red
                                 !
                                 !
@@ -712,19 +692,19 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         NULLIFY(photon_temp2)
                                 ENDIF
                                
-                                IF (options%use_variance_reduction&
-                                .EQ. 1 .AND.&
-                                ALLOCATED(photon_temp%variance_reduction))&
-                                THEN
-                                DO k=1, inputF%composition%n_layers
-                                   DO &
-                                   l=1,inputF%general%n_interactions_trajectory
-                                        DEALLOCATE(photon_temp%variance_reduction(k,l)%weight)
-                                        DEALLOCATE(photon_temp%variance_reduction(k,l)%energy)
-                                   ENDDO
-                                ENDDO
-                                DEALLOCATE(photon_temp%variance_reduction)
-                                ENDIF
+                                !IF (options%use_variance_reduction&
+                                !.EQ. 1 .AND.&
+                                !ALLOCATED(photon_temp%variance_reduction))&
+                                !THEN
+                                !DO k=1, inputF%composition%n_layers
+                                !   DO &
+                                !   l=1,inputF%general%n_interactions_trajectory
+                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%weight)
+                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%energy)
+                                !   ENDDO
+                                !ENDDO
+                                !DEALLOCATE(photon_temp%variance_reduction)
+                                !ENDIF
                                 DEALLOCATE(photon_temp%history)
                                 DEALLOCATE(photon_temp%mus)
                                 DEALLOCATE(photon_temp)
@@ -2700,6 +2680,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%n_interactions=photon%n_interactions
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
+        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
 
 
 
@@ -2823,6 +2804,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%elecv(1) = COS(r)
                         photon%offspring%elecv(2) = SIN(r)
                         photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+                        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
                         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
@@ -3012,6 +2994,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%last_interaction = PHOTOELECTRIC_INTERACTION
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
+        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
 
 #if DEBUG == 1
         WRITE (6,'(A,I4)') 'line_new: ',line_new

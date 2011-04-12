@@ -372,6 +372,15 @@ TYPE :: xmi_photon
 
         !xmi_precalc_mu_cs
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), POINTER :: precalc_mu_cs
+        
+        !variance reduction history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_history
+
+        !channels
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: channels
+
+        !detector absorption correction
+        REAL (C_FLOAT), DIMENSION(:,:), POINTER :: det_corr_all
 
         !debug variables
         REAL (C_DOUBLE) :: theta_i
