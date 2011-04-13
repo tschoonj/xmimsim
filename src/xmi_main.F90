@@ -24,20 +24,12 @@ REAL (C_DOUBLE), PARAMETER :: XMI_MOM_MEC = momentum_atomic_unit/XMI_MEC
 
 
 
-!function pointer for XRF cross section
-!PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
-
-
-
 CONTAINS
 
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
 nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
-#if DEBUG == 0
-        USE, INTRINSIC :: ieee_exceptions
-#endif
 
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
@@ -67,16 +59,16 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         comptons, einsteins,detector_hits2
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel,line
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: channels 
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels 
         INTEGER (C_LONG), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         INTEGER (C_LONG), DIMENSION(:,:,:), POINTER :: brute_historyF
-        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: var_red_history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
-        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE :: det_corr_all
+        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         TYPE (xmi_solid_angle), ALLOCATABLE, TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
@@ -91,41 +83,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         
         CALL SetErrorMessages(0)
 
-#if DEBUG == 0
-        WRITE (*,'(A)') 'Testing IEEE FPE features'
-        IF (ieee_support_flag(ieee_overflow) .EQ. .TRUE.) THEN
-                WRITE (*,'(A)') 'Overflow supported'
-        ELSE
-                WRITE (*,'(A)') 'Overflow not supported'
-                CALL EXIT(1)
-        ENDIF
-        IF (ieee_support_flag(ieee_underflow) .EQ. .TRUE.) THEN
-                WRITE (*,'(A)') 'Underflow supported'
-        ELSE
-                WRITE (*,'(A)') 'Underflow not supported'
-                CALL EXIT(1)
-        ENDIF
-        IF (ieee_support_flag(ieee_divide_by_zero) .EQ. .TRUE.) THEN
-                WRITE (*,'(A)') 'Divide by zero supported'
-        ELSE
-                WRITE (*,'(A)') 'Divide by zero not supported'
-                CALL EXIT(1)
-        ENDIF
-        IF (ieee_support_flag(ieee_invalid) .EQ. .TRUE.) THEN
-                WRITE (*,'(A)') 'Invalid supported'
-        ELSE
-                WRITE (*,'(A)') 'Invalid not supported'
-                CALL EXIT(1)
-        ENDIF
-        IF (ieee_support_flag(ieee_inexact) .EQ. .TRUE.) THEN
-                WRITE (*,'(A)') 'Inexact supported'
-        ELSE
-                WRITE (*,'(A)') 'Inexact not supported'
-                CALL EXIT(1)
-        ENDIF
-#endif
-
-
 
 
         rv = 0
@@ -137,14 +94,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         einsteins = 0
         detector_solid_angle_not_found = 0
 
-#if DEBUG == 1
-        theta_i_s = xmi_dindgen(1000)*M_PI/999.0_C_DOUBLE
-        phi_i_s = xmi_dindgen(1000)*2.0_C_DOUBLE*M_PI/999.0_C_DOUBLE
-        ALLOCATE(theta_i_hist(1000))
-        ALLOCATE(phi_i_hist(1000))
-        theta_i_hist = 0
-        phi_i_hist = 0
-#endif
 
 
         !set the XRF cross sections according to the options
@@ -157,30 +106,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         ELSEIF (options%use_cascade_auger .EQ. 0 .AND.&
         options%use_cascade_radiative .EQ.1 ) THEN
                 xmi_cascade_type = XMI_CASCADE_RADIATIVE
-!#if DEBUG == 0
-!                WRITE (6,'(A)') 'Radiative cascade'
-!                WRITE (6,'(A,F12.6)') 'Testvalue: '&
-!                ,xmi_CS_FluorLine(56,LA1_LINE, 40.0)
-!#endif
-
         ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
         options%use_cascade_radiative .EQ.1 ) THEN
                 xmi_cascade_type = XMI_CASCADE_FULL
-!#if DEBUG == 0
-!                WRITE (6,'(A)') 'Full cascade'
-!#endif
         ENDIF
 
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
-        !CALL C_F_POINTER(channelsPtr,&
-        !channelsF,[0:inputF%general%n_interactions_trajectory,nchannels])
-
-
-        !channelsF = 0.0_C_DOUBLE
-        !channelsFF = channelsF
        
         IF (options%use_variance_reduction .EQ. 1) THEN
                 ALLOCATE(solid_angles)
@@ -204,18 +138,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         max_threads = omp_get_max_threads()
 
-#if DEBUG == 1
-        WRITE (*,'(A,I)') 'num_threads: ', max_threads
-#endif
-
         ALLOCATE(seeds(max_threads))
 
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
-#if DEBUG == 1
-        WRITE (*,'(A,4I)') 'seeds: ',seeds
-#endif
 
 
         !
@@ -260,9 +187,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         det_corr_all = 1.0_C_DOUBLE
 
         DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
-#if DEBUG == 1
-                WRITE (6,'(A,I3)') 'Det cor for element: ',hdf5F%xmi_hdf5_Zs(i)%Z
-#endif
                 DO line=KL1_LINE, P3P5_LINE, -1
                         det_corr = 1.0_C_DOUBLE
                         DO j=1,inputF%absorbers%n_det_layers
@@ -278,9 +202,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 xmi_mu_calc(inputF%detector%crystal_layers(j),REAL(LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line),KIND=C_DOUBLE))))
                         ENDDO
                         det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
-#if DEBUG == 1
-                        IF (line .EQ. KL3_LINE) WRITE (6,'(A,ES12.5)') 'Det cor for KL3_LINE: ',det_corr
-#endif
                 ENDDO
         ENDDO
 
@@ -400,39 +321,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 exc%discrete(i)%energy)
 
 
-#if DEBUG == 1
-!$omp critical
-                WRITE (*,'(A,I)') 'n_photons: ',n_photons
-                WRITE (*,'(A,ES12.4)') 'total_intensity:',total_intensity
-                WRITE (*,'(A,ES12.4)') 'hor_ver_ratio:',hor_ver_ratio
-                WRITE (*,'(A,ES12.4)') 'horizontal_intensity:',exc%discrete(i)%horizontal_intensity
-                WRITE (*,'(A,ES12.4)') 'vertical_intensity:',exc%discrete(i)%vertical_intensity
-!$omp end critical
-#endif
-
-
                 DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
                         IF (options%use_variance_reduction .EQ. 1) THEN
-                                ALLOCATE(photon%variance_reduction(inputF%composition%n_layers,&
-                                inputF%general%n_interactions_trajectory))
-                                DO k=1,inputF%composition%n_layers
-                                   DO &
-                                   l=1,inputF%general%n_interactions_trajectory
-                                        ALLOCATE(photon%variance_reduction(k,l)%&
-                                        weight(inputF%composition%layers(k)%n_elements,383+1+1))
-                                        ALLOCATE(photon%variance_reduction(k,l)%&
-                                        energy(inputF%composition%layers(k)%n_elements,383+1+1))
-                                        photon%variance_reduction(k,l)%weight =&
-                                        0.0_C_DOUBLE
-                                        photon%variance_reduction(k,l)%energy =&
-                                        0.0_C_DOUBLE
-                                  ENDDO
-                                ENDDO
                                 photon%solid_angle => solid_angles 
                                 photon%detector_solid_angle_not_found = 0
+                                photon%var_red_history => var_red_history
+                                photon%channels => channels
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
@@ -448,21 +345,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
+                        photon%det_corr_all => det_corr_all
 
 
-                        !ipol = MOD(j,2)
 
                         !Calculate its initial coordinates and direction
                         CALL xmi_coords_dir(rng,exc%discrete(i), inputF%geometry,&
                         photon)
 
 
-#if DEBUG == 2
-                        dirv_z_angle=ACOS(DOT_PRODUCT(photon%dirv,[0.0,0.0,1.0]))
-!$omp critical
-                        WRITE (*,'(A,ES14.6)') 'dirv_z_angle',dirv_z_angle
-!$omp end critical
-#endif
 
                         !Calculate its weight and electric field...
                         IF (j .LE. hor_ver_ratio) THEN
@@ -485,12 +376,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #endif
                         ENDIF
 
-                        photon%weight_long = INT(photon%weight,KIND=C_LONG)
+                        photon%weight_long = NINT(photon%weight,KIND=C_LONG)
 
 
-#if DEBUG == 1
-                        IF (j)WRITE (*,'(A,ES12.4)') 'photon weight: ',photon%weight
-#endif
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
@@ -504,39 +392,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         c_be = -c_ae*cosalfa
 
                         photon%elecv = c_ae*photon%elecv + c_be*photon%dirv
-#if DEBUG == 2
-                        dirv_z_angle=ACOS(DOT_PRODUCT(photon%elecv,[0.0,1.0,0.0]))
-!$omp critical
-                        WRITE (*,'(A,ES14.6)') 'dirv_z_angle',dirv_z_angle
-!$omp end critical
-#endif
 
-
-                        !Calculate the electric field vector
-                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
-                        !.LT. hor_ver_ratio ) THEN
-                        !        !horizontal polarization
-                        !ELSE
-                        !        !vertical polarization
-                        !ENDIF
-                        
-                        !shift the position towards the first layer
-                        !calculate the intersection with the first plane
-#if DEBUG == 2
-!$omp critical                        
-                        WRITE (*,'(A,3F12.6)') 'Coords before shift',&
-                        photon%coords
-!$omp end critical
-#endif
                         CALL &
                         xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
 
-#if DEBUG == 2
-!$omp critical                        
-                        WRITE (*,'(A,3F12.6)') 'Coords after shift',&
-                        photon%coords
-!$omp end critical
-#endif
 
                         IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
                                 CALL EXIT(1)
@@ -546,72 +405,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon_eval:DO 
 
                                 photons_simulated = photons_simulated + 1
-                                !
-                                !
-                                !       Variance reduction histories
-                                !
-                                !
-                                var_red:IF (photon_temp%options%use_variance_reduction .EQ. 1 .AND.&
-                                ALLOCATED(photon_temp%variance_reduction))&
-                                THEN
-                                        !add the variance reductio contribution
-                                        !to the channels
-                                        DO k=1,inputF%composition%n_layers
-                                           DO l=1,inputF%general%n_interactions_trajectory
-                                             DO m=1,inputF%composition%layers(k)%n_elements
-                                               DO n=1,385
-                                                IF (photon_temp%variance_reduction(k,l)%energy(m,n) .GE. energy_threshold) THEN
-                                                        channel = INT((photon_temp%variance_reduction(k,l)%energy(m,n) - &
-                                                        inputF%detector%zero)/inputF%detector%gain)
-                                                ELSE
-                                                        channel = 0
-                                                ENDIF
-#if DEBUG == 2
-                                IF (m == 1 .AND. n == 383+1) THEN 
-                                WRITE (*,'(A,ES14.5)') 'energy Cr-Rayl:',photon_temp%variance_reduction(k,l)%energy(m,n)
-                                        WRITE (*,'(A, ES14.5)') 'var_red_history Cr-Rayl:',&
-                                        photon_temp%variance_reduction(k,l)%weight(m,n)&
-                                        *photon_temp%weight*det_corr_all(inputF%composition%layers(k)%Z(m),n)
-
-                                ENDIF
-#endif
-
-                                                IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
-                                                        channels(l:, channel) =&
-                                                        channels(l:, channel)+&
-                                                        photon_temp%variance_reduction(k,l)%weight(m,n)
-                                                ENDIF
-                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l) =&
-                                                var_red_history(inputF%composition%layers(k)%Z(m),n,l)+&
-                                                photon_temp%variance_reduction(k,l)%weight(m,n)&
-                                                *det_corr_all(inputF%composition%layers(k)%Z(m),n)
-                                               ENDDO
-                                             ENDDO
-                                           ENDDO 
-                                        ENDDO
-                                        detector_solid_angle_not_found =&
-                                        photon%detector_solid_angle_not_found+&
-                                        detector_solid_angle_not_found
-#if DEBUG == 1
-                                        IF (INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
-                                        INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0)+1&
-                                        .LT. 1) CALL EXIT(1)
-                                        IF (photon_temp%last_interaction ==&
-                                        RAYLEIGH_INTERACTION .OR. &
-                                        photon_temp%last_interaction ==&
-                                        COMPTON_INTERACTION) THEN
-                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)=&
-                                        theta_i_hist(INT(photon_temp%theta_i2*999.0_C_DOUBLE/M_PI)+1)+1
-                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
-                                        phi_i_hist(INT(photon_temp%phi_i2*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
-                                        ENDIF
-#endif
-                                ENDIF var_red
-                                !
-                                !
-                                !       Brute force histories
-                                !
-                                !
 
                                 det_hit:IF (photon_temp%detector_hit .EQ. .TRUE.) THEN
                                         detector_hits = detector_hits + 1
@@ -675,7 +468,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                         !fluorescence
                                                         brute_history(element,ABS(photon_temp%history(k,1)),k) = &
                                                         brute_history(element,ABS(photon_temp%history(k,1)),k) + &
-                                                        INT(photon_temp%weight*det_corr_all(element,ABS(photon_temp%history(k,1))),KIND=C_LONG)
+                                                        NINT(photon_temp%weight*det_corr_all(element,ABS(photon_temp%history(k,1))),KIND=C_LONG)
                                                          
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
@@ -712,19 +505,19 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         NULLIFY(photon_temp2)
                                 ENDIF
                                
-                                IF (options%use_variance_reduction&
-                                .EQ. 1 .AND.&
-                                ALLOCATED(photon_temp%variance_reduction))&
-                                THEN
-                                DO k=1, inputF%composition%n_layers
-                                   DO &
-                                   l=1,inputF%general%n_interactions_trajectory
-                                        DEALLOCATE(photon_temp%variance_reduction(k,l)%weight)
-                                        DEALLOCATE(photon_temp%variance_reduction(k,l)%energy)
-                                   ENDDO
-                                ENDDO
-                                DEALLOCATE(photon_temp%variance_reduction)
-                                ENDIF
+                                !IF (options%use_variance_reduction&
+                                !.EQ. 1 .AND.&
+                                !ALLOCATED(photon_temp%variance_reduction))&
+                                !THEN
+                                !DO k=1, inputF%composition%n_layers
+                                !   DO &
+                                !   l=1,inputF%general%n_interactions_trajectory
+                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%weight)
+                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%energy)
+                                !   ENDDO
+                                !ENDDO
+                                !DEALLOCATE(photon_temp%variance_reduction)
+                                !ENDIF
                                 DEALLOCATE(photon_temp%history)
                                 DEALLOCATE(photon_temp%mus)
                                 DEALLOCATE(photon_temp)
@@ -2700,6 +2493,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%n_interactions=photon%n_interactions
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
+        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
 
 
 
@@ -2823,6 +2617,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%elecv(1) = COS(r)
                         photon%offspring%elecv(2) = SIN(r)
                         photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+                        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
                         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
@@ -3012,6 +2807,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%last_interaction = PHOTOELECTRIC_INTERACTION
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
+        photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
 
 #if DEBUG == 1
         WRITE (6,'(A,I4)') 'line_new: ',line_new

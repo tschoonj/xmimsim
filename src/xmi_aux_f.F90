@@ -359,7 +359,7 @@ TYPE :: xmi_photon
         INTEGER (C_INT) :: last_shell
 
         !variance reduction
-        TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
+        !TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
         
         !cascade type
         INTEGER (C_INT) :: xmi_cascade_type
@@ -372,6 +372,15 @@ TYPE :: xmi_photon
 
         !xmi_precalc_mu_cs
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), POINTER :: precalc_mu_cs
+        
+        !variance reduction history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_history
+
+        !channels
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: channels
+
+        !detector absorption correction
+        REAL (C_FLOAT), DIMENSION(:,:), POINTER :: det_corr_all
 
         !debug variables
         REAL (C_DOUBLE) :: theta_i

@@ -72,7 +72,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
         rng_type = fgsl_rng_mt19937
 
-!!!$omp parallel default(shared) private(pulses_sum,energies_sum,deltaT,pulses,npulses,npulses_all,i,rng,thread_num) reduction(+:new_channels,n_sum_counts)
+!!$omp parallel default(shared) private(pulses_sum,energies_sum,deltaT,pulses,npulses,npulses_all,i,rng,thread_num) reduction(+:new_channels,n_sum_counts)
 
 !
 !
@@ -145,7 +145,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
         CALL fgsl_rng_free(rng) 
 
-!!!$omp end parallel
+!!$omp end parallel
 
      !for some reason does ifort not put this function into the fgsl module
      !file!!!
