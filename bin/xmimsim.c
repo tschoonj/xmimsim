@@ -73,7 +73,7 @@ int main (int argc, char *argv[]) {
 	static gchar *csv_file_conv=NULL;
 	static int nchannels=2048;
 	double zero_sum;
-	struct xmi_solid_angle *solid_angle_def;
+	struct xmi_solid_angle *solid_angle_def=NULL;
 	uid_t uid, euid;
 	char *xmi_input_string;
 
@@ -131,21 +131,6 @@ int main (int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Get_processor_name(processor_name, &namelen);
-
-
-	/*	if (rank == 0) {
-		reqs = (MPI_Request *) malloc(2*numprocs*sizeof(MPI_Request));
-		results = (double *) malloc(sizeof(numprocs)*2048*sizeof(double));
-		for (i=0 ; i < numprocs ; i++) {
-		MPI_Irecv(results+(i*2048), 2048, MPI_DOUBLE, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, reqs+numreqs++);
-		}
-		}
-		else {
-		reqs = (MPI_Request *) malloc(numprocs*sizeof(MPI_Request));
-		}
-		*/
-
-
 #endif
 
 	//locale...
@@ -275,7 +260,7 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	MPI_Barrier(MPI_COMM_WORLD);
 	//read solid angles for the other nodes
-	if (rank != 0) {
+	if (options.use_variance_reduction == 1 && rank != 0) {
 		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
