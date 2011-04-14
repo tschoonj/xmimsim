@@ -64,6 +64,7 @@ TYPE, BIND(C) :: xmi_generalC
         INTEGER (C_LONG) :: n_photons_interval
         INTEGER (C_LONG) :: n_photons_line
         INTEGER (C_INT) :: n_interactions_trajectory
+        TYPE (C_PTR) :: comments
 ENDTYPE
 
 TYPE :: xmi_general
@@ -72,6 +73,7 @@ TYPE :: xmi_general
         INTEGER (C_LONG) :: n_photons_interval
         INTEGER (C_LONG) :: n_photons_line
         INTEGER (C_INT) :: n_interactions_trajectory
+        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: comments
 ENDTYPE
 
 !  xmi_layer

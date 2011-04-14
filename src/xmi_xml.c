@@ -54,7 +54,12 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "outputfile")) {
 			//outputfile
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			(*general)->outputfile = (char *) xmlStrdup(txt); 
+			if (txt == NULL) {
+				(*general)->outputfile = strdup("");
+			}
+			else {
+				(*general)->outputfile = (char *) xmlStrdup(txt); 
+			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "n_photons_interval")){
@@ -78,6 +83,17 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 			if(sscanf((const char *)txt,"%i",&((*general)->n_interactions_trajectory)) != 1) {
 				fprintf(stderr,"error reading in n_interactions_trajectory of xml file\n");
 				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "comments")) {
+			//comments
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if (txt == NULL) {
+				(*general)->comments = strdup("");
+			}
+			else {
+				(*general)->comments = (char *) xmlStrdup(txt); 
 			}
 			xmlFree(txt);
 		}
@@ -1394,6 +1410,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_interactions_trajectory","%i",input->general->n_interactions_trajectory) < 0) {
 		fprintf(stderr,"Error writing n_interactions_trajectory\n");
+		return 0;
+	}
+
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "comments","%s",(xmlChar *) input->general->comments) < 0) {
+		fprintf(stderr,"Error writing comments\n");
 		return 0;
 	}
 

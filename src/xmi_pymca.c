@@ -1132,6 +1132,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	//general
 	general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
 	general->outputfile = strdup("");
+	general->comments = strdup("");
 	general->n_photons_interval = 100000;
 	general->n_photons_line = 100000;
 

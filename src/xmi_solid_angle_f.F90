@@ -44,6 +44,10 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
 
+        !write message 
+        WRITE (6,'(A)') 'Precalculating solid angle grid'
+        WRITE (6,'(A)') 'This could take a long time...'
+
 
         CALL C_F_POINTER(inputFPtr, inputF)
 

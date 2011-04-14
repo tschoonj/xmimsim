@@ -19,6 +19,7 @@ void xmi_free_input(struct xmi_input *input) {
 
 	//general
 	free(input->general->outputfile);
+	free(input->general->comments);
 	free(input->general);
 
 	//composition
@@ -80,6 +81,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	//(*B)->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
 	(*B)->general = (struct xmi_general *) xmi_memdup((A)->general, sizeof(struct xmi_general));
 	(*B)->general->outputfile = strdup(A->general->outputfile);
+	(*B)->general->comments= strdup(A->general->comments);
 
 	//composition
 	(*B)->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
@@ -175,6 +177,12 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		rv |= XMI_COMPARE_GENERAL;
 		goto after_general;
 	}
+
+	if (strcmp(A->general->comments,B->general->comments) != 0) {
+		rv |= XMI_COMPARE_GENERAL;
+		goto after_general;
+	}
+
 
 	after_general:
 
@@ -483,6 +491,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
 	rv->general->version = 1.0;
 	rv->general->outputfile = strdup("");
+	rv->general->comments= strdup("");
 	rv->general->n_photons_interval = 10000;
 	rv->general->n_photons_line = 10000;
 	rv->general->n_interactions_trajectory = 4;
@@ -742,6 +751,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	//general
 	fprintf(fPtr, "general\n");
 	fprintf(fPtr, "outputfile: %s\n",input->general->outputfile);
+	fprintf(fPtr, "comments: %s\n",input->general->comments);
 	fprintf(fPtr, "n_photons_interval: %li\n", input->general->n_photons_interval);
 	fprintf(fPtr, "n_photons_line: %li\n", input->general->n_photons_line);
 	fprintf(fPtr, "n_interactions_trajectory: %i\n", input->general->n_interactions_trajectory);

@@ -25,6 +25,7 @@ static GtkWidget *outputfileW;
 static GtkWidget *n_photons_intervalW;
 static GtkWidget *n_photons_lineW;
 static GtkWidget *n_interactions_trajectoryW;
+static GtkWidget *commentsW;
 static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
@@ -92,6 +93,9 @@ static gulong outputfileG;
 static gulong n_photons_intervalG;
 static gulong n_photons_lineG;
 static gulong n_interactions_trajectoryG;
+static gulong comments_beginG;
+static gulong comments_endG;
+static gulong commentsG;
 //geometry
 static gulong d_sample_sourceG;
 static gulong n_sample_orientation_xG;
@@ -255,12 +259,30 @@ enum {
 
 struct undo_single *check_changes_saved(int *status) {
 	struct undo_single *temp = current;
+	GtkTextIter iterb, itere;
+
+	gchar *commentsText;
+	int commentsEqual;
+
+
+	
+	//get text from comments...
+	gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+
+	if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+		commentsText = strdup("");
+	}
+	else {
+		commentsText = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+	}
+
+	commentsEqual = strcmp(commentsText,current->xi->general->comments);
 
 	if (last_saved == NULL) {
 		*status = CHECK_CHANGES_NEVER_SAVED;
 		temp = NULL;
 	}
-	else if (last_saved == current) {
+	else if (last_saved == current && commentsEqual == 0) {
 		//found filename different from unlikely one... and it's in the current variable
 		//meaning it was just saved!
 		*status = CHECK_CHANGES_JUST_SAVED;
@@ -269,7 +291,7 @@ struct undo_single *check_changes_saved(int *status) {
 		fprintf(stdout,"last saved == current\n");
 #endif
 	}
-	else if (xmi_compare_input(current->xi,last_saved->xi) == 0) {
+	else if (xmi_compare_input(current->xi,last_saved->xi) == 0 && commentsEqual == 0) {
 		//it was saved before, but there are no changes compared to before
 		*status = CHECK_CHANGES_JUST_SAVED;
 		temp = last_saved;
@@ -282,6 +304,8 @@ struct undo_single *check_changes_saved(int *status) {
 		*status = CHECK_CHANGES_SAVED_BEFORE;
 		temp = last_saved;
 	}
+
+	g_free(commentsText);
 
 	return temp;
 }
@@ -2189,7 +2213,18 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
 	}
+	return;
 }
+
+static void comments_changed(GtkWidget *widget, gpointer data) {
+	gtk_widget_set_sensitive(saveW,TRUE);
+	gtk_widget_set_sensitive(save_asW,TRUE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	
+	return;
+}
+
 
 static void pos_int_changed(GtkWidget *widget, gpointer data) {
 	struct val_changed *vc = (struct val_changed *) data;
@@ -2799,8 +2834,19 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	
 }
 
+void comments_begin(GtkTextBuffer *textbuffer, gpointer user_data){
+#if DEBUG == 1
+	fprintf(stdout,"comments started\n");
+#endif
+	return;
+}
 
-
+void comments_end(GtkTextBuffer *textbuffer, gpointer user_data){
+#if DEBUG == 1
+	fprintf(stdout,"comments ended\n");
+#endif
+	return;
+}
 
 int main (int argc, char *argv[]) {
 
@@ -2827,12 +2873,9 @@ int main (int argc, char *argv[]) {
 	struct val_changed *vc;
 	struct xmi_input *xi_temp;
 	char *title;
+	GtkTextBuffer *commentsBuffer;
+	GtkTextIter tib, tie;
 
-	//should be changed later using a cpp macro that will point to the data folder of the package
-	//windows will be quite complicated here I'm sure...
-	//
-	char default_file1[] = "/Volumes/Home/schoon/github/xmimsim/example/example1.xml";
-	char default_file2[] = "/Users/schoon/github/xmimsim/example/example1.xml";
 
 
 /*
@@ -2866,13 +2909,6 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"last: %p\n",last);
 #endif
 
-
-	//start by reading in the default file -> command-line args later to be arranged
-/*	if (xmi_read_input_xml(default_file1, &(current->xi)) == 0 && xmi_read_input_xml(default_file2, &(current->xi)) == 0) {
-		fprintf(stderr,"Could not read in default xml file\n");
-		return 1;
-	}
-*/
 
 
 	current->xi = xmi_init_empty_input();	
@@ -3073,9 +3109,29 @@ int main (int argc, char *argv[]) {
 	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 
+	//comments
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Comments");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	commentsW = gtk_text_view_new();	
+	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
+	//comments_beginG = g_signal_connect(G_OBJECT(commentsBuffer), "begin-user-action", G_CALLBACK(comments_begin), NULL);
+	//comments_endG = g_signal_connect(G_OBJECT(commentsBuffer), "end-user-action", G_CALLBACK(comments_end), NULL);
+	//gtk_text_buffer_get_bounds(commentsBuffer,&tib,&tie)
+	commentsG = g_signal_connect(G_OBJECT(commentsBuffer), "changed", G_CALLBACK(comments_changed), NULL);
+	gtk_text_buffer_set_text(commentsBuffer,current->xi->general->comments,-1);
+	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), commentsW);
+	gtk_widget_set_size_request(scrolled_window,700,100);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),scrolled_window,FALSE,FALSE,0);
+
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
 
 
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
@@ -3540,6 +3596,7 @@ void change_all_values(struct xmi_input *new_input) {
 	char buffer[512], *elementString;
 	int i,j;
 	GtkTreeIter iter;
+	GtkTextBuffer *commentsBuffer;
 
 	//checkeable values
 	n_photons_intervalC = 1;
@@ -3598,6 +3655,7 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
+	g_signal_handler_block(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
 	
 
 	//general
@@ -3608,6 +3666,9 @@ void change_all_values(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
 	sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
+	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
+	gtk_text_buffer_set_text(commentsBuffer,new_input->general->comments,-1);
+
 
 	//composition
 	gtk_list_store_clear(compositionL);
@@ -3824,6 +3885,7 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
+	g_signal_handler_unblock(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
 	
 	
 
@@ -3845,6 +3907,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	gint dialog_rv;
 	GtkWidget *label;
 	char *title;
+	GtkTextIter iterb, itere;
 	
 
 
@@ -3898,6 +3961,16 @@ void new_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
 			//update file
+		//get text from comments...
+			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup("");
+			}
+			else {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			}
 			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
 
 			}
@@ -4178,6 +4251,7 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 	GtkFileFilter *filter;
 	char *filename;
 	char *title;
+	GtkTextIter iterb, itere;
 
 	if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
 		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
@@ -4208,6 +4282,18 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmsi");
 		}
+		//get text from comments...
+		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup("");
+		}
+		else {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+		}
+
+
 		if (xmi_write_input_xml(filename, current->xi) == 1) {
 			gtk_widget_destroy (dialog);
 			if (last_saved != NULL) {
@@ -4253,6 +4339,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
 	struct undo_single *check_rv; 
 	char *filename;
+	GtkTextIter iterb, itere;
 
 	check_rv = check_changes_saved(&check_status);
 #if DEBUG == 1
@@ -4260,6 +4347,16 @@ void save_cb(GtkWidget *widget, gpointer data) {
 #endif
 	//check if it was saved before... otherwise call saveas
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		//get text from comments...
+		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup("");
+		}
+		else {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+		}
 		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
 			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 				GTK_DIALOG_DESTROY_WITH_PARENT,

@@ -9,6 +9,7 @@ struct xmi_general {
 	long int n_photons_interval;
 	long int n_photons_line;
 	int n_interactions_trajectory;
+	char *comments;
 };
 
 

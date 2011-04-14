@@ -1,11 +1,12 @@
 <!ELEMENT xmimsim (general, composition , geometry, excitation, absorbers, detector)>
 
-<!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory)>
+<!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory, comments)>
 <!ATTLIST general version CDATA #REQUIRED>
 <!ELEMENT outputfile (#PCDATA)>
 <!ELEMENT n_photons_interval (#PCDATA)>
 <!ELEMENT n_photons_line (#PCDATA)>
 <!ELEMENT n_interactions_trajectory (#PCDATA)>
+<!ELEMENT comments (#PCDATA)>
 
 <!ELEMENT composition (layer+, reference_layer)>
 <!ELEMENT reference_layer (#PCDATA)>
