@@ -2045,3 +2045,5 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 }
 
+//int xmi_read_output_xml()
+

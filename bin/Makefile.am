@@ -5,7 +5,8 @@ bin_PROGRAMS = xmimsim-db xmimsim-harvester \
 	xmimsim xmimsim-test-alloc \
 	xmimsim-pymca \
 	xmimsim-test-solid-angle \
-	xmimsim-test-rayl-phi
+	xmimsim-test-rayl-phi \
+	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -67,6 +68,10 @@ xmimsim_init_solid_angles_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmim
 xmimsim_test_rayl_phi_SOURCES = xmimsim-test-rayl-phi.F90
 xmimsim_test_rayl_phi_LDADD = ../src/libxmimsim.la
 xmimsim_test_rayl_phi_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@ -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+
+xmso2xmsi_SOURCES = xmso2xmsi.c
+xmso2xmsi_LDADD = ../src/libxmimsim.la
+xmso2xmsi_CFLAGS = @glib2_CFLAGS@
 
 
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)

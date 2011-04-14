@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<xsl:stylesheet version="1.0"
+xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+<xsl:output doctype-system="http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd" indent="yes"/> 
+
+<xsl:template match="/xmimsim-results">
+<xsl:element name="xmimsim">
+<xsl:copy-of select="xmimsim-input/*"/>
+</xsl:element>
+</xsl:template>
+
+</xsl:stylesheet>

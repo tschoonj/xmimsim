@@ -99,6 +99,17 @@ struct xmi_input {
 	struct xmi_detector *detector;
 };
 
+//one day I'll actually use this structure...
+struct xmi_output {
+	struct xmi_input *input;
+	long int *brute_history;
+	double *var_red_history;
+	double **channels_conv;
+	double *channels_unconv;
+	int nchannels;
+	char *inputfile;
+	int use_zero_interactions;
+};
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
