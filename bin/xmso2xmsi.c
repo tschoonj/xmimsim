@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-		{"outputfile",0,0,G_OPTION_ARG_FILENAME,&outputfile,"XMSI outputfile",NULL},
+		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"XMSI outputfile",NULL},
 		{NULL}
 	};
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (xmi_xmso_to_xmsi_xslt(argv[1], argv[2]) == 0) {
+	if (xmi_xmso_to_xmsi_xslt(argv[1], argv[2], outputfile) == 0) {
 		return 1;
 	}
 
