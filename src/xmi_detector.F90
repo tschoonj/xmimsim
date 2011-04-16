@@ -239,6 +239,7 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
 !!!$omp parallel do default(private) shared(a,b,inputF,I0,nlim,nchannels)
         DO I0=1,nlim
                 E0 = inputF%detector%zero + inputF%detector%gain*I0
+                IF (E0 .LT. 1.0_C_DOUBLE) CYCLE
                 FWHM = SQRT(a+b*E0)
                 B0=C*FWHM
                 A0 = 1.0_C_DOUBLE/(B0*M_SQRTPI)
@@ -252,13 +253,11 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
 #endif
 
 
-                !IF (I0 .LE. 1800) THEN
-                        A3=2.73E-3*EXP(-0.21*E0)+1.E-4_C_DOUBLE
-                        A4=0.000188*EXP(-0.00296*(E0**0.763))+&
-                          1.355E-5*EXP(0.968*(E0**0.498))
-                        ALFA=1.179*EXP(8.6E-4*(E0**1.877))-&
-                          7.793*EXP(-3.81*(E0**(-0.0716)))
-                !ENDIF
+                        A3=2.73E-3_C_DOUBLE*EXP(-0.21_C_DOUBLE*E0)+1.E-4_C_DOUBLE
+                        A4=0.000188_C_DOUBLE*EXP(-0.00296_C_DOUBLE*(E0**0.763_C_DOUBLE))+&
+                          1.355E-5_C_DOUBLE*EXP(0.968_C_DOUBLE*(E0**0.498_C_DOUBLE))
+                        ALFA=1.179_C_DOUBLE*EXP(8.6E-4_C_DOUBLE*(E0**1.877_C_DOUBLE))-&
+                          7.793_C_DOUBLE*EXP(-3.81_C_DOUBLE*(E0**(-0.0716_C_DOUBLE)))
                 my_sum = 0.0_C_DOUBLE
                 DO I=1,I0+100
                         IF (I .GT. nchannels) THEN
