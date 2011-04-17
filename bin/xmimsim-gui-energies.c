@@ -68,6 +68,16 @@ void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	} 
 	else if (widget == ew->cancelButton) {
 		//cancel clicked
+		//if Entries are red, make them white again
+		gtk_widget_modify_base(ew->energyEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->sigma_xEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->sigma_yEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->sigma_xpEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->sigma_ypEntry, GTK_STATE_NORMAL,&white);
+		
+
 		free(energy);
 		energy = NULL;
 	}
@@ -299,28 +309,28 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma x", renderer,"text",SIGMA_X_COLUMN,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Sigma x (cm)", renderer,"text",SIGMA_X_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma y", renderer,"text",SIGMA_Y_COLUMN,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Sigma y (cm)", renderer,"text",SIGMA_Y_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma xp", renderer,"text",SIGMA_XP_COLUMN,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Sigma xp (rad)", renderer,"text",SIGMA_XP_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma yp", renderer,"text",SIGMA_YP_COLUMN,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Sigma yp (rad)", renderer,"text",SIGMA_YP_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -530,7 +540,7 @@ struct energyWidget *initialize_energy_widget() {
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	rv->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Modify energy");
-	gtk_window_set_default_size(GTK_WINDOW(window),400,400);
+	gtk_window_set_default_size(GTK_WINDOW(window),420,300);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(energy_window_show_cb), (gpointer) rv);
@@ -538,11 +548,12 @@ struct energyWidget *initialize_energy_widget() {
 	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
 	mainVBox = gtk_vbox_new(FALSE, 5);
+	gtk_container_set_border_width(GTK_CONTAINER(mainVBox),5);
 	gtk_container_add(GTK_CONTAINER(window), mainVBox);
 
 	//Energy
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Energy");
+	label = gtk_label_new("Energy (keV)");
 	entry = gtk_entry_new();
 	rv->energyGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -552,7 +563,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//horizontal intensity
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Horizontally polarized intensity");
+	label = gtk_label_new("Horizontally polarized intensity (ph/s)");
 	entry = gtk_entry_new();
 	rv->hor_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -562,7 +573,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//vertical intensity
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Vertically polarized intensity");
+	label = gtk_label_new("Vertically polarized intensity (ph/s)");
 	entry = gtk_entry_new();
 	rv->ver_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -572,7 +583,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//source size x
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Source size x");
+	label = gtk_label_new("Source size x (cm)");
 	entry = gtk_entry_new();
 	rv->sigma_xGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -582,7 +593,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//source size y
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Source size y");
+	label = gtk_label_new("Source size y (cm)");
 	entry = gtk_entry_new();
 	rv->sigma_yGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -592,7 +603,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//source divergence x
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Source divergence x");
+	label = gtk_label_new("Source divergence x (rad)");
 	entry = gtk_entry_new();
 	rv->sigma_xpGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -602,7 +613,7 @@ struct energyWidget *initialize_energy_widget() {
 
 	//source divergence y
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Source divergence y");
+	label = gtk_label_new("Source divergence y (rad)");
 	entry = gtk_entry_new();
 	rv->sigma_ypGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -619,9 +630,9 @@ struct energyWidget *initialize_energy_widget() {
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
 	g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
 	g_signal_connect(G_OBJECT(okButton),"clicked", G_CALLBACK(energy_ok_cancel_button_clicked_cb), (gpointer) rv);
-	HBox = gtk_hbox_new(FALSE,2);
-	gtk_box_pack_start(GTK_BOX(HBox), okButton, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, FALSE, FALSE, 2);
+	HBox = gtk_hbox_new(TRUE,2);
+	gtk_box_pack_start(GTK_BOX(HBox), okButton, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, TRUE , FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	rv->okButton = okButton;
 	rv->cancelButton = cancelButton;

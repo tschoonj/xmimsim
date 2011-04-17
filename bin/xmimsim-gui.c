@@ -1096,7 +1096,8 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Density", renderer,"text",DENSITY_COLUMN,NULL);
+	//need to come up with a way to get pango markup here...
+	column = gtk_tree_view_column_new_with_attributes("Density (cm2/g)", renderer,"text",DENSITY_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
@@ -1104,7 +1105,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Thickness", renderer,"text",THICKNESS_COLUMN,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Thickness (cm)", renderer,"text",THICKNESS_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
@@ -2140,7 +2141,6 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case SLIT_SIZE_X:
 		case SLIT_SIZE_Y:
 		case DETECTOR_GAIN:
-		case DETECTOR_PULSE_WIDTH:
 		case DETECTOR_LIVE_TIME:
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
@@ -2158,6 +2158,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		//positive
+		case DETECTOR_PULSE_WIDTH:
 		case COLLIMATOR_HEIGHT:
 		case COLLIMATOR_DIAMETER:
 			if (lastPtr == endPtr && value >= 0.0) {
@@ -3166,7 +3167,7 @@ int main (int argc, char *argv[]) {
 	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Sample-source distance");
+	label = gtk_label_new("Sample-source distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_sample_sourceW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
@@ -3218,7 +3219,7 @@ int main (int argc, char *argv[]) {
 	//p_detector_window
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Detector window position");
+	label = gtk_label_new("Detector window position (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_zW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
@@ -3296,7 +3297,8 @@ int main (int argc, char *argv[]) {
 	//area detector
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Active detector area");
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"Active detector area (cm<sup>2</sup>)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	area_detectorW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->area_detector);
@@ -3310,7 +3312,7 @@ int main (int argc, char *argv[]) {
 	//collimator_height
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Collimator height");
+	label = gtk_label_new("Collimator height (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_heightW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->collimator_height);
@@ -3324,7 +3326,7 @@ int main (int argc, char *argv[]) {
 	//collimator_diameter
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Collimator diameter");
+	label = gtk_label_new("Collimator diameter (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_diameterW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->collimator_diameter);
@@ -3338,7 +3340,7 @@ int main (int argc, char *argv[]) {
 	//d_source_slit
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Source-slits distance");
+	label = gtk_label_new("Source-slits distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_source_slitW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
@@ -3352,7 +3354,7 @@ int main (int argc, char *argv[]) {
 	//slit sizes
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Slits size");
+	label = gtk_label_new("Slits size (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_yW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
@@ -3459,7 +3461,7 @@ int main (int argc, char *argv[]) {
 	//gain
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Detector gain");
+	label = gtk_label_new("Detector gain (keV/channel)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_gainW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->gain);
@@ -3473,7 +3475,7 @@ int main (int argc, char *argv[]) {
 	//zero
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Detector zero");
+	label = gtk_label_new("Detector zero (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_zeroW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->zero);
@@ -3501,7 +3503,7 @@ int main (int argc, char *argv[]) {
 	//noise
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Detector electronic noise");
+	label = gtk_label_new("Detector electronic noise (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_noiseW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->noise);
@@ -3529,7 +3531,7 @@ int main (int argc, char *argv[]) {
 	//max_convolution_energy
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Max convolution energy");
+	label = gtk_label_new("Max convolution energy (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_max_convolution_energyW = gtk_entry_new();
 	sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);

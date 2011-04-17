@@ -667,7 +667,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Modify layer");
-	gtk_window_set_default_size(GTK_WINDOW(window),400,400);
+	gtk_window_set_default_size(GTK_WINDOW(window),200,200);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(window_show_cb), (gpointer) rv);
@@ -677,6 +677,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	cw = initialize_compound_widget(rv, GTK_WINDOW(window));	
 
 	mainVBox = gtk_vbox_new(FALSE, 5);
+	gtk_container_set_border_width(GTK_CONTAINER(mainVBox),5);
 	gtk_container_add(GTK_CONTAINER(window), mainVBox);
 
 
@@ -742,7 +743,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 
 	//Sum and normalize
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Weights sum");
+	label = gtk_label_new("Weights sum (%)");
 	sumEntry = gtk_entry_new();
 	gtk_entry_set_editable(GTK_ENTRY(sumEntry),FALSE);
 	normalizeButton = gtk_button_new_with_label("Normalize");
@@ -758,18 +759,19 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 
 	//Density and thickness
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Density");
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"Density (cm<sup>2</sup>/g)");
 	densityEntry = gtk_entry_new();
 	rv->densityG =g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Thickness");
+	label = gtk_label_new("Thickness (cm)");
 	thicknessEntry = gtk_entry_new();
 	rv->thicknessG = g_signal_connect(G_OBJECT(thicknessEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(HBox), thicknessEntry, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(HBox), thicknessEntry, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	
 	//separator
@@ -781,9 +783,9 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
 	g_signal_connect(G_OBJECT(cancelButton),"clicked", G_CALLBACK(ok_cancel_button_clicked_cb), (gpointer) rv);
 	g_signal_connect(G_OBJECT(okButton),"clicked", G_CALLBACK(ok_cancel_button_clicked_cb), (gpointer) rv);
-	HBox = gtk_hbox_new(FALSE,2);
-	gtk_box_pack_start(GTK_BOX(HBox), okButton, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, FALSE, FALSE, 2);
+	HBox = gtk_hbox_new(TRUE,2);
+	gtk_box_pack_start(GTK_BOX(HBox), okButton, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, TRUE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
 	//end of drawing widgets
