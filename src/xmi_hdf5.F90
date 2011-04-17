@@ -14,7 +14,7 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
         TYPE (xmi_input), POINTER :: xmi_inputF
         TYPE (xmi_hdf5),  POINTER :: xmi_hdf5F
         INTEGER :: i,j,k
-        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
         INTEGER (C_INT) :: rv
         
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
@@ -22,11 +22,18 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
 
         !determine the unique Z and sort them
         ASSOCIATE (layers => xmi_inputF%composition%layers)
-        uniqZ = [layers(1)%Z(1)]
+        ALLOCATE(uniqZ(1))
+        uniqZ(1) = layers(1)%Z(1)
         DO i=1,SIZE(layers)
                 DO j=1,SIZE(layers(i)%Z) 
-                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
-                        [uniqZ,layers(i)%Z(j)]
+                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) THEN
+                                !uniqZ = &
+                                ![uniqZ,layers(i)%Z(j)]
+                                ALLOCATE(temp_array(SIZE(uniqZ)+1))
+                                temp_array(1:SIZE(uniqZ)) = uniqZ
+                                CALL MOVE_ALLOC(temp_array, uniqZ)
+                                uniqZ(SIZE(uniqZ)) = layers(i)%Z(j)
+                        ENDIF
                 ENDDO
         ENDDO
         ENDASSOCIATE
@@ -75,7 +82,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CHARACTER (KIND=C_CHAR,LEN=:), ALLOCATABLE :: xmi_hdf5_fileFF
         TYPE (xmi_input), POINTER :: xmi_inputF
         TYPE (xmi_hdf5),  POINTER :: xmi_hdf5F
-        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
         INTEGER :: i,j,k
 
         INTEGER (HID_T) :: file_id
@@ -107,11 +114,18 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
         !determine the unique Z and sort them
         ASSOCIATE (layers => xmi_inputF%composition%layers)
-        uniqZ = [layers(1)%Z(1)]
+        ALLOCATE(uniqZ(1))
+        uniqZ(1) = layers(1)%Z(1)
         DO i=1,SIZE(layers)
                 DO j=1,SIZE(layers(i)%Z) 
-                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
-                        [uniqZ,layers(i)%Z(j)]
+                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) THEN
+                                !uniqZ = &
+                                ![uniqZ,layers(i)%Z(j)]
+                                ALLOCATE(temp_array(SIZE(uniqZ)+1))
+                                temp_array(1:SIZE(uniqZ)) = uniqZ
+                                CALL MOVE_ALLOC(temp_array, uniqZ)
+                                uniqZ(SIZE(uniqZ)) = layers(i)%Z(j)
+                        ENDIF
                 ENDDO
         ENDDO
         ENDASSOCIATE
@@ -423,7 +437,8 @@ CHARACTER(200) :: error_message
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
         rayleigh_theta,compton_theta
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis,trapez2
-REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt
+REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
+temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
 
@@ -622,13 +637,19 @@ ENDIF
         ENDDO
 
         !add edge energies
-        DO k=K_SHELL,L3_SHELL
+        DO k=K_SHELL,M5_SHELL
                 temp_energy = EdgeEnergy(i,k)
+                IF (temp_energy < lowe) CYCLE
                 IF (temp_energy > 0.0_C_FLOAT) THEN
-                        energies_flt = [energies_flt,&
-                         temp_energy+0.00001_C_FLOAT]
-                        energies_flt = [energies_flt,&
-                         temp_energy-0.00001_C_FLOAT]
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy+0.00001_C_FLOAT]
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy-0.00001_C_FLOAT]
+                        ALLOCATE(temp_array(SIZE(energies_flt)+2))
+                        temp_array(1:SIZE(energies_flt)) = energies_flt
+                        CALL MOVE_ALLOC(temp_array, energies_flt)
+                        energies_flt(SIZE(energies_flt)-1)=temp_energy+0.00001_C_FLOAT
+                        energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_FLOAT
                 ENDIF
         ENDDO
         

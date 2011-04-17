@@ -337,6 +337,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         !Calculate energy with rng
                         photon%energy = exc%discrete(i)%energy 
                         photon%energy_changed=.FALSE.
+                        ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
                         photon%initial_mus = initial_mus
                         photon%current_layer = 1
