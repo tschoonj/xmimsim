@@ -123,10 +123,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !so we survived the collimator...
         !calculate the angle between the photon*dirv and line_coll%dirv
         dotprod = DOT_PRODUCT(dirv, line_coll%dirv)
-        IF (dotprod .GE. 1.0 .OR. dotprod .LE. -1.0) THEN
-                WRITE(*,'(A,3F12.5)') 'dirv: ',dirv
-                WRITE(*,'(A,3F12.5)') 'line_coll%dirv: ',line_coll%dirv
+
+        !avoid floating point exceptions...
+        IF (dotprod .GT. 1.0_C_DOUBLE) THEN
+                dotprod = 1.0_C_DOUBLE
+        ELSEIF (dotprod .LT. -1.0_C_DOUBLE) THEN
+                dotprod = -1.0_C_DOUBLE
         ENDIF
+
         theta = ACOS(dotprod)
         !WRITE (*,'(A,F12.5)') 'dotprod: ',dotprod
         
@@ -164,7 +168,16 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         photon%dirv
         CALL normalize_vector(new_dirv_proj)
         elecv_norm = photon%elecv/norm(photon%elecv)
-        phi = ACOS(DOT_PRODUCT(new_dirv_proj,elecv_norm))
+
+        dotprod = DOT_PRODUCT(new_dirv_proj,elecv_norm)
+        !avoid floating point exceptions...
+        IF (dotprod .GT. 1.0_C_DOUBLE) THEN
+                dotprod = 1.0_C_DOUBLE
+        ELSEIF (dotprod .LT. -1.0_C_DOUBLE) THEN
+                dotprod = -1.0_C_DOUBLE
+        ENDIF
+
+        phi = ACOS(dotprod)
 
 #if DEBUG == 1
         WRITE (6,'(A,3ES12.4)') 'new_dirv_proj:',new_dirv_proj
