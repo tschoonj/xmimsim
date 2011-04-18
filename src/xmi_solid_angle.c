@@ -1,7 +1,7 @@
 #include "xmi_solid_angle.h"
 #include <hdf5.h>
 #include <glib.h>
-#include <strings.h>
+#include <string.h>
 #include <math.h>
 #include <stdlib.h>
 #include "xmi_aux.h"
