@@ -2483,6 +2483,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         ALLOCATE(photon%offspring)
         ALLOCATE(photon%offspring%mus(inputF%composition%n_layers))
         photon%offspring%options = photon%options
+        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
         photon%offspring%history=photon%history
         photon%offspring%current_layer = photon%current_layer
         photon%offspring%weight = photon%weight
@@ -2798,6 +2799,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
 
         !CALL normalize_vector(photon%offspring%dirv)
         photon%offspring%n_interactions=photon%n_interactions
+        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
         photon%offspring%history(photon%n_interactions,1) = line_new
         photon%offspring%history(photon%n_interactions,2) =&
         photon%current_element
