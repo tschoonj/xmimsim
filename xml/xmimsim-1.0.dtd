@@ -63,7 +63,7 @@
 <!-- outputfile structure -->
 
 
-<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history?, xmimsim-input)>
+<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history?, xmimsim-input, svg_graphs)>
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
@@ -79,3 +79,40 @@
 <!ATTLIST fluorescence_line_counts line_type CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts interaction_number CDATA #REQUIRED>
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
+
+<!-- svg stuff...  -->
+<!ELEMENT svg_graphs (svg_graph+)>
+<!ELEMENT svg_graph (svg:rect | svg:path | svg:text)*>
+<!ATTLIST svg_graph 
+	interaction_number CDATA #REQUIRED
+	spectrum_kind (convoluted|unconvoluted) #REQUIRED	
+>
+
+<!ELEMENT svg:rect EMPTY>
+<!ATTLIST svg:rect 
+	x CDATA #REQUIRED
+	y CDATA #REQUIRED
+	width CDATA #REQUIRED
+	height CDATA #REQUIRED
+	fill CDATA #REQUIRED
+	stroke CDATA #REQUIRED
+>
+<!ELEMENT svg:path EMPTY>
+<!ATTLIST svg:path 
+	d CDATA #REQUIRED
+	stroke CDATA #REQUIRED
+	stroke-width CDATA #IMPLIED
+	fill CDATA #IMPLIED
+	>
+
+<!ELEMENT svg:text (#PCDATA)>
+<!ATTLIST svg:text
+	x CDATA #REQUIRED
+	y CDATA #REQUIRED
+	transform CDATA #IMPLIED
+	font-size CDATA #REQUIRED
+	text-anchor CDATA #REQUIRED
+	text-align CDATA #IMPLIED
+	font-family CDATA #IMPLIED
+>
+
