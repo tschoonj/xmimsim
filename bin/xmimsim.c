@@ -289,12 +289,12 @@ int main (int argc, char *argv[]) {
 	if (rank != 0) {
 		xmi_free_input_F(&inputFPtr);
 		xmi_free_hdf5_F(&hdf5FPtr);
+		if (xmi_end_random_acquisition() == 0) {
+			return 1;
+		}
 	}
 #endif
 
-	if (xmi_end_random_acquisition() == 0) {
-		return 1;
-	}
 
 
 
@@ -491,6 +491,9 @@ int main (int argc, char *argv[]) {
 		}
 
 
+		if (xmi_end_random_acquisition() == 0) {
+			return 1;
+		}
 
 
 #ifdef HAVE_OPENMPI
