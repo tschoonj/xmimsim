@@ -69,11 +69,11 @@ ENDTYPE
 
 TYPE :: xmi_general
         REAL (C_FLOAT) :: version
-        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: outputfile
+        !CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: outputfile
         INTEGER (C_LONG) :: n_photons_interval
         INTEGER (C_LONG) :: n_photons_line
         INTEGER (C_INT) :: n_interactions_trajectory
-        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: comments
+        !CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: comments
 ENDTYPE
 
 !  xmi_layer

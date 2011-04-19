@@ -40,14 +40,14 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        REAL (C_DOUBLE), DIMENSION(:), POINTER  :: grid_dims_r_vals,&
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
         INTEGER :: max_threads, thread_num
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
-        INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+        INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
 #if DEBUG == 0
         LOGICAL, DIMENSION(3) :: flag_value
@@ -89,7 +89,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         !calculate useful theta range
         grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
-        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 grid_dims_theta(1)= 0.00001_C_DOUBLE
         ELSE
                 !assume cylindrical collimator for now
@@ -98,6 +98,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 (inputF%detector%collimator_radius+inputF%detector%detector_radius))
         ENDIF
 
+        IF (ALLOCATED(grid_dims_r_vals)) DEALLOCATE(grid_dims_r_vals)
+        IF (ALLOCATED(grid_dims_theta_vals)) DEALLOCATE(grid_dims_theta_vals)
         ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
         ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
 
@@ -121,6 +123,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
+        IF (ALLOCATED(solid_angles)) DEALLOCATE(solid_angles)
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
@@ -216,7 +219,7 @@ RESULT(rv)
 
         !make distinction between several cases: no collimator, cilindrical
         !collimator, conical collimator
-        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 !no collimator
                 r = r1
                 theta = theta1
@@ -340,7 +343,7 @@ RESULT(rv)
 
         detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
         detector_plane%normv = detector_normal
-        IF (outside_collimator .EQ. .TRUE.) THEN
+        IF (outside_collimator .EQV. .TRUE.) THEN
                 collimator_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, inputF%geometry%collimator_height]
                 collimator_plane%normv = detector_normal
         ENDIF
@@ -380,7 +383,7 @@ RESULT(rv)
                 photon_line%dirv = dirv_from_detector
 
 
-                IF (outside_collimator .EQ. .TRUE.) THEN
+                IF (outside_collimator .EQV. .TRUE.) THEN
                         !calculate intersection with collimator opening
                         IF (xmi_intersection_plane_line(collimator_plane, photon_line,&
                         intersection_point) == 0) THEN

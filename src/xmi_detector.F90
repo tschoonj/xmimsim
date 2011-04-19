@@ -23,7 +23,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
-        INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+        INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (fgsl_size_t), DIMENSION(100) :: pulses
         INTEGER (C_LONG) :: npulses, npulses_all
         TYPE (fgsl_ran_discrete_t) :: preproc
@@ -119,7 +119,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                                 !just one pulse...
                                 IF (pulses(1) .LT. 0 .OR. pulses(1) .GE.&
                                 nchannels) THEN
-                                        WRITE (6,'(A,I)') 'pulses exception:',&
+                                        WRITE (6,'(A,I10)') 'pulses exception:',&
                                         pulses(1)
                                 ENDIF
                                 new_channels(pulses(1)) = &
@@ -171,7 +171,9 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
-        channels_conv, channels_temp
+        channels_temp
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET, SAVE ::&
+        channels_conv
         INTEGER (C_LONG) :: nlim
         REAL (C_DOUBLE) :: a,b
         REAL (C_DOUBLE), PARAMETER :: c =&
@@ -193,8 +195,9 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
 #endif
 
         !allocate memory for results
-        ALLOCATE(channels_conv(nchannels), channels_temp(nchannels))
-
+        ALLOCATE(channels_temp(nchannels))
+        IF (ALLOCATED(channels_conv)) DEALLOCATE(channels_conv)
+        ALLOCATE(channels_conv(nchannels))
         !
         nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
         IF (nlim .GT. nchannels) nlim = nchannels
@@ -213,7 +216,7 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
 #endif
 
         !sum peaks
-        IF (options.use_sum_peaks .EQ. 1_C_INT) THEN
+        IF (options%use_sum_peaks .EQ. 1_C_INT) THEN
                 CALL xmi_detector_sum_peaks(inputF, channels_temp)
         ENDIF
         

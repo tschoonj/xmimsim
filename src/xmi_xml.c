@@ -959,10 +959,12 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 
+#if GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 26
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
+#endif
 	
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
@@ -1107,10 +1109,12 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 		return 0;
 	}
 
+#if GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 26
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
+#endif
 	
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");
