@@ -34,6 +34,8 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	hsize_t dims[2]; 
 	hsize_t xmi_input_strlen;
 	int i;
+	gchar *timestring;
+	GTimeVal time;
 
 
 
@@ -48,7 +50,12 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 
 
 	//create group name based on user and timestamp
-	sprintf(buffer,"%s %s",g_get_user_name(),g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)"));
+	g_get_current_time(&time);
+        timestring = g_time_val_to_iso8601(&time);
+	
+	sprintf(buffer,"%s %s",g_get_user_name(),timestring);
+
+	g_free(timestring);
 
 	//create group
 	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);

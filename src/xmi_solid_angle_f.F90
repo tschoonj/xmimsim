@@ -26,7 +26,7 @@ SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_string)&
 BIND(C,NAME='xmi_solid_angle_calculation')
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
 
@@ -49,7 +49,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -176,7 +176,7 @@ RESULT(rv)
 
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
         IMPLICIT NONE
@@ -210,7 +210,7 @@ RESULT(rv)
         REAL (C_DOUBLE) :: alpha1, alpha2, beta
         REAL (C_DOUBLE) :: cos_full_cone_apex
 
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -244,7 +244,7 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
-#if DEBUG == 0
+#if DEBUG == 1
                         CALL ieee_get_flag(ieee_usual, flag_value)
                         IF (ANY(flag_value)) THEN
                                 WRITE (*,'(A,I)') &
@@ -282,7 +282,7 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
-#if DEBUG == 0
+#if DEBUG == 1
                         CALL ieee_get_flag(ieee_usual, flag_value)
                         IF (ANY(flag_value)) THEN
                                 WRITE (*,'(A,I)') &
@@ -352,7 +352,7 @@ RESULT(rv)
 
         DO i=1,hits_per_single
             theta_rng = ACOS(1.0_C_DOUBLE-fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
-#if DEBUG == 0
+#if DEBUG == 1
             CALL ieee_get_flag(ieee_usual, flag_value)
             IF (ANY(flag_value)) THEN
                 WRITE (*,'(A,I)') &
@@ -430,7 +430,7 @@ coords)&
 RESULT(rv)
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
 
@@ -445,7 +445,7 @@ RESULT(rv)
         REAL (C_DOUBLE), DIMENSION(3) :: dirv
         REAL (C_DOUBLE) :: temp_theta
         INTEGER (C_INT) :: pos_1, pos_2
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -461,7 +461,7 @@ RESULT(rv)
 
 
         temp_theta = ACOS(DOT_PRODUCT(dirv, inputF%geometry%n_detector_orientation))
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
             WRITE (*,'(A,I)') &

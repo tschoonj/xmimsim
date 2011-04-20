@@ -257,6 +257,36 @@ enum {
 };
 
 
+void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign) {
+	g_return_if_fail (GTK_IS_CELL_RENDERER (cell));
+	g_return_if_fail (xalign >= 0.0 && xalign <= 1.0);
+	g_return_if_fail (yalign >= 0.0 && yalign <= 1.0);
+
+	if ((xalign != cell->xalign) || (yalign != cell->yalign)) {
+		g_object_freeze_notify (G_OBJECT (cell));
+	        if (xalign != cell->xalign) {
+			cell->xalign = xalign;
+			g_object_notify (G_OBJECT (cell), "xalign");
+		}
+
+		if (yalign != cell->yalign) {
+			cell->yalign = yalign;
+			g_object_notify (G_OBJECT (cell), "yalign");
+		}
+
+		g_object_thaw_notify (G_OBJECT (cell));
+	}
+}
+
+void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle, gboolean setting) {
+	g_return_if_fail (GTK_IS_CELL_RENDERER_TOGGLE (toggle));
+
+	if (toggle->activatable != setting) {
+		toggle->activatable = setting ? TRUE : FALSE;
+		g_object_notify (G_OBJECT (toggle), "activatable");
+	}
+}
+
 struct undo_single *check_changes_saved(int *status) {
 	struct undo_single *temp = current;
 	GtkTextIter iterb, itere;
@@ -975,7 +1005,10 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 #if DEBUG == 1
 	fprintf(stdout,"row activation detected\n");
 #endif
-	indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+	//indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+	indices = gtk_tree_path_get_indices(path);
+	depth = gtk_tree_path_get_depth(path);
+
 
 #if DEBUG == 1
 	fprintf(stdout,"depth: %i\n",depth);
@@ -1081,21 +1114,21 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Number of elements", renderer,"text",N_ELEMENTS_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Elements", renderer,"text",ELEMENTS_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//need to come up with a way to get pango markup here...
 	column = gtk_tree_view_column_new_with_attributes("Density (cm2/g)", renderer,"text",DENSITY_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
@@ -1104,7 +1137,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Thickness (cm)", renderer,"text",THICKNESS_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_resizable(column,TRUE);
@@ -1117,9 +1150,9 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 		rt->store = store;
 		rt->model = (GtkTreeModel *) tree;
 		renderer = gtk_cell_renderer_toggle_new();
-		gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 		gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
-		gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+		my_gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
 		g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(reference_layer_toggled_cb), rt);
 		column = gtk_tree_view_column_new_with_attributes("Reference layer?", renderer,"active",REFERENCE_COLUMN,NULL);
 		gtk_tree_view_column_set_resizable(column,TRUE);

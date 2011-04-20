@@ -353,6 +353,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
+                        ALLOCATE(photon%initial_mus(inputF%composition%n_layers))
                         photon%initial_mus = initial_mus
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
@@ -561,7 +562,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 !$omp end parallel
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
         WRITE (*,'(A,I)') 'Photons hitting the detector2...: ',detector_hits2
@@ -2837,6 +2838,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         !create offspring
         ALLOCATE(photon%offspring)
         !take over its history!
+        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
         photon%offspring%history=photon%history
         photon%offspring%energy = energy
         photon%offspring%energy_changed = .FALSE.
@@ -2868,7 +2870,6 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
 
         !CALL normalize_vector(photon%offspring%dirv)
         photon%offspring%n_interactions=photon%n_interactions
-        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
         photon%offspring%history(photon%n_interactions,1) = line_new
         photon%offspring%history(photon%n_interactions,2) =&
         photon%current_element
@@ -3065,7 +3066,7 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
 ENDSUBROUTINE xmi_update_photon_dirv
 
 SUBROUTINE xmi_update_photon_elecv(photon)
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
         IMPLICIT NONE
@@ -3073,7 +3074,7 @@ SUBROUTINE xmi_update_photon_elecv(photon)
        
         REAL (C_DOUBLE) :: cosalfa, c_alfa, sinalfa,c_ae, c_be
 
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -3081,7 +3082,7 @@ SUBROUTINE xmi_update_photon_elecv(photon)
         cosalfa = DOT_PRODUCT(photon%dirv,photon%elecv)
 
         c_alfa = ACOS(cosalfa)
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
                 WRITE (*,'(A)') &
@@ -3490,7 +3491,7 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
         !WRITE (*,'(A,F12.5)') 'radius: ', norm(detector_point)
         detector_point = MATMUL(inputF%detector%n_detector_orientation_new,detector_point)+inputF%geometry%p_detector_window        
 
-#if DEBUG == 0
+#if DEBUG == 1
 !        WRITE (*,'(A,3F12.5)') 'detector_point: ',detector_point
 !        CALL EXIT(1)
 #endif

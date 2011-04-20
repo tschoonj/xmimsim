@@ -54,6 +54,7 @@ int main (int argc, char *argv[]) {
 	double *channels;
 	double **channels_conv;
 	double **channels_conv_temp;
+	double *channels_conv_temp2;
 	char tempFile[100];
 	double zero_sum;
 	long int *brute_history;
@@ -279,8 +280,8 @@ int main (int argc, char *argv[]) {
 		channels_conv_temp = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
 	
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= pymca_input->general->n_interactions_trajectory ; j++) {
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, channels_conv_temp+j, xp->nchannels, options);
-
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, &channels_conv_temp2, xp->nchannels, options);
+			channels_conv_temp[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 		}
 		//write to xml outputfile
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
@@ -451,10 +452,8 @@ int main (int argc, char *argv[]) {
 	channels_conv = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
 	
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+i*xp->nchannels, channels_conv+i, xp->nchannels, options);
-
-
-
+		xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options);
+		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 	}
 
 	if (xmi_end_random_acquisition() == 0) {

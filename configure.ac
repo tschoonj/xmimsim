@@ -215,6 +215,9 @@ if test "x${FC:0:5}" = "xifort" && test "x$OS_DARWIN" = "x1" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Xlinker -openmp-link -Xlinker static"
 elif test "x${FC:0:5}" = "xifort" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Xcompiler $OPENMP_FCFLAGS -Xcompiler -threads -lpthread"
+#gfortran now...
+elif test "x${FC:0:8}" = "xgfortran" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Wc,$OPENMP_FCFLAGS"
 fi
 
 #LDFLAGS_XMIMSIM_LIB=

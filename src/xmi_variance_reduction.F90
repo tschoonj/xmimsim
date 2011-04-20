@@ -9,7 +9,7 @@ CONTAINS
 SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
 
@@ -41,7 +41,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight
 
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -67,7 +67,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         detector_point(2) = COS(theta)*radius
         detector_point(3) = SIN(theta)*radius
 
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
                 WRITE (*,'(A)') &
@@ -85,7 +85,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         total_distance = xmi_distance_two_points(detector_point,&
         line_coll%point)
 
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
                 WRITE (*,'(A)') &
@@ -110,7 +110,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 !                point_coll(1) = 0.0_C_DOUBLE
 !                
 !                IF (norm(point_coll) .GT. inputF%detector%collimator_radius) THEN
-!#if DEBUG == 0
+!#if DEBUG == 1
 !
 !#endif
 !                        RETURN
@@ -134,7 +134,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         theta = ACOS(dotprod)
         !WRITE (*,'(A,F12.5)') 'dotprod: ',dotprod
         
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
                 WRITE (*,'(A)') &
@@ -185,7 +185,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         WRITE (6,'(A,F12.4)') 'phi: ',phi
 #endif
 
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
                 WRITE (*,'(A)') &
@@ -671,7 +671,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 #undef layer
 #undef n_ia
 
-#if DEBUG == 0
+#if DEBUG == 1
         photon%theta_i2 = theta
         photon%phi_i2 = phi
 #endif

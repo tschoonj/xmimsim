@@ -923,6 +923,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	char version[100];
 	int i,j;
 	char buffer[1024];
+	gchar *timestring;
+	GTimeVal time;
 
 
 
@@ -964,6 +966,16 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
+#else
+	g_get_current_time(&time);
+        timestring = g_time_val_to_iso8601(&time);
+
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",timestring) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	g_free(timestring);
 #endif
 	
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
@@ -1028,6 +1040,8 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	int *uniqZ = NULL;
 	int nuniqZ = 1;
 	int found;
+	gchar *timestring;
+	GTimeVal time;
 
 
 
@@ -1047,7 +1061,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	     INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 */
 
-#if DEBUG == 0
+#if DEBUG == 1
 	fprintf(stdout,"Before uniqZ\n");
 #endif
 	uniqZ = (int *) realloc(uniqZ, sizeof(int));
@@ -1068,11 +1082,11 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 			}
 		}
 	}
-#if DEBUG == 0
+#if DEBUG == 1
 	fprintf(stdout,"After uniqZ\n");
 #endif
 	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
-#if DEBUG == 0
+#if DEBUG == 1
 	for (i = 0 ; i < nuniqZ ; i++)
 		fprintf(stdout,"Z: %i\n",uniqZ[i]);
 #endif
@@ -1114,6 +1128,16 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
+#else
+	g_get_current_time(&time);
+        timestring = g_time_val_to_iso8601(&time);
+
+	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",timestring) < 0) {
+		fprintf(stderr,"Error writing comment\n");
+		return 0;
+	}
+
+	g_free(timestring);
 #endif
 	
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
@@ -1260,7 +1284,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 	}
 
 	for (i = 0 ; i < nuniqZ ; i++) {
-#if DEBUG == 0
+#if DEBUG == 1
 		fprintf(stdout,"Element: %i\n",uniqZ[i]);
 #endif
 		for (j = 1 ; j <= 385 ; j++) {
@@ -1307,9 +1331,9 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 		}
 
 		for (i = 0 ; i < nuniqZ ; i++) {
-	#if DEBUG == 0
+#if DEBUG == 1
 			fprintf(stdout,"Element: %i\n",uniqZ[i]);
-	#endif
+#endif
 			for (j = 1 ; j <= 385 ; j++) {
 				for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)

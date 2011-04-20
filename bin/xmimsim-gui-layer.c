@@ -1,4 +1,5 @@
 #include "xmimsim-gui-layer.h"
+#include "xmimsim-gui.h"
 #include <stdlib.h>
 #include <string.h>
 #include "xraylib.h"
@@ -35,6 +36,56 @@ struct add_data {
 	GtkWidget *tree;
 	GtkTreeSelection *select;
 }; 
+
+
+typedef struct _ResponseData ResponseData;
+
+struct _ResponseData {
+	gint response_id;
+};
+
+static void response_data_free (gpointer data) {
+	g_slice_free (ResponseData, data);
+}
+
+static ResponseData* get_response_data (GtkWidget *widget, gboolean   create) {
+	ResponseData *ad = g_object_get_data (G_OBJECT (widget),"gtk-dialog-response-data");
+
+       	if (ad == NULL && create) {
+		ad = g_slice_new (ResponseData);
+		g_object_set_data_full (G_OBJECT (widget), g_intern_static_string("gtk-dialog-response-data"), ad, response_data_free);
+	}
+
+	return ad;
+}
+
+static GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint       response_id) {
+	GList *children;
+	GList *tmp_list;
+
+	g_return_val_if_fail (GTK_IS_DIALOG (dialog), NULL);
+
+	children = gtk_container_get_children (GTK_CONTAINER (dialog->action_area));
+
+	tmp_list = children;
+	while (tmp_list != NULL) {
+		GtkWidget *widget = tmp_list->data;
+		ResponseData *rd = get_response_data (widget, FALSE);
+
+		if (rd && rd->response_id == response_id) {
+			g_list_free (children);
+			return widget;
+		}
+
+		tmp_list = g_list_next (tmp_list);
+	}
+
+	g_list_free (children);
+
+	return NULL;
+}
+
+
 
 
 static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
@@ -559,8 +610,8 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	GtkWidget *compoundEntry;
 	GtkWidget *weightEntry;
 	GtkWidget *label;
-	GtkWidget *okButton=gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
-	GtkWidget *cancelButton=gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_REJECT);
+	GtkWidget *okButton=my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	GtkWidget *cancelButton=my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_REJECT);
 	struct compoundWidget *rv;
 
 	gtk_widget_set_sensitive(okButton, FALSE);
@@ -613,7 +664,9 @@ void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTree
 	double weight;
 	char buffer[512];
 
-	indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+	//indices = gtk_tree_path_get_indices_with_depth(path,&depth);
+	indices = gtk_tree_path_get_indices(path);
+	depth = gtk_tree_path_get_depth(path);
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(ad->store), &iter, path);
 	gtk_tree_model_get(GTK_TREE_MODEL(ad->store), &iter,  SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
@@ -690,14 +743,14 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	HBox = gtk_hbox_new(FALSE,5);
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Element", renderer,"text",SYMBOL_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Weight fraction (%)", renderer,"text",WEIGHT_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);

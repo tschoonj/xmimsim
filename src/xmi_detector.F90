@@ -32,7 +32,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         INTEGER (C_LONG) :: n_sum_counts
         INTEGER (fgsl_size_t) :: pulses_sum
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A)') 'Entering xmi_detector_sum_peaks'
 #endif
 
@@ -44,7 +44,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         lambda = Nt/inputF%detector%live_time
         mu = 1.0_C_DOUBLE/lambda
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A,ES12.4)') 'Nt: ',Nt
         WRITE (6,'(A,ES12.4)') 'lambda: ',lambda
         WRITE (6,'(A,ES12.4)') 'mu: ',mu
@@ -151,7 +151,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
      !file!!!
      !CALL fgsl_ran_discrete_free(preproc)
 
-#if DEBUG == 0
+#if DEBUG == 1
         WRITE (6,'(A,I)') 'Nt_long: ',Nt_long
         WRITE (6,'(A,I)') 'n_sum_counts: ',n_sum_counts
 #endif
