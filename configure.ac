@@ -235,7 +235,10 @@ OPENMPI_LIBADD=
 OPENMPI_CFLAGS=
 AC_ARG_ENABLE([mpi],[AS_HELP_STRING([--disable-mpi],[build without MPI support])],[enable_mpi=$enableval],[enable_mpi=check])
 
-AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
+if test x$enable_mpi != "xno" ; then
+	AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
+fi
+
 if test x$MPICC != xfail && test x$enable_mpi != "xno" ; then
 	if test x$MPICC = xmpicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])

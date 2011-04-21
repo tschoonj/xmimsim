@@ -113,8 +113,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL C_F_POINTER(xmi_hdf5_file, xmi_hdf5_fileF,[strlen(xmi_hdf5_file)])
         !ALLOCATE(CHARACTER(SIZE(xmi_hdf5_fileF)) :: xmi_hdf5_fileFF )
         !xmi_hdf5_fileFF(1:SIZE(xmi_hdf5_fileF)) = xmi_hdf5_fileF(1:SIZE(xmi_hdf5_fileF))
-        DO i=1,SIZE(xmi_hdf5_fileF)
-                xmi_hdf5_fileFF(i:i) = xmi_hdf5_fileF(i)
+        DO i=1,LEN(xmi_hdf5_fileFF)
+                IF (i .LE. SIZE(xmi_hdf5_fileF)) THEN
+                        xmi_hdf5_fileFF(i:i) = xmi_hdf5_fileF(i)
+                ELSE
+                        xmi_hdf5_fileFF(i:i) = ' ' 
+                ENDIF
         ENDDO
 
 #if DEBUG == 1
