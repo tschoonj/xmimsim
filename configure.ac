@@ -156,10 +156,16 @@ H5FC_PARSED=$($H5FC -show -shlib)
 
 COUNTER="0"
 
+AC_CHECK_PROGS([BASENAME], [basename gbasename],["fail"])
+
+if test x"$BASENAME" = xfail ; then
+	AC_MSG_ERROR([basename shell command not found])
+fi
+
 for i in $H5FC_PARSED
 do
 	if test x$COUNTER = "x0" ; then
-		H5FC_FC=$i
+		H5FC_FC=$($BASENAME $i)
 		COUNTER="1"
 	elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
 		H5FC_LINKER+="$i "
@@ -216,6 +222,8 @@ if test "x${FC:0:5}" = "xifort" && test "x$OS_DARWIN" = "x1" ; then
 elif test "x${FC:0:5}" = "xifort" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Xcompiler $OPENMP_FCFLAGS -Xcompiler -threads -lpthread"
 #gfortran now...
+elif test "x${FC:0:8}" = "xgfortran" && test "x$OS_DARWIN" = "x1" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Wc,$OPENMP_FCFLAGS"
 elif test "x${FC:0:8}" = "xgfortran" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Wc,$OPENMP_FCFLAGS"
 fi
