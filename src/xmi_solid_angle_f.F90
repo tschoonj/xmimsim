@@ -26,7 +26,7 @@ SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_string)&
 BIND(C,NAME='xmi_solid_angle_calculation')
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
 
@@ -40,16 +40,16 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        REAL (C_DOUBLE), DIMENSION(:), POINTER  :: grid_dims_r_vals,&
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
         INTEGER :: max_threads, thread_num
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
-        INTEGER (C_LONG), POINTER, DIMENSION(:) :: seeds
+        INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -89,7 +89,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         !calculate useful theta range
         grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
-        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 grid_dims_theta(1)= 0.00001_C_DOUBLE
         ELSE
                 !assume cylindrical collimator for now
@@ -98,6 +98,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 (inputF%detector%collimator_radius+inputF%detector%detector_radius))
         ENDIF
 
+        IF (ALLOCATED(grid_dims_r_vals)) DEALLOCATE(grid_dims_r_vals)
+        IF (ALLOCATED(grid_dims_theta_vals)) DEALLOCATE(grid_dims_theta_vals)
         ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
         ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
 
@@ -121,6 +123,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
+        IF (ALLOCATED(solid_angles)) DEALLOCATE(solid_angles)
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
@@ -173,7 +176,7 @@ RESULT(rv)
 
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
         IMPLICIT NONE
@@ -207,7 +210,7 @@ RESULT(rv)
         REAL (C_DOUBLE) :: alpha1, alpha2, beta
         REAL (C_DOUBLE) :: cos_full_cone_apex
 
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -216,7 +219,7 @@ RESULT(rv)
 
         !make distinction between several cases: no collimator, cilindrical
         !collimator, conical collimator
-        IF (inputF%detector%collimator_present .EQ. .FALSE.) THEN
+        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 !no collimator
                 r = r1
                 theta = theta1
@@ -241,7 +244,7 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
-#if DEBUG == 0
+#if DEBUG == 1
                         CALL ieee_get_flag(ieee_usual, flag_value)
                         IF (ANY(flag_value)) THEN
                                 WRITE (*,'(A,I)') &
@@ -279,7 +282,7 @@ RESULT(rv)
                         theta = ACOS(r1*COS(theta1)/r)
                         full_cone_base_radius = &
                         inputF%detector%collimator_radius!/SIN(theta)
-#if DEBUG == 0
+#if DEBUG == 1
                         CALL ieee_get_flag(ieee_usual, flag_value)
                         IF (ANY(flag_value)) THEN
                                 WRITE (*,'(A,I)') &
@@ -340,7 +343,7 @@ RESULT(rv)
 
         detector_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
         detector_plane%normv = detector_normal
-        IF (outside_collimator .EQ. .TRUE.) THEN
+        IF (outside_collimator .EQV. .TRUE.) THEN
                 collimator_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, inputF%geometry%collimator_height]
                 collimator_plane%normv = detector_normal
         ENDIF
@@ -349,7 +352,7 @@ RESULT(rv)
 
         DO i=1,hits_per_single
             theta_rng = ACOS(1.0_C_DOUBLE-fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
-#if DEBUG == 0
+#if DEBUG == 1
             CALL ieee_get_flag(ieee_usual, flag_value)
             IF (ANY(flag_value)) THEN
                 WRITE (*,'(A,I)') &
@@ -380,7 +383,7 @@ RESULT(rv)
                 photon_line%dirv = dirv_from_detector
 
 
-                IF (outside_collimator .EQ. .TRUE.) THEN
+                IF (outside_collimator .EQV. .TRUE.) THEN
                         !calculate intersection with collimator opening
                         IF (xmi_intersection_plane_line(collimator_plane, photon_line,&
                         intersection_point) == 0) THEN
@@ -427,7 +430,7 @@ coords)&
 RESULT(rv)
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
-#if DEBUG == 0
+#if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
 
@@ -442,7 +445,7 @@ RESULT(rv)
         REAL (C_DOUBLE), DIMENSION(3) :: dirv
         REAL (C_DOUBLE) :: temp_theta
         INTEGER (C_INT) :: pos_1, pos_2
-#if DEBUG == 0
+#if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
@@ -458,7 +461,7 @@ RESULT(rv)
 
 
         temp_theta = ACOS(DOT_PRODUCT(dirv, inputF%geometry%n_detector_orientation))
-#if DEBUG == 0
+#if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
             WRITE (*,'(A,I)') &

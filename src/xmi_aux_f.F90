@@ -69,11 +69,11 @@ ENDTYPE
 
 TYPE :: xmi_general
         REAL (C_FLOAT) :: version
-        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: outputfile
+        !CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: outputfile
         INTEGER (C_LONG) :: n_photons_interval
         INTEGER (C_LONG) :: n_photons_line
         INTEGER (C_INT) :: n_interactions_trajectory
-        CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: comments
+        !CHARACTER (KIND=C_CHAR,LEN=:),ALLOCATABLE :: comments
 ENDTYPE
 
 !  xmi_layer
@@ -654,10 +654,12 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 xmi_layer_temp(i)%thickness
                 CALL C_F_POINTER &
                 (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                ALLOCATE(xmi_inputF%composition%layers(i)%Z(xmi_layer_temp(i)%n_elements))
                 xmi_inputF%composition%layers(i)%Z = &
                 Z_temp
                 CALL C_F_POINTER &
                 (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                ALLOCATE(xmi_inputF%composition%layers(i)%weight(xmi_layer_temp(i)%n_elements))
                 xmi_inputF%composition%layers(i)%weight = &
                 weight_temp
         ENDDO
@@ -688,6 +690,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 CALL C_F_POINTER (xmi_excitation_temp%discrete,&
                 xmi_energy_temp,&
                 [xmi_inputF%excitation%n_discrete]) 
+                ALLOCATE(xmi_inputF%excitation%discrete(xmi_inputF%excitation%n_discrete))
                 xmi_inputF%excitation%discrete = xmi_energy_temp
         ENDIF
 
@@ -695,6 +698,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 CALL C_F_POINTER (xmi_excitation_temp%continuous,&
                 xmi_energy_temp,&
                 [xmi_inputF%excitation%n_continuous]) 
+                ALLOCATE(xmi_inputF%excitation%continuous(xmi_inputF%excitation%n_continuous))
                 xmi_inputF%excitation%continuous = xmi_energy_temp
         ENDIF
 
@@ -727,10 +731,12 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         xmi_layer_temp(i)%thickness
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%absorbers%exc_layers(i)%Z(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%exc_layers(i)%Z = &
                         Z_temp
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%absorbers%exc_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%exc_layers(i)%weight = &
                         weight_temp
                 ENDDO
@@ -750,10 +756,12 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         xmi_layer_temp(i)%thickness
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%absorbers%det_layers(i)%Z(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%det_layers(i)%Z = &
                         Z_temp
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%absorbers%det_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%det_layers(i)%weight = &
                         weight_temp
                 ENDDO
@@ -791,10 +799,12 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         xmi_layer_temp(i)%thickness
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%Z,Z_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%detector%crystal_layers(i)%Z(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%detector%crystal_layers(i)%Z = &
                         Z_temp
                         CALL C_F_POINTER &
                         (xmi_layer_temp(i)%weight,weight_temp,[xmi_layer_temp(i)%n_elements]  )
+                        ALLOCATE(xmi_inputF%detector%crystal_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%detector%crystal_layers(i)%weight = &
                         weight_temp
                 ENDDO

@@ -14,22 +14,32 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
         TYPE (xmi_input), POINTER :: xmi_inputF
         TYPE (xmi_hdf5),  POINTER :: xmi_hdf5F
         INTEGER :: i,j,k
-        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
+        TARGET :: uniqZ
         INTEGER (C_INT) :: rv
         
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
         !determine the unique Z and sort them
-        ASSOCIATE (layers => xmi_inputF%composition%layers)
-        uniqZ = [layers(1)%Z(1)]
-        DO i=1,SIZE(layers)
-                DO j=1,SIZE(layers(i)%Z) 
-                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
-                        [uniqZ,layers(i)%Z(j)]
+!        ASSOCIATE (layers => xmi_inputF%composition%layers)
+#define layer xmi_inputF%composition%layers
+        ALLOCATE(uniqZ(1))
+        uniqZ(1) = layer(1)%Z(1)
+        DO i=1,SIZE(layer)
+                DO j=1,SIZE(layer(i)%Z) 
+                        IF (.NOT. ANY(layer(i)%Z(j) == uniqZ)) THEN
+                                !uniqZ = &
+                                ![uniqZ,layers(i)%Z(j)]
+                                ALLOCATE(temp_array(SIZE(uniqZ)+1))
+                                temp_array(1:SIZE(uniqZ)) = uniqZ
+                                CALL MOVE_ALLOC(temp_array, uniqZ)
+                                uniqZ(SIZE(uniqZ)) = layer(i)%Z(j)
+                        ENDIF
                 ENDDO
         ENDDO
-        ENDASSOCIATE
+!        ENDASSOCIATE
+#undef layer
 
         CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
         INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
@@ -39,20 +49,24 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
                         WRITE (*,'(A)') &
                         'Error from xmi_update_input_from_hdf5: elements inconsistency'
                 ENDIF
-                ASSOCIATE (layers => xmi_inputF%composition%layers, &
-                n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
+!                ASSOCIATE (layers => xmi_inputF%composition%layers, &
+!                n_sample_orientation => xmi_inputF%geometry%n_sample_orientation )
+#define layer xmi_inputF%composition%layers
+#define n_sample_orientation xmi_inputF%geometry%n_sample_orientation
                 !create pointers
-                DO j=1,SIZE(layers)
-                        IF (.NOT. ALLOCATED(layers(j)%xmi_hdf5_Z_local)) & 
-                        ALLOCATE(layers(j)%xmi_hdf5_Z_local(layers(j)%n_elements))
-                        DO k=1,layers(j)%n_elements 
-                                IF (layers(j)%Z(k) == uniqZ(i)) &
-                                layers(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)   
+                DO j=1,SIZE(layer)
+                        IF (.NOT. ALLOCATED(layer(j)%xmi_hdf5_Z_local)) & 
+                        ALLOCATE(layer(j)%xmi_hdf5_Z_local(layer(j)%n_elements))
+                        DO k=1,layer(j)%n_elements 
+                                IF (layer(j)%Z(k) == uniqZ(i)) &
+                                layer(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)   
                         ENDDO
 
                 ENDDO
 
-                ENDASSOCIATE
+!                ENDASSOCIATE
+#undef layer
+#undef n_sample_orientation
         ENDDO
         rv=1
         RETURN
@@ -72,10 +86,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
         CHARACTER (C_CHAR), POINTER, DIMENSION(:) :: xmi_hdf5_fileF
-        CHARACTER (KIND=C_CHAR,LEN=:), ALLOCATABLE :: xmi_hdf5_fileFF
+        !CHARACTER (KIND=C_CHAR,LEN=:), ALLOCATABLE :: xmi_hdf5_fileFF
+        CHARACTER (KIND=C_CHAR,LEN=1000) :: xmi_hdf5_fileFF
         TYPE (xmi_input), POINTER :: xmi_inputF
         TYPE (xmi_hdf5),  POINTER :: xmi_hdf5F
-        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ
+        INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
+        TARGET :: uniqZ
         INTEGER :: i,j,k
 
         INTEGER (HID_T) :: file_id
@@ -95,10 +111,14 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !associate pointers C -> Fortran
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
         CALL C_F_POINTER(xmi_hdf5_file, xmi_hdf5_fileF,[strlen(xmi_hdf5_file)])
-        ALLOCATE(CHARACTER(SIZE(xmi_hdf5_fileF)) :: xmi_hdf5_fileFF )
+        !ALLOCATE(CHARACTER(SIZE(xmi_hdf5_fileF)) :: xmi_hdf5_fileFF )
         !xmi_hdf5_fileFF(1:SIZE(xmi_hdf5_fileF)) = xmi_hdf5_fileF(1:SIZE(xmi_hdf5_fileF))
-        DO i=1,SIZE(xmi_hdf5_fileF)
-                xmi_hdf5_fileFF(i:i) = xmi_hdf5_fileF(i)
+        DO i=1,LEN(xmi_hdf5_fileFF)
+                IF (i .LE. SIZE(xmi_hdf5_fileF)) THEN
+                        xmi_hdf5_fileFF(i:i) = xmi_hdf5_fileF(i)
+                ELSE
+                        xmi_hdf5_fileFF(i:i) = ' ' 
+                ENDIF
         ENDDO
 
 #if DEBUG == 1
@@ -106,15 +126,25 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 #endif
 
         !determine the unique Z and sort them
-        ASSOCIATE (layers => xmi_inputF%composition%layers)
-        uniqZ = [layers(1)%Z(1)]
-        DO i=1,SIZE(layers)
-                DO j=1,SIZE(layers(i)%Z) 
-                        IF (.NOT. ANY(layers(i)%Z(j) == uniqZ)) uniqZ = &
-                        [uniqZ,layers(i)%Z(j)]
+!        ASSOCIATE (layers => xmi_inputF%composition%layers)
+#define layer xmi_inputF%composition%layers
+        ALLOCATE(uniqZ(1))
+        uniqZ(1) = layer(1)%Z(1)
+        DO i=1,SIZE(layer)
+                DO j=1,SIZE(layer(i)%Z) 
+                        IF (.NOT. ANY(layer(i)%Z(j) == uniqZ)) THEN
+                                !uniqZ = &
+                                ![uniqZ,layers(i)%Z(j)]
+                                ALLOCATE(temp_array(SIZE(uniqZ)+1))
+                                temp_array(1:SIZE(uniqZ)) = uniqZ
+                                CALL MOVE_ALLOC(temp_array, uniqZ)
+                                uniqZ(SIZE(uniqZ)) = layer(i)%Z(j)
+                        ENDIF
                 ENDDO
         ENDDO
-        ENDASSOCIATE
+!        ENDASSOCIATE
+#undef layer
+
 
        CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
        INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
@@ -133,7 +163,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5open_f(error)
 
         !open file for reading
-        CALL h5fopen_f(xmi_hdf5_fileFF, H5F_ACC_RDONLY_F, file_id, error)
+        CALL h5fopen_f(TRIM(xmi_hdf5_fileFF), H5F_ACC_RDONLY_F, file_id, error)
 #if DEBUG == 1
         WRITE (*,'(A,I)') 'error code: ',error
 #endif
@@ -322,7 +352,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 CALL h5dopen_f(group_id,'Rayleigh and Compton probabilities',dset_id,error)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt(dims(1),2))
                 CALL h5dread_f(dset_id,&
-                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt,[dims(1),2],error)
+                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt,[dims(1),2_C_LONG],error)
                 CALL h5dclose_f(dset_id,error)
                 CALL h5gclose_f(group_id,error)
 
@@ -337,7 +367,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !close hdf5 fortran interface
         CALL h5close_f(error)
 
-#if DEBUG == 1
+#if DEBUG == 2
         ASSOCIATE (layers => xmi_inputF%composition%layers)
         !create pointers
         DO j=1,SIZE(layers)
@@ -413,7 +443,7 @@ USE,INTRINSIC :: ISO_FORTRAN_ENV
 
 IMPLICIT NONE
 
-INTEGER, PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
+INTEGER (C_LONG), PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_e_ip = 10000, nintervals_pz=1000000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
@@ -423,7 +453,8 @@ CHARACTER(200) :: error_message
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
         rayleigh_theta,compton_theta
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies, rs, trapez, thetas,sumz,phis,trapez2
-REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt
+REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
+temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
 
@@ -465,10 +496,10 @@ ALLOCATE(rayleigh_theta(maxz, nintervals_e, nintervals_r),&
 compton_theta(maxz, nintervals_e, nintervals_r),&
 energies(nintervals_e), rs(nintervals_r),&
 thetas(nintervals_theta),&
-doppler_pz(maxz, nintervals_r), pzs(nintervals_pz), fluor_yield_corr(maxz,K_SHELL:M5_SHELL), STAT=stat, errmsg=error_message )
+doppler_pz(maxz, nintervals_r), pzs(nintervals_pz), fluor_yield_corr(maxz,K_SHELL:M5_SHELL), STAT=stat)
 
 IF (stat /= 0) THEN 
-        WRITE (error_unit,*) 'Allocation failure:',trim(error_message)
+        WRITE (error_unit,*) 'Allocation failure in xmi_db'
         CALL EXIT(1)
 ENDIF
 
@@ -622,13 +653,19 @@ ENDIF
         ENDDO
 
         !add edge energies
-        DO k=K_SHELL,L3_SHELL
+        DO k=K_SHELL,M5_SHELL
                 temp_energy = EdgeEnergy(i,k)
+                IF (temp_energy < lowe) CYCLE
                 IF (temp_energy > 0.0_C_FLOAT) THEN
-                        energies_flt = [energies_flt,&
-                         temp_energy+0.00001_C_FLOAT]
-                        energies_flt = [energies_flt,&
-                         temp_energy-0.00001_C_FLOAT]
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy+0.00001_C_FLOAT]
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy-0.00001_C_FLOAT]
+                        ALLOCATE(temp_array(SIZE(energies_flt)+2))
+                        temp_array(1:SIZE(energies_flt)) = energies_flt
+                        CALL MOVE_ALLOC(temp_array, energies_flt)
+                        energies_flt(SIZE(energies_flt)-1)=temp_energy+0.00001_C_FLOAT
+                        energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_FLOAT
                 ENDIF
         ENDDO
         
@@ -715,7 +752,8 @@ ENDIF
                         CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS)+&
                         CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
                         CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*&
+                        CKTB(i,FM45_TRANS))*&
                         FluorYield(i,M5_SHELL)
         fluor_yield_corr(i,M2_SHELL) = &
                         !M2_SHELL
@@ -860,10 +898,10 @@ DEALLOCATE(rayleigh_theta,compton_theta,thetas)
 ALLOCATE(rayleigh_phi(nintervals_theta2,nintervals_r),& 
 compton_phi(nintervals_theta2,nintervals_e,nintervals_r),&
 thetas(nintervals_theta2),phis(nintervals_phi)&
-, STAT=stat, errmsg=error_message)
+, STAT=stat)
 
 IF (stat /= 0) THEN 
-        WRITE (error_unit,*) 'Allocation failure:',trim(error_message)
+        WRITE (error_unit,*) 'Allocation failure in xmi_db'
         CALL EXIT(1)
 ENDIF
 
@@ -1060,6 +1098,7 @@ CALL h5close_f(h5error)
 
 ENDSUBROUTINE xmi_db
 
+
 SUBROUTINE xmi_test_phis
 
 IMPLICIT NONE
@@ -1089,7 +1128,7 @@ INTEGER (C_LONG),PARAMETER :: nphis = 10000000
 
 rng_type = fgsl_rng_mt19937
 rng = fgsl_rng_alloc(rng_type)
-CALL fgsl_rng_set(rng, 314)
+CALL fgsl_rng_set(rng, 314_C_LONG)
 
 CALL h5open_f(error)
 
@@ -1108,12 +1147,12 @@ CALL h5gopen_f(file_id,'RayleighPhi',group_id,error)
 CALL h5dopen_f(group_id,'RayleighPhi_ICDF',dset_id,error)
 CALL h5dget_space_f(dset_id, dspace_id,error)
 CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
-WRITE (*,'(A,I)') 'ndims: ',ndims
+WRITE (*,'(A,I6)') 'ndims: ',ndims
 !Allocate memory
 ALLOCATE(dims(ndims))
 ALLOCATE(maxdims(ndims))
 CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
-WRITE (*,'(A,2I)') 'dims: ',dims
+WRITE (*,'(A,2I6)') 'dims: ',dims
 !read the dataset
 ALLOCATE(RayleighPhi_ICDF(dims(1),dims(2)))
 CALL h5dread_f(dset_id,&

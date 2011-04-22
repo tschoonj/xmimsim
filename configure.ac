@@ -62,9 +62,9 @@ PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
-PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.26.0)
+PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.14.0, [GTK_FOUND=yes],[GTK_FOUND=no])
 	#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
 	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
 		AC_MSG_ERROR([no GTK found on the system.])
@@ -156,10 +156,16 @@ H5FC_PARSED=$($H5FC -show -shlib)
 
 COUNTER="0"
 
+AC_CHECK_PROGS([BASENAME], [basename gbasename],["fail"])
+
+if test x"$BASENAME" = xfail ; then
+	AC_MSG_ERROR([basename shell command not found])
+fi
+
 for i in $H5FC_PARSED
 do
 	if test x$COUNTER = "x0" ; then
-		H5FC_FC=$i
+		H5FC_FC=$($BASENAME $i)
 		COUNTER="1"
 	elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
 		H5FC_LINKER+="$i "
@@ -215,6 +221,11 @@ if test "x${FC:0:5}" = "xifort" && test "x$OS_DARWIN" = "x1" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Xlinker -openmp-link -Xlinker static"
 elif test "x${FC:0:5}" = "xifort" ; then
 	LDFLAGS_XMIMSIM_LIB+=" -Xcompiler $OPENMP_FCFLAGS -Xcompiler -threads -lpthread"
+#gfortran now...
+elif test "x${FC:0:8}" = "xgfortran" && test "x$OS_DARWIN" = "x1" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Wc,$OPENMP_FCFLAGS"
+elif test "x${FC:0:8}" = "xgfortran" ; then
+	LDFLAGS_XMIMSIM_LIB+=" -Wc,$OPENMP_FCFLAGS"
 fi
 
 #LDFLAGS_XMIMSIM_LIB=
@@ -232,7 +243,10 @@ OPENMPI_LIBADD=
 OPENMPI_CFLAGS=
 AC_ARG_ENABLE([mpi],[AS_HELP_STRING([--disable-mpi],[build without MPI support])],[enable_mpi=$enableval],[enable_mpi=check])
 
-AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
+if test x$enable_mpi != "xno" ; then
+	AC_CHECK_PROGS([MPICC],[mpicc mpiicc],["fail"])
+fi
+
 if test x$MPICC != xfail && test x$enable_mpi != "xno" ; then
 	if test x$MPICC = xmpicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])

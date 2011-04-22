@@ -52,6 +52,7 @@ int main (int argc, char *argv[]) {
 	unsigned long int seed;
 	double *channels, *channelsdef;
 	double **channels_conv;
+	double *channels_conv_temp;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	int i,j;
@@ -379,7 +380,8 @@ int main (int argc, char *argv[]) {
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, channels_conv+i, nchannels,options);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options);
+			channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
 			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*nchannels+222]);

@@ -91,6 +91,8 @@ void update_undo_buffer(int kind, GtkWidget *widget);
 
 int check_changeables(void);
 
+void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle, gboolean setting);
+void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign);
 
 extern GtkWidget *saveW;
 extern GtkWidget *save_asW;

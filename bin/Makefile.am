@@ -24,7 +24,7 @@ xmimsim_db_LDADD = ../src/libxmimsim.la
 xmimsim_db_LDFLAGS = 
 
 xmimsim_harvester_SOURCES = xmimsim-harvester.c
-xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@
+xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
 xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
