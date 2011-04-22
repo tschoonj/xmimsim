@@ -55,7 +55,7 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-#the xraylib requirement will have to be changed to 2.14.1 or even 2.15.0
+#the xraylib requirement will have to be changed to 2.15.0
 PKG_CHECK_MODULES([xraylib],libxrl >= 2.14.0)
 PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
