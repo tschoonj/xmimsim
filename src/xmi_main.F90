@@ -635,7 +635,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         brute_historyF = RESHAPE(brute_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
 
         !multiply with live time
-        brute_historyF = brute_historyF*inputF%detector%live_time
+        brute_historyF = brute_historyF*inputF%detector%live_time*n_mpi_hosts
 
         brute_historyPtr = C_LOC(brute_historyF)
 
@@ -649,7 +649,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 ALLOCATE(var_red_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
                 var_red_historyF = RESHAPE(var_red_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
                 !multiply with live time
-                var_red_historyF = var_red_historyF*inputF%detector%live_time
+                var_red_historyF =&
+                var_red_historyF*inputF%detector%live_time*n_mpi_hosts
 
                 var_red_historyPtr = C_LOC(var_red_historyF)
         ELSE
