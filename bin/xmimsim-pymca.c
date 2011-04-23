@@ -247,14 +247,6 @@ int main (int argc, char *argv[]) {
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
-		if (channels != NULL)
-			free(channels);
-
-		if (brute_history != NULL)
-			free(brute_history);
-
-		if (var_red_history != NULL)
-			free(var_red_history);
 
 		if (i++ > XMI_PYMCA_MAX_ITERATIONS) {
 			fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
