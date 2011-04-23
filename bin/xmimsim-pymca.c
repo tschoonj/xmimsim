@@ -57,7 +57,7 @@ int main (int argc, char *argv[]) {
 	double *channels_conv_temp2;
 	char tempFile[100];
 	double zero_sum;
-	long int *brute_history;
+	double *brute_history;
 	double *var_red_history;
 	double sum_k, sum_l, sum_temp;
 	struct xmi_solid_angle *solid_angle_def;

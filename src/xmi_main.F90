@@ -61,9 +61,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel,line
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels 
-        INTEGER (C_LONG), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
+        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         !INTEGER (C_LONG), DIMENSION(:,:,:), POINTER :: brute_historyF
-        INTEGER (C_LONG), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
+        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
         !REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
@@ -179,7 +179,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !
 
         ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
-        brute_history = 0_C_LONG
+        brute_history = 0.0_C_DOUBLE
         last_shell = 0_C_INT
 
         ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,nchannels))
@@ -486,21 +486,21 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                         ABS(photon_temp%history(k,1)),k) = &
                                                         brute_history(element,&
                                                         ABS(photon_temp%history(k,1)),k) + &
-                                                        NINT(photon_temp%weight*det_corr_all&
-                                                        (element,ABS(photon_temp%history(k,1))),KIND=C_LONG)
+                                                        photon_temp%weight*det_corr_all&
+                                                        (element,ABS(photon_temp%history(k,1)))
                                                          
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
                                                         !rayleigh
                                                         brute_history(element,383+1,k) = &
                                                         brute_history(element,383+1,k) + &
-                                                        photon_temp%weight_long
+                                                        photon_temp%weight
                                                 ELSEIF &
                                                 (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
                                                         !compton
                                                         brute_history(element,383+2,k) = &
                                                         brute_history(element,383+2,k) + &
-                                                        photon_temp%weight_long
+                                                        photon_temp%weight
                                                 ENDIF
                                                 !ENDDO
 #if DEBUG == 1

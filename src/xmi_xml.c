@@ -1028,7 +1028,7 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 }
 
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
 
 
 	xmlTextWriterPtr writer;
@@ -1289,7 +1289,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 #endif
 		for (j = 1 ; j <= 385 ; j++) {
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
-				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
+				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 					continue;
 				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
 					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
@@ -1307,7 +1307,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 					fprintf(stderr,"Error writing interaction_number\n");
 					return 0;
 				}
-				if (xmlTextWriterWriteFormatString(writer,"%li",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+				if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
 				}
@@ -1336,7 +1336,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, long int *brute
 #endif
 			for (j = 1 ; j <= 385 ; j++) {
 				for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
-					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0)
+					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 						continue;
 					if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
 						fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
