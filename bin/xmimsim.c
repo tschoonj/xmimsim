@@ -22,6 +22,16 @@
 #include <gsl/gsl_randist.h>
 #include <string.h>
 
+#ifdef _WIN32
+  #define _UNICODE
+  #define UNICODE
+  #include <windows.h>
+  //NO MPI
+  #undef HAVE_OPENMPI
+#endif
+#ifdef _WIN64
+  #warn Win 64 platform detected... proceed at your own risk...
+#endif
 
 
 
@@ -103,7 +113,17 @@ int main (int argc, char *argv[]) {
 	};
 
 
-
+#ifdef _WIN32
+#define TOTALBYTES    8192
+#define BYTEINCREMENT 4096
+	LONG RegRV;
+	DWORD QueryRV;
+	LPTSTR subKey;
+	HKEY key;
+    	DWORD BufferSize = TOTALBYTES;
+        DWORD cbData;
+	PPERF_DATA_BLOCK PerfData;
+#endif
 
 
 
@@ -166,10 +186,49 @@ int main (int argc, char *argv[]) {
 	if (hdf5_file == NULL) {
 		//no option detected
 		//first look at default file
+#ifndef _WIN32
+		//UNIX mode...
 		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
 			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0)
+#else
+		//Windows mode: query registry
+		RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, (LPTSTR) "Software\xmimsim\data", 0, KEY_READ,&key);
+		if (RegRV != ERROR_SUCCESS) {
+			fprintf(stderr,"Error opening key Software\xmimsim\data in registry\n");
+			return 1;
+		}
+		PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
+		cbData = BufferSize;
+
+
+		QueryRV = RegQueryValueEx(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+		while( QueryRV == ERROR_MORE_DATA ) {
+		        // Get a buffer that is big enough.
+			BufferSize += BYTEINCREMENT;
+			PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
+			cbData = BufferSize;
+			QueryRV = RegQueryValueEx(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+		}
+		if (QueryRV != ERROR_SUCCESS) {
+			fprintf(stderr,"Error querying key Software\xmimsim\data in registry\n");
+			return 1;
+		}
+
+
+  #if DEBUG == 1
+		fprintf(stdout,"KeyValue: %s\n",PerfData);
+  #endif
+		
+		if (g_access(PerfData, F_OK | R_OK) == 0) {
+			hdf5_file = strdup(PerfData);
+			free(PerfData);
+			RegCloseKey(key);
+		}
+#endif
+		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
+			//look in current folder
 			hdf5_file = strdup("xmimsimdata.h5");
+		}
 		else {
 			//if not found abort...	
 			g_printf("Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
