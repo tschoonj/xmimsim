@@ -2,11 +2,14 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 
 bin_PROGRAMS = xmimsim \
 	xmimsim-db \
-	xmimsim-harvester \
 	xmimsim-pymca \
 	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
+endif
+
+if !OS_DARWIN
+bin_PROGRAMS += xmimsim-harvester
 endif
 
 noinst_PROGRAMS = xmimsim-init-solid-angles
