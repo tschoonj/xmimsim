@@ -5,6 +5,10 @@ USE :: hdf5
 USE :: xmimsim_aux
 USE :: fgsl
 
+#ifdef XMI_WINDOWS 
+#define H5T_NATIVE_DOUBLE 50331957_HID_T
+#endif
+
 CONTAINS
 
 FUNCTION xmi_update_input_from_hdf5(xmi_inputFPtr, xmi_hdf5FPtr) &
@@ -352,7 +356,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 CALL h5dopen_f(group_id,'Rayleigh and Compton probabilities',dset_id,error)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt(dims(1),2))
                 CALL h5dread_f(dset_id,&
-                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt,[dims(1),2_C_LONG],error)
+                H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt,[dims(1),2_8],error)
                 CALL h5dclose_f(dset_id,error)
                 CALL h5gclose_f(group_id,error)
 
@@ -443,7 +447,7 @@ USE,INTRINSIC :: ISO_FORTRAN_ENV
 
 IMPLICIT NONE
 
-INTEGER (C_LONG), PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
+INTEGER (8), PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_e_ip = 10000, nintervals_pz=1000000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
@@ -796,6 +800,7 @@ ENDDO Zloop
 CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F,file_id,h5error)
 
 !Create groups and fill them up...
+
 
 !#if DEBUG != 1
 DO i=1,maxz

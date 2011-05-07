@@ -2,14 +2,14 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 
 bin_PROGRAMS = xmimsim \
 	xmimsim-db \
-	xmimsim-pymca \
 	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
 
-if !OS_DARWIN
-bin_PROGRAMS += xmimsim-harvester
+if !OS_WINDOWS
+bin_PROGRAMS += xmimsim-harvester \
+	xmimsim-pymca
 endif
 
 noinst_PROGRAMS = xmimsim-init-solid-angles
@@ -81,10 +81,11 @@ xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
 
+if !OS_WINDOWS
 install-exec-hook:
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-pymca
-
+endif
 
 clean-local:
 	rm -f xmimsim-solid-angles.h5

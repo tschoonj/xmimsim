@@ -85,7 +85,9 @@ int main (int argc, char *argv[]) {
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
+#ifndef _WIN32
 	uid_t uid, euid;
+#endif
 	char *xmi_input_string;
 
 	static GOptionEntry entries[] = {
@@ -121,7 +123,7 @@ int main (int argc, char *argv[]) {
 	LPTSTR subKey;
 	HKEY key;
     	DWORD BufferSize = TOTALBYTES;
-        DWORD cbData;
+        DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
 #endif
 
@@ -137,16 +139,18 @@ int main (int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 #endif
 
+#ifndef _WIN32
 	//change euid to uid
 	uid = getuid();
 	euid = geteuid();
-
 #if DEBUG == 1
 	fprintf(stdout,"Begin uid: %i\n",(int) uid);
 	fprintf(stdout,"Begin euid: %i\n",(int) euid);
 #endif
 	//start without privileges
 	seteuid(uid);
+#endif
+
 
 #ifdef HAVE_OPENMPI
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -192,35 +196,35 @@ int main (int argc, char *argv[]) {
 			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
 #else
 		//Windows mode: query registry
-		RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, (LPTSTR) "Software\xmimsim\data", 0, KEY_READ,&key);
+		RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Software\\xmimsim\\data"), 0, KEY_READ,&key);
 		if (RegRV != ERROR_SUCCESS) {
-			fprintf(stderr,"Error opening key Software\xmimsim\data in registry\n");
+			fprintf(stderr,"Error opening key Software\\xmimsim\\data in registry\n");
 			return 1;
 		}
 		PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
-		cbData = BufferSize;
+		cbdata = BufferSize;
 
 
-		QueryRV = RegQueryValueEx(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
 		while( QueryRV == ERROR_MORE_DATA ) {
 		        // Get a buffer that is big enough.
 			BufferSize += BYTEINCREMENT;
 			PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
-			cbData = BufferSize;
-			QueryRV = RegQueryValueEx(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+			cbdata = BufferSize;
+			QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
 		}
 		if (QueryRV != ERROR_SUCCESS) {
-			fprintf(stderr,"Error querying key Software\xmimsim\data in registry\n");
+			fprintf(stderr,"Error querying key Software\\xmimsim\\data in registry\n");
 			return 1;
 		}
 
 
-  #if DEBUG == 1
-		fprintf(stdout,"KeyValue: %s\n",PerfData);
-  #endif
+#if DEBUG == 1
+		fprintf(stdout,"KeyValue: %s, bytes %i cbdata %i\n",(char *) PerfData,strlen((char *) PerfData), (int) cbdata);
+#endif
 		
-		if (g_access(PerfData, F_OK | R_OK) == 0) {
-			hdf5_file = strdup(PerfData);
+		if (g_access((char *)PerfData, F_OK | R_OK) == 0) {
+			hdf5_file = strdup((char *) PerfData);
 			free(PerfData);
 			RegCloseKey(key);
 		}
@@ -305,10 +309,14 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
 			//update hdf5 file
+#ifndef _WIN32
 			seteuid(euid);
+#endif
 			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
 				return 1;
+#ifndef _WIN32
 			seteuid(uid);
+#endif
 		}
 
 	}
