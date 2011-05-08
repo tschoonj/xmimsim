@@ -2929,6 +2929,12 @@ int main (int argc, char *argv[]) {
 	g_type_init();
 
 
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
+
 	//initialize undo system
 	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single ));		
 	current = redo_buffer;

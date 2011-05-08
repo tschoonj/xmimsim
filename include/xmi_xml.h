@@ -19,4 +19,5 @@ int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength)
 
 int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input);
 
+int xmi_xmlLoadCatalog(void);
 #endif

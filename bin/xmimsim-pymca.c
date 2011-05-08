@@ -72,6 +72,11 @@ int main (int argc, char *argv[]) {
 	//start without privileges
 	seteuid(uid);
 
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
 
 
 

@@ -160,6 +160,13 @@ int main (int argc, char *argv[]) {
 
 	//locale...
 	setlocale(LC_ALL,"C");
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
+
 	//
 	//options...
 	//1) use M-lines
