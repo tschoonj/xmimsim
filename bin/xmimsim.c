@@ -26,8 +26,11 @@
   #define _UNICODE
   #define UNICODE
   #include <windows.h>
+  #include <Shlobj.h>
   //NO MPI
-  #undef HAVE_OPENMPI
+  #ifdef HAVE_OPENMPI
+    #undef HAVE_OPENMPI
+  #endif
 #endif
 #ifdef _WIN64
   #warn Win 64 platform detected... proceed at your own risk...
@@ -53,6 +56,7 @@ int main (int argc, char *argv[]) {
 
 
 	//general variables
+	char *xmimsim_hdf5_solid_angles;
 	struct xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
@@ -125,6 +129,8 @@ int main (int argc, char *argv[]) {
     	DWORD BufferSize = TOTALBYTES;
         DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
+
+	char appDataPath[1024];
 #endif
 
 
@@ -298,15 +304,41 @@ int main (int argc, char *argv[]) {
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 
-	//channels = (double *) malloc(input->general->n_interactions_trajectory*nchannels*sizeof(double));
 
 	//check solid_angles
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
+		//determine filename first
+#ifndef _WIN32
+		xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
+#else
+
+		if (SHGetFolderPathA(NULL, CSIDL_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
+			fprintf(stderr,"Error retrieving AppDataPath\n");
+			return 1;
+		}
+		//add solid angle filename
+		strcat(appDataPath,"\\xmimsim_solid_angles.h5");
+
+		//check if file exist, if not create it
+		if (g_access(appDataPath, F_OK) != 0) {
+			//file does not exist, needs to be created
+			xmi_create_empty_solid_angle_hdf5_file(appDataPath);
+		}
+		//check if file is readable and writable
+		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
+			fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
+			return 1;
+		}
+		xmimsim_hdf5_solid_angles = appDataPath;
+#endif
+
+
+
 		//check if solid angles are already precalculated
-		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			//doesn't exist yet
@@ -319,7 +351,7 @@ int main (int argc, char *argv[]) {
 #ifndef _WIN32
 			seteuid(euid);
 #endif
-			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
+			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
 #ifndef _WIN32
 			seteuid(uid);
@@ -327,6 +359,7 @@ int main (int argc, char *argv[]) {
 		}
 
 	}
+
 
 #ifdef HAVE_OPENMPI
 	}

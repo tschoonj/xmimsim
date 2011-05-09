@@ -353,8 +353,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
-                        ALLOCATE(photon%initial_mus(inputF%composition%n_layers))
-                        photon%initial_mus = initial_mus
                         photon%current_layer = 1
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.

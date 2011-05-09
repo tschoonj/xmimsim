@@ -95,7 +95,9 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                 npulses_all = npulses_all+1
        
                 IF (npulses .GT. 100) THEN
-                        WRITE (6,'(A)') 'npulses maximum reached'
+                        WRITE (6,'(A)') 'pulsetrain maximum reached'
+                        WRITE (6,'(A)') 'Adjust pulsewidth value or'
+                        WRITE (6,'(A)') 'disable the pileup generation'
                         CALL EXIT(1)
                 ENDIF
 
