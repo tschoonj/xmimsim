@@ -1,0 +1,92 @@
+;Copyright (C) 2010-2011 Tom Schoonjans  
+
+;This program is free software: you can redistribute it and/or modify
+;it under the terms of the GNU General Public License as published by
+;the Free Software Foundation, either version 3 of the License, or
+;(at your option) any later version.
+
+;This program is distributed in the hope that it will be useful,
+;but WITHOUT ANY WARRANTY; without even the implied warranty of
+;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;GNU General Public License for more details.
+
+;You should have received a copy of the GNU General Public License
+;along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+
+
+
+!define PRODUCT_NAME "xmimsim"
+!define VERSION @VERSION@
+!define PRODUCT_WEB_SITE "http://github.com/tschoonj/xmimsim"
+!define PRODUCT_DIR_REGKEY "Software\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_ROOT_KEY "HKLM"
+!define abs_top_srcdir_win @abs_top_srcdir_win@
+!define abs_top_builddir_win @abs_top_builddir_win@
+!define GTK_INSTALLER_EXE "gtk2-runtime-2.22.0-2010-10-21-ash.exe"
+
+!include "MUI2.nsh"
+
+Name ${PRODUCT_NAME}
+OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
+RequestExecutionLevel none
+
+InstallDir "$PROGRAMFILES\xmimsim"
+InstallDirRegKey HKLM "SOFTWARE\${PRODUCT_NAME}" "InstallationDirectory"
+
+ShowInstDetails show
+ShowUnInstDetails show
+
+
+SetCompressor /SOLID lzma
+
+SetOverwrite ifnewer
+CRCCheck on
+
+!define MUI_ABORTWARNING
+
+!define MUI_WELCOMEPAGE_TEXT "Thank you for downloading xmimsim. This wizard will assist you in installing the required components to run the program"
+!define MUI_WELCOMEPAGE_TITLE_3LINES
+!insertmacro MUI_PAGE_WELCOME
+!define MUI_LICENSEPAGE_CHECKBOX
+!insertmacro MUI_PAGE_LICENSE "${abs_top_srcdir_win}\nsis\License.rtf"
+
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!define MUI_FINISHPAGE_TEXT "Thank you for installing xmimsim. Remember: the latest version of xmimsim can be obtained from the development repository on github"
+!define MUI_FINISHPAGE_LINK "xmimsim development link"
+!define MUI_FINISHPAGE_LINK_LOCATION ${PRODUCT_WEB_SITE} 
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Bin\xmimsim-gui.exe"
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+;!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.txt"
+!insertmacro MUI_PAGE_FINISH
+
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
+
+
+Section "-xmimsim core files" SecDummy
+;install dependencies
+;first GTK2-WIN
+SetShellVarContext all
+SetOutPath "$INSTDIR"
+DetailPrint "Installing GTK2-Runtime"
+File "nsis\${GTK_INSTALLER_EXE}"
+ExecWait '"${GTK_INSTALLER_EXE}" /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S /D=$INSTDIR\GTK2'
+Delete "$INSTDIR\${GTK_INSTALLER_EXE}"
+
+;check http://gtk-win.sourceforge.net/gsmartcontrol.nsi for some inspiration
+
+
+;next: all the dependencies: gsl, fgsl, hdf5, libxml2, libxslt, libgomp...
+
+
+
+
+;my own stuff
+
+
+SectionEnd
