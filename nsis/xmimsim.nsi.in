@@ -25,6 +25,8 @@
 !define abs_top_srcdir_win @abs_top_srcdir_win@
 !define abs_top_builddir_win @abs_top_builddir_win@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.22.0-2010-10-21-ash.exe"
+!define MY_HOME "C:\msys\1.0\home\schoon\"
+!define MY_MINGW "C:\MinGW64\"
 
 !include "MUI2.nsh"
 
@@ -68,6 +70,9 @@ CRCCheck on
 !insertmacro MUI_UNPAGE_FINISH
 
 
+!insertmacro MUI_LANGUAGE "English"
+
+
 Section "-xmimsim core files" SecDummy
 ;install dependencies
 ;first GTK2-WIN
@@ -82,11 +87,66 @@ Delete "$INSTDIR\${GTK_INSTALLER_EXE}"
 
 
 ;next: all the dependencies: gsl, fgsl, hdf5, libxml2, libxslt, libgomp...
+SetOutPath "$INSTDIR/Lib"
+DetailPrint "Installing GNU Scientific Library (GSL)"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgsl-0.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgslcblas-0.dll" "$INSTDIR\Lib" "$INSTDIR"
 
+DetailPrint "Installing GNU Scientific Library Fortran bindings (FGSL)"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib" "$INSTDIR"
 
+DetailPrint "Installing HDF5 (with Fortran bindings)"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing libxml2"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing libxslt"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing xraylib (with Fortran bindings)"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing gfortran runtime libraries"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing OpenMP runtime libraries"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgomp-1.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing POSIX threads runtime libraries"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib" "$INSTDIR"
 
 
 ;my own stuff
+DetailPrint "Installing XMIMSIM runtime library"
+!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxmimsim-0.dll" "$INSTDIR\Lib" "$INSTDIR"
+
+DetailPrint "Installing XMIMSIM executables"
+SetOutPath "$INSTDIR\Bin"
+File "${MY_HOME}bin\xmimsim.exe"
+File "${MY_HOME}bin\xmimsim-db.exe"
+File "${MY_HOME}bin\xmimsim-gui.exe"
+File "${MY_HOME}bin\xmimsim-pymca.exe"
+File "${MY_HOME}bin\xmso2xmsi.exe"
+
+SetOutPath "$INSTDIR\Share"
+DetailPrint "Installing XMIMSIM HDF5 database"
+File "${MY_HOME}github\xmimsim\build\bin\xmimsimdata.h5"
+
+DetailPrint "Installing XMIMSIM XML and XSLT files"
+File "${MY_HOME}github\xmimsim\xml\xmimsim-1.0.dtd"
+File "${MY_HOME}github\xmimsim\xml\xmso2xmsi.xml"
+
+;catalog needs to be produced upon installation
+FileOpen $9 "$INSTDIR\Share\xmimsim_cat.xml"
+FileWrite $9 "<?xml version=$\"1.0$\"?>$\r$\n"
+FileWrite $9 "<!DOCTYPE catalog PUBLIC $\"-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN$\" $\"http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd$\">$\r$\n"
+FileWrite $9 "<catalog xmlns=$\"urn:oasis:names:tc:entity:xmlns:xml:catalog$\">$\r$\n"
+FileWrite $9 "<rewriteURI uriStartString=$\"http://www.xmi.UGent.be/xml$\"> "
+;make system call to produce URI
+FileClose $9
 
 
 SectionEnd
