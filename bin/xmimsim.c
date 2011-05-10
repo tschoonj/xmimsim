@@ -321,12 +321,13 @@ int main (int argc, char *argv[]) {
 		}
 		//add solid angle filename
 		strcat(appDataPath,"\\xmimsim\\xmimsim_solid_angles.h5");
-
+		/*
 		//check if file exist, if not create it
 		if (g_access(appDataPath, F_OK) != 0) {
 			//file does not exist, needs to be created
 			xmi_create_empty_solid_angle_hdf5_file(appDataPath);
 		}
+		*/
 		//check if file is readable and writable
 		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
 			fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
