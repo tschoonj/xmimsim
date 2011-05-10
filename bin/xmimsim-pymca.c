@@ -254,12 +254,12 @@ int main (int argc, char *argv[]) {
 	xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
 #else
 
-	if (SHGetFolderPathA(NULL, CSIDL_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
+	if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
 		fprintf(stderr,"Error retrieving AppDataPath\n");
 		return 1;
 	}
 	//add solid angle filename
-	strcat(appDataPath,"\\xmimsim_solid_angles.h5");
+	strcat(appDataPath,"\\xmimsim\\xmimsim_solid_angles.h5");
 
 	//check if file exist, if not create it
 	if (g_access(appDataPath, F_OK) != 0) {

@@ -35,7 +35,7 @@ OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
 RequestExecutionLevel none
 
 InstallDir "$PROGRAMFILES\xmimsim"
-InstallDirRegKey HKLM "SOFTWARE\${PRODUCT_NAME}" "InstallationDirectory"
+InstallDirRegKey HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory"
 
 ShowInstDetails show
 ShowUnInstDetails show
@@ -78,7 +78,7 @@ Section "-xmimsim core files" SecDummy
 ;first GTK2-WIN
 SetShellVarContext all
 SetOutPath "$INSTDIR"
-DetailPrint "Installing GTK2-Runtime"
+DetailPrint "Installing GTK2 runtime"
 File "nsis\${GTK_INSTALLER_EXE}"
 ExecWait '"${GTK_INSTALLER_EXE}" /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S /D=$INSTDIR\GTK2'
 Delete "$INSTDIR\${GTK_INSTALLER_EXE}"
@@ -144,9 +144,123 @@ FileOpen $9 "$INSTDIR\Share\xmimsim_cat.xml"
 FileWrite $9 "<?xml version=$\"1.0$\"?>$\r$\n"
 FileWrite $9 "<!DOCTYPE catalog PUBLIC $\"-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN$\" $\"http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd$\">$\r$\n"
 FileWrite $9 "<catalog xmlns=$\"urn:oasis:names:tc:entity:xmlns:xml:catalog$\">$\r$\n"
-FileWrite $9 "<rewriteURI uriStartString=$\"http://www.xmi.UGent.be/xml$\"> "
+FileWrite $9 "<rewriteURI uriStartString=$\"http://www.xmi.UGent.be/xml/$\" "
 ;make system call to produce URI
+StrCpy $0 "$INSTDIR\Share\"
+System::Call "shlwapi::UrlCreateFromPath(t r0, t .r1, *i ${NSIS_MAX_STRLEN} r2, i0)"
+FileWrite $9 "rewritePrefix=$\"$1$\"/>$\r$\n"
+FileWrite $9 "</catalog>$\r$\n"
 FileClose $9
+;this needs to be verified carefully!!!
+
+;copy empty solid angles file to common appdata xmimsim folder
+SetOutPath "$APPDATA\xmimsim"
+File "${MY_HOME}github\xmimsim\build\bin\xmimsim-solid-angles.h5"
+
+;path modification
+${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
+
+;registry modifications
+WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory" "$INSTDIR"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}" "Vendor" "Tom Schoonjans"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}\data" "" "$INSTDIR\Share\xmimsimdata.h5"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}\catalog" "" "$INSTDIR\Share\xmimsim_cat.xml"
+WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayName" "${PRODUCT_NAME} ${VERSION}"
+WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayVersion" "${VERSION}"
+WriteRegDWORD HKLM ${PRODUCT_UNINST_KEY} "NoModify" 1
+WriteRegDWORD HKLM ${PRODUCT_UNINST_KEY} "NoRepair" 1
+WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
+WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
+WriteUninstaller "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+Section "Uninstall"
+SetShellVarContext all
+SetAutoClose false
+
+;GTK2
+DetailPrint "Uninstalling GTK2 runtime"
+ExecWait "$INSTDIR\GTK2\gtk2_runtime_uninst.exe /remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S"
+
+DetailPrint "Uninstalling GNU Scientific Library (GSL)"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgsl-0.dll"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgslcblas-0.dll"
+
+DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
+
+DetailPrint "Uninstalling HDF5 (with Fortran bindings)"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
+
+DetailPrint "Uninstalling libxml2"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
+
+DetailPrint "Uninstalling libxslt"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
+
+DetailPrint "Uninstalling xraylib (with Fortran bindings)"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll" 
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
+
+DetailPrint "Uninstalling gfortran runtime libraries"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 
+
+DetailPrint "Uninstalling OpenMP runtime libraries"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgomp-1.dll" 
+
+DetailPrint "Uninstalling POSIX threads runtime libraries"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
+
+DetailPrint "Uninstalling XMIMSIM runtime library"
+!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 
+
+RMDir "$INSTDIR\Lib"
+
+DetailPrint "Uninstalling XMIMSIM executables"
+Delete "$INSTDIR\Bin\xmimsim.exe"
+Delete "$INSTDIR\Bin\xmimsim-db.exe"
+Delete "$INSTDIR\Bin\xmimsim-gui.exe"
+Delete "$INSTDIR\Bin\xmimsim-pymca.exe"
+Delete "$INSTDIR\Bin\xmimsim-xmso2xmsi.exe"
+
+RMDir "$INSTDIR\Bin"
+
+DetailPrint "Uninstalling auxiliary files"
+Delete "$INSTDIR\Share\xmimsimdata.h5"
+Delete "$INSTDIR\Share\xmso2xmsi.xml"
+Delete "$INSTDIR\Share\xmimsim_cat.xml"
+Delete "$APPDATA\xmimsim\xmimsim-solid-angles.h5"
+
+RMDir "$APPDATA\xmimsim"
+RMDir "$INSTDIR\Share"
+
+
+
+Delete "$INSTDIR\Uninstall.exe"
+RMDir "$INSTDIR"
+
+${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
+;clean registry
+DeleteRegKey HKLM "Software\${PRODUCT_NAME}\data"
+DeleteRegKey HKLM "Software\${PRODUCT_NAME}\catalog"
+DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
+DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 
 
 SectionEnd
+
+Function .onInit
+ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "UninstallString"
+StrCmp $R0 "" done
+MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT_NAME} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." IDOK uninst
+Abort
+
+uninst:
+ClearErrors
+Exec $INSTDIR\Uninstall.exe
+
+done:
+
+FunctionEnd
+
