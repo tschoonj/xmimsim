@@ -47,8 +47,8 @@ int main (int argc, char *argv[]) {
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
-		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up (default)", NULL },
-		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up", NULL },
+		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
+		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -81,11 +81,11 @@ int main (int argc, char *argv[]) {
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
 	options.use_optimizations = 1;
-	options.use_sum_peaks = 1;
+	options.use_sum_peaks = 0;
 
 
 	//parse options
-	context = g_option_context_new ("inputfile");
+	context = g_option_context_new ("inputfile outputfile");
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_set_summary(context, "xmimsim-pymca: a program for the quantification of X-ray fluorescence spectra using inverse Monte-Carlo simulations. Inputfiles should be prepared using PyMCA\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
@@ -108,8 +108,11 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
-	if (argc != 2)
+	if (argc != 3) {
+		fprintf(stdout,"%s\n",g_option_context_get_help(context, TRUE, NULL));
 		return 1;
+	}
+
 
 	//start random number acquisition
 	if (xmi_start_random_acquisition() == 0) {
@@ -453,7 +456,7 @@ int main (int argc, char *argv[]) {
 	}
 
 	//write to xml outputfile
-	if (xmi_write_output_xml("xmimsim-pymca_debug.xmso", pymca_input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+	if (xmi_write_output_xml(argv[2], pymca_input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 		return 1;
 	}
 
