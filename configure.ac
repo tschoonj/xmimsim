@@ -24,6 +24,7 @@ OS_WINDOWS=0
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
+		LDFLAGS+="-no-undefined"
 		;;
 esac
 
@@ -126,8 +127,6 @@ AC_CHECK_FUNC(getpid,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(setuid,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(getuid,,[AC_MSG_ERROR([Required libc function not found])])
-else
-AC_CHECK_FUNC(rand_s,,[AC_MSG_ERROR([Required libc function not found])])
 fi
 AC_CHECK_FUNC(strlen,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(strrchr,,[AC_MSG_ERROR([Required libc function not found])])

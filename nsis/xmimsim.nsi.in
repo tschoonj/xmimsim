@@ -17,7 +17,7 @@
 
 
 !define PRODUCT_NAME "xmimsim"
-!define VERSION @VERSION@
+!define VERSION @VERSION@ 
 !define PRODUCT_WEB_SITE "http://github.com/tschoonj/xmimsim"
 !define PRODUCT_DIR_REGKEY "Software\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -27,6 +27,10 @@
 !define MY_MINGW "C:\MinGW64\"
 
 !include "MUI2.nsh"
+!include "Library.nsh"
+!include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
+!include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
+!include "Sections.nsh"
 
 Name ${PRODUCT_NAME}
 OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
@@ -57,8 +61,6 @@ CRCCheck on
 !define MUI_FINISHPAGE_TEXT "Thank you for installing xmimsim. Remember: the latest version of xmimsim can be obtained from the development repository on github"
 !define MUI_FINISHPAGE_LINK "xmimsim development link"
 !define MUI_FINISHPAGE_LINK_LOCATION ${PRODUCT_WEB_SITE} 
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Bin\xmimsim-gui.exe"
-!define MUI_FINISHPAGE_RUN_NOTCHECKED
 ;!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.txt"
 !insertmacro MUI_PAGE_FINISH
 
@@ -77,7 +79,7 @@ Section "-xmimsim core files" SecDummy
 SetShellVarContext all
 SetOutPath "$INSTDIR"
 DetailPrint "Installing GTK2 runtime"
-File "nsis\${GTK_INSTALLER_EXE}"
+File "${MY_HOME}\github\xmimsim\nsis\${GTK_INSTALLER_EXE}"
 ExecWait '"${GTK_INSTALLER_EXE}" /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S /D=$INSTDIR\GTK2'
 Delete "$INSTDIR\${GTK_INSTALLER_EXE}"
 
@@ -85,41 +87,41 @@ Delete "$INSTDIR\${GTK_INSTALLER_EXE}"
 
 
 ;next: all the dependencies: gsl, fgsl, hdf5, libxml2, libxslt, libgomp...
-SetOutPath "$INSTDIR/Lib"
+SetOutPath "$INSTDIR\Lib"
 DetailPrint "Installing GNU Scientific Library (GSL)"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgsl-0.dll" "$INSTDIR\Lib" "$INSTDIR"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgslcblas-0.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgsl-0.dll" "$INSTDIR\Lib\libgsl-0.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgslcblas-0.dll" "$INSTDIR\Lib\libgslcblas-0.dll" "$INSTDIR"
 
 DetailPrint "Installing GNU Scientific Library Fortran bindings (FGSL)"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib\libfgsl-0.dll" "$INSTDIR"
 
 DetailPrint "Installing HDF5 (with Fortran bindings)"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib" "$INSTDIR"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib\libhdf5-6.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib\libhdf5_fortran-6.dll" "$INSTDIR"
 
 DetailPrint "Installing libxml2"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib\libxml2-2.dll" "$INSTDIR"
 
 DetailPrint "Installing libxslt"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib\libxslt-1.dll" "$INSTDIR"
 
 DetailPrint "Installing xraylib (with Fortran bindings)"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib" "$INSTDIR"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib\libxrl-3.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib\libxrlf03-3.dll" "$INSTDIR"
 
 DetailPrint "Installing gfortran runtime libraries"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib\libgfortran-3.dll" "$INSTDIR"
 
 DetailPrint "Installing OpenMP runtime libraries"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgomp-1.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgomp-1.dll" "$INSTDIR\Lib\libgomp-1.dll" "$INSTDIR"
 
 DetailPrint "Installing POSIX threads runtime libraries"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib\pthreadGC2.dll" "$INSTDIR"
 
 
 ;my own stuff
 DetailPrint "Installing XMIMSIM runtime library"
-!insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxmimsim-0.dll" "$INSTDIR\Lib" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxmimsim-0.dll" "$INSTDIR\Lib\libxmimsim-0.dll" "$INSTDIR"
 
 DetailPrint "Installing XMIMSIM executables"
 SetOutPath "$INSTDIR\Bin"
@@ -138,7 +140,7 @@ File "${MY_HOME}github\xmimsim\xml\xmimsim-1.0.dtd"
 File "${MY_HOME}github\xmimsim\xml\xmso2xmsi.xml"
 
 ;catalog needs to be produced upon installation
-FileOpen $9 "$INSTDIR\Share\xmimsim_cat.xml"
+FileOpen $9 "$INSTDIR\Share\xmimsim_cat.xml" w
 FileWrite $9 "<?xml version=$\"1.0$\"?>$\r$\n"
 FileWrite $9 "<!DOCTYPE catalog PUBLIC $\"-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN$\" $\"http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd$\">$\r$\n"
 FileWrite $9 "<catalog xmlns=$\"urn:oasis:names:tc:entity:xmlns:xml:catalog$\">$\r$\n"
@@ -155,8 +157,15 @@ FileClose $9
 SetOutPath "$APPDATA\xmimsim"
 File "${MY_HOME}github\xmimsim\build\bin\xmimsim-solid-angles.h5"
 
+;copy source tarball
+;DetailPrint "Copying xmimsim sources"
+SetOutPath "$INSTDIR\Sources"
+File "${MY_HOME}github\xmimsim\build\xmimsim-${VERSION}.tar.gz"
+
 ;path modification
 ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
+${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Lib"
+${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\GTK2"
 
 ;registry modifications
 WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory" "$INSTDIR"
@@ -169,6 +178,21 @@ WriteRegDWORD HKLM ${PRODUCT_UNINST_KEY} "NoModify" 1
 WriteRegDWORD HKLM ${PRODUCT_UNINST_KEY} "NoRepair" 1
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
+
+;start menu
+DetailPrint "Creating Start menu shortcuts"
+CreateDirectory "$SMPROGRAMS\XMI MSIM"
+createShortCut "$SMPROGRAMS\XMI MSIM\XMI MSIM.lnk" "$INSTDIR\Bin\xmimsim-gui.exe"
+createShortCut "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall.exe"
+
+
+;register xmsi extension
+DetailPrint "Registering xmsi extension"
+${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+
+
+
+
 WriteUninstaller "$INSTDIR\Uninstall.exe"
 SectionEnd
 
@@ -179,39 +203,40 @@ SetAutoClose false
 ;GTK2
 DetailPrint "Uninstalling GTK2 runtime"
 ExecWait "$INSTDIR\GTK2\gtk2_runtime_uninst.exe /remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S"
+RMDir /R "$INSTDIR\GTK2"
 
 DetailPrint "Uninstalling GNU Scientific Library (GSL)"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgsl-0.dll"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgslcblas-0.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgsl-0.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgslcblas-0.dll"
 
 DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
 
 DetailPrint "Uninstalling HDF5 (with Fortran bindings)"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
 
 DetailPrint "Uninstalling libxml2"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
 
 DetailPrint "Uninstalling libxslt"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
 
 DetailPrint "Uninstalling xraylib (with Fortran bindings)"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll" 
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
 
 DetailPrint "Uninstalling gfortran runtime libraries"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 
 
 DetailPrint "Uninstalling OpenMP runtime libraries"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgomp-1.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgomp-1.dll" 
 
 DetailPrint "Uninstalling POSIX threads runtime libraries"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
 
 DetailPrint "Uninstalling XMIMSIM runtime library"
-!insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 
 
 RMDir "$INSTDIR\Lib"
 
@@ -220,7 +245,7 @@ Delete "$INSTDIR\Bin\xmimsim.exe"
 Delete "$INSTDIR\Bin\xmimsim-db.exe"
 Delete "$INSTDIR\Bin\xmimsim-gui.exe"
 Delete "$INSTDIR\Bin\xmimsim-pymca.exe"
-Delete "$INSTDIR\Bin\xmimsim-xmso2xmsi.exe"
+Delete "$INSTDIR\Bin\xmso2xmsi.exe"
 
 RMDir "$INSTDIR\Bin"
 
@@ -228,23 +253,35 @@ DetailPrint "Uninstalling auxiliary files"
 Delete "$INSTDIR\Share\xmimsimdata.h5"
 Delete "$INSTDIR\Share\xmso2xmsi.xml"
 Delete "$INSTDIR\Share\xmimsim_cat.xml"
+Delete "$INSTDIR\Share\xmimsim-1.0.dtd"
 Delete "$APPDATA\xmimsim\xmimsim-solid-angles.h5"
 
 RMDir "$APPDATA\xmimsim"
 RMDir "$INSTDIR\Share"
 
-
+DetailPrint "Deleting Sources"
+Delete "$INSTDIR\Sources\xmimsim-${VERSION}.tar.gz"
+RMDir "$INSTDIR\Sources"
 
 Delete "$INSTDIR\Uninstall.exe"
 RMDir "$INSTDIR"
 
+DetailPrint "Cleaning registry"
 ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
+${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Lib"
+${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
 ;clean registry
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\data"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\catalog"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 
+delete "$SMPROGRAMS\XMI MSIM\XMI MSIM.lnk"
+delete "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk"
+RmDir "$SMPROGRAMS\XMI MSIM" 
+
+DetailPrint "Unregistering xmsi extension"
+${unregisterExtension} ".xmsi" "XMI MSIM inputfile"
 
 SectionEnd
 

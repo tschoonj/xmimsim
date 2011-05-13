@@ -32,6 +32,9 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h
 xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
+if OS_WINDOWS
+xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+endif
 
 
 #xmimsim_test_SOURCES = xmimsim-test.c

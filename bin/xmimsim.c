@@ -320,7 +320,7 @@ int main (int argc, char *argv[]) {
 			return 1;
 		}
 		//add solid angle filename
-		strcat(appDataPath,"\\xmimsim\\xmimsim_solid_angles.h5");
+		strcat(appDataPath,"\\xmimsim\\xmimsim-solid-angles.h5");
 		/*
 		//check if file exist, if not create it
 		if (g_access(appDataPath, F_OK) != 0) {
