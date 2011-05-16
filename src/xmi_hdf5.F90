@@ -451,7 +451,7 @@ INTEGER (8), PARAMETER :: nintervals_r = 2000, nintervals_e = 200, maxz = 94, &
 nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_e_ip = 10000, nintervals_pz=1000000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
-        PI = 3.14159265359,MEC2 = 510.998910,maxpz = 100.0
+        PI = 3.14159265359,maxpz = 100.0
 CHARACTER(200) :: error_message
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: &
@@ -546,7 +546,7 @@ ENDDO
 
 !CALL OMP_SET_NUM_THREADS(1)
 
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy,trapez2)
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,temp_energy,trapez2,temp_array)
 
 #if DEBUG == 2
 WRITE(6,*) 'multiple allocs'
