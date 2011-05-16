@@ -2,11 +2,14 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 
 bin_PROGRAMS = xmimsim \
 	xmimsim-db \
-	xmimsim-harvester \
 	xmimsim-pymca \
 	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
+endif
+
+if !OS_WINDOWS
+bin_PROGRAMS += xmimsim-harvester
 endif
 
 noinst_PROGRAMS = xmimsim-init-solid-angles
@@ -29,6 +32,9 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h
 xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
+if OS_WINDOWS
+xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+endif
 
 
 #xmimsim_test_SOURCES = xmimsim-test.c
@@ -78,10 +84,11 @@ xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
 
+if !OS_WINDOWS
 install-exec-hook:
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim
 	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-pymca
-
+endif
 
 clean-local:
 	rm -f xmimsim-solid-angles.h5

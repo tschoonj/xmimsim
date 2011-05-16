@@ -22,6 +22,74 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 
 
+#ifdef _WIN32
+#include <windows.h>
+int xmi_xmlLoadCatalog() {
+#define TOTALBYTES    8192
+#define BYTEINCREMENT 4096
+	LONG RegRV;
+	DWORD QueryRV;
+	LPTSTR subKey;
+	HKEY key;
+    	DWORD BufferSize = TOTALBYTES;
+        DWORD cbdata;
+	PPERF_DATA_BLOCK PerfData;
+	int rv;
+
+
+	RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Software\\xmimsim\\catalog"), 0, KEY_READ,&key);
+	if (RegRV != ERROR_SUCCESS) {
+		fprintf(stderr,"Error opening key Software\\xmimsim\\catalog in registry\n");
+		return 0;
+	}
+	PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
+	cbdata = BufferSize;
+
+
+	QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+	while( QueryRV == ERROR_MORE_DATA ) {
+	        // Get a buffer that is big enough.
+		BufferSize += BYTEINCREMENT;
+		PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
+		cbdata = BufferSize;
+		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+	}
+	if (QueryRV != ERROR_SUCCESS) {
+		fprintf(stderr,"Error querying key Software\\xmimsim\\catalog in registry\n");
+		return 0;
+	}
+
+	if (xmlLoadCatalog((gchar *) PerfData) != 0) {
+		fprintf(stderr,"Could not load %s\n",(gchar *) PerfData);
+		rv=0;
+	}
+	else {
+		rv=1;
+		free(PerfData);
+		RegCloseKey(key);
+	}
+
+	return rv;
+
+}
+
+#else
+int xmi_xmlLoadCatalog() {
+	char catalog[] = XMI_CATALOG;
+	int rv;
+
+	if (xmlLoadCatalog(catalog) != 0) {
+		fprintf(stderr,"Could not load %s\n",catalog);
+		rv=0;
+	}
+	else
+		rv=1;
+	
+	return rv;
+}
+#endif
+
+
 
 
 static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
@@ -751,16 +819,8 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
-	char catalog[] = XMI_CATALOG;
 
 	LIBXML_TEST_VERSION
-
-	//catalog code
-	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		return 0;
-	}
-
 
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
@@ -1921,15 +1981,7 @@ int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength)
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
-	char catalog[] = XMI_CATALOG;
 	int buffersize;
-
-	//catalog code
-	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		return 0;
-	}
-
 
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
@@ -1967,16 +2019,8 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
-	char catalog[] = XMI_CATALOG;
 
 	LIBXML_TEST_VERSION
-
-	//catalog code
-	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		return 0;
-	}
-
 
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {

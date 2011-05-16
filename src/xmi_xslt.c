@@ -33,7 +33,6 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	xmlDocPtr doc, res;
 	const char *params[1] = {NULL};
 	const xmlChar xsltfile[] = XMI_XMSO2XMSI_XSLT;
-	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
 
@@ -46,13 +45,6 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
-
-	//catalog code
-	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		return 0;
-	}
-
 	doc = xmlParseFile(xmsofile);
 	if (doc == NULL)
 		return 0;

@@ -2909,8 +2909,9 @@ int main (int argc, char *argv[]) {
 	char *title;
 	GtkTextBuffer *commentsBuffer;
 	GtkTextIter tib, tie;
-
-
+	gint main_height=900;
+	gint main_width=900;
+	gint main_temp;
 
 /*
  *
@@ -2926,6 +2927,12 @@ int main (int argc, char *argv[]) {
 	gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
+
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
 
 
 	//initialize undo system
@@ -2992,7 +2999,18 @@ int main (int argc, char *argv[]) {
 	gtk_init(&argc, &argv);
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_default_size(GTK_WINDOW(window),900,900);
+	//size must depend on available height (and width too I guess)
+	main_temp = 0.90* (double) gdk_screen_get_height(gdk_screen_get_default());
+	if (main_temp <= main_height)
+		main_height = main_temp;
+	
+	main_temp = 0.95* (double) gdk_screen_get_width(gdk_screen_get_default());
+	if (main_temp <= main_width)
+		main_width = main_temp;
+	
+
+
+	gtk_window_set_default_size(GTK_WINDOW(window),main_width,main_height);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
 	Main_vbox = gtk_vbox_new(FALSE,0);

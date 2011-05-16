@@ -1,4 +1,5 @@
 #include "xmi_xslt.h"
+#include "xmi_xml.h"
 #include <glib.h>
 #include <stdio.h>
 
@@ -15,6 +16,11 @@ int main(int argc, char *argv[]) {
 		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"XMSI outputfile",NULL},
 		{NULL}
 	};
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
 
 
 	//parse options

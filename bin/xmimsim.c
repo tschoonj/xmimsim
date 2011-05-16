@@ -22,6 +22,19 @@
 #include <gsl/gsl_randist.h>
 #include <string.h>
 
+#ifdef _WIN32
+  #define _UNICODE
+  #define UNICODE
+  #include <windows.h>
+  #include <Shlobj.h>
+  //NO MPI
+  #ifdef HAVE_OPENMPI
+    #undef HAVE_OPENMPI
+  #endif
+#endif
+#ifdef _WIN64
+  #warn Win 64 platform detected... proceed at your own risk...
+#endif
 
 
 
@@ -43,6 +56,7 @@ int main (int argc, char *argv[]) {
 
 
 	//general variables
+	char *xmimsim_hdf5_solid_angles;
 	struct xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
@@ -75,7 +89,9 @@ int main (int argc, char *argv[]) {
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
+#ifndef _WIN32
 	uid_t uid, euid;
+#endif
 	char *xmi_input_string;
 
 	static GOptionEntry entries[] = {
@@ -103,7 +119,19 @@ int main (int argc, char *argv[]) {
 	};
 
 
+#ifdef _WIN32
+#define TOTALBYTES    8192
+#define BYTEINCREMENT 4096
+	LONG RegRV;
+	DWORD QueryRV;
+	LPTSTR subKey;
+	HKEY key;
+    	DWORD BufferSize = TOTALBYTES;
+        DWORD cbdata;
+	PPERF_DATA_BLOCK PerfData;
 
+	char appDataPath[1024];
+#endif
 
 
 
@@ -117,16 +145,18 @@ int main (int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 #endif
 
+#ifndef _WIN32
 	//change euid to uid
 	uid = getuid();
 	euid = geteuid();
-
 #if DEBUG == 1
 	fprintf(stdout,"Begin uid: %i\n",(int) uid);
 	fprintf(stdout,"Begin euid: %i\n",(int) euid);
 #endif
 	//start without privileges
 	seteuid(uid);
+#endif
+
 
 #ifdef HAVE_OPENMPI
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -136,6 +166,13 @@ int main (int argc, char *argv[]) {
 
 	//locale...
 	setlocale(LC_ALL,"C");
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
+
 	//
 	//options...
 	//1) use M-lines
@@ -166,10 +203,49 @@ int main (int argc, char *argv[]) {
 	if (hdf5_file == NULL) {
 		//no option detected
 		//first look at default file
+#ifndef _WIN32
+		//UNIX mode...
 		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
 			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0)
+#else
+		//Windows mode: query registry
+		RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Software\\xmimsim\\data"), 0, KEY_READ,&key);
+		if (RegRV != ERROR_SUCCESS) {
+			fprintf(stderr,"Error opening key Software\\xmimsim\\data in registry\n");
+			return 1;
+		}
+		PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
+		cbdata = BufferSize;
+
+
+		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+		while( QueryRV == ERROR_MORE_DATA ) {
+		        // Get a buffer that is big enough.
+			BufferSize += BYTEINCREMENT;
+			PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
+			cbdata = BufferSize;
+			QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+		}
+		if (QueryRV != ERROR_SUCCESS) {
+			fprintf(stderr,"Error querying key Software\\xmimsim\\data in registry\n");
+			return 1;
+		}
+
+
+#if DEBUG == 1
+		fprintf(stdout,"KeyValue: %s, bytes %i cbdata %i\n",(char *) PerfData,strlen((char *) PerfData), (int) cbdata);
+#endif
+		
+		if (g_access((char *)PerfData, F_OK | R_OK) == 0) {
+			hdf5_file = strdup((char *) PerfData);
+			free(PerfData);
+			RegCloseKey(key);
+		}
+#endif
+		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
+			//look in current folder
 			hdf5_file = strdup("xmimsimdata.h5");
+		}
 		else {
 			//if not found abort...	
 			g_printf("Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
@@ -228,15 +304,42 @@ int main (int argc, char *argv[]) {
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 
-	//channels = (double *) malloc(input->general->n_interactions_trajectory*nchannels*sizeof(double));
 
 	//check solid_angles
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
+		//determine filename first
+#ifndef _WIN32
+		xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
+#else
+
+		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
+			fprintf(stderr,"Error retrieving AppDataPath\n");
+			return 1;
+		}
+		//add solid angle filename
+		strcat(appDataPath,"\\xmimsim\\xmimsim-solid-angles.h5");
+		/*
+		//check if file exist, if not create it
+		if (g_access(appDataPath, F_OK) != 0) {
+			//file does not exist, needs to be created
+			xmi_create_empty_solid_angle_hdf5_file(appDataPath);
+		}
+		*/
+		//check if file is readable and writable
+		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
+			fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
+			return 1;
+		}
+		xmimsim_hdf5_solid_angles = appDataPath;
+#endif
+
+
+
 		//check if solid angles are already precalculated
-		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			//doesn't exist yet
@@ -246,13 +349,18 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
 			//update hdf5 file
+#ifndef _WIN32
 			seteuid(euid);
-			if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle_def) == 0)
+#endif
+			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
+#ifndef _WIN32
 			seteuid(uid);
+#endif
 		}
 
 	}
+
 
 #ifdef HAVE_OPENMPI
 	}

@@ -330,9 +330,6 @@ TYPE :: xmi_photon
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 
-        !initial mus
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
-
         !current layer
         INTEGER (C_INT) :: current_layer
 

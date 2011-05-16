@@ -19,6 +19,18 @@ fi
 
 #similar will have to happen for linux in /etc/init.d
 
+#are we dealing with windows?
+OS_WINDOWS=0
+case "$host" in
+	*mingw*)
+		OS_WINDOWS=1
+		LDFLAGS+="-no-undefined"
+		;;
+esac
+
+AC_SUBST(OS_WINDOWS)
+AM_CONDITIONAL([OS_WINDOWS],[test x$OS_WINDOWS = x1])
+
 
 
 
@@ -83,16 +95,21 @@ AC_CHECK_HEADER(fcntl.h,,[AC_MSG_ERROR([Required header not found on the system]
 AC_CHECK_HEADER(signal.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stdlib.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(string.h,,[AC_MSG_ERROR([Required header not found on the system])])
+if test x$OS_WINDOWS = x0 ; then
 AC_CHECK_HEADER(sys/resource.h,,[AC_MSG_ERROR([Required header not found on the system])])
+AC_CHECK_HEADER(syslog.h,,[AC_MSG_ERROR([Required header not found on the system])])
+else
+AC_CHECK_HEADER(windows.h,,[AC_MSG_ERROR([Required header not found on the system])])
+fi
 AC_CHECK_HEADER(sys/stat.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(sys/types.h,,[AC_MSG_ERROR([Required header not found on the system])])
-AC_CHECK_HEADER(syslog.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(time.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(unistd.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stddef.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(math.h,,[AC_MSG_ERROR([Required header not found on the system])])
 
 #check for functions
+if test x$OS_WINDOWS = x0 ; then
 AC_CHECK_FUNC(umask,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(getrlimit,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(fork,,[AC_MSG_ERROR([Required libc function not found])])
@@ -107,14 +124,15 @@ AC_CHECK_FUNC(fcntl,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(strerror,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(ftruncate,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(getpid,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(setuid,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(getuid,,[AC_MSG_ERROR([Required libc function not found])])
+fi
 AC_CHECK_FUNC(strlen,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(strrchr,,[AC_MSG_ERROR([Required libc function not found])])
-AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
-AC_CHECK_FUNC(setuid,,[AC_MSG_ERROR([Required libc function not found])])
-AC_CHECK_FUNC(getuid,,[AC_MSG_ERROR([Required libc function not found])])
 
 #check for types
 AC_CHECK_TYPE([ptrdiff_t],,[AC_MSG_ERROR([ptrdiff_t type not found])])
@@ -295,7 +313,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT
