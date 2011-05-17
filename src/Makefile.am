@@ -1,4 +1,20 @@
+#Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
 
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+xmimsimincludedir = ${includedir}/xmimsim
+xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
@@ -24,6 +40,18 @@ libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_L
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 
 endif
+
+xmimsim_main.mod: libxmimsim.la
+
+xmimsim_aux.mod: libxmimsim.la
+
+xmimsim_solid_angle.mod: libxmimsim.la
+
+xmimsim_hdf5.mod: libxmimsim.la
+
+xmimsim_varred.mod: libxmimsim.la
+
+xmimsim_detector.mod: libxmimsim.la
 
 
 clean-local:

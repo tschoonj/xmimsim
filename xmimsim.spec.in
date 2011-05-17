@@ -1,0 +1,80 @@
+Name: xmimsim
+Version: @VERSION@
+Release: 	1%{?dist}
+Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers
+Group: 	Applications/Engineering and Scientific
+License: GPL
+Packager: Tom Schoonjans <Tom.Schoonjans@UGent.be>
+URL: http://github.com/tschoonj/xmimsim
+Source: xmimsim-%{version}.tar.gz
+BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+BuildRequires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-fortran >= 2.15.0 xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel
+Requires: libgfortran >= 4.4.0 glib2 gtk2 gsl fgsl xraylib >= 2.15.0 hdf5 libxml2 libxslt xraylib-fortran >= 2.15.0
+
+%description
+XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sample when irradiated with an X-ray beam.
+
+%package devel
+Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers: development package
+Requires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel xraylib-fortran >= 2.15.0
+
+%description devel
+XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sample when irradiated with an X-ray beam.
+
+
+%prep
+%setup -q
+
+%build
+%configure
+sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
+sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
+
+make
+
+#create database file
+./bin/xmimsim-db
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+libtool --finish $RPM_BUILD_ROOT%{_libdir}
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
+
+%files
+%defattr(-,root,root)
+%{_libdir}/libxmimsim.so.*
+%attr(0755,root,root) %caps(cap_setuid)  %{_bindir}/xmimsim
+%attr(0755,root,root) %caps(cap_setuid)  %{_bindir}/xmimsim-pymca
+%{_bindir}/xmimsim-db
+%{_bindir}/xmso2xmsi
+%{_prefix}/share/xmimsim/xmimsim-1.0.dtd
+%{_prefix}/share/xmimsim/xmso2xmsi.xml
+%{_prefix}/share/xmimsim/xmimsim_cat.xml
+%{_prefix}/share/xmimsim/xmimsim-solid-angles.h5
+%{_prefix}/share/xmimsim/xmimsimdata.h5
+
+#init script for harvester should come here...
+
+
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/xmimsim/*.h
+%{_includedir}/xmimsim/*.mod
+%{_libdir}/libxmimsim.so
+%{_libdir}/libxmimsim.a
+
+
+%changelog
+* Tue May 17 2011 Tom Schoonjans
+- First version of spec file

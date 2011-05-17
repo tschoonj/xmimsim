@@ -1,3 +1,18 @@
+#Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 AC_INIT([xmimsim],[0.1],[Tom.Schoonjans@UGent.be])
 AC_PREREQ([2.60])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -67,9 +82,8 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-#the xraylib requirement will have to be changed to 2.15.0
-PKG_CHECK_MODULES([xraylib],libxrl >= 2.14.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.14.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 2.15.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.15.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
@@ -313,7 +327,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT
