@@ -140,7 +140,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                                         new_channels(pulses_sum) + 1
                                 ENDIF
                         ENDIF
-                        IF (npulses_all .EQ. Nt_long/max_threads) EXIT
+                        IF (npulses_all .GE. Nt_long/max_threads) EXIT
                         npulses = 0
                 ENDIF
         ENDDO gardner
