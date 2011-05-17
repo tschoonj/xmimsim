@@ -239,7 +239,6 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		fprintf(stderr,"Invalid kind detected\n");
 		exit(1);
 	}
-	fprintf(stdout,"energy discrete hor intensity: %lg\n",energy->horizontal_intensity);
 	addOrEdit = ENERGY_EDIT;
 	discOrCont = kind; 
 

@@ -1390,9 +1390,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					);
 				free(elementString);
 			}
-#if DEBUG == 1
-
-#endif
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
@@ -1590,9 +1587,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					);
 				free(elementString);
 			}
-#if DEBUG == 1
-
-#endif
 			xmi_free_composition(det_compositionS);
 			xmi_copy_abs_or_crystal2composition((current-1)->xi->absorbers->det_layers,(current-1)->xi->absorbers->n_det_layers , &det_compositionS);
 			break;
@@ -1944,9 +1938,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					);
 				free(elementString);
 			}
-#if DEBUG == 1
-
-#endif
 			xmi_free_composition(exc_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->exc_layers,(current+1)->xi->absorbers->n_exc_layers , &exc_compositionS);
 			break;
@@ -1979,9 +1970,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					);
 				free(elementString);
 			}
-#if DEBUG == 1
-
-#endif
 			xmi_free_composition(det_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->det_layers,(current+1)->xi->absorbers->n_det_layers , &det_compositionS);
 			break;
@@ -2014,9 +2002,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					);
 				free(elementString);
 			}
-#if DEBUG == 1
-
-#endif
 			xmi_free_composition(crystal_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->detector->crystal_layers,(current+1)->xi->detector->n_crystal_layers , &crystal_compositionS);
 			break;
@@ -2313,7 +2298,6 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 
 
 static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) {
-	g_print("delete event occured\n");
 	//should check if the user maybe would like to save his stuff...
 	
 	quit_program_cb(widget,data);
