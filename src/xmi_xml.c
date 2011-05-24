@@ -2274,7 +2274,7 @@ int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
 		{if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
 
         if (error)
-       		 fprintf(stderr,"Error parameter svg element %s %s \n", element, parm);
+       		 fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);
 
          
 	return error;

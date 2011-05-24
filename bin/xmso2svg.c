@@ -8,12 +8,12 @@ int main(int argc, char *argv[]) {
 
 	GError *error = NULL;
         unsigned type;
-	static int use_unconvoluted;
+	static int use_unconvoluted=0;
 
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-           	{ "u", 0, 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Create unconvoluted graphs", NULL },
+           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Create unconvoluted graphs", NULL },
 		{NULL}
 	};
 
@@ -35,8 +35,6 @@ int main(int argc, char *argv[]) {
 	}
 
 
-        if (argv[3] != NULL) type = atoi(argv[3]); 
- 	else type = 0;
 
  	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
         

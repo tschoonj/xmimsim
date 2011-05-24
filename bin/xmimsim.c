@@ -356,7 +356,6 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-/home/pbrondee/xmimsim/bin/xmimsim.c
 
 #endif
 		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
