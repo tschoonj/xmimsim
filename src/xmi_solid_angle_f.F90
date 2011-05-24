@@ -142,10 +142,10 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
+        rng_type = fgsl_rng_mt19937
 
 !$omp parallel default(shared) private(j,rng, thread_num)
         thread_num = omp_get_thread_num()
-        rng_type = fgsl_rng_mt19937
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
