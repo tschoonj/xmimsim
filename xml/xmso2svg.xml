@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" ?>
+
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns="http://www.w3.org/1999/xhtml">
+<xsl:param name="type1"></xsl:param>
+<xsl:variable name="type2"><xsl:value-of select="$type1"/></xsl:variable>
+<xsl:variable name="selected">0</xsl:variable>
+<xsl:variable name="max_height">0</xsl:variable>
+
+<xsl:template name="main" match="/">
+<html>
+<svg  width="100%" height="4000" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<xsl:copy-of select="xmimsim-results"/>
+<xsl:for-each select="xmimsim-results/svg_graphs">
+
+<xsl:for-each select="graphic[id/name=$type2]">
+<xsl:variable name="graph_index"><xsl:value-of select="position() -1 "/></xsl:variable>
+
+<xsl:variable name="height_pre"><xsl:value-of select="rect/size/height"/></xsl:variable>
+
+<xsl:if test="$height_pre > $max_height">
+<xsl:variable name="selected"><xsl:value-of select="$graph_index"/></xsl:variable>
+<xsl:variable name="max_height"><xsl:value-of select="$height_pre"/></xsl:variable>
+</xsl:if>
+
+<xsl:variable name="height"><xsl:value-of select="$height_pre + 10"/></xsl:variable>
+<xsl:variable name="width"><xsl:value-of select="rect/size/width"/></xsl:variable>
+
+<xsl:variable name="x_base"><xsl:value-of select="100"/></xsl:variable>
+<xsl:variable name="y_base"><xsl:value-of select="60 + ($height + 60) * $graph_index "/></xsl:variable>
+
+<xsl:variable name="width_extra"><xsl:value-of select="$width + $x_base + 10"/></xsl:variable>
+<xsl:variable name="x_text"><xsl:value-of select="$x_base - 10"/></xsl:variable>
+<xsl:variable name="x_index"><xsl:value-of select="$x_base - 5"/></xsl:variable>
+<xsl:variable name="height_extra"><xsl:value-of select="$height + $y_base"/></xsl:variable>
+<xsl:variable name="height_text"><xsl:value-of select="$height + $y_base + 20"/></xsl:variable>
+<xsl:variable name="height_index"><xsl:value-of select="$height + $y_base + 5"/></xsl:variable>
+
+<!--rect-->
+<rect x="{$x_base}" y="{$y_base}" height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
+
+<!--x-axis-->
+<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" text-align="begin" font-family="Helvetica Condensed">
+<xsl:value-of select="rect/x-axis/name"/></text>
+<xsl:for-each select="rect/x-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
+<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" text-align="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
+<path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
+</xsl:for-each>
+
+<!--y-axis-->
+<xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
+<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed">
+<xsl:value-of select="rect/y-axis/name"/></text>
+<xsl:for-each select="rect/y-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
+<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
+<path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
+</xsl:for-each>
+
+
+<xsl:variable name="color"><xsl:value-of select="points/color"/></xsl:variable>
+<xsl:variable name="title_pos"><xsl:value-of select=" $y_base - 20"/></xsl:variable>
+
+<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:value-of select="id/interaction" />  </text>
+
+<xsl:for-each select="points/point">
+<xsl:variable name="pos"><xsl:value-of select="position()"/></xsl:variable>
+<xsl:variable name="x"><xsl:value-of select="x + $x_base"/></xsl:variable>
+<xsl:variable name="y"><xsl:value-of select="$height_extra - y"/></xsl:variable>
+<xsl:variable name="x_pre"><xsl:value-of select="preceding::x[1] + $x_base"/></xsl:variable>
+<xsl:variable name="y_pre"><xsl:value-of select="$height_extra - preceding::y[1]"/></xsl:variable>
+<xsl:if test="$pos>'1'">
+<path d="M {$x_pre} {$y_pre}  L {$x} {$y} " stroke="{$color}" stroke-width="1" fill="none"/>
+</xsl:if>
+
+</xsl:for-each>
+</xsl:for-each>
+</xsl:for-each>
+
+<xsl:copy-of select="xmimsim-results"/>
+<xsl:for-each select="xmimsim-results/svg_graphs">
+
+<xsl:for-each select="graphic[id/name=$type2]">
+<xsl:variable name="graph_index"><xsl:value-of select="position() -1 "/></xsl:variable>
+
+<xsl:variable name="height_pre"><xsl:value-of select="rect/size/height"/></xsl:variable>
+<xsl:variable name="height"><xsl:value-of select="$height_pre + 10"/></xsl:variable>
+<xsl:variable name="width"><xsl:value-of select="rect/size/width"/></xsl:variable>
+
+<xsl:variable name="x_base"><xsl:value-of select="300 + $width"/></xsl:variable>
+<xsl:variable name="y_base"><xsl:value-of select="60"/></xsl:variable>
+
+<xsl:variable name="width_extra"><xsl:value-of select="$width + $x_base + 10"/></xsl:variable>
+<xsl:variable name="x_text"><xsl:value-of select="$x_base - 10"/></xsl:variable>
+<xsl:variable name="x_index"><xsl:value-of select="$x_base - 5"/></xsl:variable>
+<xsl:variable name="height_extra"><xsl:value-of select="$height + $y_base"/></xsl:variable>
+<xsl:variable name="height_text"><xsl:value-of select="$height + $y_base + 20"/></xsl:variable>
+<xsl:variable name="height_index"><xsl:value-of select="$height + $y_base + 5"/></xsl:variable>
+
+<xsl:if test="$selected = $graph_index">
+
+<!--rect-->
+<rect x="{$x_base}" y="{$y_base}" height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
+
+<!--x-axis-->
+<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" text-align="begin" font-family="Helvetica Condensed">
+<xsl:value-of select="rect/x-axis/name"/></text>
+<xsl:for-each select="rect/x-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
+<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" text-align="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
+<path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
+</xsl:for-each>
+
+<!--y-axis-->
+<xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
+<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed">
+<xsl:value-of select="rect/y-axis/name"/></text>
+<xsl:for-each select="rect/y-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
+<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
+<path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
+</xsl:for-each>
+
+</xsl:if>
+
+<xsl:variable name="color2">
+<xsl:choose>
+  <xsl:when test="$graph_index = 0 ">blue</xsl:when>
+  <xsl:when test="$graph_index = 1 ">red</xsl:when>
+  <xsl:when test="$graph_index = 2 ">green</xsl:when>
+  <xsl:when test="$graph_index = 3 ">orange</xsl:when>
+  <xsl:otherwise>purple</xsl:otherwise>
+</xsl:choose>
+</xsl:variable>
+
+<xsl:variable name="color"><xsl:value-of select="$color2"/></xsl:variable>
+
+<xsl:variable name="title_pos"><xsl:value-of select=" $y_base - 40 + 10 * $graph_index"/></xsl:variable>
+
+<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:value-of select="id/interaction" />  </text>
+
+<xsl:for-each select="points/point">
+<xsl:variable name="pos"><xsl:value-of select="position()"/></xsl:variable>
+<xsl:variable name="x"><xsl:value-of select="x + $x_base"/></xsl:variable>
+<xsl:variable name="y"><xsl:value-of select="$height_extra - y"/></xsl:variable>
+<xsl:variable name="x_pre"><xsl:value-of select="preceding::x[1] + $x_base"/></xsl:variable>
+<xsl:variable name="y_pre"><xsl:value-of select="$height_extra - preceding::y[1]"/></xsl:variable>
+<xsl:if test="$pos>'1'">
+<path d="M {$x_pre} {$y_pre}  L {$x} {$y} " stroke="{$color}" stroke-width="1" fill="none"/>
+</xsl:if>
+
+</xsl:for-each>
+</xsl:for-each>
+</xsl:for-each>
+
+
+</svg>
+</html>
+
+
+</xsl:template>
+
+
+</xsl:stylesheet>
+

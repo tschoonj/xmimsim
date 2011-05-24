@@ -21,6 +21,7 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/
 bin_PROGRAMS = xmimsim \
 	xmimsim-db \
 	xmimsim-pymca \
+	xmso2svg \
 	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -94,6 +95,13 @@ xmimsim_init_solid_angles_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmim
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la
 xmso2xmsi_CFLAGS = @glib2_CFLAGS@
+
+xmso2svg_SOURCES = xmso2svg.c
+xmso2svg_LDADD = ../src/libxmimsim.la
+xmso2svg_CFLAGS = @glib2_CFLAGS@
+
+
+
 
 
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)

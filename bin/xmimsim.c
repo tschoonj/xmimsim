@@ -103,6 +103,8 @@ int main (int argc, char *argv[]) {
 	static gchar *spe_file_conv=NULL;
 	static gchar *csv_file_noconv=NULL;
 	static gchar *csv_file_conv=NULL;
+	static gchar *svg_file_noconv=NULL;
+	static gchar *svg_file_conv=NULL;
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
@@ -127,6 +129,8 @@ int main (int argc, char *argv[]) {
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
+		{"svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL},
+		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
 		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
 		{ "enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
@@ -480,7 +484,6 @@ int main (int argc, char *argv[]) {
 
 
 
-
 #endif
 		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
 		zero_sum = xmi_sum_double(channelsdef, nchannels);
@@ -580,7 +583,6 @@ int main (int argc, char *argv[]) {
 		}
 
 
-
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
 			for (j=1 ; j <= nchannels ; j++) {
@@ -609,6 +611,9 @@ int main (int argc, char *argv[]) {
 
 
 
+
+
+
 #if DEBUG == 1
 		fprintf(stdout,"Writing outputfile\n");
 #endif
@@ -616,6 +621,21 @@ int main (int argc, char *argv[]) {
 		//write to xml outputfile
 		if (xmi_write_output_xml(input->general->outputfile, input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
+		}
+
+		
+		if (svg_file_conv != NULL) {
+			// 0 = convoluted
+			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 0) == 0) {
+				return 1;
+			}
+		}
+
+		if (svg_file_noconv != NULL) {
+                        // 1 = unconvoluted
+			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 1) == 0) {
+				return 1;
+			}
 		}
 
 

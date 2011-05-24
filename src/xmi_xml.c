@@ -25,8 +25,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <math.h>
 #include <glib.h>
+#include <libxslt/xslt.h>
+#include <libxslt/xsltInternals.h>
+#include <libxslt/transform.h>
+#include <libxslt/xsltutils.h>
+#include <stdlib.h>
 
 
+#define SVG_DEFAULT_WIDTH 540
+#define SVG_DEFAULT_HEIGHT 300
+#define SVG_DEFAULT_BOX_WIDTH 500
+#define SVG_DEFAULT_BOX_HEIGHT 250
+#define SVG_DEFAULT_BOX_OFFSET_X 39
+#define SVG_DEFAULT_BOX_OFFSET_Y 10
+
+
+#define SVG_ENERGY_TO_SVG_COORDS(energy) (((SVG_DEFAULT_BOX_WIDTH)*(energy-channels[0])/(energies[nchannels-1]-energies[0]))+SVG_DEFAULT_BOX_OFFSET_X)
+
+#define SVG_INTENSITY_TO_SVG_COORDS(intensity) ((SVG_DEFAULT_BOX_OFFSET_Y+SVG_DEFAULT_BOX_HEIGHT-2)+(5+2-SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity)-minimum_log)/(maximum_log-minimum_log)) 
 
 static int readLayerXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
 static int readGeneralXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
@@ -37,7 +53,10 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorb
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels); 
+static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
+extern int xmlLoadExtDtdDefaultValue;
 
 #ifdef _WIN32
 #include <windows.h>
@@ -1105,11 +1124,8 @@ static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 }
 
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
 
-
-	xmlTextWriterPtr writer;
-	xmlDocPtr doc;
 	char version[100];
 	char detector_type[20];
 	int i,j,k;
@@ -1119,8 +1135,10 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 	int found;
 	gchar *timestring;
 	GTimeVal time;
+	xmlTextWriterPtr writer;
 
 
+//	fprintf(stdout, "pbro tells : xmi_write_output_doc \n"); 
 
 	LIBXML_TEST_VERSION
 
@@ -1170,7 +1188,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 
 
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+	if ((writer = xmlNewTextWriterDoc(doc,0)) == NULL) {
 		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
 		return 0;
 	}
@@ -1261,7 +1279,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-/*		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_conv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lf",channels_conv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
 		}*/
@@ -1317,7 +1335,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-/*		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "counts","%lf",channels_unconv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lf",channels_unconv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
 		}*/
@@ -1462,6 +1480,35 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 		return 0;
 	}
 
+	//write svg stuff
+	if (xmlTextWriterStartElement(writer, "svg_graphs") < 0) {
+		fprintf(stderr,"Error writing svg_graphs tag\n");
+		return 0;
+	}
+
+        //write svg_graph lines
+	for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+
+		//convoluted first
+	
+		if (xmi_write_input_xml_svg(writer, input, "convoluted", i, channels_conv[i], nchannels) == 0) {
+			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
+			return 0;
+		}
+
+		//unconvoluted second
+
+		if (xmi_write_input_xml_svg(writer, input, "unconvoluted", i,  channels_unconv+i*nchannels, nchannels) == 0) {
+			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
+			return 0;
+		}
+
+	}
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending svg_graphs tag\n");
+		return 0;
+	}
 
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
@@ -1474,6 +1521,23 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 	}
 
 	xmlFreeTextWriter(writer);
+
+	return 1;
+}
+
+int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+
+
+	xmlDocPtr doc;
+
+//	fprintf(stdout," pbro tells: xmi_write_output_xml \n " );
+
+	LIBXML_TEST_VERSION
+
+	if(xmi_write_output_doc(&doc, input, brute_history, var_red_history, channels_conv, channels_unconv, nchannels, inputfile, use_zero_interactions) == 0){	//pbro return 0;
+}
+
+
 	xmlSaveFileEnc(xmlfile,doc,NULL);
 	xmlFreeDoc(doc);
 
@@ -2133,6 +2197,242 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 
 }
+
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, double *channels, int nchannels) {
+	
+	double minimum, maximum;
+	double minimum_log, maximum_log;
+	double *energies;
+	int i;
+	double energy;
+	double intensity;
+	int intensity_int;
+	int energy_pos;
+	int error = 0;
+	int width = SVG_DEFAULT_BOX_WIDTH;
+	int height = SVG_DEFAULT_BOX_HEIGHT;
+ 	int energy_step = 5.0;
+	int max_channel;
+
+	// max and min
+	maximum = xmi_maxval_double(channels, nchannels);
+	minimum = xmi_minval_double(channels, nchannels);
+	maximum_log = log10(maximum);
+	minimum_log = log10(minimum);
+
+	max_channel = 0;
+	for (i = nchannels-1 ; i >= 0 ; i--) {
+		if (channels[i] >= 1) {
+		max_channel = i;
+		break;
+		}
+	}
+
+	energies = xmi_dindgen(nchannels);
+	xmi_add_val_to_array_double(energies, nchannels, 1.0);
+	xmi_scale_double(energies, nchannels, input->detector->gain);
+	xmi_add_val_to_array_double(energies, nchannels, input->detector->zero);
+
+	// start plot graphic
+	if(!error) error = write_start_element(writer, "graphic");
+
+       	if(!error) error = write_start_element(writer,  "id");
+
+	if(!error) error = write_char_element(writer, "name", name);
+	if(!error) error = write_int_element(writer,  "interaction", (int) interaction);
+
+       	if(!error) error = write_end_element(writer,  "id");
+
+        //create box
+        if(!error) error = write_start_element(writer, "rect");
+	
+       	if(!error) error = write_start_element(writer, "view");
+       	if(!error) error = write_end_element(writer, "view");
+
+
+       	if(!error) error = write_start_element(writer, "size");
+		if(!error) error = write_int_element(writer,  "width", (int) width);
+		if(!error) error = write_int_element(writer, "height", (int) height);
+		if(!error) error = write_char_element(writer, "test", "test");
+
+       	if(!error) error = write_end_element(writer, "size");
+
+	// x-axis
+      	if(!error) error = write_start_element(writer, "x-axis");
+        if(!error) error = write_char_element(writer, "name", "var(unit)");
+	//for now print energy every 5 keV on X-axis
+	energy = 0.0;
+	while (energy <= energies[max_channel]) {
+		if(!error) error = write_start_element(writer, "index");
+		if(!error) error = write_int_element(writer,  "value", (int) e2c(energy, channels, energies, max_channel));
+		if(!error) error = write_int_element(writer,  "name", (int) energy);
+		if(!error) error = write_end_element(writer,"index");
+	energy += energy_step;
+	} 
+	if(!error) error = write_end_element(writer,"x-axis");
+	// end x-axis
+
+        // start y-axis
+       	if(!error) error = write_start_element(writer, "y-axis");
+ 	if(!error) error = write_char_element(writer, "name", "var(unit)");
+
+	if (minimum_log < 0.0) {
+		minimum_log = 0.0;
+	}
+
+	intensity = 1.0;	
+	while (intensity <= maximum) {
+		if (intensity < minimum) {
+			intensity *= 10.0;
+			continue;
+		}
+
+		if(!error) error = write_start_element(writer, "index");
+		if(!error) error = write_int_element(writer,  "value", (int) i2c(intensity, maximum_log, minimum_log));
+		if(!error) error = write_int_element(writer,  "name", (int) intensity);
+		if(!error) error = write_end_element(writer,"index");
+
+		intensity *= 10.0;
+	}      	
+       	if(!error) error = write_end_element(writer, "y-axis");
+	// end y-axis
+
+       	if(!error) error = write_end_element(writer, "rect");
+	// end create box
+       	
+        //loop grafic
+	if(!error) error = write_start_element(writer,  "points");
+  	if(!error) error = write_char_element(writer, "color", "blue");
+
+	//loop point			
+	for (i = 0 ; i <= max_channel ; i++) {
+		if(!error) error = write_start_element(writer,  "point");
+		if(!error) error = write_int_element(writer,  "x", (int) e2c(energies[i], channels, energies, max_channel));
+		if(!error) error = write_int_element(writer,  "y", (int) i2c(channels[i], maximum_log, minimum_log));
+		if(!error) error = write_end_element(writer,  "point");	       
+		}
+	//end loop point
+
+       	if(!error) error = write_end_element(writer,  "points");		
+
+       	if(!error) error = write_end_element(writer,  "graphic");
+        //end loop
+
+
+        if(error)
+		return 0;
+	else
+		return 1;
+
+
+} 
+
+
+int write_start_element(xmlTextWriterPtr writer, char *element){
+ 	int error;
+	 error = 0;
+
+ 	if (xmlTextWriterStartElement(writer, element) < 0) {
+		fprintf(stderr,"Error starting svg element %s \n", element);
+		error = 1;
+		}
+         
+	return error;
+}
+
+int write_end_element(xmlTextWriterPtr writer, char *element){
+ 	int error;
+	 error = 0;
+
+ 	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error starting svg element %s \n", element);
+		error = 1;
+		}
+         
+	return error;
+}
+
+int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
+ 	int error;
+	 error = 0;
+
+        if (xmlTextWriterStartElement(writer, element) < 0) {error = 1;}
+		
+        if (!error)
+		{if (xmlTextWriterWriteFormatString(writer,"%i", parm ) < 0 ) {error = 1;}}
+
+        if (!error)
+		{if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
+
+        if (error)
+       		 fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);
+
+         
+	return error;
+}
+
+int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
+ 	int error;
+	 error = 0;
+
+        if (xmlTextWriterStartElement(writer, element) < 0) {error = 1;}
+		
+        if (!error)
+		{if (xmlTextWriterWriteFormatString(writer,"%s", parm ) < 0 ) {error = 1;}}
+
+        if (!error)
+		{if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
+
+        if (error)
+       		 fprintf(stderr,"Error parameter svg element %s %s \n", element, parm);
+
+         
+	return error;
+}
+
+
+
+
+
+
+
+int e2c(double energy, double * channels, double * energies, int nchannels ){ 
+int xval;
+int out_of_range;
+
+out_of_range = 0;
+
+xval = (int)((SVG_DEFAULT_BOX_WIDTH)*(energy - energies[0])/(energies[nchannels-1] - energies[0]));
+
+if (xval < 0) { xval = 0; out_of_range++;}
+if (xval > SVG_DEFAULT_BOX_WIDTH) {xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;}
+
+if(out_of_range > 0) fprintf(stderr, "svg x-values out of range \n");
+
+return xval;
+}
+
+int i2c(double intensity, double maximum_log, double minimum_log){
+int val;
+double intensity_corrected;
+int out_of_range;
+
+out_of_range = 0;
+intensity_corrected = intensity;
+if (intensity < 1) intensity_corrected = 1;
+
+val = (int) (SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity_corrected)-minimum_log)/(maximum_log-minimum_log);
+
+if(val < 0) {val = 0; out_of_range++;}
+if(val > SVG_DEFAULT_BOX_HEIGHT) {val = SVG_DEFAULT_BOX_HEIGHT; out_of_range++;}
+
+if(out_of_range > 0) fprintf(stderr, "svg y-values out of range"); 
+
+return val;
+}
+
+
+
 
 //int xmi_read_output_xml()
 
