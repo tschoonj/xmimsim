@@ -1,5 +1,5 @@
 xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = xmimsim-1.0.dtd xmso2xmsi.xml
+dist_xmimsim_DATA = xmimsim-1.0.dtd xmso2xmsi.xml xmso2svg.xml
 xmimsim_DATA = xmimsim_cat.xml
 
 

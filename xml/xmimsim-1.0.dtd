@@ -81,38 +81,21 @@
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->
-<!ELEMENT svg_graphs (svg_graph+)>
-<!ELEMENT svg_graph (svg:rect | svg:path | svg:text)*>
-<!ATTLIST svg_graph 
-	interaction_number CDATA #REQUIRED
-	spectrum_kind (convoluted|unconvoluted) #REQUIRED	
->
+<!ELEMENT svg_graphs (graphic*)>
+<!ELEMENT graphic (id+, rect?, points?)>
+<!ELEMENT id (name+, interaction+)>
+<!ELEMENT rect (view?, size+, x-axis?, y-axis?)>
+<!ELEMENT view (width?, height?)>
+<!ELEMENT size (width?, height?)>
+<!ELEMENT x-axis (name?, index*)>
+<!ELEMENT y-axis (name?, index*)>
+<!ELEMENT index (value?, name?)>
+<!ELEMENT points (point*)>
+<!ELEMENT point (x?,y?)>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT interaction (#PCDATA)>
+<!ELEMENT width (#PCDATA)>
+<!ELEMENT height (#PCDATA)>
+<!ELEMENT value (#PCDATA)>
 
-<!ELEMENT svg:rect EMPTY>
-<!ATTLIST svg:rect 
-	x CDATA #REQUIRED
-	y CDATA #REQUIRED
-	width CDATA #REQUIRED
-	height CDATA #REQUIRED
-	fill CDATA #REQUIRED
-	stroke CDATA #REQUIRED
->
-<!ELEMENT svg:path EMPTY>
-<!ATTLIST svg:path 
-	d CDATA #REQUIRED
-	stroke CDATA #REQUIRED
-	stroke-width CDATA #IMPLIED
-	fill CDATA #IMPLIED
-	>
-
-<!ELEMENT svg:text (#PCDATA)>
-<!ATTLIST svg:text
-	x CDATA #REQUIRED
-	y CDATA #REQUIRED
-	transform CDATA #IMPLIED
-	font-size CDATA #REQUIRED
-	text-anchor CDATA #REQUIRED
-	text-align CDATA #IMPLIED
-	font-family CDATA #IMPLIED
->
 

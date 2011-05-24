@@ -6,6 +6,7 @@ bin_PROGRAMS = xmimsim-db xmimsim-harvester \
 	xmimsim-pymca \
 	xmimsim-test-solid-angle \
 	xmimsim-test-rayl-phi \
+	xmso2svg \
 	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -72,6 +73,13 @@ xmimsim_test_rayl_phi_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLU
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la
 xmso2xmsi_CFLAGS = @glib2_CFLAGS@
+
+xmso2svg_SOURCES = xmso2svg.c
+xmso2svg_LDADD = ../src/libxmimsim.la
+xmso2svg_CFLAGS = @glib2_CFLAGS@
+
+
+
 
 
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
