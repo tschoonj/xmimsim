@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_registry_win.h"
 #include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define TOTALBYTES    8192
 #define BYTEINCREMENT 4096

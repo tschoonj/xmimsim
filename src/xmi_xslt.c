@@ -26,6 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 
+#ifdef _WIN32
+#include "xmi_registry_win.h"
+#endif
 
 extern int xmlLoadExtDtdDefaultValue;
 

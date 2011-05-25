@@ -37,7 +37,7 @@ enum xmi_registry_win {
  */
 
 
-int xmi_registry_win_query(int kind, char **regcontents):
+int xmi_registry_win_query(int kind, char **regcontents);
 
 
 

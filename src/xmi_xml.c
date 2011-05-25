@@ -63,6 +63,7 @@ extern int xmlLoadExtDtdDefaultValue;
 
 int xmi_xmlLoadCatalog() {
 	char *catalog;
+	int rv;
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0)
 		return 0;
 
