@@ -59,50 +59,21 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 extern int xmlLoadExtDtdDefaultValue;
 
 #ifdef _WIN32
-#include <windows.h>
+#include "xmi_registry_win.h"
+
 int xmi_xmlLoadCatalog() {
-#define TOTALBYTES    8192
-#define BYTEINCREMENT 4096
-	LONG RegRV;
-	DWORD QueryRV;
-	LPTSTR subKey;
-	HKEY key;
-    	DWORD BufferSize = TOTALBYTES;
-        DWORD cbdata;
-	PPERF_DATA_BLOCK PerfData;
-	int rv;
-
-
-	RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Software\\xmimsim\\catalog"), 0, KEY_READ,&key);
-	if (RegRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error opening key Software\\xmimsim\\catalog in registry\n");
+	char *catalog;
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0)
 		return 0;
-	}
-	PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
-	cbdata = BufferSize;
 
 
-	QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
-	while( QueryRV == ERROR_MORE_DATA ) {
-	        // Get a buffer that is big enough.
-		BufferSize += BYTEINCREMENT;
-		PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
-		cbdata = BufferSize;
-		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
-	}
-	if (QueryRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error querying key Software\\xmimsim\\catalog in registry\n");
-		return 0;
-	}
-
-	if (xmlLoadCatalog((gchar *) PerfData) != 0) {
-		fprintf(stderr,"Could not load %s\n",(gchar *) PerfData);
+	if (xmlLoadCatalog((gchar *) catalog) != 0) {
+		fprintf(stderr,"Could not load %s\n",(gchar *) catalog);
 		rv=0;
 	}
 	else {
 		rv=1;
-		free(PerfData);
-		RegCloseKey(key);
+		free(catalog);
 	}
 
 	return rv;
