@@ -1,0 +1,25 @@
+id ICON XMI_WIN_ICO
+
+1 VERSIONINFO
+FILEVERSION 0,1
+PRODUCTVERSION 0,1
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904E4"
+		BEGIN
+			VALUE "CompanyName" "Ghent University"
+			VALUE "FileDescription" "Tool to generate XRF spectra through Monte-Carlo simulations"
+			VALUE "FileVersion" "0.1"
+			VALUE "InternalName" "xmimsim-gui"
+			VALUE "LegalCopyright" "Distributed under GPLv3"
+			VALUE "OriginalFilename" "xmimsim-gui.exe"
+			VALUE "ProductName" "XMI-MSIM"
+			VALUE "ProductVersion" "0.1" 
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1252
+	END
+END

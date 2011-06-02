@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 #include <stdlib.h>
+#include <xraylib.h>
 
 
 #define SVG_DEFAULT_WIDTH 540
@@ -57,6 +58,15 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
 extern int xmlLoadExtDtdDefaultValue;
+
+static int write_start_element(xmlTextWriterPtr writer, char *element);
+static int write_end_element(xmlTextWriterPtr writer, char *element);
+static int write_int_element(xmlTextWriterPtr writer, char *element, int parm);
+static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm);
+static int e2c(double energy, double * channels, double * energies, int nchannels );
+static int i2c(double intensity, double maximum_log, double minimum_log);
+
+
 
 #ifdef _WIN32
 #include "xmi_registry_win.h"
@@ -1374,6 +1384,10 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 					fprintf(stderr,"Error writing interaction_number\n");
 					return 0;
 				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+					fprintf(stderr,"Error writing energy\n");
+					return 0;
+				}
 				if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
@@ -1421,6 +1435,10 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 						fprintf(stderr,"Error writing interaction_number\n");
 						return 0;
 					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+						fprintf(stderr,"Error writing energy\n");
+						return 0;
+					}
 					if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 						fprintf(stderr,"Error writing counts\n");
 						return 0;
@@ -1453,7 +1471,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	}
 
 	//write svg stuff
-	if (xmlTextWriterStartElement(writer, "svg_graphs") < 0) {
+	if (xmlTextWriterStartElement(writer, BAD_CAST "svg_graphs") < 0) {
 		fprintf(stderr,"Error writing svg_graphs tag\n");
 		return 0;
 	}
@@ -2300,11 +2318,11 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 } 
 
 
-int write_start_element(xmlTextWriterPtr writer, char *element){
+static int write_start_element(xmlTextWriterPtr writer, char *element){
  	int error;
 	 error = 0;
 
- 	if (xmlTextWriterStartElement(writer, element) < 0) {
+ 	if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {
 		fprintf(stderr,"Error starting svg element %s \n", element);
 		error = 1;
 		}
@@ -2312,7 +2330,7 @@ int write_start_element(xmlTextWriterPtr writer, char *element){
 	return error;
 }
 
-int write_end_element(xmlTextWriterPtr writer, char *element){
+static int write_end_element(xmlTextWriterPtr writer, char *element){
  	int error;
 	 error = 0;
 
@@ -2324,11 +2342,11 @@ int write_end_element(xmlTextWriterPtr writer, char *element){
 	return error;
 }
 
-int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
+static int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
  	int error;
 	 error = 0;
 
-        if (xmlTextWriterStartElement(writer, element) < 0) {error = 1;}
+        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}
 		
         if (!error)
 		{if (xmlTextWriterWriteFormatString(writer,"%i", parm ) < 0 ) {error = 1;}}
@@ -2343,11 +2361,11 @@ int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
 	return error;
 }
 
-int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
+static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
  	int error;
 	 error = 0;
 
-        if (xmlTextWriterStartElement(writer, element) < 0) {error = 1;}
+        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}
 		
         if (!error)
 		{if (xmlTextWriterWriteFormatString(writer,"%s", parm ) < 0 ) {error = 1;}}
@@ -2368,39 +2386,50 @@ int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
 
 
 
-int e2c(double energy, double * channels, double * energies, int nchannels ){ 
-int xval;
-int out_of_range;
+static int e2c(double energy, double * channels, double * energies, int nchannels ){ 
+	int xval;
+	int out_of_range;
 
-out_of_range = 0;
+	out_of_range = 0;
 
-xval = (int)((SVG_DEFAULT_BOX_WIDTH)*(energy - energies[0])/(energies[nchannels-1] - energies[0]));
+	xval = (int)((SVG_DEFAULT_BOX_WIDTH)*(energy - energies[0])/(energies[nchannels-1] - energies[0]));
 
-if (xval < 0) { xval = 0; out_of_range++;}
-if (xval > SVG_DEFAULT_BOX_WIDTH) {xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;}
+	if (xval < 0) {
+		xval = 0; out_of_range++;
+	}
+	if (xval > SVG_DEFAULT_BOX_WIDTH) {
+		xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;
+	}
 
-if(out_of_range > 0) fprintf(stderr, "svg x-values out of range \n");
+	if(out_of_range > 0)
+		fprintf(stderr, "svg x-values out of range \n");
 
-return xval;
+	return xval;
 }
 
-int i2c(double intensity, double maximum_log, double minimum_log){
-int val;
-double intensity_corrected;
-int out_of_range;
+static int i2c(double intensity, double maximum_log, double minimum_log) {
+	int val;
+	double intensity_corrected;
+	int out_of_range;
 
-out_of_range = 0;
-intensity_corrected = intensity;
-if (intensity < 1) intensity_corrected = 1;
+	out_of_range = 0;
+	intensity_corrected = intensity;
+	if (intensity < 1)
+		intensity_corrected = 1;
 
-val = (int) (SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity_corrected)-minimum_log)/(maximum_log-minimum_log);
+	val = (int) (SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity_corrected)-minimum_log)/(maximum_log-minimum_log);
 
-if(val < 0) {val = 0; out_of_range++;}
-if(val > SVG_DEFAULT_BOX_HEIGHT) {val = SVG_DEFAULT_BOX_HEIGHT; out_of_range++;}
+	if(val < 0) {
+		val = 0; out_of_range++;
+	}
+	if(val > SVG_DEFAULT_BOX_HEIGHT) {
+		val = SVG_DEFAULT_BOX_HEIGHT; out_of_range++;
+	}
 
-if(out_of_range > 0) fprintf(stderr, "svg y-values out of range"); 
+	if(out_of_range > 0)
+		fprintf(stderr, "svg y-values out of range"); 
 
-return val;
+	return val;
 }
 
 

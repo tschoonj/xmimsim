@@ -163,7 +163,13 @@ if test x$XMLCATALOG = xfail ; then
 	AC_MSG_ERROR([xmlcatalog was not found. This should be a part of the libxml2 installation which was detected on the system. Consider verifying your PATH variable.])
 fi
 
-
+#check program for icons
+if test x$OS_WINDOWS = x1 ; then
+  AC_CHECK_PROG([WINDRES],[windres],[windres],[fail])
+  if test x$WINDRES = xfail ; then
+  	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
+  fi
+fi
 #search for chmod
 AC_CHECK_PROG([CHMOD],[chmod],[chmod],[fail])
 if test x$CHMOD = xfail ; then
@@ -327,7 +333,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT

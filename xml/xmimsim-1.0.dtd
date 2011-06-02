@@ -94,6 +94,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST fluorescence_line_counts atomic_number CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts line_type CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts interaction_number CDATA #REQUIRED>
+<!ATTLIST fluorescence_line_counts energy CDATA #REQUIRED>
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->

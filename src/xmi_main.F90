@@ -806,6 +806,14 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0)  &
                 CALL EXIT(1)
 
+        !
+        !
+        ! Problem: what if source lies in the first (air) layer???
+        !
+        !
+
+
+
         RETURN
 ENDSUBROUTINE xmi_photon_shift_first_layer
 

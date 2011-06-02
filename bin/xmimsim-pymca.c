@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_main.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_xslt.h"
 #include <xraylib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -61,6 +62,8 @@ int main (int argc, char *argv[]) {
 	static gchar *spe_file_conv=NULL;
 	static gchar *csv_file_noconv=NULL;
 	static gchar *csv_file_conv=NULL;
+	static gchar *svg_file_noconv=NULL;
+	static gchar *svg_file_conv=NULL;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
@@ -76,6 +79,8 @@ int main (int argc, char *argv[]) {
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
+		{"svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL},
+		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
@@ -651,6 +656,20 @@ int main (int argc, char *argv[]) {
 		fclose(csv_convPtr);
 	}
 
+	//svg files
+	if (svg_file_conv != NULL) {
+		// 0 = convoluted
+		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 0) == 0) {
+			return 1;
+		}
+	}
+
+	if (svg_file_noconv != NULL) {
+       		// 1 = unconvoluted
+		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 1) == 0) {
+			return 1;
+		}
+	}
 
 	return 0;
 }

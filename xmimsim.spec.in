@@ -8,8 +8,8 @@ Packager: Tom Schoonjans <Tom.Schoonjans@UGent.be>
 URL: http://github.com/tschoonj/xmimsim
 Source: xmimsim-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-fortran >= 2.15.0 xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel
-Requires: libgfortran >= 4.4.0 glib2 gtk2 gsl fgsl xraylib >= 2.15.0 hdf5 libxml2 libxslt xraylib-fortran >= 2.15.0
+BuildRequires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-fortran >= 2.15.0 xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils
+Requires: libgfortran >= 4.4.0 glib2 gtk2 gsl fgsl xraylib >= 2.15.0 hdf5 libxml2 libxslt xraylib-fortran >= 2.15.0 desktop-file-utils
 
 %description
 XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sample when irradiated with an X-ray beam.
@@ -26,10 +26,19 @@ XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 %setup -q
 
 %build
+
+%if 0%{?fedora} == 15
+#problem with gcc 4.6 when using -O2 or -O3
+export RPM_OPT_FLAGS="-O1"
+export CFLAGS=$RPM_OPT_FLAGS
+export FCFLAGS=$RPM_OPT_FLAGS
+%endif
+
 %configure --enable-gui --disable-mpi
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
+export LD_LIBRARY_PATH=`pwd`/src/.libs
 make
 
 #create database file
@@ -42,12 +51,34 @@ libtool --finish $RPM_BUILD_ROOT%{_libdir}
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
 
+desktop-file-install --dir=$RPM_BUILD_ROOT%{_datadir}/applications \
+	--delete-original \
+	--mode 644 \
+	$RPM_BUILD_ROOT%{_datadir}/applications/xmimsim.desktop
+mkdir -p $RPM_BUILD_ROOT%{_datadir}/mime/packages/
+#mkdir -p $RPM_BUILD_ROOT%{_datadir}/pixmaps
+install -p -m644 icons/applications-x-xmimsim.xml $RPM_BUILD_ROOT%{_datadir}/mime/packages/
+#install -p -m644 icons/Logo_xmi_msim*.png $RPM_BUILD_ROOT%{_datadir}/pixmaps/
+
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post -p /sbin/ldconfig
+%post
+/sbin/ldconfig
+touch --no-create %{_datadir}/icons/hicolor
+if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor
+  fi 
+  %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
 
-%postun -p /sbin/ldconfig
+%postun 
+/sbin/ldconfig
+%{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null
+touch --no-create %{_datadir}/icons/hicolor
+if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor
+  fi || :
 
 
 %files
@@ -61,12 +92,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/xmimsim-harvester
 %{_bindir}/xmimsim-db
 %{_bindir}/xmso2xmsi
+%{_bindir}/xmso2svg
 %{_prefix}/share/xmimsim/xmimsim-1.0.dtd
 %{_prefix}/share/xmimsim/xmso2xmsi.xml
+%{_prefix}/share/xmimsim/xmso2svg.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
 %{_prefix}/share/xmimsim/xmimsim-solid-angles.h5
 %{_prefix}/share/xmimsim/xmimsimdata.h5
-
+%{_datadir}/applications/xmimsim.desktop
+#%{_datadir}/pixmaps/Logo_xmi_msim*.png
+%{_datadir}/mime/packages/applications-x-xmimsim.xml
+%{_datadir}/icons/hicolor/*/apps/Logo_xmi_msim*.png
 #init script for harvester should come here...
 
 
