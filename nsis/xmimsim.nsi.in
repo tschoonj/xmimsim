@@ -24,9 +24,11 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.22.0-2010-10-21-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW64\"
+!define XRAYLIB_VERSION "2.15.0"
 
 !include "MUI2.nsh"
 !include "Library.nsh"
+!include "LogicLib.nsh"
 !include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
 !include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
 !include "Sections.nsh"
@@ -48,9 +50,18 @@ SetOverwrite ifnewer
 CRCCheck on
 
 !define MUI_ABORTWARNING
+!define MUI_ICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.ico"
+!define MUI_UNICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.ico"
+!define MUI_HEADERIMAGE "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+!define MUI_HEADERIMAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+!define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+!define MUI_HEADERIMAGE_UNBITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+!define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
 
 !define MUI_WELCOMEPAGE_TEXT "Thank you for downloading xmimsim. This wizard will assist you in installing the required components to run the program"
 !define MUI_WELCOMEPAGE_TITLE_3LINES
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_164.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_LICENSEPAGE_CHECKBOX
 !insertmacro MUI_PAGE_LICENSE "${MY_HOME}github\xmimsim\nsis\License.rtf"
@@ -73,10 +84,41 @@ CRCCheck on
 
 
 Section "-xmimsim core files" SecDummy
+SetAutoClose false
 ;install dependencies
 ;first GTK2-WIN
 SetShellVarContext all
 SetOutPath "$INSTDIR"
+;check for presence of xraylib and whether it has the right version
+DetailPrint "Checking xraylib presence..."
+ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "DisplayVersion"
+
+${If} $R0 == ""
+	MessageBox MB_OK "xraylib was not found on the system. It will now be downloaded and installed."
+	Goto xraylib
+${ElseIf} $R0 == ${XRAYLIB_VERSION}
+	Goto gtk2install
+${Else}
+	MessageBox MB_OK "The version of xraylib that was found on this system is incompatible with this release of XMI MSIM. The correct version of xraylib will now be downloaded and installed."
+	;quiet uninstall first
+	ReadRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "QuietUninstallString"
+	ExecWait '$R1'	
+	Goto xraylib
+${Endif}
+
+xraylib:
+#NSISdl::download /TIMEOUT=30000 https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe xraylib-${XRAYLIB_VERSION}-win32.exe
+inetc::get /NOCANCEL "https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+Pop $0
+${If} $0 == "OK"
+	DetailPrint "xraylib download has succeeded. Installing..."
+	ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
+	Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
+${Else}
+	MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
+	Abort "xraylib download failed: $0"
+${Endif}
+gtk2install:
 DetailPrint "Installing GTK2 runtime"
 File "${MY_HOME}\github\xmimsim\nsis\${GTK_INSTALLER_EXE}"
 ExecWait '"${GTK_INSTALLER_EXE}" /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S /D=$INSTDIR\GTK2'
@@ -104,8 +146,7 @@ DetailPrint "Installing libxml2"
 DetailPrint "Installing libxslt"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib\libxslt-1.dll" "$INSTDIR"
 
-DetailPrint "Installing xraylib (with Fortran bindings)"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib\libxrl-3.dll" "$INSTDIR"
+DetailPrint "Installing xraylib Fortran bindings"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib\libxrlf03-3.dll" "$INSTDIR"
 
 DetailPrint "Installing gfortran runtime libraries"
@@ -227,8 +268,7 @@ DetailPrint "Uninstalling libxml2"
 DetailPrint "Uninstalling libxslt"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
 
-DetailPrint "Uninstalling xraylib (with Fortran bindings)"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll" 
+DetailPrint "Uninstalling xraylib Fortran bindings"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
 
 DetailPrint "Uninstalling gfortran runtime libraries"
@@ -304,7 +344,9 @@ uninst:
 ClearErrors
 Exec $INSTDIR\Uninstall.exe
 
+
 done:
+
 
 FunctionEnd
 
