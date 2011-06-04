@@ -69,16 +69,18 @@ rm -rf $RPM_BUILD_ROOT
 touch --no-create %{_datadir}/icons/hicolor
 if [ -x %{_bindir}/gtk-update-icon-cache ]; then
   %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor
-  fi 
-  %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+fi 
+%{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+%{_bindir}/update-mime-database %{_datadir}/mime &>/dev/null || :
 
 %postun 
 /sbin/ldconfig
+%{_bindir}/update-mime-database %{_datadir}/mime&>/dev/null || :
 %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null
 touch --no-create %{_datadir}/icons/hicolor
 if [ -x %{_bindir}/gtk-update-icon-cache ]; then
   %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor
-  fi || :
+fi || :
 
 
 %files
