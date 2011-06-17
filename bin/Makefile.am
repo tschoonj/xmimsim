@@ -53,6 +53,8 @@ xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+xmimsim_gui_SOURCES += xmimsim-icon.rc
+xmimsim_gui_LDADD += xmimsim-icon.o
 endif
 
 
@@ -101,8 +103,10 @@ xmso2svg_LDADD = ../src/libxmimsim.la
 xmso2svg_CFLAGS = @glib2_CFLAGS@
 
 
-
-
+if OS_WINDOWS
+xmimsim-icon.o: xmimsim-icon.rc
+	$(WINDRES) -v --use-temp-file -F pe-i386 -DXMIMSIM_WIN_ICO=\"${top_srcdir}/icons/Logo_xmi_msim.ico\" ${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
+endif
 
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 	./xmimsim-init-solid-angles$(EXEEXT)

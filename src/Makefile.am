@@ -29,7 +29,7 @@ libxmimsim_la_SOURCES = xmi_xml.c\
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c xmi_random_dev.c xmi_random_dev.h 
 else
-libxmimsim_la_SOURCES += xmi_random_win.c 
+libxmimsim_la_SOURCES += xmi_random_win.c xmi_registry_win.c
 endif
 
 libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ -DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" @glib2_CFLAGS@ @xraylib_CFLAGS@ -DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" -DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\"

@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_random.h"
+#include "xmi_xslt.h"
 #include <unistd.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -43,6 +44,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #define _UNICODE
   #define UNICODE
   #include <windows.h>
+  #include "xmi_registry_win.h"
   #include <Shlobj.h>
   //NO MPI
   #ifdef HAVE_OPENMPI
@@ -229,38 +231,12 @@ int main (int argc, char *argv[]) {
 		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
 			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
 #else
-		//Windows mode: query registry
-		RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Software\\xmimsim\\data"), 0, KEY_READ,&key);
-		if (RegRV != ERROR_SUCCESS) {
-			fprintf(stderr,"Error opening key Software\\xmimsim\\data in registry\n");
+		if (xmi_registry_win_query(XMI_REGISTRY_WIN_DATA,&hdf5_file) == 0)
 			return 1;
-		}
-		PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
-		cbdata = BufferSize;
 
 
-		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
-		while( QueryRV == ERROR_MORE_DATA ) {
-		        // Get a buffer that is big enough.
-			BufferSize += BYTEINCREMENT;
-			PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
-			cbdata = BufferSize;
-			QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
-		}
-		if (QueryRV != ERROR_SUCCESS) {
-			fprintf(stderr,"Error querying key Software\\xmimsim\\data in registry\n");
-			return 1;
-		}
-
-
-#if DEBUG == 1
-		fprintf(stdout,"KeyValue: %s, bytes %i cbdata %i\n",(char *) PerfData,strlen((char *) PerfData), (int) cbdata);
-#endif
-		
-		if (g_access((char *)PerfData, F_OK | R_OK) == 0) {
-			hdf5_file = strdup((char *) PerfData);
-			free(PerfData);
-			RegCloseKey(key);
+		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
+			//do nothing
 		}
 #endif
 		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {

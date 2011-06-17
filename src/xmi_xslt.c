@@ -23,10 +23,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 #include <libxml/catalog.h>
-#include <libxml/xpathInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 
+#ifdef _WIN32
+#include "xmi_registry_win.h"
+#endif
 
 extern int xmlLoadExtDtdDefaultValue;
 
@@ -49,10 +51,19 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
 	const char *params[1] = {NULL};
-	const xmlChar xsltfile[] = XMI_XMSO2XMSI_XSLT;
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
 
+#ifndef _WIN32
+	const xmlChar xsltfile[] = XMI_XMSO2XMSI_XSLT;
+#else
+	xmlChar *xsltfile;
+
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2XMSI,(char **) &xsltfile) == 0)
+		return 0;
+
+
+#endif
 
 	xsltInit();
 
@@ -62,6 +73,10 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
+#ifdef _WIN32
+	free(xsltfile);
+#endif
+
 	doc = xmlParseFile(xmsofile);
 	if (doc == NULL)
 		return 0;
@@ -108,7 +123,6 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
 	const char *params[3];
-	const xmlChar xsltfile[] = XMI_XMSO2SVG_XSLT;
 	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
@@ -116,6 +130,17 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	char parm_name[] = "type1";
         char s_convoluted[] = "'convoluted'";
         char s_unconvoluted[] = "'unconvoluted'";
+
+#ifndef _WIN32
+	const xmlChar xsltfile[] = XMI_XMSO2SVG_XSLT;
+#else
+	xmlChar *xsltfile;
+
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2XMSI,(char **) &xsltfile) == 0)
+		return 0;
+#endif
+
+
 
 	xsltInit();
 
@@ -137,11 +162,10 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	if (cur == NULL)
 		return 0;
 
-	//catalog code
-	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		return 0;
-	}
+#ifdef _WIN32
+	free(xsltfile);
+#endif
+
 
 	doc = xmlParseFile(xmsofile);
 	if (doc == NULL)
