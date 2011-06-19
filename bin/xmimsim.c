@@ -34,10 +34,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <locale.h>
 #include <xraylib.h>
+#include <stdlib.h>
 
 #include <stdio.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -80,8 +79,6 @@ int main (int argc, char *argv[]) {
 	int rv;
 	xmi_inputFPtr inputFPtr;
 	xmi_hdf5FPtr hdf5FPtr;
-	const gsl_rng_type *rng_type;
-	gsl_rng *rng;
 	unsigned long int seed;
 	double *channels, *channelsdef;
 	double **channels_conv;

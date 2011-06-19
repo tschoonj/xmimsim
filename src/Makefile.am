@@ -22,9 +22,9 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 lib_LTLIBRARIES = libxmimsim.la
 libxmimsim_la_SOURCES = xmi_xml.c\
 	xmi_data_structs.c xmi_aux.c xmi_aux.h xmi_aux_f.F90 xmi_hdf5.F90 xmi_solid_angle_f.F90\
-	xmi_variance_reduction.F90 xmi_detector.F90 xmi_main.F90 \
+	xmi_variance_reduction.F90 xmi_detector_f.F90 xmi_main.F90 \
 	xmi_lines.c xmi_lines.h xmi_pymca.c xmi_solid_angle.c \
-	xmi_xslt.c
+	xmi_xslt.c xmi_detector.c
 
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c xmi_random_dev.c xmi_random_dev.h 
