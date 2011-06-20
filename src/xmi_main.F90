@@ -3665,7 +3665,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
         Z = hdf5F%xmi_hdf5_Zs(:)%Z
-        ALLOCATE(fluo_escape_ratios(maxz,ABS(L3P3_LINE),n_input_energies))
+        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),n_input_energies))
         ALLOCATE(compton_escape_ratios(n_input_energies,&
         n_compton_output_energies))
 
@@ -3820,7 +3820,11 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                                 photons_einstein + photon%weight  
                                                 k=photon%n_interactions
                                                 element =&
-                                                photon%history(k,2)
+                                                inputF%composition%layers&
+                                                (photon%current_layer)%&
+                                                xmi_hdf5_Z_local&
+                                                (photon%current_element_index)&
+                                                %Ptr%Zindex
                                                 line=&
                                                 ABS(photon%history(k,1))
                                                 IF (photon%history(k,1) .LE. KL1_LINE .AND.&

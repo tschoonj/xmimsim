@@ -44,6 +44,7 @@ TYPE :: xmi_hdf5_Z
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
         INTEGER (C_INT) :: Z
+        INTEGER (C_INT) :: Zindex
 ENDTYPE
 
 

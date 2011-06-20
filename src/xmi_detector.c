@@ -165,7 +165,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 
 
 	//write fluo_escape_ratios
-	dims3[2] = 94;
+	dims3[2] = escape_ratios->n_elements;
 	dims3[1] = abs(L3P3_LINE);
 	dims3[0] = escape_ratios->n_fluo_input_energies;
 	dspace_id = H5Screate_simple(3, dims3, dims3);
