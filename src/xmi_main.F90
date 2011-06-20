@@ -803,9 +803,11 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         composition%layers(1)%Z_coord_begin]
         plane%normv = geometry%n_sample_orientation
 
-        IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0)  &
+        IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_photon_shift_first_layer'
                 CALL EXIT(1)
-
+        ENDIF
         !
         !
         ! Problem: what if source lies in the first (air) layer???
@@ -929,8 +931,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         inputF%composition%layers(i)%Z_coord_begin]
                                 ENDIF
 
-                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
+                                        WRITE (*,*) 'xmi_intersection_plane_line error'
+                                        WRITE (*,*) 'in xmi_simulate_photon'
                                         CALL EXIT(1)
+                                ENDIF
                         
                                 dist = xmi_distance_two_points(photon%coords,intersect)
 #if DEBUG == 1
@@ -1032,8 +1037,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         inputF%composition%layers(i)%Z_coord_begin]
                                 ENDIF
 
-                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
+                                        WRITE (*,*) 'xmi_intersection_plane_line error'
+                                        WRITE (*,*) 'in xmi_photon_shift_first_layer'
                                         CALL EXIT(1)
+                                ENDIF
                                 
                                 distances(i) = xmi_distance_two_points(line%point,intersect)
                                 line%point = intersect
@@ -1099,8 +1107,10 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 IF (photon%inside .EQV. .FALSE.) THEN
                         !photon has left the system
                         !check if it will make it to the detector
-                        photon%detector_hit=xmi_check_photon_detector_hit(&
-                        photon,inputF)
+                        IF (photon%options%escape_ratios_mode .NE. 1) THEN
+                                photon%detector_hit=xmi_check_photon_detector_hit(&
+                                photon,inputF)
+                        ENDIF
                         EXIT main
                 ENDIF
 
@@ -1503,8 +1513,11 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         photon_trajectory%dirv = photon_dirv_det
         photon_trajectory%point = photon_coords_det
 
-        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
-        intersect) == 0) CALL EXIT(1)
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                CALL EXIT(1)
+        ENDIF
 
         IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
 
@@ -1519,8 +1532,11 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         !there is a collimator...
         plane_det_base%point = [inputF%geometry%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 
-        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
-        intersect) == 0) CALL EXIT(1)
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                CALL EXIT(1)
+        ENDIF
 
         intersect(1) = 0.0_C_DOUBLE
 
@@ -3826,7 +3842,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 fluo_escape_ratios(:,:,i)/photons_interacted
                 compton_escape_ratios(i,:)=&
                 compton_escape_ratios(i,:)/photons_interacted
-
+                DEALLOCATE(initial_mus)
 
         ENDDO
 !$omp end do
@@ -3848,7 +3864,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies)
         escape_ratios%xmi_input_string = input_string
 
-        escape_ratiosPtr = C_LOC(escape_ratiosPtr)
+        escape_ratiosPtr = C_LOC(escape_ratios)
 ENDSUBROUTINE xmi_escape_ratios_calculation
 
 ENDMODULE
