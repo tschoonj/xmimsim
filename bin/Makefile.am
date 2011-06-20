@@ -31,10 +31,10 @@ if !OS_WINDOWS
 bin_PROGRAMS += xmimsim-harvester
 endif
 
-noinst_PROGRAMS = xmimsim-init-solid-angles
+noinst_PROGRAMS = xmimsim-init-solid-angles xmimsim-init-escape-ratios
 
 xmimsim_hdf5dir = $(datadir)/xmimsim
-xmimsim_hdf5_DATA = xmimsim-solid-angles.h5  
+xmimsim_hdf5_DATA = xmimsim-solid-angles.h5 xmimsim-escape-ratios.h5
 
 
 xmimsim_db_SOURCES = xmimsim-db.F90
@@ -66,7 +66,9 @@ endif
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\"
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+-DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" \
+-DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\"
 xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 
@@ -79,7 +81,8 @@ xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
--DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\"
+-DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" \
+-DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\"
 
 #xmimsim_test_solid_angle_SOURCES = xmimsim-test-solid-angle.c
 #xmimsim_test_solid_angle_LDADD = ../src/libxmimsim.la
@@ -102,6 +105,9 @@ xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la
 xmso2svg_CFLAGS = @glib2_CFLAGS@
 
+xmimsim_init_escape_ratios_SOURCES = xmimsim-init-escape-ratios.c
+xmimsim_init_escape_ratios_LDADD = ../src/libxmimsim.la
+xmimsim_init_escape_ratios_CFLAGS = -DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\" @glib2_CFLAGS@
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc
@@ -110,6 +116,9 @@ endif
 
 xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
 	./xmimsim-init-solid-angles$(EXEEXT)
+
+xmimsim-escape-ratios.h5:	xmimsim-init-escape-ratios$(EXEEXT)
+	./xmimsim-init-escape-ratios$(EXEEXT)
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
@@ -121,5 +130,5 @@ install-exec-hook:
 endif
 
 clean-local:
-	rm -f xmimsim-solid-angles.h5
+	rm -f xmimsim-solid-angles.h5 xmimsim-escape-ratios.h5
 

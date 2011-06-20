@@ -199,6 +199,8 @@ FileClose $9
 SetOutPath "$APPDATA\xmimsim"
 File "${MY_HOME}github\xmimsim\build\bin\xmimsim-solid-angles.h5"
 AccessControl::GrantOnFile "$APPDATA\xmimsim\xmimsim-solid-angles.h5" "(S-1-5-32-545)" "GenericRead + GenericWrite" 
+File "${MY_HOME}github\xmimsim\build\bin\xmimsim-escape-ratios.h5"
+AccessControl::GrantOnFile "$APPDATA\xmimsim\xmimsim-escape-ratios.h5" "(S-1-5-32-545)" "GenericRead + GenericWrite" 
 
 ;copy source tarball
 ;DetailPrint "Copying xmimsim sources"
@@ -302,6 +304,7 @@ Delete "$INSTDIR\Share\xmso2svg.xml"
 Delete "$INSTDIR\Share\xmimsim_cat.xml"
 Delete "$INSTDIR\Share\xmimsim-1.0.dtd"
 Delete "$APPDATA\xmimsim\xmimsim-solid-angles.h5"
+Delete "$APPDATA\xmimsim\xmimsim-escape-ratios.h5"
 
 RMDir "$APPDATA\xmimsim"
 RMDir "$INSTDIR\Share"

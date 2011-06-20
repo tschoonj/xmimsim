@@ -3605,31 +3605,56 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER :: max_threads, thread_num
 
         TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng), POINTER :: rng
-        TYPE (fgsl_rng), ALLOCATABLE, DIMENSION(:) :: rngs
+        TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_LONG) :: i,j,k,l,m,n
-        TYPE (xmi_photon), POINTER :: photon,photon_temp,photon_temp2
+        TYPE (xmi_photon), POINTER :: photon
         INTEGER, PARAMETER :: maxz = 94
-        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         INTEGER (C_LONG), PARAMETER :: n_input_energies = 990
+        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 999
         INTEGER (C_LONG), PARAMETER :: n_photons = 100000
         REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
-        input_energies
+        input_energies, compton_escape_output_energies
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
+        fluo_escape_ratios
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: &
+        compton_escape_ratios
+        INTEGER (C_INT), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        Z
         REAL (C_DOUBLE) :: theta_elecv
         REAL (C_DOUBLE) :: photons_simulated, photons_no_interaction,&
         photons_rayleigh, photons_compton, photons_einstein,photons_interacted
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
+        INTEGER (C_INT) :: element,line
+        REAL (C_DOUBLE) :: compton_index
 
         !associate c pointers
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
 
+        IF (ALLOCATED(input_energies)) DEALLOCATE(input_energies)
+        IF (ALLOCATED(compton_escape_output_energies)) &
+        DEALLOCATE(compton_escape_output_energies)
+        IF (ALLOCATED(fluo_escape_ratios)) DEALLOCATE(fluo_escape_ratios)
+        IF (ALLOCATED(compton_escape_ratios)) DEALLOCATE(compton_escape_ratios)
         ALLOCATE(input_energies(n_input_energies))
+        ALLOCATE(compton_escape_output_energies(n_compton_output_energies))
         DO i=0,n_input_energies-1
                 input_energies(i+1) = 1.0+i*0.1
         ENDDO
 
+        DO i=0,n_compton_output_energies-1
+                compton_escape_output_energies(i+1) = 0.1+i*0.1
+        ENDDO
+
+        ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
+        Z = hdf5F%xmi_hdf5_Zs(:)%Z
+        ALLOCATE(fluo_escape_ratios(maxz,ABS(L3P3_LINE),n_input_energies))
+        ALLOCATE(compton_escape_ratios(n_input_energies,&
+        n_compton_output_energies))
+
+        fluo_escape_ratios = 0.0_C_DOUBLE
+        compton_escape_ratios = 0.0_C_DOUBLE
 
         !set options
         options%use_M_lines = 0
@@ -3670,16 +3695,19 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         ENDDO
 
-        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
-        brute_history = 0.0_C_DOUBLE
 
         !initialize random number generators
         rng_type = fgsl_rng_mt19937
 
 
+        !allocate the escape ratio arrays...
+
+
+
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
-!$omp photons_rayleigh, photons_compton, photons_einstein,photons_interacted)
+!$omp photons_rayleigh, photons_compton,&
+!$omp photons_einstein,photons_interacted,element,compton_index,line)
 
 
 
@@ -3690,6 +3718,9 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 !$omp do
         DO i=1,n_input_energies
+!!$omp critical
+!                WRITE (6,'(A,ES12.4)') 'Simulating at ',input_energies(i)
+!!$omp end critical
                 !Calculate initial mu's
                 ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
@@ -3742,7 +3773,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         ENDIF
 
                         photons_simulated = photons_simulated + photon%weight
-                        IF (photon%last_interaction .NE. NO_INTERACTION) THEN
+                        IF (photon%last_interaction .EQ. NO_INTERACTION) THEN
                                 photons_no_interaction = &
                                 photons_no_interaction + photon%weight
                         ELSE
@@ -3754,29 +3785,70 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         !and the last interaction type
                         IF (photon%inside .EQV. .FALSE. .AND.&
                         photon%last_interaction .NE. NO_INTERACTION) THEN
-                                SELECT CASE (photon_temp%last_interaction)
+                                SELECT CASE (photon%last_interaction)
                                         CASE (RAYLEIGH_INTERACTION)
                                                 photons_rayleigh = &
                                                 photons_rayleigh + photon%weight 
                                         CASE (COMPTON_INTERACTION)
                                                 photons_compton = &
                                                 photons_compton + photon%weight  
+                                                compton_index=INT((photon%energy-0.1)/0.1)
+                                                IF (compton_index .GE. 1 .AND.&
+                                                compton_index .LE. &
+                                                n_compton_output_energies)&
+                                                compton_escape_ratios(i,compton_index)=&
+                                                compton_escape_ratios(i,compton_index)+&
+                                                photon%weight
                                         CASE (PHOTOELECTRIC_INTERACTION)
                                                 photons_einstein= &
                                                 photons_einstein + photon%weight  
+                                                k=photon%n_interactions
+                                                element =&
+                                                photon%history(k,2)
+                                                line=&
+                                                ABS(photon%history(k,1))
+                                                IF (photon%history(k,1) .LE. KL1_LINE .AND.&
+                                                photon%history(k,1) .GE. L3P3_LINE) THEN
+                                                        fluo_escape_ratios(element,line,i) = &
+                                                        fluo_escape_ratios(element,line,i) + &
+                                                        photon%weight
+                                                ENDIF
                                 ENDSELECT
 
                         ENDIF
 
-
+                        !deallocate photon
+                        DEALLOCATE(photon%history)
+                        DEALLOCATE(photon%mus)
+                        DEALLOCATE(photon)
                 ENDDO
+                fluo_escape_ratios(:,:,i) =&
+                fluo_escape_ratios(:,:,i)/photons_interacted
+                compton_escape_ratios(i,:)=&
+                compton_escape_ratios(i,:)/photons_interacted
+
 
         ENDDO
 !$omp end do
 !$omp end parallel
 
+        ALLOCATE(escape_ratios)
+        escape_ratios%n_elements = SIZE(Z)
+        escape_ratios%n_fluo_input_energies =&
+        n_input_energies
+        escape_ratios%n_compton_input_energies =&
+        n_input_energies
+        escape_ratios%n_compton_output_energies =&
+        n_compton_output_energies
+        escape_ratios%Z=C_LOC(Z)
+        escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios)
+        escape_ratios%fluo_escape_input_energies=C_LOC(input_energies)
+        escape_ratios%compton_escape_ratios=C_LOC(compton_escape_ratios)
+        escape_ratios%compton_escape_input_energies=C_LOC(input_energies)
+        escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies)
+        escape_ratios%xmi_input_string = input_string
 
-
+        escape_ratiosPtr = C_LOC(escape_ratiosPtr)
 ENDSUBROUTINE xmi_escape_ratios_calculation
 
 ENDMODULE

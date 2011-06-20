@@ -276,29 +276,35 @@ ENDTYPE
 TYPE :: xmi_escape_ratios
         INTEGER (C_INT) :: n_elements
         INTEGER (C_INT) :: n_fluo_input_energies
-        INTEGER (C_INT) :: n_compton_energies
+        INTEGER (C_INT) :: n_compton_input_energies
+        INTEGER (C_INT) :: n_compton_output_energies
         !dimension of Z is (n_elements)
         INTEGER (C_INT), DIMENSION(:), POINTER :: Z
-        !dimension of fluo_escape_ratios is (n_elements,KL1_LINE-L3P3_LINE,n_fluo_input_energies) 
+        !dimension of fluo_escape_ratios is (maxz,KL1_LINE-L3P3_LINE,n_fluo_input_energies) 
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: fluo_escape_ratios
         !dimension of fluo_escape_input_energies is n_fluo_input_energies
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: fluo_escape_input_energies
         !dimension of compton_escape_ratios is
-        !(n_compton_energies,n_compton_energies) 
+        !(n_compton_input_energies,n_compton_output_energies) 
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: compton_escape_ratios
-        !dimension of compton_escape_input_energies is n_compton_energies
+        !dimension of compton_escape_input_energies is n_compton_input_energies
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: compton_escape_input_energies
+        !dimension of compton_escape_output_energies is n_compton_output_energies
+        REAL (C_DOUBLE), DIMENSION(:), POINTER :: compton_escape_output_energies
 ENDTYPE xmi_escape_ratios
 
 TYPE, BIND(C) :: xmi_escape_ratiosC
         INTEGER (C_INT) :: n_elements
         INTEGER (C_INT) :: n_fluo_input_energies
-        INTEGER (C_INT) :: n_compton_energies
+        INTEGER (C_INT) :: n_compton_input_energies
+        INTEGER (C_INT) :: n_compton_output_energies
         TYPE (C_PTR) :: Z
         TYPE (C_PTR) :: fluo_escape_ratios
         TYPE (C_PTR) :: fluo_escape_input_energies
         TYPE (C_PTR) :: compton_escape_ratios
         TYPE (C_PTR) :: compton_escape_input_energies
+        TYPE (C_PTR) :: compton_escape_output_energies
+        TYPE (C_PTR) :: xmi_input_string
 ENDTYPE xmi_escape_ratiosC
 
 !

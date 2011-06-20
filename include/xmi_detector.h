@@ -23,12 +23,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 struct xmi_escape_ratios {
         int  n_elements;
         int  n_fluo_input_energies;
-        int  n_compton_energies;
+        int  n_compton_input_energies;
+        int  n_compton_output_energies;
         int *Z;
         double *fluo_escape_ratios;
         double *fluo_escape_input_energies;
         double *compton_escape_ratios;
         double *compton_escape_input_energies;
+        double *compton_escape_output_energies;
+	char *xmi_input_string;
 };
 
 void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file);
