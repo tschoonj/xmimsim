@@ -178,13 +178,15 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 ENDSUBROUTINE xmi_detector_sum_peaks
 
 SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr,&
-channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
+channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channels_noconvPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
+        TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
 
+        TYPE (xmi_escape_ratios) :: escape_ratios 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
@@ -202,10 +204,31 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
 
 
 
-
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
         CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
+
+        !escape_ratios
+        escape_ratios%n_elements = escape_ratiosCPtr%n_elements
+        escape_ratios%n_fluo_input_energies = escape_ratiosCPtr%n_fluo_input_energies
+        escape_ratios%n_compton_input_energies = escape_ratiosCPtr%n_compton_input_energies
+        escape_ratios%n_compton_output_energies = escape_ratiosCPtr%n_compton_output_energies
+        CALL C_F_POINTER(escape_ratiosCPtr%Z,&
+        escape_ratios%Z,[escape_ratios%n_elements]) 
+        CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_ratios,&
+        escape_ratios%fluo_escape_ratios,[escape_ratios%n_elements,ABS(L3P3_LINE),&
+        escape_ratios%n_fluo_input_energies]) 
+        CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_input_energies,&
+        escape_ratios%fluo_escape_input_energies,[escape_ratios%n_fluo_input_energies]) 
+        CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_ratios,&
+        escape_ratios%compton_escape_ratios,[escape_ratios%n_compton_input_energies,&
+        escape_ratios%n_compton_output_energies]) 
+        CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_input_energies,&
+        escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies]) 
+        CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_output_energies,&
+        escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies]) 
+        
+
 
 #if DEBUG == 1
         WRITE (*,'(A,F15.4)') 'channel 223 contents: ', channels_noconv(223)
@@ -239,13 +262,7 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
         
 
         !escape peak
-        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI .OR.&
-        inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
-                CALL xmi_detector_escape_SiLi(channels_temp, inputF)
-        ELSE
-                WRITE (*,'(A)') 'Unsupported detector type'
-                CALL EXIT(1)
-        ENDIF
+        CALL xmi_detector_escape(channels_temp, inputF, escape_ratios)
 
 #if DEBUG == 1
         WRITE (*,'(A,ES14.6)') 'channels_temp max after escape: ',MAXVAL(channels_temp)
@@ -291,6 +308,8 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
                                 R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
                         ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
                                 R(I)= A0*G+1.0_C_DOUBLE*(0.63_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                        ELSE
+                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
                         ENDIF
 #if DEBUG == 1
                         IF (I .EQ. 150 .AND. I0 .EQ. 100) THEN
@@ -328,7 +347,236 @@ channels_convPtr,nchannels, options) BIND(C,NAME='xmi_detector_convolute')
         RETURN
 ENDSUBROUTINE xmi_detector_convolute
 
+SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
+        IMPLICIT NONE
+        TYPE (xmi_escape_ratios), INTENT(IN) :: escape_ratios 
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:) :: channels_conv
+
+        INTEGER (C_INT) :: i,j,k
+        REAL (C_DOUBLE) :: ratio,sum_ratio
+        REAL (C_DOUBLE) :: channel_e ,channel_1e, line_e,&
+        channel_c,compton_diff,compton_out_diff
+        INTEGER (C_INT) :: escape_i
+        REAL (C_DOUBLE), DIMENSION(2) :: fluo_a,fluo_b
+        INTEGER (C_INT) :: pos,pos_1,pos_2
+
+        channel_1e=(1.5_C_DOUBLE)*inputF%detector%gain+&
+        inputF%detector%zero
+        compton_out_diff = escape_ratios%compton_escape_output_energies(2)-&
+        escape_ratios%compton_escape_output_energies(1)
+
+
+        DO i=1,SIZE(channels_conv)
+                channel_e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
+                        inputF%detector%zero
+                !fluo escape peaks first...
+                sum_ratio = 0.0_C_DOUBLE
+                DO j=1,escape_ratios%n_elements
+                        IF (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),K_SHELL)) THEN
+                        DO k=KL1_LINE,KP5_LINE,-1
+                                line_e=LineEnergy(escape_ratios%Z(j),k)
+                                IF ((channel_e-line_e) .GE. channel_1e .AND. channel_e .GE.&
+                                escape_ratios%fluo_escape_input_energies(1) .AND.&
+                                channel_e .LT.&
+                                escape_ratios%fluo_escape_input_energies(&
+                                escape_ratios%n_fluo_input_energies))&
+                                THEN
+                                !interpolate
+                                pos=findpos(escape_ratios%fluo_escape_input_energies,&
+                                channel_e)   
+                                IF (pos .LT. 1) THEN
+                                WRITE (6,*) 'findpos returns low index'
+                                CALL EXIT(1)
+                                ENDIF
+                                !fluo_energies =>&
+                                !escape_ratios%fluo_escape_input_energies(pos:pos+1)
+                                fluo_a(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos)
+                                fluo_b(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos+1)
+                                !fluo_ratios =>&
+                                !escape_ratios%fluo_escape_ratios(j,ABS(k),pos:pos+1)
+                                fluo_a(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos)
+                                fluo_b(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos+1)
+                                ratio=interpolate_simple(fluo_a,fluo_b,channel_e)
+                                sum_ratio = sum_ratio+ratio
+                                escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
+                                inputF%detector%gain)
+                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
+                                SIZE(channels_conv)) THEN
+                                channels_conv(escape_i)=&
+                                channels_conv(escape_i)+ratio*channels_conv(i)
+                                ENDIF
+                                ENDIF
+                        ENDDO
+                        ENDIF
+                        IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L1_SHELL)) THEN
+                        DO k=L1M1_LINE,L1P5_LINE,-1
+                                line_e=LineEnergy(escape_ratios%Z(j),k)
+                                IF ((channel_e-line_e) .GE. channel_1e .AND. channel_e .GE.&
+                                escape_ratios%fluo_escape_input_energies(1) .AND.&
+                                channel_e .LT.&
+                                escape_ratios%fluo_escape_input_energies(&
+                                escape_ratios%n_fluo_input_energies))&
+                                THEN
+                                !interpolate
+                                pos=findpos(escape_ratios%fluo_escape_input_energies,&
+                                channel_e)   
+                                IF (pos .LT. 1) THEN
+                                WRITE (6,*) 'findpos returns low index'
+                                CALL EXIT(1)
+                                ENDIF
+                                !fluo_energies =>&
+                                !escape_ratios%fluo_escape_input_energies(pos:pos+1)
+                                fluo_a(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos)
+                                fluo_b(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos+1)
+                                !fluo_ratios =>&
+                                !escape_ratios%fluo_escape_ratios(j,ABS(k),pos:pos+1)
+                                fluo_a(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos)
+                                fluo_b(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos+1)
+                                ratio=interpolate_simple(fluo_a,fluo_b,channel_e)
+                                sum_ratio = sum_ratio+ratio
+                                escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
+                                inputF%detector%gain)
+                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
+                                SIZE(channels_conv)) THEN
+                                channels_conv(escape_i)=&
+                                channels_conv(escape_i)+ratio*channels_conv(i)
+                                ENDIF
+                                ENDIF
+                                
+                        ENDDO
+                        ENDIF
+                        IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L2_SHELL)) THEN
+                        DO k=L2M1_LINE,L2Q1_LINE,-1
+                                line_e=LineEnergy(escape_ratios%Z(j),k)
+                                IF ((channel_e-line_e) .GE. channel_1e .AND. channel_e .GE.&
+                                escape_ratios%fluo_escape_input_energies(1) .AND.&
+                                channel_e .LT.&
+                                escape_ratios%fluo_escape_input_energies(&
+                                escape_ratios%n_fluo_input_energies))&
+                                THEN
+                                !interpolate
+                                pos=findpos(escape_ratios%fluo_escape_input_energies,&
+                                channel_e)   
+                                IF (pos .LT. 1) THEN
+                                WRITE (6,*) 'findpos returns low index'
+                                CALL EXIT(1)
+                                ENDIF
+                                !fluo_energies =>&
+                                !escape_ratios%fluo_escape_input_energies(pos:pos+1)
+                                fluo_a(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos)
+                                fluo_b(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos+1)
+                                !fluo_ratios =>&
+                                !escape_ratios%fluo_escape_ratios(j,ABS(k),pos:pos+1)
+                                fluo_a(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos)
+                                fluo_b(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos+1)
+                                ratio=interpolate_simple(fluo_a,fluo_b,channel_e)
+                                sum_ratio = sum_ratio+ratio
+                                escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
+                                inputF%detector%gain)
+                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
+                                SIZE(channels_conv)) THEN
+                                channels_conv(escape_i)=&
+                                channels_conv(escape_i)+ratio*channels_conv(i)
+                                ENDIF
+                                ENDIF
+                                
+                        ENDDO
+                        ENDIF
+                        IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L3_SHELL)) THEN
+                        DO k=L3M1_LINE,L3Q1_LINE,-1
+                                line_e=LineEnergy(escape_ratios%Z(j),k)
+                                IF ((channel_e-line_e) .GE. channel_1e .AND. channel_e .GE.&
+                                escape_ratios%fluo_escape_input_energies(1) .AND.&
+                                channel_e .LT.&
+                                escape_ratios%fluo_escape_input_energies(&
+                                escape_ratios%n_fluo_input_energies))&
+                                THEN
+                                !interpolate
+                                pos=findpos(escape_ratios%fluo_escape_input_energies,&
+                                channel_e)   
+                                IF (pos .LT. 1) THEN
+                                WRITE (6,*) 'findpos returns low index'
+                                CALL EXIT(1)
+                                ENDIF
+                                !fluo_energies =>&
+                                !escape_ratios%fluo_escape_input_energies(pos:pos+1)
+                                fluo_a(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos)
+                                fluo_b(1)=escape_ratios%&
+                                fluo_escape_input_energies(pos+1)
+                                !fluo_ratios =>&
+                                !escape_ratios%fluo_escape_ratios(j,ABS(k),pos:pos+1)
+                                fluo_a(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos)
+                                fluo_b(2)=escape_ratios%&
+                                fluo_escape_ratios(j,ABS(k),pos+1)
+                                ratio=interpolate_simple(fluo_a,fluo_b,channel_e)
+                                sum_ratio = sum_ratio+ratio
+                                escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
+                                inputF%detector%gain)
+                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
+                                SIZE(channels_conv)) THEN
+                                channels_conv(escape_i)=&
+                                channels_conv(escape_i)+ratio*channels_conv(i)
+                                ENDIF
+                                ENDIF
+                                
+                        ENDDO
+                        ENDIF
+
+                ENDDO
+                !compton escape next
+                !applied to every channel lower than the current one
+                !take into account ratio of gain to output_energies_width
+                DO j=1,i-1
+                        channel_c = (REAL(j)+0.5_C_DOUBLE)*inputF%detector%gain+&
+                        inputF%detector%zero
+                        compton_diff=channel_e-channel_c
+                        IF (channel_e .GE.&
+                        escape_ratios%compton_escape_input_energies(1) .AND.&
+                        channel_e .LT.&
+                        escape_ratios%compton_escape_input_energies(&
+                        escape_ratios%n_compton_input_energies) .AND.&
+                        compton_diff .GE.&
+                        escape_ratios%compton_escape_output_energies(1) .AND.&
+                        compton_diff .LT.&
+                        escape_ratios%compton_escape_output_energies(&
+                        escape_ratios%n_compton_output_energies)) THEN
+                        !make sure the bilinear interpolation is safe
+                        pos_1=0_C_INT
+                        pos_2=0_C_INT
+                        ratio=bilinear_interpolation(escape_ratios%compton_escape_ratios,&
+                        escape_ratios%compton_escape_input_energies,&
+                        escape_ratios%compton_escape_output_energies,&
+                        channel_e,compton_diff,pos_1,pos_2)*inputF%detector%gain/&
+                        compton_out_diff
+                        channels_conv(j)=&
+                        channels_conv(j)+ratio*channels_conv(i)
+                        sum_ratio = sum_ratio+ratio
+
+
+                        ENDIF
+                ENDDO
+                channels_conv(i)=channels_conv(i)*(1.0_C_DOUBLE-sum_ratio)
+        ENDDO
+
+ENDSUBROUTINE xmi_detector_escape
+
 SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
+        IMPLICIT NONE
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:) :: channels_conv
 

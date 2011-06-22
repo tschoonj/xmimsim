@@ -281,7 +281,7 @@ TYPE :: xmi_escape_ratios
         INTEGER (C_INT) :: n_compton_output_energies
         !dimension of Z is (n_elements)
         INTEGER (C_INT), DIMENSION(:), POINTER :: Z
-        !dimension of fluo_escape_ratios is (maxz,KL1_LINE-L3P3_LINE,n_fluo_input_energies) 
+        !dimension of fluo_escape_ratios is (n_elements,KL1_LINE-L3P3_LINE,n_fluo_input_energies) 
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: fluo_escape_ratios
         !dimension of fluo_escape_input_energies is n_fluo_input_energies
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: fluo_escape_input_energies

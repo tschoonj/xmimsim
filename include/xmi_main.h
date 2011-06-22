@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 #include "xmi_solid_angle.h"
+#include "xmi_detector.h"
 
 
 
@@ -38,7 +39,7 @@ struct xmi_main_options {
 
 int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double **channels, int nchannels, struct xmi_main_options, double **brute_history, double **var_red_history, struct xmi_solid_angle *solid_angles);
 
-void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels, struct xmi_main_options);
+void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios);
 
 
 #endif

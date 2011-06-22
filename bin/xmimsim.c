@@ -527,7 +527,7 @@ int main (int argc, char *argv[]) {
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
 			channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);

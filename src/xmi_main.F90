@@ -3628,7 +3628,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER, PARAMETER :: maxz = 94
         INTEGER (C_LONG), PARAMETER :: n_input_energies = 990
         INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 999
-        INTEGER (C_LONG), PARAMETER :: n_photons = 100000
+        INTEGER (C_LONG), PARAMETER :: n_photons = 1000000
         REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
         REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
@@ -3643,6 +3643,9 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: element,line
         REAL (C_DOUBLE) :: compton_index
+
+        WRITE (6,'(A)') 'Precalculating escape ratios'
+        WRITE (6,'(A)') 'This could take a long time...'
 
         !associate c pointers
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -3732,7 +3735,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
-!$omp do
+!$omp do schedule(guided,2)
         DO i=1,n_input_energies
 !!$omp critical
 !                WRITE (6,'(A,ES12.4)') 'Simulating at ',input_energies(i)
