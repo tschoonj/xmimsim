@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans, Laszlo Vincze and Philip Brondeel
+Copyright (C) 2010-2011 Tom Schoonjans, Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Create unconvoluted graphs", NULL },
+           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Use unconvoluted data", NULL },
 		{NULL}
 	};
 
@@ -41,9 +41,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	//parse options
-	context = g_option_context_new ("XMSO_file SVG_file");
+	context = g_option_context_new ("XMSO_file CSV_file");
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_set_summary(context, "xmso2svg: a utility for the extraction of the SVG data from an XMSO file\n");
+	g_option_context_set_summary(context, "xmso2csv: a utility for the conversion of the spectral data contained within an XMSO file to a CSV file\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
@@ -63,10 +63,11 @@ int main(int argc, char *argv[]) {
         if(use_unconvoluted == 1) type = 1;
 
         // type = 0 is convoluted, type = 1 is unconvoluted
-	if (xmi_xmso_to_svg_xslt(argv[1], argv[2], type) == 0) {
+	if (xmi_xmso_to_svg_csv(argv[1], argv[2], type) == 0) {
 		return 1;
 	}
 
 
 	return 0;
 }
+
