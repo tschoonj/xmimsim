@@ -22,7 +22,8 @@ bin_PROGRAMS = xmimsim \
 	xmimsim-db \
 	xmimsim-pymca \
 	xmso2svg \
-	xmso2xmsi
+	xmso2xmsi \
+	xmso2spe
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -102,6 +103,9 @@ xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la
 xmso2svg_CFLAGS = @glib2_CFLAGS@
 
+xmso2spe_SOURCES = xmso2spe.c
+xmso2spe_LDADD = ../src/libxmimsim.la
+xmso2spe_CFLAGS = @glib2_CFLAGS@
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc

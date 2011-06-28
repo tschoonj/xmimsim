@@ -98,6 +98,7 @@ fi || :
 %{_prefix}/share/xmimsim/xmimsim-1.0.dtd
 %{_prefix}/share/xmimsim/xmso2xmsi.xml
 %{_prefix}/share/xmimsim/xmso2svg.xml
+%{_prefix}/share/xmimsim/xmso2spe.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
 %{_prefix}/share/xmimsim/xmimsim-solid-angles.h5
 %{_prefix}/share/xmimsim/xmimsimdata.h5

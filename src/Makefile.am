@@ -32,7 +32,12 @@ else
 libxmimsim_la_SOURCES += xmi_random_win.c xmi_registry_win.c
 endif
 
-libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ -DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" @glib2_CFLAGS@ @xraylib_CFLAGS@ -DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" -DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\"
+libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ \
+	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
+	@glib2_CFLAGS@ @xraylib_CFLAGS@ \
+	-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
+	-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
+	-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\"
 libxmimsim_la_FCFLAGS =@H5FC_INCLUDE@ @OPENMP_FCFLAGS@ @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
 libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_LIBS@ @H5FC_STATIC@ @fgsl_LIBS@ @glib2_LIBS@ 
