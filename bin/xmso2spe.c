@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans, Laszlo Vincze
+Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,11 +27,13 @@ int main(int argc, char *argv[]) {
 	GError *error = NULL;
         unsigned type=0;
 	static int use_unconvoluted=0;
+	static int interaction_number=1;
 
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Use unconvoluted data", NULL },
+           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &use_unconvoluted, "Use unconvoluted data", NULL },
+		{ "interaction-number", 'i', 0, G_OPTION_ARG_INT, &interaction_number, "Spectrum after n interactions"},
 		{NULL}
 	};
 
@@ -40,10 +42,11 @@ int main(int argc, char *argv[]) {
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
+
 	//parse options
-	context = g_option_context_new ("XMSO_file CSV_file");
+	context = g_option_context_new ("XMSO_file SPE_file");
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_set_summary(context, "xmso2csv: a utility for the conversion of the spectral data contained within an XMSO file to a CSV file\n");
+	g_option_context_set_summary(context, "xmso2spe: a utility for the extraction of SPE files from an XMSO file\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
@@ -56,18 +59,13 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-
-
- 	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
-        
         if(use_unconvoluted == 1) type = 1;
 
         // type = 0 is convoluted, type = 1 is unconvoluted
-	if (xmi_xmso_to_csv_xslt(argv[1], argv[2], type) == 0) {
+	if (xmi_xmso_to_spe_xslt(argv[1], argv[2], type, interaction_number) == 0) {
 		return 1;
 	}
 
 
 	return 0;
 }
-
