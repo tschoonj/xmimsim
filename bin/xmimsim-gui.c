@@ -273,7 +273,14 @@ enum {
 	CHECK_CHANGES_NEVER_SAVED,
 };
 
-
+#if GTK_CHECK_VERSION(2, 18, 0)
+void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign) {
+	gtk_cell_renderer_set_alignment(cell, xalign, yalign);
+}
+void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle, gboolean setting) {
+	gtk_cell_renderer_toggle_set_activatable (toggle, setting);
+}
+#else
 void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign) {
 	g_return_if_fail (GTK_IS_CELL_RENDERER (cell));
 	g_return_if_fail (xalign >= 0.0 && xalign <= 1.0);
@@ -295,6 +302,7 @@ void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, g
 	}
 }
 
+
 void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle, gboolean setting) {
 	g_return_if_fail (GTK_IS_CELL_RENDERER_TOGGLE (toggle));
 
@@ -303,6 +311,7 @@ void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle,
 		g_object_notify (G_OBJECT (toggle), "activatable");
 	}
 }
+#endif
 
 struct undo_single *check_changes_saved(int *status) {
 	struct undo_single *temp = current;
@@ -3488,10 +3497,17 @@ int main (int argc, char *argv[]) {
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Detector type");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+#if GTK_CHECK_VERSION(3, 0, 0)
+	detector_typeW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Si(Li)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Ge");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"SDD");
+#else
 	detector_typeW = gtk_combo_box_new_text();
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Si(Li)");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Ge");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"SDD");
+#endif
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),current->xi->detector->detector_type);
 	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);

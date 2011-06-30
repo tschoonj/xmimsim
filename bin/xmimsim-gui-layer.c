@@ -54,7 +54,11 @@ struct add_data {
 	GtkTreeSelection *select;
 }; 
 
-
+#if GTK_CHECK_VERSION(2, 20, 0)
+static GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint       response_id) {
+	return gtk_dialog_get_widget_for_response (dialog, response_id);
+}
+#else
 typedef struct _ResponseData ResponseData;
 
 struct _ResponseData {
@@ -101,7 +105,7 @@ static GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint 
 
 	return NULL;
 }
-
+#endif
 
 
 
@@ -318,7 +322,7 @@ void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 
 
-	gtk_widget_hide_all(lw->window);	
+	gtk_widget_hide(lw->window);	
 
 }
 
@@ -336,7 +340,11 @@ void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), "");
 	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), "");
 	gtk_widget_set_sensitive(ad->cw->okButton,FALSE);
+#if GTK_CHECK_VERSION(3, 0, 0)
+	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), TRUE);
+#else
 	gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), TRUE);
+#endif
 	ad->cw->kind = CW_ADD;
 	
 
@@ -379,7 +387,11 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"Editing element: %s and weight: %lf\n",element, weight);
 #endif
 		gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
-		gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
+#if GTK_CHECK_VERSION(3, 0, 0)
+	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), FALSE);
+#else
+	gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
+#endif
 		ad->cw->kind = CW_EDIT;
 		sprintf(buffer,"%g", weight);
 		gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
@@ -536,7 +548,7 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 	fprintf(stdout,"Entering dialog_buttons_clicked_cb\n");
 #endif
 	if (response_id == GTK_RESPONSE_REJECT) {
-		gtk_widget_hide_all(GTK_WIDGET(dialog));
+		gtk_widget_hide(GTK_WIDGET(dialog));
 	}
 
 	else if (response_id == GTK_RESPONSE_ACCEPT) {
@@ -610,7 +622,7 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 
 
 
-		gtk_widget_hide_all(GTK_WIDGET(dialog));
+		gtk_widget_hide(GTK_WIDGET(dialog));
 	
 	}
 
@@ -688,7 +700,11 @@ void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTree
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(ad->store), &iter, path);
 	gtk_tree_model_get(GTK_TREE_MODEL(ad->store), &iter,  SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
 	gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
+#if GTK_CHECK_VERSION(3, 0, 0)
+	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), FALSE);
+#else
 	gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
+#endif
 	ad->cw->kind = CW_EDIT;
 	sprintf(buffer,"%g", weight);
 	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
@@ -815,7 +831,11 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Weights sum (%)");
 	sumEntry = gtk_entry_new();
-	gtk_entry_set_editable(GTK_ENTRY(sumEntry),FALSE);
+#if GTK_CHECK_VERSION(3, 0, 0)
+	gtk_editable_set_editable(GTK_EDITABLE(sumEntry), FALSE);
+#else
+	gtk_entry_set_editable(GTK_ENTRY(sumEntry), FALSE);
+#endif
 	normalizeButton = gtk_button_new_with_label("Normalize");
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), sumEntry, FALSE, FALSE, 2);

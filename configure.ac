@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[0.1],[Tom.Schoonjans@UGent.be])
+AC_INIT([xmimsim],[0.2],[Tom.Schoonjans@UGent.be])
 AC_PREREQ([2.60])
 AC_CONFIG_AUX_DIR([build-aux])
 
@@ -90,7 +90,11 @@ PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.14.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	PKG_CHECK_MODULES([gtk],gtk+-3.0 >= 3.0.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	if test "x$GTK_FOUND" = xno ; then
+		PKG_CHECK_MODULES([gtk],gtk+-2.0 >= 2.14.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	fi
+
 	#PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0)
 	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
 		AC_MSG_ERROR([no GTK found on the system.])

@@ -101,7 +101,7 @@ void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		energy = NULL;
 	}
 
-	gtk_widget_hide_all(ew->window);
+	gtk_widget_hide(ew->window);
 
 
 	return;
