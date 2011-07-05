@@ -107,6 +107,8 @@ int main (int argc, char *argv[]) {
 	static gchar *csv_file_conv=NULL;
 	static gchar *svg_file_noconv=NULL;
 	static gchar *svg_file_conv=NULL;
+	static gchar *htm_file_noconv=NULL;
+	static gchar *htm_file_conv=NULL;
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
@@ -133,6 +135,8 @@ int main (int argc, char *argv[]) {
 		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
 		{"svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL},
 		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
+		{"htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL},
+		{"htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL},
 		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
 		{ "enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
@@ -610,6 +614,21 @@ int main (int argc, char *argv[]) {
 		if (svg_file_noconv != NULL) {
                         // 1 = unconvoluted
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 1) == 0) {
+				return 1;
+			}
+		}
+
+
+		if (htm_file_conv != NULL) {
+			// 0 = convoluted
+			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_conv, 0) == 0) {
+				return 1;
+			}
+		}
+
+		if (htm_file_noconv != NULL) {
+                        // 1 = unconvoluted
+			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_noconv, 1) == 0) {
 				return 1;
 			}
 		}

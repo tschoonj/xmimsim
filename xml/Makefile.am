@@ -14,7 +14,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = xmimsim-1.0.dtd xmso2xmsi.xml xmso2svg.xml
+dist_xmimsim_DATA = xmimsim-1.0.dtd xmso2xmsi.xml xmso2svg.xml xmso2htm.xml
 xmimsim_DATA = xmimsim_cat.xml
 
 

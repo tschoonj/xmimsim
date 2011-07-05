@@ -54,17 +54,18 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorb
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels); 
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
 
 extern int xmlLoadExtDtdDefaultValue;
 
 static int write_start_element(xmlTextWriterPtr writer, char *element);
 static int write_end_element(xmlTextWriterPtr writer, char *element);
-static int write_int_element(xmlTextWriterPtr writer, char *element, int parm);
+static int write_value_element(xmlTextWriterPtr writer, char *element, float parm);
+static int write_value_element_int(xmlTextWriterPtr writer, char *element, int parm);
 static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm);
-static int e2c(double energy, double * channels, double * energies, int nchannels );
-static int i2c(double intensity, double maximum_log, double minimum_log);
+static float e2c(double energy, double * channels, double * energies, int nchannels );
+static float i2c(double intensity, double maximum_log, double minimum_log);
 
 
 
@@ -1115,6 +1116,9 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	int *uniqZ = NULL;
 	int nuniqZ = 1;
 	int found;
+	double *maxima;
+	double gl_conv_max;
+	double gl_unconv_max;
 	gchar *timestring;
 	GTimeVal time;
 	xmlTextWriterPtr writer;
@@ -1388,6 +1392,11 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 					fprintf(stderr,"Error writing energy\n");
 					return 0;
 				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       					fprintf(stderr,"Error writing symbol\n");                     
+					return 0;
+				} 
+
 				if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
@@ -1439,6 +1448,11 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 						fprintf(stderr,"Error writing energy\n");
 						return 0;
 					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       						fprintf(stderr,"Error writing symbol\n");                     
+						return 0;
+					} 
+
 					if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
 						fprintf(stderr,"Error writing counts\n");
 						return 0;
@@ -1476,19 +1490,38 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
+        // calculate global channel max for conv
+	maxima = (double *) malloc(sizeof(double)*(input->general->n_interactions_trajectory+1));
+	maxima[0]=0.0;
+	for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+		maxima[i]=xmi_maxval_double(channels_conv[i],nchannels);
+	}
+	gl_conv_max = xmi_maxval_double(maxima,input->general->n_interactions_trajectory+1);
+        free(maxima); maxima = NULL;
+
+        // calculate global channel max for unconv
+	maxima = (double *) malloc(sizeof(double)*(input->general->n_interactions_trajectory+1));
+	maxima[0]=0.0;
+	for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+		maxima[i]=xmi_maxval_double(channels_unconv+i*nchannels,nchannels);
+	}
+	gl_unconv_max = xmi_maxval_double(maxima,input->general->n_interactions_trajectory+1);
+	free(maxima); maxima = NULL;
+
+
         //write svg_graph lines
 	for (i = (use_zero_interactions == 1 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 
 		//convoluted first
 	
-		if (xmi_write_input_xml_svg(writer, input, "convoluted", i, channels_conv[i], nchannels) == 0) {
+		if (xmi_write_input_xml_svg(writer, input, "convoluted", i, channels_conv[i], nchannels, gl_conv_max) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
 
 		//unconvoluted second
 
-		if (xmi_write_input_xml_svg(writer, input, "unconvoluted", i,  channels_unconv+i*nchannels, nchannels) == 0) {
+		if (xmi_write_input_xml_svg(writer, input, "unconvoluted", i,  channels_unconv+i*nchannels, nchannels, gl_unconv_max ) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
@@ -2188,9 +2221,11 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 }
 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, double *channels, int nchannels) {
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, 
+double *channels, int nchannels, double maximum2 ) {
 	
-	double minimum, maximum;
+	double minimum;
+	double maximum;
 	double minimum_log, maximum_log;
 	double *energies;
 	int i;
@@ -2203,12 +2238,20 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 	int height = SVG_DEFAULT_BOX_HEIGHT;
  	int energy_step = 5.0;
 	int max_channel;
+	char line[100];
+
+
+        fprintf(stdout,"global max for %s =  %f \n", name, maximum2);
+
 
 	// max and min
-	maximum = xmi_maxval_double(channels, nchannels);
-	minimum = xmi_minval_double(channels, nchannels);
+//	maximum = xmi_maxval_double(channels, nchannels);
+//	minimum = xmi_minval_double(channels, nchannels);
+	maximum = maximum2;
+	minimum = 1;
 	maximum_log = log10(maximum);
 	minimum_log = log10(minimum);
+
 
 	max_channel = 0;
 	for (i = nchannels-1 ; i >= 0 ; i--) {
@@ -2229,7 +2272,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
        	if(!error) error = write_start_element(writer,  "id");
 
 	if(!error) error = write_char_element(writer, "name", name);
-	if(!error) error = write_int_element(writer,  "interaction", (int) interaction);
+	if(!error) error = write_value_element_int(writer,  "interaction", interaction);
 
        	if(!error) error = write_end_element(writer,  "id");
 
@@ -2241,21 +2284,22 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 
 
        	if(!error) error = write_start_element(writer, "size");
-		if(!error) error = write_int_element(writer,  "width", (int) width);
-		if(!error) error = write_int_element(writer, "height", (int) height);
-		if(!error) error = write_char_element(writer, "test", "test");
-
+		if(!error) error = write_value_element(writer, "width", (int) width);
+		if(!error) error = write_value_element(writer, "height", (int) height);
+		if(!error) error = write_value_element(writer, "min_energy", energies[0]);
+		if(!error) error = write_value_element(writer, "max_energy", energies[max_channel-1]);
        	if(!error) error = write_end_element(writer, "size");
 
 	// x-axis
       	if(!error) error = write_start_element(writer, "x-axis");
-        if(!error) error = write_char_element(writer, "name", "var(unit)");
+        if(!error) error = write_char_element(writer, "name", "Energy (keV)");
 	//for now print energy every 5 keV on X-axis
 	energy = 0.0;
 	while (energy <= energies[max_channel]) {
 		if(!error) error = write_start_element(writer, "index");
-		if(!error) error = write_int_element(writer,  "value", (int) e2c(energy, channels, energies, max_channel));
-		if(!error) error = write_int_element(writer,  "name", (int) energy);
+		if(!error) error = write_value_element(writer,  "value", e2c(energy, channels, energies, max_channel));
+                sprintf(line, "%.1f", energy);
+		if(!error) error = write_char_element(writer,  "name", line);
 		if(!error) error = write_end_element(writer,"index");
 	energy += energy_step;
 	} 
@@ -2264,7 +2308,7 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 
         // start y-axis
        	if(!error) error = write_start_element(writer, "y-axis");
- 	if(!error) error = write_char_element(writer, "name", "var(unit)");
+ 	if(!error) error = write_char_element(writer, "name", "Intensity (counts)");
 
 	if (minimum_log < 0.0) {
 		minimum_log = 0.0;
@@ -2278,8 +2322,9 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 		}
 
 		if(!error) error = write_start_element(writer, "index");
-		if(!error) error = write_int_element(writer,  "value", (int) i2c(intensity, maximum_log, minimum_log));
-		if(!error) error = write_int_element(writer,  "name", (int) intensity);
+		if(!error) error = write_value_element(writer,  "value", i2c(intensity, maximum_log, minimum_log));
+		sprintf(line, "%.0f", intensity);
+		if(!error) error = write_char_element(writer,  "name", line);
 		if(!error) error = write_end_element(writer,"index");
 
 		intensity *= 10.0;
@@ -2297,8 +2342,8 @@ static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *in
 	//loop point			
 	for (i = 0 ; i <= max_channel ; i++) {
 		if(!error) error = write_start_element(writer,  "point");
-		if(!error) error = write_int_element(writer,  "x", (int) e2c(energies[i], channels, energies, max_channel));
-		if(!error) error = write_int_element(writer,  "y", (int) i2c(channels[i], maximum_log, minimum_log));
+		if(!error) error = write_value_element(writer,  "x", e2c(energies[i], channels, energies, max_channel));
+		if(!error) error = write_value_element(writer,  "y", i2c(channels[i], maximum_log, minimum_log));
 		if(!error) error = write_end_element(writer,  "point");	       
 		}
 	//end loop point
@@ -2342,98 +2387,77 @@ static int write_end_element(xmlTextWriterPtr writer, char *element){
 	return error;
 }
 
-static int write_int_element(xmlTextWriterPtr writer, char *element, int parm){
+static int write_value_element(xmlTextWriterPtr writer, char *element, float parm){
  	int error;
-	 error = 0;
+	error = 0;
 
-        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}
-		
-        if (!error)
-		{if (xmlTextWriterWriteFormatString(writer,"%i", parm ) < 0 ) {error = 1;}}
+        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
+        if (!error){if (xmlTextWriterWriteFormatString(writer,"%f", parm ) < 0 ) {error = 1;}}
+        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
 
-        if (!error)
-		{if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
+        if (error) fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);         
+	return error;
+}
 
-        if (error)
-       		 fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);
+static int write_value_element_int(xmlTextWriterPtr writer, char *element, int parm){
+ 	int error;
+	error = 0;
 
-         
+        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
+        if (!error){if (xmlTextWriterWriteFormatString(writer,"%i", parm ) < 0 ) {error = 1;}}
+        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
+
+        if (error) fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);         
 	return error;
 }
 
 static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
  	int error;
-	 error = 0;
+	error = 0;
 
-        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}
-		
-        if (!error)
-		{if (xmlTextWriterWriteFormatString(writer,"%s", parm ) < 0 ) {error = 1;}}
+        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
+        if (!error){if (xmlTextWriterWriteFormatString(writer,"%s", parm ) < 0 ) {error = 1;}}
+        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
 
-        if (!error)
-		{if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
-
-        if (error)
-       		 fprintf(stderr,"Error parameter svg element %s %s \n", element, parm);
-
-         
+        if (error)fprintf(stderr,"Error parameter svg element %s %s \n", element, parm);
 	return error;
 }
 
 
-
-
-
-
-
-static int e2c(double energy, double * channels, double * energies, int nchannels ){ 
-	int xval;
+static float e2c(double energy, double * channels, double * energies, int nchannels ){ 
+	float xval;
 	int out_of_range;
 
 	out_of_range = 0;
 
-	xval = (int)((SVG_DEFAULT_BOX_WIDTH)*(energy - energies[0])/(energies[nchannels-1] - energies[0]));
+	xval = (float)((SVG_DEFAULT_BOX_WIDTH)*(energy - energies[0])/(energies[nchannels-1] - energies[0]));
 
-	if (xval < 0) {
-		xval = 0; out_of_range++;
-	}
-	if (xval > SVG_DEFAULT_BOX_WIDTH) {
-		xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;
-	}
+	if (xval < 0) {xval = 0; out_of_range++;	}
+	if (xval > SVG_DEFAULT_BOX_WIDTH) {xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;}
 
-	if(out_of_range > 0)
-		fprintf(stderr, "svg x-values out of range \n");
+	if(out_of_range > 0)fprintf(stderr, "svg x-values out of range \n");
 
 	return xval;
 }
 
-static int i2c(double intensity, double maximum_log, double minimum_log) {
-	int val;
+static float i2c(double intensity, double maximum_log, double minimum_log) {
+	float val;
 	double intensity_corrected;
 	int out_of_range;
 
 	out_of_range = 0;
 	intensity_corrected = intensity;
-	if (intensity < 1)
-		intensity_corrected = 1;
+	if (intensity < 1)intensity_corrected = 1;
 
-	val = (int) (SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity_corrected)-minimum_log)/(maximum_log-minimum_log);
+	val = (float) (SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity_corrected)-minimum_log)/(maximum_log-minimum_log);
 
-	if(val < 0) {
-		val = 0; out_of_range++;
-	}
-	if(val > SVG_DEFAULT_BOX_HEIGHT) {
-		val = SVG_DEFAULT_BOX_HEIGHT; out_of_range++;
-	}
+	if(val < 0) {val = 0; out_of_range++;	}
+	if(val > SVG_DEFAULT_BOX_HEIGHT) {val = SVG_DEFAULT_BOX_HEIGHT; out_of_range++;}
 
-	if(out_of_range > 0)
-		fprintf(stderr, "svg y-values out of range"); 
+	if(out_of_range > 0)fprintf(stderr, "svg y-values out of range"); 
 
 	return val;
 }
-
-
-
 
 //int xmi_read_output_xml()
 

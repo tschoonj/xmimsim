@@ -54,6 +54,9 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_XMSO2SVG:
 			strcat(stringkey,"xmso2svg");
 			break;
+		case XMI_REGISTRY_WIN_XMSO2HTM:
+			strcat(stringkey,"xmso2htm");
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
 			return 0;
