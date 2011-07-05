@@ -104,6 +104,7 @@ fi || :
 %{_prefix}/share/xmimsim/xmso2spe.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
 %{_prefix}/share/xmimsim/xmimsim-solid-angles.h5
+%{_prefix}/share/xmimsim/xmimsim-escape-ratios.h5
 %{_prefix}/share/xmimsim/xmimsimdata.h5
 %{_datadir}/applications/xmimsim.desktop
 #%{_datadir}/pixmaps/Logo_xmi_msim*.png
@@ -124,3 +125,5 @@ fi || :
 %changelog
 * Tue May 17 2011 Tom Schoonjans
 - First version of spec file
+* Mon Jun 20 2011 Tom Schoonjans
+- added escape ratios hdf5 file

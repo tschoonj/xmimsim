@@ -56,8 +56,6 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 
 
 
-	//to open the hdf5_file, we will probably have to change euid
-	//let's try first without...
 	file_id = H5Fopen(hdf5_file, H5F_ACC_RDWR , H5P_DEFAULT);
 	if (file_id < 0 ) {
 		fprintf(stderr,"Cannot open file %s for read/write\n",hdf5_file);
@@ -167,6 +165,9 @@ int xmi_read_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle **sol
 	//examine each individual group
 	//use H5Literate
 	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) msa);
+
+	if (iterate_rv < 0)
+		return 0;
 
 	*solid_angles = msa->solid_angles;
 	*n_solid_angles = msa->n_solid_angles;

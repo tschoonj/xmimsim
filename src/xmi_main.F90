@@ -803,9 +803,11 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         composition%layers(1)%Z_coord_begin]
         plane%normv = geometry%n_sample_orientation
 
-        IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0)  &
+        IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_photon_shift_first_layer'
                 CALL EXIT(1)
-
+        ENDIF
         !
         !
         ! Problem: what if source lies in the first (air) layer???
@@ -825,7 +827,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv
 
-        LOGICAL :: terminated, inside
+        LOGICAL :: terminated
         REAL (C_DOUBLE) :: interactionR
         INTEGER (C_INT) :: i,j,k
         TYPE (xmi_plane) :: plane
@@ -862,7 +864,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         EXIT
                 ENDIF
                 !Check in which layer it will interact
-                inside = .FALSE.
+                photon%inside = .FALSE.
 #if DEBUG == 2
                 WRITE (*,'(A,F12.6)') 'interactionR= ',interactionR
 #endif
@@ -929,8 +931,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         inputF%composition%layers(i)%Z_coord_begin]
                                 ENDIF
 
-                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
+                                        WRITE (*,*) 'xmi_intersection_plane_line error'
+                                        WRITE (*,*) 'in xmi_simulate_photon'
                                         CALL EXIT(1)
+                                ENDIF
                         
                                 dist = xmi_distance_two_points(photon%coords,intersect)
 #if DEBUG == 1
@@ -996,7 +1001,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #endif
                                         !update current_layer
                                         photon%current_layer = i
-                                        inside = .TRUE.
+                                        photon%inside = .TRUE.
                                         !exit loop 
                                         EXIT
                                 ELSE
@@ -1032,8 +1037,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         inputF%composition%layers(i)%Z_coord_begin]
                                 ENDIF
 
-                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
+                                IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
+                                        WRITE (*,*) 'xmi_intersection_plane_line error'
+                                        WRITE (*,*) 'in xmi_photon_shift_first_layer'
                                         CALL EXIT(1)
+                                ENDIF
                                 
                                 distances(i) = xmi_distance_two_points(line%point,intersect)
                                 line%point = intersect
@@ -1087,7 +1095,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         WRITE (*,'(A,F12.4)') 'R: ',interactionR
 #endif
                         DEALLOCATE(distances)
-                        inside = .TRUE.
+                        photon%inside = .TRUE.
                         photon%current_layer = my_index
                 ENDIF
 
@@ -1096,11 +1104,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 WRITE (*,'(A)') 'After do loop'
 #endif
 
-                IF (inside .EQV. .FALSE.) THEN
+                IF (photon%inside .EQV. .FALSE.) THEN
                         !photon has left the system
                         !check if it will make it to the detector
-                        photon%detector_hit=xmi_check_photon_detector_hit(&
-                        photon,inputF)
+                        IF (photon%options%escape_ratios_mode .NE. 1) THEN
+                                photon%detector_hit=xmi_check_photon_detector_hit(&
+                                photon,inputF)
+                        ENDIF
                         EXIT main
                 ENDIF
 
@@ -1249,6 +1259,66 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         rv = 1
 
 ENDFUNCTION xmi_simulate_photon
+
+FUNCTION xmi_init_input_escape_ratios(inputFPtr)&
+BIND(C,NAME='xmi_init_input_escape_ratios') RESULT(rv)
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN) :: inputFPtr
+        INTEGER (C_INT) :: rv,i,j
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: inverse
+
+        TYPE (C_PTR) :: inversePtr
+        TYPE (xmi_input), POINTER :: inputF
+        REAL (C_DOUBLE) :: distance_sample_detector,half_apex 
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, DIMENSION(:) :: &
+        n_detector_orientation_new_x,&
+        n_detector_orientation_new_y, n_detector_orientation_new_z
+
+        rv = 0
+
+        !associate pointers
+        CALL C_F_POINTER(inputFPtr, inputF)
+
+!        ASSOCIATE (layers => inputF%composition%layers, &
+!        n_sample_orientation => inputF%geometry%n_sample_orientation )
+#define layer inputF%composition%layers
+#define my_n_sample_orientation inputF%geometry%n_sample_orientation
+        DO j=1,SIZE(layer)
+                !calculate thickness in Z direction
+                layer(j)%thickness_along_Z = &
+                layer(j)%thickness/SIN(&
+                ATAN(my_n_sample_orientation(3)/&
+                my_n_sample_orientation(2)))
+        ENDDO
+
+        layer(inputF%composition%reference_layer)%Z_coord_begin =&
+        0.0_C_DOUBLE+inputF%geometry%d_sample_source
+        layer(inputF%composition%reference_layer)%Z_coord_end =&
+        layer(inputF%composition%reference_layer)%thickness_along_Z+&
+        inputF%geometry%d_sample_source
+
+        DO j=inputF%composition%reference_layer+1,SIZE(layer)
+                layer(j)%Z_coord_begin =layer(j-1)%Z_coord_end
+                layer(j)%Z_coord_end = layer(j)%Z_coord_begin+&
+                layer(j)%thickness_along_Z
+        ENDDO
+        DO j=inputF%composition%reference_layer-1,1,-1
+                layer(j)%Z_coord_end = layer(j+1)%Z_coord_begin
+                layer(j)%Z_coord_begin = layer(j)%Z_coord_end-&
+                layer(j)%thickness_along_Z
+        ENDDO
+
+
+!        ENDASSOCIATE
+#undef layers
+#undef n_sample_orientation
+
+        rv = 1
+
+        RETURN
+
+ENDFUNCTION xmi_init_input_escape_ratios
+
 
 FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         IMPLICIT NONE
@@ -1443,8 +1513,11 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         photon_trajectory%dirv = photon_dirv_det
         photon_trajectory%point = photon_coords_det
 
-        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
-        intersect) == 0) CALL EXIT(1)
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                CALL EXIT(1)
+        ENDIF
 
         IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
 
@@ -1459,8 +1532,11 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         !there is a collimator...
         plane_det_base%point = [inputF%geometry%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 
-        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,&
-        intersect) == 0) CALL EXIT(1)
+        IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
+                WRITE (*,*) 'xmi_intersection_plane_line error'
+                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                CALL EXIT(1)
+        ENDIF
 
         intersect(1) = 0.0_C_DOUBLE
 
@@ -3527,8 +3603,275 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
         RETURN
 ENDSUBROUTINE xmi_force_photon_to_detector
 
+SUBROUTINE xmi_escape_ratios_calculation(inputFPtr, hdf5FPtr, escape_ratiosPtr,&
+input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
+        TYPE (C_PTR), INTENT(INOUT) :: escape_ratiosPtr
+        TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
+
+
+        TYPE (xmi_hdf5), POINTER :: hdf5F
+        TYPE (xmi_input), POINTER :: inputF
+        TYPE (xmi_main_options) :: options
+        TYPE (xmi_escape_ratiosC), POINTER :: escape_ratios
+        INTEGER (C_INT) :: xmi_cascade_type
+        TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
+        precalc_mu_cs
+        INTEGER :: max_threads, thread_num
+
+        TYPE (fgsl_rng_type) :: rng_type
+        TYPE (fgsl_rng) :: rng
+        INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
+        INTEGER (C_LONG) :: i,j,k,l,m,n
+        TYPE (xmi_photon), POINTER :: photon
+        INTEGER, PARAMETER :: maxz = 94
+        INTEGER (C_LONG), PARAMETER :: n_input_energies = 990
+        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 999
+        INTEGER (C_LONG), PARAMETER :: n_photons = 1000000
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        input_energies, compton_escape_output_energies
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
+        fluo_escape_ratios
+        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: &
+        compton_escape_ratios
+        INTEGER (C_INT), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        Z
+        REAL (C_DOUBLE) :: theta_elecv
+        REAL (C_DOUBLE) :: photons_simulated, photons_no_interaction,&
+        photons_rayleigh, photons_compton, photons_einstein,photons_interacted
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
+        INTEGER (C_INT) :: element,line
+        REAL (C_DOUBLE) :: compton_index
+
+        WRITE (6,'(A)') 'Precalculating escape ratios'
+        WRITE (6,'(A)') 'This could take a long time...'
+
+        !associate c pointers
+        CALL C_F_POINTER(inputFPtr, inputF)
+        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
+
+        IF (ALLOCATED(input_energies)) DEALLOCATE(input_energies)
+        IF (ALLOCATED(compton_escape_output_energies)) &
+        DEALLOCATE(compton_escape_output_energies)
+        IF (ALLOCATED(fluo_escape_ratios)) DEALLOCATE(fluo_escape_ratios)
+        IF (ALLOCATED(compton_escape_ratios)) DEALLOCATE(compton_escape_ratios)
+        ALLOCATE(input_energies(n_input_energies))
+        ALLOCATE(compton_escape_output_energies(n_compton_output_energies))
+        DO i=0,n_input_energies-1
+                input_energies(i+1) = 1.0+i*0.1
+        ENDDO
+
+        DO i=0,n_compton_output_energies-1
+                compton_escape_output_energies(i+1) = 0.1+i*0.1
+        ENDDO
+
+        ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
+        Z = hdf5F%xmi_hdf5_Zs(:)%Z
+        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),n_input_energies))
+        ALLOCATE(compton_escape_ratios(n_input_energies,&
+        n_compton_output_energies))
+
+        fluo_escape_ratios = 0.0_C_DOUBLE
+        compton_escape_ratios = 0.0_C_DOUBLE
+
+        !set options
+        options%use_M_lines = 0
+        options%use_self_enhancement = 0
+        options%use_cascade_auger = 0
+        options%use_cascade_radiative = 0
+        options%use_variance_reduction = 0
+        options%use_optimizations = 0
+        options%use_sum_peaks = 0
+        options%escape_ratios_mode = 1
+
+        xmi_cascade_type = XMI_CASCADE_NONE
+
+
+        max_threads = omp_get_max_threads()
+
+        ALLOCATE(seeds(max_threads))
+
+        !fetch some seeds
+        IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
 
 
+        !
+        !
+        !       Precalculate the absorption coefficients of the XRF photons
+        !
+        !
+        ALLOCATE(precalc_mu_cs(inputF%composition%n_layers))
+        DO k=1,inputF%composition%n_layers
+                ALLOCATE(precalc_mu_cs(k)%mu(maxz,ABS(M5P5_LINE)))
+                DO l=1,maxz
+                        DO m=KL1_LINE,M5P5_LINE,-1
+                               precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
+                               REAL(LineEnergy(INT(l,C_INT),INT(m,C_INT)),C_DOUBLE)) 
+                        ENDDO
+                ENDDO
+
+        ENDDO
+
+
+        !initialize random number generators
+        rng_type = fgsl_rng_mt19937
+
+
+        !allocate the escape ratio arrays...
+
+
+
+!$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
+!$omp initial_mus,photons_simulated, photons_no_interaction,&
+!$omp photons_rayleigh, photons_compton,&
+!$omp photons_einstein,photons_interacted,element,compton_index,line)
+
+
+
+        thread_num = omp_get_thread_num()
+
+        rng = fgsl_rng_alloc(rng_type)
+        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+
+!$omp do schedule(guided,2)
+        DO i=1,n_input_energies
+!!$omp critical
+!                WRITE (6,'(A,ES12.4)') 'Simulating at ',input_energies(i)
+!!$omp end critical
+                !Calculate initial mu's
+                ALLOCATE(initial_mus(inputF%composition%n_layers))
+                initial_mus = xmi_mu_calc(inputF%composition,&
+                input_energies(i))
+
+                photons_simulated = 0.0_C_DOUBLE
+                photons_no_interaction= 0.0_C_DOUBLE
+                photons_rayleigh = 0.0_C_DOUBLE
+                photons_compton= 0.0_C_DOUBLE
+                photons_einstein= 0.0_C_DOUBLE
+                photons_interacted= 0.0_C_DOUBLE
+
+                DO j=1,n_photons
+                        !Allocate the photon
+                        ALLOCATE(photon)
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        photon%history(1,1)=NO_INTERACTION
+                        photon%last_interaction=NO_INTERACTION
+                        photon%n_interactions=0
+                        NULLIFY(photon%offspring)
+                        !Calculate energy with rng
+                        photon%energy = input_energies(i) 
+                        photon%energy_changed=.FALSE.
+                        ALLOCATE(photon%mus(inputF%composition%n_layers))
+                        photon%mus = initial_mus
+                        photon%current_layer = 1
+                        photon%detector_hit = .FALSE.
+                        photon%detector_hit2 = .FALSE.
+                        photon%options = options
+                        photon%xmi_cascade_type = xmi_cascade_type
+                        photon%precalc_mu_cs => precalc_mu_cs
+                
+                        photon%dirv(1) = 0.0_C_DOUBLE
+                        photon%dirv(2) = 0.0_C_DOUBLE
+                        photon%dirv(3) = 1.0_C_DOUBLE
+                        photon%theta = 0.0_C_DOUBLE
+                        photon%phi = 0.0_C_DOUBLE
+                        photon%weight = 1.0
+                        theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
+                        photon%elecv(1) = COS(theta_elecv)
+                        photon%elecv(2) = SIN(theta_elecv)
+                        photon%elecv(3) = 0.0_C_DOUBLE 
+
+                        CALL &
+                        xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
+
+
+                        IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
+                                CALL EXIT(1)
+                        ENDIF
+
+                        photons_simulated = photons_simulated + photon%weight
+                        IF (photon%last_interaction .EQ. NO_INTERACTION) THEN
+                                photons_no_interaction = &
+                                photons_no_interaction + photon%weight
+                        ELSE
+                                photons_interacted = &
+                                photons_interacted + photon%weight
+                        ENDIF
+                        !if photon has left the system and has interacted at
+                        !least once, let's look at its energy
+                        !and the last interaction type
+                        IF (photon%inside .EQV. .FALSE. .AND.&
+                        photon%last_interaction .NE. NO_INTERACTION) THEN
+                                SELECT CASE (photon%last_interaction)
+                                        CASE (RAYLEIGH_INTERACTION)
+                                                photons_rayleigh = &
+                                                photons_rayleigh + photon%weight 
+                                        CASE (COMPTON_INTERACTION)
+                                                photons_compton = &
+                                                photons_compton + photon%weight  
+                                                compton_index=INT((photon%energy-0.1)/0.1)
+                                                IF (compton_index .GE. 1 .AND.&
+                                                compton_index .LE. &
+                                                n_compton_output_energies)&
+                                                compton_escape_ratios(i,compton_index)=&
+                                                compton_escape_ratios(i,compton_index)+&
+                                                photon%weight
+                                        CASE (PHOTOELECTRIC_INTERACTION)
+                                                photons_einstein= &
+                                                photons_einstein + photon%weight  
+                                                k=photon%n_interactions
+                                                element =&
+                                                inputF%composition%layers&
+                                                (photon%current_layer)%&
+                                                xmi_hdf5_Z_local&
+                                                (photon%current_element_index)&
+                                                %Ptr%Zindex
+                                                line=&
+                                                ABS(photon%history(k,1))
+                                                IF (photon%history(k,1) .LE. KL1_LINE .AND.&
+                                                photon%history(k,1) .GE. L3P3_LINE) THEN
+                                                        fluo_escape_ratios(element,line,i) = &
+                                                        fluo_escape_ratios(element,line,i) + &
+                                                        photon%weight
+                                                ENDIF
+                                ENDSELECT
+
+                        ENDIF
+
+                        !deallocate photon
+                        DEALLOCATE(photon%history)
+                        DEALLOCATE(photon%mus)
+                        DEALLOCATE(photon)
+                ENDDO
+                fluo_escape_ratios(:,:,i) =&
+                fluo_escape_ratios(:,:,i)/photons_interacted
+                compton_escape_ratios(i,:)=&
+                compton_escape_ratios(i,:)/photons_interacted
+                DEALLOCATE(initial_mus)
+
+        ENDDO
+!$omp end do
+!$omp end parallel
+
+        ALLOCATE(escape_ratios)
+        escape_ratios%n_elements = SIZE(Z)
+        escape_ratios%n_fluo_input_energies =&
+        n_input_energies
+        escape_ratios%n_compton_input_energies =&
+        n_input_energies
+        escape_ratios%n_compton_output_energies =&
+        n_compton_output_energies
+        escape_ratios%Z=C_LOC(Z)
+        escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios)
+        escape_ratios%fluo_escape_input_energies=C_LOC(input_energies)
+        escape_ratios%compton_escape_ratios=C_LOC(compton_escape_ratios)
+        escape_ratios%compton_escape_input_energies=C_LOC(input_energies)
+        escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies)
+        escape_ratios%xmi_input_string = input_string
+
+        escape_ratiosPtr = C_LOC(escape_ratios)
+ENDSUBROUTINE xmi_escape_ratios_calculation
 
 ENDMODULE

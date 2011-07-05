@@ -29,15 +29,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_random.h"
 #include "xmi_xslt.h"
+#include "xmi_detector.h"
 #include <unistd.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <locale.h>
 #include <xraylib.h>
+#include <stdlib.h>
 
 #include <stdio.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -80,8 +80,6 @@ int main (int argc, char *argv[]) {
 	int rv;
 	xmi_inputFPtr inputFPtr;
 	xmi_hdf5FPtr hdf5FPtr;
-	const gsl_rng_type *rng_type;
-	gsl_rng *rng;
 	unsigned long int seed;
 	double *channels, *channelsdef;
 	double **channels_conv;
@@ -110,10 +108,13 @@ int main (int argc, char *argv[]) {
 	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
+	struct xmi_escape_ratios *escape_ratios_def=NULL;
 #ifndef _WIN32
 	uid_t uid, euid;
 #endif
 	char *xmi_input_string;
+	char *xmimsim_hdf5_escape_ratios;
+
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -479,13 +480,54 @@ int main (int argc, char *argv[]) {
 
 #endif
 
+		//read escape ratios
+#ifndef _WIN32
+		xmimsim_hdf5_escape_ratios = strdup(XMIMSIM_HDF5_ESCAPE_RATIOS);
+#else
+
+		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
+			fprintf(stderr,"Error retrieving AppDataPath\n");
+			return 1;
+		}
+		//add escape ratios filename
+		strcat(appDataPath,"\\xmimsim\\xmimsim-escape-ratios.h5");
+		//check if file is readable and writable
+		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
+			fprintf(stderr,"Error accessing escape ratios HDF5 file %s\n",appDataPath);
+			return 1;
+		}
+		xmimsim_hdf5_escape_ratios = appDataPath;
+#endif
+
+
+		//check if escape ratios are already precalculated
+		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def) == 0)
+			return 1;
+		if (escape_ratios_def == NULL) {
+			//doesn't exist yet
+			//convert input to string
+			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
+				return 1;
+			}
+			xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file);
+			//update hdf5 file
+#ifndef _WIN32
+			seteuid(euid);
+#endif
+			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
+				return 1;
+#ifndef _WIN32
+			seteuid(uid);
+#endif
+		}
+
 
 		
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
 			channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);

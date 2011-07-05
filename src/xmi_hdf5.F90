@@ -294,6 +294,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 WRITE (*,'(A,A)') 'Reading element: ',elements(uniqZ(i))
 #endif
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
+                xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
 
                 CALL h5gopen_f(file_id,elements(uniqZ(i)) // '/Theta_ICDF',group_id,error)
                 !Read Rayleigh Theta ICDF
