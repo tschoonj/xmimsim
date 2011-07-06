@@ -3642,7 +3642,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         photons_rayleigh, photons_compton, photons_einstein,photons_interacted
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: element,line
-        REAL (C_DOUBLE) :: compton_index
+        INTEGER (C_INT) :: compton_index
 
         WRITE (6,'(A)') 'Precalculating escape ratios'
         WRITE (6,'(A)') 'This could take a long time...'
