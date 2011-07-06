@@ -24,7 +24,9 @@ bin_PROGRAMS = xmimsim \
 	xmso2svg \
 	xmso2xmsi \
 	xmso2spe \
-	xmso2csv
+	xmso2csv \
+	xmso2htm \
+	xmso2xmsi
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -118,6 +120,10 @@ xmso2csv_CFLAGS = @glib2_CFLAGS@
 xmimsim_init_escape_ratios_SOURCES = xmimsim-init-escape-ratios.c
 xmimsim_init_escape_ratios_LDADD = ../src/libxmimsim.la
 xmimsim_init_escape_ratios_CFLAGS = -DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\" @glib2_CFLAGS@
+
+xmso2htm_SOURCES = xmso2htm.c
+xmso2htm_LDADD = ../src/libxmimsim.la
+xmso2htm_CFLAGS = @glib2_CFLAGS@
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc

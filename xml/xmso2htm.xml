@@ -1,0 +1,731 @@
+<?xml version="1.0"?>
+<!--
+Copyright (C) 2010-2011 Tom Schoonjans, Philip Brondeel and Laszlo Vincze
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+xmlns="http://www.w3.org/1999/xhtml">
+<xsl:param name="type1"></xsl:param>
+<xsl:variable name="type2"><xsl:value-of select="$type1"/></xsl:variable>
+
+<xsl:variable name="x_base"><xsl:value-of select="120"/></xsl:variable>
+<xsl:variable name="y_base"><xsl:value-of select="60"/></xsl:variable>
+
+<xsl:param name="select_forloop">
+<xsl:choose>
+ <xsl:when test="1">xmimsim-results/variance_reduction_history/fluorescence_line_counts</xsl:when>
+ <xsl:when test="0">xmimsim-results/variance_reduction_history/fluorescence_line_counts</xsl:when>
+ <xsl:otherwise>xmimsim-results/variance_reduction_history/fluorescence_line_counts</xsl:otherwise>
+</xsl:choose>
+</xsl:param>    
+
+<xsl:variable name="max_width"><xsl:value-of select="/xmimsim-results/svg_graphs/graphic[id/name=$type2]/rect/size/width"/></xsl:variable>
+<xsl:variable name="min_energy"><xsl:value-of select="/xmimsim-results/svg_graphs/graphic[id/name=$type2]/rect/size/min_energy"/></xsl:variable>
+<xsl:variable name="max_energy"><xsl:value-of select="/xmimsim-results/svg_graphs/graphic[id/name=$type2]/rect/size/max_energy"/></xsl:variable>
+
+
+<xsl:template name="main" match="/">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <style type="text/css">    
+
+    #grafiek_default
+    {
+    position: absolute;
+		 left: 575px;
+		 top: 10px;
+    }
+
+
+    button {
+    border-top-right-radius:2em;
+    border-top-left-radius:2em;
+    border-bottom-left-radius:2em;
+    border-bottom-right-radius:2em;
+    }
+
+    table {
+	    border-collapse: collapse;
+	    font-family: sans-serif; 
+	    font-size: x-small;
+	   }
+
+    th {
+	   font: Bold;
+	   text-align: left;
+	   background: yellow;
+	   }
+
+    tr.yellow td {
+   	border-top: 1px solid #FB7A31;
+   	border-bottom: 1px solid #FB7A31;
+	    background: #FFC;
+	   }
+
+    #table1 td {
+	    background:lightgray;         
+     padding:0px;         
+     border-bottom:0px solid green;         
+     height:10px;  
+	   }
+	   
+</style>
+
+<title>xmimsim table</title>
+
+<script type="text/javascript">
+<xsl:text disable-output-escaping="yes">
+
+<![CDATA[ 
+
+var treetable_rowstate = new Array();
+var treetable_callbacks = new Array();
+
+function treetable_rebuild(id)
+{
+var current_element;
+var current_line;
+var id1;
+var count_element;
+var count_line;
+var count_interaction;
+var current_count;
+var count_element_id;
+var count_line_id;
+var temp = new Array();
+
+// alert(id);
+
+ table = document.getElementById(id);
+
+// alert("table");
+
+ rowChildren = table.getElementsByTagName('tr');
+
+// alert("children");
+
+ count_element = 0;
+ count_line = 0;
+ count_interaction = 0;
+ sum_element = 0;
+ sum_line = 0;
+
+ for (i = 1; i < rowChildren.length; i++) {
+     id1 = rowChildren[i].id;
+
+     if(id1 =="element"){
+       current_element = count_element;
+       count_element++;
+       current_element_id = "table1_" + current_element;
+       rowChildren[i].id = current_element_id;
+       count_line = 0;
+       count_interaction = 0;
+       count_element_id = "count_" + document.getElementById(current_element_id).getAttribute("pos");
+       current_count = 0;
+       document.getElementById(count_element_id).innerHTML = "0";
+       }
+
+     if(id1 =="line"){
+      current_line = count_line;
+      count_line++;
+      current_line_id = "table1_" + current_element + "_" + current_line;
+      rowChildren[i].id = current_line_id;
+      count_interaction = 0;
+      count_line_id = "count_" + document.getElementById(current_line_id).getAttribute("pos");
+      current_count = 0;
+      document.getElementById(count_line_id).innerHTML = "0";
+      }
+
+     if(id1 =="interaction"){
+      current_interaction = count_interaction;
+      count_interaction++;
+      rowChildren[i].id = "table1_" + current_element + "_" + current_line + "_" + current_interaction;
+      current_count = document.getElementById(rowChildren[i].id).getAttribute("count");
+      add_number(count_element_id, current_count);
+      add_number(count_line_id, current_count);  
+      }
+
+   }
+
+// set scientific
+  table = document.getElementById(id);
+  rowChildren = table.getElementsByTagName('td');
+
+  for (i = 1; i < rowChildren.length; i++) {
+   temp = rowChildren[i].id.split('_');
+
+   if(temp[0] == "count"){
+     makeScientific(rowChildren[i].id);
+   }
+ }
+
+}
+
+function makeScientific(id){
+if (typeof id != 'undefined'){
+  result = document.getElementById(id).innerHTML;
+  document.getElementById(id).innerHTML = Math2Scientific(result, '8');
+}
+}
+
+function add_number(id, input){
+
+ var float_value = new Number(0);
+ var float_input = new Number(0);
+ var float_result = new Number(0);
+
+
+ float_input = parseFloat(input);
+
+ if (typeof id != 'undefined'){
+   result = document.getElementById(id).innerHTML;
+   float_value = parseFloat(result);
+   float_result += float_value;
+   float_result += float_input;
+
+ //  show_debug(float_result);
+ //  show_debug(Math2Scientific(float_result, '8'));
+
+      document.getElementById(id).innerHTML = float_result;
+   }
+}
+
+
+function treetable_hideRow(rowId) {
+ el = document.getElementById(rowId);
+ el.style.display = "none";
+}
+
+function treetable_showRow(rowId) {
+ el = document.getElementById(rowId);
+ el.style.display = "";
+}
+
+function treetable_hasChildren(rowId) {
+ res = document.getElementById(rowId + '_0');
+ return (res != null);
+}
+
+function treetable_getRowChildren(rowId) {
+ el = document.getElementById(rowId);
+ var arr = new Array();
+ i = 0;
+ while (true) {
+   childRowId = rowId + '_' + i;
+   childEl = document.getElementById(childRowId);
+   if (childEl) {
+     arr[i] = childRowId;
+   } else {
+     break;
+   }
+   i++;
+ }
+ return (arr);
+}
+
+function treetable_toggle(tableid, id) {
+ var current_element;
+ var current_line;
+ var found;
+
+ found = 0;
+
+// alert(id);
+
+ table = document.getElementById(tableid);
+ rowChildren = table.getElementsByTagName('tr');
+
+// alert("children");
+
+ for (i = 1; i < rowChildren.length; i++) {
+   current_element = rowChildren[i].id;
+   current_pos = document.getElementById(current_element).getAttribute("pos");
+
+   if(current_pos == id){
+   break;}
+ }
+
+ treetable_toggleRow(current_element); 
+
+
+}
+
+
+function treetable_toggleRow(rowId, state, force) {
+ var rowChildren;
+ var i;
+ // open or close all children rows depend on current state
+ force = (force == null) ? 1 : force; 
+ if (state == null) {
+   row_state = ((treetable_rowstate[rowId]) ? (treetable_rowstate[rowId]) : 1) * -1;
+ } else {
+   row_state = state;
+ }
+ rowChildren = treetable_getRowChildren(rowId);
+ if (rowChildren.length == 0) return (false);
+ for (i = 0; i < rowChildren.length; i++) {
+   if (row_state == -1) {
+     treetable_hideRow(rowChildren[i]);
+     treetable_toggleRow(rowChildren[i], row_state, -1);
+  } else {
+     //if (force == 1 || treetable_rowstate[rowId] != -1) {
+       treetable_showRow(rowChildren[i]);
+      treetable_toggleRow(rowChildren[i], row_state, -1);
+    //}
+   }
+   treetable_rowstate[rowChildren[i]] = row_state;
+ }
+ if (force == 1) {
+   treetable_rowstate[rowId] = row_state;
+ }
+ return (true);
+}
+
+function treetable_collapseAll(tableId) {
+ treetable_expandAll(tableId);
+ table = document.getElementById(tableId);
+ rowChildren = table.getElementsByTagName('tr');
+ for (i = 0; i < rowChildren.length; i++) {
+   if (index = rowChildren[i].id.indexOf('_')) {
+     // do not hide root elements
+     if(index != rowChildren[i].id.lastIndexOf('_')) {
+       rowChildren[i].style.display = 'none';
+     }
+     if (treetable_hasChildren(rowChildren[i].id)) {
+       treetable_rowstate[rowChildren[i].id] = -1;
+     }
+   }
+ }
+ return (true);
+}   
+
+function treetable_expandAll(tableId) {
+ table = document.getElementById(tableId);
+ rowChildren = table.getElementsByTagName('tr');
+ for (i = 0; i < rowChildren.length; i++) {
+   if (index = rowChildren[i].id.indexOf('_')) {
+     rowChildren[i].style.display = '';
+     if (treetable_hasChildren(rowChildren[i].id)) {
+       treetable_rowstate[rowChildren[i].id] = 1;
+     }
+   }
+ }
+ return (true);
+}
+
+
+function drawline(tableid, energy_pre, symbol, line_type, interaction, x_base, size,  min_energy, max_energy){
+   var x=document.getElementById("drawing"); 
+   var fl_size = new Number(0);
+   var fl_energy_pre = new Number(0);
+   var fl_min_energy = new Number(0);
+   var fl_max_energy = new Number(0);
+   var fl_x_base = new Number(0);
+   var energy = new Number(0);
+
+  // show_debug(size);
+
+   display_grafiek(interaction);
+
+   fl_size = parseFloat(size);
+   fl_energy_pre = parseFloat(energy_pre);
+   fl_min_energy = parseFloat(min_energy);
+   fl_max_energy = parseFloat(max_energy);
+   fl_x_base = parseFloat(x_base);
+
+   energy = fl_x_base + (fl_size * (fl_energy_pre - fl_min_energy)/(fl_max_energy - fl_min_energy));
+
+
+   line = '<svg id="grafiek_lijn" style="position: absolute;left: 600px; top: 10px;" width="100%" height="400" version="1.1" xmlns="http://www.w3.org/2000/svg">';
+   //line += '<rect x="60" y="60" width="400" height="250" fill="none" stroke="#000"/>';
+   line += '<path d="M ' + energy + ' 50 L ' + energy + ' 330 " stroke="blue" stroke-width="1" fill="none"/>';
+   line += '<text x="' + energy + '" y="350" font-size="10px" text-anchor="middle" text-align="end" font-family="Helvetica Condensed">' + symbol + "-" + line_type + '</text>';
+   line += '</svg>';
+   x.innerHTML = line;
+
+   }
+
+function draw_all_line(tableid, id, x_base, size,  min_energy, max_energy){
+   var x=document.getElementById("drawing"); 
+   var fl_size = new Number(0);
+   var fl_min_energy = new Number(0);
+   var fl_max_energy = new Number(0);
+   var fl_x_base = new Number(0);
+   var energy = new Number(0);
+   var rowChildren;
+   var fl_energy_pre = new Number(0);
+   var temp = new Array();
+   var value_string;
+
+   display_grafiek('1'); // '0' = all grafics
+
+   fl_size = parseFloat(size);
+   fl_min_energy = parseFloat(min_energy);
+   fl_max_energy = parseFloat(max_energy);
+   fl_x_base = parseFloat(x_base);
+
+ // show_debug(id);
+
+  table = document.getElementById(tableid);
+  rowChildren = table.getElementsByTagName('td');
+
+  line = '<svg id="grafiek_lijn" style="position: absolute;left: 600px; top: 10px;" width="100%" height="400" version="1.1" xmlns="http://www.w3.org/2000/svg">';
+
+  for (i = 1; i < rowChildren.length; i++) {
+   current_element = rowChildren[i].id;
+
+   temp = rowChildren[i].id.split('_');
+
+   if(temp[0] == "linetype"){
+
+   current_pos = document.getElementById(current_element).getAttribute("pos");
+
+   // show_debug(i);
+   // show_debug(current_element);
+   if(current_pos == id){
+   value = document.getElementById(rowChildren[i].id).innerHTML;
+
+   index = value.indexOf('=');
+   energy_str = value.substr(index+1,value.length-1);
+
+   //show_debug(energy_str);
+
+   fl_energy_pre = parseFloat(energy_str);
+
+   energy = fl_x_base + (fl_size * (fl_energy_pre - fl_min_energy)/(fl_max_energy - fl_min_energy));
+
+   line += '<path d="M ' + energy + ' 50 L ' + energy + ' 330 " stroke="blue" stroke-width="1" fill="none"/>';
+
+   }
+   }
+  }
+
+ line += '</svg>';
+ x.innerHTML = line;
+}
+
+function display_grafiek(interaction){
+
+   var interaction_nbr = new Number(0);
+
+   interaction_nbr = parseInt(interaction);
+
+   hide = "hidden";
+   if(interaction_nbr == 0){
+   hide = "";
+   }
+
+   i=0;
+   id  = "grafiek"+i;
+   while(document.getElementById(id) != null) {
+ //   show_debug(document.getElementById(id));
+    document.getElementById(id).style.visibility = hide;
+    i = i + 1;
+    id = "grafiek"+i;
+   }
+
+    if(interaction_nbr > 0){
+       id = "grafiek"+(interaction_nbr-1);
+ //  show_debug(id);
+   document.getElementById(id).style.visibility = "";
+   }
+}
+
+
+function Math2Scientific(num, sigDigs) {
+       //deal with messy input values
+       num = Number(num); //try to convert to a number
+
+       if (isNaN(num)) return num; //garbage in, NaN out      
+
+       //find exponent using logarithm
+       //e.g. log10(150) = 2.18 -- round down to 2 using floor()
+       var exponent = Math.floor(Math.log(Math.abs(num)) / Math.LN10);
+
+       if (num == 0) exponent = 0; //handle glitch if the number is zero
+
+       //find mantissa (e.g. "3.47" is mantissa of 3470; need to divide by 1000)
+       var tenToPower = Math.pow(10, exponent);
+       var mantissa = num / tenToPower;
+
+// show_debug(num);
+
+       //force significant digits in mantissa
+       //e.g. 3 sig digs: 5 -> 5.00, 7.1 -> 7.10, 4.2791 -> 4.28
+       mantissa = formatDecimals(mantissa, sigDigs-1); //use custom function
+
+       var output = mantissa;
+       //if exponent is zero, don't include e
+       if (exponent > 0) {
+               output += "e+" + exponent;
+       }
+        if (exponent < 0) {
+               output += "e-" + exponent;
+       }
+
+
+ //      show_debug(output);
+       return(output);
+}
+
+function formatDecimals(num, digits) {
+       //if no decimal places needed, we're done
+       if (digits <= 0) {
+               return Math.round(num); 
+       } 
+       //round the number to specified decimal places
+       //e.g. 12.3456 to 3 digits (12.346) -> mult. by 1000, round, div. by 1000
+       var tenToPower = Math.pow(10, digits);
+       var cropped = String(Math.round(num * tenToPower) / tenToPower);
+
+       //add decimal point if missing
+       if (cropped.indexOf(".") == -1) {
+               cropped += ".0";  //e.g. 5 -> 5.0 (at least one zero is needed)
+       }
+
+       //finally, force correct number of zeroes; add some if necessary
+       var halves = cropped.split("."); //grab numbers to the right of the decimal
+       //compare digits in right half of string to digits wanted
+       var zerosNeeded = digits - halves[1].length; //number of zeros to add
+       for (var i=1; i <= zerosNeeded; i++) {
+               cropped += "0";
+       }
+       return(cropped);
+}
+
+function show_debug(string){
+ //alert(string);
+ document.getElementById("show_debug").innerHTML+=string;
+ document.getElementById("show_debug").innerHTML+=" ";
+}   
+
+//window.onload = treetable_rebuild("table1");
+
+]]> 
+</xsl:text>
+</script>
+</head>
+
+<svg id="grafiek_lijn2" pos="grafiek" style="position: absolute;left: 600px; top: 10px;" width="100%" height="400" visibility="hidden" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<path  id="grafiek_lijn2_path"  d="M 30 50 L 30 330 " stroke="red" stroke-width="1" fill="none"/>
+<text  id="grafiek_lijn2_text"  x="0" y="370" font-size="10px" text-anchor="middle" text-align="end" font-family="Helvetica Condensed">test</text>
+</svg>
+
+
+<xsl:for-each select="xmimsim-results/svg_graphs">
+<xsl:for-each select="graphic[id/name=$type2]">
+<xsl:variable name="graph_index"><xsl:value-of select="position() -1 "/></xsl:variable>
+<svg  id="grafiek{$graph_index}" style="position: absolute;left: 600px; top: 10px;" width="100%" height="4000"  version="1.1" xmlns="http://www.w3.org/2000/svg">
+
+<xsl:variable name="height_pre"><xsl:value-of select="rect/size/height"/></xsl:variable>
+<xsl:variable name="height"><xsl:value-of select="$height_pre + 10"/></xsl:variable>
+<xsl:variable name="width"><xsl:value-of select="rect/size/width"/></xsl:variable>
+
+<xsl:if test="$graph_index = 0 ">
+<xsl:variable name="max_width"><xsl:value-of select="$width"/></xsl:variable>
+</xsl:if>
+
+<xsl:variable name="max_energy"><xsl:value-of select="rect/size/max_energy"/></xsl:variable>
+<xsl:variable name="min_energy"><xsl:value-of select="rect/size/min_energy"/></xsl:variable>
+
+<xsl:variable name="width_extra"><xsl:value-of select="$width + $x_base + 10"/></xsl:variable>
+<xsl:variable name="x_text"><xsl:value-of select="$x_base - 10"/></xsl:variable>
+<xsl:variable name="x_index"><xsl:value-of select="$x_base - 5"/></xsl:variable>
+<xsl:variable name="height_extra"><xsl:value-of select="$height + $y_base"/></xsl:variable>
+<xsl:variable name="height_text"><xsl:value-of select="$height + $y_base + 20"/></xsl:variable>
+<xsl:variable name="height_index"><xsl:value-of select="$height + $y_base + 5"/></xsl:variable>
+<xsl:variable name="height_name"><xsl:value-of select="$height + $y_base + 40"/></xsl:variable>
+
+<!--rect-->
+<rect x="{$x_base}" y="{$y_base}"  height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
+
+<!--x-axis-->
+<text x="{$width_extra}" y="{$height_name}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed">
+<xsl:value-of select="rect/x-axis/name"/></text>
+<xsl:for-each select="rect/x-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
+<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" text-align="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
+<path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
+</xsl:for-each>
+
+<!--y-axis-->
+<xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
+<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="rect/y-axis/name"/></text>
+<xsl:for-each select="rect/y-axis/index">
+<xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
+<xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
+<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
+<path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
+</xsl:for-each>
+
+
+<xsl:variable name="color2">
+<xsl:choose>
+ <xsl:when test="$graph_index = 0 ">blue</xsl:when>
+ <xsl:when test="$graph_index = 1 ">red</xsl:when>
+ <xsl:when test="$graph_index = 2 ">green</xsl:when>
+ <xsl:when test="$graph_index = 3 ">orange</xsl:when>
+ <xsl:otherwise>purple</xsl:otherwise>
+</xsl:choose>
+</xsl:variable>
+
+<xsl:variable name="color"><xsl:value-of select="$color2"/></xsl:variable>
+
+<xsl:variable name="title_pos"><xsl:value-of select=" $height_text + 40 + 10 * $graph_index"/></xsl:variable>
+
+<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+elvetica Condensed"  stroke="{$color}"><xsl:value-of select="$type2" />  <xsl:value-of select="$graph_index" />  </text>
+
+<xsl:for-each select="points/point">
+<xsl:variable name="pos"><xsl:value-of select="position()"/></xsl:variable>
+<xsl:variable name="x"><xsl:value-of select="x + $x_base"/></xsl:variable>
+<xsl:variable name="y"><xsl:value-of select="$height_extra - y"/></xsl:variable>
+<xsl:variable name="x_pre"><xsl:value-of select="preceding::x[1] + $x_base"/></xsl:variable>
+<xsl:variable name="y_pre"><xsl:value-of select="$height_extra - preceding::y[1]"/></xsl:variable>
+<xsl:if test="$pos>'1'">
+<path d="M {$x_pre} {$y_pre}  L {$x} {$y} " stroke="{$color}" stroke-width="1" fill="none"/>
+</xsl:if>
+
+</xsl:for-each>
+</svg>
+
+</xsl:for-each>
+</xsl:for-each>
+
+
+<body onload="treetable_rebuild('table1')">
+<table  style="width: 100%; height: 100%; overflow: vertical; border: 1px solid white;">
+<COLGROUP><COL width="500px"/><COL width="*"/></COLGROUP>
+<td valign="top">       
+ <button type="button" onclick="treetable_expandAll('table1');">Expand all</button>  <button type="button" onclick="treetable_collapseAll('table1');">Collapse all</button>
+ <div style="overflow:auto; height:600px;width:564px;">          
+ <table id="table1"  style="width: 100%;   overflow: auto; border: 1px solid white;" >
+   <colgroup>
+     <col width="110" />
+     <col width="190" />
+     <col width="120" />
+     <col width="*" />
+   </colgroup>
+   <tr>
+     <th align = "left" >Element (nbr)</th>
+     <th align = "left" >Line (Energy)</th>
+     <th align = "left" >Interaction</th>
+     <th align = "left" >Counts</th>
+   </tr>    
+
+<xsl:for-each select="xmimsim-results/variance_reduction_history/fluorescence_line_counts">
+
+<xsl:variable name="current_count"><xsl:value-of select="."/></xsl:variable>
+<xsl:variable name="current_atomic_nbr"><xsl:value-of select="@atomic_number"/></xsl:variable>
+<xsl:variable name="preceding_atomic_nbr"><xsl:value-of select="preceding::fluorescence_line_counts[1]/@atomic_number"/></xsl:variable>
+<xsl:variable name="current_line_type"><xsl:value-of select="@line_type"/></xsl:variable>
+<xsl:variable name="preceding_line_type"><xsl:value-of select="preceding::fluorescence_line_counts[1]/@line_type"/></xsl:variable>
+<xsl:variable name="current_interaction"><xsl:value-of select="@interaction_number"/></xsl:variable>
+<xsl:variable name="preceding_interaction"><xsl:value-of select="preceding::fluorescence_line_counts[1]/@interaction_number"/></xsl:variable>
+<xsl:variable name="current_symbol"><xsl:value-of select="@symbol"/></xsl:variable>
+<xsl:variable name="current_energy"><xsl:value-of select="@energy"/></xsl:variable>
+
+<xsl:variable name="current_position"><xsl:value-of select="position()"/></xsl:variable> 
+
+<xsl:if test="$current_energy != '0.000000'">
+
+<xsl:if test="$current_atomic_nbr != $preceding_atomic_nbr">
+
+     <tr id="element" pos='element{$current_position}'>
+     <td id='symbol{$current_position}' ><xsl:value-of select="$current_symbol"/> (<xsl:value-of select="$current_atomic_nbr"/>)</td>
+     <td id='element{$current_position}'  onmouseover="draw_all_line('table1','line_type{$current_symbol}',{$x_base}, {$max_width}, {$min_energy}, {$max_energy} );"> 
+<a href="#" onclick="treetable_toggle('table1','element{$current_position}');">All lines</a></td>
+     <td></td>
+     <td id='count_element{$current_position}' style="color:blue" ></td>
+     </tr>
+</xsl:if>
+
+<xsl:choose>
+ <xsl:when test="$current_line_type != $preceding_line_type">
+     <tr id="line" pos='line{$current_position}'>
+     <td></td>
+     <td id="linetype_{$current_position}" pos='line_type{$current_symbol}' onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','0', {$x_base}, {$max_width}, {$min_energy}, {$max_energy} );"> 
+     <xsl:value-of select="$current_line_type"/>=<xsl:value-of select="$current_energy"/></td>
+     <td id='line{$current_position}' onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','0', {$x_base},  {$max_width},  {$min_energy}, {$max_energy} );">
+     <a href="#" onclick="treetable_toggle('table1','line{$current_position}');">All interactions</a></td>
+     <td id='count_line{$current_position}' style="color:green" ></td>
+     </tr>
+ </xsl:when>
+  <xsl:when test="$current_atomic_nbr != $preceding_atomic_nbr">
+     <tr id="line" pos='line{$current_position}'>
+     <td></td>
+     <td id="linetype_{$current_position}" pos='line_type{$current_symbol}' onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','0',{$x_base},  {$max_width},  {$min_energy}, {$max_energy} );"> 
+     <xsl:value-of select="$current_line_type"/>=<xsl:value-of select="$current_energy"/></td>
+     <td id='line{$current_position}' onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','0',{$x_base},  {$max_width},  {$min_energy}, {$max_energy} );">
+     <a href="#" onclick="treetable_toggle('table1','line{$current_position}');">All interactions</a></td>
+     <td id='count_line{$current_position}' style="color:green" ></td>
+     </tr>
+ </xsl:when>
+ <xsl:otherwise>
+ </xsl:otherwise>
+</xsl:choose>
+
+<xsl:choose>
+ <xsl:when test="$current_interaction != $preceding_interaction">
+     <tr id="interaction" count='{$current_count}'>
+     <td></td>
+     <td></td>
+     <td onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','{$current_interaction}',{$x_base}, {$max_width},  {$min_energy}, {$max_energy} );">
+     <xsl:value-of select="$current_interaction"/></td>
+     <td onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','{$current_interaction}',{$x_base}, {$max_width},  {$min_energy}, {$max_energy} );">
+     <xsl:value-of select="$current_count"/> </td>
+     </tr>
+ </xsl:when>
+  <xsl:when test="$current_line_type != $preceding_line_type">
+     <tr id="interaction" count='{$current_count}'>
+     <td></td>
+     <td></td>
+     <td onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','{$current_interaction}',{$x_base}, {$max_width},  {$min_energy}, {$max_energy} );">
+     <xsl:value-of select="$current_interaction"/></td>
+     <td onmouseover="drawline('table1','{$current_energy}','{$current_symbol}','{$current_line_type}','{$current_interaction}',{$x_base}, {$max_width},  {$min_energy}, {$max_energy} );">
+     <xsl:value-of select="$current_count"/> </td>
+     </tr>
+ </xsl:when>
+ <xsl:otherwise>
+ </xsl:otherwise>
+</xsl:choose>
+
+</xsl:if>
+
+</xsl:for-each>
+
+  </table>
+
+ </div>
+</td>
+
+<td id="drawing" valign="top"></td>
+</table>
+
+
+<div id="show_debug">
+</div>
+
+</body>
+
+</html>
+
+</xsl:template>
+
+
+</xsl:stylesheet>

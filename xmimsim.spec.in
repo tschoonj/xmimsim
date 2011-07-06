@@ -97,11 +97,13 @@ fi || :
 %{_bindir}/xmso2svg
 %{_bindir}/xmso2spe
 %{_bindir}/xmso2csv
+%{_bindir}/xmso2htm
 %{_prefix}/share/xmimsim/xmimsim-1.0.dtd
 %{_prefix}/share/xmimsim/xmso2xmsi.xml
 %{_prefix}/share/xmimsim/xmso2svg.xml
 %{_prefix}/share/xmimsim/xmso2csv.xml
 %{_prefix}/share/xmimsim/xmso2spe.xml
+%{_prefix}/share/xmimsim/xmso2htm.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
 %{_prefix}/share/xmimsim/xmimsim-solid-angles.h5
 %{_prefix}/share/xmimsim/xmimsim-escape-ratios.h5
