@@ -2241,7 +2241,6 @@ double *channels, int nchannels, double maximum2 ) {
 	char line[100];
 
 
-        fprintf(stdout,"global max for %s =  %f \n", name, maximum2);
 
 
 	// max and min
