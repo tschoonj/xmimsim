@@ -131,16 +131,16 @@ ENDTYPE
 !  xmi_geometry
 
 TYPE, BIND(C) :: xmi_geometry
-        REAL (C_DOUBLE) :: d_sample_source;
-        REAL (C_DOUBLE), DIMENSION(3) :: n_sample_orientation;
-        REAL (C_DOUBLE), DIMENSION(3) :: p_detector_window;
-        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation;
-        REAL (C_DOUBLE) :: area_detector;
+        REAL (C_DOUBLE) :: d_sample_source
+        REAL (C_DOUBLE), DIMENSION(3) :: n_sample_orientation
+        REAL (C_DOUBLE), DIMENSION(3) :: p_detector_window
+        REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation
+        REAL (C_DOUBLE) :: area_detector
         REAL (C_DOUBLE) :: collimator_height
         REAL (C_DOUBLE) :: collimator_diameter
-        REAL (C_DOUBLE) :: d_source_slit;
-        REAL (C_DOUBLE) :: slit_size_x;
-        REAL (C_DOUBLE) :: slit_size_y;
+        REAL (C_DOUBLE) :: d_source_slit
+        REAL (C_DOUBLE) :: slit_size_x
+        REAL (C_DOUBLE) :: slit_size_y
 ENDTYPE
 
 !  xmi_energy
@@ -149,10 +149,10 @@ TYPE, BIND(C) :: xmi_energy
         REAL (C_DOUBLE) :: energy
         REAL (C_DOUBLE) :: horizontal_intensity
         REAL (C_DOUBLE) :: vertical_intensity
-        REAL (C_DOUBLE) :: sigma_x;
-        REAL (C_DOUBLE) :: sigma_xp;
-        REAL (C_DOUBLE) :: sigma_y;
-        REAL (C_DOUBLE) :: sigma_yp;
+        REAL (C_DOUBLE) :: sigma_x
+        REAL (C_DOUBLE) :: sigma_xp
+        REAL (C_DOUBLE) :: sigma_y
+        REAL (C_DOUBLE) :: sigma_yp
 ENDTYPE
 
 !  xmi_excitation
@@ -217,6 +217,8 @@ TYPE :: xmi_detector
         LOGICAL :: collimator_present
         REAL (C_DOUBLE) :: detector_radius
         REAL (C_DOUBLE) :: collimator_radius
+        REAL (C_DOUBLE) :: half_apex
+        REAL (C_DOUBLE), DIMENSION(3) :: vertex
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_x
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_y
         REAL (C_DOUBLE), DIMENSION(3) :: n_detector_orientation_new_z
@@ -549,6 +551,11 @@ INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_FULL = 1
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_RADIATIVE = 2 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONRADIATIVE = 3 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONE = 4 
+INTEGER (C_INT), PARAMETER ::  XMI_NO_INTERSECTION = 0 
+INTEGER (C_INT), PARAMETER ::  XMI_COLLIMATOR_INTERSECTION = 1
+INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_INTERSECTION = 2
+INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_BAD_INTERSECTION = 3
+
 
 !threshold is 1 keV
 REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
@@ -1042,6 +1049,10 @@ SUBROUTINE xmi_move_photon_with_dist(photon, dist)
 
         REAL (C_DOUBLE) :: theta, phi
 
+        !check if photon isn't moving through the collimator or through the
+        !detector surface...
+
+
         !photon%dirv are normalized...
         theta = ACOS(photon%dirv(3))
         IF (photon%dirv(1) .LT. 1E-16) THEN
@@ -1420,5 +1431,199 @@ BIND(C,NAME='xmi_minval_double')
 
         RETURN
 ENDFUNCTION xmi_minval_double
+
+FUNCTION xmi_check_detector_intersection&
+(inputF,begin_coords,end_coords) RESULT(rv) 
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) ::&
+        begin_coords, end_coords
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        INTEGER (C_INT) :: rv
+
+        REAL (C_DOUBLE), DIMENSION(3) :: begin_coords_det,&
+        end_coords_det
+        REAL (C_DOUBLE) :: x_coord_prod
+        TYPE (xmi_plane) :: plane
+        TYPE (xmi_line) :: line
+        REAL (C_DOUBLE), DIMENSION(3) :: intersection
+        REAL (C_DOUBLE), DIMENSION(3) :: delta,dM,deltaM,X1,X2
+        REAL (C_DOUBLE) :: c0, c1, c2,cos2theta,disc,t1,t2,t_begin,t_end
+        REAL (C_DOUBLE), DIMENSION(3,3) :: M 
+        INTEGER (C_INT) :: n_valid_t
+        
+
+
+        !convert lab coordinates to detector coordinate system
+        begin_coords_det = MATMUL(inputF%detector%n_detector_orientation_inverse, &
+                begin_coords-inputF%geometry%p_detector_window)
+        end_coords_det = MATMUL(inputF%detector%n_detector_orientation_inverse, &
+                end_coords-inputF%geometry%p_detector_window)
+
+        !easy case: no collimator present...
+        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
+                x_coord_prod = begin_coords_det(1)*end_coords_det(1)
+                IF (x_coord_prod .GT. 0) THEN
+                        !no intersection with detector plane
+                        rv = XMI_NO_INTERSECTION
+                        RETURN
+                ENDIF
+                !else: calculate intersection point
+                !first check if direction is ok
+                line%point=end_coords_det
+                line%dirv=norm(end_coords_det-begin_coords_det)
+                plane%point=[0.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
+                plane%normv=[1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
+                IF (xmi_intersection_plane_line(plane, line,&
+                intersection) == 0) CALL EXIT(1)
+                intersection(1)=0.0_C_DOUBLE
+                IF (norm(intersection) .LE. inputF%detector%detector_radius)&
+                THEN
+                        IF (DOT_PRODUCT(line%dirv,plane%normv&
+                        ) .GE. 0.0_C_DOUBLE) THEN
+                                rv = XMI_DETECTOR_BAD_INTERSECTION
+                                RETURN
+                        ENDIF
+                        rv = XMI_DETECTOR_INTERSECTION
+                        RETURN
+                ENDIF
+                !else
+                rv = XMI_NO_INTERSECTION
+        ELSE
+                !so we have a collimator...
+                !see if we went through it
+                !solution depends on whether it is conical or cylindrical
+                !cylindrical is bit difficult here... the radii will never be
+                !identical since the detector one is calculated through its
+                !area...
+                !collimator diameter should be changed to collimator area
+                !so cone only now...
+                line%point=end_coords_det
+                line%dirv=norm(end_coords_det-begin_coords_det)
+                plane%point=[0.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
+                plane%normv=[1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
+                t_begin=(begin_coords_det(1)-line%point(1))/line%dirv(1)
+                t_end=(end_coords_det(1)-line%point(1))/line%dirv(1)
+                delta = line%point-inputF%detector%vertex
+                M=0.0_C_DOUBLE
+                cos2theta=COS(inputF%detector%half_apex)**2
+                M(1,1) = 1.0_C_DOUBLE-cos2theta
+                M(2,2) = -cos2theta
+                M(3,3) = -cos2theta
+                dM = MATMUL(line%dirv,M)
+                deltaM = MATMUL(delta,M)
+                c2=DOT_PRODUCT(dM,line%dirv)
+                c1=DOT_PRODUCT(dM,delta)
+                c0=DOT_PRODUCT(deltaM,delta)
+                disc=c1**2-c0*c2
+                IF (disc .LT. 0.0_C_DOUBLE) THEN
+                        !no intersection with complete cone->
+                        !means no intersection with detector possible
+                        rv = XMI_NO_INTERSECTION
+                        RETURN
+                ENDIF
+                !n_valid_t == 0 -> none
+                !n_valid_t == 1 -> t1 valid only
+                !n_valid_t == 2 -> t2 valid only
+                !n_valid_t == 3 -> both are valid
+                n_valid_t = 0
+                !start with t1
+                t1=(-c1+SQRT(disc))/c2
+                X1=line%point+t1*line%dirv
+                IF (DOT_PRODUCT([-1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE],&
+                (X1-inputF%detector%vertex)).GE.0.0_C_DOUBLE) THEN
+                        n_valid_t=1
+                ENDIF
+                !moving on with t2
+                t2=(-c1-SQRT(disc))/c2
+                X2=line%point+t2*line%dirv
+                IF (DOT_PRODUCT([-1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE],&
+                (X2-inputF%detector%vertex)).GE.0.0_C_DOUBLE) THEN
+                        IF (n_valid_t .EQ. 1) THEN
+                                n_valid_t = 3
+                        ELSE
+                                n_valid_t = 2
+                        ENDIF
+                ENDIF
+                IF (n_valid_t .EQ. 0) THEN
+                        !two hits in reflected cone
+                        !impossible to hit the detector at this point
+                        rv = XMI_NO_INTERSECTION
+                        RETURN
+                ELSEIF (n_valid_t .EQ. 1) THEN
+                        !one hit in actual and one hit in reflected cone
+                        !check if hit was between t_begin and t_end and if it
+                        !was lower than the collimator height
+                        IF(t1 .LE. MAX(t_begin,t_end) .AND. &
+                        t1 .GE. MIN(t_begin,t_end) .AND.&
+                        X1(1).LE.inputF%geometry%collimator_height) THEN
+                                rv = XMI_COLLIMATOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        !still possible to hit the detector!
+                        IF (xmi_intersection_plane_line(plane, line,&
+                        intersection) == 0) CALL EXIT(1)
+                        intersection(1)=0.0_C_DOUBLE
+                        IF (norm(intersection) .LE. inputF%detector%&
+                        detector_radius) THEN 
+                                IF (DOT_PRODUCT(line%dirv,plane%normv&
+                                ) .GE. 0.0_C_DOUBLE) THEN
+                                        rv = XMI_DETECTOR_BAD_INTERSECTION
+                                        RETURN
+                                ENDIF
+                                rv = XMI_DETECTOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        !else
+                        rv = XMI_NO_INTERSECTION
+                        RETURN
+                ELSEIF (n_valid_t .EQ. 2) THEN
+                        IF(t2 .LE. MAX(t_begin,t_end) .AND. &
+                        t2 .GE. MIN(t_begin,t_end) .AND.&
+                        X2(1).LE.inputF%geometry%collimator_height) THEN
+                                rv = XMI_COLLIMATOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        !still possible to hit the detector!
+                        IF (xmi_intersection_plane_line(plane, line,&
+                        intersection) == 0) CALL EXIT(1)
+                        intersection(1)=0.0_C_DOUBLE
+                        IF (norm(intersection) .LE. inputF%detector%&
+                        detector_radius) THEN 
+                                IF (DOT_PRODUCT(line%dirv,plane%normv&
+                                ) .GE. 0.0_C_DOUBLE) THEN
+                                        rv = XMI_DETECTOR_BAD_INTERSECTION
+                                        RETURN
+                                ENDIF
+                                rv = XMI_DETECTOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        !else
+                        rv = XMI_NO_INTERSECTION
+                        RETURN
+                ELSEIF (n_valid_t .EQ. 3) THEN
+                        !two hits in actual cone
+                        !if both occur outside of the collimator
+                        !nothing happens...
+                        IF(t1 .LE. MAX(t_begin,t_end) .AND. &
+                        t1 .GE. MIN(t_begin,t_end) .AND.&
+                        X1(1).LE.inputF%geometry%collimator_height) THEN
+                                rv = XMI_COLLIMATOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        IF(t2 .LE. MAX(t_begin,t_end) .AND. &
+                        t2 .GE. MIN(t_begin,t_end) .AND.&
+                        X2(1).LE.inputF%geometry%collimator_height) THEN
+                                rv = XMI_COLLIMATOR_INTERSECTION
+                                RETURN
+                        ENDIF
+                        !no collimator intersection -> detector cannot be hit 
+                        rv = XMI_NO_INTERSECTION
+                ELSE
+                        WRITE (*,'(A)') 'should never appear...'
+                        CALL EXIT(1)
+                ENDIF
+        ENDIF
+        RETURN
+ENDFUNCTION xmi_check_detector_intersection
 
 ENDMODULE 

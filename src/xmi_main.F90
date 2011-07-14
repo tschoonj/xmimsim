@@ -832,14 +832,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         INTEGER (C_INT) :: i,j,k
         TYPE (xmi_plane) :: plane
         TYPE (xmi_line) :: line
-        REAL (C_DOUBLE), DIMENSION(3) :: intersect
+        REAL (C_DOUBLE), DIMENSION(3) :: intersect,temp_coords
         REAL (C_DOUBLE) :: dist, max_random_layer, min_random_layer
         REAL (C_DOUBLE) :: dist_prev, tempexp, dist_sum, blbs
         INTEGER (C_INT) :: step_do_max, step_do_dir
 
         REAL (C_DOUBLE) :: atomsel_threshold
         INTEGER (C_INT) :: pos
-        INTEGER (C_INT) :: rv_interaction 
+        INTEGER (C_INT) :: rv_interaction, rv_check
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: distances, r_random_layer
         REAL (C_DOUBLE) :: r_random_layer_sum
         REAL (C_DOUBLE) :: Pabs, negln, my_sum,temp_sum
@@ -993,7 +993,19 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
                                         min_random_layer)/blbs)&
                                         /photon%mus(i)/inputF%composition%layers(i)%density
+                                        temp_coords=photon%coords
                                         CALL xmi_move_photon_with_dist(photon,dist)
+                                        rv_check=xmi_check_detector_intersection&
+                                        (inputF,temp_coords,photon%coords) 
+                                        IF (rv_check .EQ.&
+                                        XMI_COLLIMATOR_INTERSECTION .OR.&
+                                        rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
+                                                EXIT main
+                                        ELSEIF(rv_check.EQ.&
+                                        XMI_DETECTOR_INTERSECTION) THEN
+                                                photon%detector_hit = .TRUE.
+                                                EXIT main
+                                        ENDIF
 #if DEBUG == 1
                                         WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
                                         WRITE (*,'(A,3F12.5)') 'New coords: '&
@@ -1007,6 +1019,17 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 ELSE
                                         !goto next layer
                                         !coordinates equal to layer boundaries
+                                        rv_check=xmi_check_detector_intersection&
+                                        (inputF,photon%coords,intersect) 
+                                        IF (rv_check .EQ.&
+                                        XMI_COLLIMATOR_INTERSECTION .OR.&
+                                        rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
+                                                EXIT main
+                                        ELSEIF(rv_check.EQ.&
+                                        XMI_DETECTOR_INTERSECTION) THEN
+                                                photon%detector_hit = .TRUE.
+                                                EXIT main
+                                        ENDIF
                                         photon%coords = intersect
                                         dist_prev = dist_prev+dist
                                         blbs = blbs*tempexp
@@ -1355,6 +1378,18 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
                 inputF%detector%collimator_present = .TRUE.
                 inputF%detector%collimator_radius = &
                 inputF%geometry%collimator_diameter/2.0_C_DOUBLE
+                IF (inputF%detector%collimator_radius .GE. &
+                inputF%detector%detector_radius) THEN
+                        WRITE (*,'(A)') 'Non conical collimator found'
+                        CALL EXIT(1)
+                ENDIF
+                !if cylindrical... bad things may happen
+                inputF%detector%half_apex = ATAN((inputF%detector%detector_radius-&
+                inputF%detector%collimator_radius)/inputF%geometry%collimator_height)
+                inputF%detector%vertex(1)=inputF%detector%detector_radius&
+                /TAN(inputF%detector%half_apex)
+                inputF%detector%vertex(2)=0.0_C_DOUBLE
+                inputF%detector%vertex(3)=0.0_C_DOUBLE
         ELSE
                 inputF%detector%collimator_present = .FALSE.
         ENDIF

@@ -98,7 +98,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         line_coll%dirv = detector_point-line_coll%point 
 
         !check if photon is not headed away from the detector
-        IF (DOT_PRODUCT(detector_point-line_coll%point,[1.0_C_DOUBLE,&
+        IF (DOT_PRODUCT(line_coll%dirv,[1.0_C_DOUBLE,&
         0.0_C_DOUBLE,0.0_C_DOUBLE]) .GE. 0.0_C_DOUBLE) RETURN
 
         total_distance = xmi_distance_two_points(detector_point,&
