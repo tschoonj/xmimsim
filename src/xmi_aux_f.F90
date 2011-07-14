@@ -1459,6 +1459,10 @@ FUNCTION xmi_check_detector_intersection&
         end_coords_det = MATMUL(inputF%detector%n_detector_orientation_inverse, &
                 end_coords-inputF%geometry%p_detector_window)
 
+
+        WRITE (6,'(A,3F14.6)') 'begin_coords_det',begin_coords_det
+        WRITE (6,'(A,3F14.6)') 'end_coords_det',end_coords_det
+
         !easy case: no collimator present...
         IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 x_coord_prod = begin_coords_det(1)*end_coords_det(1)
@@ -1489,6 +1493,15 @@ FUNCTION xmi_check_detector_intersection&
                 !else
                 rv = XMI_NO_INTERSECTION
         ELSE
+                WRITE (6,'(A)') 'no collimator'
+                WRITE (6,'(A,F14.6)') 'apex',inputF%detector%half_apex
+                WRITE (6,'(A,F14.6)') 'det radius',&
+                inputF%detector%detector_radius
+                WRITE (6,'(A,F14.6)') 'collimator radius',&
+                inputF%detector%collimator_radius
+                WRITE (6,'(A,F14.6)') 'collimator height',&
+                inputF%geometry%collimator_height
+                WRITE (6,'(A,3F14.6)') 'vertex',inputF%detector%vertex
                 !so we have a collimator...
                 !see if we went through it
                 !solution depends on whether it is conical or cylindrical
@@ -1503,6 +1516,8 @@ FUNCTION xmi_check_detector_intersection&
                 plane%normv=[1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
                 t_begin=(begin_coords_det(1)-line%point(1))/line%dirv(1)
                 t_end=(end_coords_det(1)-line%point(1))/line%dirv(1)
+                WRITE (6,'(A,F14.6)') 't_begin:',t_begin
+                WRITE (6,'(A,F14.6)') 't_end:',t_end
                 delta = line%point-inputF%detector%vertex
                 M=0.0_C_DOUBLE
                 cos2theta=COS(inputF%detector%half_apex)**2
@@ -1515,12 +1530,16 @@ FUNCTION xmi_check_detector_intersection&
                 c1=DOT_PRODUCT(dM,delta)
                 c0=DOT_PRODUCT(deltaM,delta)
                 disc=c1**2-c0*c2
+                WRITE (6,'(A,F12.6)') 'disc:',disc
                 IF (disc .LT. 0.0_C_DOUBLE) THEN
                         !no intersection with complete cone->
                         !means no intersection with detector possible
                         rv = XMI_NO_INTERSECTION
                         RETURN
                 ENDIF
+                WRITE (6,'(3ES13.6)') M(1,1),M(1,2),M(1,3)
+                WRITE (6,'(3ES13.6)') M(2,1),M(2,2),M(2,3)
+                WRITE (6,'(3ES13.6)') M(3,1),M(3,2),M(3,3)
                 !n_valid_t == 0 -> none
                 !n_valid_t == 1 -> t1 valid only
                 !n_valid_t == 2 -> t2 valid only
@@ -1533,6 +1552,8 @@ FUNCTION xmi_check_detector_intersection&
                 (X1-inputF%detector%vertex)).GE.0.0_C_DOUBLE) THEN
                         n_valid_t=1
                 ENDIF
+                WRITE (6,'(A,F14.6)') 't1:',t1
+                WRITE (6,'(A,3F14.6)') 'X1:',X1
                 !moving on with t2
                 t2=(-c1-SQRT(disc))/c2
                 X2=line%point+t2*line%dirv
@@ -1544,6 +1565,9 @@ FUNCTION xmi_check_detector_intersection&
                                 n_valid_t = 2
                         ENDIF
                 ENDIF
+                WRITE (6,'(A,F14.6)') 't2:',t2
+                WRITE (6,'(A,3F14.6)') 'X2:',X2
+                WRITE (6,'(A,I1)') 'n_valid_t: ',n_valid_t
                 IF (n_valid_t .EQ. 0) THEN
                         !two hits in reflected cone
                         !impossible to hit the detector at this point

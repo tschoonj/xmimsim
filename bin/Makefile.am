@@ -26,7 +26,8 @@ bin_PROGRAMS = xmimsim \
 	xmso2spe \
 	xmso2csv \
 	xmso2htm \
-	xmso2xmsi
+	xmso2xmsi \
+	xmimsim-test-brute-fixes
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -124,6 +125,11 @@ xmimsim_init_escape_ratios_CFLAGS = -DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xm
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
+
+xmimsim_test_brute_fixes_SOURCES = xmimsim-test-brute-fixes.c
+xmimsim_test_brute_fixes_LDADD = ../src/libxmimsim.la
+
+
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc

@@ -41,5 +41,7 @@ int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hos
 
 void xmi_detector_convolute(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, double *channels_noconv, double **channels_conv, int nchannels, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios);
 
+void xmi_test_brute(xmi_inputFPtr inputFPtr);
+
 
 #endif

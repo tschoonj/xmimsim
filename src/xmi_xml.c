@@ -2394,7 +2394,7 @@ static int write_value_element(xmlTextWriterPtr writer, char *element, float par
         if (!error){if (xmlTextWriterWriteFormatString(writer,"%f", parm ) < 0 ) {error = 1;}}
         if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
 
-        if (error) fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);         
+        if (error) fprintf(stderr,"Error parameter svg element %s %f \n", element, parm);         
 	return error;
 }
 
