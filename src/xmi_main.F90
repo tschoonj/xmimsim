@@ -3918,7 +3918,7 @@ SUBROUTINE xmi_test_brute(inputFPtr) BIND(C,NAME='xmi_test_brute')
         CALL C_F_POINTER(inputFPtr, inputF)
 
         coords_begin = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 100.0_C_DOUBLE]
-        coords_end= [0.00001_C_DOUBLE, -3.0_C_DOUBLE, 100.0_C_DOUBLE]
+        coords_end= [0.00001_C_DOUBLE, -2.0_C_DOUBLE, 100.0_C_DOUBLE]
 
         WRITE (*,'(A,I1)') 'check:',xmi_check_detector_intersection&
         (inputF,coords_begin,coords_end) 
