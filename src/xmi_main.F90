@@ -1192,7 +1192,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 !                (photon%current_element_index)%Ptr)
 
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
-                pos = findpos(hdf5_Z%&
+                pos = findpos_fast(hdf5_Z%&
                 interaction_probs%energies, photon%energy)
                 IF (pos .LT. 1_C_INT) THEN
                         WRITE (*,'(A)') &

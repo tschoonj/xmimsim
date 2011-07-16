@@ -1146,6 +1146,30 @@ FUNCTION interpolate_simple(a,b,c) RESULT(rv)
         RETURN
 ENDFUNCTION interpolate_simple
 
+FUNCTION findpos_fast(array,searchvalue)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
+        REAL (C_DOUBLE) , INTENT(IN) :: searchvalue
+        INTEGER (C_INT) :: findpos_fast, i, guess
+
+        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+                findpos_fast = 1
+                RETURN
+        ENDIF
+
+        guess = INT((searchvalue-array(1))/(array(2)-array(1)) + 1.0_C_DOUBLE)
+
+
+        DO i=guess, SIZE(array)
+                IF (searchvalue .LE. array(i)) THEN
+                        findpos_fast = i-1
+                        RETURN
+                ENDIF
+        ENDDO
+        
+        RETURN
+ENDFUNCTION findpos_fast
+
 FUNCTION findpos(array, searchvalue)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
