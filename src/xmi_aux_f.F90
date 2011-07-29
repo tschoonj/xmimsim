@@ -1152,12 +1152,16 @@ FUNCTION findpos_fast(array,searchvalue)
         REAL (C_DOUBLE) , INTENT(IN) :: searchvalue
         INTEGER (C_INT) :: findpos_fast, i, guess
 
+        findpos_fast = -1
+
         IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
                 findpos_fast = 1
                 RETURN
         ENDIF
 
-        guess = INT((searchvalue-array(1))/(array(2)-array(1)) + 1.0_C_DOUBLE)
+        guess = INT((searchvalue-0.1_C_DOUBLE)/(0.10999100-0.1) +&
+1.0_C_DOUBLE,KIND=C_INT)
+
 
 
         DO i=guess, SIZE(array)

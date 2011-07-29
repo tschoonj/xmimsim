@@ -493,6 +493,7 @@ RESULT(rv)
         !complement
         theta = (M_PI/2.0_C_DOUBLE) - temp_theta
 
+        !this is bad...
         IF (theta .LT. solid_angles%grid_dims_theta_vals(1)) THEN
                 rv = 0
                 detector_solid_angle = 0.0_C_DOUBLE

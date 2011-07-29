@@ -995,22 +995,24 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         /photon%mus(i)/inputF%composition%layers(i)%density
                                         temp_coords=photon%coords
                                         CALL xmi_move_photon_with_dist(photon,dist)
-                                        rv_check=xmi_check_detector_intersection&
-                                        (inputF,temp_coords,photon%coords) 
-                                        IF (rv_check .EQ.&
-                                        XMI_COLLIMATOR_INTERSECTION .OR.&
-                                        rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
+                                        IF (photon%options%escape_ratios_mode .NE. 1) THEN
+                                          rv_check=xmi_check_detector_intersection&
+                                          (inputF,temp_coords,photon%coords) 
+                                          IF (rv_check .EQ.&
+                                          XMI_COLLIMATOR_INTERSECTION .OR.&
+                                          rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
                                                 EXIT main
-                                        ELSEIF(rv_check.EQ.&
-                                        XMI_DETECTOR_INTERSECTION) THEN
+                                          ELSEIF(rv_check.EQ.&
+                                          XMI_DETECTOR_INTERSECTION) THEN
                                                 photon%detector_hit = .TRUE.
                                                 EXIT main
-                                        ENDIF
+                                          ENDIF
 #if DEBUG == 1
-                                        WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
-                                        WRITE (*,'(A,3F12.5)') 'New coords: '&
-                                        ,photon%coords
+                                          WRITE (*,'(A,F12.5)') 'Actual dist: ',dist
+                                          WRITE (*,'(A,3F12.5)') 'New coords: '&
+                                          ,photon%coords
 #endif
+                                        ENDIF
                                         !update current_layer
                                         photon%current_layer = i
                                         photon%inside = .TRUE.
@@ -1019,16 +1021,18 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 ELSE
                                         !goto next layer
                                         !coordinates equal to layer boundaries
-                                        rv_check=xmi_check_detector_intersection&
-                                        (inputF,photon%coords,intersect) 
-                                        IF (rv_check .EQ.&
-                                        XMI_COLLIMATOR_INTERSECTION .OR.&
-                                        rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
+                                        IF (photon%options%escape_ratios_mode .NE. 1) THEN
+                                          rv_check=xmi_check_detector_intersection&
+                                          (inputF,photon%coords,intersect) 
+                                          IF (rv_check .EQ.&
+                                          XMI_COLLIMATOR_INTERSECTION .OR.&
+                                          rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
                                                 EXIT main
-                                        ELSEIF(rv_check.EQ.&
-                                        XMI_DETECTOR_INTERSECTION) THEN
+                                          ELSEIF(rv_check.EQ.&
+                                          XMI_DETECTOR_INTERSECTION) THEN
                                                 photon%detector_hit = .TRUE.
                                                 EXIT main
+                                          ENDIF
                                         ENDIF
                                         photon%coords = intersect
                                         dist_prev = dist_prev+dist
@@ -1192,15 +1196,20 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 !                (photon%current_element_index)%Ptr)
 
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
-                pos = findpos_fast(hdf5_Z%&
+        pos = findpos_fast(hdf5_Z%&
                 interaction_probs%energies, photon%energy)
                 IF (pos .LT. 1_C_INT) THEN
                         WRITE (*,'(A)') &
                         'Invalid result for findpos interaction type'
+                        WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
+                        WRITE (*,'(A,F12.6)') 'lowval: ',hdf5_Z%&
+                interaction_probs%energies(1)
+                        WRITE (*,'(A,F12.6)') 'highval: ',hdf5_Z%&
+                interaction_probs%energies(SIZE(hdf5_Z%&
+                interaction_probs%energies))
 #if DEBUG == 1
                         WRITE (*,'(A,I2)') 'last interaction type: '&
                         ,photon%last_interaction
-                        WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
 #endif
                         CALL EXIT(1)
                 ENDIF
