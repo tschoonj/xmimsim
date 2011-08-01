@@ -177,17 +177,16 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
 ENDSUBROUTINE xmi_detector_sum_peaks
 
-SUBROUTINE xmi_detector_convolute(inputFPtr, hdf5FPtr, channels_noconvPtr,&
+SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
 channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
-        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr, channels_noconvPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
 
         TYPE (xmi_escape_ratios) :: escape_ratios 
-        TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
         channels_temp
@@ -205,7 +204,6 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
-        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
         CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
 
         !escape_ratios

@@ -399,12 +399,12 @@ int main (int argc, char *argv[]) {
 #ifdef HAVE_OPENMPI
 	if (rank != 0) {
 		xmi_free_input_F(&inputFPtr);
-		xmi_free_hdf5_F(&hdf5FPtr);
 		if (xmi_end_random_acquisition() == 0) {
 			return 1;
 		}
 	}
 #endif
+	xmi_free_hdf5_F(&hdf5FPtr);
 
 
 
@@ -531,7 +531,7 @@ int main (int argc, char *argv[]) {
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
+			xmi_detector_convolute(inputFPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
 			channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);

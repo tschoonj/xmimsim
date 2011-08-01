@@ -548,6 +548,11 @@ int main (int argc, char *argv[]) {
 
 
 	}
+
+	
+	xmi_free_hdf5_F(&hdf5FPtr);
+
+
 	//read escape ratios
 #ifndef _WIN32
 	xmimsim_hdf5_escape_ratios = strdup(XMIMSIM_HDF5_ESCAPE_RATIOS);
@@ -595,7 +600,7 @@ int main (int argc, char *argv[]) {
 	channels_conv = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
 	
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options,escape_ratios_def);
+		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options,escape_ratios_def);
 		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 	}
 

@@ -65,7 +65,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	esc_ratio_inputPtr->geometry->n_sample_orientation[1]=0.0;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[2]=1.0;
 
-	esc_ratio_inputPtr->general->n_interactions_trajectory = 2;
+	esc_ratio_inputPtr->general->n_interactions_trajectory = 1;
 	esc_ratio_inputPtr->general->n_photons_line = 100000;
 
 

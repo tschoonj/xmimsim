@@ -104,14 +104,14 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         !calculate useful theta range
         grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
-        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
+!        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
                 grid_dims_theta(1)= 0.00001_C_DOUBLE
-        ELSE
-                !assume cylindrical collimator for now
-                grid_dims_theta(1) = &
-                ATAN(inputF%geometry%collimator_height/&
-                (inputF%detector%collimator_radius+inputF%detector%detector_radius))
-        ENDIF
+!        ELSE
+!                !assume cylindrical collimator for now
+!                grid_dims_theta(1) = &
+!                ATAN(inputF%geometry%collimator_height/&
+!                (inputF%detector%collimator_radius+inputF%detector%detector_radius))
+!        ENDIF
 
         IF (ALLOCATED(grid_dims_r_vals)) DEALLOCATE(grid_dims_r_vals)
         IF (ALLOCATED(grid_dims_theta_vals)) DEALLOCATE(grid_dims_theta_vals)
@@ -153,17 +153,19 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 !$omp do schedule(guided,2)
         DO i=1,grid_dims_r_n
         DO j=1,grid_dims_theta_n
+!                WRITE (*,'(A,ES14.4)') 'solid_angle:',xmi_single_solid_angle_calculation(inputF,&
+!                grid_dims_r_vals(i), 0.62895347_C_DOUBLE, rng)
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
-!                solid_angles(1,1) = xmi_single_solid_angle_calculation(inputF,&
-!                2.0_C_DOUBLE, M_PI/2.0_C_DOUBLE, rng)
+!!                solid_angles(1,1) = xmi_single_solid_angle_calculation(inputF,&
+!!                2.0_C_DOUBLE, M_PI/2.0_C_DOUBLE, rng)
         ENDDO
         ENDDO
 !$omp end do
 
 !$omp end parallel
 
-
+!        CALL EXIT(0)
         !put everything in the structure
         ALLOCATE(solid_angle)
         solid_angle%solid_angles = C_LOC(solid_angles)
@@ -325,16 +327,22 @@ RESULT(rv)
         beta = ATAN(full_cone_base_radius/r)
         alpha1 = ATAN(full_cone_base_radius*SIN(theta)/&
         (r - full_cone_base_radius*COS(theta)))
-        alpha2 = ATAN(full_cone_base_radius*SIN(theta)/&
-        (r + full_cone_base_radius*COS(theta)))
+        !alpha2 = ATAN(full_cone_base_radius*SIN(theta)/&
+        !(r + full_cone_base_radius*COS(theta)))
+
+        IF (alpha1 .LE. 0.0) &
+                alpha1=alpha1+M_PI
 
         !full_cone_apex must always be at least equal to beta...
-        IF (beta .GT. alpha1 .AND. beta .GT. alpha2) THEN
-                full_cone_apex = beta
-        ELSE
-                full_cone_apex = MAX(alpha1, alpha2)
-        ENDIF
-                
+        !IF (beta .GT. alpha1 .AND. beta .GT. alpha2) THEN
+        !        full_cone_apex = beta
+        !ELSE
+        !        full_cone_apex = MAX(alpha1, alpha2)
+        !ENDIF
+        full_cone_apex = MAX(beta, alpha1)
+
+        
+
         cos_full_cone_apex = COS(full_cone_apex)
 
         full_cone_solid_angle = 2*M_PI*(1.0_C_DOUBLE -&
@@ -397,6 +405,8 @@ RESULT(rv)
                 !calculate intersection with detector plane
                 photon_line%dirv = dirv_from_detector
 
+                IF (DOT_PRODUCT(detector_normal,dirv_from_detector) .GE. 0.0)&
+                        CYCLE
 
                 IF (outside_collimator .EQV. .TRUE.) THEN
                         !calculate intersection with collimator opening
@@ -427,10 +437,10 @@ RESULT(rv)
         ENDDO
 
 #if DEBUG == 1
-        WRITE (*,'(A, F12.4)') 'full_cone_solid_angle',full_cone_solid_angle
-        WRITE (*,'(A,I10)') 'detector_hits:',detector_hits
-        WRITE (*,'(A,F12.4)') 'new_cone_solid_angle',full_cone_solid_angle &
-        *REAL(detector_hits,C_DOUBLE)/REAL(hits_per_single,C_DOUBLE)
+        WRITE (6,'(A, F12.4)') 'beta',beta
+        WRITE (6,'(A, F12.4)') 'alpha1',alpha1
+        WRITE (6,'(A, F12.4)') 'full_cone_solid_angle',full_cone_solid_angle
+        WRITE (6,'(A,I10)') 'detector_hits:',detector_hits
 #endif
 
 
