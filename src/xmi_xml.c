@@ -1119,6 +1119,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	double *maxima;
 	double gl_conv_max;
 	double gl_unconv_max;
+	double counts_sum, counts_temp;
 	gchar *timestring;
 	GTimeVal time;
 	xmlTextWriterPtr writer;
@@ -1369,6 +1370,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		fprintf(stdout,"Element: %i\n",uniqZ[i]);
 #endif
 		for (j = 1 ; j <= 385 ; j++) {
+			counts_sum = 0.0;
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 					continue;
@@ -1396,8 +1398,43 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
        					fprintf(stderr,"Error writing symbol\n");                     
 					return 0;
 				} 
-
-				if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+				counts_temp = ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+				if (xmlTextWriterWriteFormatString(writer,"%lg",counts_temp) < 0) {
+					fprintf(stderr,"Error writing counts\n");
+					return 0;
+				}
+				counts_sum += counts_temp;
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error ending fluorescence_line_counts\n");
+					return 0;
+				}
+			}
+			if (counts_sum > 0.0) {
+				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+					fprintf(stderr,"Error writing atomic_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
+					fprintf(stderr,"Error writing line_type\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","all") < 0) {
+					fprintf(stderr,"Error writing interaction_number\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+					fprintf(stderr,"Error writing energy\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       					fprintf(stderr,"Error writing symbol\n");                     
+					return 0;
+				} 
+				if (xmlTextWriterWriteFormatString(writer,"%lg",counts_sum) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
 				}
@@ -1425,6 +1462,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 			fprintf(stdout,"Element: %i\n",uniqZ[i]);
 #endif
 			for (j = 1 ; j <= 385 ; j++) {
+				counts_sum = 0.0;
 				for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 						continue;
@@ -1452,8 +1490,43 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
        						fprintf(stderr,"Error writing symbol\n");                     
 						return 0;
 					} 
-
-					if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory)) < 0) {
+					counts_temp = ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+					if (xmlTextWriterWriteFormatString(writer,"%lg",counts_temp) < 0) {
+						fprintf(stderr,"Error writing counts\n");
+						return 0;
+					}
+					counts_sum += counts_temp;
+					if (xmlTextWriterEndElement(writer) < 0) {
+						fprintf(stderr,"Error ending fluorescence_line_counts\n");
+						return 0;
+					}
+				}
+				if (counts_sum> 0.0) {
+					if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+						fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+						fprintf(stderr,"Error writing atomic_number\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
+						fprintf(stderr,"Error writing line_type\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","all") < 0) {
+						fprintf(stderr,"Error writing interaction_number\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+						fprintf(stderr,"Error writing energy\n");
+						return 0;
+					}
+					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       						fprintf(stderr,"Error writing symbol\n");                     
+						return 0;
+					} 
+					if (xmlTextWriterWriteFormatString(writer,"%lg",counts_sum) < 0) {
 						fprintf(stderr,"Error writing counts\n");
 						return 0;
 					}
@@ -2434,7 +2507,7 @@ static float e2c(double energy, double * channels, double * energies, int nchann
 	if (xval < 0) {xval = 0; out_of_range++;	}
 	if (xval > SVG_DEFAULT_BOX_WIDTH) {xval = SVG_DEFAULT_BOX_WIDTH; out_of_range++;}
 
-	if(out_of_range > 0)fprintf(stderr, "svg x-values out of range \n");
+	//if(out_of_range > 0)fprintf(stderr, "svg x-values out of range \n");
 
 	return xval;
 }
