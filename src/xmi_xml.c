@@ -233,7 +233,6 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
-	double norm;
 	
 
 	//allocate memory
@@ -278,21 +277,6 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 					xmlFree(txt);
 				}
 				subsubnode = subsubnode->next;
-			}
-			//normalize
-			norm = sqrt((*geometry)->n_sample_orientation[0]*(*geometry)->n_sample_orientation[0] + 
-			(*geometry)->n_sample_orientation[1]*(*geometry)->n_sample_orientation[1]+
-			(*geometry)->n_sample_orientation[2]*(*geometry)->n_sample_orientation[2]
-			);
-			(*geometry)->n_sample_orientation[0] /= norm;
-			(*geometry)->n_sample_orientation[1] /= norm;
-			(*geometry)->n_sample_orientation[2] /= norm;
-			//make sure that the Z component is positive!
-			//weird things will happen btw if Z is equal to zero...
-			if ((*geometry)->n_sample_orientation[2] < 0.0) {
-				(*geometry)->n_sample_orientation[0] *= -1.0;
-				(*geometry)->n_sample_orientation[1] *= -1.0;
-				(*geometry)->n_sample_orientation[2] *= -1.0;
 			}
 
 		}
@@ -355,14 +339,6 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				subsubnode = subsubnode->next;
 			}
-			//normalize
-			norm = sqrt((*geometry)->n_detector_orientation[0]*(*geometry)->n_detector_orientation[0] + 
-			(*geometry)->n_detector_orientation[1]*(*geometry)->n_detector_orientation[1]+
-			(*geometry)->n_detector_orientation[2]*(*geometry)->n_detector_orientation[2]
-			);
-			(*geometry)->n_detector_orientation[0] /= norm;
-			(*geometry)->n_detector_orientation[1] /= norm;
-			(*geometry)->n_detector_orientation[2] /= norm;
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "area_detector")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
@@ -812,8 +788,6 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		subnode = subnode->next;
 
 	}
-	//normalize weights...
-	xmi_scale_double(weight,n_elements,xmi_sum_double(weight,n_elements));	
 
 	//sort!
 	sorted_Z_ind = xmi_sort_idl_int(Z, n_elements);

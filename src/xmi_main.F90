@@ -1370,6 +1370,16 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         !associate pointers
         CALL C_F_POINTER(inputFPtr, inputF)
 
+        !geometry normalizations
+        CALL normalize_vector(inputF%geometry%n_sample_orientation)
+        IF (inputF%geometry%n_sample_orientation(3) .LT. 0.0) THEN
+             inputF%geometry%n_sample_orientation=-1.0*inputF%geometry%n_sample_orientation   
+        ENDIF
+        CALL normalize_vector(inputF%geometry%n_detector_orientation)
+
+
+
+
         !investigate detector
         inputF%detector%detector_radius = SQRT(inputF%geometry%area_detector/M_PI)
         !IF (inputF%geometry%acceptance_detector .GE. M_PI) THEN
