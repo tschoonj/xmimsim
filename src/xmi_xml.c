@@ -2307,6 +2307,7 @@ double *channels, int nchannels, double maximum2 ) {
 		}
 	}
 
+
 	energies = xmi_dindgen(nchannels);
 	xmi_add_val_to_array_double(energies, nchannels, 1.0);
 	xmi_scale_double(energies, nchannels, input->detector->gain);

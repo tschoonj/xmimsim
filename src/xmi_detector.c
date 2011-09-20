@@ -61,6 +61,9 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 
 	//modify geometry
 	esc_ratio_inputPtr->geometry->d_sample_source = 1.0;	
+	esc_ratio_inputPtr->geometry->d_source_slit = 1.0;	
+	esc_ratio_inputPtr->geometry->slit_size_x = 0.0001;	
+	esc_ratio_inputPtr->geometry->slit_size_y = 0.0001;	
 	esc_ratio_inputPtr->geometry->n_sample_orientation[0]=0.0;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[1]=0.0;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[2]=1.0;
@@ -145,7 +148,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 
 	//create group name based on user and timestamp
 	g_get_current_time(&time);
-        timestring = g_time_val_to_iso8601(&time);
+	timestring = g_time_val_to_iso8601(&time);
 	
 	sprintf(buffer,"%s %s",g_get_user_name(),timestring);
 

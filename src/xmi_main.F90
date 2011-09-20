@@ -842,7 +842,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         INTEGER (C_INT) :: rv_interaction, rv_check
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: distances, r_random_layer
         REAL (C_DOUBLE) :: r_random_layer_sum
-        REAL (C_DOUBLE) :: Pabs, negln, my_sum,temp_sum
+        REAL (C_DOUBLE) :: Pabs, negln, my_sum,temp_sum, temp_prod
         INTEGER :: my_index
 
         rv = 0
@@ -959,9 +959,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 !calculate max value of random number
                                 !tempexp = EXP(-1.0_C_DOUBLE*(dist)*inputF%composition%layers(i)%density*&
                                 !photon%mus(i))
-                                tempexp = EXP(-1.0_C_DOUBLE*(dist)*&
+                                temp_prod=-1.0_C_DOUBLE*dist*&
                                 inputF%composition%layers(i)%density*&
-                                photon%mus(i))
+                                photon%mus(i)
+                                tempexp = EXP(temp_prod)
+
                                 min_random_layer = max_random_layer 
                                 max_random_layer = max_random_layer + blbs*(&
                                 1.0_C_DOUBLE - tempexp)
@@ -3697,6 +3699,8 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: element,line
         INTEGER (C_INT) :: compton_index
+        TYPE (xmi_energy) :: energy
+        REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
 
         WRITE (6,'(A)') 'Precalculating escape ratios'
         WRITE (6,'(A)') 'This could take a long time...'
@@ -3779,7 +3783,8 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
-!$omp photons_rayleigh, photons_compton,&
+!$omp photons_rayleigh, photons_compton,energy,&
+!$omp cosalfa, c_alfa, c_ae, c_be,&
 !$omp photons_einstein,photons_interacted,element,compton_index,line)
 
 
@@ -3791,9 +3796,11 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 !$omp do schedule(guided,2)
         DO i=1,n_input_energies
-!!$omp critical
-!                WRITE (6,'(A,ES12.4)') 'Simulating at ',input_energies(i)
-!!$omp end critical
+                energy%energy = input_energies(i)
+                energy%sigma_x = 0.0
+                energy%sigma_xp = 0.0
+                energy%sigma_y = 0.0
+                energy%sigma_yp = 0.0
                 !Calculate initial mu's
                 ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
@@ -3825,18 +3832,28 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
+
+                        CALL xmi_coords_dir(rng,energy, inputF%geometry,&
+                        photon)
                 
-                        photon%dirv(1) = 0.0_C_DOUBLE
-                        photon%dirv(2) = 0.0_C_DOUBLE
-                        photon%dirv(3) = 1.0_C_DOUBLE
-                        photon%theta = 0.0_C_DOUBLE
-                        photon%phi = 0.0_C_DOUBLE
                         photon%weight = 1.0
                         theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
                         photon%elecv(1) = COS(theta_elecv)
                         photon%elecv(2) = SIN(theta_elecv)
                         photon%elecv(3) = 0.0_C_DOUBLE 
 
+                        cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
+
+                        IF (ABS(cosalfa) .GT. 1.0) THEN
+                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                CALL EXIT(1)
+                        ENDIF
+
+                        c_alfa = ACOS(cosalfa)
+                        c_ae = 1.0/SIN(c_alfa)
+                        c_be = -c_ae*cosalfa
+
+                        photon%elecv = c_ae*photon%elecv + c_be*photon%dirv
                         CALL &
                         xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
 
@@ -3904,7 +3921,6 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 compton_escape_ratios(i,:)=&
                 compton_escape_ratios(i,:)/photons_interacted
                 DEALLOCATE(initial_mus)
-
         ENDDO
 !$omp end do
 !$omp end parallel

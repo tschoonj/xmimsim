@@ -253,10 +253,6 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
 
-        !sum peaks
-        IF (options%use_sum_peaks .EQ. 1_C_INT) THEN
-                CALL xmi_detector_sum_peaks(inputF, channels_temp)
-        ENDIF
         
 
         !escape peak
@@ -268,6 +264,11 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         WRITE (*,'(A,F14.6)') 'b: ',b
         WRITE (*,'(A,I)') 'nlim: ',nlim
 #endif
+
+        !sum peaks
+        IF (options%use_sum_peaks .EQ. 1_C_INT) THEN
+                CALL xmi_detector_sum_peaks(inputF, channels_temp)
+        ENDIF
 
         R = 0.0_C_DOUBLE
 
