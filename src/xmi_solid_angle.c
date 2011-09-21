@@ -24,6 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 
+struct xmi_solid_angles_data{
+	struct xmi_solid_angle **solid_angles;
+	struct xmi_input *input;
+};
+
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
 void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
@@ -139,55 +144,21 @@ struct multiple_solid_angles {
 };
 
 
-int xmi_read_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle **solid_angles, int *n_solid_angles) {
-
-	hid_t file_id;
-	char buffer[1024];
-	ssize_t n_groups;
-	size_t n_groups_max = -1;
-	hid_t *groups;
-	int i;
-	struct multiple_solid_angles *msa;
-	herr_t iterate_rv;
-
-	//open the hdf5 file read-only!
-	file_id = H5Fopen(hdf5_file, H5F_ACC_RDONLY , H5P_DEFAULT);
-	if (file_id < 0 ) {
-		fprintf(stderr,"Cannot open file %s for reading\n",hdf5_file);
-		return 0;
-	}
-
-	msa = (struct multiple_solid_angles *) malloc(sizeof(struct multiple_solid_angles));
-	msa->solid_angles = NULL;
-	msa->n_solid_angles = 0;
-
-
-	//examine each individual group
-	//use H5Literate
-	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) msa);
-
-	if (iterate_rv < 0)
-		return 0;
-
-	*solid_angles = msa->solid_angles;
-	*n_solid_angles = msa->n_solid_angles;
-
-	H5Fclose(file_id);
-	return 1;
-}
 
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 	hid_t dset_id, dapl_id, dspace_id;
 	hsize_t dims[2], dims_string[1]; 
 	hid_t group_id;
-	struct multiple_solid_angles *msa = (struct multiple_solid_angles *) op_data;
+	char *xmi_input_string;
+	struct xmi_solid_angles_data *data = (struct xmi_solid_angles_data *) op_data;
+	struct xmi_input *temp_input;
+	struct xmi_solid_angle *solid_angles;
 
 #if DEBUG == 2
 	fprintf(stdout,"Group name: %s\n",name);
 #endif
 
 
-	msa->solid_angles = (struct xmi_solid_angle *) realloc(msa->solid_angles, sizeof(struct xmi_solid_angle)*++msa->n_solid_angles);
 
 
 	//open group
@@ -197,61 +168,78 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 		return -1;
 	}
 
-	//open dataset solid_angles
-	dset_id = H5Dopen(group_id, "solid_angles", H5P_DEFAULT);
-	
-	//get dimensions of solid_angles dataset
-	dspace_id = H5Dget_space(dset_id);
-	if (H5Sget_simple_extent_ndims(dspace_id) != 2) {
-		fprintf(stderr,"Number of dimensions of solid angles dataset must be equal to 2\n");
-		return -1;
-	}
-	H5Sget_simple_extent_dims(dspace_id, dims, NULL);
-	
-	//allocate memory
-	msa->solid_angles[msa->n_solid_angles-1].solid_angles = (double *) malloc(sizeof(double)*dims[0]*dims[1]);
-	msa->solid_angles[msa->n_solid_angles-1].grid_dims_r_n = dims[1];
-	msa->solid_angles[msa->n_solid_angles-1].grid_dims_theta_n = dims[0];
-
-	H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,msa->solid_angles[msa->n_solid_angles-1].solid_angles );
-	H5Sclose(dspace_id);
-	H5Dclose(dset_id);
-
-#if DEBUG == 2
-	fprintf(stdout,"solid angles processed\n");
-#endif
-
-
-	dset_id = H5Dopen(group_id, "grid_dims_r_vals", H5P_DEFAULT);
-	dspace_id = H5Dget_space(dset_id);
-	msa->solid_angles[msa->n_solid_angles-1].grid_dims_r_vals = (double *) malloc(sizeof(double)*dims[1]);
-	H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,msa->solid_angles[msa->n_solid_angles-1].grid_dims_r_vals );
-	H5Sclose(dspace_id);
-	H5Dclose(dset_id);
-
-	dset_id = H5Dopen(group_id, "grid_dims_theta_vals", H5P_DEFAULT);
-	dspace_id = H5Dget_space(dset_id);
-	msa->solid_angles[msa->n_solid_angles-1].grid_dims_theta_vals = (double *) malloc(sizeof(double)*dims[0]);
-	H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,msa->solid_angles[msa->n_solid_angles-1].grid_dims_theta_vals );
-	H5Sclose(dspace_id);
-	H5Dclose(dset_id);
-
+	//open xmi_input_string
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-#if DEBUG == 2
-	fprintf(stdout,"dims_string: %i\n",dims_string[0]);
-#endif
-	msa->solid_angles[msa->n_solid_angles-1].xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
-	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT,msa->solid_angles[msa->n_solid_angles-1].xmi_input_string );
+	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT,xmi_input_string );
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+		return -1;
 
 
-	H5Gclose(group_id);
+	if (xmi_check_escape_ratios_match(temp_input, data->input) == 1) {
+		//match
+		//read in this group completely
+		xmi_free_input(temp_input);
+		*(data->solid_angles) = (struct xmi_solid_angle *) malloc(sizeof(struct xmi_solid_angle));
+		solid_angles = *(data->solid_angles);
+		solid_angles->xmi_input_string  = xmi_input_string;
+
+
+		//open dataset solid_angles
+		dset_id = H5Dopen(group_id, "solid_angles", H5P_DEFAULT);
 	
-	return 0;
+		//get dimensions of solid_angles dataset
+		dspace_id = H5Dget_space(dset_id);
+		if (H5Sget_simple_extent_ndims(dspace_id) != 2) {
+			fprintf(stderr,"Number of dimensions of solid angles dataset must be equal to 2\n");
+			return -1;
+		}
+		H5Sget_simple_extent_dims(dspace_id, dims, NULL);
+	
+		//allocate memory
+		solid_angles->solid_angles = (double *) malloc(sizeof(double)*dims[0]*dims[1]);
+		solid_angles->grid_dims_r_n = dims[1];
+		solid_angles->grid_dims_theta_n = dims[0];
+
+		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->solid_angles );
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+#if DEBUG == 2
+		fprintf(stdout,"solid angles processed\n");
+#endif
+
+
+		dset_id = H5Dopen(group_id, "grid_dims_r_vals", H5P_DEFAULT);
+		dspace_id = H5Dget_space(dset_id);
+		solid_angles->grid_dims_r_vals = (double *) malloc(sizeof(double)*dims[1]);
+		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_r_vals );
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		dset_id = H5Dopen(group_id, "grid_dims_theta_vals", H5P_DEFAULT);
+		dspace_id = H5Dget_space(dset_id);
+		solid_angles->grid_dims_theta_vals = (double *) malloc(sizeof(double)*dims[0]);
+		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_theta_vals );
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		H5Gclose(group_id);
+	}
+	else {
+		//no match -> continue looking...
+		H5Gclose(group_id);
+		xmi_free_input(temp_input);
+		free(xmi_input_string);
+		return 0;
+	}
+	
+	return 1;
 }
 
 int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
@@ -304,46 +292,30 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv) {
 
-	struct xmi_solid_angle *hdf5_solid_angles;
-	int n_hdf5_solid_angles;
-	struct xmi_input **hdf5_inputs;
-	int i;
+	hid_t file_id;
+	struct xmi_solid_angles_data data;
+	herr_t iterate_rv;
 
-	if (xmi_read_solid_angle_hdf5_file(hdf5_file, &hdf5_solid_angles, &n_hdf5_solid_angles) == 0 )
+	//open the hdf5 file read-only!
+	file_id = H5Fopen(hdf5_file, H5F_ACC_RDONLY , H5P_DEFAULT);
+	if (file_id < 0 ) {
+		fprintf(stderr,"Cannot open file %s for reading\n",hdf5_file);
 		return 0;
+	}
 
-	if (n_hdf5_solid_angles == 0) {
-		//not found
+	data.solid_angles = rv;
+	data.input = A;
+
+	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) &data);
+
+	if (iterate_rv < 0)
+		return 0;
+	else if(iterate_rv == 0) {
 		*rv = NULL;
-		return 1;
 	}
+	
 
-	//compare
-	hdf5_inputs = (struct xmi_input **) malloc(sizeof(struct xmi_input *)*n_hdf5_solid_angles);
-
-	*rv = NULL;
-
-	for (i = 0 ; i < n_hdf5_solid_angles ; i++) {
-		if (*rv == NULL) {
-			if (xmi_read_input_xml_from_string(hdf5_solid_angles[i].xmi_input_string, &hdf5_inputs[i]) == 0)
-				return 0;
-			//check if it matches.
-			if (xmi_check_solid_angle_match(A, hdf5_inputs[i]) == 1) {
-				//match!
-				*rv = hdf5_solid_angles+i;
-			}		
-			else {
-				//no match
-				xmi_free_solid_angle(hdf5_solid_angles+i);
-			}
-			xmi_free_input(hdf5_inputs[i]);
-		}
-		else {
-			xmi_free_solid_angle(&hdf5_solid_angles[i]);
-		}
-	}
-
-
+	H5Fclose(file_id);
 	return 1;
 }
 

@@ -24,6 +24,8 @@ INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
 INTEGER (C_LONG), PARAMETER :: hits_per_single = 5000
 
+
+
 TYPE, BIND(C) :: xmi_solid_angleC
         TYPE (C_PTR) :: solid_angles
         INTEGER (C_LONG) :: grid_dims_r_n
