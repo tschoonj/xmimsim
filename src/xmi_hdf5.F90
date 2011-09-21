@@ -21,7 +21,10 @@ USE :: xmimsim_aux
 USE :: fgsl
 
 #ifdef XMI_WINDOWS 
-#define H5T_NATIVE_DOUBLE 50331957_HID_T
+!value for hdf5 version 1.8.6
+!#define H5T_NATIVE_DOUBLE 50331957_HID_T
+!value for hdf5 version 1.8.5-patch1
+#define H5T_NATIVE_DOUBLE 50331691_HID_T
 #endif
 
 CONTAINS
