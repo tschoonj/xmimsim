@@ -1204,11 +1204,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         WRITE (*,'(A)') &
                         'Invalid result for findpos interaction type'
                         WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
-                        WRITE (*,'(A,F12.6)') 'lowval: ',hdf5_Z%&
-                interaction_probs%energies(1)
-                        WRITE (*,'(A,F12.6)') 'highval: ',hdf5_Z%&
-                interaction_probs%energies(SIZE(hdf5_Z%&
-                interaction_probs%energies))
+                        WRITE (*,'(A,F12.6)') 'lowval: ',&
+                        hdf5_Z%&
+                        interaction_probs%energies(1)
+                        WRITE (*,'(A,F12.6)') 'highval: ',&
+                        hdf5_Z%&
+                        interaction_probs%energies(SIZE(&
+                        hdf5_Z%&
+                        interaction_probs%energies))
 #if DEBUG == 1
                         WRITE (*,'(A,I2)') 'last interaction type: '&
                         ,photon%last_interaction
