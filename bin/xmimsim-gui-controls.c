@@ -18,6 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include <glib.h>
+#include <string.h>
+#include <stdlib.h>
+
+struct window_entry {
+	GtkWidget *window;
+	GtkWidget *entry;
+};
+
 
 GtkWidget *executableW;
 GtkWidget *MlinesW;
@@ -25,6 +33,14 @@ GtkWidget *rad_cascadeW;
 GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
+GtkWidget *spe_convW;
+GtkWidget *spe_uconvW;
+GtkWidget *csv_convW;
+GtkWidget *csv_uconvW;
+GtkWidget *svg_convW;
+GtkWidget *svg_uconvW;
+GtkWidget *html_convW;
+GtkWidget *html_uconvW;
 
 
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
@@ -58,6 +74,38 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 	
 }
 
+static void select_extra_output_cb(GtkButton *button, gpointer data) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+	struct window_entry *we = (struct window_entry *) data;
+	gchar title[512];
+
+	if (we->entry == spe_convW) {
+		//gtk_file_filter_add_pattern(filter,"*.spe");
+		//gtk_file_filter_set_name(filter,"SPE spectral data files");
+		strcpy(title,"Choose the prefix of the SPE files");
+	}
+	
+	dialog = gtk_file_chooser_dialog_new(title,
+		GTK_WINDOW(we->window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
+	);
+	filter = gtk_file_filter_new();
+
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(GTK_ENTRY(we->entry),filename);
+		g_free(filename);
+
+	}
+	gtk_widget_destroy(dialog);
+
+
+}
 
 GtkWidget *init_simulation_controls(GtkWidget *window) {
 
@@ -67,6 +115,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	GtkWidget *hbox_text_label,*label;
 	gchar *xmimsim_executable;
 	GtkWidget *scrolled_window;
+	GtkWidget *button;
+	struct window_entry *we;
 
 
 	superframe = gtk_vbox_new(FALSE,5);
@@ -133,6 +183,31 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW),TRUE);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),variance_reductionW, TRUE, FALSE, 3);
+
+	pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
+	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),FALSE);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
+
+	//hdf5 file??? too advanced
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("SPE file prefix");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	spe_convW = gtk_entry_new();
+	gtk_entry_set_width_chars(GTK_ENTRY(spe_convW),80);
+	we = (struct window_entry *) malloc(sizeof(struct window_entry));
+	we->entry = spe_convW;
+	we->window = window;
+	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
+	gtk_editable_set_editable(GTK_EDITABLE(spe_convW), FALSE);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),spe_convW,FALSE,FALSE,0);
+
+	
+
+
 
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
