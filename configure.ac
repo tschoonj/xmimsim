@@ -333,7 +333,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile libxmimsim.pc])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT

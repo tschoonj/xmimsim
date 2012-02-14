@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
+#include "xmimsim-gui-controls.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -2385,8 +2386,9 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 #if DEBUG == 1
 		fprintf(stdout,"last > current\n");
 #endif
-		for (tempPtr = current+1 ; tempPtr == last ; tempPtr++)
+		for (tempPtr = current+1 ; tempPtr == last ; tempPtr++) {
 			xmi_free_input(tempPtr->xi);
+		}
 		//disable redo
 		sprintf(buffer,"Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
@@ -2403,45 +2405,40 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	current = redo_buffer + current_diff;
 	last = current+1;
 	last->filename=strdup(UNLIKELY_FILENAME);
+	xmi_copy_input(current->xi, &(last->xi));
 	switch (kind) {
 		case OUTPUTFILE:
-			xmi_copy_input(current->xi, &(last->xi));
-			strcpy(last->message,"undo selection of outputfile");
+			strcpy(last->message,"selection of outputfile");
 			free(last->xi->general->outputfile);
 			last->xi->general->outputfile=strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_PHOTONS_INTERVAL:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of photons per interval");
 			last->xi->general->n_photons_interval = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_PHOTONS_LINE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of photons per line");
 			last->xi->general->n_photons_line = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of number of interactions per trajectory");
 			last->xi->general->n_interactions_trajectory = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_REFERENCE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message, "change of reference layer");
 			last->xi->composition->reference_layer = compositionS->reference_layer;
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_ORDER:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of composition ordering");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -2452,7 +2449,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 #endif
 			break;
 		case COMPOSITION_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"removal of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -2460,7 +2456,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case COMPOSITION_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -2468,7 +2463,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case COMPOSITION_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
@@ -2476,119 +2470,102 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case D_SAMPLE_SOURCE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of sample-source distance");
 			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of sample orientation vector x");
 			last->xi->geometry->n_sample_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of sample orientation vector y");
 			last->xi->geometry->n_sample_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of sample orientation vector z");
 			last->xi->geometry->n_sample_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_X:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector window position x");
 			last->xi->geometry->p_detector_window[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector window position y");
 			last->xi->geometry->p_detector_window[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector window position z");
 			last->xi->geometry->p_detector_window[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector orientation x");
 			last->xi->geometry->n_detector_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector orientation y");
 			last->xi->geometry->n_detector_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector orientation z");
 			last->xi->geometry->n_detector_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case AREA_DETECTOR:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of active detector area");
 			last->xi->geometry->area_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COLLIMATOR_HEIGHT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of collimator height");
 			last->xi->geometry->collimator_height = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COLLIMATOR_DIAMETER:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of collimator opening diameter");
 			last->xi->geometry->collimator_diameter = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case D_SOURCE_SLIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of source-slits distance");
 			last->xi->geometry->d_source_slit = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case SLIT_SIZE_X:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of slit size x");
 			last->xi->geometry->slit_size_x = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case SLIT_SIZE_Y:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of slit size y");
 			last->xi->geometry->slit_size_y = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DISCRETE_ENERGY_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of discrete energy");
 			last->kind = kind;
 			//realloc discrete energies
@@ -2596,13 +2573,11 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy;
 			break;
 		case DISCRETE_ENERGY_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of discrete energy");
 			last->kind = kind;
 			last->xi->excitation->discrete[current_index] = *energy;
 			break;
 		case DISCRETE_ENERGY_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"deletion of discrete energy");
 			last->kind = kind;
 			for (i = current_index ; i < current_nindices ; i++) {
@@ -2611,7 +2586,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*last->xi->excitation->n_discrete--);
 			break;
 		case CONTINUOUS_ENERGY_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of continuous energy");
 			last->kind = kind;
 			//realloc continuous energies
@@ -2619,13 +2593,11 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy;
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of continuous energy");
 			last->kind = kind;
 			last->xi->excitation->continuous[current_index] = *energy;
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"deletion of continuous energy");
 			last->kind = kind;
 			for (i = current_index ; i < current_nindices ; i++) {
@@ -2634,7 +2606,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*last->xi->excitation->n_continuous--);
 			break;
 		case EXC_COMPOSITION_ORDER:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of excitation absorber ordering");
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
@@ -2649,7 +2620,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 #endif
 			break;
 		case EXC_COMPOSITION_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"removal of excitation absorber layer");
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
@@ -2661,7 +2631,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case EXC_COMPOSITION_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of excitation absorber layer");
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
@@ -2673,7 +2642,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case EXC_COMPOSITION_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of excitation absorber layer");
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
@@ -2685,7 +2653,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_ORDER:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector absorber ordering");
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
@@ -2700,7 +2667,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 #endif
 			break;
 		case DET_COMPOSITION_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"removal of detector absorber layer");
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
@@ -2712,7 +2678,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of detector absorber layer");
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
@@ -2724,7 +2689,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of detector absorber layer");
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
@@ -2736,7 +2700,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_ORDER:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of crystal absorber ordering");
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
@@ -2751,7 +2714,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 #endif
 			break;
 		case CRYSTAL_COMPOSITION_DELETE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"removal of crystal absorber layer");
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
@@ -2763,7 +2725,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_ADD:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"addition of crystal absorber layer");
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
@@ -2775,7 +2736,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_EDIT:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"editing of crystal absorber layer");
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
@@ -2787,64 +2747,53 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->widget = widget;
 			break;
 		case DETECTOR_TYPE:
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector type");
 			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_GAIN: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector gain");
 			last->xi->detector->gain = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_LIVE_TIME: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of live time");
 			last->xi->detector->live_time = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_PULSE_WIDTH: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector pulse width");
 			last->xi->detector->pulse_width= strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_ZERO: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector zero");
 			last->xi->detector->zero = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_NOISE: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector noise");
 			last->xi->detector->noise = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_FANO: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of detector Fano factor");
 			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_MAX_CONVOLUTION_ENERGY: 
-			xmi_copy_input(current->xi, &(last->xi));
 			strcpy(last->message,"change of maximum convolution energy");
 			last->xi->detector->max_convolution_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->kind = kind;
 			last->widget = widget;
 			break;
-
-
-			
 	} 
 	current = last;
 	sprintf(buffer,"Undo: %s",last->message);
@@ -3608,6 +3557,14 @@ int main (int argc, char *argv[]) {
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+
+
+
+	//second notebook page: Simulation controls
+	label = gtk_label_new("Simulation controls");
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_simulation_controls(window), label);
+
+
 
 
 	if (argc == 2) {

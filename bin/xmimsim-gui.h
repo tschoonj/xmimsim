@@ -17,6 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h> 
 #include "xmi_data_structs.h"
+#include "xmimsim-gui-controls.h"
+
+
+#ifndef XMIMSIM_GUI_H
+#define XMIMSIM_GUI_H
+
+
 
 struct undo_single {
 	struct xmi_input *xi;
@@ -115,3 +122,6 @@ extern GtkWidget *saveW;
 extern GtkWidget *save_asW;
 extern GtkToolItem *saveasT;
 extern GtkToolItem *saveT;
+
+
+#endif

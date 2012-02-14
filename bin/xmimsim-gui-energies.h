@@ -18,6 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
+#ifndef XMIMSIM_GUI_ENERGIES_H
+#define XMIMSIM_GUI_ENERGIES_H
+
 GtkWidget *initialize_energies(struct xmi_excitation *excitation); 
 
 extern struct xmi_energy *energy;
@@ -42,3 +45,5 @@ enum {
 	SIGMA_YP_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
+
+#endif

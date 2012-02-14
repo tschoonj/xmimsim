@@ -16,4 +16,7 @@
 SUBDIRS = src bin include xml etc nsis icons
 ACLOCAL_AMFLAGS = -I m4
 
+pkgconfigdir=$(libdir)/pkgconfig
+pkgconfig_DATA=libxmimsim.pc
+
 EXTRA_DIST = xmimsim.spec.in
