@@ -76,7 +76,7 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 
 static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	GtkWidget *dialog;
-	GtkFileFilter *filter;
+	GtkFileFilter *filter=NULL;
 	gchar *filename;
 	struct window_entry *we = (struct window_entry *) data;
 	gchar title[512];
@@ -84,7 +84,25 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	if (we->entry == spe_convW) {
 		//gtk_file_filter_add_pattern(filter,"*.spe");
 		//gtk_file_filter_set_name(filter,"SPE spectral data files");
-		strcpy(title,"Choose the prefix of the SPE files");
+		strcpy(title,"Select the prefix of the SPE files");
+	}
+	else if (we->entry == svg_convW) {
+		filter = gtk_file_filter_new();
+		gtk_file_filter_add_pattern(filter, "*.svg");
+		gtk_file_filter_set_name(filter,"Scalable Vector Graphics");
+		strcpy(title,"Select the name of the SVG file");
+	}
+	else if (we->entry == csv_convW) {
+		filter = gtk_file_filter_new();
+		gtk_file_filter_add_pattern(filter, "*.csv");
+		gtk_file_filter_set_name(filter,"Comma separated value files");
+		strcpy(title,"Select the name of the CSV file");
+	}
+	else if (we->entry == html_convW) {
+		filter = gtk_file_filter_new();
+		gtk_file_filter_add_pattern(filter, "*.html");
+		gtk_file_filter_set_name(filter,"Hypertext Markup Language");
+		strcpy(title,"Select the name of the HTML report file");
 	}
 	
 	dialog = gtk_file_chooser_dialog_new(title,
@@ -93,11 +111,31 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
-	filter = gtk_file_filter_new();
+	if (filter)
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog),filter);
 
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		if (we->entry == svg_convW) {
+			if (strcmp(filename+strlen(filename)-4, ".svg") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".svg");
+			}
+		}
+		else if (we->entry == csv_convW) {
+			if (strcmp(filename+strlen(filename)-4, ".csv") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".csv");
+			}
+		}
+		else if (we->entry == html_convW) {
+			if (strcmp(filename+strlen(filename)-5, ".html") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
+				strcat(filename,".html");
+			}
+		}
+			
 		gtk_entry_set_text(GTK_ENTRY(we->entry),filename);
 		g_free(filename);
 
@@ -119,7 +157,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	struct window_entry *we;
 
 
-	superframe = gtk_vbox_new(FALSE,5);
+	superframe = gtk_vbox_new(FALSE,2);
 
 	frame = gtk_frame_new("Executable");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
@@ -152,7 +190,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableW,FALSE,FALSE,0);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
-	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
 
 	//options
@@ -188,31 +226,102 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),FALSE);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
+	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
+
+	//Exports
+	frame = gtk_frame_new("Export results");
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Export results</span>");
+
+
+	vbox_notebook = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
 	//hdf5 file??? too advanced
+	//SPE file
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("SPE file prefix");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
 	spe_convW = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(spe_convW),80);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(spe_convW),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
+	gtk_entry_set_width_chars(GTK_ENTRY(spe_convW),60);
 	we = (struct window_entry *) malloc(sizeof(struct window_entry));
 	we->entry = spe_convW;
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
-	gtk_editable_set_editable(GTK_EDITABLE(spe_convW), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(spe_convW), TRUE);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),spe_convW,FALSE,FALSE,0);
 
+	//SVG files
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Scalable Vector Graphics (SVG) file");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Export the spectra as Scalable Vector Graphics.");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Scalable Vector Graphics.");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	svg_convW = gtk_entry_new();
+	gtk_widget_set_tooltip_text(GTK_WIDGET(svg_convW),"Export the spectra as Scalable Vector Graphics.");
+	gtk_entry_set_width_chars(GTK_ENTRY(svg_convW),60);
+	we = (struct window_entry *) malloc(sizeof(struct window_entry));
+	we->entry = svg_convW;
+	we->window = window;
+	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
+	gtk_editable_set_editable(GTK_EDITABLE(svg_convW), TRUE);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),svg_convW,FALSE,FALSE,0);
 	
-
+	//CSV files
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Comma Separated Values (CSV) file");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	csv_convW = gtk_entry_new();
+	gtk_widget_set_tooltip_text(GTK_WIDGET(csv_convW),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
+	gtk_entry_set_width_chars(GTK_ENTRY(csv_convW),60);
+	we = (struct window_entry *) malloc(sizeof(struct window_entry));
+	we->entry = csv_convW;
+	we->window = window;
+	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
+	gtk_editable_set_editable(GTK_EDITABLE(csv_convW), TRUE);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),csv_convW,FALSE,FALSE,0);
+	
+	//html files
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Report HTML file");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
+	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	html_convW = gtk_entry_new();
+	gtk_widget_set_tooltip_text(GTK_WIDGET(html_convW),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
+	gtk_entry_set_width_chars(GTK_ENTRY(html_convW),60);
+	we = (struct window_entry *) malloc(sizeof(struct window_entry));
+	we->entry = html_convW;
+	we->window = window;
+	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
+	gtk_editable_set_editable(GTK_EDITABLE(html_convW), TRUE);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),html_convW,FALSE,FALSE,0);
+	
 
 
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
-	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
