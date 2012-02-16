@@ -142,6 +142,11 @@ static gulong detector_fanoG;
 static gulong detector_noiseG;
 static gulong detector_max_convolution_energyG;
 
+//notebook
+gulong notebookG;
+
+
+
 /*
  *
  *	values that check validity of entry widgets
@@ -236,9 +241,23 @@ GdkColor white = {.red = (guint16) 65535, .green = (guint16) 65535, .blue = (gui
 GdkColor red = {.red = (guint16) 65535, .green = (guint16) 1000, .blue = (guint16) 1000};
 
 
+/*
+ *
+ * notebook pages
+ *
+ *
+ */
 
+gint input_page;
+gint control_page;
+gint results_page;
+gint current_page;
 
-
+enum {
+	GTK_RESPONSE_SAVEAS,
+	GTK_RESPONSE_SAVE,
+	GTK_RESPONSE_NOSAVE
+};
 
 enum {
 	N_ELEMENTS_COLUMN,
@@ -265,6 +284,7 @@ void saveas_cb(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 void new_cb(GtkWidget *widget, gpointer data);
+struct undo_single *check_changes_saved(int *status);
 
 int check_changeables(void);
 
@@ -274,6 +294,140 @@ enum {
 	CHECK_CHANGES_NEVER_SAVED,
 };
 
+
+static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, guint page, gpointer data) {
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *dialog = NULL;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+	GtkTextIter iterb, itere;
+
+
+
+	fprintf(stdout,"page %i clicked\n",page);
+	fprintf(stdout,"current page %i\n",current_page);
+	//cases: 
+	//	1) current_page == input_page and page == control_page
+	//	2) current_page == control_page and page == input_page
+	if (current_page == input_page && page == control_page)	{
+		//check status of undo/redo, new, save(as) buttons and store their states for future use
+
+
+		//needs to be checked if valid input is available and that it has been saved
+		check_rv = check_changes_saved(&check_status);
+		if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+			//saved before: give option to continue or to SAVE
+			dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(data),
+				GTK_DIALOG_MODAL,
+				GTK_STOCK_OK,GTK_RESPONSE_OK,
+				GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,
+				GTK_STOCK_SAVE,GTK_RESPONSE_SAVE,
+				NULL
+			);
+			content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+			label = gtk_label_new("You have made changes since your last save. Continue with last saved version or save changes?");
+			gtk_widget_show(label);
+			gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+			//run dialog
+			dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+			if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
+				//user was scared off by the message: return to input_page
+				//block signals temporarily
+				//g_signal_handler_block(G_OBJECT(notebook), notebookG);
+				gtk_notebook_set_current_page(notebook,input_page);
+				//g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
+			}
+			else if (dialog_rv == GTK_RESPONSE_OK) {
+				//continue with outdated input file
+				current_page = control_page;
+			}
+			else if (dialog_rv == GTK_RESPONSE_SAVE) {
+				if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
+					gtk_widget_destroy(dialog);
+					dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file: model is incomplete/invalid"
+	                		);
+	     				gtk_dialog_run (GTK_DIALOG (dialog));
+	     				gtk_widget_destroy (dialog);
+					//g_signal_handler_block(G_OBJECT(notebook), notebookG);
+					gtk_notebook_set_current_page(notebook,input_page);
+					//g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
+	     				return;
+				}
+				//get text from comments...
+				gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+				if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+					free(current->xi->general->comments);
+					current->xi->general->comments = strdup("");
+				}
+				else {
+					free(current->xi->general->comments);
+					current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+				}
+				//update file
+				if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+				}
+				else {
+					gtk_widget_destroy (dialog);
+					dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+						GTK_DIALOG_DESTROY_WITH_PARENT,
+		        			GTK_MESSAGE_ERROR,
+		        			GTK_BUTTONS_CLOSE,
+		        			"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                		);
+	     				gtk_dialog_run (GTK_DIALOG (dialog));
+	     				gtk_widget_destroy (dialog);
+					//g_signal_handler_block(G_OBJECT(notebook), notebookG);
+					gtk_notebook_set_current_page(notebook,input_page);
+					//g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
+					//send user back to input page
+					return;
+				}
+			}
+
+			gtk_widget_destroy(dialog);
+		}
+		else if (check_status == CHECK_CHANGES_JUST_SAVED) {
+			//current version corresponds to saved version
+		}
+		else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+			//hmmm... send user back to first page with error message
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		        	GTK_MESSAGE_ERROR,
+		        	GTK_BUTTONS_CLOSE,
+		        	"Input parameters need to be saved before the simulation can be launched."
+	                );
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
+		/*	g_signal_handler_block(G_OBJECT(notebook), notebookG);
+			fprintf(stdout,"before set current page\n");
+			gtk_notebook_set_current_page(notebook,input_page);
+			fprintf(stdout,"after set current page\n");
+			g_signal_handler_unblock(G_OBJECT(notebook), notebookG);*/
+			return;
+		}
+
+	}
+	else if (current_page == control_page && page == input_page) {
+	
+	
+	}
+
+
+
+
+	current_page = (gint) page;
+
+	return;
+}
 
 void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign) {
 	g_return_if_fail (GTK_IS_CELL_RENDERER (cell));
@@ -3041,6 +3195,8 @@ int main (int argc, char *argv[]) {
 
 	//notebook
 	notebook = gtk_notebook_new();
+	notebookG = g_signal_connect(G_OBJECT(notebook), "switch-page",G_CALLBACK(notebook_page_changed_cb),window);
+	g_signal_handler_block(G_OBJECT(notebook), notebookG);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_widget_show(notebook);
 
@@ -3142,7 +3298,8 @@ int main (int argc, char *argv[]) {
 
 
 	label = gtk_label_new("Input parameters");
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Input parameters</span>");
+	input_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
 	//composition
@@ -3562,7 +3719,8 @@ int main (int argc, char *argv[]) {
 
 	//second notebook page: Simulation controls
 	label = gtk_label_new("Simulation controls");
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_simulation_controls(window), label);
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation controls</span>");
+	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_simulation_controls(window), label);
 
 
 
@@ -3594,6 +3752,8 @@ int main (int argc, char *argv[]) {
 	gtk_widget_show_all(window);
 
 
+	g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
+	current_page = (gint) input_page;
 
 	gtk_main();
 
@@ -3903,12 +4063,6 @@ void change_all_values(struct xmi_input *new_input) {
 	return;
 }
 
-enum {
-	GTK_RESPONSE_SAVEAS,
-	GTK_RESPONSE_SAVE,
-	GTK_RESPONSE_NOSAVE
-};
-
 void new_cb(GtkWidget *widget, gpointer data) {
 	struct undo_single *check_rv;
 	struct xmi_input *xi;
@@ -3958,7 +4112,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 
 	if (dialog != NULL) {
 		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
@@ -4021,6 +4175,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *content;
 	gint dialog_rv;
 	GtkWidget *label;
+	GtkTextIter iterb, itere;
 
 
 	//check if last changes have been saved, because they will be lost otherwise!
@@ -4057,7 +4212,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 	if (dialog != NULL) {
 		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
@@ -4070,6 +4225,16 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 			saveas_cb(dialog, (gpointer) dialog);
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//get text from comments...
+			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup("");
+			}
+			else {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			}
 			//update file
 			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
 
@@ -4109,6 +4274,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	gint dialog_rv;
 	GtkWidget *label;
 	char *title;
+	GtkTextIter iterb, itere;
 
 	//check if last changes have been saved, because they will be lost otherwise!
 	check_rv = check_changes_saved(&check_status);
@@ -4144,7 +4310,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 	if (dialog != NULL) {
 		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL) {
+		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
@@ -4158,6 +4324,15 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
 			//update file
+			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup("");
+			}
+			else {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			}
 			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
 
 			}
@@ -4376,6 +4551,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 		       		"Could not read file %s: model is incomplete/invalid",check_rv->filename
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
 
 		}
 		else {

@@ -123,5 +123,12 @@ extern GtkWidget *save_asW;
 extern GtkToolItem *saveasT;
 extern GtkToolItem *saveT;
 
+//notebookpages
+extern gint input_page;
+extern gint control_page;
+extern gint results_page;
+extern gint current_page;
+
+
 
 #endif
