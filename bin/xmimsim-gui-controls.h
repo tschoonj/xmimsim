@@ -56,6 +56,9 @@ extern GtkWidget *svg_uconvW;
 extern GtkWidget *html_convW;
 extern GtkWidget *html_uconvW;
 
+extern GtkWidget *playButton;
+extern GtkWidget *pauseButton;
+extern GtkWidget *stopButton;
 
 
 #endif

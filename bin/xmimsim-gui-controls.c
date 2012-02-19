@@ -42,6 +42,9 @@ GtkWidget *svg_uconvW;
 GtkWidget *html_convW;
 GtkWidget *html_uconvW;
 
+GtkWidget *playButton;
+GtkWidget *pauseButton;
+GtkWidget *stopButton;
 
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
@@ -155,6 +158,11 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	GtkWidget *scrolled_window;
 	GtkWidget *button;
 	struct window_entry *we;
+
+	GtkWidget *buttonbox;
+	GtkWidget *progressbar;
+	GtkWidget *hbox_controls;
+
 
 
 	superframe = gtk_vbox_new(FALSE,2);
@@ -323,6 +331,40 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
+	//actual controls
+	frame = gtk_frame_new("Simulation controls");
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
+	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Simulation controls</span>");
+
+
+	//playButton = gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
+	playButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	stopButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	pauseButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	buttonbox = gtk_vbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), stopButton, FALSE,FALSE,3);
+	gtk_widget_set_sensitive(pauseButton,FALSE);
+	gtk_widget_set_sensitive(stopButton,FALSE);
+	hbox_controls = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 3);
+	progressbar = gtk_progress_bar_new();
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar), GTK_PROGRESS_LEFT_TO_RIGHT);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbar, FALSE, FALSE, 3);
+
+	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
+	gtk_container_add(GTK_CONTAINER(frame),hbox_controls);
+	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
+
+
+
+
+	//finalize widget
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
