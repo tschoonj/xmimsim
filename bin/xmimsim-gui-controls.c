@@ -58,14 +58,42 @@ static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpo
 
 GPid xmimsim_pid;
 
+void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
+	GtkTextIter iter, start;
+	va_list args;
+	GtkTextTag *tag;
+	gint start_offset;
 
+	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
+	g_return_if_fail(text != NULL);
+
+	gtk_text_buffer_get_iter_at_mark (buffer, &iter, gtk_text_buffer_get_insert (buffer));
+
+	start_offset = gtk_text_iter_get_offset(&iter);
+	gtk_text_buffer_insert(buffer, &iter, text,len);
+
+	if (first_tag == NULL)
+		return;
+
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
+
+	va_start(args, first_tag);
+	tag = first_tag;
+	while (tag) {
+		gtk_text_buffer_apply_tag(buffer, tag, &start, &iter);
+		tag = va_arg(args, GtkTextTag*);
+	}
+	va_end(args);
+	return;
+}
 
 
 void start_job() {
-	gchar **argv = {"xmimsim-gui-helper",NULL};
+	gchar *argv[] = {"xmimsim-gui-helpe",NULL};
 	gboolean spawn_rv;
 	gint out_fh, err_fh;
 	GError *spawn_error = NULL;
+	
 
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
@@ -78,9 +106,17 @@ void start_job() {
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
 
+	fprintf(stdout,"child pid: %i\n",xmimsim_pid);
+
 	if (spawn_rv == FALSE) {
 		//couldn't spawn
-		//
+		//print messag_ to textbox in red...
+		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, spawn_error->message,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		g_error_free(spawn_error);
+		return;
+	}
+	else {
+		gtk_text_buffer_insert_at_cursor(controlsLogB, "process started\n",-1);
 	}
 
 }
@@ -163,12 +199,12 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					//send user back to input page
 					return;
 				}
-				gtk_widget_destroy(dialog);
 
 			case GTK_RESPONSE_OK:
 				//proceed without updating the file (which is probably stupid)
 				//launch simulation...
 				gtk_widget_destroy(dialog);
+				start_job();
 				break;
 
 
@@ -178,6 +214,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
 		//current version corresponds to saved version
 		//launch simulation...
+		start_job();
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
 		//hmmm... send user back to first page with error message
@@ -508,6 +545,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	//textbuffer
 	controlsLogW = gtk_text_view_new();
 	controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
+	gtk_text_buffer_create_tag(controlsLogB, "error","foreground","red",NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "success","foreground","green",NULL);
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), controlsLogW);
