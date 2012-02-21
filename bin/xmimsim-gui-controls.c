@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
+#include "xmi_xml.h"
+#include "xmi_data_structs.h"
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
@@ -46,8 +48,151 @@ GtkWidget *playButton;
 GtkWidget *pauseButton;
 GtkWidget *stopButton;
 
+GtkWidget *controlsLogW;
+GtkTextBuffer *controlsLogB;
+
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
+}
+
+
+GPid xmimsim_pid;
+
+
+
+
+void start_job() {
+	gchar **argv = {"xmimsim-gui-helper",NULL};
+	gboolean spawn_rv;
+	gint out_fh, err_fh;
+	GError *spawn_error = NULL;
+
+	//freeze gui except for pause and stop buttons
+	gtk_widget_set_sensitive(playButton,FALSE);
+
+	//construct command
+
+
+	//execute command
+	spawn_rv = g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
+		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
+
+
+	if (spawn_rv == FALSE) {
+		//couldn't spawn
+		//
+	}
+
+}
+
+
+
+static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *dialog = NULL;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+	GtkTextIter iterb, itere;
+
+
+	check_rv = check_changes_saved(&check_status);
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		//saved before: give option to continue or to SAVE
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_OK,GTK_RESPONSE_OK,
+			GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,
+			GTK_STOCK_SAVE,GTK_RESPONSE_SAVE,
+			NULL
+		);
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. Continue with last saved version or save changes?");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+		//run dialog
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		switch (dialog_rv) {
+			case GTK_RESPONSE_CANCEL:
+			case GTK_RESPONSE_DELETE_EVENT:
+				//user was scared off by the message: nothing happens
+				gtk_widget_destroy(dialog);
+				return;
+			case GTK_RESPONSE_SAVE:
+				if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
+					gtk_widget_destroy(dialog);
+					dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file: model is incomplete/invalid"
+	                		);
+	     				gtk_dialog_run (GTK_DIALOG (dialog));
+	     				gtk_widget_destroy (dialog);
+	     				return;
+				}
+				//get text from comments...
+				gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+				if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+					free(current->xi->general->comments);
+					current->xi->general->comments = strdup("");
+				}
+				else {
+					free(current->xi->general->comments);
+					current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+				}
+				//update file
+				if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+				}
+				else {
+					gtk_widget_destroy (dialog);
+					dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+						GTK_DIALOG_DESTROY_WITH_PARENT,
+		        			GTK_MESSAGE_ERROR,
+		        			GTK_BUTTONS_CLOSE,
+		        			"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                		);
+	     				gtk_dialog_run (GTK_DIALOG (dialog));
+	     				gtk_widget_destroy (dialog);
+					//g_signal_handler_block(G_OBJECT(notebook), notebookG);
+					gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
+					//g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
+					//send user back to input page
+					return;
+				}
+				gtk_widget_destroy(dialog);
+
+			case GTK_RESPONSE_OK:
+				//proceed without updating the file (which is probably stupid)
+				//launch simulation...
+				gtk_widget_destroy(dialog);
+				break;
+
+
+
+		}
+	}
+	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
+		//current version corresponds to saved version
+		//launch simulation...
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		//hmmm... send user back to first page with error message
+		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	        	GTK_MESSAGE_ERROR,
+	        	GTK_BUTTONS_CLOSE,
+	        	"Input parameters need to be saved before the simulation can be launched."
+                );
+     		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	return;
 }
 
 
@@ -340,6 +485,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 	//playButton = gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
 	playButton = gtk_button_new();
+	g_signal_connect(G_OBJECT(playButton), "clicked",G_CALLBACK(play_button_clicked_cb), window);
 	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_LARGE_TOOLBAR));
 	stopButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_LARGE_TOOLBAR));
@@ -356,6 +502,17 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	progressbar = gtk_progress_bar_new();
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar), GTK_PROGRESS_LEFT_TO_RIGHT);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbar, FALSE, FALSE, 3);
+
+	//OPENMP number of threads!!!!!
+
+	//textbuffer
+	controlsLogW = gtk_text_view_new();
+	controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
+	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), controlsLogW);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), scrolled_window, TRUE, TRUE, 3);
+
 
 	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
 	gtk_container_add(GTK_CONTAINER(frame),hbox_controls);

@@ -122,13 +122,29 @@ extern GtkWidget *saveW;
 extern GtkWidget *save_asW;
 extern GtkToolItem *saveasT;
 extern GtkToolItem *saveT;
+extern GtkWidget *commentsW;
 
 //notebookpages
+extern GtkWidget *notebook;
 extern gint input_page;
 extern gint control_page;
 extern gint results_page;
 extern gint current_page;
 
+struct undo_single *check_changes_saved(int *status);
+
+
+enum {
+	CHECK_CHANGES_JUST_SAVED,
+	CHECK_CHANGES_SAVED_BEFORE,
+	CHECK_CHANGES_NEVER_SAVED,
+};
+
+enum {
+	GTK_RESPONSE_SAVEAS,
+	GTK_RESPONSE_SAVE,
+	GTK_RESPONSE_NOSAVE
+};
 
 
 #endif

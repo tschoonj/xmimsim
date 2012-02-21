@@ -27,7 +27,8 @@ bin_PROGRAMS = xmimsim \
 	xmso2csv \
 	xmso2htm \
 	xmso2xmsi \
-	xmimsim-test-brute-fixes
+	xmimsim-gui-helper
+
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -126,9 +127,8 @@ xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
-xmimsim_test_brute_fixes_SOURCES = xmimsim-test-brute-fixes.c
-xmimsim_test_brute_fixes_LDADD = ../src/libxmimsim.la
 
+xmimsim_gui_helper_SOURCES = xmimsim-gui-helper.c
 
 
 if OS_WINDOWS
