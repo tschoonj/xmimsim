@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 		counter++;
 	}
 
-
+	sleep(2);
 
 	return 0;
 }

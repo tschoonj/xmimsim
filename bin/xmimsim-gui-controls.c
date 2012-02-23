@@ -92,6 +92,8 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,NULL);
 			g_free(pipe_string);
 		}
+		else
+			return FALSE;
 
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
@@ -125,6 +127,8 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_free(pipe_string);
 		}
+		else
+			return FALSE;
 
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
