@@ -2914,6 +2914,7 @@ int main (int argc, char *argv[]) {
  *
  */
 
+	setbuf(stdout,NULL);
 	//let's use the default C locale
 	gtk_disable_setlocale();
 	//g_type_init
