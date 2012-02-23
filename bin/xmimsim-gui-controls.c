@@ -77,6 +77,8 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	char buffer[512];
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
+		while (gtk_events_pending ())
+		        gtk_main_iteration ();
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
@@ -110,6 +112,8 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	char buffer[512];
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
+		while (gtk_events_pending ())
+		        gtk_main_iteration ();
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
@@ -283,6 +287,8 @@ void start_job() {
 	g_io_add_watch(xmimsim_stderr, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, xmimsim_stderr_watcher, argv[0]);
 	g_io_channel_unref(xmimsim_stderr);
 
+	//while (gtk_events_pending ())
+	//        gtk_main_iteration ();
 
 	
 }
@@ -336,7 +342,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
 	wait(NULL);
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
-/*	if (kill_rv == 0) {
+	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 	}
@@ -344,7 +350,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		sprintf(buffer, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
-*/
+
 #elif defined(G_OS_WIN32)
 	BOOL terminate_rv;
 
@@ -388,6 +394,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 			gtk_widget_set_sensitive(pauseButton,TRUE);
+			xmimsim_paused = FALSE;
 		}
 		else {
 			sprintf(buffer, "Process %i could not be resumed\n",(int) xmimsim_pid);
