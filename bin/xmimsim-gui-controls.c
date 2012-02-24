@@ -58,11 +58,20 @@ GtkWidget *stopButton;
 GtkWidget *controlsLogW;
 GtkTextBuffer *controlsLogB;
 
+GtkWidget *progressbar_solidW;
+GtkWidget *progressbar_mainW;
+GtkWidget *progressbar_escapeW;
+
+GtkWidget *image_solidW;
+GtkWidget *image_mainW;
+GtkWidget *image_escapeW;
+
 GPid xmimsim_pid;
 
 gboolean xmimsim_paused;
 
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
+void reset_controls(void);
 
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
@@ -77,8 +86,8 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	char buffer[512];
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
-		while (gtk_events_pending ())
-		        gtk_main_iteration ();
+		/*while (gtk_events_pending ())
+		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
@@ -114,8 +123,8 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	char buffer[512];
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
-		while (gtk_events_pending ())
-		        gtk_main_iteration ();
+		/*while (gtk_events_pending ())
+		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
@@ -201,18 +210,25 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	GtkTextIter iter, start;
 	va_list args;
 	GtkTextTag *tag;
+	GtkTextMark *insert_mark;
 	gint start_offset;
 
 	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
 	g_return_if_fail(text != NULL);
 
-	gtk_text_buffer_get_iter_at_mark (buffer, &iter, gtk_text_buffer_get_insert (buffer));
+	gtk_text_buffer_get_end_iter(buffer, &iter);
 
 	start_offset = gtk_text_iter_get_offset(&iter);
 	gtk_text_buffer_insert(buffer, &iter, text,len);
 
-	if (first_tag == NULL)
+	if (first_tag == NULL) {
+		gtk_text_buffer_get_end_iter(buffer, &iter);
+		insert_mark = gtk_text_buffer_get_insert(buffer);
+		gtk_text_buffer_place_cursor(buffer,&iter);
+        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	        insert_mark, 0.0, FALSE, 0, 1.0);
 		return;
+	}
 
 	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
 
@@ -223,6 +239,13 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 		tag = va_arg(args, GtkTextTag*);
 	}
 	va_end(args);
+	
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	insert_mark = gtk_text_buffer_get_insert(buffer);
+	gtk_text_buffer_place_cursor(buffer,&iter);
+       	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	        insert_mark, 0.0, FALSE, 0, 1.0);
+
 	return;
 }
 
@@ -244,6 +267,8 @@ void start_job() {
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
 
+	reset_controls();
+
 	//construct command
 
 
@@ -262,7 +287,7 @@ void start_job() {
 		return;
 	}
 	sprintf(buffer,"%s was started with process id %i\n",argv[0],(int)xmimsim_pid);
-	gtk_text_buffer_insert_at_cursor(controlsLogB, buffer,-1);
+	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
 
 	xmimsim_paused=FALSE;
 	gtk_widget_set_sensitive(pauseButton,TRUE);
@@ -620,7 +645,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	struct window_entry *we;
 
 	GtkWidget *buttonbox;
-	GtkWidget *progressbar;
+	GtkWidget *progressbox;
+	GtkWidget *hbox_small;
 	GtkWidget *hbox_controls;
 
 
@@ -801,12 +827,12 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	//playButton = gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
 	playButton = gtk_button_new();
 	g_signal_connect(G_OBJECT(playButton), "clicked",G_CALLBACK(play_button_clicked_cb), window);
-	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
 	stopButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
 	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
 	pauseButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_LARGE_TOOLBAR));
+	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
 #ifdef G_OS_UNIX
 	g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
 #endif
@@ -818,21 +844,56 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	hbox_controls = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 3);
-	progressbar = gtk_progress_bar_new();
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar), GTK_PROGRESS_LEFT_TO_RIGHT);
-	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbar, FALSE, FALSE, 3);
+
+
+	progressbox = gtk_vbox_new(TRUE,5);
+
+	image_solidW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_solidW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_solidW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_solidW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_solidW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+	image_mainW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_mainW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_mainW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_mainW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_mainW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+	image_escapeW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_escapeW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_escapeW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_escapeW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+
+	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbox, TRUE, TRUE, 3);
 
 	//OPENMP number of threads!!!!!
 
 	//textbuffer
 	controlsLogW = gtk_text_view_new();
+	gtk_widget_set_size_request(controlsLogW,400,-1);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(controlsLogW),GTK_WRAP_WORD);
 	controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
+	gtk_container_set_border_width(GTK_CONTAINER(controlsLogW),2);
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(controlsLogW),FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(controlsLogW),FALSE);
 	gtk_text_buffer_create_tag(controlsLogB, "error","foreground","red",NULL);
 	gtk_text_buffer_create_tag(controlsLogB, "success","foreground","green",NULL);
 	gtk_text_buffer_create_tag(controlsLogB, "pause-continue-stopped","foreground","orange",NULL);
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), controlsLogW);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), controlsLogW);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), scrolled_window, TRUE, TRUE, 3);
 
 
@@ -850,8 +911,36 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 
 
-
+	reset_controls();
 
 	return scrolled_window;
 }
+
+void reset_controls(void) {
+	char buffer[512];
+	GtkTextIter start, end;
+
+	//set progressbars to 0 %
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angles: 0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Interactions: 0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peaks: 0 %");
+	
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),0.0);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),0.0);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),0.0);
+
+	//icons
+	gtk_image_set_from_stock(GTK_IMAGE(image_solidW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	gtk_image_set_from_stock(GTK_IMAGE(image_mainW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	gtk_image_set_from_stock(GTK_IMAGE(image_escapeW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	
+
+	//clear textbuffer
+	gtk_text_buffer_get_start_iter (controlsLogB,&start); 
+	gtk_text_buffer_get_end_iter (controlsLogB,&end); 
+	gtk_text_buffer_delete (controlsLogB,&start,&end); 
+
+}
+
+
 
