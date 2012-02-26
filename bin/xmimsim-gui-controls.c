@@ -84,15 +84,54 @@ static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpo
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
 }
 
-/*static gchar* format_nthreads_cb(GtkScale *scale, gdouble value, gpointer user_data) {
-	//fprintf(stdout,"format_nthreads_cb called %lf\n",value);
-	gchar *format_string = g_strdup_printf ("%0.*g CP",
-	                          gtk_scale_get_digits (scale), value);
-	fprintf(stdout,"format string %s\n",format_string);
-	return format_string;
-	//return g_strdup_printf ("%i CPUs", (int)  value);
 
-}*/
+static int process_xmimsim_stdout_string(gchar *string) {
+	int percentage;
+	char buffer[512];
+
+
+	if(strncmp(string,"Solid angle grid already present in ",strlen("Solid angle grid already present in ")) == 0) {
+		gtk_image_set_from_stock(GTK_IMAGE(image_solidW),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid loaded from file");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 0;
+	}
+	if(strncmp(string,"Precalculating solid angle grid",strlen("Precalculating solid angle grid")) == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		//spinner is relatively new -> not for centos 6 :-(
+		image_solidW = gtk_spinner_new();
+		gtk_widget_show(image_solidW);
+		gtk_spinner_start(GTK_SPINNER(image_solidW));
+#endif
+
+		return 1;
+	}
+	else if(sscanf(string,"Solid angle calculation at %i",&percentage) == 1) {
+		sprintf(buffer,"Calculating solid angle grid: %i done",percentage);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),buffer);
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),((double) percentage)/100.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 0;
+	}
+	else if(strcmp(string,"Solid angle calculation finished") == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		gtk_spinner_stop(GTK_SPINNER(image_solidW));
+
+#endif
+	}
+
+
+
+
+	return 1;
+}
+
+
+
+
 
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, gpointer data) {
 	gchar *pipe_string;
@@ -113,7 +152,8 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 		else if (pipe_status == G_IO_STATUS_NORMAL) {
 			//lot of message handling should come here...
 			//for now just print them in the box
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,NULL);
+			if (process_xmimsim_stdout_string(pipe_string))
+				my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,NULL);
 			g_free(pipe_string);
 		}
 		else

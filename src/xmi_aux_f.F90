@@ -16,6 +16,7 @@
 MODULE xmimsim_aux
 
 USE, INTRINSIC :: ISO_C_BINDING
+USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
 IMPLICIT NONE
 
@@ -1016,9 +1017,9 @@ FUNCTION xmi_intersection_plane_line(plane, line, point) RESULT(rv)
         ItimesN = DOT_PRODUCT(line%dirv,plane%normv)
 
         IF (ItimesN .EQ. 0.0_C_DOUBLE) THEN
-                WRITE (*,'(A)') 'Parallel plane and line found'
-                WRITE (*,'(A,3F12.5)') 'line%dirv:',line%dirv
-                WRITE (*,'(A,3F12.5)') 'plane%normv:',plane%normv
+                WRITE (error_unit,'(A)') 'Parallel plane and line found'
+                WRITE (error_unit,'(A,3F12.5)') 'line%dirv:',line%dirv
+                WRITE (error_unit,'(A,3F12.5)') 'plane%normv:',plane%normv
                 RETURN
         ENDIF
 
@@ -1228,7 +1229,7 @@ RESULT(rv)
         !check if the dimensions are safe... to be removed later
         IF (SIZE(array2D,DIM=1) .NE. SIZE(array1D_1) &
         .OR. SIZE(array2D,DIM=2) .NE. SIZE(array1D_2)) THEN
-                WRITE (*,'(A)') &
+                WRITE (error_unit,'(A)') &
                 'Array dimensions mismatch in bilinear interpolation'
                 CALL EXIT(1)
         ENDIF
@@ -1237,25 +1238,25 @@ RESULT(rv)
         IF (pos_1 == 0_C_INT .AND. pos_2 == 0_C_INT) THEN
                 pos_1 = findpos(array1D_1, x_1)        
                 IF (pos_1 .LT. 1_C_INT) THEN
-                        WRITE (*,'(A,I5)') &
+                        WRITE (,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_1: ',&
                         pos_1
-                        WRITE (*,'(A,ES14.6)') 'array1D_1(1): ',array1D_1(1)
-                        WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
-                        WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
-                        WRITE (*,'(A,I4)') 'pos_1: ',pos_1
+                        WRITE (error_unit,'(A,ES14.6)') 'array1D_1(1): ',array1D_1(1)
+                        WRITE (error_unit,'(A,ES14.6)') 'x_1: ',x_1
+                        WRITE (error_unit,'(A,ES14.6)') 'x_2: ',x_2
+                        WRITE (error_unit,'(A,I4)') 'pos_1: ',pos_1
                         CALL EXIT(1)
                 ENDIF
 
                 pos_2 = findpos(array1D_2, x_2)        
                 IF (pos_2 .LT. 1_C_INT) THEN
-                        WRITE (*,'(A,I5)') &
+                        WRITE (error_unit,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_2: ',&
                         pos_2
-                        WRITE (*,'(A,ES14.6)') 'array1D_2(1): ',array1D_2(1)
-                        WRITE (*,'(A,ES14.6)') 'x_1: ',x_1
-                        WRITE (*,'(A,ES14.6)') 'x_2: ',x_2
-                        WRITE (*,'(A,I4)') 'pos_2: ',pos_2
+                        WRITE (error_unit,'(A,ES14.6)') 'array1D_2(1): ',array1D_2(1)
+                        WRITE (error_unit,'(A,ES14.6)') 'x_1: ',x_1
+                        WRITE (error_unit,'(A,ES14.6)') 'x_2: ',x_2
+                        WRITE (error_unit,'(A,I4)') 'pos_2: ',pos_2
                         CALL EXIT(1)
                 ENDIF
         ENDIF
@@ -1376,7 +1377,7 @@ x_2, x_3) RESULT(rv)
         .OR. SIZE(array3D,DIM=2) .NE. SIZE(array1D_2) &
         .OR. SIZE(array3D,DIM=3) .NE. SIZE(array1D_3) &
         ) THEN
-                WRITE (*,'(A)') &
+                WRITE (error_unit,'(A)') &
                 'Array dimensions mismatch in trilinear interpolation'
                 CALL EXIT(1)
         ENDIF
@@ -1384,12 +1385,12 @@ x_2, x_3) RESULT(rv)
         !get positions
         pos_3 = findpos(array1D_3, x_3)        
         IF (pos_3 .LT. 1_C_INT) THEN
-                WRITE (*,'(A)') &
+                WRITE (error_unit,'(A)') &
                 'Invalid result for findpos trilinear interpolation'
-                WRITE (*,'(A,ES12.4)') 'Requested valued x_3: ',x_3
-                WRITE (*,'(A,ES12.4)') 'array1D_3(1): ',array1D_3(1)
-                WRITE (*,'(A,ES12.4)') 'array1D_3(last): ',array1D_3(SIZE(array1D_3))
-                WRITE (*,'(A,I4)') 'pos_3: ',pos_3
+                WRITE (error_unit,'(A,ES12.4)') 'Requested valued x_3: ',x_3
+                WRITE (error_unit,'(A,ES12.4)') 'array1D_3(1): ',array1D_3(1)
+                WRITE (error_unit,'(A,ES12.4)') 'array1D_3(last): ',array1D_3(SIZE(array1D_3))
+                WRITE (error_unit,'(A,I4)') 'pos_3: ',pos_3
                 CALL EXIT(1)
         ENDIF
 
@@ -1418,7 +1419,7 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
         INTEGER (C_INT) :: i
 
         IF (n .LT. 1) THEN
-                WRITE (6,'(A)') 'xmi_dindgen expects a strict positive integer'
+                WRITE (error_unit,'(A)') 'xmi_dindgen expects a strict positive integer'
                 CALL EXIT(1)
         ENDIF
 
@@ -1667,7 +1668,7 @@ FUNCTION xmi_check_detector_intersection&
                         !no collimator intersection -> detector cannot be hit 
                         rv = XMI_NO_INTERSECTION
                 ELSE
-                        WRITE (*,'(A)') 'should never appear...'
+                        WRITE (error_unit,'(A)') 'should never appear...'
                         CALL EXIT(1)
                 ENDIF
         ENDIF
