@@ -18,6 +18,7 @@ MODULE xmimsim_solid_angle
 USE :: xmimsim_aux
 USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
+USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: fgsl
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000 
@@ -39,7 +40,8 @@ ENDTYPE
 
 CONTAINS
 
-SUBROUTINE xmi_solid_angle_calculation(inputFPtr, solid_anglePtr,input_string)&
+SUBROUTINE xmi_solid_angle_calculation(inputFPtr,&
+solid_anglePtr,input_string,options)&
 BIND(C,NAME='xmi_solid_angle_calculation')
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
@@ -53,6 +55,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 
@@ -64,6 +67,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         INTEGER :: max_threads, thread_num
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
+        INTEGER (C_INT) :: grid_done
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
 #if DEBUG == 1
@@ -73,8 +77,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 #endif
 
         !write message 
-        WRITE (6,'(A)') 'Precalculating solid angle grid'
-        WRITE (6,'(A)') 'This could take a long time...'
+        !WRITE (6,'(A)') 'Precalculating solid angle grid'
+        !WRITE (6,'(A)') 'This could take a long time...'
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -146,6 +150,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_angles = 0.0_C_DOUBLE
         rng_type = fgsl_rng_mt19937
 
+        grid_done=0
+
 !$omp parallel default(shared) private(j,rng, thread_num)
         thread_num = omp_get_thread_num()
 
@@ -162,6 +168,12 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 !!                solid_angles(1,1) = xmi_single_solid_angle_calculation(inputF,&
 !!                2.0_C_DOUBLE, M_PI/2.0_C_DOUBLE, rng)
         ENDDO
+!$omp atomic
+        grid_done = grid_done+1
+!$omp end atomic
+        IF (grid_done/10 == REAL(grid_done)/10.0 .AND.&
+        options%verbose == 1_C_INT)&
+        WRITE (output_unit,'(A,I3,A)') 'Solid angle calculation at ',grid_done/10,' %'
         ENDDO
 !$omp end do
 
@@ -184,6 +196,10 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         solid_anglePtr = C_LOC(solid_angle)
 
+        IF (options%verbose == 1_C_INT) THEN
+                WRITE (output_unit,'(A)') &
+                'Solid angle calculation finished'
+        ENDIF
 
 
         RETURN
@@ -198,6 +214,7 @@ RESULT(rv)
 #if DEBUG == 1
         USE, INTRINSIC :: ieee_exceptions
 #endif
+        USE, INTRINSIC :: ISO_FORTRAN_ENV
         IMPLICIT NONE
 
 
@@ -414,8 +431,8 @@ RESULT(rv)
                         !calculate intersection with collimator opening
                         IF (xmi_intersection_plane_line(collimator_plane, photon_line,&
                         intersection_point) == 0) THEN
-                                WRITE(*,'(A,F12.7)') 'theta: ',theta
-                                WRITE(*,'(A,F12.7)') 'r: ',r
+                                WRITE(error_unit,'(A,F12.7)') 'theta: ',theta
+                                WRITE(error_unit,'(A,F12.7)') 'r: ',r
                                 CALL EXIT(1)
                         ENDIF
                         intersection_point(3) = 0.0_C_DOUBLE
@@ -426,8 +443,8 @@ RESULT(rv)
 
                 IF (xmi_intersection_plane_line(detector_plane, photon_line,&
                 intersection_point) == 0) THEN
-                        WRITE(*,'(A,F12.7)') 'theta: ',theta
-                        WRITE(*,'(A,F12.7)') 'r: ',r
+                        WRITE(error_unit,'(A,F12.7)') 'theta: ',theta
+                        WRITE(error_unit,'(A,F12.7)') 'r: ',r
                         CALL EXIT(1)
                 ENDIF
 #if DEBUG ==1

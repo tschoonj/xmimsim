@@ -181,7 +181,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 		return -1;
 
 
-	if (xmi_check_escape_ratios_match(temp_input, data->input) == 1) {
+	if (xmi_check_solid_angle_match(temp_input, data->input) == 1) {
 		//match
 		//read in this group completely
 		xmi_free_input(temp_input);

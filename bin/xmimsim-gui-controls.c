@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <omp.h>
 #ifdef G_OS_UNIX
   #include <sys/types.h>
   #include <sys/wait.h>
@@ -66,6 +67,12 @@ GtkWidget *image_solidW;
 GtkWidget *image_mainW;
 GtkWidget *image_escapeW;
 
+GtkWidget *nthreadsW;
+GtkObject *nthreadsA;
+
+
+
+
 GPid xmimsim_pid;
 
 gboolean xmimsim_paused;
@@ -77,7 +84,15 @@ static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpo
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
 }
 
+/*static gchar* format_nthreads_cb(GtkScale *scale, gdouble value, gpointer user_data) {
+	//fprintf(stdout,"format_nthreads_cb called %lf\n",value);
+	gchar *format_string = g_strdup_printf ("%0.*g CP",
+	                          gtk_scale_get_digits (scale), value);
+	fprintf(stdout,"format string %s\n",format_string);
+	return format_string;
+	//return g_strdup_printf ("%i CPUs", (int)  value);
 
+}*/
 
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, gpointer data) {
 	gchar *pipe_string;
@@ -150,8 +165,10 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	return TRUE;
 }
 
-static void xmimsim_child_watcher_cb(GPid pid, gint status, gpointer data) {
+static void xmimsim_child_watcher_cb(GPid pid, gint status, gchar **argv) {
 	char buffer[512];
+
+	gchar *data = argv[0];
 
 
 	fprintf(stdout,"xmimsim_child_watcher_cb called\n");
@@ -162,37 +179,37 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, gpointer data) {
 #ifdef G_OS_UNIX
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) == 0) { /* child was terminated due to a call to exit */
-			sprintf(buffer,"%s with process id %i exited normally without errors\n", (char *)data, (int) xmimsim_pid);
+			sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 		}
 		else {
-			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",(char *)data, (int) xmimsim_pid, WEXITSTATUS(status));
+			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, WEXITSTATUS(status));
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		}
 	}
 	else if (WIFSIGNALED(status)) { /* child was terminated due to a signal */
-		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",(char *)data, (int) xmimsim_pid, WTERMSIG(status));
+		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",data, (int) xmimsim_pid, WTERMSIG(status));
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 	else {
-		sprintf(buffer, "%s with process id %i was terminated in some special way\n",(char *)data, (int) xmimsim_pid);
+		sprintf(buffer, "%s with process id %i was terminated in some special way\n",data, (int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 
 #elif defined(G_OS_WIN32)
 	if (status == 0) {
-		sprintf(buffer,"%s with process id %i exited normally without errors\n", (char *)data, (int) xmimsim_pid);
+		sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 	}
 	else {
-		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",(char *)data, (int) xmimsim_pid, status);
+		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, status);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 #endif
 
 	g_spawn_close_pid(xmimsim_pid);
 
-
+	g_strfreev(argv);
 
 	gtk_widget_set_sensitive(playButton,TRUE);
 	gtk_widget_set_sensitive(pauseButton,FALSE);
@@ -249,9 +266,41 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	return;
 }
 
+#if !GLIB_CHECK_VERSION(2,28,0)
+gchar ** g_get_environ (void) {
+#ifndef G_OS_WIN32
+  return g_strdupv (environ);
+#else
+  gunichar2 *strings;
+  gchar **result;
+  gint i, n;
 
-void start_job() {
-	gchar *argv[] = {"/usr/local/bin/xmimsim-gui-helper",NULL};
+  strings = GetEnvironmentStringsW ();
+  for (n = 0; strings[n]; n += wcslen (strings + n) + 1);
+  result = g_new (char *, n + 1);
+  for (i = 0; strings[i]; i += wcslen (strings + i) + 1)
+    result[i] = g_utf16_to_utf8 (strings + i, -1, NULL, NULL, NULL);
+  FreeEnvironmentStringsW (strings);
+  result[i] = NULL;
+
+  return result;
+#endif
+}
+
+
+#endif
+
+
+
+
+
+void start_job(struct undo_single *xmimsim_struct) {
+	gchar **argv;
+	gchar **env;
+	gchar *wd;
+	gchar *tmp_string;
+	guint env_length;
+	gint arg_counter;
 	gboolean spawn_rv;
 	gint out_fh, err_fh;
 	GError *spawn_error = NULL;
@@ -259,21 +308,114 @@ void start_job() {
 	const gchar *encoding = NULL;
 	GIOChannel *xmimsim_stdout;
 	GIOChannel *xmimsim_stderr;
+	gint i;
+	gboolean omp_found=FALSE;
 
 
 	fprintf(stdout,"Entering start_job\n");
-
 
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
 
 	reset_controls();
 
-	//construct command
+	argv = (gchar **) g_malloc(sizeof(gchar *)*9);
+	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
+		argv[1] = g_strdup("--enable-M-lines");
+	}
+	else
+		argv[1] = g_strdup("--disable-M-lines");
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascadeW)) == TRUE) {
+		argv[2] = g_strdup("--enable-radiative-cascade");
+	}
+	else
+		argv[2] = g_strdup("--disable-radiative-cascade");
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW)) == TRUE) {
+		argv[3] = g_strdup("--enable-auger-cascade");
+	}
+	else
+		argv[3] = g_strdup("--disable-auger-cascade");
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reductionW)) == TRUE) {
+		argv[4] = g_strdup("--enable-variance-reduction");
+	}
+	else
+		argv[4] = g_strdup("--disable-variance-reduction");
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_upW)) == TRUE) {
+		argv[5] = g_strdup("--enable-pile-up");
+	}
+	else
+		argv[5] = g_strdup("--disable-pile-up");
+
+
+	argv[6] = g_strdup("--verbose");
+
+	arg_counter = 7;
+	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
+	if (strlen(tmp_string) > 0) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter] = g_strdup_printf("--spe-file=%s",tmp_string);
+		arg_counter++;
+	}
+	g_free(tmp_string);
+
+	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(csv_convW))));
+	if (strlen(tmp_string) > 0) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter] = g_strdup_printf("--csv-file=%s",tmp_string);
+		arg_counter++;
+	}
+	g_free(tmp_string);
+
+	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(svg_convW))));
+	if (strlen(tmp_string) > 0) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter] = g_strdup_printf("--svg-file=%s",tmp_string);
+		arg_counter++;
+	}
+	g_free(tmp_string);
+
+	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(html_convW))));
+	if (strlen(tmp_string) > 0) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter] = g_strdup_printf("--htm-file=%s",tmp_string);
+		arg_counter++;
+	}
+	g_free(tmp_string);
+
+	argv[arg_counter++] = g_strdup(xmimsim_struct->filename);
+	argv[arg_counter] = NULL;
+
+	wd = g_path_get_dirname(xmimsim_struct->xi->general->outputfile);
+
+	//number of threads
+	env = g_get_environ();
+	env_length = g_strv_length(env);
+
+	for (i = 0 ; i < env_length ; i++) {
+		if (strncmp(env[i],"OMP_NUM_THREADS=",strlen("OMP_NUM_THREADS")) == 0) {
+			omp_found = TRUE;
+			break;
+		}
+	}
+	if (omp_found) {
+		g_free(env[i]);
+		env[i] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
+	}
+	else {
+		env = (gchar **) g_realloc(env,sizeof(gchar *)*(env_length+2));
+		env[env_length] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
+		env[env_length+1] = NULL;
+	}
+	
 
 
 	//execute command
-	spawn_rv = g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
+	spawn_rv = g_spawn_async_with_pipes(wd, argv, env, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
 
@@ -288,12 +430,14 @@ void start_job() {
 	}
 	sprintf(buffer,"%s was started with process id %i\n",argv[0],(int)xmimsim_pid);
 	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
+	g_strfreev(env);
+	g_free(wd);
 
 	xmimsim_paused=FALSE;
 	gtk_widget_set_sensitive(pauseButton,TRUE);
 	gtk_widget_set_sensitive(stopButton,TRUE);
 
-	g_child_watch_add(xmimsim_pid,xmimsim_child_watcher_cb, argv[0]);
+	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) argv);
 	
 #ifdef G_OS_WIN32
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
@@ -507,7 +651,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				//proceed without updating the file (which is probably stupid)
 				//launch simulation...
 				gtk_widget_destroy(dialog);
-				start_job();
+				start_job(check_rv);
 				break;
 
 
@@ -517,7 +661,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
 		//current version corresponds to saved version
 		//launch simulation...
-		start_job();
+		start_job(check_rv);
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
 		//hmmm... send user back to first page with error message
@@ -648,11 +792,106 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	GtkWidget *progressbox;
 	GtkWidget *hbox_small;
 	GtkWidget *hbox_controls;
+	GtkWidget *cpuLabel;
+	GtkWidget *cpuBox;
 
 
 
 	superframe = gtk_vbox_new(FALSE,2);
 
+
+
+	//playButton = gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
+	playButton = gtk_button_new();
+	g_signal_connect(G_OBJECT(playButton), "clicked",G_CALLBACK(play_button_clicked_cb), window);
+	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
+	stopButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
+	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
+	pauseButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
+#ifdef G_OS_UNIX
+	g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
+#endif
+	buttonbox = gtk_vbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), stopButton, FALSE,FALSE,3);
+	gtk_widget_set_sensitive(pauseButton,FALSE);
+	gtk_widget_set_sensitive(stopButton,FALSE);
+	hbox_controls = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 5);
+
+	if (omp_get_max_threads() > 1) {
+		cpuBox = gtk_vbox_new(FALSE,1);
+		cpuLabel = gtk_label_new("CPUs");
+		nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
+		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));	
+		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
+		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
+		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_RIGHT);
+		//g_signal_connect(G_OBJECT(nthreadsW), "format-value", G_CALLBACK(format_nthreads_cb), NULL);
+		gtk_box_pack_start(GTK_BOX(cpuBox), cpuLabel,FALSE,FALSE,2);
+		gtk_box_pack_start(GTK_BOX(cpuBox), nthreadsW, TRUE, TRUE,2);
+		gtk_box_pack_start(GTK_BOX(hbox_controls), cpuBox, FALSE, FALSE, 10);
+	}
+	else 
+		nthreadsW = NULL;
+
+	progressbox = gtk_vbox_new(TRUE,5);
+
+	image_solidW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_solidW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_solidW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_solidW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_solidW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+	image_mainW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_mainW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_mainW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_mainW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_mainW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+	image_escapeW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	progressbar_escapeW = gtk_progress_bar_new();
+	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	hbox_small = gtk_hbox_new(FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),image_escapeW,FALSE,FALSE,1);
+	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_escapeW,TRUE,TRUE,1);
+	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
+
+
+	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbox, TRUE, TRUE, 3);
+
+	//OPENMP number of threads!!!!!
+
+	//textbuffer
+	controlsLogW = gtk_text_view_new();
+	gtk_widget_set_size_request(controlsLogW,350,-1);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(controlsLogW),GTK_WRAP_WORD);
+	gtk_text_view_set_left_margin(GTK_TEXT_VIEW(controlsLogW),3);
+	controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
+	gtk_container_set_border_width(GTK_CONTAINER(controlsLogW),2);
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(controlsLogW),FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(controlsLogW),FALSE);
+	gtk_text_buffer_create_tag(controlsLogB, "error","foreground","red",NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "success","foreground","green",NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "pause-continue-stopped","foreground","orange",NULL);
+	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), controlsLogW);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), scrolled_window, TRUE, TRUE, 3);
+
+
+	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
+	gtk_box_pack_start(GTK_BOX(superframe),hbox_controls, FALSE, FALSE,2);
 	frame = gtk_frame_new("Executable");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
@@ -817,89 +1056,6 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
-	//actual controls
-	frame = gtk_frame_new("Simulation controls");
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
-	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
-	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Simulation controls</span>");
-
-
-	//playButton = gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
-	playButton = gtk_button_new();
-	g_signal_connect(G_OBJECT(playButton), "clicked",G_CALLBACK(play_button_clicked_cb), window);
-	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
-	stopButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
-	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
-	pauseButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
-#ifdef G_OS_UNIX
-	g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
-#endif
-	buttonbox = gtk_vbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
-	gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
-	gtk_box_pack_start(GTK_BOX(buttonbox), stopButton, FALSE,FALSE,3);
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-	gtk_widget_set_sensitive(stopButton,FALSE);
-	hbox_controls = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 3);
-
-
-	progressbox = gtk_vbox_new(TRUE,5);
-
-	image_solidW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
-	progressbar_solidW = gtk_progress_bar_new();
-	gtk_widget_set_size_request(progressbar_solidW,-1,30);
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
-	hbox_small = gtk_hbox_new(FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),image_solidW,FALSE,FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_solidW,TRUE,TRUE,1);
-	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
-
-	image_mainW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
-	progressbar_mainW = gtk_progress_bar_new();
-	gtk_widget_set_size_request(progressbar_mainW,-1,30);
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
-	hbox_small = gtk_hbox_new(FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),image_mainW,FALSE,FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_mainW,TRUE,TRUE,1);
-	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
-
-	image_escapeW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
-	progressbar_escapeW = gtk_progress_bar_new();
-	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
-	hbox_small = gtk_hbox_new(FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),image_escapeW,FALSE,FALSE,1);
-	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_escapeW,TRUE,TRUE,1);
-	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
-
-
-	gtk_box_pack_start(GTK_BOX(hbox_controls), progressbox, TRUE, TRUE, 3);
-
-	//OPENMP number of threads!!!!!
-
-	//textbuffer
-	controlsLogW = gtk_text_view_new();
-	gtk_widget_set_size_request(controlsLogW,400,-1);
-	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(controlsLogW),GTK_WRAP_WORD);
-	controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
-	gtk_container_set_border_width(GTK_CONTAINER(controlsLogW),2);
-	gtk_text_view_set_editable(GTK_TEXT_VIEW(controlsLogW),FALSE);
-	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(controlsLogW),FALSE);
-	gtk_text_buffer_create_tag(controlsLogB, "error","foreground","red",NULL);
-	gtk_text_buffer_create_tag(controlsLogB, "success","foreground","green",NULL);
-	gtk_text_buffer_create_tag(controlsLogB, "pause-continue-stopped","foreground","orange",NULL);
-	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_container_add(GTK_CONTAINER(scrolled_window), controlsLogW);
-	gtk_box_pack_start(GTK_BOX(hbox_controls), scrolled_window, TRUE, TRUE, 3);
-
-
-	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
-	gtk_container_add(GTK_CONTAINER(frame),hbox_controls);
-	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
 
 

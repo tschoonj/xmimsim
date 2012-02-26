@@ -29,7 +29,7 @@ struct xmi_solid_angle {
 	char *xmi_input_string;
 };
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string);
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 
 void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file);
 

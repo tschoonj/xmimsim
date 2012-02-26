@@ -128,6 +128,20 @@ struct xmi_output {
 	int use_zero_interactions;
 };
 
+
+
+struct xmi_main_options {
+	int use_M_lines;
+	int use_self_enhancement;
+	int use_cascade_auger;
+	int use_cascade_radiative;
+	int use_variance_reduction;
+	int use_optimizations;
+	int use_sum_peaks;
+	int escape_ratios_mode;
+	int verbose;
+};
+
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
 typedef void* xmi_inputFPtr;  

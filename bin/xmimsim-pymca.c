@@ -146,6 +146,7 @@ int main (int argc, char *argv[]) {
 	options.use_variance_reduction = 1;
 	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
+	options.verbose = 0;
 
 
 	//parse options
@@ -290,7 +291,7 @@ int main (int argc, char *argv[]) {
 		if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
 			return 1;
 		}
-		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
+		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
 		//update hdf5 file
 #ifndef _WIN32
 		seteuid(euid);

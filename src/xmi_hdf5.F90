@@ -19,6 +19,7 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE :: hdf5
 USE :: xmimsim_aux
 USE :: fgsl
+USE :: ISO_FORTRAN_ENV
 
 #ifdef XMI_WINDOWS 
 !value for hdf5 version 1.8.6
@@ -68,7 +69,7 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
 
         DO i=1,SIZE(uniqZ) 
                 IF (xmi_hdf5F%xmi_hdf5_Zs(i)%Z /= uniqZ(i)) THEN
-                        WRITE (*,'(A)') &
+                        WRITE (ERROR_UNIT,'(A)') &
                         'Error from xmi_update_input_from_hdf5: elements inconsistency'
                 ENDIF
 !                ASSOCIATE (layers => xmi_inputF%composition%layers, &
@@ -126,9 +127,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
 
-#if DEBUG == 1
-        WRITE (*,'(A)') 'Entering xmi_init_from_hdf5'
-#endif
 
         !associate pointers C -> Fortran
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
@@ -143,9 +141,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ENDIF
         ENDDO
 
-#if DEBUG == 1
-        WRITE (*,'(A)') 'hdf5_file: ',xmi_hdf5_fileFF
-#endif
 
         !determine the unique Z and sort them
 !        ASSOCIATE (layers => xmi_inputF%composition%layers)
@@ -171,12 +166,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
        CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
        INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 
-#if DEBUG == 2
-        WRITE (*,'(A)') 'uniqZ', uniqZ
-#endif
-        !DO i=1,SIZE(uniqZ)
-        !        WRITE (*,'(A,I2)') 'uniqZ: ',uniqZ(i)
-        !ENDDO
 
 
 
@@ -186,11 +175,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
         !open file for reading
         CALL h5fopen_f(TRIM(xmi_hdf5_fileFF), H5F_ACC_RDONLY_F, file_id, error)
-#if DEBUG == 1
-        WRITE (*,'(A,I)') 'error code: ',error
-#endif
         IF (error /= 0) THEN
-                WRITE (*,'(A,A)') 'Error opening HDF5 file ',xmi_hdf5_fileFF
+                WRITE (error_unit,'(A,A)') 'Error opening HDF5 file ',xmi_hdf5_fileFF
                 rv = 0
                 RETURN
         ENDIF
@@ -205,16 +191,10 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dopen_f(group_id,'RayleighPhi_ICDF',dset_id,error)
         CALL h5dget_space_f(dset_id, dspace_id,error)
         CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
-#if DEBUG == 1
-        WRITE (*,'(A,I)') 'ndims: ',ndims
-#endif
         !Allocate memory
         ALLOCATE(dims(ndims))
         ALLOCATE(maxdims(ndims))
         CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
-#if DEBUG == 1
-        WRITE (*,'(A,2I)') 'dims: ',dims
-#endif
         !read the dataset
         ALLOCATE(xmi_hdf5F%RayleighPhi_ICDF(dims(1),dims(2)))
         CALL h5dread_f(dset_id,&
@@ -241,18 +221,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dopen_f(group_id,'ComptonPhi_ICDF',dset_id,error)
         CALL h5dget_space_f(dset_id, dspace_id,error)
         CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
-#if DEBUG == 1
-        WRITE (*,'(A,I)') 'ndims: ',ndims
-#endif
         !Allocate memory
         DEALLOCATE(dims)
         DEALLOCATE(maxdims)
         ALLOCATE(dims(ndims))
         ALLOCATE(maxdims(ndims))
         CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
-#if DEBUG == 1
-        WRITE (*,'(A,3I)') 'dims: ',dims
-#endif
         !read the dataset
         ALLOCATE(xmi_hdf5F%ComptonPhi_ICDF(dims(1),dims(2),dims(3)))
         CALL h5dread_f(dset_id,&
@@ -291,11 +265,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 !
 
 
-!WRITE (*,'(A,I2)') 'Elementi: ',uniqZ(i)
-!                WRITE (element, '(I2)') uniqZ(i)
-#if DEBUG == 1
-                WRITE (*,'(A,A)') 'Reading element: ',elements(uniqZ(i))
-#endif
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
 
@@ -424,9 +393,6 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
 
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
-#if DEBUG == 1
-        WRITE (*,'(A)') 'Entering xmi_free_hdf5_F'
-#endif
 
         DEALLOCATE(xmi_hdf5F%RayleighPhi_ICDF)
         DEALLOCATE(xmi_hdf5F%RayleighThetas)
@@ -436,9 +402,6 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         DEALLOCATE(xmi_hdf5F%ComptonEnergies)
         DEALLOCATE(xmi_hdf5F%ComptonRandomNumbers)
 
-#if DEBUG == 1
-        WRITE (*,'(A)') 'Beyond primary deallocates'
-#endif
         DO i=1,SIZE(xmi_hdf5F%xmi_hdf5_Zs)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF)

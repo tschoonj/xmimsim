@@ -143,6 +143,7 @@ int main (int argc, char *argv[]) {
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{ NULL }
 	};
 
@@ -185,6 +186,9 @@ int main (int argc, char *argv[]) {
 	seteuid(uid);
 #endif
 
+	setbuf(stdout,NULL);
+
+
 
 #ifdef HAVE_OPENMPI
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -194,11 +198,6 @@ int main (int argc, char *argv[]) {
 
 	//locale...
 	setlocale(LC_ALL,"C");
-
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
 
 
 	//
@@ -215,6 +214,7 @@ int main (int argc, char *argv[]) {
 	options.use_variance_reduction = 1;
 	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
+	options.verbose = 0;
 
 
 
@@ -226,6 +226,13 @@ int main (int argc, char *argv[]) {
 		g_print ("option parsing failed: %s\n", error->message);
 		exit (1);
 	}
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+	else if (options.verbose)
+		fprintf(stdout,"XML catalog loaded\n");
 
 
 	if (hdf5_file == NULL) {
@@ -255,12 +262,6 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
-#if DEBUG == 2
-	fprintf(stdout,"use_M_lines: %i\n",options.use_M_lines);
-	fprintf(stdout,"use_self_enhancement: %i\n",options.use_self_enhancement);
-	fprintf(stdout,"use_variance_reduction: %i\n",options.use_variance_reduction);
-#endif
-
 
 	//start random number acquisition
 	if (xmi_start_random_acquisition() == 0) {
@@ -271,37 +272,29 @@ int main (int argc, char *argv[]) {
 
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
-#if DEBUG == 2
-	fprintf(stdout,"Finished reading the inputfile\n");
-#endif
 
 	if (rv != 1) {
 		return 1;
 	}
+	else if (options.verbose)
+		fprintf(stdout,"Inputfile %s successfully parsed\n",argv[1]);
 
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
-#if DEBUG == 2
-	fprintf(stdout,"Copied to Fortran variable\n");
-#endif
 	//initialization
 	if (xmi_init_input(&inputFPtr) == 0) {
 		return 1;
 	}
 
 
-#if DEBUG == 2
-	fprintf(stdout,"xmi_init_input called\n");
-#endif
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
-#if DEBUG == 1
-	fprintf(stdout,"Reading from HDF5 file\n");
-#endif
+	else if (options.verbose)
+		fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
@@ -341,25 +334,33 @@ int main (int argc, char *argv[]) {
 
 
 		//check if solid angles are already precalculated
+		if (options.verbose)
+			fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
+			if (options.verbose)
+				fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
 				return 1;
 			}
-			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string);
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string,options);
 			//update hdf5 file
 #ifndef _WIN32
 			seteuid(euid);
 #endif
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
+			else if (options.verbose)
+				fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 #ifndef _WIN32
 			seteuid(uid);
 #endif
 		}
+		else if (options.verbose)
+			fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	}
 
@@ -382,6 +383,7 @@ int main (int argc, char *argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
+	exit(0);
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");

@@ -75,9 +75,9 @@ static float i2c(double intensity, double maximum_log, double minimum_log);
 int xmi_xmlLoadCatalog() {
 	char *catalog;
 	int rv;
-	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0)
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0) {
 		return 0;
-
+	}
 
 	if (xmlLoadCatalog((gchar *) catalog) != 0) {
 		fprintf(stderr,"Could not load %s\n",(gchar *) catalog);
