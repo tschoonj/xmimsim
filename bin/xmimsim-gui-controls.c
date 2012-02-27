@@ -111,7 +111,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(sscanf(string,"Solid angle calculation at %i",&percentage) == 1) {
-		sprintf(buffer,"Calculating solid angle grid: %i %%",percentage);
+		sprintf(buffer,"Solid angle grid: %i %%",percentage);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),buffer);
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),((double) percentage)/100.0);
 		while(gtk_events_pending())
@@ -192,7 +192,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(sscanf(string,"Escape peak ratios calculation at %i",&percentage) == 1) {
-		sprintf(buffer,"Calculating escape peak ratios: %i %%",percentage);
+		sprintf(buffer,"Escape peak ratios: %i %%",percentage);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),buffer);
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),((double) percentage)/100.0);
 		while(gtk_events_pending())

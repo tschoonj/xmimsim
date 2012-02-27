@@ -288,6 +288,9 @@ int main (int argc, char *argv[]) {
 	}
 
 
+	if (options.verbose)
+		fprintf(stdout,"Reading HDF5 datafile\n");
+	
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");

@@ -98,6 +98,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
+        INTEGER (OMP_LOCK_KIND) :: omp_lock
 
         
         CALL SetErrorMessages(0)
@@ -238,6 +239,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         rng_type = fgsl_rng_mt19937
         n_photons_sim = 0_C_LONG
         n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line
+        CALL omp_init_lock(omp_lock)
 
 
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
@@ -566,14 +568,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 ENDIF
 
                         ENDDO photon_eval
-!$omp atomic
+
+                        CALL omp_set_lock(omp_lock)
                         n_photons_sim = n_photons_sim+1                  
                         IF(n_photons_sim*100/n_photons_tot == &
                         REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
                         options%verbose == 1_C_INT)&
                         WRITE(output_unit,'(A,I3,A)')&
                         'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
-!$omp end atomic
+                        CALL omp_unset_lock(omp_lock)
 
                 ENDDO photons
                 DEALLOCATE(initial_mus)
@@ -588,6 +591,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 !$omp end parallel
 
+        CALL omp_destroy_lock(omp_lock)
 #if DEBUG == 1
         WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
@@ -3719,6 +3723,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         TYPE (xmi_energy) :: energy
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
         INTEGER (C_LONG) :: n_photons_sim,n_photons_tot 
+        INTEGER (OMP_LOCK_KIND) :: omp_lock
 
         !WRITE (6,'(A)') 'Precalculating escape ratios'
         !WRITE (6,'(A)') 'This could take a long time...'
@@ -3799,7 +3804,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         n_photons_sim = 0_C_LONG
         n_photons_tot = n_input_energies*n_photons
-
+        CALL omp_init_lock(omp_lock)
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
@@ -3935,14 +3940,15 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         DEALLOCATE(photon%history)
                         DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
-!$omp atomic
+
+                        CALL omp_set_lock(omp_lock)
                         n_photons_sim = n_photons_sim+1
                         IF(n_photons_sim*100/n_photons_tot == &
                         REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
                         input_options%verbose == 1_C_INT)&
                         WRITE(output_unit,'(A,I3,A)')&
                         'Escape peak ratios calculation at ',n_photons_sim*100/n_photons_tot,' %'
-!$omp end atomic
+                        CALL omp_unset_lock(omp_lock)
                 ENDDO
                 fluo_escape_ratios(:,:,i) =&
                 fluo_escape_ratios(:,:,i)/photons_interacted
@@ -3953,6 +3959,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 !$omp end do
 !$omp end parallel
 
+        CALL omp_destroy_lock(omp_lock)
         ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)
         escape_ratios%n_fluo_input_energies =&

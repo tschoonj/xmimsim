@@ -70,6 +70,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         INTEGER (C_INT) :: grid_done
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
+        INTEGER (OMP_LOCK_KIND) :: omp_lock
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
@@ -151,6 +152,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         rng_type = fgsl_rng_mt19937
 
         grid_done=0
+        CALL omp_init_lock(omp_lock)
 
 !$omp parallel default(shared) private(j,rng, thread_num)
         thread_num = omp_get_thread_num()
@@ -165,23 +167,27 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
            ENDDO
 
-!$omp atomic
-          grid_done = grid_done+1
-!$omp end atomic
 
-!$omp critical
+
+          CALL omp_set_lock(omp_lock)
+          grid_done = grid_done+1
+
           IF (grid_done*100/grid_dims_r_n&
           == REAL(grid_done*100)/REAL(grid_dims_r_n) .AND.&
           options%verbose == 1_C_INT)&
                 WRITE (output_unit,'(A,I3,A)')&
                 'Solid angle calculation at ',grid_done*100/grid_dims_r_n,' %'
+          CALL omp_unset_lock(omp_lock)
         ENDDO
-!$omp end critical
+
+
+
 !$omp end do
 
 !$omp end parallel
 
-!        CALL EXIT(0)
+        CALL omp_destroy_lock(omp_lock)
+        
         !put everything in the structure
         ALLOCATE(solid_angle)
         solid_angle%solid_angles = C_LOC(solid_angles)
