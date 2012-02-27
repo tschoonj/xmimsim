@@ -160,21 +160,23 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
 !$omp do schedule(guided,2)
         DO i=1,grid_dims_r_n
-        DO j=1,grid_dims_theta_n
-!                WRITE (*,'(A,ES14.4)') 'solid_angle:',xmi_single_solid_angle_calculation(inputF,&
-!                grid_dims_r_vals(i), 0.62895347_C_DOUBLE, rng)
+           DO j=1,grid_dims_theta_n
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
-!!                solid_angles(1,1) = xmi_single_solid_angle_calculation(inputF,&
-!!                2.0_C_DOUBLE, M_PI/2.0_C_DOUBLE, rng)
-        ENDDO
+           ENDDO
+
 !$omp atomic
-        grid_done = grid_done+1
+          grid_done = grid_done+1
 !$omp end atomic
-        IF (grid_done/10 == REAL(grid_done)/10.0 .AND.&
-        options%verbose == 1_C_INT)&
-        WRITE (output_unit,'(A,I3,A)') 'Solid angle calculation at ',grid_done/10,' %'
+
+!$omp critical
+          IF (grid_done*100/grid_dims_r_n&
+          == REAL(grid_done*100)/REAL(grid_dims_r_n) .AND.&
+          options%verbose == 1_C_INT)&
+                WRITE (output_unit,'(A,I3,A)')&
+                'Solid angle calculation at ',grid_done*100/grid_dims_r_n,' %'
         ENDDO
+!$omp end critical
 !$omp end do
 
 !$omp end parallel

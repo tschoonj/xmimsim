@@ -383,17 +383,17 @@ int main (int argc, char *argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-	exit(0);
+	if (options.verbose)
+		fprintf(stdout,"Simulating interactions\n");
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 		fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
 
-#if DEBUG == 1
-	fprintf(stdout,"After MC simulation\n");
-#endif
-
+	
+	if (options.verbose)
+		fprintf(stdout,"Interactions simulation finished\n");
 
 
 
@@ -510,22 +510,28 @@ int main (int argc, char *argv[]) {
 		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
+			if (options.verbose)
+				fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
 				return 1;
 			}
-			xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file);
+			xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
 			//update hdf5 file
 #ifndef _WIN32
 			seteuid(euid);
 #endif
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
+			else if (options.verbose)
+				fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_solid_angles);
 #ifndef _WIN32
 			seteuid(uid);
 #endif
 		}
+		else if (options.verbose)
+			fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);
 
 
 		
@@ -551,12 +557,16 @@ int main (int argc, char *argv[]) {
 				fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 		}
 		if (csv_file_conv != NULL) {
 			if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
 				fprintf(stdout,"Could not write to %s\n",csv_file_conv);
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
 		}
 
 
@@ -569,6 +579,8 @@ int main (int argc, char *argv[]) {
 					fprintf(stdout,"Could not write to %s\n",filename);
 					exit(1);
 				}
+				else if (options.verbose)
+					fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
@@ -590,6 +602,8 @@ int main (int argc, char *argv[]) {
 					fprintf(stdout,"Could not write to %s\n",filename);
 					exit(1);
 				}
+				else if (options.verbose)
+					fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
@@ -646,6 +660,8 @@ int main (int argc, char *argv[]) {
 		if (xmi_write_output_xml(input->general->outputfile, input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
 		}
+		else if (options.verbose)
+			fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		
 		if (svg_file_conv != NULL) {
@@ -653,6 +669,8 @@ int main (int argc, char *argv[]) {
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 0) == 0) {
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
 		}
 
 		if (svg_file_noconv != NULL) {
@@ -660,6 +678,8 @@ int main (int argc, char *argv[]) {
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 1) == 0) {
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 		}
 
 
@@ -668,6 +688,8 @@ int main (int argc, char *argv[]) {
 			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_conv, 0) == 0) {
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Output written to HTML file %s\n",htm_file_conv);
 		}
 
 		if (htm_file_noconv != NULL) {
@@ -675,6 +697,8 @@ int main (int argc, char *argv[]) {
 			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_noconv, 1) == 0) {
 				return 1;
 			}
+			else if (options.verbose)
+				fprintf(stdout,"Output written to HTML file %s\n",htm_file_noconv);
 		}
 
 

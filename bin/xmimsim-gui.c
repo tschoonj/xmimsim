@@ -217,7 +217,7 @@ struct xmi_layer *layer;
 static struct undo_single *redo_buffer;
 struct undo_single *current;
 static struct undo_single *last;
-static struct undo_single *last_saved;
+struct undo_single *last_saved;
 static char *opened_file_name;
 
 

@@ -94,6 +94,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
         INTEGER, PARAMETER :: maxz = 94
+        INTEGER (C_LONG) :: n_photons_tot, n_photons_sim
 
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
@@ -235,6 +236,9 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !ENDIF
 
         rng_type = fgsl_rng_mt19937
+        n_photons_sim = 0_C_LONG
+        n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line
+
 
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
 !$omp photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy,&
@@ -350,7 +354,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 exc%discrete(i)%energy)
 
 
-                DO j=1,n_photons
+                photons:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
@@ -412,7 +416,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
-                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                WRITE (error_unit,'(A)') 'cosalfa exception detected'
                                 CALL EXIT(1)
                         ENDIF
 
@@ -532,7 +536,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 IF (ASSOCIATED(photon_temp%offspring)) THEN
                                         photon_temp2 => photon_temp%offspring
                                         IF (.NOT. ASSOCIATED(photon_temp2)) THEN
-                                                WRITE (*,'(A)') 'This line should not appear'
+                                                WRITE (error_unit,'(A)') 'This line should not appear'
                                                 CALL EXIT(1)
                                         ENDIF
                                 ELSE
@@ -562,7 +566,16 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 ENDIF
 
                         ENDDO photon_eval
-                ENDDO
+!$omp atomic
+                        n_photons_sim = n_photons_sim+1                  
+                        IF(n_photons_sim*100/n_photons_tot == &
+                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
+                        options%verbose == 1_C_INT)&
+                        WRITE(output_unit,'(A,I3,A)')&
+                        'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
+!$omp end atomic
+
+                ENDDO photons
                 DEALLOCATE(initial_mus)
         ENDDO disc 
 
@@ -804,8 +817,8 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         plane%normv = geometry%n_sample_orientation
 
         IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0) THEN
-                WRITE (*,*) 'xmi_intersection_plane_line error'
-                WRITE (*,*) 'in xmi_photon_shift_first_layer'
+                WRITE (error_unit,*) 'xmi_intersection_plane_line error'
+                WRITE (error_unit,*) 'in xmi_photon_shift_first_layer'
                 CALL EXIT(1)
         ENDIF
         !
@@ -932,8 +945,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 ENDIF
 
                                 IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
-                                        WRITE (*,*) 'xmi_intersection_plane_line error'
-                                        WRITE (*,*) 'in xmi_simulate_photon'
+                                        WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
+                                        WRITE (error_unit,'(A)') 'in xmi_simulate_photon'
                                         CALL EXIT(1)
                                 ENDIF
                         
@@ -1067,8 +1080,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 ENDIF
 
                                 IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
-                                        WRITE (*,*) 'xmi_intersection_plane_line error'
-                                        WRITE (*,*) 'in xmi_photon_shift_first_layer'
+                                        WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
+                                        WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
                                         CALL EXIT(1)
                                 ENDIF
                                 
@@ -1201,13 +1214,13 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         pos = findpos_fast(hdf5_Z%&
                 interaction_probs%energies, photon%energy)
                 IF (pos .LT. 1_C_INT) THEN
-                        WRITE (*,'(A)') &
+                        WRITE (error_unit,'(A)') &
                         'Invalid result for findpos interaction type'
-                        WRITE (*,'(A,F12.6)') 'photon%energy: ',photon%energy
-                        WRITE (*,'(A,F12.6)') 'lowval: ',&
+                        WRITE (error_unit,'(A,F12.6)') 'photon%energy: ',photon%energy
+                        WRITE (error_unit,'(A,F12.6)') 'lowval: ',&
                         hdf5_Z%&
                         interaction_probs%energies(1)
-                        WRITE (*,'(A,F12.6)') 'highval: ',&
+                        WRITE (error_unit,'(A,F12.6)') 'highval: ',&
                         hdf5_Z%&
                         interaction_probs%energies(SIZE(&
                         hdf5_Z%&
@@ -1404,7 +1417,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
                 inputF%geometry%collimator_diameter/2.0_C_DOUBLE
                 IF (inputF%detector%collimator_radius .GE. &
                 inputF%detector%detector_radius) THEN
-                        WRITE (*,'(A)') 'Non conical collimator found'
+                        WRITE (error_unit,'(A)') 'Non conical collimator found'
                         CALL EXIT(1)
                 ENDIF
                 !if cylindrical... bad things may happen
@@ -1573,8 +1586,8 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         photon_trajectory%point = photon_coords_det
 
         IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
-                WRITE (*,*) 'xmi_intersection_plane_line error'
-                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
+                WRITE (error_unit,'(A)') 'in xmi_check_photon_detector_hit'
                 CALL EXIT(1)
         ENDIF
 
@@ -1592,8 +1605,8 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         plane_det_base%point = [inputF%geometry%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 
         IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
-                WRITE (*,*) 'xmi_intersection_plane_line error'
-                WRITE (*,*) 'in xmi_check_photon_detector_hit'
+                WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
+                WRITE (error_unit,'(A)') 'in xmi_check_photon_detector_hit'
                 CALL EXIT(1)
         ENDIF
 
@@ -2768,7 +2781,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
-                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                WRITE (error_unit,'(A)') 'cosalfa exception detected'
                                 CALL EXIT(1)
                         ENDIF
 
@@ -2850,7 +2863,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
-                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                WRITE (error_unit,'(A)') 'cosalfa exception detected'
                                 CALL EXIT(1)
                         ENDIF
 
@@ -3047,7 +3060,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
         IF (ABS(cosalfa) .GT. 1.0) THEN
-                WRITE (*,'(A)') 'cosalfa exception detected'
+                WRITE (error_unit,'(A)') 'cosalfa exception detected'
                 CALL EXIT(1)
         ENDIF
 
@@ -3242,7 +3255,7 @@ SUBROUTINE xmi_update_photon_elecv(photon)
 #if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
-                WRITE (*,'(A)') &
+                WRITE (error_unit,'(A)') &
                 'xmi_update_photon_elecv FPE'
                 STOP
         ENDIF
@@ -3663,7 +3676,7 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
 ENDSUBROUTINE xmi_force_photon_to_detector
 
 SUBROUTINE xmi_escape_ratios_calculation(inputFPtr, hdf5FPtr, escape_ratiosPtr,&
-input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
+input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         TYPE (C_PTR), INTENT(INOUT) :: escape_ratiosPtr
@@ -3672,6 +3685,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
         TYPE (xmi_main_options) :: options
         TYPE (xmi_escape_ratiosC), POINTER :: escape_ratios
         INTEGER (C_INT) :: xmi_cascade_type
@@ -3704,9 +3718,10 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_INT) :: compton_index
         TYPE (xmi_energy) :: energy
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
+        INTEGER (C_LONG) :: n_photons_sim,n_photons_tot 
 
-        WRITE (6,'(A)') 'Precalculating escape ratios'
-        WRITE (6,'(A)') 'This could take a long time...'
+        !WRITE (6,'(A)') 'Precalculating escape ratios'
+        !WRITE (6,'(A)') 'This could take a long time...'
 
         !associate c pointers
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -3782,6 +3797,8 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         !allocate the escape ratio arrays...
 
+        n_photons_sim = 0_C_LONG
+        n_photons_tot = n_input_energies*n_photons
 
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
@@ -3848,7 +3865,7 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
-                                WRITE (*,'(A)') 'cosalfa exception detected'
+                                WRITE (error_unit,'(A)') 'cosalfa exception detected'
                                 CALL EXIT(1)
                         ENDIF
 
@@ -3918,6 +3935,14 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         DEALLOCATE(photon%history)
                         DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
+!$omp atomic
+                        n_photons_sim = n_photons_sim+1
+                        IF(n_photons_sim*100/n_photons_tot == &
+                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
+                        input_options%verbose == 1_C_INT)&
+                        WRITE(output_unit,'(A,I3,A)')&
+                        'Escape peak ratios calculation at ',n_photons_sim*100/n_photons_tot,' %'
+!$omp end atomic
                 ENDDO
                 fluo_escape_ratios(:,:,i) =&
                 fluo_escape_ratios(:,:,i)/photons_interacted
@@ -3945,6 +3970,13 @@ input_string) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         escape_ratios%xmi_input_string = input_string
 
         escape_ratiosPtr = C_LOC(escape_ratios)
+
+        IF (input_options%verbose == 1_C_INT) THEN
+                WRITE (output_unit,'(A)') &
+                'Escape peak ratios calculation finished'
+        ENDIF
+
+        RETURN
 ENDSUBROUTINE xmi_escape_ratios_calculation
 
 SUBROUTINE xmi_test_brute(inputFPtr) BIND(C,NAME='xmi_test_brute')

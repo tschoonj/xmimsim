@@ -583,7 +583,7 @@ int main (int argc, char *argv[]) {
 		if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
 			return 1;
 		}
-		xmi_escape_ratios_calculation(pymca_input, &escape_ratios_def, xmi_input_string,hdf5_file);
+		xmi_escape_ratios_calculation(pymca_input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
 		//update hdf5 file
 #ifndef _WIN32
 		seteuid(euid);

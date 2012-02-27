@@ -43,6 +43,7 @@ extern GdkColor white;
 extern GdkColor red;
 
 extern struct undo_single *current;
+extern struct undo_single *last_saved;
 
 /*
  *

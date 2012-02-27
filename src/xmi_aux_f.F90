@@ -1238,7 +1238,7 @@ RESULT(rv)
         IF (pos_1 == 0_C_INT .AND. pos_2 == 0_C_INT) THEN
                 pos_1 = findpos(array1D_1, x_1)        
                 IF (pos_1 .LT. 1_C_INT) THEN
-                        WRITE (,'(A,I5)') &
+                        WRITE (error_unit,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_1: ',&
                         pos_1
                         WRITE (error_unit,'(A,ES14.6)') 'array1D_1(1): ',array1D_1(1)

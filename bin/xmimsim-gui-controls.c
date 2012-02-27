@@ -89,40 +89,132 @@ static int process_xmimsim_stdout_string(gchar *string) {
 	int percentage;
 	char buffer[512];
 
-
+	//solid angles
 	if(strncmp(string,"Solid angle grid already present in ",strlen("Solid angle grid already present in ")) == 0) {
-		gtk_image_set_from_stock(GTK_IMAGE(image_solidW),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid loaded from file");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
-		return 0;
+		return 1;
 	}
-	if(strncmp(string,"Precalculating solid angle grid",strlen("Precalculating solid angle grid")) == 0) {
+	else if(strncmp(string,"Precalculating solid angle grid",strlen("Precalculating solid angle grid")) == 0) {
 #if GTK_CHECK_VERSION(2,20,0)
 		//spinner is relatively new -> not for centos 6 :-(
-		image_solidW = gtk_spinner_new();
-		gtk_widget_show(image_solidW);
-		gtk_spinner_start(GTK_SPINNER(image_solidW));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_spinner_new());
+		gtk_widget_show_all(image_solidW);
+		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
 #endif
 
 		return 1;
 	}
 	else if(sscanf(string,"Solid angle calculation at %i",&percentage) == 1) {
-		sprintf(buffer,"Calculating solid angle grid: %i done",percentage);
+		sprintf(buffer,"Calculating solid angle grid: %i %%",percentage);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),buffer);
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),((double) percentage)/100.0);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		return 0;
 	}
-	else if(strcmp(string,"Solid angle calculation finished") == 0) {
+	else if(strncmp(string,"Solid angle calculation finished",strlen("Solid angle calculation finished")) == 0) {
 #if GTK_CHECK_VERSION(2,20,0)
-		gtk_spinner_stop(GTK_SPINNER(image_solidW));
-
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_solidW);
+#else
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
 #endif
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid calculated");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
 	}
+	//interactions
+	else if(sscanf(string,"Simulating interactions at %i",&percentage) == 1) {
+		sprintf(buffer,"Simulating interactions: %i %%",percentage);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),buffer);
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),((double) percentage)/100.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 0;
+	}
+	else if(strncmp(string,"Simulating interactions",strlen("Simulating interactions")) == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		//spinner is relatively new -> not for centos 6 :-(
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_spinner_new());
+		gtk_widget_show_all(image_mainW);
+		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+#endif
 
+		return 1;
+	}
+	else if(strncmp(string,"Interactions simulation finished",strlen("Interactions simulation finished")) == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_mainW);
+#else
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_mainW);
+#endif
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Interactions simulated");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
+	//escape ratios
+	else if(strncmp(string,"Escape peak ratios already present in ",strlen("Escape peak ratios already present in ")) == 0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios loaded from file");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
+	else if(strncmp(string,"Precalculating escape peak ratios",strlen("Precalculating escape peak ratios")) == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		//spinner is relatively new -> not for centos 6 :-(
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_spinner_new());
+		gtk_widget_show_all(image_escapeW);
+		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+#endif
+
+		return 1;
+	}
+	else if(sscanf(string,"Escape peak ratios calculation at %i",&percentage) == 1) {
+		sprintf(buffer,"Calculating escape peak ratios: %i %%",percentage);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),buffer);
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),((double) percentage)/100.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 0;
+	}	
+	else if(strncmp(string,"Escape peak ratios calculation finished",strlen("Escape peak ratios calculation finished")) == 0) {
+#if GTK_CHECK_VERSION(2,20,0)
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_escapeW);
+#else
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+#endif
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios calculated");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
 
 
 
@@ -436,22 +528,24 @@ void start_job(struct undo_single *xmimsim_struct) {
 	env = g_get_environ();
 	env_length = g_strv_length(env);
 
-	for (i = 0 ; i < env_length ; i++) {
-		if (strncmp(env[i],"OMP_NUM_THREADS=",strlen("OMP_NUM_THREADS")) == 0) {
-			omp_found = TRUE;
-			break;
+
+	if (nthreadsW != NULL) {
+		for (i = 0 ; i < env_length ; i++) {
+			if (strncmp(env[i],"OMP_NUM_THREADS=",strlen("OMP_NUM_THREADS")) == 0) {
+				omp_found = TRUE;
+				break;
+			}
+		}
+		if (omp_found) {
+			g_free(env[i]);
+			env[i] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
+		}
+		else {
+			env = (gchar **) g_realloc(env,sizeof(gchar *)*(env_length+2));
+			env[env_length] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
+			env[env_length+1] = NULL;
 		}
 	}
-	if (omp_found) {
-		g_free(env[i]);
-		env[i] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
-	}
-	else {
-		env = (gchar **) g_realloc(env,sizeof(gchar *)*(env_length+2));
-		env[env_length] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
-		env[env_length+1] = NULL;
-	}
-	
 
 
 	//execute command
@@ -539,6 +633,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//UNIX -> send sigkill signal
 	//Windows -> TerminateProcess
 	char buffer[512];
+	gboolean spinning;
 
 	//g_io_channel_unref(xmimsim_stdout);
 	//g_io_channel_unref(xmimsim_stderr);
@@ -579,6 +674,55 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
+	//check spinners
+#if GTK_CHECK_VERSION(2,20,0)
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
+		g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
+		if (spinning == TRUE) {
+			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+			gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+			gtk_widget_show_all(image_solidW);
+		}
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
+		g_object_get(gtk_bin_get_child(GTK_BIN(image_mainW)),"active",&spinning,NULL);
+		if (spinning == TRUE) {
+			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+			gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+			gtk_widget_show_all(image_mainW);
+		}
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
+		g_object_get(gtk_bin_get_child(GTK_BIN(image_escapeW)),"active",&spinning,NULL);
+		if (spinning == TRUE) {
+			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+			gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+			gtk_widget_show_all(image_escapeW);
+		}
+	}
+#else
+		//should query status of progressbar
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_mainW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+	}
+#endif
+
+
 	fprintf(stdout,"stop_button_clicked_cb exited\n");
 }
 
@@ -590,6 +734,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gint dialog_rv;
 	GtkWidget *label;
 	GtkTextIter iterb, itere;
+	char *filename;
 
 	fprintf(stdout,"play_button_clicked_cb\n");
 
@@ -668,7 +813,17 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				}
 				//update file
 				if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
+					filename = strdup(last_saved->filename);
+					free(last_saved->filename);
+					xmi_free_input(last_saved->xi);
+					free(last_saved);
+					last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+					xmi_copy_input(current->xi, &(last_saved->xi));
+					last_saved->filename = strdup(filename);
+					free(filename);
+					gtk_widget_destroy (dialog);
+					start_job(last_saved);
+					break;
 				}
 				else {
 					gtk_widget_destroy (dialog);
@@ -880,7 +1035,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 	progressbox = gtk_vbox_new(TRUE,5);
 
-	image_solidW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	image_solidW = gtk_alignment_new(0.5,0.5,0,0); 
+	gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_solidW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_solidW,-1,30);
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
@@ -889,7 +1045,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_solidW,TRUE,TRUE,1);
 	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
 
-	image_mainW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	image_mainW = gtk_alignment_new(0.5,0.5,0,0);
+	gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_mainW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_mainW,-1,30);
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
@@ -898,7 +1055,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_mainW,TRUE,TRUE,1);
 	gtk_box_pack_start(GTK_BOX(progressbox),hbox_small,FALSE,FALSE,1);
 
-	image_escapeW = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	image_escapeW = gtk_alignment_new(0.5,0.5,0,0);
+	gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_escapeW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
@@ -1126,9 +1284,15 @@ void reset_controls(void) {
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),0.0);
 
 	//icons
-	gtk_image_set_from_stock(GTK_IMAGE(image_solidW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
-	gtk_image_set_from_stock(GTK_IMAGE(image_mainW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
-	gtk_image_set_from_stock(GTK_IMAGE(image_escapeW), GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU);
+	gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+	gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+	gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+	gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
+	gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
+	gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
+	gtk_widget_show_all(image_solidW);
+	gtk_widget_show_all(image_mainW);
+	gtk_widget_show_all(image_escapeW);
 	
 
 	//clear textbuffer
