@@ -55,7 +55,7 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
 xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h
-xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
+xmimsim_gui_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk2_LIBS@
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
@@ -129,6 +129,7 @@ xmso2htm_CFLAGS = @glib2_CFLAGS@
 
 xmimsim_test_xmso_reader_SOURCES = xmimsim-test-xmso-reader.c
 xmimsim_test_xmso_reader_LDADD = ../src/libxmimsim.la 
+xmimsim_test_xmso_reader_CFLAGS = @OPENMP_CFLAGS@
 
 
 

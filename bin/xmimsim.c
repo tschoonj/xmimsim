@@ -257,7 +257,7 @@ int main (int argc, char *argv[]) {
 		}
 		else {
 			//if not found abort...	
-			g_printf("Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
+			fprintf(stderr,"Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
 			exit(1);
 		}
 	}
@@ -366,6 +366,8 @@ int main (int argc, char *argv[]) {
 			fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	}
+	else if (options.verbose)
+		fprintf(stdout,"Operating in brute-force mode: solid angle grid is redundant\n");
 
 
 #ifdef HAVE_OPENMPI

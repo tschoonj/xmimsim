@@ -188,7 +188,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 	}
 
 	//malloc required memory
-	*history = (struct xmi_fluorescence_line *) malloc(sizeof(struct xmi_fluorescence_line *)*(nchildren));
+	*history = (struct xmi_fluorescence_line *) malloc(sizeof(struct xmi_fluorescence_line)*(nchildren));
 	history_loc = *history;
 	linePtr = nodePtr->children;
 
@@ -778,6 +778,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 				fprintf(stderr,"Unknown detector type\n");
 				return 0;
 			}
+			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "live_time")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);

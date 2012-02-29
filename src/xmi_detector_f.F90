@@ -254,7 +254,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
         
-        IF (options%verbose)&
+        IF (options%verbose == 1_C_INT)&
                 WRITE(output_unit,'(A)') 'Calculating escape peaks'
 
         !escape peak
@@ -268,15 +268,15 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
         !sum peaks
-        IF (options%use_sum_peaks .EQ. 1_C_INT) THEN
-                IF (options%verbose)&
+        IF (options%use_sum_peaks == 1_C_INT) THEN
+                IF (options%verbose == 1_C_INT)&
                         WRITE(output_unit,'(A)') 'Calculating pile-up'
                 CALL xmi_detector_sum_peaks(inputF, channels_temp)
         ENDIF
 
         R = 0.0_C_DOUBLE
 
-        IF (options%verbose)&
+        IF (options%verbose == 1_C_INT)&
                 WRITE(output_unit,'(A)') 'Applying Gaussian convolution'
 
 !!!$omp parallel do default(private) shared(a,b,inputF,I0,nlim,nchannels)

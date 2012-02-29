@@ -3819,7 +3819,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
-!$omp do schedule(guided,2)
+!$omp do schedule(dynamic)
         DO i=1,n_input_energies
                 energy%energy = input_energies(i)
                 energy%sigma_x = 0.0

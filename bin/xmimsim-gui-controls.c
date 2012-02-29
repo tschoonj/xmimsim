@@ -259,8 +259,8 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
-		sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		//sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
+		//my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
 
@@ -294,8 +294,8 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
-		sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		//sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
+		//my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
 
@@ -346,7 +346,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, gchar **argv) {
 
 	g_spawn_close_pid(xmimsim_pid);
 
-	g_strfreev(argv);
+	//g_strfreev(argv);
 
 	gtk_widget_set_sensitive(playButton,TRUE);
 #ifdef G_OS_UNIX
@@ -1347,9 +1347,9 @@ void reset_controls(void) {
 	GtkTextIter start, end;
 
 	//set progressbars to 0 %
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angles: 0 %");
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Interactions: 0 %");
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peaks: 0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid: 0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Simulating interactions: 0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios: 0 %");
 	
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),0.0);
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),0.0);

@@ -160,7 +160,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
-!$omp do schedule(guided,2)
+!$omp do schedule(dynamic)
         DO i=1,grid_dims_r_n
            DO j=1,grid_dims_theta_n
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
