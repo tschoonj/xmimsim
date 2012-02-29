@@ -132,7 +132,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	hid_t dset_id;
 	hsize_t dims1[1];
 	hsize_t dims2[2];
-	hsize_t dims3[2];
+	hsize_t dims3[3];
 	hsize_t xmi_input_strlen;
 	int i;
 	gchar *timestring;

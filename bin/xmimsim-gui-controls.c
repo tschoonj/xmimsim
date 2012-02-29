@@ -38,18 +38,23 @@ struct window_entry {
 
 
 GtkWidget *executableW;
+GtkWidget *executableB;
 GtkWidget *MlinesW;
 GtkWidget *rad_cascadeW;
 GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *spe_convW;
+GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
 GtkWidget *csv_convW;
+GtkWidget *csv_convB;
 GtkWidget *csv_uconvW;
 GtkWidget *svg_convW;
+GtkWidget *svg_convB;
 GtkWidget *svg_uconvW;
 GtkWidget *html_convW;
+GtkWidget *html_convB;
 GtkWidget *html_uconvW;
 
 GtkWidget *playButton;
@@ -344,8 +349,28 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, gchar **argv) {
 	g_strfreev(argv);
 
 	gtk_widget_set_sensitive(playButton,TRUE);
+#ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,FALSE);
+#endif
 	gtk_widget_set_sensitive(stopButton,FALSE);
+	//make sensitive again
+	gtk_widget_set_sensitive(executableW,TRUE);	
+	gtk_widget_set_sensitive(executableB,TRUE);	
+	gtk_widget_set_sensitive(MlinesW,TRUE);	
+	gtk_widget_set_sensitive(rad_cascadeW,TRUE);	
+	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
+	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
+	gtk_widget_set_sensitive(pile_upW,TRUE);	
+	gtk_widget_set_sensitive(spe_convW,TRUE);	
+	gtk_widget_set_sensitive(csv_convW,TRUE);	
+	gtk_widget_set_sensitive(svg_convW,TRUE);	
+	gtk_widget_set_sensitive(html_convW,TRUE);	
+	gtk_widget_set_sensitive(spe_convB,TRUE);	
+	gtk_widget_set_sensitive(csv_convB,TRUE);	
+	gtk_widget_set_sensitive(svg_convB,TRUE);	
+	gtk_widget_set_sensitive(html_convB,TRUE);	
+	if (nthreadsW != NULL)
+		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
 	//read in outputfile and put it on the results page
 	fprintf(stdout,"end of xmimsim_child_watcher_cb reached\n");
@@ -448,6 +473,23 @@ void start_job(struct undo_single *xmimsim_struct) {
 
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
+	gtk_widget_set_sensitive(executableW,FALSE);	
+	gtk_widget_set_sensitive(executableB,FALSE);	
+	gtk_widget_set_sensitive(MlinesW,FALSE);	
+	gtk_widget_set_sensitive(rad_cascadeW,FALSE);	
+	gtk_widget_set_sensitive(nonrad_cascadeW,FALSE);	
+	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
+	gtk_widget_set_sensitive(pile_upW,FALSE);	
+	gtk_widget_set_sensitive(spe_convW,FALSE);	
+	gtk_widget_set_sensitive(csv_convW,FALSE);	
+	gtk_widget_set_sensitive(svg_convW,FALSE);	
+	gtk_widget_set_sensitive(html_convW,FALSE);	
+	gtk_widget_set_sensitive(spe_convB,FALSE);	
+	gtk_widget_set_sensitive(csv_convB,FALSE);	
+	gtk_widget_set_sensitive(svg_convB,FALSE);	
+	gtk_widget_set_sensitive(html_convB,FALSE);	
+	if (nthreadsW != NULL)
+		gtk_widget_set_sensitive(nthreadsW,FALSE);	
 
 	reset_controls();
 
@@ -568,7 +610,9 @@ void start_job(struct undo_single *xmimsim_struct) {
 	g_free(wd);
 
 	xmimsim_paused=FALSE;
+#ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,TRUE);
+#endif
 	gtk_widget_set_sensitive(stopButton,TRUE);
 
 	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) argv);
@@ -641,7 +685,9 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//set buttons back in order
 	gtk_widget_set_sensitive(playButton,TRUE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
+#ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,FALSE);
+#endif
 	xmimsim_paused = FALSE;
 #ifdef G_OS_UNIX
 	int kill_rv;
@@ -722,6 +768,24 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
+	//make sensitive again
+	gtk_widget_set_sensitive(executableW,TRUE);	
+	gtk_widget_set_sensitive(executableB,TRUE);	
+	gtk_widget_set_sensitive(MlinesW,TRUE);	
+	gtk_widget_set_sensitive(rad_cascadeW,TRUE);	
+	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
+	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
+	gtk_widget_set_sensitive(pile_upW,TRUE);	
+	gtk_widget_set_sensitive(spe_convW,TRUE);	
+	gtk_widget_set_sensitive(csv_convW,TRUE);	
+	gtk_widget_set_sensitive(svg_convW,TRUE);	
+	gtk_widget_set_sensitive(html_convW,TRUE);	
+	gtk_widget_set_sensitive(spe_convB,TRUE);	
+	gtk_widget_set_sensitive(csv_convB,TRUE);	
+	gtk_widget_set_sensitive(svg_convB,TRUE);	
+	gtk_widget_set_sensitive(html_convB,TRUE);	
+	if (nthreadsW != NULL)
+		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
 	fprintf(stdout,"stop_button_clicked_cb exited\n");
 }
@@ -1003,16 +1067,20 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	stopButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
 	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
+#ifdef G_OS_UNIX
 	pauseButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
-#ifdef G_OS_UNIX
 	g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
 #endif
 	buttonbox = gtk_vbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
+#ifdef G_OS_UNIX
 	gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
+#endif
 	gtk_box_pack_start(GTK_BOX(buttonbox), stopButton, FALSE,FALSE,3);
+#ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,FALSE);
+#endif
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	hbox_controls = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 5);
@@ -1104,9 +1172,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Executable");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
-	label = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
-	g_signal_connect(G_OBJECT(label),"clicked",G_CALLBACK(select_executable_cb), (gpointer) window);
+	executableB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableB,FALSE,FALSE,0);
+	g_signal_connect(G_OBJECT(executableB),"clicked",G_CALLBACK(select_executable_cb), (gpointer) window);
 	xmimsim_executable = g_find_program_in_path("xmimsim");
 	executableW = gtk_entry_new();
 	gtk_entry_set_width_chars(GTK_ENTRY(executableW),80);
@@ -1180,6 +1248,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	spe_convB = button;
 	spe_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(spe_convW),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
 	gtk_entry_set_width_chars(GTK_ENTRY(spe_convW),60);
@@ -1199,6 +1268,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Scalable Vector Graphics.");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	svg_convB = button;
 	svg_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(svg_convW),"Export the spectra as Scalable Vector Graphics.");
 	gtk_entry_set_width_chars(GTK_ENTRY(svg_convW),60);
@@ -1218,6 +1288,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	csv_convB = button;
 	csv_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(csv_convW),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
 	gtk_entry_set_width_chars(GTK_ENTRY(csv_convW),60);
@@ -1237,6 +1308,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
+	html_convB = button;
 	html_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(html_convW),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
 	gtk_entry_set_width_chars(GTK_ENTRY(html_convW),60);
@@ -1299,6 +1371,7 @@ void reset_controls(void) {
 	gtk_text_buffer_get_start_iter (controlsLogB,&start); 
 	gtk_text_buffer_get_end_iter (controlsLogB,&end); 
 	gtk_text_buffer_delete (controlsLogB,&start,&end); 
+
 
 }
 

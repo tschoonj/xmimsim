@@ -95,6 +95,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST fluorescence_line_counts line_type CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts interaction_number CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts energy CDATA #REQUIRED>
+<!ATTLIST fluorescence_line_counts symbol CDATA #REQUIRED>
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->
@@ -103,16 +104,19 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT id (name+, interaction+)>
 <!ELEMENT rect (view?, size+, x-axis?, y-axis?)>
 <!ELEMENT view (width?, height?)>
-<!ELEMENT size (width?, height?)>
+<!ELEMENT size (width?, height?,min_energy?,max_energy?)>
 <!ELEMENT x-axis (name?, index*)>
 <!ELEMENT y-axis (name?, index*)>
 <!ELEMENT index (value?, name?)>
-<!ELEMENT points (point*)>
+<!ELEMENT points (color,point*)>
 <!ELEMENT point (x?,y?)>
 <!ELEMENT name (#PCDATA)>
 <!ELEMENT interaction (#PCDATA)>
 <!ELEMENT width (#PCDATA)>
 <!ELEMENT height (#PCDATA)>
+<!ELEMENT min_energy (#PCDATA)>
+<!ELEMENT max_energy (#PCDATA)>
 <!ELEMENT value (#PCDATA)>
+<!ELEMENT color (#PCDATA)>
 
 

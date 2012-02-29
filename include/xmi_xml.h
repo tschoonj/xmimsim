@@ -20,6 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 
+struct xmi_fluorescence_line {
+	int atomic_number;
+	char line_type[10];
+	int interaction_number;
+	double energy;
+	double counts;
+};
+
+
 
 //return 1 on success, 0 otherwise
 
@@ -37,4 +46,17 @@ int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength)
 int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input);
 
 int xmi_xmlLoadCatalog(void);
+
+int xmi_read_output_xml(	char *xmsofile,
+				struct xmi_input **input,
+				struct xmi_fluorescence_line **brute_force_history,
+				int *nbrute_force_history,
+				struct xmi_fluorescence_line **var_red_history,
+				int *nvar_red_history,
+				double ***channels_conv,
+				double ***channels_unconv,
+				int *nchannels,
+				char **inputfile,
+				int *use_zero_interactions);
+
 #endif
