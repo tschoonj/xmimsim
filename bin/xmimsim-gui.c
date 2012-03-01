@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
+#include "xmimsim-gui-results.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -3611,7 +3612,11 @@ int main (int argc, char *argv[]) {
 	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_simulation_controls(window), label);
 
 
-
+	//third notebook page: Results
+	label = gtk_label_new("Results");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
+	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_results(window), label);
+	
 
 	if (argc == 2) {
 		if (xmi_read_input_xml(argv[1], &xi_temp) == 1) {

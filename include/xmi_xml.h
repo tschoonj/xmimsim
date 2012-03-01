@@ -56,6 +56,7 @@ int xmi_read_output_xml(	char *xmsofile,
 				double ***channels_conv,
 				double ***channels_unconv,
 				int *nchannels,
+				int *ninteractions,
 				char **inputfile,
 				int *use_zero_interactions);
 

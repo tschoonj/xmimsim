@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
+#include "xmimsim-gui-results.h"
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
 #include <glib.h>
@@ -302,10 +303,16 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	return TRUE;
 }
 
-static void xmimsim_child_watcher_cb(GPid pid, gint status, gchar **argv) {
+struct child_data {
+	char *outputfile;
+	gchar **argv;
+};
+
+static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *cd) {
 	char buffer[512];
 
-	gchar *data = argv[0];
+
+	gchar *data = cd->argv[0];
 
 
 	fprintf(stdout,"xmimsim_child_watcher_cb called\n");
@@ -372,9 +379,11 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, gchar **argv) {
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
-	//read in outputfile and put it on the results page
-	fprintf(stdout,"end of xmimsim_child_watcher_cb reached\n");
 
+	plot_spectra_from_file(cd->outputfile);
+	
+
+	//free(cd);
 
 	return;
 }
@@ -467,7 +476,7 @@ void start_job(struct undo_single *xmimsim_struct) {
 	GIOChannel *xmimsim_stderr;
 	gint i;
 	gboolean omp_found=FALSE;
-
+	struct child_data *cd;
 
 	fprintf(stdout,"Entering start_job\n");
 
@@ -615,7 +624,11 @@ void start_job(struct undo_single *xmimsim_struct) {
 #endif
 	gtk_widget_set_sensitive(stopButton,TRUE);
 
-	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) argv);
+	cd = (struct child_data *) malloc(sizeof(struct child_data));
+	cd->outputfile = xmimsim_struct->xi->general->outputfile;
+	cd->argv = argv;
+
+	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
 	
 #ifdef G_OS_WIN32
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);

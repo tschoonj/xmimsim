@@ -17,6 +17,7 @@ int main(int argc, char *argv[]) {
 	
 	char *xmsi_file;
 	int use_zero_interactions;
+	int n_interactions;
 
 	xmi_xmlLoadCatalog();
 
@@ -29,6 +30,7 @@ int main(int argc, char *argv[]) {
 				&channels_conv,
 				&channels_unconv,
 				&nchannels,
+				&n_interactions,
 				&xmsi_file,
 				&use_zero_interactions);
 

@@ -52,7 +52,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometr
 static int readExcitationXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
 static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
-static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, double ***channels, int *nchannels);
+static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, double ***channels, int *nchannels, int *ninteractions, int *use_zero_interactions);
 static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line **history, int *nhistory);
 
 
@@ -112,12 +112,13 @@ int xmi_xmlLoadCatalog() {
 }
 #endif
 
-static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***channels, int *nchannels) {
+static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***channels, int *nchannels, int *n_interactions, int *use_zero_interactions) {
 	double **channels_loc;
 	int channel_loc;
 	xmlNodePtr channelPtr, countsPtr;
 	int n_interactions_loc, interaction_loc;
 	xmlChar *txt;
+	xmlAttrPtr attr;
 	
 
 	//count number of channels
@@ -144,7 +145,11 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***chan
 				fprintf(stderr,"readSpectrumXML: channel contains less than three entities\n");	
 				return 0;
 			}
-			channels_loc[channel_loc] = (double *) malloc(sizeof(double)*n_interactions_loc);
+			if (channel_loc == 0) {
+				*n_interactions = n_interactions_loc-2;
+				fprintf(stdout,"n_interactions: %i\n",*n_interactions);
+			}
+			channels_loc[channel_loc] = (double *) malloc(sizeof(double)*(n_interactions_loc-2));
 			countsPtr = channelPtr->children;
 			interaction_loc = 0;
 			while (countsPtr != NULL) {
@@ -155,6 +160,23 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***chan
 						return 0;
 					}
 					xmlFree(txt);
+
+					if (channel_loc == 0 && interaction_loc == 0) {
+						attr = countsPtr->properties;
+						txt =xmlNodeListGetString(doc,attr->children,1);
+						if (xmlStrcmp(txt, (const xmlChar*) "0") == 0) {
+							*use_zero_interactions = 1;
+						}
+						else if (xmlStrcmp(txt, (const xmlChar*) "1") == 0) {
+							*use_zero_interactions = 0;
+						}
+						else {
+							fprintf(stderr,"readSpectrumXML: invalid value found for interaction_number in first channel\n");
+							return 0;
+						}
+						fprintf(stdout,"use_zero_interactions: %i\n",*use_zero_interactions);
+						xmlFree(txt);
+					}
 
 					interaction_loc++;	
 				}
@@ -2647,7 +2669,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 }
 
 
-int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_fluorescence_line **brute_force_history, int *nbrute_force_history, struct xmi_fluorescence_line **var_red_history, int *nvar_red_history, double ***channels_conv, double ***channels_unconv, int *nchannels, char **inputfile, int *use_zero_interactions) {
+int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_fluorescence_line **brute_force_history, int *nbrute_force_history, struct xmi_fluorescence_line **var_red_history, int *nvar_red_history, double ***channels_conv, double ***channels_unconv, int *nchannels, int *ninteractions, char **inputfile, int *use_zero_interactions) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot, subsubroot;
@@ -2655,6 +2677,10 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_flu
 	xmlChar *txt;
 	int nchannels_conv;
 	int nchannels_unconv;
+	int ninteractions_conv;
+	int ninteractions_unconv;
+	int use_zero_interactions_conv;
+	int use_zero_interactions_unconv;
 
 	LIBXML_TEST_VERSION
 
@@ -2701,16 +2727,18 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_flu
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
 			//convoluted spectrum
-			if (readSpectrumXML(doc,subroot, channels_conv, &nchannels_conv) == 0) {
+			if (readSpectrumXML(doc,subroot, channels_conv, &nchannels_conv, &ninteractions_conv, &use_zero_interactions_conv) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}
 			*nchannels = nchannels_conv;
+			*ninteractions = ninteractions_conv;
+			*use_zero_interactions = use_zero_interactions_conv;
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_unconv")) {
 			//convoluted spectrum
-			if (readSpectrumXML(doc,subroot, channels_unconv, &nchannels_unconv) == 0) {
+			if (readSpectrumXML(doc,subroot, channels_unconv, &nchannels_unconv, &ninteractions_unconv, &use_zero_interactions_unconv) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
