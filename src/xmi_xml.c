@@ -221,7 +221,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 		//read counts first...
 		txt = xmlNodeListGetString(doc,linePtr->children,1);	
 		if (sscanf((const char*) txt, "%lf",&(history_loc[counter].counts)) !=1) {
-			fprintf(stderr,"readSpectrumXML: could not read counts\n");
+			fprintf(stderr,"readHistoryXML: could not read counts\n");
 			return 0;
 		}
 		xmlFree(txt);
