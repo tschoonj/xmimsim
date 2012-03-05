@@ -670,7 +670,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	kill_rv = kill((pid_t) xmimsim_pid, SIGSTOP);
 	if (kill_rv == 0) {
-		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continueor Stop to kill the process\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 		xmimsim_paused=TRUE;
 		gtk_widget_set_sensitive(stopButton,TRUE);

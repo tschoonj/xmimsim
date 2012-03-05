@@ -51,11 +51,95 @@ GtkWidget *spectra_button_box; //VButtonBox
 GtkWidget *canvas;
 GtkWidget *plot_window;
 
+GtkWidget *spectra_propertiesW;
+GtkWidget *spectra_properties_linestyleW;
+GtkWidget *spectra_properties_widthW;
+GtkWidget *spectra_properties_colorW;
+GtkPlotData *spectra_properties_dataset_active;
+
 struct spectra_data {
 	GtkPlotData *dataSet;
 	GtkWidget *checkButton;
 	GtkWidget *button;
 };
+
+static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) {
+	GtkPlotLineStyle line_style;
+	GdkCapStyle cap_style;
+	GdkJoinStyle join_style;
+	gfloat width;
+	GdkColor color;
+	gfloat width_new;
+
+	if (spectra_properties_dataset_active == NULL)
+		return;
+
+	//update active dataset with new setting
+	//get old one first
+	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
+
+	width_new = (gfloat) gtk_spin_button_get_value(spinbutton);
+
+
+	gtk_plot_data_set_line_attributes(spectra_properties_dataset_active, line_style_new, cap_style, join_style, width, &color);
+
+
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+
+	return;
+}
+
+
+static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data) {
+	GtkPlotLineStyle line_style;
+	GdkCapStyle cap_style;
+	GdkJoinStyle join_style;
+	gfloat width;
+	GdkColor color;
+	GtkPlotLineStyle line_style_new;
+
+
+	if (spectra_properties_dataset_active == NULL)
+		return;
+	//update active dataset with new setting
+	//get old one first
+	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
+
+	//check content from combo box
+	switch (gtk_combo_box_get_active(GTK_COMBO_BOX(spectra_properties_linestyleW))) {
+		case 0:
+		line_style_new = GTK_PLOT_LINE_SOLID;
+		break;
+		case 1:
+		line_style_new = GTK_PLOT_LINE_DOTTED;
+		break;
+		case 2:
+		line_style_new = GTK_PLOT_LINE_DASHED;
+		break;
+		case 3:
+		line_style_new = GTK_PLOT_LINE_DOT_DASH;
+		break;
+		case 4:
+		line_style_new = GTK_PLOT_LINE_DOT_DOT_DASH;
+		break;
+		case 5:
+		line_style_new = GTK_PLOT_LINE_DOT_DASH_DASH;
+		break;
+	}
+
+	gtk_plot_data_set_line_attributes(spectra_properties_dataset_active, line_style_new, cap_style, join_style, width, &color);
+
+
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+
+	return;
+}
 
 
 
@@ -89,7 +173,28 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 }
 
 static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer data) {
+	struct spectra_data *sd = (struct spectra_data *) data;
+	
+
 	fprintf(stdout,"Entering spectrum_button_toggled_cb\n");
+	
+
+	if (gtk_toggle_button_get_active(toggleButton) == TRUE) {
+		gtk_widget_show(GTK_WIDGET(sd->dataSet));
+		gtk_widget_set_sensitive(sd->button,TRUE);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	}
+	else {
+		gtk_widget_hide(GTK_WIDGET(sd->dataSet));
+		gtk_widget_set_sensitive(sd->button,FALSE);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	}
 
 	return;
 
@@ -135,10 +240,9 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(graphics_hbox),canvas,FALSE,FALSE,2);
 
 	spectra_box = gtk_vbox_new(FALSE,1);
-	spectra_button_box = gtk_vbutton_box_new();
-	gtk_box_set_spacing(GTK_BOX(spectra_button_box),3);
-	gtk_box_set_homogeneous(GTK_BOX(spectra_button_box),TRUE);
-	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,TRUE,FALSE,0);	
+	spectra_button_box = gtk_vbox_new(TRUE,3);
+	gtk_box_pack_start(GTK_BOX(spectra_button_box),gtk_label_new("Please run a simulation\nor load an XMSO file"),TRUE,TRUE,0);
+	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,FALSE,FALSE,0);	
 
 	settings_button = gtk_button_new_from_stock(GTK_STOCK_PROPERTIES);	
 	g_signal_connect(G_OBJECT(settings_button),"clicked",G_CALLBACK(settings_button_clicked_cb),(gpointer)window);
@@ -203,6 +307,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	int i,j;
 	GtkWidget *checkButton;
 	GtkWidget *button;
+	GtkWidget *spectrum_hbox;
 	struct spectra_data *sd;	
 	char buffer[512];
 	GList *list;
@@ -311,11 +416,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	for (i = 0 ; i < results_ninteractions ; i++) {
 		
 		checkButton = gtk_check_button_new();	
-		button = gtk_button_new();
-		gtk_container_add(GTK_CONTAINER(checkButton),button);
-		gtk_widget_show(checkButton);
-		gtk_widget_show(button);
-		gtk_container_add(GTK_CONTAINER(spectra_button_box),checkButton);
+		button = gtk_button_new_from_stock(GTK_STOCK_PROPERTIES);
+		spectrum_hbox = gtk_hbox_new(FALSE,2);
+		gtk_box_pack_start(GTK_BOX(spectrum_hbox),checkButton,FALSE,FALSE,1);
+		gtk_box_pack_end(GTK_BOX(spectrum_hbox),button,FALSE,FALSE,1);
+		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
 		dataset = GTK_PLOT_DATA(gtk_plot_data_new());
 		gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
 		gtk_plot_data_set_numpoints(dataset, results_nchannels);
@@ -398,10 +503,15 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 		}
-		gtk_button_set_label(GTK_BUTTON(button),buffer);
-
+		gtk_button_set_label(GTK_BUTTON(checkButton),buffer);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkButton),TRUE);
+		gtk_widget_show(checkButton);
+		gtk_widget_show(button);
+		gtk_widget_show(spectrum_hbox);
 
 	}	
+	gtk_widget_show_all(spectra_button_box);
+	gtk_widget_queue_draw(spectra_button_box);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
@@ -411,3 +521,63 @@ int plot_spectra_from_file(char *xmsofile) {
 
 	return 1;
 }
+
+
+void init_spectra_properties(GtkWidget *parent) {
+
+
+
+	spectra_propertiesW = gtk_dialog_new_with_buttons(NULL, GTK_WINDOW(parent), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,NULL);
+	spectra_properties_dataset_active = NULL;
+
+
+	GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(spectra_propertiesW));
+	/* properties that can be changed:
+	 * 	LineStyle
+	 * 	Width
+	 * 	color
+	 */
+
+	GtkWidget *vbox = gtk_vbox_new(FALSE,3);
+
+	//linestyle
+	GtkWidget *hbox = gtk_hbox_new(FALSE,3);
+#if GTK_CHECK_VERSION(2,24,0)
+	spectra_properties_linestyleW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Solid");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dotted");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dashed");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dash");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dot - Dash");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dash - Dash");
+#else
+	spectra_properties_linestyleW = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Solid");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Dotted");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Dashed");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Dot - Dash");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Dot - Dot - Dash");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(spectra_properties_linestyleW),"Dot - Dash - Dash");
+#endif
+	g_signal_connect(G_OBJECT(spectra_properties_linestyleW),"changed",G_CALLBACK(spectra_linestyle_changed_cb),NULL);
+	gtk_box_pack_start(GTK_BOX(hbox),gtk_label_new("Line style"),FALSE,FALSE,2);
+	gtk_box_pack_start(GTK_BOX(hbox),spectra_properties_linestyleW, FALSE, FALSE,2);
+
+	gtk_box_pack_start(GTK_BOX(vbox),hbox,FALSE,FALSE,2);
+
+	//width
+	GtkWidget *hbox = gtk_hbox_new(FALSE,3);
+	spectra_properties_widthW = gtk_spin_button_new(
+		GTK_ADJUSTMENT(gtk_adjustment_new(1.0, 0.1, 10.0, 0.1,0.5,1.0)),
+		0.1,1
+	);
+	gtk_box_pack_start(GTK_BOX(hbox),gtk_label_new("Line width"),FALSE,FALSE,2);
+	gtk_box_pack_start(GTK_BOX(hbox),spectra_properties_widthW,FALSE,FALSE,2);
+	g_signal_connect(G_OBJECT(spectra_properties_widthW),"value-changed",G_CALLBACK(spectra_width_changed_cb),NULL);
+	
+	gtk_box_pack_start(GTK_BOX(vbox),hbox,FALSE,FALSE,2);
+
+	//color
+
+}
+
