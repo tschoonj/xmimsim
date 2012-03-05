@@ -298,10 +298,12 @@ static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, gu
 	//cases: 
 	//	1) current_page == input_page and page == control_page
 	//	2) current_page == control_page and page == input_page
-	if (current_page == input_page && page == control_page)	{
+	if (page == results_page)	{
 		//check status of undo/redo, new, save(as) buttons and store their states for future use
-
-
+		/*gtk_widget_queue_draw(spectra_button_box);
+		while (gtk_events_pending ())
+	        	gtk_main_iteration ();
+		gtk_widget_show_all(spectra_button_box);*/
 		//needs to be checked if valid input is available and that it has been saved
 
 	}
@@ -2904,6 +2906,7 @@ int main (int argc, char *argv[]) {
 	gint main_height=900;
 	gint main_width=900;
 	gint main_temp;
+	GtkWidget *resultsPageW;
 
 /*
  *
@@ -3085,7 +3088,6 @@ int main (int argc, char *argv[]) {
 	//notebook
 	notebook = gtk_notebook_new();
 	notebookG = g_signal_connect(G_OBJECT(notebook), "switch-page",G_CALLBACK(notebook_page_changed_cb),window);
-	g_signal_handler_block(G_OBJECT(notebook), notebookG);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_widget_show(notebook);
 
@@ -3189,6 +3191,7 @@ int main (int argc, char *argv[]) {
 	label = gtk_label_new("Input parameters");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Input parameters</span>");
 	input_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
+	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 
 	//composition
@@ -3615,7 +3618,12 @@ int main (int argc, char *argv[]) {
 	//third notebook page: Results
 	label = gtk_label_new("Results");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
-	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_results(window), label);
+	resultsPageW = init_results(window);
+	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
+	//gtk_widget_show_all(resultsPageW);
+	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), results_page);
+	//fprintf(stdout,"going to input_page\n");
+	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), input_page);
 	
 
 	if (argc == 2) {
@@ -3645,8 +3653,6 @@ int main (int argc, char *argv[]) {
 	gtk_widget_show_all(window);
 
 
-	g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
-	current_page = (gint) input_page;
 
 	gtk_main();
 

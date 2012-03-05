@@ -380,9 +380,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
 
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 	plot_spectra_from_file(cd->outputfile);
 
-	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 	
 
 	//free(cd);

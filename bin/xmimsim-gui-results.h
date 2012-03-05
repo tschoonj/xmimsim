@@ -40,6 +40,7 @@ extern int results_use_zero_interactions;
 
 
 
+extern GtkWidget *spectra_button_box;
 
 
 GtkWidget *init_results(GtkWidget *window);
