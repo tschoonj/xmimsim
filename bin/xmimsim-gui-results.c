@@ -46,10 +46,10 @@ int results_use_zero_interactions;
 
 double plot_xmin, plot_xmax, plot_ymin, plot_ymax;
 
-
 GtkWidget *spectra_button_box; //VButtonBox
 GtkWidget *canvas;
 GtkWidget *plot_window;
+GtkWidget *magnifierW;
 
 GtkWidget *spectra_propertiesW;
 GtkWidget *spectra_properties_linestyleW;
@@ -69,7 +69,59 @@ struct spectra_data {
 };
 
 void init_spectra_properties(GtkWidget *parent);
-void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data) {
+
+static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble y1, gdouble x2, gdouble y2, gpointer data) {
+
+  	gdouble xmin, ymin, xmax, ymax;
+  	gint px1, px2, py1, py2;
+
+	xmin = MIN(x1, x2);
+	ymin = MIN(y1, y2);
+	xmax = MAX(x1, x2);
+	ymax = MAX(y1, y2);
+
+
+	fprintf(stdout,"Entering spectra_region_changed_cb\n");
+	fprintf(stdout,"x1: %lf\n",x1);
+	fprintf(stdout,"y1: %lf\n",y1);
+	fprintf(stdout,"x2: %lf\n",x2);
+	fprintf(stdout,"y2: %lf\n",y2);
+
+	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmin, ymin, &px1, &py1);
+	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmax, ymax, &px2, &py2);
+        gtk_plot_get_point(GTK_PLOT(plot_window), px1, py1, &xmin, &ymax);
+	gtk_plot_get_point(GTK_PLOT(plot_window), px2, py2, &xmax, &ymin);
+
+
+	//make sure to check that these functions return the same results in gtk+extra 2.1.2
+	fprintf(stdout,"Transformed coordinates\n");
+	fprintf(stdout,"xmin: %lf\n",xmin);
+	fprintf(stdout,"xmax: %lf\n",xmax);
+	fprintf(stdout,"ymin: %lf\n",ymin);
+	fprintf(stdout,"ymax: %lf\n",ymax);
+
+	gtk_plot_set_range(GTK_PLOT(plot_window), xmin,xmax,ymin,ymax);
+	gtk_plot_paint(GTK_PLOT(plot_window));
+
+
+
+
+	return;
+}
+
+gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
+
+	fprintf(stdout,"Entering spectra_region_double_clicked\n");
+	if (event->type == GDK_2BUTTON_PRESS) {
+		fprintf(stdout,"Double click registered\n");
+	}
+		
+
+	return FALSE;
+}
+
+
+static void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data) {
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
 	GdkJoinStyle join_style;
@@ -96,7 +148,19 @@ void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data) {
 	gtk_plot_paint(GTK_PLOT(plot_window));
 
 	return;
+}
 
+static void magnifier_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) {
+	gdouble magnifier;
+
+	magnifier = gtk_spin_button_get_value(spinbutton);
+	gtk_plot_canvas_set_magnification(GTK_PLOT_CANVAS(canvas),magnifier);
+
+	gtk_widget_queue_resize(GTK_WIDGET(canvas));
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+
+	return;
 }
 
 static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -301,6 +365,8 @@ GtkWidget *init_results(GtkWidget *window) {
 #endif
 	GtkWidget *export_button;
 	GtkWidget *settings_button;
+	GtkWidget *magnifier_hbox;
+	gdouble magnifier;
 
 
 
@@ -315,10 +381,13 @@ GtkWidget *init_results(GtkWidget *window) {
 	COLOR_INIT(pink);
 
 
+	magnifier = 0.75;
 
 	superframe = gtk_vbox_new(FALSE,2);
 	graphics_hbox = gtk_hbox_new(FALSE,2); 
-	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W,0.75);
+	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W,magnifier);
+	g_signal_connect(G_OBJECT(canvas),"select-region",G_CALLBACK(spectra_region_changed_cb),NULL);
+	g_signal_connect(G_OBJECT(canvas),"button-press-event",G_CALLBACK(spectra_region_double_clicked_cb),NULL);
 	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
 	gtk_box_pack_start(GTK_BOX(graphics_hbox),canvas,FALSE,FALSE,2);
@@ -327,6 +396,15 @@ GtkWidget *init_results(GtkWidget *window) {
 	spectra_button_box = gtk_vbox_new(TRUE,3);
 	gtk_box_pack_start(GTK_BOX(spectra_button_box),gtk_label_new("Please run a simulation\nor load an XMSO file"),TRUE,TRUE,0);
 	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,FALSE,FALSE,0);	
+
+
+	magnifier_hbox = gtk_hbox_new(FALSE,2);
+	gtk_box_pack_start(GTK_BOX(magnifier_hbox), gtk_label_new("Canvas magnification"),FALSE, FALSE,1);
+	magnifierW = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(magnifier, 0.25,2.0,0.05,0.1,0.0)),0.05,2);
+	gtk_box_pack_start(GTK_BOX(magnifier_hbox), magnifierW,FALSE, FALSE,1);
+	g_signal_connect(G_OBJECT(magnifierW),"value-changed",G_CALLBACK(magnifier_changed_cb),NULL);
+
+
 
 	settings_button = gtk_button_new_from_stock(GTK_STOCK_PROPERTIES);	
 	g_signal_connect(G_OBJECT(settings_button),"clicked",G_CALLBACK(settings_button_clicked_cb),(gpointer)window);
@@ -338,7 +416,7 @@ GtkWidget *init_results(GtkWidget *window) {
 #endif
 	
 
-
+	gtk_box_pack_end(GTK_BOX(spectra_box),magnifier_hbox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),settings_button, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),export_button, FALSE, FALSE, 2);
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
