@@ -18,9 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-results.h"
 #include "xmi_aux.h"
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
 //pdfs is just for version 3 :-(
 #include <cairo-pdf.h>
+#include <cairo-ps.h>
 #endif
 
 GdkColor white_plot;
@@ -61,6 +64,16 @@ gulong spectra_properties_linestyleG;
 gulong spectra_properties_widthG;
 gulong spectra_properties_colorG;
 
+#if GTKEXTRA_CHECK_VERSION(3,0,0)
+GtkWidget *print_button;
+GtkPrintSettings *print_settings;
+GtkPageSetup *page_setup;
+#endif
+GtkWidget *export_button;
+GtkWidget *settings_button;
+
+GtkListStore *countsTS;
+
 
 struct spectra_data {
 	GtkPlotData *dataSet;
@@ -68,7 +81,18 @@ struct spectra_data {
 	GtkWidget *button;
 };
 
+enum {
+	ELEMENT_COLUMN,
+	LINE_COLUMN,
+	SHOW_LINE_COLUMN,
+	INTERACTION_COLUMN,
+	COUNTS_COLUMN,
+	N_COLUMNS
+};
+
+
 void init_spectra_properties(GtkWidget *parent);
+gchar *get_style_font(GtkWidget *widget);
 
 static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble y1, gdouble x2, gdouble y2, gpointer data) {
 
@@ -89,6 +113,11 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 
 	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmin, ymin, &px1, &py1);
 	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmax, ymax, &px2, &py2);
+	
+	//minimum size of box should be 15 pixels square
+	if (abs(px1-px2) < 15 || abs(py1-py2) < 15)
+		return;
+
         gtk_plot_get_point(GTK_PLOT(plot_window), px1, py1, &xmin, &ymax);
 	gtk_plot_get_point(GTK_PLOT(plot_window), px2, py2, &xmax, &ymin);
 
@@ -101,7 +130,9 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	fprintf(stdout,"ymax: %lf\n",ymax);
 
 	gtk_plot_set_range(GTK_PLOT(plot_window), xmin,xmax,ymin,ymax);
-	gtk_plot_paint(GTK_PLOT(plot_window));
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 
 
 
@@ -115,7 +146,12 @@ gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gp
 	if (event->type == GDK_2BUTTON_PRESS) {
 		fprintf(stdout,"Double click registered\n");
 	}
-		
+	
+
+	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 
 	return FALSE;
 }
@@ -251,16 +287,152 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 }
 
 static void export_button_clicked_cb(GtkButton *button, gpointer data) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+#if GTKEXTRA_CHECK_VERSION(3,0,0)
+	cairo_t *cairo;
+	cairo_surface_t *surface;
+#endif
 
-	fprintf(stdout,"Entering export_button_clicked_cb\n");
+	dialog = gtk_file_chooser_dialog_new("Export spectra", 
+		GTK_WINDOW(data), GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),g_path_get_dirname(results_input->general->outputfile));
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.eps");
+	gtk_file_filter_set_name(filter,"Encapsulated PostScript");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#if GTKEXTRA_CHECK_VERSION(3,0,0)
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.pdf");
+	gtk_file_filter_set_name(filter,"Adobe Portable Document Format");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.png");
+	gtk_file_filter_set_name(filter,"Portable Network Graphics");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#endif
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		//get selected filter
+		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
+#if GTKEXTRA_CHECK_VERSION(3,0,0)
+		if (strcmp(gtk_file_filter_get_name(filter),"Encapsulated PostScript"  ) == 0) {
+			fprintf(stdout,"EPS selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".eps");
+			}
+			//surface = cairo_ps_surface_create(filename,595.0,842);
+			surface = cairo_ps_surface_create(filename,842,595);
+			/*cairo_ps_surface_dsc_begin_page_setup (surface);
+			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
+			cairo_ps_surface_set_eps(surface,1);
+			cairo = cairo_create(surface);
+			/*cairo_translate (cairo, 0, 842);
+			cairo_rotate(cairo, -M_PI/2);*/
+			
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+
+		}
+		else if (strcmp(gtk_file_filter_get_name(filter),"Adobe Portable Document Format"  ) == 0) {
+			fprintf(stdout,"PDF selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".pdf");
+			}
+			surface = cairo_pdf_surface_create(filename,842.0,595.0);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}
+		else if (strcmp(gtk_file_filter_get_name(filter),"Portable Network Graphics"  ) == 0) {
+			fprintf(stdout,"PNG selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".png");
+			}
+			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_surface_write_to_png(surface,filename);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}			
+#else
+		if (strcmp(gtk_file_filter_get_name(filter),"Encapsulated PostScript"  ) == 0) {
+			fprintf(stdout,"EPS selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".eps");
+			}
+			gtk_plot_export_ps(GTK_PLOT(plot_window),filename,GTK_PLOT_LANDSCAPE,TRUE,GTK_PLOT_A4);
+		}
+#endif
+		g_free(filename);
+		gtk_widget_destroy(dialog);
+	}
+	else
+		gtk_widget_destroy(dialog);
+
 
 	return;
 }
 
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
+
+static void draw_page(GtkPrintOperation *operation, GtkPrintContext *context, gint page_nr, gpointer data) {
+	cairo_t *cairo;
+
+	cairo = gtk_print_context_get_cairo_context(context);
+	/*cairo_translate (cairo, 0, 842);
+	cairo_rotate(cairo, -M_PI/2);
+	cairo_translate (cairo, 30, 30);*/
+	gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+
+	return;
+}
+
 static void print_button_clicked_cb(GtkButton *button, gpointer data) {
+	GtkPrintOperation *operation;
+	GError *error = NULL;
+	GtkPrintOperationResult res;
 
 	fprintf(stdout,"Entering print_button_clicked_cb\n");
+
+	operation = gtk_print_operation_new();
+	gtk_print_operation_set_print_settings(operation,print_settings);
+	gtk_print_operation_set_default_page_setup(operation,page_setup);
+	gtk_print_operation_set_show_progress(operation,TRUE);
+	gtk_print_operation_set_track_print_status(operation, TRUE);
+	g_signal_connect(G_OBJECT(operation), "draw-page", G_CALLBACK(draw_page),NULL);
+	gtk_print_operation_set_n_pages(operation, 1);
+	//gtk_print_operation_set_use_full_page(operation,TRUE);
+
+	gtk_print_operation_run(operation, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, GTK_WINDOW(data),&error);
+
+	if (res == GTK_PRINT_OPERATION_RESULT_APPLY) {
+		g_object_unref(print_settings);
+		print_settings = g_object_ref(gtk_print_operation_get_print_settings(operation));
+	}
+	
+
+	g_object_unref(operation);
+
+
 
 	return;
 }
@@ -360,13 +532,9 @@ GtkWidget *init_results(GtkWidget *window) {
 	GtkWidget *scrolled_window;
 
 	GtkWidget *spectra_box;//VBox
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
-	GtkWidget *print_button;
-#endif
-	GtkWidget *export_button;
-	GtkWidget *settings_button;
 	GtkWidget *magnifier_hbox;
 	gdouble magnifier;
+	gchar *default_font;
 
 
 
@@ -379,6 +547,11 @@ GtkWidget *init_results(GtkWidget *window) {
 	COLOR_INIT(purple);
 	COLOR_INIT(yellow);
 	COLOR_INIT(pink);
+
+	default_font = get_style_font(window);
+
+	fprintf(stdout,"default font: %s\n",default_font);
+
 
 
 	magnifier = 0.75;
@@ -422,6 +595,15 @@ GtkWidget *init_results(GtkWidget *window) {
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
 	gtk_box_pack_end(GTK_BOX(spectra_box),print_button, FALSE, FALSE, 2);
 	gtk_widget_set_sensitive(print_button,FALSE);
+
+	//print settings
+	print_settings = gtk_print_settings_new();
+	gtk_print_settings_set_orientation(print_settings,GTK_PAGE_ORIENTATION_LANDSCAPE);
+	gtk_print_settings_set_paper_size(print_settings,gtk_paper_size_new(GTK_PAPER_NAME_A4));
+	page_setup = gtk_page_setup_new();
+	gtk_page_setup_set_orientation(page_setup,GTK_PAGE_ORIENTATION_LANDSCAPE);
+	gtk_page_setup_set_paper_size_and_default_margins(page_setup,gtk_paper_size_new(GTK_PAPER_NAME_A4));
+
 #endif
 	gtk_widget_set_sensitive(export_button,FALSE);
 	gtk_widget_set_sensitive(settings_button,FALSE);
@@ -446,6 +628,17 @@ GtkWidget *init_results(GtkWidget *window) {
 	results_use_zero_interactions = 0;
 
 	plot_window = NULL;
+
+	//countsTS etc
+	countsTS = gtk_tree_store_new(N_COLUMNS,
+					G_TYPE_STRING,
+					G_TYPE_STRING,
+					G_TYPE_BOOLEAN,
+					G_TYPE_STRING,
+					G_TYPE_DOUBLE
+					);
+
+
 
 	gtk_widget_show_all(superframe);
 	
@@ -483,6 +676,8 @@ int plot_spectra_from_file(char *xmsofile) {
 	double temp_energy;
 	GtkPlotCanvasChild *child;
 	GtkPlotData *dataset;
+	GtkTreeIter iter1, iter2, iter3;
+
 
 
 	//free memory if necessary
@@ -524,6 +719,8 @@ int plot_spectra_from_file(char *xmsofile) {
 
 		return 0;
 	}
+
+
 
 	//clear plotwindow if necessary
 	//start with buttonbox	
@@ -686,6 +883,35 @@ int plot_spectra_from_file(char *xmsofile) {
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
 
+#if GTKEXTRA_CHECK_VERSION(3,0,0)
+	gtk_widget_set_sensitive(print_button,TRUE);
+#endif
+	gtk_widget_set_sensitive(export_button,TRUE);
+	gtk_widget_set_sensitive(settings_button,TRUE);
+
+
+	//treestore stuff
+	if (results_brute_force_history != NULL) {
+		//brute force mode	
+		
+
+	}
+	else if (results_var_red_history != NULL) {
+		//variance reduction mode
+		
+		for (i = 0 ; i < results_nvar_red_history ; i++) {
+			
+		}
+
+		
+
+	}
+	else {
+		fprintf(stderr,"XMSO file contains no history!\n");
+		//pop up a dialog or so with a warning...
+	}
+
+
 
 	return 1;
 }
@@ -755,4 +981,24 @@ void init_spectra_properties(GtkWidget *parent) {
 
 	gtk_widget_show_all(vbox);
 }
+
+gchar *get_style_font(GtkWidget *widget) {
+
+	GtkStyle *style = gtk_widget_get_style(widget);
+	PangoFontDescription *font_desc = style->font_desc;
+
+	return g_strdup(pango_font_description_get_family(font_desc));
+} 
+
+/*
+ *
+ *
+ * Functions related to the list containing all counts 
+ * of all interactions of all lines of all elements
+ *
+ *
+ */
+
+
+
 
