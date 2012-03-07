@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <xraylib.h>
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
 //pdfs is just for version 3 :-(
 #include <cairo-pdf.h>
@@ -36,9 +37,9 @@ GdkColor yellow_plot;
 GdkColor pink_plot;
 
 struct xmi_input *results_input;
-struct xmi_fluorescence_line *results_brute_force_history;
+struct xmi_fluorescence_line_counts *results_brute_force_history;
 int results_nbrute_force_history;
-struct xmi_fluorescence_line *results_var_red_history;
+struct xmi_fluorescence_line_counts *results_var_red_history;
 int results_nvar_red_history;
 double **results_channels_conv;
 double **results_channels_unconv;
@@ -72,7 +73,7 @@ GtkPageSetup *page_setup;
 GtkWidget *export_button;
 GtkWidget *settings_button;
 
-GtkListStore *countsTS;
+GtkTreeStore *countsTS;
 
 
 struct spectra_data {
@@ -665,7 +666,7 @@ static void clear_container (GtkWidget *widget, gpointer data) {
 
 int plot_spectra_from_file(char *xmsofile) {
 	GList *buttonbox_children;
-	int i,j;
+	int i,j,k;
 	GtkWidget *checkButton;
 	GtkWidget *button;
 	GtkWidget *spectrum_hbox;
@@ -677,6 +678,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	GtkPlotCanvasChild *child;
 	GtkPlotData *dataset;
 	GtkTreeIter iter1, iter2, iter3;
+	char *symbol;
 
 
 
@@ -684,9 +686,9 @@ int plot_spectra_from_file(char *xmsofile) {
 	if (results_input != NULL)
 		free(results_input);
 	if (results_brute_force_history != NULL)
-		free(results_brute_force_history);
+		xmi_free_fluorescence_line_counts(results_brute_force_history);
 	if (results_var_red_history != NULL)
-		free(results_var_red_history);
+		xmi_free_fluorescence_line_counts(results_var_red_history);
 	if (results_channels_conv != NULL)
 		free(results_channels_conv);
 	if (results_channels_unconv != NULL)
@@ -727,6 +729,10 @@ int plot_spectra_from_file(char *xmsofile) {
 	//clear it if necessary
 	buttonbox_children = gtk_container_get_children(GTK_CONTAINER(spectra_button_box));
 	gtk_container_foreach(GTK_CONTAINER(spectra_button_box), clear_container, spectra_button_box);
+
+	//clear tree
+	gtk_tree_store_clear(countsTS);
+
 
 	list = GTK_PLOT_CANVAS(canvas)->childs;
 	while (list) {
@@ -900,7 +906,33 @@ int plot_spectra_from_file(char *xmsofile) {
 		//variance reduction mode
 		
 		for (i = 0 ; i < results_nvar_red_history ; i++) {
-			
+			//iterating over atomic numbers -> highest level
+			gtk_tree_store_append(countsTS, &iter1, NULL);
+			symbol = AtomicNumberToSymbol(results_var_red_history[i].atomic_number);
+			gtk_tree_store_set(countsTS, &iter1, 
+				ELEMENT_COLUMN, symbol,
+				LINE_COLUMN , "all",
+				SHOW_LINE_COLUMN, TRUE,
+				INTERACTION_COLUMN, "all",
+				COUNTS_COLUMN, results_var_red_history[i].total_counts,
+				-1);
+			xrlFree(symbol);
+			for (j = 0 ; j < results_var_red_history[i].n_lines ; j++) {
+				gtk_tree_store_append(countsTS, &iter2, &iter1);
+				gtk_tree_store_set(countsTS, &iter2,
+					LINE_COLUMN, results_var_red_history[i].lines[j].line_type,
+					SHOW_LINE_COLUMN, TRUE,
+					INTERACTION_COLUMN, "all",
+					COUNTS_COLUMN, results_var_red_history[i].lines[j].total_counts,
+					-1);
+				for (k = 0 ; k < results_var_red_history[i].lines[j].n_interactions ; k++) {
+					gtk_tree_store_append(countsTS, &iter3, &iter2);
+					gtk_tree_store_set(countsTS, &iter3,
+						INTERACTION_COLUMN, "all",
+						COUNTS_COLUMN, results_var_red_history[i].lines[j].interactions[k],
+						-1);
+				}
+			}
 		}
 
 		

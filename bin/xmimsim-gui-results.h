@@ -27,9 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 extern struct xmi_input *results_input;
-extern struct xmi_fluorescence_line *results_brute_force_history;
+extern struct xmi_fluorescence_line_counts *results_brute_force_history;
 extern int results_nbrute_force_history;
-extern struct xmi_fluorescence_line *results_var_red_history;
+extern struct xmi_fluorescence_line_counts *results_var_red_history;
 extern int results_nvar_red_history;
 extern double **results_channels_conv;
 extern double **results_channels_unconv;

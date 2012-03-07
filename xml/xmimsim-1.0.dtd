@@ -79,7 +79,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!-- outputfile structure -->
 
 
-<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history?, xmimsim-input, svg_graphs)>
+<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history, xmimsim-input, svg_graphs)>
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
@@ -90,12 +90,15 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT channelnr (#PCDATA)>
 <!ELEMENT brute_force_history (fluorescence_line_counts*)>
 <!ELEMENT variance_reduction_history (fluorescence_line_counts*)>
-<!ELEMENT fluorescence_line_counts (#PCDATA)>
+<!ELEMENT fluorescence_line_counts (fluorescence_line+)>
 <!ATTLIST fluorescence_line_counts atomic_number CDATA #REQUIRED>
-<!ATTLIST fluorescence_line_counts line_type CDATA #REQUIRED>
-<!ATTLIST fluorescence_line_counts interaction_number CDATA #REQUIRED>
-<!ATTLIST fluorescence_line_counts energy CDATA #REQUIRED>
 <!ATTLIST fluorescence_line_counts symbol CDATA #REQUIRED>
+<!ATTLIST fluorescence_line_counts total_counts CDATA #REQUIRED>
+<!ELEMENT fluorescence_line (counts+)>
+<!ATTLIST fluorescence_line type CDATA #REQUIRED>
+<!ATTLIST fluorescence_line energy CDATA #REQUIRED>
+<!ATTLIST fluorescence_line total_counts CDATA #REQUIRED>
+
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->

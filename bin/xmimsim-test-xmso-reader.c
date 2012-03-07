@@ -5,10 +5,10 @@ int main(int argc, char *argv[]) {
 
 	char xmso_file[] = "nist.xmso";
 	struct xmi_input *input;
-	struct xmi_fluorescence_line *brute_force_history;
+	struct xmi_fluorescence_line_counts *brute_force_history;
 	int nbrute_force_history;
 
-	struct xmi_fluorescence_line *var_red_history;
+	struct xmi_fluorescence_line_counts *var_red_history;
 	int nvar_red_history;
 
 	double **channels_conv;

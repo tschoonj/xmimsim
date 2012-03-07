@@ -53,7 +53,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excit
 static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
 static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
 static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, double ***channels, int *nchannels, int *ninteractions, int *use_zero_interactions);
-static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line **history, int *nhistory);
+static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
 
 static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
@@ -191,16 +191,16 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***chan
 	return 1;
 }
 
-static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line **history, int *nhistory) {
+static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
 
 	//assume history will be a NULL terminated array...
 	//count children
 	unsigned int nchildren;
 	xmlChar *txt;
-	xmlNodePtr linePtr;
-	struct xmi_fluorescence_line *history_loc;
+	xmlNodePtr linePtr, countsPtr, subcountsPtr;
+	struct xmi_fluorescence_line_counts *history_loc;
 	xmlAttrPtr attr;
-	int counter;
+	int counter, counter2, counter3;
 
 	nchildren = xmlChildElementCount(nodePtr);
 	if (nchildren == 0) {
@@ -210,23 +210,14 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 	}
 
 	//malloc required memory
-	*history = (struct xmi_fluorescence_line *) malloc(sizeof(struct xmi_fluorescence_line)*(nchildren));
+	*history = (struct xmi_fluorescence_line_counts *) malloc(sizeof(struct xmi_fluorescence_line_counts)*(nchildren));
 	history_loc = *history;
 	linePtr = nodePtr->children;
 
 
 	counter = 0;
 	while(linePtr != NULL) {
-		//assume all children are fluorescence_line_counts
-		//read counts first...
-		txt = xmlNodeListGetString(doc,linePtr->children,1);	
-		if (sscanf((const char*) txt, "%lf",&(history_loc[counter].counts)) !=1) {
-			fprintf(stderr,"readHistoryXML: could not read counts\n");
-			return 0;
-		}
-		xmlFree(txt);
-
-		//...then properties
+		//read attributes
 		attr = linePtr->properties;
 		while (attr != NULL) {
 			if (!xmlStrcmp(attr->name,(const xmlChar *) "atomic_number")) {
@@ -237,34 +228,88 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				xmlFree(txt);
 			}
-			else if (!xmlStrcmp(attr->name,(const xmlChar *) "line_type")) {
+			else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 				txt =xmlNodeListGetString(doc,attr->children,1);
-				if(sscanf((const char *)txt,"%s",history_loc[counter].line_type) != 1) {
-					fprintf(stderr,"readHistoryXML: error reading in line_type\n");
+				if(sscanf((const char *)txt,"%lf",&(history_loc[counter].total_counts)) != 1) {
+					fprintf(stderr,"readHistoryXML: error reading in total_counts\n");
 					return 0;
 				}
 				xmlFree(txt);
 			}
-			else if (!xmlStrcmp(attr->name,(const xmlChar *) "interaction_number")) {
-				txt =xmlNodeListGetString(doc,attr->children,1);
-				if (xmlStrcmp(txt,"all") == 0) {
-					history_loc[counter].interaction_number=-1;
-				}
-				else if(sscanf((const char *)txt,"%i",&(history_loc[counter].interaction_number)) != 1) {
-					fprintf(stderr,"readHistoryXML: error reading in interaction_number\n");
-					return 0;
-				}
-				xmlFree(txt);
-			}
-			else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
-				txt =xmlNodeListGetString(doc,attr->children,1);
-				if(sscanf((const char *)txt,"%lf",&(history_loc[counter].energy)) != 1) {
-					fprintf(stderr,"readHistoryXML: error reading in energy\n");
-					return 0;
-				}
-				xmlFree(txt);
-			}
+
+
 			attr = attr->next;
+		}
+		//determine number of children
+		nchildren = xmlChildElementCount(linePtr);
+		history_loc[counter].n_lines = nchildren;
+		history_loc[counter].lines = (struct xmi_fluorescence_line *) malloc(sizeof(struct xmi_fluorescence_line)*nchildren);
+			
+		countsPtr = linePtr->children;
+		counter2 = 0;
+		while (countsPtr) {
+			attr = countsPtr->properties;	
+			while (attr) {
+				if (!xmlStrcmp(attr->name,(const xmlChar *) "type")) {
+					txt =xmlNodeListGetString(doc,attr->children,1);
+					if(sscanf((const char *)txt,"%s",history_loc[counter].lines[counter2].line_type) != 1) {
+						fprintf(stderr,"readHistoryXML: error reading in line_type\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
+					txt =xmlNodeListGetString(doc,attr->children,1);
+					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].energy)) != 1) {
+						fprintf(stderr,"readHistoryXML: error reading in energy\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+				else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
+					txt =xmlNodeListGetString(doc,attr->children,1);
+					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
+						fprintf(stderr,"readHistoryXML: error reading in total_counts lvl2\n");
+						return 0;
+					}
+					xmlFree(txt);
+				}
+			
+				attr = attr->next;
+			}
+			counter3 = 0;
+			subcountsPtr = countsPtr->children;
+			nchildren = xmlChildElementCount(countsPtr);
+			history_loc[counter].lines[counter2].interactions = (struct xmi_counts *) malloc(sizeof(struct xmi_counts)*nchildren);
+			history_loc[counter].lines[counter2].n_interactions = nchildren;
+			while (subcountsPtr) {
+				attr = subcountsPtr->properties;
+				while (attr) {
+					if (!xmlStrcmp(attr->name,(const xmlChar *) "interaction_number")) {
+					txt =xmlNodeListGetString(doc,attr->children,1);
+					if(sscanf((const char *)txt,"%i",&(history_loc[counter].lines[counter2].interactions[counter3].interaction_number)) != 1) {
+						fprintf(stderr,"readHistoryXML: error reading in interaction_number\n");
+						return 0;
+					}
+					xmlFree(txt);
+					}
+
+					attr = attr->next;
+				}
+				txt = xmlNodeListGetString(doc,subcountsPtr->children,1);	
+				if (sscanf((const char*) txt, "%lf",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
+					fprintf(stderr,"readHistoryXML: could not read counts\n");
+					return 0;
+				}
+				xmlFree(txt);
+
+
+				subcountsPtr = subcountsPtr->next;
+				counter3++;
+			}
+
+			counter2++;	
+			countsPtr = countsPtr->next;
 		}
 		counter++;
 		linePtr = linePtr->next;
@@ -1501,184 +1546,204 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
+
+	//Z loop
 	for (i = 0 ; i < nuniqZ ; i++) {
-#if DEBUG == 1
-		fprintf(stdout,"Element: %i\n",uniqZ[i]);
-#endif
-		for (j = 1 ; j <= 385 ; j++) {
+		//start by checking total number of counts for this element
+		counts_sum = 0.0;
+		for (j = 1 ; j <= 383 ; j++) {
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}
+		}	
+		if (counts_sum == 0.0)
+			continue;
+		//so there are counts somewhere: open element
+		if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+			return 0;
+		}
+		//two attributes: atomic_number and element
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+			fprintf(stderr,"Error writing atomic_number\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       			fprintf(stderr,"Error writing symbol\n");                     
+			return 0;
+		} 
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+       			fprintf(stderr,"Error writing total_counts\n");                     
+			return 0;
+		} 
+		//start with the different lines
+		//line loop
+		for (j = 1 ; j <= 383 ; j++) {
 			counts_sum = 0.0;
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}	
+			if (counts_sum == 0.0)
+				continue;
+			if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "type","%s",xmi_lines[j]) < 0) {
+				fprintf(stderr,"Error writing type\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+				fprintf(stderr,"Error writing energy\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+       				fprintf(stderr,"Error writing total_counts\n");                     
+				return 0;
+			} 
+			//interactions loop
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 					continue;
-				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
-					fprintf(stderr,"Error writing atomic_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
-					fprintf(stderr,"Error writing line_type\n");
+				if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
 					return 0;
 				}
 				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",k) < 0) {
 					fprintf(stderr,"Error writing interaction_number\n");
 					return 0;
 				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
-					fprintf(stderr,"Error writing energy\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
-       					fprintf(stderr,"Error writing symbol\n");                     
-					return 0;
-				} 
 				counts_temp = ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
 				if (xmlTextWriterWriteFormatString(writer,"%lg",counts_temp) < 0) {
 					fprintf(stderr,"Error writing counts\n");
 					return 0;
 				}
-				counts_sum += counts_temp;
 				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error ending fluorescence_line_counts\n");
+					fprintf(stderr,"Error ending counts\n");
 					return 0;
 				}
+			}//interactions loop
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error ending fluorescence_line\n");
+				return 0;
 			}
-			if (counts_sum > 0.0) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
-					fprintf(stderr,"Error writing atomic_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
-					fprintf(stderr,"Error writing line_type\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","all") < 0) {
-					fprintf(stderr,"Error writing interaction_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
-					fprintf(stderr,"Error writing energy\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
-       					fprintf(stderr,"Error writing symbol\n");                     
-					return 0;
-				} 
-				if (xmlTextWriterWriteFormatString(writer,"%lg",counts_sum) < 0) {
-					fprintf(stderr,"Error writing counts\n");
-					return 0;
-				}
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error ending fluorescence_line_counts\n");
-					return 0;
-				}
-			}
+	
+		}//line loop
+	
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending fluorescence_line_counts\n");
+			return 0;
 		}
-	}
-
+	
+	}//Z loop
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending brute_force_history\n");
 		return 0;
 	}
 
-	if (var_red_history != NULL) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
-			return 0;
-		}
 
-		for (i = 0 ; i < nuniqZ ; i++) {
-#if DEBUG == 1
-			fprintf(stdout,"Element: %i\n",uniqZ[i]);
-#endif
-			for (j = 1 ; j <= 385 ; j++) {
-				counts_sum = 0.0;
-				for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
-					if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
-						continue;
-					if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-						fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
-						fprintf(stderr,"Error writing atomic_number\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
-						fprintf(stderr,"Error writing line_type\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",k) < 0) {
-						fprintf(stderr,"Error writing interaction_number\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
-						fprintf(stderr,"Error writing energy\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
-       						fprintf(stderr,"Error writing symbol\n");                     
-						return 0;
-					} 
-					counts_temp = ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
-					if (xmlTextWriterWriteFormatString(writer,"%lg",counts_temp) < 0) {
-						fprintf(stderr,"Error writing counts\n");
-						return 0;
-					}
-					counts_sum += counts_temp;
-					if (xmlTextWriterEndElement(writer) < 0) {
-						fprintf(stderr,"Error ending fluorescence_line_counts\n");
-						return 0;
-					}
-				}
-				if (counts_sum> 0.0) {
-					if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-						fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
-						fprintf(stderr,"Error writing atomic_number\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "line_type","%s",xmi_lines[j]) < 0) {
-						fprintf(stderr,"Error writing line_type\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","all") < 0) {
-						fprintf(stderr,"Error writing interaction_number\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
-						fprintf(stderr,"Error writing energy\n");
-						return 0;
-					}
-					if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
-       						fprintf(stderr,"Error writing symbol\n");                     
-						return 0;
-					} 
-					if (xmlTextWriterWriteFormatString(writer,"%lg",counts_sum) < 0) {
-						fprintf(stderr,"Error writing counts\n");
-						return 0;
-					}
-					if (xmlTextWriterEndElement(writer) < 0) {
-						fprintf(stderr,"Error ending fluorescence_line_counts\n");
-						return 0;
-					}
-				}
-			}
-		}
-
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error ending variance_reduction_history\n");
-			return 0;
-		}
+	//variance reduction history
+	if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
+		return 0;
 	}
+
+	//Z loop
+	for (i = 0 ; i < nuniqZ ; i++) {
+		//start by checking total number of counts for this element
+		counts_sum = 0.0;
+		for (j = 1 ; j <= 383 ; j++) {
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}
+		}	
+		if (counts_sum == 0.0)
+			continue;
+		//so there are counts somewhere: open element
+		if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
+			return 0;
+		}
+		//two attributes: atomic_number and element
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",uniqZ[i]) < 0) {
+			fprintf(stderr,"Error writing atomic_number\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(uniqZ[i])) < 0) {
+       			fprintf(stderr,"Error writing symbol\n");                     
+			return 0;
+		} 
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+       			fprintf(stderr,"Error writing total_counts\n");                     
+			return 0;
+		} 
+		//start with the different lines
+		//line loop
+		for (j = 1 ; j <= 383 ; j++) {
+			counts_sum = 0.0;
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}	
+			if (counts_sum == 0.0)
+				continue;
+			if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "type","%s",xmi_lines[j]) < 0) {
+				fprintf(stderr,"Error writing type\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+				fprintf(stderr,"Error writing energy\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+       				fprintf(stderr,"Error writing total_counts\n");                     
+				return 0;
+			} 
+			//interactions loop
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
+					continue;
+				if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
+					return 0;
+				}
+				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",k) < 0) {
+					fprintf(stderr,"Error writing interaction_number\n");
+					return 0;
+				}
+				counts_temp = ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+				if (xmlTextWriterWriteFormatString(writer,"%lg",counts_temp) < 0) {
+					fprintf(stderr,"Error writing counts\n");
+					return 0;
+				}
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error ending counts\n");
+					return 0;
+				}
+			}//interactions loop
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error ending fluorescence_line\n");
+				return 0;
+			}
+	
+		}//line loop
+	
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error ending fluorescence_line_counts\n");
+			return 0;
+		}
+	
+	}//Z loop
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending variance_reduction_history\n");
+		return 0;
+	}
+
+	
 	//write inputfile
 	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
 		fprintf(stderr,"Error writing xmimsim tag\n");
@@ -2669,7 +2734,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 }
 
 
-int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_fluorescence_line **brute_force_history, int *nbrute_force_history, struct xmi_fluorescence_line **var_red_history, int *nvar_red_history, double ***channels_conv, double ***channels_unconv, int *nchannels, int *ninteractions, char **inputfile, int *use_zero_interactions) {
+int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_fluorescence_line_counts **brute_force_history, int *nbrute_force_history, struct xmi_fluorescence_line_counts **var_red_history, int *nvar_red_history, double ***channels_conv, double ***channels_unconv, int *nchannels, int *ninteractions, char **inputfile, int *use_zero_interactions) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot, subsubroot;
@@ -2816,4 +2881,21 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_flu
 
 	return 1;
 }
+
+
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history) {
+	int i,j,k;
+
+	if (history == NULL)
+		return;
+
+	for (i = 0 ; i < history->n_lines ; i++) {
+		for (j = 0 ; j < history->lines[i].n_interactions ; j++) {
+			free(history[i].lines[j].interactions);
+		}
+		free(history[i].lines);
+	}
+	free(history);
+}
+
 
