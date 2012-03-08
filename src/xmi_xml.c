@@ -213,6 +213,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 	*history = (struct xmi_fluorescence_line_counts *) malloc(sizeof(struct xmi_fluorescence_line_counts)*(nchildren));
 	history_loc = *history;
 	linePtr = nodePtr->children;
+	*nhistory = nchildren;
 
 
 	counter = 0;

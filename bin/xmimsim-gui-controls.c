@@ -665,6 +665,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	
 	int kill_rv;
 	char buffer[512];
+	gboolean spinning;
 
 	gtk_widget_set_sensitive(pauseButton,FALSE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
@@ -675,6 +676,26 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		xmimsim_paused=TRUE;
 		gtk_widget_set_sensitive(stopButton,TRUE);
 		gtk_widget_set_sensitive(playButton,TRUE);
+#if GTK_CHECK_VERSION(2,20,0)
+		if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
+			g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
+			if (spinning == TRUE) {
+				gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+			}
+		}
+		if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
+			g_object_get(gtk_bin_get_child(GTK_BIN(image_mainW)),"active",&spinning,NULL);
+			if (spinning == TRUE) {
+				gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+			}
+		}
+		if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
+			g_object_get(gtk_bin_get_child(GTK_BIN(image_escapeW)),"active",&spinning,NULL);
+			if (spinning == TRUE) {
+				gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+			}
+		}
+#endif
 	}
 	else {
 		sprintf(buffer, "Process %i could not be paused.\n",(int) xmimsim_pid);
@@ -825,6 +846,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		//send SIGCONT	
 		int kill_rv;
 		char buffer[512];
+		gboolean spinning;
 
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
 		if (kill_rv == 0) {
@@ -832,6 +854,26 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 			gtk_widget_set_sensitive(pauseButton,TRUE);
 			xmimsim_paused = FALSE;
+#if GTK_CHECK_VERSION(2,20,0)
+			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
+				g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
+				if (spinning == FALSE) {
+					gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+				}
+			}
+			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
+				g_object_get(gtk_bin_get_child(GTK_BIN(image_mainW)),"active",&spinning,NULL);
+				if (spinning == FALSE) {
+					gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+				}
+			}
+			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
+				g_object_get(gtk_bin_get_child(GTK_BIN(image_escapeW)),"active",&spinning,NULL);
+				if (spinning == FALSE) {
+					gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+				}
+			}
+#endif
 		}
 		else {
 			sprintf(buffer, "Process %i could not be resumed\n",(int) xmimsim_pid);

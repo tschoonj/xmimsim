@@ -74,6 +74,7 @@ GtkWidget *export_button;
 GtkWidget *settings_button;
 
 GtkTreeStore *countsTS;
+GtkWidget *countsTV;
 
 
 struct spectra_data {
@@ -536,6 +537,8 @@ GtkWidget *init_results(GtkWidget *window) {
 	GtkWidget *magnifier_hbox;
 	gdouble magnifier;
 	gchar *default_font;
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
 
 
 
@@ -639,7 +642,30 @@ GtkWidget *init_results(GtkWidget *window) {
 					G_TYPE_DOUBLE
 					);
 
+	countsTV = gtk_tree_view_new_with_model(GTK_TREE_MODEL(countsTS));
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("Element", renderer, "text", ELEMENT_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("XRF line", renderer, "text", LINE_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+
+
+	renderer = gtk_cell_renderer_toggle_new();
+	gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer),FALSE);
+	column = gtk_tree_view_column_new_with_attributes("Show line",renderer, "active", SHOW_LINE_COLUMN,NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("# Interactions", renderer, "text", INTERACTION_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("Intensity", renderer, "text", COUNTS_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+
+	gtk_box_pack_start(GTK_BOX(superframe),countsTV,FALSE, FALSE,2);
 
 	gtk_widget_show_all(superframe);
 	
@@ -679,6 +705,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	GtkPlotData *dataset;
 	GtkTreeIter iter1, iter2, iter3;
 	char *symbol;
+	gchar *txt;
 
 
 
@@ -903,6 +930,8 @@ int plot_spectra_from_file(char *xmsofile) {
 
 	}
 	else if (results_var_red_history != NULL) {
+		fprintf(stdout,"adding variance reduction history: %i\n",results_nvar_red_history);
+
 		//variance reduction mode
 		
 		for (i = 0 ; i < results_nvar_red_history ; i++) {
@@ -927,10 +956,12 @@ int plot_spectra_from_file(char *xmsofile) {
 					-1);
 				for (k = 0 ; k < results_var_red_history[i].lines[j].n_interactions ; k++) {
 					gtk_tree_store_append(countsTS, &iter3, &iter2);
+					txt = g_strdup_printf("%i",results_var_red_history[i].lines[j].interactions[k].interaction_number);
 					gtk_tree_store_set(countsTS, &iter3,
-						INTERACTION_COLUMN, "all",
-						COUNTS_COLUMN, results_var_red_history[i].lines[j].interactions[k],
+						INTERACTION_COLUMN,txt,
+						COUNTS_COLUMN, results_var_red_history[i].lines[j].interactions[k].counts,
 						-1);
+					g_free(txt);
 				}
 			}
 		}
