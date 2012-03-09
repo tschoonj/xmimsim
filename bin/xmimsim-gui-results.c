@@ -87,6 +87,7 @@ enum {
 	ELEMENT_COLUMN,
 	LINE_COLUMN,
 	SHOW_LINE_COLUMN,
+	CONSISTENT_COLUMN,
 	INTERACTION_COLUMN,
 	COUNTS_COLUMN,
 	N_COLUMNS
@@ -95,6 +96,129 @@ enum {
 
 void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
+
+void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+
+	gdouble intensity;
+	gchar *double_text;
+
+	gtk_tree_model_get(tree_model,iter, COUNTS_COLUMN, &intensity,-1);
+
+	double_text = g_strdup_printf("%lg",intensity);
+	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
+
+	return;
+}
+
+void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpointer user_data) {
+	GtkTreeIter iter, parent, child;
+	GtkTreePath *tree_path = gtk_tree_path_new_from_string(path);
+	gboolean toggled, inconsistent;
+	gint depth;
+
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(countsTS), &iter, tree_path);
+	depth = gtk_tree_store_iter_depth(countsTS,&iter);
+	gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &iter, SHOW_LINE_COLUMN, &toggled, -1);
+
+
+	//if depth == 0, then check consistency first!!!
+	if (depth == 0) {
+		g_object_get(G_OBJECT(cell_renderer), "inconsistent", &inconsistent, NULL);
+		if (inconsistent) {
+			gtk_tree_store_set(countsTS, &iter, CONSISTENT_COLUMN, TRUE, -1);
+			//set all children TRUE
+			gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
+			do {
+				gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
+			} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
+		}
+		else {
+			if (toggled) {
+				gtk_tree_store_set(countsTS, &iter, SHOW_LINE_COLUMN, FALSE, -1);
+				//set all children to FALSE
+				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
+				do {
+					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, FALSE, -1);
+				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
+			}
+			else {
+				gtk_tree_store_set(countsTS, &iter, SHOW_LINE_COLUMN, TRUE, -1);
+				//set all children to TRUE
+				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
+				do {
+					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
+				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
+			}
+		}
+
+
+	}
+	else {
+		if (toggled == TRUE)
+			toggled = FALSE;
+		else
+			toggled = TRUE;
+
+		gtk_tree_store_set(countsTS, &iter, SHOW_LINE_COLUMN, toggled, -1);
+		//set parent as inconsistent!!
+		gtk_tree_model_iter_parent(GTK_TREE_MODEL(countsTS), &parent, &iter);
+		gtk_tree_store_set(countsTS, &parent, CONSISTENT_COLUMN, FALSE, -1);
+	}
+	
+
+
+
+
+	fprintf(stdout,"toggle path: %s toggled: %i\n",path, toggled);
+
+
+
+	gtk_tree_path_free(tree_path);
+
+	return;
+}
+
+void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+	
+	GtkTreePath *path;
+	gint depth;
+	gboolean show_line, consistent;
+
+	depth = gtk_tree_store_iter_depth(countsTS, iter);
+
+
+	if (depth == 2) {
+		//set invisible
+		g_object_set(G_OBJECT(renderer), "visible",FALSE, NULL);
+		g_object_set(G_OBJECT(renderer), "activatable",FALSE, NULL);
+	}
+	else if (depth == 1) {
+		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
+		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+		gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
+		g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
+
+	}
+	else {
+		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
+		gtk_tree_model_get(tree_model,iter, CONSISTENT_COLUMN, &consistent,-1);
+		if (consistent) {
+			gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
+			g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
+		}
+		else {
+			g_object_set(G_OBJECT(renderer), "inconsistent", TRUE, NULL);
+		}
+		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+	}
+
+
+
+	return;
+}
 
 static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble y1, gdouble x2, gdouble y2, gpointer data) {
 
@@ -638,6 +762,7 @@ GtkWidget *init_results(GtkWidget *window) {
 					G_TYPE_STRING,
 					G_TYPE_STRING,
 					G_TYPE_BOOLEAN,
+					G_TYPE_BOOLEAN,
 					G_TYPE_STRING,
 					G_TYPE_DOUBLE
 					);
@@ -654,18 +779,37 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	renderer = gtk_cell_renderer_toggle_new();
 	gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer),FALSE);
-	column = gtk_tree_view_column_new_with_attributes("Show line",renderer, "active", SHOW_LINE_COLUMN,NULL);
+	gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer),TRUE);
+	g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(cell_active_toggle), NULL);
+	/*column = gtk_tree_view_column_new_with_attributes("Show line",renderer, "active", SHOW_LINE_COLUMN,NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);*/
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column,"Show line");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_visible_toggle, NULL, NULL);
+
+
+
 
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes("# Interactions", renderer, "text", INTERACTION_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("Intensity", renderer, "text", COUNTS_COLUMN, NULL);
+	/*column = gtk_tree_view_column_new_with_attributes("Intensity", renderer, "text", COUNTS_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);*/
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column,"Intensity");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, NULL, NULL);
 
-	gtk_box_pack_start(GTK_BOX(superframe),countsTV,FALSE, FALSE,2);
+	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), countsTV);
+
+	gtk_box_pack_start(GTK_BOX(superframe),scrolled_window,TRUE, TRUE,2);
 
 	gtk_widget_show_all(superframe);
 	
@@ -942,6 +1086,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",
 				SHOW_LINE_COLUMN, TRUE,
+				CONSISTENT_COLUMN, TRUE,
 				INTERACTION_COLUMN, "all",
 				COUNTS_COLUMN, results_var_red_history[i].total_counts,
 				-1);
@@ -951,6 +1096,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				gtk_tree_store_set(countsTS, &iter2,
 					LINE_COLUMN, results_var_red_history[i].lines[j].line_type,
 					SHOW_LINE_COLUMN, TRUE,
+					CONSISTENT_COLUMN, TRUE,
 					INTERACTION_COLUMN, "all",
 					COUNTS_COLUMN, results_var_red_history[i].lines[j].total_counts,
 					-1);
