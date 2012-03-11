@@ -86,8 +86,10 @@ struct spectra_data {
 enum {
 	ELEMENT_COLUMN,
 	LINE_COLUMN,
+	ENERGY_COLUMN,
 	SHOW_LINE_COLUMN,
 	CONSISTENT_COLUMN,
+	CHILD_COLUMN,
 	INTERACTION_COLUMN,
 	COUNTS_COLUMN,
 	N_COLUMNS
@@ -99,12 +101,24 @@ gchar *get_style_font(GtkWidget *widget);
 
 void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 
-	gdouble intensity;
+	gdouble value;
 	gchar *double_text;
+	gint depth;
 
-	gtk_tree_model_get(tree_model,iter, COUNTS_COLUMN, &intensity,-1);
+	if (GPOINTER_TO_INT(data) == ENERGY_COLUMN) {
+		depth = gtk_tree_store_iter_depth(countsTS,iter);
+		if (depth != 1) {
+			g_object_set(G_OBJECT(renderer), "visible",FALSE, NULL);
+			return;
+		}
+		else 
+			g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
+	}
 
-	double_text = g_strdup_printf("%lg",intensity);
+
+	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
+
+	double_text = g_strdup_printf("%lg",value);
 	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
 
 	return;
@@ -113,8 +127,9 @@ void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, Gtk
 void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpointer user_data) {
 	GtkTreeIter iter, parent, child;
 	GtkTreePath *tree_path = gtk_tree_path_new_from_string(path);
-	gboolean toggled, inconsistent;
+	gboolean toggled, inconsistent, toggled2;
 	gint depth;
+	GtkPlotData *plot_data;
 
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(countsTS), &iter, tree_path);
@@ -130,6 +145,8 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 			//set all children TRUE
 			gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 			do {
+				gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
+				gtk_widget_show(GTK_WIDGET(plot_data));
 				gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
 			} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
 		}
@@ -139,6 +156,8 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 				//set all children to FALSE
 				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 				do {
+					gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
+					gtk_widget_hide(GTK_WIDGET(plot_data));
 					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, FALSE, -1);
 				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
 			}
@@ -147,6 +166,8 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 				//set all children to TRUE
 				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 				do {
+					gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
+					gtk_widget_show(GTK_WIDGET(plot_data));
 					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
 				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
 			}
@@ -161,11 +182,43 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 			toggled = TRUE;
 
 		gtk_tree_store_set(countsTS, &iter, SHOW_LINE_COLUMN, toggled, -1);
-		//set parent as inconsistent!!
+		//set parent as inconsistent if necessary!!
 		gtk_tree_model_iter_parent(GTK_TREE_MODEL(countsTS), &parent, &iter);
-		gtk_tree_store_set(countsTS, &parent, CONSISTENT_COLUMN, FALSE, -1);
+		//check all children
+		gint n_children=gtk_tree_model_iter_n_children(GTK_TREE_MODEL(countsTS),&parent);
+		gint toggle_sum=0;
+		gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &parent);
+		do {
+			gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, SHOW_LINE_COLUMN, &toggled2, -1);
+			toggle_sum += toggled2;
+		} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));	
+	
+		
+
+		if (toggle_sum == 0) {
+			gtk_tree_store_set(countsTS, &parent, CONSISTENT_COLUMN, TRUE, SHOW_LINE_COLUMN, FALSE, -1);
+		}
+		else if (toggle_sum == n_children) {
+			gtk_tree_store_set(countsTS, &parent, CONSISTENT_COLUMN, TRUE, SHOW_LINE_COLUMN, TRUE, -1);
+		}
+		else
+			gtk_tree_store_set(countsTS, &parent, CONSISTENT_COLUMN, FALSE, -1);
+
+		//draw or remove line
+		gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &iter, CHILD_COLUMN, &plot_data, -1);
+		if (toggled) {
+			gtk_widget_show(GTK_WIDGET(plot_data));
+		}
+		else {
+			gtk_widget_hide(GTK_WIDGET(plot_data));
+		}
+
 	}
 	
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	//gtk_plot_paint(GTK_PLOT(plot_window));
 
 
 
@@ -192,16 +245,21 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 		//set invisible
 		g_object_set(G_OBJECT(renderer), "visible",FALSE, NULL);
 		g_object_set(G_OBJECT(renderer), "activatable",FALSE, NULL);
+		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 	}
 	else if (depth == 1) {
+		g_object_set(G_OBJECT(renderer), "activatable",TRUE, NULL);
 		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
 		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
 		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+		g_object_set(G_OBJECT(renderer), "inconsistent", FALSE, NULL);
 		gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
 		g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
 
 	}
 	else {
+		g_object_set(G_OBJECT(renderer), "activatable",TRUE, NULL);
 		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
 		gtk_tree_model_get(tree_model,iter, CONSISTENT_COLUMN, &consistent,-1);
 		if (consistent) {
@@ -216,6 +274,8 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 	}
 
 
+	g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+	g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 
 	return;
 }
@@ -255,6 +315,21 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	fprintf(stdout,"ymin: %lf\n",ymin);
 	fprintf(stdout,"ymax: %lf\n",ymax);
 
+	xmin = MAX(xmin,plot_xmin);
+	xmax = MIN(xmax,plot_xmax);
+	ymin = MAX(ymin,plot_ymin);
+	ymax = MIN(ymax,plot_ymax);
+
+	if (xmax < plot_xmin)
+		return;
+	else if (xmin > plot_xmax)
+		return;
+	else if (ymax < plot_ymin)
+		return;
+	else if (ymin > plot_ymax)
+		return;
+
+
 	gtk_plot_set_range(GTK_PLOT(plot_window), xmin,xmax,ymin,ymax);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
@@ -271,13 +346,13 @@ gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gp
 	fprintf(stdout,"Entering spectra_region_double_clicked\n");
 	if (event->type == GDK_2BUTTON_PRESS) {
 		fprintf(stdout,"Double click registered\n");
+		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+		gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+		gtk_widget_queue_draw(GTK_WIDGET(canvas));
+		gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	}
 	
 
-	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-	gtk_widget_queue_draw(GTK_WIDGET(canvas));
-	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 
 	return FALSE;
 }
@@ -761,8 +836,10 @@ GtkWidget *init_results(GtkWidget *window) {
 	countsTS = gtk_tree_store_new(N_COLUMNS,
 					G_TYPE_STRING,
 					G_TYPE_STRING,
+					G_TYPE_DOUBLE,
 					G_TYPE_BOOLEAN,
 					G_TYPE_BOOLEAN,
+					G_TYPE_PLOT_DATA,
 					G_TYPE_STRING,
 					G_TYPE_DOUBLE
 					);
@@ -776,6 +853,12 @@ GtkWidget *init_results(GtkWidget *window) {
 	column = gtk_tree_view_column_new_with_attributes("XRF line", renderer, "text", LINE_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column,"Energy");
+	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
+	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, GINT_TO_POINTER(ENERGY_COLUMN), NULL);
 
 	renderer = gtk_cell_renderer_toggle_new();
 	gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer),FALSE);
@@ -797,13 +880,11 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	/*column = gtk_tree_view_column_new_with_attributes("Intensity", renderer, "text", COUNTS_COLUMN, NULL);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);*/
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column,"Intensity");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, NULL, NULL);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, GINT_TO_POINTER(COUNTS_COLUMN), NULL);
 
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -850,6 +931,9 @@ int plot_spectra_from_file(char *xmsofile) {
 	GtkTreeIter iter1, iter2, iter3;
 	char *symbol;
 	gchar *txt;
+	GtkPlotData *plot_data;
+	gdouble *plot_data_x;
+	gdouble *plot_data_y;
 
 
 
@@ -1085,19 +1169,37 @@ int plot_spectra_from_file(char *xmsofile) {
 			gtk_tree_store_set(countsTS, &iter1, 
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",
-				SHOW_LINE_COLUMN, TRUE,
+				SHOW_LINE_COLUMN, FALSE,
 				CONSISTENT_COLUMN, TRUE,
 				INTERACTION_COLUMN, "all",
 				COUNTS_COLUMN, results_var_red_history[i].total_counts,
 				-1);
 			xrlFree(symbol);
 			for (j = 0 ; j < results_var_red_history[i].n_lines ; j++) {
+				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
+				plot_data_x = malloc(sizeof(gdouble)*2);
+				plot_data_y = malloc(sizeof(gdouble)*2);
+				gtk_plot_data_set_numpoints(plot_data,2);
+				gtk_plot_data_set_x(plot_data,plot_data_x);
+				gtk_plot_data_set_y(plot_data,plot_data_y);
+				plot_data_x[0] = results_var_red_history[i].lines[j].energy;
+				plot_data_x[1] = results_var_red_history[i].lines[j].energy;
+				plot_data_y[0] = plot_ymin;
+				plot_data_y[1] = plot_ymax;
+				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
+
+				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
+				gtk_widget_hide(GTK_WIDGET(plot_data));
+
+
 				gtk_tree_store_append(countsTS, &iter2, &iter1);
 				gtk_tree_store_set(countsTS, &iter2,
 					LINE_COLUMN, results_var_red_history[i].lines[j].line_type,
-					SHOW_LINE_COLUMN, TRUE,
+					ENERGY_COLUMN, results_var_red_history[i].lines[j].energy,
+					SHOW_LINE_COLUMN, FALSE,
 					CONSISTENT_COLUMN, TRUE,
 					INTERACTION_COLUMN, "all",
+					CHILD_COLUMN, plot_data,	
 					COUNTS_COLUMN, results_var_red_history[i].lines[j].total_counts,
 					-1);
 				for (k = 0 ; k < results_var_red_history[i].lines[j].n_interactions ; k++) {
@@ -1127,7 +1229,6 @@ int plot_spectra_from_file(char *xmsofile) {
 
 
 void init_spectra_properties(GtkWidget *parent) {
-
 
 
 	spectra_propertiesW = gtk_dialog_new_with_buttons(NULL, GTK_WINDOW(parent), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,NULL);
@@ -1198,16 +1299,5 @@ gchar *get_style_font(GtkWidget *widget) {
 
 	return g_strdup(pango_font_description_get_family(font_desc));
 } 
-
-/*
- *
- *
- * Functions related to the list containing all counts 
- * of all interactions of all lines of all elements
- *
- *
- */
-
-
 
 
