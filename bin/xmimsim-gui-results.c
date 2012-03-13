@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui.h"
 #include "xmi_aux.h"
 #include <stdlib.h>
 #include <string.h>
@@ -99,7 +100,7 @@ enum {
 void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
 
-void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+static void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 
 	gdouble value;
 	gchar *double_text;
@@ -120,6 +121,8 @@ void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, Gtk
 
 	double_text = g_strdup_printf("%lg",value);
 	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
+
+	g_free(double_text);
 
 	return;
 }
@@ -245,14 +248,14 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 		//set invisible
 		g_object_set(G_OBJECT(renderer), "visible",FALSE, NULL);
 		g_object_set(G_OBJECT(renderer), "activatable",FALSE, NULL);
-		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 	}
 	else if (depth == 1) {
 		g_object_set(G_OBJECT(renderer), "activatable",TRUE, NULL);
 		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
-		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 		g_object_set(G_OBJECT(renderer), "inconsistent", FALSE, NULL);
 		gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
 		g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
@@ -269,13 +272,13 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 		else {
 			g_object_set(G_OBJECT(renderer), "inconsistent", TRUE, NULL);
 		}
-		g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 	}
 
 
-	g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-	g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+	//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+	//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 
 	return;
 }
@@ -846,21 +849,25 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	countsTV = gtk_tree_view_new_with_model(GTK_TREE_MODEL(countsTS));
 	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Element", renderer, "text", ELEMENT_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("XRF line", renderer, "text", LINE_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column,"Energy");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, GINT_TO_POINTER(ENERGY_COLUMN), NULL);
 
 	renderer = gtk_cell_renderer_toggle_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer),FALSE);
 	gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer),TRUE);
 	g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(cell_active_toggle), NULL);
@@ -869,13 +876,14 @@ GtkWidget *init_results(GtkWidget *window) {
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column,"Show line");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_visible_toggle, NULL, NULL);
 
 
 
 
 	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("# Interactions", renderer, "text", INTERACTION_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
@@ -883,7 +891,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column,"Intensity");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, GINT_TO_POINTER(COUNTS_COLUMN), NULL);
 
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
@@ -939,11 +947,11 @@ int plot_spectra_from_file(char *xmsofile) {
 
 	//free memory if necessary
 	if (results_input != NULL)
-		free(results_input);
+		xmi_free_input(results_input);
 	if (results_brute_force_history != NULL)
-		xmi_free_fluorescence_line_counts(results_brute_force_history);
+		xmi_free_fluorescence_line_counts(results_brute_force_history, results_nbrute_force_history);
 	if (results_var_red_history != NULL)
-		xmi_free_fluorescence_line_counts(results_var_red_history);
+		xmi_free_fluorescence_line_counts(results_var_red_history, results_nvar_red_history);
 	if (results_channels_conv != NULL)
 		free(results_channels_conv);
 	if (results_channels_unconv != NULL)
@@ -1154,8 +1162,57 @@ int plot_spectra_from_file(char *xmsofile) {
 	//treestore stuff
 	if (results_brute_force_history != NULL) {
 		//brute force mode	
-		
+		for (i = 0 ; i < results_nbrute_force_history ; i++) {
+			//iterating over atomic numbers -> highest level
+			gtk_tree_store_append(countsTS, &iter1, NULL);
+			symbol = AtomicNumberToSymbol(results_brute_force_history[i].atomic_number);
+			gtk_tree_store_set(countsTS, &iter1, 
+				ELEMENT_COLUMN, symbol,
+				LINE_COLUMN , "all",
+				SHOW_LINE_COLUMN, FALSE,
+				CONSISTENT_COLUMN, TRUE,
+				INTERACTION_COLUMN, "all",
+				COUNTS_COLUMN, results_brute_force_history[i].total_counts,
+				-1);
+			xrlFree(symbol);
+			for (j = 0 ; j < results_brute_force_history[i].n_lines ; j++) {
+				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
+				plot_data_x = malloc(sizeof(gdouble)*2);
+				plot_data_y = malloc(sizeof(gdouble)*2);
+				gtk_plot_data_set_numpoints(plot_data,2);
+				gtk_plot_data_set_x(plot_data,plot_data_x);
+				gtk_plot_data_set_y(plot_data,plot_data_y);
+				plot_data_x[0] = results_brute_force_history[i].lines[j].energy;
+				plot_data_x[1] = results_brute_force_history[i].lines[j].energy;
+				plot_data_y[0] = plot_ymin;
+				plot_data_y[1] = plot_ymax;
+				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
 
+				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
+				gtk_widget_hide(GTK_WIDGET(plot_data));
+
+
+				gtk_tree_store_append(countsTS, &iter2, &iter1);
+				gtk_tree_store_set(countsTS, &iter2,
+					LINE_COLUMN, results_brute_force_history[i].lines[j].line_type,
+					ENERGY_COLUMN, results_brute_force_history[i].lines[j].energy,
+					SHOW_LINE_COLUMN, FALSE,
+					CONSISTENT_COLUMN, TRUE,
+					INTERACTION_COLUMN, "all",
+					CHILD_COLUMN, plot_data,	
+					COUNTS_COLUMN, results_brute_force_history[i].lines[j].total_counts,
+					-1);
+				for (k = 0 ; k < results_brute_force_history[i].lines[j].n_interactions ; k++) {
+					gtk_tree_store_append(countsTS, &iter3, &iter2);
+					txt = g_strdup_printf("%i",results_brute_force_history[i].lines[j].interactions[k].interaction_number);
+					gtk_tree_store_set(countsTS, &iter3,
+						INTERACTION_COLUMN,txt,
+						COUNTS_COLUMN, results_brute_force_history[i].lines[j].interactions[k].counts,
+						-1);
+					g_free(txt);
+				}
+			}
+		}
 	}
 	else if (results_var_red_history != NULL) {
 		fprintf(stdout,"adding variance reduction history: %i\n",results_nvar_red_history);

@@ -74,7 +74,7 @@ int xmi_read_output_xml(	char *xmsofile,
 				char **inputfile,
 				int *use_zero_interactions);
 
-void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history);
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
 
 
 #endif

@@ -1098,6 +1098,20 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 	return;
 }
 
+static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+	gdouble value;
+	gchar *double_text;
+
+	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
+
+	double_text = g_strdup_printf("%lg",value);
+	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
+
+	g_free(double_text);
+
+	return;
+
+}
 
 
 
@@ -1193,19 +1207,29 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//need to come up with a way to get pango markup here...
-	column = gtk_tree_view_column_new_with_attributes("Density (cm2/g)", renderer,"text",DENSITY_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Density (g/cm3)", renderer,"text",DENSITY_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Density (g/cm3)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, layer_print_double, GINT_TO_POINTER(DENSITY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Thickness (cm)", renderer,"text",THICKNESS_COLUMN,NULL);
+	g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+	//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Thickness (cm)", renderer,"text",THICKNESS_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Thickness (cm)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, layer_print_double, GINT_TO_POINTER(THICKNESS_COLUMN),NULL);
 
 	
 	if (kind == COMPOSITION) {
@@ -1226,7 +1250,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
 	gtk_widget_set_size_request(scrolledWindow, 550,100);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledWindow), tree);
+	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
 	
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
@@ -3172,7 +3196,7 @@ int main (int argc, char *argv[]) {
 	gtk_text_buffer_set_text(commentsBuffer,current->xi->general->comments,-1);
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), commentsW);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), commentsW);
 	gtk_widget_set_size_request(scrolled_window,700,100);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),scrolled_window,FALSE,FALSE,0);
 
@@ -4164,7 +4188,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog = NULL;
-	GtkFileFilter *filter;
+	GtkFileFilter *filter1, *filter2;
 	char *filename;
 	struct xmi_input *xi;
 	struct undo_single *check_rv;
@@ -4256,19 +4280,25 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsi");
-	gtk_file_filter_set_name(filter,"XMI MSIM inputfiles");
-	dialog = gtk_file_chooser_dialog_new ("Open simulation inputfile",
+	filter1 = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter1,"*.xmsi");
+	gtk_file_filter_set_name(filter1,"XMI MSIM inputfiles");
+	filter2 = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter2,"*.xmso");
+	gtk_file_filter_set_name(filter2,"XMI MSIM outputfiles");
+	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 		NULL);
-		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
 																
-		if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-			filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		//get filetype
+		if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter1) {
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
 				change_all_values(xi);
@@ -4293,9 +4323,35 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	                	);
 	     			gtk_dialog_run (GTK_DIALOG (dialog));
 			}
-			g_free (filename);							
 		}
-		gtk_widget_destroy (dialog);
+		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter2) {
+			
+			if (plot_spectra_from_file(filename) == 1) {
+				xmi_copy_input(results_input,&xi);
+				change_all_values(xi);
+				//reset redo_buffer
+				reset_undo_buffer(xi, results_inputfile);	
+
+				title = (char *) malloc(sizeof(char)*(strlen(results_inputfile)+11));
+				strcpy(title,"XMI MSIM: ");
+				strcat(title,results_inputfile);
+				gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+				free(title);
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not read file %s",filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+			}
+		}
+		g_free (filename);							
+	}
+	gtk_widget_destroy (dialog);
 }
 
 int check_changeables(void) {

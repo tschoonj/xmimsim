@@ -2884,14 +2884,14 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_flu
 }
 
 
-void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history) {
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory) {
 	int i,j,k;
 
 	if (history == NULL)
 		return;
 
-	for (i = 0 ; i < history->n_lines ; i++) {
-		for (j = 0 ; j < history->lines[i].n_interactions ; j++) {
+	for (i = 0 ; i < nhistory ; i++) {
+		for (j = 0 ; j < history[i].n_lines ; j++) {
 			free(history[i].lines[j].interactions);
 		}
 		free(history[i].lines);

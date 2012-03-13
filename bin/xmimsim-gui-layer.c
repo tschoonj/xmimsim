@@ -777,7 +777,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
 	gtk_widget_set_size_request(scrolledWindow, 220,150);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledWindow), tree);
+	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(HBox),scrolledWindow, FALSE, FALSE,3 );
 
 	//selections
@@ -830,7 +830,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	//Density and thickness
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label),"Density (cm<sup>2</sup>/g)");
+	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
 	densityEntry = gtk_entry_new();
 	rv->densityG =g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);

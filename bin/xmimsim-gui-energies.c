@@ -79,6 +79,22 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 	return TRUE;
 }
 
+
+static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+	gdouble value;
+	gchar *double_text;
+
+	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
+
+	double_text = g_strdup_printf("%lg",value);
+	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
+
+	g_free(double_text);
+
+	return;
+
+}
+
 void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct energyWidget *ew = (struct energyWidget *) data;
 	
@@ -304,60 +320,90 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	}
 
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Energy (keV)", renderer,"text",ENERGY_COLUMN,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
-	gtk_tree_view_column_set_alignment(column, 0.5);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Horizontal intensity (ph/s)", renderer,"text",HOR_INTENSITY_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Energy (keV)", renderer,"text",ENERGY_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Energy (keV)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(ENERGY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Vertical intensity (ph/s)", renderer,"text",VER_INTENSITY_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Horizontal intensity (ph/s)", renderer,"text",HOR_INTENSITY_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Horizontal intensity (ph/s)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(HOR_INTENSITY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma x (cm)", renderer,"text",SIGMA_X_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Vertical intensity (ph/s)", renderer,"text",VER_INTENSITY_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Vertical intensity (ph/s)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(VER_INTENSITY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma y (cm)", renderer,"text",SIGMA_Y_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Sigma x (cm)", renderer,"text",SIGMA_X_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Sigma x (cm)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_X_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma xp (rad)", renderer,"text",SIGMA_XP_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Sigma y (cm)", renderer,"text",SIGMA_Y_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Sigma y (cm)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_Y_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Sigma yp (rad)", renderer,"text",SIGMA_YP_COLUMN,NULL);
+	//column = gtk_tree_view_column_new_with_attributes("Sigma xp (rad)", renderer,"text",SIGMA_XP_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Sigma xp (rad)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_XP_COLUMN),NULL);
+
+
+	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	//column = gtk_tree_view_column_new_with_attributes("Sigma yp (rad)", renderer,"text",SIGMA_YP_COLUMN,NULL);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, "Sigma yp (rad)");
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_YP_COLUMN),NULL);
 
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
 	gtk_widget_set_size_request(scrolledWindow, 700,100);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledWindow), tree);
+	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
 
 	eb = (struct energyButtons *) malloc(sizeof(struct energyButtons));

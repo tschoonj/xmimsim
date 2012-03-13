@@ -306,6 +306,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 struct child_data {
 	char *outputfile;
 	gchar **argv;
+	GtkWidget *window;
 };
 
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *cd) {
@@ -381,7 +382,16 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-	plot_spectra_from_file(cd->outputfile);
+	if(plot_spectra_from_file(cd->outputfile) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(cd->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+		        GTK_MESSAGE_ERROR,
+		        GTK_BUTTONS_CLOSE,
+		        "Could not read file %s",cd->outputfile
+	                );
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	
+	}
 
 	
 
@@ -462,7 +472,7 @@ gchar ** g_get_environ (void) {
 
 
 
-void start_job(struct undo_single *xmimsim_struct) {
+void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gchar **argv;
 	gchar **env;
 	gchar *wd;
@@ -629,6 +639,7 @@ void start_job(struct undo_single *xmimsim_struct) {
 	cd = (struct child_data *) malloc(sizeof(struct child_data));
 	cd->outputfile = xmimsim_struct->xi->general->outputfile;
 	cd->argv = argv;
+	cd->window = window;
 
 	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
 	
@@ -943,7 +954,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					last_saved->filename = strdup(filename);
 					free(filename);
 					gtk_widget_destroy (dialog);
-					start_job(last_saved);
+					start_job(last_saved, (GtkWidget *) data);
 					break;
 				}
 				else {
@@ -967,7 +978,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				//proceed without updating the file (which is probably stupid)
 				//launch simulation...
 				gtk_widget_destroy(dialog);
-				start_job(check_rv);
+				start_job(check_rv, (GtkWidget *) data);
 				break;
 
 
@@ -977,7 +988,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
 		//current version corresponds to saved version
 		//launch simulation...
-		start_job(check_rv);
+		start_job(check_rv, (GtkWidget *) data);
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
 		//hmmm... send user back to first page with error message
