@@ -55,6 +55,7 @@ GtkWidget *spectra_button_box; //VButtonBox
 GtkWidget *canvas;
 GtkWidget *plot_window;
 GtkWidget *magnifierW;
+gint canvas_height;
 
 GtkWidget *spectra_propertiesW;
 GtkWidget *spectra_properties_linestyleW;
@@ -99,6 +100,28 @@ enum {
 
 void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
+
+
+gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
+	GtkWidget *paned = (GtkWidget *) data;
+	gdouble magnifier;
+
+	gint width = widget->allocation.height;
+	if (width == canvas_height)
+		return;
+	magnifier = (gdouble) width/((gdouble) GTK_PLOT_A4_W);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(magnifierW), magnifier);
+
+	gtk_plot_canvas_set_magnification(GTK_PLOT_CANVAS(canvas),magnifier);
+
+	gtk_widget_queue_resize(GTK_WIDGET(canvas));
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+
+	canvas_height = widget->allocation.height;
+
+	return FALSE;
+}
 
 static void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 
@@ -399,6 +422,8 @@ static void magnifier_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) 
 	gtk_widget_queue_resize(GTK_WIDGET(canvas));
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+
+	canvas_height = canvas->allocation.height;
 
 	return;
 }
@@ -731,9 +756,10 @@ static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer d
 GtkWidget *init_results(GtkWidget *window) {
 
 	
-	GtkWidget *superframe;
 	GtkWidget *graphics_hbox;
 	GtkWidget *scrolled_window;
+	GtkWidget *paned = gtk_vpaned_new();
+	GtkWidget *frame;
 
 	GtkWidget *spectra_box;//VBox
 	GtkWidget *magnifier_hbox;
@@ -762,11 +788,13 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	magnifier = 0.75;
 
-	superframe = gtk_vbox_new(FALSE,2);
+	//superframe = gtk_vbox_new(FALSE,2);
 	graphics_hbox = gtk_hbox_new(FALSE,2); 
 	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W,magnifier);
+	canvas_height = 0;
 	g_signal_connect(G_OBJECT(canvas),"select-region",G_CALLBACK(spectra_region_changed_cb),NULL);
 	g_signal_connect(G_OBJECT(canvas),"button-press-event",G_CALLBACK(spectra_region_double_clicked_cb),NULL);
+	g_signal_connect(G_OBJECT(canvas),"expose-event", G_CALLBACK(resize_canvas_cb),paned);
 	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
 	gtk_box_pack_start(GTK_BOX(graphics_hbox),canvas,FALSE,FALSE,2);
@@ -818,8 +846,12 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_box_pack_end(GTK_BOX(graphics_hbox),spectra_box,TRUE,FALSE,2);
 	gtk_widget_show_all(spectra_box);
 
-	gtk_box_pack_start(GTK_BOX(superframe),graphics_hbox,FALSE,FALSE,2);
-	
+	//gtk_box_pack_start(GTK_BOX(superframe),graphics_hbox,FALSE,FALSE,2);
+	frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+	gtk_container_add(GTK_CONTAINER(frame), graphics_hbox);
+	gtk_widget_set_size_request(frame,-1, (gint) (GTK_PLOT_A4_W*0.25));
+	gtk_paned_pack1(GTK_PANED(paned), frame, TRUE, FALSE);
 
 	//set current results variables to NULL
 	results_input = NULL;
@@ -898,14 +930,19 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), countsTV);
 
-	gtk_box_pack_start(GTK_BOX(superframe),scrolled_window,TRUE, TRUE,2);
+	//gtk_box_pack_start(GTK_BOX(superframe),scrolled_window,TRUE, TRUE,2);
+	frame = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(frame), scrolled_window);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+	gtk_paned_pack2(GTK_PANED(paned), frame, TRUE, FALSE);
 
-	gtk_widget_show_all(superframe);
+	gtk_widget_show_all(paned);
+
 	
 	//finalize widget
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), paned);
 
 
 	init_spectra_properties(window);
