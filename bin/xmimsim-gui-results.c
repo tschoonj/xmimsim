@@ -107,8 +107,10 @@ gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	gdouble magnifier;
 
 	gint width = widget->allocation.height;
+	//return if nothing changed, expose event calls occur with frame rate
 	if (width == canvas_height)
-		return;
+		return FALSE;
+
 	magnifier = (gdouble) width/((gdouble) GTK_PLOT_A4_W);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(magnifierW), magnifier);
 
@@ -119,6 +121,7 @@ gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 
 	canvas_height = widget->allocation.height;
+
 
 	return FALSE;
 }
