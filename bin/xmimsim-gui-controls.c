@@ -445,6 +445,7 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 }
 
 #if !GLIB_CHECK_VERSION(2,28,0)
+extern char **environ;
 gchar ** g_get_environ (void) {
 #ifndef G_OS_WIN32
   return g_strdupv (environ);
