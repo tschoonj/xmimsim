@@ -311,6 +311,7 @@ struct child_data {
 
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *cd) {
 	char buffer[512];
+	int success;
 
 
 	gchar *data = cd->argv[0];
@@ -326,29 +327,35 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 		if (WEXITSTATUS(status) == 0) { /* child was terminated due to a call to exit */
 			sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
+			success = 1;
 		}
 		else {
 			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, WEXITSTATUS(status));
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			success = 0;
 		}
 	}
 	else if (WIFSIGNALED(status)) { /* child was terminated due to a signal */
 		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",data, (int) xmimsim_pid, WTERMSIG(status));
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		success = 0;
 	}
 	else {
 		sprintf(buffer, "%s with process id %i was terminated in some special way\n",data, (int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		success = 0;
 	}
 
 #elif defined(G_OS_WIN32)
 	if (status == 0) {
 		sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
+		success = 1;
 	}
 	else {
 		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, status);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		success = 0;
 	}
 #endif
 
@@ -380,7 +387,10 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
+	if (!success)
+		return; 
 
+	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 	if(plot_spectra_from_file(cd->outputfile) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(cd->window),
