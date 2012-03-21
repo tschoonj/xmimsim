@@ -255,7 +255,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
         
         IF (options%verbose == 1_C_INT)&
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Calculating escape peaks'&
                 //C_NULL_CHAR,-1_C_INT)
 #else
@@ -275,7 +275,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         !sum peaks
         IF (options%use_sum_peaks == 1_C_INT) THEN
                 IF (options%verbose == 1_C_INT)&
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                         CALL xmi_print_progress('Calculating pile-up'&
                         //C_NULL_CHAR, -1_C_INT)
 #else
@@ -287,7 +287,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         R = 0.0_C_DOUBLE
 
         IF (options%verbose == 1_C_INT)&
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Applying Gaussian convolution'&
                 //C_NULL_CHAR,-1_C_INT)
 #else
