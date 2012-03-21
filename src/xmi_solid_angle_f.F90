@@ -175,8 +175,13 @@ BIND(C,NAME='xmi_solid_angle_calculation')
           IF (grid_done*100/grid_dims_r_n&
           == REAL(grid_done*100)/REAL(grid_dims_r_n) .AND.&
           options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+                CALL xmi_print_progress('Solid angle calculation at'&
+                //C_NULL_CHAR,INT(grid_done*100/grid_dims_r_n,KIND=C_INT))
+#else
                 WRITE (output_unit,'(A,I3,A)')&
                 'Solid angle calculation at ',grid_done*100/grid_dims_r_n,' %'
+#endif
           CALL omp_unset_lock(omp_lock)
         ENDDO
 
@@ -205,8 +210,13 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_anglePtr = C_LOC(solid_angle)
 
         IF (options%verbose == 1_C_INT) THEN
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+                CALL xmi_print_progress('Solid angle calculation finished'&
+                //C_NULL_CHAR,-1_C_INT)
+#else
                 WRITE (output_unit,'(A)') &
                 'Solid angle calculation finished'
+#endif
         ENDIF
 
 

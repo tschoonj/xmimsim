@@ -221,4 +221,17 @@ double *xmi_dindgen(int n) {
 	return rv;
 }
 
+void xmi_print_progress(char *string, int progress) {
+	if (progress == -1) {
+		fprintf(stdout,"%s\n",string);
+	}
+	else {
+		fprintf(stdout,"%s %3i %%\n",string,progress);
+	}
+}
+
+
+
+
+
 

@@ -574,8 +574,13 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         IF(n_photons_sim*100/n_photons_tot == &
                         REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
                         options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+                        CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                        INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+#else
                         WRITE(output_unit,'(A,I3,A)')&
                         'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
+#endif
                         CALL omp_unset_lock(omp_lock)
 
                 ENDDO photons
@@ -3946,8 +3951,13 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         IF(n_photons_sim*100/n_photons_tot == &
                         REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
                         input_options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+                        CALL xmi_print_progress('Escape peak ratios calculation at'&
+                        //C_NULL_CHAR,INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+#else
                         WRITE(output_unit,'(A,I3,A)')&
                         'Escape peak ratios calculation at ',n_photons_sim*100/n_photons_tot,' %'
+#endif
                         CALL omp_unset_lock(omp_lock)
                 ENDDO
                 fluo_escape_ratios(:,:,i) =&
@@ -3979,8 +3989,13 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         escape_ratiosPtr = C_LOC(escape_ratios)
 
         IF (input_options%verbose == 1_C_INT) THEN
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4
+                CALL xmi_print_progress('Escape peak ratios calculation finished'&
+                //C_NULL_CHAR,-1_C_INT)
+#else
                 WRITE (output_unit,'(A)') &
                 'Escape peak ratios calculation finished'
+#endif
         ENDIF
 
         RETURN

@@ -483,6 +483,15 @@ FUNCTION strlen(s) BIND(C,NAME='strlen')
         INTEGER (C_SIZE_T) :: strlen
 ENDFUNCTION strlen
 
+SUBROUTINE xmi_print_progress(string, progress)&
+BIND(C,NAME='xmi_print_progress')
+        USE,INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        !TYPE (C_PTR), VALUE :: string
+        CHARACTER (KIND=C_CHAR), DIMENSION(*) :: string
+        INTEGER (C_INT), VALUE :: progress
+ENDSUBROUTINE xmi_print_progress
+
 !interface for the xmi_get_random_numbers function
 FUNCTION xmi_get_random_numbers(numbers, n) BIND(C,NAME='xmi_get_random_numbers')
         USE, INTRINSIC :: ISO_C_BINDING
