@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmi_solid_angle.h"
 #include <hdf5.h>
 #include <glib.h>
@@ -33,12 +34,27 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 
 void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
-	hid_t       file_id;   /* file identifier */
-	herr_t      status;
+	hid_t file_id;   /* file identifier */
+	hid_t root_group_id;	
+	hid_t attribute_id;
+	hid_t dataspace_id;
+	herr_t status;
 
+	float version = (float) g_ascii_strtod(VERSION, NULL);
+	
 
 	/* Create a new file using default properties. */
 	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+
+	dataspace_id = H5Screate(H5S_SCALAR);
+	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+
+	
+	H5Aclose(attribute_id);
+	H5Sclose(dataspace_id);
+	H5Gclose(root_group_id);
 
 
 	/* Terminate access to the file. */

@@ -13,6 +13,8 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_hdf5
 
 USE, INTRINSIC :: ISO_C_BINDING
@@ -454,6 +456,9 @@ INTEGER(HID_T) :: file_id       ! File identifier
 INTEGER(HID_T) :: dset_id       ! Dataset identifier 
 INTEGER(HID_T) :: dspace_id     ! Dataspace identifier
 INTEGER(HID_T) :: group_id, group_id2    
+INTEGER(HID_T) :: attribute_id
+REAL (C_DOUBLE) :: version_real
+CHARACTER (len=10) :: version_string = VERSION
 INTEGER(HSIZE_T),DIMENSION(2) :: dims = [nintervals_e, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(2) :: dims2 = [nintervals_theta2, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(3) :: dims3 = [nintervals_theta2, nintervals_e,nintervals_r]
@@ -778,11 +783,24 @@ ENDDO Zloop
 
 !#endif
 
-!Write Theta inverse cdfs to hdf5 file
+!create to hdf5 file
 CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F,file_id,h5error)
 
-!Create groups and fill them up...
+!create version attribute
 
+
+
+!Create groups and fill them up...
+CALL h5gopen_f(file_id, '/', group_id, h5error)
+CALL h5screate_f(H5S_SCALAR_F, dspace_id, h5error)
+CALL h5acreate_f(group_id, 'version', H5T_NATIVE_DOUBLE, dspace_id,&
+attribute_id,h5error)
+!convert version string to double
+READ (version_string,*) version_real
+CALL h5awrite_f(attribute_id, H5T_NATIVE_DOUBLE, version_real, [1_HSIZE_T], h5error)
+CALL h5aclose_f(attribute_id, h5error)
+CALL h5sclose_f(dspace_id,h5error)
+CALL h5gclose_f(group_id,h5error)
 
 !#if DEBUG != 1
 DO i=1,maxz
