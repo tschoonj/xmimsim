@@ -37,10 +37,8 @@ if !OS_WINDOWS
 bin_PROGRAMS += xmimsim-harvester
 endif
 
-noinst_PROGRAMS = xmimsim-init-solid-angles xmimsim-init-escape-ratios
 
 xmimsim_hdf5dir = $(datadir)/xmimsim
-xmimsim_hdf5_DATA = xmimsim-solid-angles.h5 xmimsim-escape-ratios.h5
 
 
 xmimsim_db_SOURCES = xmimsim-db.F90
@@ -58,7 +56,7 @@ xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmim
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@
 if OS_WINDOWS
-xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+#xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 endif
@@ -72,11 +70,10 @@ endif
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
--DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" \
--DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\"
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
+#xmimsim_LDFLAGS += -Wl,-subsystem,windows
 
 #xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
 #xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
@@ -86,22 +83,8 @@ xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
--DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" \
--DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\"
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 
-#xmimsim_test_solid_angle_SOURCES = xmimsim-test-solid-angle.c
-#xmimsim_test_solid_angle_LDADD = ../src/libxmimsim.la
-#xmimsim_test_solid_angle_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" \
-#-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
-
-xmimsim_init_solid_angles_SOURCES = xmimsim-init-solid-angles.c
-xmimsim_init_solid_angles_LDADD = ../src/libxmimsim.la
-xmimsim_init_solid_angles_CFLAGS = -DXMIMSIM_HDF5_SOLID_ANGLES=\"$(datadir)/xmimsim/xmimsim-solid-angles.h5\" @glib2_CFLAGS@
-
-#xmimsim_test_rayl_phi_SOURCES = xmimsim-test-rayl-phi.F90
-#xmimsim_test_rayl_phi_LDADD = ../src/libxmimsim.la
-#xmimsim_test_rayl_phi_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@ -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la
@@ -119,10 +102,6 @@ xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la
 xmso2csv_CFLAGS = @glib2_CFLAGS@
 
-xmimsim_init_escape_ratios_SOURCES = xmimsim-init-escape-ratios.c
-xmimsim_init_escape_ratios_LDADD = ../src/libxmimsim.la
-xmimsim_init_escape_ratios_CFLAGS = -DXMIMSIM_HDF5_ESCAPE_RATIOS=\"$(datadir)/xmimsim/xmimsim-escape-ratios.h5\" @glib2_CFLAGS@
-
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
@@ -139,21 +118,10 @@ xmimsim-icon.o: xmimsim-icon.rc
 	$(WINDRES) -v --use-temp-file -F pe-i386 -DXMIMSIM_WIN_ICO=\"${top_srcdir}/icons/Logo_xmi_msim.ico\" ${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 endif
 
-xmimsim-solid-angles.h5:	xmimsim-init-solid-angles$(EXEEXT)
-	./xmimsim-init-solid-angles$(EXEEXT)
 
-xmimsim-escape-ratios.h5:	xmimsim-init-escape-ratios$(EXEEXT)
-	./xmimsim-init-escape-ratios$(EXEEXT)
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
 
-if !OS_WINDOWS
-install-exec-hook:
-	chmod u+s $(DESTDIR)/$(bindir)/xmimsim
-	chmod u+s $(DESTDIR)/$(bindir)/xmimsim-pymca
-endif
 
-clean-local:
-	rm -f xmimsim-solid-angles.h5 xmimsim-escape-ratios.h5
 

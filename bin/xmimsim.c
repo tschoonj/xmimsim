@@ -46,6 +46,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <windows.h>
   #include "xmi_registry_win.h"
   #include <Shlobj.h>
+  //bugfix in mingw headers
+  #ifndef SHGFP_TYPE_CURRENT
+    #define SHGFP_TYPE_CURRENT 0
+  #endif
   //NO MPI
   #ifdef HAVE_OPENMPI
     #undef HAVE_OPENMPI
@@ -75,7 +79,7 @@ int main (int argc, char *argv[]) {
 
 
 	//general variables
-	char *xmimsim_hdf5_solid_angles;
+	static char *xmimsim_hdf5_solid_angles = NULL;
 	struct xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
@@ -111,11 +115,8 @@ int main (int argc, char *argv[]) {
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
-#ifndef _WIN32
-	uid_t uid, euid;
-#endif
 	char *xmi_input_string;
-	char *xmimsim_hdf5_escape_ratios;
+	static char *xmimsim_hdf5_escape_ratios = NULL;
 
 
 	static GOptionEntry entries[] = {
@@ -129,7 +130,9 @@ int main (int argc, char *argv[]) {
 		{ "disable-radiative-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Disable radiative cascade effects", NULL },
 		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
 		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
-		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"with-hdf5-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"with-solid-angles-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_solid_angles,"Select a HDF5 solid angles file (advanced usage)",NULL},
+		{"with-escape-ratios-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_escape_ratios,"Select a HDF5 escape ratios file (advanced usage)",NULL},
 		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
@@ -159,7 +162,6 @@ int main (int argc, char *argv[]) {
         DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
 
-	char appDataPath[1024];
 #endif
 
 
@@ -174,17 +176,6 @@ int main (int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 #endif
 
-#ifndef _WIN32
-	//change euid to uid
-	uid = getuid();
-	euid = geteuid();
-#if DEBUG == 1
-	fprintf(stdout,"Begin uid: %i\n",(int) uid);
-	fprintf(stdout,"Begin euid: %i\n",(int) euid);
-#endif
-	//start without privileges
-	seteuid(uid);
-#endif
 
 	setbuf(stdout,NULL);
 
@@ -308,33 +299,8 @@ int main (int argc, char *argv[]) {
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
-		//determine filename first
-#ifndef _WIN32
-		xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
-#else
-
-		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-			fprintf(stderr,"Error retrieving AppDataPath\n");
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
 			return 1;
-		}
-		//add solid angle filename
-		strcat(appDataPath,"\\xmimsim\\xmimsim-solid-angles.h5");
-		/*
-		//check if file exist, if not create it
-		if (g_access(appDataPath, F_OK) != 0) {
-			//file does not exist, needs to be created
-			xmi_create_empty_solid_angle_hdf5_file(appDataPath);
-		}
-		*/
-		//check if file is readable and writable
-		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-			fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
-			return 1;
-		}
-		xmimsim_hdf5_solid_angles = appDataPath;
-#endif
-
-
 
 		//check if solid angles are already precalculated
 		if (options.verbose)
@@ -351,16 +317,10 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string,options);
 			//update hdf5 file
-#ifndef _WIN32
-			seteuid(euid);
-#endif
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
 			else if (options.verbose)
 				fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
-#ifndef _WIN32
-			seteuid(uid);
-#endif
 		}
 		else if (options.verbose)
 			fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
@@ -378,7 +338,7 @@ int main (int argc, char *argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	//read solid angles for the other nodes
 	if (options.use_variance_reduction == 1 && rank != 0) {
-		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
@@ -492,23 +452,8 @@ int main (int argc, char *argv[]) {
 #endif
 
 		//read escape ratios
-#ifndef _WIN32
-		xmimsim_hdf5_escape_ratios = strdup(XMIMSIM_HDF5_ESCAPE_RATIOS);
-#else
-
-		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-			fprintf(stderr,"Error retrieving AppDataPath\n");
+		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
 			return 1;
-		}
-		//add escape ratios filename
-		strcat(appDataPath,"\\xmimsim\\xmimsim-escape-ratios.h5");
-		//check if file is readable and writable
-		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-			fprintf(stderr,"Error accessing escape ratios HDF5 file %s\n",appDataPath);
-			return 1;
-		}
-		xmimsim_hdf5_escape_ratios = appDataPath;
-#endif
 
 
 		//check if escape ratios are already precalculated
@@ -524,16 +469,10 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
 			//update hdf5 file
-#ifndef _WIN32
-			seteuid(euid);
-#endif
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
 			else if (options.verbose)
 				fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_solid_angles);
-#ifndef _WIN32
-			seteuid(uid);
-#endif
 		}
 		else if (options.verbose)
 			fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);

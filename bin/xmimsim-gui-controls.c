@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <signal.h>
 #elif defined(G_OS_WIN32)
   #include <windows.h>
+  #include "xmi_detector.h"
+  #include "xmi_solid_angle.h"
 #endif
 
 struct window_entry {
@@ -592,6 +594,32 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		arg_counter++;
 	}
 	g_free(tmp_string);
+
+#ifdef G_OS_WIN32
+	//set solid angles and escape ratios files ourself!
+	char *xmimsim_hdf5_solid_angles = NULL;
+	char *xmimsim_hdf5_escape_ratios = NULL;
+	
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0) {
+		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
+		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		gtk_widget_set_sensitive(playButton,TRUE);
+		return;	
+	}
+	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+	argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
+	arg_counter++;
+
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0) {
+		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
+		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		gtk_widget_set_sensitive(playButton,TRUE);
+		return;	
+	}
+	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+	argv[arg_counter] = g_strdup_printf("--with-escape-ratios-data=%s",xmimsim_hdf5_escape_ratios);
+	arg_counter++;
+#endif
 
 	argv[arg_counter++] = g_strdup(xmimsim_struct->filename);
 	argv[arg_counter] = NULL;

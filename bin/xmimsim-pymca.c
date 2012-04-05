@@ -36,6 +36,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <windows.h>
   #include "xmi_registry_win.h"
   #include <Shlobj.h>
+  //bugfix in mingw headers
+  #ifndef SHGFP_TYPE_CURRENT
+    #define SHGFP_TYPE_CURRENT 0
+  #endif
   //NO MPI
   #ifdef HAVE_OPENMPI
     #undef HAVE_OPENMPI
@@ -47,7 +51,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int main (int argc, char *argv[]) {
 
-	char *xmimsim_hdf5_solid_angles;
+	char *xmimsim_hdf5_solid_angles=NULL;
 	struct xmi_input *pymca_input = NULL;
 	struct xmi_pymca *xp = NULL ;
 	struct xmi_layer *matrix;
@@ -73,7 +77,7 @@ int main (int argc, char *argv[]) {
 	double max_scale;
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
-	char *xmimsim_hdf5_escape_ratios;
+	char *xmimsim_hdf5_escape_ratios = NULL;
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -101,9 +105,6 @@ int main (int argc, char *argv[]) {
 	double *var_red_history;
 	double sum_k, sum_l, sum_temp;
 	struct xmi_solid_angle *solid_angle_def;
-#ifndef _WIN32
-	uid_t uid, euid;
-#endif
 	char *xmi_input_string;
 
 
@@ -118,18 +119,8 @@ int main (int argc, char *argv[]) {
         DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
 
-	char appDataPath[1024];
 #endif
 
-
-#ifndef _WIN32
-	//change euid to uid
-	uid = getuid();
-	euid = geteuid();
-
-	//start without privileges
-	seteuid(uid);
-#endif
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -254,31 +245,8 @@ int main (int argc, char *argv[]) {
 
 
 	//determine filename first
-#ifndef _WIN32
-	xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
-#else
-
-	if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-		fprintf(stderr,"Error retrieving AppDataPath\n");
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
 		return 1;
-	}
-	//add solid angle filename
-	strcat(appDataPath,"\\xmimsim\\xmimsim-solid-angles.h5");
-
-	/*
-	//check if file exist, if not create it
-	if (g_access(appDataPath, F_OK) != 0) {
-		//file does not exist, needs to be created
-		xmi_create_empty_solid_angle_hdf5_file(appDataPath);
-	}
-	*/
-	//check if file is readable and writable
-	if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-		fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
-		return 1;
-	}
-	xmimsim_hdf5_solid_angles = appDataPath;
-#endif
 
 
 
@@ -293,14 +261,8 @@ int main (int argc, char *argv[]) {
 		}
 		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
 		//update hdf5 file
-#ifndef _WIN32
-		seteuid(euid);
-#endif
 		if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 			return 1;
-#ifndef _WIN32
-		seteuid(uid);
-#endif
 	}
 
 	//everything is read in... start iteration
@@ -555,23 +517,8 @@ int main (int argc, char *argv[]) {
 
 
 	//read escape ratios
-#ifndef _WIN32
-	xmimsim_hdf5_escape_ratios = strdup(XMIMSIM_HDF5_ESCAPE_RATIOS);
-#else
-
-	if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-		fprintf(stderr,"Error retrieving AppDataPath\n");
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
 		return 1;
-	}
-	//add escape ratios filename
-	strcat(appDataPath,"\\xmimsim\\xmimsim-escape-ratios.h5");
-	//check if file is readable and writable
-	if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-		fprintf(stderr,"Error accessing escape ratios HDF5 file %s\n",appDataPath);
-		return 1;
-	}
-	xmimsim_hdf5_escape_ratios = appDataPath;
-#endif
 
 
 	//check if escape ratios are already precalculated
@@ -585,14 +532,8 @@ int main (int argc, char *argv[]) {
 		}
 		xmi_escape_ratios_calculation(pymca_input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
 		//update hdf5 file
-#ifndef _WIN32
-		seteuid(euid);
-#endif
 		if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 			return 1;
-#ifndef _WIN32
-		seteuid(uid);
-#endif
 	}
 
 
