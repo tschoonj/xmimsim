@@ -26,8 +26,7 @@ bin_PROGRAMS = xmimsim \
 	xmso2spe \
 	xmso2csv \
 	xmso2htm \
-	xmso2xmsi \
-	xmimsim-test-xmso-reader
+	xmso2xmsi
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -106,9 +105,6 @@ xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
-xmimsim_test_xmso_reader_SOURCES = xmimsim-test-xmso-reader.c
-xmimsim_test_xmso_reader_LDADD = ../src/libxmimsim.la 
-xmimsim_test_xmso_reader_CFLAGS = @OPENMP_CFLAGS@
 
 
 

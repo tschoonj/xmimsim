@@ -948,7 +948,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	
 	//finalize widget
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), paned);
 
 
@@ -1059,8 +1059,8 @@ int plot_spectra_from_file(char *xmsofile) {
 	for (i=0 ; i < results_nchannels ; i++) {
 		temp_channels[i] = results_channels_conv[i][results_ninteractions-1];
 	}
-	free(temp_channels);
 	plot_ymax = xmi_maxval_double(temp_channels,results_nchannels)*1.2;
+	free(temp_channels);
 	plot_ymin = 1.0;
 	plot_xmin = 0.0;
 	plot_xmax = results_nchannels * results_input->detector->gain + results_input->detector->zero;
