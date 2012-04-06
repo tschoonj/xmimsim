@@ -29,6 +29,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gprintf.h>
 #include <xraylib.h>
 
+#ifdef G_OS_UNIX
+#include <signal.h>
+#elif defined(G_OS_WIN32)
+#include <windows.h>
+#endif
+
+
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
 
@@ -281,6 +288,44 @@ void saveas_cb(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 void new_cb(GtkWidget *widget, gpointer data);
+
+#ifdef G_OS_UNIX
+void signal_handler(int sig) {
+	if (sig == SIGINT) {
+		fprintf(stdout,"SIGINT caught\n");
+	}
+	else if (sig == SIGTERM){
+		fprintf(stdout,"SIGTERM caught\n");
+	}
+	else if (sig == SIGSEGV){
+		fprintf(stdout,"SIGSEGV caught\n");
+	}
+	else if (sig == SIGHUP){
+		fprintf(stdout,"SIGHUP caught\n");
+	}
+
+	if (xmimsim_pid != GPID_INACTIVE) {
+		int kill_rv;
+	
+		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
+		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
+		wait(NULL);
+		if (kill_rv == 0) {
+			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
+		}
+		else {
+			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
+		}
+	}
+}
+
+#elif defined(G_OS_WIN32)
+
+#endif
+
+
+
+
 
 static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, guint page, gpointer data) {
 	struct undo_single *check_rv;
@@ -2901,6 +2946,9 @@ void comments_end(GtkTextBuffer *textbuffer, gpointer user_data){
 	return;
 }
 
+
+
+
 int main (int argc, char *argv[]) {
 
 	GtkWidget *window;
@@ -2942,9 +2990,26 @@ int main (int argc, char *argv[]) {
  *
  */
 
+	//signal handlers
+#ifdef G_OS_UNIX
+	struct sigaction action;
+	action.sa_handler = signal_handler;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+
+	sigaction(SIGINT, &action, NULL);
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGSEGV, &action, NULL);
+	sigaction(SIGHUP, &action, NULL);
+	
+#elif defined(G_OS_WIN32)
+
+#endif
+	
+
 	setbuf(stdout,NULL);
 	//let's use the default C locale
-	gtk_disable_setlocale();
+	//gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
 
@@ -3017,6 +3082,10 @@ int main (int argc, char *argv[]) {
 
 
 	gtk_init(&argc, &argv);
+
+	
+
+
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	//size must depend on available height (and width too I guess)
@@ -4101,6 +4170,9 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 	GtkTextIter iterb, itere;
 
 
+
+
+
 	//check if last changes have been saved, because they will be lost otherwise!
 	check_rv = check_changes_saved(&check_status);
 
@@ -4179,6 +4251,39 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 
 		gtk_widget_destroy(dialog);
+	}
+
+	if ((int) xmimsim_pid != GPID_INACTIVE) {
+		//if UNIX -> send sigterm
+		//if WIN32 -> call TerminateProcess 
+
+#ifdef G_OS_UNIX
+		int kill_rv;
+	
+		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
+		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
+		wait(NULL);
+		if (kill_rv == 0) {
+			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
+		}
+		else {
+			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
+		}
+#elif defined(G_OS_WIN32)
+		BOOL terminate_rv;
+
+		terminate_rv = TerminateProcess((HANDLE) xmimsim_pid, (UINT) 1);
+
+		if (terminate_rv == TRUE) {
+			fprintf(stdout, "Process %i was successfully terminated\n",(int) xmimsim_pid);
+		}
+		else {
+			fprintf(stdout, "Process %i could not be terminated with the TerminateProcess call\n",(int) xmimsim_pid);
+		}
+#endif
+		g_spawn_close_pid(xmimsim_pid);
+		xmimsim_pid = GPID_INACTIVE;
+
 	}
 
 	gtk_main_quit();

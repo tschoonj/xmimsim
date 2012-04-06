@@ -60,5 +60,12 @@ extern GtkWidget *playButton;
 extern GtkWidget *pauseButton;
 extern GtkWidget *stopButton;
 
+#ifdef G_OS_UNIX
+	#define GPID_INACTIVE ((GPid) -1)
+#elif defined(G_OS_WIN32)
+	#define GPID_INACTIVE ((GPid) NULL)
+#endif
+	
+extern GPid xmimsim_pid;
 
 #endif

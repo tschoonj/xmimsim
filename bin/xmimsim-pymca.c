@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xmi_random.h"
 #include "xmi_detector.h"
+#include <omp.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -69,6 +70,7 @@ int main (int argc, char *argv[]) {
 	static gchar *csv_file_conv=NULL;
 	static gchar *svg_file_noconv=NULL;
 	static gchar *svg_file_conv=NULL;
+	static int omp_num_threads;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
@@ -78,7 +80,9 @@ int main (int argc, char *argv[]) {
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
-
+	
+	omp_num_threads=omp_get_max_threads();
+	
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
 		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
@@ -93,6 +97,7 @@ int main (int argc, char *argv[]) {
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
 		{NULL}
 	};
 	double *channels;
@@ -149,6 +154,11 @@ int main (int argc, char *argv[]) {
 		exit (1);
 	}
 
+	if (omp_num_threads > omp_get_max_threads() ||
+			omp_num_threads < 1) {
+		omp_num_threads = omp_get_max_threads();
+	}
+	omp_set_num_threads(omp_num_threads);
 
 	if (hdf5_file == NULL) {
 		//no option detected

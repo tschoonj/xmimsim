@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale.h>
 #include <xraylib.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -112,12 +113,14 @@ int main (int argc, char *argv[]) {
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
 	static int nchannels=2048;
+	static int omp_num_threads;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
 
+	omp_num_threads = omp_get_max_threads();
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -146,6 +149,7 @@ int main (int argc, char *argv[]) {
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{ NULL }
 	};
@@ -217,6 +221,13 @@ int main (int argc, char *argv[]) {
 		g_print ("option parsing failed: %s\n", error->message);
 		exit (1);
 	}
+
+	if (omp_num_threads > omp_get_max_threads() ||
+			omp_num_threads < 1) {
+		omp_num_threads = omp_get_max_threads();
+	}
+	omp_set_num_threads(omp_num_threads);
+
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
