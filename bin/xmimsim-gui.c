@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
@@ -33,6 +34,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <signal.h>
 #elif defined(G_OS_WIN32)
 #include <windows.h>
+#endif
+
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
 #endif
 
 
@@ -2979,6 +2984,9 @@ int main (int argc, char *argv[]) {
 	gint main_width=900;
 	gint main_temp;
 	GtkWidget *resultsPageW;
+#ifdef MAC_INTEGRATION
+	GtkOSXApplication *theApp;
+#endif
 
 /*
  *
@@ -3083,8 +3091,10 @@ int main (int argc, char *argv[]) {
 
 	gtk_init(&argc, &argv);
 
-	
-
+#ifdef MAC_INTEGRATION
+	theApp = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+	gtk_osxapplication_set_use_quartz_accelerators(theApp, TRUE);
+#endif
 
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -3744,11 +3754,16 @@ int main (int argc, char *argv[]) {
 
 
 	gtk_widget_show_all(window);
-
+#ifdef MAC_INTEGRATION
+	gtk_osxapplication_ready(theApp);
+#endif
 
 
 	gtk_main();
 
+#ifdef MAC_INTEGRATION
+	g_object_unref(theApp);
+#endif
 
 
 
