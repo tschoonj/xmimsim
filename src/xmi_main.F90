@@ -815,6 +815,9 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         TYPE (xmi_line) :: line
         TYPE (xmi_plane) :: plane
 
+        IF (photon%coords(3) .GE. &
+        composition%layers(1)%Z_coord_begin) RETURN
+
         !Calculate intersection of photon trajectory with plane of first layer
         line%point = photon%coords
         line%dirv  = photon%dirv
@@ -826,8 +829,8 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         plane%normv = geometry%n_sample_orientation
 
         IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0) THEN
-                WRITE (error_unit,*) 'xmi_intersection_plane_line error'
-                WRITE (error_unit,*) 'in xmi_photon_shift_first_layer'
+                WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
+                WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
                 CALL EXIT(1)
         ENDIF
         !
