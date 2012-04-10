@@ -19,11 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include <glib.h>
 #include <stdio.h>
+#include "xmi_aux.h"
 
 
 
-int main(int argc, char *argv[]) {
 
+XMI_MAIN
 	GError *error = NULL;
         unsigned type=0;
 	static int use_unconvoluted=0;

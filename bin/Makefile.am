@@ -55,7 +55,7 @@ xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmim
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@
 xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@
 if OS_WINDOWS
-#xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 endif
@@ -72,7 +72,9 @@ xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @x
 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
-#xmimsim_LDFLAGS += -Wl,-subsystem,windows
+if OS_WINDOWS
+xmimsim_LDFLAGS += -Wl,-subsystem,windows
+endif
 
 #xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
 #xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@

@@ -50,8 +50,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #warn Win 64 platform detected... proceed at your own risk...
 #endif
 
-int main (int argc, char *argv[]) {
-
+XMI_MAIN
 	char *xmimsim_hdf5_solid_angles=NULL;
 	struct xmi_input *pymca_input = NULL;
 	struct xmi_pymca *xp = NULL ;

@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui.h"
+#include "xmi_aux.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
@@ -2949,8 +2950,7 @@ void comments_end(GtkTextBuffer *textbuffer, gpointer user_data){
 
 
 
-int main (int argc, char *argv[]) {
-
+XMI_MAIN
 	GtkWidget *window;
 	GtkWidget *Main_vbox;
 
