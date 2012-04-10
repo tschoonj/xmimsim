@@ -66,6 +66,8 @@ GtkPlotData *spectra_properties_dataset_active;
 gulong spectra_properties_linestyleG;
 gulong spectra_properties_widthG;
 gulong spectra_properties_colorG;
+gulong spectra_region_mouse_movedG;
+
 
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
 GtkWidget *print_button;
@@ -83,6 +85,11 @@ struct spectra_data {
 	GtkPlotData *dataSet;
 	GtkWidget *checkButton;
 	GtkWidget *button;
+};
+
+struct coords_data {
+	GtkWidget *xCoordW;
+	GtkWidget *yCoordW;
 };
 
 enum {
@@ -431,6 +438,37 @@ static void magnifier_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) 
 	return;
 }
 
+static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event, struct coords_data *cd) {
+
+	gint x, y;
+	gdouble px,py;
+	gchar *buffer;
+
+	gtk_widget_get_pointer(canvas, &x, &y);
+	gtk_plot_get_point(GTK_PLOT(plot_window), x, y, &px, &py);
+	gdouble xmin, xmax, ymin, ymax;
+
+	//check if coordinates are within plot
+	gtk_plot_get_xrange(GTK_PLOT(plot_window), &xmin, &xmax);
+	gtk_plot_get_yrange(GTK_PLOT(plot_window), &ymin, &ymax);
+	if (px < xmin || px > xmax)
+		return FALSE;
+	if (py < ymin || py > ymax)
+		return FALSE;
+
+	buffer = g_strdup_printf("%lg",px);
+	gtk_entry_set_text(GTK_ENTRY(cd->xCoordW), buffer);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg",py);
+	gtk_entry_set_text(GTK_ENTRY(cd->yCoordW), buffer);
+	g_free(buffer);
+
+	
+
+	return FALSE;
+} 
+
+
 static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) {
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
@@ -765,11 +803,13 @@ GtkWidget *init_results(GtkWidget *window) {
 	GtkWidget *frame;
 
 	GtkWidget *spectra_box;//VBox
-	GtkWidget *magnifier_hbox;
+	GtkWidget *magnifier_hbox, *coords_hbox;
+	GtkWidget *entry;
 	gdouble magnifier;
 	gchar *default_font;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
+	struct coords_data *cd;
 
 
 
@@ -783,9 +823,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	COLOR_INIT(yellow);
 	COLOR_INIT(pink);
 
-	default_font = get_style_font(window);
-
-	fprintf(stdout,"default font: %s\n",default_font);
 
 
 
@@ -808,11 +845,38 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,FALSE,FALSE,0);	
 
 
+	cd = (struct coords_data*) malloc(sizeof(struct coords_data));
+	coords_hbox = gtk_hbox_new(FALSE,2);
+	gtk_box_pack_start(GTK_BOX(coords_hbox), gtk_label_new("Energy"),FALSE, FALSE,1);
+	entry = gtk_entry_new();
+	gtk_widget_set_size_request(GTK_WIDGET(entry), 80, -1);
+	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
+	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
+	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
+	gtk_box_pack_start(GTK_BOX(coords_hbox), entry,TRUE, FALSE,1);
+	cd->xCoordW = entry;
+	gtk_box_pack_start(GTK_BOX(coords_hbox), gtk_label_new("Intensity"),FALSE, FALSE,1);
+	entry = gtk_entry_new();
+	gtk_widget_set_size_request(GTK_WIDGET(entry), 80, -1);
+	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
+	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
+	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
+	gtk_box_pack_start(GTK_BOX(coords_hbox), entry,TRUE, FALSE,1);
+	cd->yCoordW = entry;
+	gtk_box_pack_end(GTK_BOX(spectra_box),coords_hbox, FALSE, FALSE, 2);
+	spectra_region_mouse_movedG = g_signal_connect(G_OBJECT(canvas),"motion-notify-event",G_CALLBACK(spectra_region_mouse_moved_cb),(gpointer) cd);
+	g_signal_handler_block((gpointer) canvas, spectra_region_mouse_movedG);
+
+
+
+
+
 	magnifier_hbox = gtk_hbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(magnifier_hbox), gtk_label_new("Canvas magnification"),FALSE, FALSE,1);
 	magnifierW = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(magnifier, 0.25,2.0,0.05,0.1,0.0)),0.05,2);
 	gtk_box_pack_start(GTK_BOX(magnifier_hbox), magnifierW,FALSE, FALSE,1);
 	g_signal_connect(G_OBJECT(magnifierW),"value-changed",G_CALLBACK(magnifier_changed_cb),NULL);
+
 
 
 
@@ -1025,6 +1089,8 @@ int plot_spectra_from_file(char *xmsofile) {
 		return 0;
 	}
 
+
+	g_signal_handler_unblock((gpointer) canvas, spectra_region_mouse_movedG);
 
 
 	//clear plotwindow if necessary
@@ -1389,12 +1455,5 @@ void init_spectra_properties(GtkWidget *parent) {
 	gtk_widget_show_all(vbox);
 }
 
-gchar *get_style_font(GtkWidget *widget) {
-
-	GtkStyle *style = gtk_widget_get_style(widget);
-	PangoFontDescription *font_desc = style->font_desc;
-
-	return g_strdup(pango_font_description_get_family(font_desc));
-} 
 
 
