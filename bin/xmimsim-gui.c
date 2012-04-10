@@ -3009,7 +3009,7 @@ XMI_MAIN
 
 	setbuf(stdout,NULL);
 	//let's use the default C locale
-	//gtk_disable_setlocale();
+	gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
 
@@ -4253,7 +4253,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 		gtk_widget_destroy(dialog);
 	}
 
-	if ((int) xmimsim_pid != GPID_INACTIVE) {
+	if (xmimsim_pid != GPID_INACTIVE) {
 		//if UNIX -> send sigterm
 		//if WIN32 -> call TerminateProcess 
 
@@ -4495,7 +4495,7 @@ int check_changeables(void) {
 void saveas_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
-	char *filename;
+	gchar *filename;
 	char *title;
 	GtkTextIter iterb, itere;
 
