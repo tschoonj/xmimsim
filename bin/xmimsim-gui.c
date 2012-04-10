@@ -63,7 +63,9 @@ static GtkWidget *newW;
 static GtkWidget *openW;
 GtkWidget *saveW;
 GtkWidget *save_asW;
+#ifndef MAC_INTEGRATION
 static GtkWidget *quitW;
+#endif
 static GtkToolItem *newT;
 static GtkToolItem *openT;
 GtkToolItem *saveasT;
@@ -291,7 +293,11 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
+#ifdef MAC_INTEGRATION
+void quit_program_cb(GtkOSXApplication *app, gpointer data);
+#else
 void quit_program_cb(GtkWidget *widget, gpointer data);
+#endif
 void new_cb(GtkWidget *widget, gpointer data);
 
 #ifdef G_OS_UNIX
@@ -2437,7 +2443,11 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	//should check if the user maybe would like to save his stuff...
 	
-	quit_program_cb(widget,data);
+#ifdef MAC_INTEGRATION
+	quit_program_cb((GtkOSXApplication*) data, widget);
+#else
+	quit_program_cb(widget, widget);
+#endif
 	return TRUE;
 
 }
@@ -3124,16 +3134,23 @@ int main (int argc, char *argv[]) {
 	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,NULL);
 	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,NULL);
 	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,NULL);
+#ifndef MAC_INTEGRATION
 	quitW = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,NULL);
-
+#endif
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file),filemenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),newW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),saveW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
+#ifndef MAC_INTEGRATION
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quitW);
+#endif
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),file);
+#ifndef MAC_INTEGRATION
 	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(quit_program_cb),(gpointer) window);
+#else
+	g_signal_connect(theApp, "NSApplicationWillTerminate",G_CALLBACK(quit_program_cb),(gpointer)window);
+#endif
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
@@ -3154,8 +3171,18 @@ int main (int argc, char *argv[]) {
 	gtk_widget_set_sensitive(saveW,FALSE);
 	gtk_widget_set_sensitive(save_asW,FALSE);
 
+#ifdef MAC_INTEGRATION
+	GtkWidget *help = gtk_menu_item_new_with_label("Help");
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), gtk_menu_new());
+	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
+	gtk_widget_hide(menubar);
+	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
+	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
+	gtk_osxapplication_set_window_menu(theApp, NULL);
+#else
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
-
+#endif
 
 	//toolbar
 	toolbar = gtk_toolbar_new();
@@ -3186,7 +3213,11 @@ int main (int argc, char *argv[]) {
 
 
 	//g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(quit_program_cb),(gpointer) window);
+#ifdef MAC_INTEGRATION
+	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),theApp);
+#else
 	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),window);
+#endif
 
 	//notebook
 	notebook = gtk_notebook_new();
@@ -4175,7 +4206,11 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+#ifdef MAC_INTEGRATION
+void quit_program_cb(GtkOSXApplication *app, gpointer data) {
+#else
 void quit_program_cb(GtkWidget *widget, gpointer data) {
+#endif
 	struct undo_single *check_rv;
 	int check_status;
 	GtkWidget *dialog = NULL;
