@@ -177,7 +177,7 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 	if (depth == 0) {
 		g_object_get(G_OBJECT(cell_renderer), "inconsistent", &inconsistent, NULL);
 		if (inconsistent) {
-			gtk_tree_store_set(countsTS, &iter, CONSISTENT_COLUMN, TRUE, -1);
+			gtk_tree_store_set(countsTS, &iter, CONSISTENT_COLUMN, TRUE, SHOW_LINE_COLUMN, TRUE,-1);
 			//set all children TRUE
 			gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 			do {
