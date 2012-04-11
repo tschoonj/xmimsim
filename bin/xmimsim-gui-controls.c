@@ -34,6 +34,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_solid_angle.h"
 #endif
 
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
+#endif
 struct window_entry {
 	GtkWidget *window;
 	GtkWidget *entry;
@@ -407,7 +410,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	}
 
 	
-
+#ifdef MAC_INTEGRATION
+	gtk_osxapplication_attention_request(g_object_new(GTK_TYPE_OSX_APPLICATION, NULL), CRITICAL_REQUEST);
+#endif
 	//free(cd);
 
 	return;

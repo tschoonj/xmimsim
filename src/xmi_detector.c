@@ -28,6 +28,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include <xraylib.h>
 #include <sys/stat.h>
+#ifdef MAC_INTEGRATION
+	#import <Foundation/Foundation.h>
+#endif
 
 void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
 
@@ -438,17 +441,22 @@ int xmi_get_escape_ratios_file(char **filePtr) {
 
 	char *file = *filePtr;
 	char *dir;
-
+#ifdef MAC_INTEGRATION
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+#endif
 
 
 	if (file == NULL) {
-//if MAC OS X APP...
-//
-//endif
+#ifdef MAC_INTEGRATION
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+		NSString *documentsDirectory = [paths objectAtIndex:0];
+		const gchar *data_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+#else
 		const gchar *data_dir = g_get_user_data_dir();
-		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5")+1));
+#endif
+		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5")+1));
 		strcpy(file, data_dir);
-		strcat(file,G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5");
+		strcat(file,G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5");
 		*filePtr = file;
 	}
 
@@ -463,6 +471,9 @@ int xmi_get_escape_ratios_file(char **filePtr) {
 		g_free(dir);
 		return xmi_create_empty_escape_ratios_hdf5_file(file);
 	}
+#ifdef MAC_INTEGRATION
+	[pool drain];
+#endif
 
 	return 1;
 }

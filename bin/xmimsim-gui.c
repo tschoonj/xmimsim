@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <xraylib.h>
+#include <gdk/gdkkeysyms.h>
 
 #ifdef G_OS_UNIX
 #include <signal.h>
@@ -38,6 +39,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef MAC_INTEGRATION
 #include <gtkosxapplication.h>
+#define PRIMARY_ACCEL_KEY GDK_META_MASK
+#else
+#define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
 
 
@@ -289,6 +293,7 @@ struct matrix_data {
 	GtkWidget *bottomButton;
 };
 
+void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
@@ -2452,6 +2457,156 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 
 }
 
+#ifdef MAC_INTEGRATION
+static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpointer data) {
+	GtkWidget *dialog = NULL;
+	GtkFileFilter *filter1, *filter2;
+	char *filename;
+	struct xmi_input *xi;
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+	char *title;
+	GtkTextIter iterb, itere;
+
+	g_fprintf(stdout,"OSX File open event: %s\n",path);
+	check_rv = check_changes_saved(&check_status);
+
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	}
+
+	if (dialog != NULL) {
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
+			gtk_widget_destroy(dialog);
+			return FALSE;
+		}
+		else if (dialog_rv == GTK_RESPONSE_NO) {
+			//do nothing
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
+			//run saveas dialog
+			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
+			saveas_cb(dialog, (gpointer) dialog);
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//update file
+			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup("");
+			}
+			else {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			}
+			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return FALSE;
+			}
+
+		}
+
+
+		gtk_widget_destroy(dialog);
+	}
+
+	filename=path;
+	//check for filetype
+	if (strcmp(path+strlen(path)-5,".xmsi") == 0) {
+		//XMSI file
+		if (xmi_read_input_xml(filename, &xi) == 1) {
+			//success reading it in...
+			change_all_values(xi);
+			//reset redo_buffer
+			reset_undo_buffer(xi, filename);	
+			title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
+			strcpy(title,"XMI MSIM: ");
+			strcat(title,filename);
+			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+			free(title);
+			return TRUE;			
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not read file %s: model is incomplete/invalid",filename
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
+		}
+	}
+	else if (strcmp(path+strlen(path)-5,".xmso") == 0) {
+		//XMSO file
+		if (plot_spectra_from_file(filename) == 1) {
+			xmi_copy_input(results_input,&xi);
+			change_all_values(xi);
+			//reset redo_buffer
+			reset_undo_buffer(xi, results_inputfile);	
+
+			title = (char *) malloc(sizeof(char)*(strlen(results_inputfile)+11));
+			strcpy(title,"XMI MSIM: ");
+			strcat(title,results_inputfile);
+			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+			free(title);
+			return TRUE;			
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not read file %s",filename
+	               	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy (dialog);
+		}
+	}
+	
+	return FALSE;
+}
+#endif
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	struct undo_single *iter;
 	char buffer[10];
@@ -2993,7 +3148,8 @@ int main (int argc, char *argv[]) {
 	gint main_height=900;
 	gint main_width=900;
 	gint main_temp;
-	GtkWidget *resultsPageW;
+	GtkWidget *resultsPageW, *controlsPageW;
+	GtkAccelGroup *accel_group = NULL;
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif
@@ -3027,7 +3183,7 @@ int main (int argc, char *argv[]) {
 
 	setbuf(stdout,NULL);
 	//let's use the default C locale
-	//gtk_disable_setlocale();
+	gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
 
@@ -3106,8 +3262,11 @@ int main (int argc, char *argv[]) {
 	gtk_osxapplication_set_use_quartz_accelerators(theApp, TRUE);
 #endif
 
+	g_set_application_name("XMI-MSIM");
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	accel_group = gtk_accel_group_new();
+	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
 	//size must depend on available height (and width too I guess)
 	main_temp = 0.90* (double) gdk_screen_get_height(gdk_screen_get_default());
 	if (main_temp <= main_height)
@@ -3130,12 +3289,12 @@ int main (int argc, char *argv[]) {
 
 	file = gtk_menu_item_new_with_label("File");
 	//new = gtk_menu_item_new_with_label("New");
-	newW = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,NULL);
-	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,NULL);
-	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,NULL);
-	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,NULL);
+	newW = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,accel_group);
+	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,accel_group);
+	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,accel_group);
+	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,accel_group);
 #ifndef MAC_INTEGRATION
-	quitW = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,NULL);
+	quitW = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,accel_group);
 #endif
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file),filemenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),newW);
@@ -3150,6 +3309,7 @@ int main (int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(quit_program_cb),(gpointer) window);
 #else
 	g_signal_connect(theApp, "NSApplicationWillTerminate",G_CALLBACK(quit_program_cb),(gpointer)window);
+	g_signal_connect(theApp, "NSApplicationOpenFile", G_CALLBACK(load_from_file_osx_cb),(gpointer) window);
 #endif
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
@@ -3157,9 +3317,9 @@ int main (int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(new_cb),(gpointer) window);
 	editmenu = gtk_menu_new();
 	edit = gtk_menu_item_new_with_label("Edit");
-	undoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_UNDO,NULL);
+	undoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_UNDO,accel_group);
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
-	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,NULL);
+	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
@@ -3171,17 +3331,28 @@ int main (int argc, char *argv[]) {
 	gtk_widget_set_sensitive(saveW,FALSE);
 	gtk_widget_set_sensitive(save_asW,FALSE);
 
+	//add accelerators
+	gtk_widget_add_accelerator(newW, "activate", accel_group, GDK_n, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(openW, "activate", accel_group, GDK_o, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(saveW, "activate", accel_group, GDK_s, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(save_asW, "activate", accel_group, GDK_s, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+
 #ifdef MAC_INTEGRATION
 	GtkWidget *help = gtk_menu_item_new_with_label("Help");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), gtk_menu_new());
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
+	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
 	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
 	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
 	gtk_osxapplication_set_window_menu(theApp, NULL);
 #else
+	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
+	gtk_widget_show_all(menubar);
 #endif
 
 	//toolbar
@@ -3210,6 +3381,7 @@ int main (int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
+	gtk_widget_show_all(toolbar);
 
 
 	//g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(quit_program_cb),(gpointer) window);
@@ -3327,6 +3499,7 @@ int main (int argc, char *argv[]) {
 	input_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
+	gtk_widget_show_all(notebook);
 
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
@@ -3740,21 +3913,23 @@ int main (int argc, char *argv[]) {
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+	gtk_widget_show_all(superframe);
 
 
 
 	//second notebook page: Simulation controls
 	label = gtk_label_new("Simulation controls");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation controls</span>");
-	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), init_simulation_controls(window), label);
-
+	controlsPageW = init_simulation_controls(window);
+	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), controlsPageW, label);
+	gtk_widget_show_all(controlsPageW);
 
 	//third notebook page: Results
 	label = gtk_label_new("Results");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
 	resultsPageW = init_results(window);
 	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
-	//gtk_widget_show_all(resultsPageW);
+	gtk_widget_show_all(resultsPageW);
 	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), results_page);
 	//fprintf(stdout,"going to input_page\n");
 	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), input_page);
@@ -3784,7 +3959,8 @@ int main (int argc, char *argv[]) {
 
 
 
-	gtk_widget_show_all(window);
+	gtk_widget_show(Main_vbox);
+	gtk_widget_show(window);
 #ifdef MAC_INTEGRATION
 	gtk_osxapplication_ready(theApp);
 #endif

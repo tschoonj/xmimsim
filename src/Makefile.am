@@ -33,7 +33,7 @@ libxmimsim_la_SOURCES += xmi_random_win.c xmi_registry_win.c
 endif
 
 libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ \
-	@glib2_CFLAGS@ @xraylib_CFLAGS@ \
+	@glib2_CFLAGS@ @xraylib_CFLAGS@ @GTK_MAC_CFLAGS@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 	-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
 	-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
@@ -46,6 +46,9 @@ libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_L
 
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 
+endif
+if ENABLE_MAC_APP
+libxmimsim_la_CFLAGS += -xobjective-c
 endif
 
 xmimsim_main.mod: libxmimsim.la

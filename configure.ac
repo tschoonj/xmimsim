@@ -108,19 +108,20 @@ fi
 
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes)])
 
+GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
 	#check for quartz backend
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
-	AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
+	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz; then 
-	   PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration)
+	   PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration,[GTK_MAC_INTEGRATION_FOUND=yes],[GTK_MAC_INTEGRATION_FOUND=no])
 	   #AC_SUBST(GTK_MAC_LIBS)
 	   #AC_SUBST(GTK_MAC_CFLAGS)
 	   
 	fi
 
 fi
-AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$_gdk_tgt" = xquartz])
+AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
 #check for headers
 AC_CHECK_HEADER(stdio.h,,[AC_MSG_ERROR([Required header not found on the system])])
