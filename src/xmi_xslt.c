@@ -25,9 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/catalog.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
+#include <glib.h>
 
-#ifdef _WIN32
+#ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
+#elif defined(MAC_INTEGRATION)
+#include "xmi_resources_mac.h"
 #endif
 
 extern int xmlLoadExtDtdDefaultValue;
@@ -54,15 +57,18 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
 
-#ifndef _WIN32
-	const xmlChar xsltfile[] = XMI_XMSO2XMSI_XSLT;
-#else
+#ifdef G_OS_WIN32
 	xmlChar *xsltfile;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2XMSI,(char **) &xsltfile) == 0)
 		return 0;
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
 
-
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2XMSI,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSO2XMSI_XSLT;
 #endif
 
 	xsltInit();
@@ -73,7 +79,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
-#ifdef _WIN32
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
 	free(xsltfile);
 #endif
 
@@ -130,15 +136,20 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         char s_convoluted[] = "'convoluted'";
         char s_unconvoluted[] = "'unconvoluted'";
 
-#ifndef _WIN32
-	const xmlChar xsltfile[] = XMI_XMSO2SVG_XSLT;
-#else
+
+#ifdef G_OS_WIN32
 	xmlChar *xsltfile;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2SVG,(char **) &xsltfile) == 0)
 		return 0;
-#endif
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
 
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SVG,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSO2SVG_XSLT;
+#endif
 
 
 	xsltInit();
@@ -161,7 +172,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	if (cur == NULL)
 		return 0;
 
-#ifdef _WIN32
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
 	free(xsltfile);
 #endif
 
@@ -201,15 +212,20 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
         char s_unconvoluted[] = "'spectrum_unconv'";
 	char interaction[10];
 
-#ifndef _WIN32
-	const xmlChar xsltfile[] = XMI_XMSO2SPE_XSLT;
-#else
+
+#ifdef G_OS_WIN32
 	xmlChar *xsltfile;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2SPE,(char **) &xsltfile) == 0)
 		return 0;
-#endif
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
 
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SPE,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSO2SPE_XSLT;
+#endif
 
 
 	xsltInit();
@@ -235,7 +251,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	if (cur == NULL)
 		return 0;
 
-#ifdef _WIN32
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
 	free(xsltfile);
 #endif
 
@@ -274,15 +290,20 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
         char s_convoluted[] = "'spectrum_conv'";
         char s_unconvoluted[] = "'spectrum_unconv'";
 
-#ifndef _WIN32
-	const xmlChar xsltfile[] = XMI_XMSO2CSV_XSLT;
-#else
+
+#ifdef G_OS_WIN32
 	xmlChar *xsltfile;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2CSV,(char **) &xsltfile) == 0)
 		return 0;
-#endif
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
 
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2CSV,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSO2CSV_XSLT;
+#endif
 
 
 	xsltInit();
@@ -305,7 +326,7 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 	if (cur == NULL)
 		return 0;
 
-#ifdef _WIN32
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
 	free(xsltfile);
 #endif
 
@@ -343,13 +364,18 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         char s_convoluted[] = "'convoluted'";
         char s_unconvoluted[] = "'unconvoluted'";
 
-#ifndef _WIN32
-	const xmlChar xsltfile[] = XMI_XMSO2HTM_XSLT;
-#else
+#ifdef G_OS_WIN32
 	xmlChar *xsltfile;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2HTM,(char **) &xsltfile) == 0)
 		return 0;
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
+
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2HTM,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSO2HTM_XSLT;
 #endif
 
 
@@ -374,7 +400,7 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	if (cur == NULL)
 		return 0;
 
-#ifdef _WIN32
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
 	free(xsltfile);
 #endif
 

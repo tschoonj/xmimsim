@@ -60,7 +60,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #warn Win 64 platform detected... proceed at your own risk...
 #endif
 
-
+#ifdef MAC_INTEGRATION
+#include "xmi_resources_mac.h"
+#endif
 
 
 int main (int argc, char *argv[]) {
@@ -240,11 +242,7 @@ int main (int argc, char *argv[]) {
 	if (hdf5_file == NULL) {
 		//no option detected
 		//first look at default file
-#ifndef _WIN32
-		//UNIX mode...
-		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
-			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-#else
+#ifdef G_OS_WIN32
 		if (xmi_registry_win_query(XMI_REGISTRY_WIN_DATA,&hdf5_file) == 0)
 			return 1;
 
@@ -252,6 +250,22 @@ int main (int argc, char *argv[]) {
 		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
 			//do nothing
 		}
+#elif defined(MAC_INTEGRATION)
+		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_DATA,&hdf5_file) == 0)
+			return 1;
+
+
+		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
+			//do nothing
+		}
+		else if (g_access(hdf5_file, F_OK | R_OK) != 0) {
+			fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
+			return 1;
+		}
+#else
+		//UNIX mode...
+		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
+			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
 #endif
 		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
 			//look in current folder

@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/xsltutils.h>
 #include <stdlib.h>
 #include <xraylib.h>
+#include <glib.h>
 
 
 #define SVG_DEFAULT_WIDTH 540
@@ -73,7 +74,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log);
 
 
 
-#ifdef _WIN32
+#ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
 
 int xmi_xmlLoadCatalog() {
@@ -95,7 +96,27 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 
 }
+#elif defined(MAC_INTEGRATION)
+#include "xmi_resources_mac.h"
+int xmi_xmlLoadCatalog() {
+	char *catalog;
+	int rv;
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_CATALOG,&catalog) == 0) {
+		return 0;
+	}
 
+	if (xmlLoadCatalog((gchar *) catalog) != 0) {
+		fprintf(stderr,"Could not load %s\n",(gchar *) catalog);
+		rv=0;
+	}
+	else {
+		rv=1;
+		free(catalog);
+	}
+
+	return rv;
+
+}
 #else
 int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;

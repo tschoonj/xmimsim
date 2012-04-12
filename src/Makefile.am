@@ -32,6 +32,11 @@ else
 libxmimsim_la_SOURCES += xmi_random_win.c xmi_registry_win.c
 endif
 
+if ENABLE_MAC_APP
+libxmimsim_la_SOURCES += xmi_resources_mac.c 
+endif
+
+
 libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ \
 	@glib2_CFLAGS@ @xraylib_CFLAGS@ @GTK_MAC_CFLAGS@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \

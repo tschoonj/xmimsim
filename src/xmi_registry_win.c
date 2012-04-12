@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #ifndef _WIN32
-#error _WIN32 macro is not defined in xmi_random_win.c
+#error _WIN32 macro is not defined in xmi_registry_win.c
 #endif
 
 #include "xmi_registry_win.h"

@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef MAC_INTEGRATION
 #include <gtkosxapplication.h>
+#include <xmi_resources_mac.h>
 #endif
 struct window_entry {
 	GtkWidget *window;
@@ -1246,9 +1247,15 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	executableB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableB,FALSE,FALSE,0);
 	g_signal_connect(G_OBJECT(executableB),"clicked",G_CALLBACK(select_executable_cb), (gpointer) window);
+#ifdef MAC_INTEGRATION
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
+		xmimsim_executable = NULL;
+	}	
+#else
 	xmimsim_executable = g_find_program_in_path("xmimsim");
+#endif
 	executableW = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(executableW),80);
+	gtk_entry_set_width_chars(GTK_ENTRY(executableW),100);
 	if (xmimsim_executable == NULL) {
 		//bad...
 		gtk_entry_set_text(GTK_ENTRY(executableW),"xmimsim");
