@@ -27,13 +27,8 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	const gchar *resource_path;
 	gchar *temp;
 
-	//first check if it's actually a bundle
-	if (quartz_application_get_bundle_id() == NULL) {
-		fprintf(stderr,"Application is not a Mac Bundle!\n");
-		return 0;
-	}
-
 	resource_path = quartz_application_get_resource_path();
+
 
 	switch (kind) {
 		case XMI_RESOURCES_MAC_DATA:

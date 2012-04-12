@@ -1,0 +1,36 @@
+<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
+<app-bundle>
+
+<meta>
+	<prefix name='default'>/opt/local</prefix>	
+	<prefix name='source'>/Users/schoon/github/xmimsim</prefix>	
+	<prefix name='build'>/Users/schoon/github/xmimsim/build</prefix>	
+	<prefix name='install'>/usr/local</prefix>	
+	<prefix name='macports'>/opt/local</prefix>	
+	<destination overwrite="yes">${env:PWD}</destination>
+	<launcher-script>${prefix:source}/osx/launcher.sh</launcher-script>
+	<run-install-name-tool/>
+	<gtk>gtk+2.0</gtk>
+</meta>
+
+<plist>${prefix:build}/osx/Info.plist</plist>
+<main-binary>${prefix:install}/bin/xmimsim-gui</main-binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-pymca</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-db</binary>
+
+<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.icns</data>
+<data dest="${bundle}/Contents/Resources">${prefix:build}/xml/xmimsim_cat.xml</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
+
+<binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/engines/*.so</binary>
+
+<data>${prefix:macports}/share/themes</data>
+
+<data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:macports}/share/themes/Aurora/gtk-2.0/gtkrc</data>
+
+<data dest="${bundle}/Contents/Resources">${prefix:macports}/share/strings</data>
+
+
+</app-bundle>

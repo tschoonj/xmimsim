@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+        <string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>xmimsim-gui</string>
+	<key>CFBundleIconFile</key>
+	<string>Logo_xmi_msim</string>
+	<key>CFBundleIdentifier</key>
+	<string>be.ugent.xmi.xmi-msim</string>
+	<key>CFBundleName</key>
+	<string>XMI-MSIM</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleVersion</key>
+	<string>@VERSION@</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright 2012 Tom Schoonjans, GNU General Public License.</string>
+	<key>LSApplicationCategoryType</key>
+	<string>Education</string>
+	<key>LSArchitecturePriority</key>
+	<array>
+		<string>x86_64</string>
+	</array>
+	<!--<key>LSEnvironment</key>
+		<key>LANG</key>-->
+	<key>LSMinimumSystemVersion</key>
+	<string>10.6.0</string>
+
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>xmsi</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>XMI-MSIM Input File</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>Logo_xmi_msim</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>xmso</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>XMI-MSIM Output File</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>Logo_xmi_msim</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
+
+</dict>
+</plist>

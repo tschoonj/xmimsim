@@ -13,10 +13,5 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-SUBDIRS = src bin include xml etc nsis icons osx
-ACLOCAL_AMFLAGS = -I m4
+EXTRA_DIST = Info.plist.in 
 
-pkgconfigdir=$(libdir)/pkgconfig
-pkgconfig_DATA=libxmimsim.pc
-
-EXTRA_DIST = xmimsim.spec.in
