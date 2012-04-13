@@ -31,7 +31,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/xsltutils.h>
 #include <stdlib.h>
 #include <xraylib.h>
-#include <glib.h>
 
 
 #define SVG_DEFAULT_WIDTH 540
@@ -98,21 +97,33 @@ int xmi_xmlLoadCatalog() {
 }
 #elif defined(MAC_INTEGRATION)
 #include "xmi_resources_mac.h"
+#include <gtkosxapplication.h>
 int xmi_xmlLoadCatalog() {
-	char *catalog;
 	int rv;
-	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_CATALOG,&catalog) == 0) {
-		return 0;
-	}
+	const gchar *resource_path;
+	resource_path = quartz_application_get_resource_path();
+	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
+	strcat(resource_path,"/");
 
-	if (xmlLoadCatalog((gchar *) catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",(gchar *) catalog);
-		rv=0;
+	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
+	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path,NULL,NULL);
+	
+
+	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
+		fprintf(stderr,"Could not add catalog\n");
+		rv = 0;
 	}
-	else {
-		rv=1;
-		free(catalog);
+	else
+		rv =1;
+
+	if (xmlCatalogAdd(BAD_CAST "rewriteURI",uriStartString,rewritePrefix) == -1) {
+		fprintf(stderr,"Could not add catalog rewriteURI\n");
+		rv = 0;
 	}
+	else
+		rv =1;
+
+	free(resource_path);
 
 	return rv;
 
