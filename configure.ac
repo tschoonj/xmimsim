@@ -130,6 +130,7 @@ AC_CHECK_HEADER(fcntl.h,,[AC_MSG_ERROR([Required header not found on the system]
 AC_CHECK_HEADER(signal.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stdlib.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(string.h,,[AC_MSG_ERROR([Required header not found on the system])])
+AC_CHECK_HEADER(locale.h,,[AC_MSG_ERROR([Required header not found on the system])])
 if test x$OS_WINDOWS = x0 ; then
 AC_CHECK_HEADER(sys/resource.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(syslog.h,,[AC_MSG_ERROR([Required header not found on the system])])

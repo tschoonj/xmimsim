@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
-	XMI_RESOURCES_MAC_CATALOG,
 	XMI_RESOURCES_MAC_XMSO2XMSI,
 	XMI_RESOURCES_MAC_XMSO2SVG,
 	XMI_RESOURCES_MAC_XMSO2SPE,

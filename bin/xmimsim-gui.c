@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gprintf.h>
 #include <xraylib.h>
 #include <gdk/gdkkeysyms.h>
+#include <locale.h>
 
 #ifdef G_OS_UNIX
 #include <signal.h>
@@ -333,6 +334,7 @@ void signal_handler(int sig) {
 			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
 		}
 	}
+	_exit(0);
 }
 
 #elif defined(G_OS_WIN32)
@@ -2458,7 +2460,13 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 }
 
 #ifdef MAC_INTEGRATION
-static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpointer data) {
+
+struct osx_load_data {
+	GtkWidget *window;
+	gchar *path;
+};
+
+static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	GtkWidget *dialog = NULL;
 	GtkFileFilter *filter1, *filter2;
 	char *filename;
@@ -2470,12 +2478,16 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 	GtkWidget *label;
 	char *title;
 	GtkTextIter iterb, itere;
+	struct osx_load_data *old = (struct osx_load_data *) data;
+	gchar *path = old->path;
 
-	g_fprintf(stdout,"OSX File open event: %s\n",path);
+	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",path);
+
+
 	check_rv = check_changes_saved(&check_status);
 
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(old->window),
 			GTK_DIALOG_MODAL,
 			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
 			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
@@ -2490,7 +2502,7 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(old->window),
 			GTK_DIALOG_MODAL,
 			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -2533,7 +2545,7 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 			}
 			else {
 				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 		        		GTK_MESSAGE_ERROR,
 		        		GTK_BUTTONS_CLOSE,
@@ -2546,7 +2558,7 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 
 		}
 
-
+		fprintf(stdout,"about to destroy dialog\n");
 		gtk_widget_destroy(dialog);
 	}
 
@@ -2554,6 +2566,7 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 	//check for filetype
 	if (strcmp(path+strlen(path)-5,".xmsi") == 0) {
 		//XMSI file
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 		if (xmi_read_input_xml(filename, &xi) == 1) {
 			//success reading it in...
 			change_all_values(xi);
@@ -2562,12 +2575,12 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 			title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
 			strcpy(title,"XMI MSIM: ");
 			strcat(title,filename);
-			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+			gtk_window_set_title(GTK_WINDOW(old->window),title);
 			free(title);
-			return TRUE;			
+			return FALSE;			
 		}
 		else {
-			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 		       		GTK_MESSAGE_ERROR,
 		       		GTK_BUTTONS_CLOSE,
@@ -2579,6 +2592,7 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 	}
 	else if (strcmp(path+strlen(path)-5,".xmso") == 0) {
 		//XMSO file
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			xmi_copy_input(results_input,&xi);
 			change_all_values(xi);
@@ -2588,12 +2602,12 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 			title = (char *) malloc(sizeof(char)*(strlen(results_inputfile)+11));
 			strcpy(title,"XMI MSIM: ");
 			strcat(title,results_inputfile);
-			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
+			gtk_window_set_title(GTK_WINDOW(old->window),title);
 			free(title);
-			return TRUE;			
+			return FALSE;			
 		}
 		else {
-			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 		       		GTK_MESSAGE_ERROR,
 		       		GTK_BUTTONS_CLOSE,
@@ -2603,8 +2617,26 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 			gtk_widget_destroy (dialog);
 		}
 	}
-	
 	return FALSE;
+}
+
+
+static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpointer data) {
+	struct osx_load_data *old = (struct osx_load_data *) malloc(sizeof(struct osx_load_data));
+
+	old->window = (GtkWidget *) data;
+	old->path = g_strdup(path);
+
+	g_idle_add(load_from_file_osx_helper_cb, (gpointer) old);
+
+	g_fprintf(stdout,"OSX File open event: %s\n",path);
+
+
+	
+
+
+
+	return TRUE;
 }
 #endif
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
@@ -3179,8 +3211,9 @@ int main (int argc, char *argv[]) {
 #elif defined(G_OS_WIN32)
 
 #endif
-	
 
+	//needs to be checked on Windows... especially XP!
+	g_setenv("LANG","en_US",TRUE);
 	setbuf(stdout,NULL);
 	//let's use the default C locale
 	gtk_disable_setlocale();
@@ -4630,6 +4663,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		//get filetype
 		if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter1) {
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
 				change_all_values(xi);
@@ -4657,6 +4691,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter2) {
 			
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
 				xmi_copy_input(results_input,&xi);
 				change_all_values(xi);
