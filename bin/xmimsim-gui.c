@@ -39,7 +39,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #ifdef MAC_INTEGRATION
+#import <Foundation/Foundation.h>
 #include <gtkosxapplication.h>
+#include <gdk/gdkquartz.h>
 #define PRIMARY_ACCEL_KEY GDK_META_MASK
 #else
 #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
@@ -294,6 +296,13 @@ struct matrix_data {
 	GtkWidget *bottomButton;
 };
 
+char *xmimsim_title_xmsi = NULL;
+char *xmimsim_title_xmso = NULL;
+char *xmimsim_filename_xmsi = NULL;
+char *xmimsim_filename_xmso = NULL;
+
+
+
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
@@ -343,34 +352,109 @@ void signal_handler(int sig) {
 
 
 
+void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename) {
+	g_free(xmimsim_title_xmsi);
+	xmimsim_title_xmsi = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
+
+#ifdef MAC_INTEGRATION
+	if (filename != NULL) {
+		g_free(xmimsim_filename_xmsi);
+		xmimsim_filename_xmsi = g_strdup(filename);
+	}
+	else {
+		g_free(xmimsim_filename_xmsi);
+		xmimsim_filename_xmsi = NULL;
+	}
+#endif
+
+
+	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
+	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
+		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmsi);
+#ifdef MAC_INTEGRATION
+		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
+		if (filename != NULL) {
+			gchar *uri = g_filename_to_uri(filename,NULL, NULL);
+			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
+			[qwindow setRepresentedURL:nsurl];
+			g_free(uri);
+		}
+		else {
+			[qwindow setRepresentedURL:nil];
+		}
+#endif
+	}
+	return;
+}
+
+void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename) {
+	g_free(xmimsim_title_xmso);
+	xmimsim_title_xmso = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
+
+#ifdef MAC_INTEGRATION
+	if (filename != NULL) {
+		g_free(xmimsim_filename_xmso);
+		xmimsim_filename_xmso = g_strdup(filename);
+	}
+	else {
+		g_free(xmimsim_filename_xmso);
+		xmimsim_filename_xmso = NULL;
+	}
+#endif
+
+	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == results_page) {
+		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmso);
+#ifdef MAC_INTEGRATION
+		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
+		if (filename != NULL) {
+			gchar *uri = g_filename_to_uri(filename,NULL, NULL);
+			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
+			[qwindow setRepresentedURL:nsurl];
+			g_free(uri);
+		}
+		else {
+			[qwindow setRepresentedURL:nil];
+		}
+#endif
+	}
+	return;
+}
 
 
 static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, guint page, gpointer data) {
-	struct undo_single *check_rv;
-	int check_status;
-	GtkWidget *dialog = NULL;
-	GtkWidget *content;
-	gint dialog_rv;
-	GtkWidget *label;
-	GtkTextIter iterb, itere;
+	GtkWidget *my_window = (GtkWidget *) data;
 
 
-
-	fprintf(stdout,"page %i clicked\n",page);
-	fprintf(stdout,"current page %i\n",current_page);
-	//cases: 
-	//	1) current_page == input_page and page == control_page
-	//	2) current_page == control_page and page == input_page
-	if (page == results_page)	{
-		//check status of undo/redo, new, save(as) buttons and store their states for future use
-		/*gtk_widget_queue_draw(spectra_button_box);
-		while (gtk_events_pending ())
-	        	gtk_main_iteration ();
-		gtk_widget_show_all(spectra_button_box);*/
-		//needs to be checked if valid input is available and that it has been saved
-
+	if (page == results_page) {
+		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmso);
+#ifdef MAC_INTEGRATION
+		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
+		if (xmimsim_filename_xmso != NULL) {
+			gchar *uri = g_filename_to_uri(xmimsim_filename_xmso,NULL, NULL);
+			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
+			[qwindow setRepresentedURL:nsurl];
+			g_free(uri);
+		}
+		else {
+			[qwindow setRepresentedURL:nil];
+		}
+#endif
+		
 	}
-	else if (current_page == control_page && page == input_page) {
+	else if (page == control_page || page == input_page) {
+		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmsi);
+#ifdef MAC_INTEGRATION
+		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
+		if (xmimsim_filename_xmsi!= NULL) {
+			gchar *uri = g_filename_to_uri(xmimsim_filename_xmsi,NULL, NULL);
+			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
+			[qwindow setRepresentedURL:nsurl];
+			g_free(uri);
+		}
+		else {
+			[qwindow setRepresentedURL:nil];
+		}
+#endif
 	
 	
 	}
@@ -2572,11 +2656,9 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			change_all_values(xi);
 			//reset redo_buffer
 			reset_undo_buffer(xi, filename);	
-			title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
-			strcpy(title,"XMI MSIM: ");
-			strcat(title,filename);
-			gtk_window_set_title(GTK_WINDOW(old->window),title);
-			free(title);
+			title = g_path_get_basename(filename);
+			update_xmimsim_title_xmsi(title,old->window,filename);
+			g_free(title);
 			return FALSE;			
 		}
 		else {
@@ -2594,16 +2676,9 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
-			xmi_copy_input(results_input,&xi);
-			change_all_values(xi);
-			//reset redo_buffer
-			reset_undo_buffer(xi, results_inputfile);	
-
-			title = (char *) malloc(sizeof(char)*(strlen(results_inputfile)+11));
-			strcpy(title,"XMI MSIM: ");
-			strcat(title,results_inputfile);
-			gtk_window_set_title(GTK_WINDOW(old->window),title);
-			free(title);
+			gchar *temp_base = g_path_get_basename(filename);
+			update_xmimsim_title_xmso(temp_base, old->window, filename);
+			g_free(temp_base);
 			return FALSE;			
 		}
 		else {
@@ -3427,6 +3502,7 @@ int main (int argc, char *argv[]) {
 	//notebook
 	notebook = gtk_notebook_new();
 	notebookG = g_signal_connect(G_OBJECT(notebook), "switch-page",G_CALLBACK(notebook_page_changed_cb),window);
+	g_signal_handler_block(G_OBJECT(notebook), notebookG);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_widget_show(notebook);
 
@@ -3967,36 +4043,37 @@ int main (int argc, char *argv[]) {
 	//fprintf(stdout,"going to input_page\n");
 	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), input_page);
 	
+	gtk_widget_show(Main_vbox);
+	gtk_widget_show(window);
+	g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
 
+#ifdef MAC_INTEGRATION
+	gtk_osxapplication_ready(theApp);
+#endif
 	if (argc == 2) {
 		if (xmi_read_input_xml(argv[1], &xi_temp) == 1) {
 			//success reading it in...
 			change_all_values(xi_temp);
 			//reset redo_buffer
 			reset_undo_buffer(xi_temp, argv[1]);	
-			title = (char *) malloc(sizeof(char)*(strlen(argv[1])+11));
-			strcpy(title,"XMI MSIM: ");
-			strcat(title,argv[1]);
-			gtk_window_set_title(GTK_WINDOW(window),title);
-			free(title);
+			title = g_path_get_basename(argv[1]);
+			update_xmimsim_title_xmsi(title, window, argv[1]);
+			g_free(title);
 		}
 		else {
+			//this has to be fixed -> popup instead of quitting
+			//problem is that this is called before gtk_main
 			fprintf(stderr,"Could not read in xml file %s\n",argv[1]);
 			return 1;
 		}
 	}
-	else 
-		gtk_window_set_title(GTK_WINDOW(window),"XMI MSIM: New file");
+	else { 
+		update_xmimsim_title_xmsi("New file", window, NULL);
+	}
+
+	update_xmimsim_title_xmso("No simulation data available", window, NULL);
 
 
-
-
-
-	gtk_widget_show(Main_vbox);
-	gtk_widget_show(window);
-#ifdef MAC_INTEGRATION
-	gtk_osxapplication_ready(theApp);
-#endif
 
 
 	gtk_main();
@@ -4409,8 +4486,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	change_all_values(xi);
 	reset_undo_buffer(xi,UNLIKELY_FILENAME);
 
-	gtk_window_set_title(GTK_WINDOW((GtkWidget *)data),"XMI MSIM: New file");
-
+	update_xmimsim_title_xmsi("New file", data, NULL);
 
 	return;
 }
@@ -4669,13 +4745,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				change_all_values(xi);
 				//reset redo_buffer
 				reset_undo_buffer(xi, filename);	
-
-				title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
-				strcpy(title,"XMI MSIM: ");
-				strcat(title,filename);
-				gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
-				free(title);
-				
+				title = g_path_get_basename(filename);
+				update_xmimsim_title_xmsi(title, data, filename);
+				g_free(title);
 				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
 			else {
@@ -4693,16 +4765,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 			
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
-				xmi_copy_input(results_input,&xi);
-				change_all_values(xi);
-				//reset redo_buffer
-				reset_undo_buffer(xi, results_inputfile);	
-
-				title = (char *) malloc(sizeof(char)*(strlen(results_inputfile)+11));
-				strcpy(title,"XMI MSIM: ");
-				strcat(title,results_inputfile);
-				gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
-				free(title);
+				gchar *temp_base = g_path_get_basename(filename);
+				update_xmimsim_title_xmso(temp_base, data, filename);
+				g_free(temp_base);
 			}
 			else {
 				gtk_widget_destroy (dialog);
@@ -4717,6 +4782,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		}
 		g_free (filename);							
 	}
+
 	gtk_widget_destroy (dialog);
 }
 
@@ -4811,11 +4877,9 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 			xmi_copy_input(current->xi, &(last_saved->xi));
 			last_saved->filename = strdup(filename);
-			title = (char *) malloc(sizeof(char)*(strlen(filename)+11));
-			strcpy(title,"XMI MSIM: ");
-			strcat(title,filename);
-			gtk_window_set_title(GTK_WINDOW((GtkWidget *) data),title);
-			free(title);
+			title = g_path_get_basename(filename);
+			update_xmimsim_title_xmsi(title, data, filename);
+			g_free(title);
 			g_free (filename);							
 		}
 		else {

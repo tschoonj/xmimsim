@@ -60,6 +60,13 @@ xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 endif
 
+if ENABLE_MAC_APP
+xmimsim_gui_CFLAGS += -xobjective-c
+#next line is necessary to avoid the -xobjective-c flag to be passed to the linker
+xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+endif
 
 #xmimsim_test_SOURCES = xmimsim-test.c
 #xmimsim_test_LDADD = ../src/libxmimsim.la
