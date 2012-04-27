@@ -52,14 +52,21 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
 xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h
-xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@
-xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@
+xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@
+xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@ @GTK_MAC_LIBS@
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 endif
 
+if ENABLE_MAC_APP
+xmimsim_gui_CFLAGS += -xobjective-c
+#next line is necessary to avoid the -xobjective-c flag to be passed to the linker
+xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+endif
 
 #xmimsim_test_SOURCES = xmimsim-test.c
 #xmimsim_test_LDADD = ../src/libxmimsim.la
@@ -68,9 +75,9 @@ endif
 #xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
-xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ \
+xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
-xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@
+xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@ @GTK_MAC_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 if OS_WINDOWS
 xmimsim_LDFLAGS += -Wl,-subsystem,windows
@@ -82,8 +89,8 @@ endif
 #xmimsim_test_alloc_LDADD = ../src/libxmimsim.la 
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
-xmimsim_pymca_LDADD = ../src/libxmimsim.la
-xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ \
+xmimsim_pymca_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
+xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 
 

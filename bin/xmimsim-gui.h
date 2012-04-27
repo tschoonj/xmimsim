@@ -147,5 +147,14 @@ enum {
 	GTK_RESPONSE_NOSAVE
 };
 
+#ifdef MAC_INTEGRATION 
+  #define XMIMSIM_TITLE_PREFIX ""
+#else
+  #define XMIMSIM_TITLE_PREFIX "XMI MSIM: "
+#endif
+
+
+void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename);
+void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename);
 
 #endif

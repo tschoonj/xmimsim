@@ -108,6 +108,20 @@ fi
 
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes)])
 
+GTK_MAC_INTEGRATION_FOUND=no
+if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
+	#check for quartz backend
+	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
+	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
+	if test "x$_gdk_tgt" = xquartz; then 
+	   PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration,[GTK_MAC_INTEGRATION_FOUND=yes],[GTK_MAC_INTEGRATION_FOUND=no])
+	   #AC_SUBST(GTK_MAC_LIBS)
+	   #AC_SUBST(GTK_MAC_CFLAGS)
+	   
+	fi
+
+fi
+AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
 #check for headers
 AC_CHECK_HEADER(stdio.h,,[AC_MSG_ERROR([Required header not found on the system])])
@@ -116,6 +130,7 @@ AC_CHECK_HEADER(fcntl.h,,[AC_MSG_ERROR([Required header not found on the system]
 AC_CHECK_HEADER(signal.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stdlib.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(string.h,,[AC_MSG_ERROR([Required header not found on the system])])
+AC_CHECK_HEADER(locale.h,,[AC_MSG_ERROR([Required header not found on the system])])
 if test x$OS_WINDOWS = x0 ; then
 AC_CHECK_HEADER(sys/resource.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(syslog.h,,[AC_MSG_ERROR([Required header not found on the system])])
@@ -339,7 +354,7 @@ AC_SUBST(OPENMPI_CFLAGS)
 
 
 
-AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile libxmimsim.pc])
+AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile libxmimsim.pc osx/Makefile osx/Info.plist])
 AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT

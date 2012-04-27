@@ -34,6 +34,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_solid_angle.h"
 #endif
 
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
+#include <xmi_resources_mac.h>
+#endif
 struct window_entry {
 	GtkWidget *window;
 	GtkWidget *entry;
@@ -395,7 +399,12 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-	if(plot_spectra_from_file(cd->outputfile) == 0) {
+	if(plot_spectra_from_file(cd->outputfile) == 1) {
+		gchar *temp_base = g_path_get_basename(cd->outputfile);
+		update_xmimsim_title_xmso(temp_base, cd->window, cd->outputfile);
+		g_free(temp_base);
+	}
+	else {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(cd->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 		        GTK_MESSAGE_ERROR,
@@ -407,7 +416,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	}
 
 	
-
+#ifdef MAC_INTEGRATION
+	gtk_osxapplication_attention_request(g_object_new(GTK_TYPE_OSX_APPLICATION, NULL), CRITICAL_REQUEST);
+#endif
 	//free(cd);
 
 	return;
@@ -1241,9 +1252,15 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	executableB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableB,FALSE,FALSE,0);
 	g_signal_connect(G_OBJECT(executableB),"clicked",G_CALLBACK(select_executable_cb), (gpointer) window);
+#ifdef MAC_INTEGRATION
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
+		xmimsim_executable = NULL;
+	}	
+#else
 	xmimsim_executable = g_find_program_in_path("xmimsim");
+#endif
 	executableW = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(executableW),80);
+	gtk_entry_set_width_chars(GTK_ENTRY(executableW),100);
 	if (xmimsim_executable == NULL) {
 		//bad...
 		gtk_entry_set_text(GTK_ENTRY(executableW),"xmimsim");

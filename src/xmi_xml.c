@@ -73,7 +73,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log);
 
 
 
-#ifdef _WIN32
+#ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
 
 int xmi_xmlLoadCatalog() {
@@ -95,7 +95,39 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 
 }
+#elif defined(MAC_INTEGRATION)
+#include "xmi_resources_mac.h"
+#include <gtkosxapplication.h>
+int xmi_xmlLoadCatalog() {
+	int rv;
+	gchar *resource_path;
+	resource_path = quartz_application_get_resource_path();
+	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
+	strcat(resource_path,"/");
 
+	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
+	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path,NULL,NULL);
+	
+
+	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
+		fprintf(stderr,"Could not add catalog\n");
+		rv = 0;
+	}
+	else
+		rv =1;
+
+	if (xmlCatalogAdd(BAD_CAST "rewriteURI",uriStartString,rewritePrefix) == -1) {
+		fprintf(stderr,"Could not add catalog rewriteURI\n");
+		rv = 0;
+	}
+	else
+		rv =1;
+
+	free(resource_path);
+
+	return rv;
+
+}
 #else
 int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;

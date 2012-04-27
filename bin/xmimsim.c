@@ -60,7 +60,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #warn Win 64 platform detected... proceed at your own risk...
 #endif
 
-
+#ifdef MAC_INTEGRATION
+#include "xmi_resources_mac.h"
+#endif
 
 XMI_MAIN
 
@@ -237,11 +239,7 @@ XMI_MAIN
 	if (hdf5_file == NULL) {
 		//no option detected
 		//first look at default file
-#ifndef _WIN32
-		//UNIX mode...
-		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
-			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-#else
+#ifdef G_OS_WIN32
 		if (xmi_registry_win_query(XMI_REGISTRY_WIN_DATA,&hdf5_file) == 0)
 			return 1;
 
@@ -249,6 +247,22 @@ XMI_MAIN
 		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
 			//do nothing
 		}
+#elif defined(MAC_INTEGRATION)
+		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_DATA,&hdf5_file) == 0)
+			return 1;
+
+
+		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
+			//do nothing
+		}
+		else if (g_access(hdf5_file, F_OK | R_OK) != 0) {
+			fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
+			return 1;
+		}
+#else
+		//UNIX mode...
+		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
+			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
 #endif
 		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
 			//look in current folder
@@ -463,6 +477,8 @@ XMI_MAIN
 		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
 			return 1;
 
+		if (options.verbose)
+			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 		//check if escape ratios are already precalculated
 		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def) == 0)
@@ -480,7 +496,7 @@ XMI_MAIN
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
 			else if (options.verbose)
-				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_solid_angles);
+				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 		}
 		else if (options.verbose)
 			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);
