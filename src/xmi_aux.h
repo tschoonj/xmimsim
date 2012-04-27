@@ -18,8 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_AUX_X
 #define XMI_AUX_X
 
+#include <config.h>
 #include <stddef.h>
 #include "xmi_data_structs.h"
+#include <glib.h>
 
 //returns NULL on error
 void *xmi_memdup(const void *mem, size_t bytes);
@@ -66,5 +68,32 @@ int xmi_cmp_int(const void *a, const void *b);
 struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl);
 
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
+
+#ifdef G_OS_WIN32
+  #include <windows.h>
+  #define XMI_ARGC_ORIG argc_orig
+  #define XMI_ARGV_ORIG argv_orig
+  #define XMI_ARGC argc
+  #define XMI_ARGV argv
+  #define XMI_MAIN int main(int argc_orig, char *argv_orig[]) {\
+	int argc;\
+	char **argv;\
+	int argc_counter;\
+	LPWSTR WinCommandLine = GetCommandLineW();\
+	gunichar2 **WinArgv = CommandLineToArgvW(WinCommandLine,&argc);\
+	argv = (char **) g_malloc(sizeof(char *)*argc);\
+	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++)\
+	  	argv[argc_counter] = g_utf16_to_utf8(WinArgv[argc_counter],-1, NULL, NULL, NULL);\
+	LocalFree(WinArgv);
+	
+#else
+  #define XMI_ARGC_ORIG argc
+  #define XMI_ARGV_ORIG argv
+  #define XMI_ARGC argc
+  #define XMI_ARGV argv
+  #define XMI_MAIN int main(int argc, char *argv[]) {
+
+#endif
+
 
 #endif

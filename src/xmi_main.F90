@@ -3730,8 +3730,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_INT) :: compton_index
         TYPE (xmi_energy) :: energy
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
-        INTEGER (C_LONG) :: n_photons_sim,n_photons_tot 
-        INTEGER (OMP_LOCK_KIND) :: omp_lock
+        INTEGER (C_INT64_T) :: n_photons_sim,n_photons_tot 
 
         !WRITE (6,'(A)') 'Precalculating escape ratios'
         !WRITE (6,'(A)') 'This could take a long time...'
@@ -3810,9 +3809,10 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         !allocate the escape ratio arrays...
 
-        n_photons_sim = 0_C_LONG
-        n_photons_tot = n_input_energies*n_photons
-        CALL omp_init_lock(omp_lock)
+        n_photons_sim = 0_C_INT64_T
+        n_photons_tot = n_input_energies*n_photons/omp_get_max_threads()
+        n_photons_tot = n_photons_tot/100_C_INT64_T
+        n_photons_tot = n_photons_tot*100_C_INT64_T
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
@@ -3949,19 +3949,21 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
 
-                        CALL omp_set_lock(omp_lock)
-                        n_photons_sim = n_photons_sim+1
-                        IF(n_photons_sim*100/n_photons_tot == &
-                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
+                        IF (omp_get_thread_num() == 0) THEN
+                        n_photons_sim = n_photons_sim+1_C_INT64_T
+                        IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
+                        REAL(n_photons_sim*100_C_INT64_T,KIND=C_FLOAT)&
+                        /REAL(n_photons_tot,KIND=C_FLOAT).AND.&
                         input_options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                         CALL xmi_print_progress('Escape peak ratios calculation at'&
-                        //C_NULL_CHAR,INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+                        //C_NULL_CHAR,INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
 #else
                         WRITE(output_unit,'(A,I3,A)')&
-                        'Escape peak ratios calculation at ',n_photons_sim*100/n_photons_tot,' %'
+                        'Escape peak ratios calculation at ',&
+                        n_photons_sim*100_C_INT64_T/n_photons_tot,' %'
 #endif
-                        CALL omp_unset_lock(omp_lock)
+                        ENDIF
                 ENDDO
                 fluo_escape_ratios(:,:,i) =&
                 fluo_escape_ratios(:,:,i)/photons_interacted
@@ -3972,7 +3974,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 !$omp end do
 !$omp end parallel
 
-        CALL omp_destroy_lock(omp_lock)
         ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)
         escape_ratios%n_fluo_input_energies =&

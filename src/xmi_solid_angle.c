@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include <sys/stat.h>
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
@@ -32,7 +33,7 @@ struct xmi_solid_angles_data{
 
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
-void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
+int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
 	hid_t file_id;   /* file identifier */
 	hid_t root_group_id;	
@@ -45,6 +46,10 @@ void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
 	/* Create a new file using default properties. */
 	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	if (file_id < 0) {
+		fprintf(stderr,"Could not create solid angle HDF5 file %s\n",hdf5_file);
+		return 0;
+	}
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
 
 	dataspace_id = H5Screate(H5S_SCALAR);
@@ -59,7 +64,7 @@ void xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
 	/* Terminate access to the file. */
 	status = H5Fclose(file_id); 
-	return;
+	return 1;
 }
 
 
@@ -344,4 +349,44 @@ void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
 	free(solid_angle->xmi_input_string);
 }
 
+int xmi_get_solid_angle_file(char **filePtr) {
+	//behavior is very much platform dependent
+	//general rule
+	//Linux: use g_get_user_data_dir
+	//Windows: use g_get_user_data_dir BUT 
+	//since it creates problems when spawned, use xmimsim.exe commandline for path
+	//Mac OS X: use g_get_user_data_dir unless when packaged in App
+
+	//create the file if it doesn't exist already!
+
+	char *file = *filePtr;
+	char *dir;
+
+
+
+	if (file == NULL) {
+//if MAC OS X APP...
+//
+//endif
+		const gchar *data_dir = g_get_user_data_dir();
+		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-solid-angles.h5")+1));
+		strcpy(file, data_dir);
+		strcat(file,G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-solid-angles.h5");
+		*filePtr = file;
+	}
+
+	//check if file exists
+	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+		//create underlying directory if necessary
+		dir = g_path_get_dirname(file);
+		if (g_mkdir_with_parents(dir,S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
+			fprintf(stderr,"Could not create directory: %s\n",dir);
+			return 0;
+		}
+		g_free(dir);
+		return xmi_create_empty_solid_angle_hdf5_file(file);
+	}
+
+	return 1;
+}
 

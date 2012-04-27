@@ -201,7 +201,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ALLOCATE(xmi_hdf5F%RayleighPhi_ICDF(dims(1),dims(2)))
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%RayleighPhi_ICDF,dims,error)
-
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5sclose_f(dspace_id,error)
         CALL h5dclose_f(dset_id,error)
         !Read RayleighThetas and RayleighRandomNumbers
@@ -209,11 +214,23 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dopen_f(group_id,'Thetas',dset_id,error)
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%RayleighThetas,[dims(1)],error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5dclose_f(dset_id,error)
         ALLOCATE(xmi_hdf5F%RayleighRandomNumbers(dims(2)))
         CALL h5dopen_f(group_id,'Random numbers',dset_id,error)
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%RayleighRandomNumbers,[dims(2)],error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5dclose_f(dset_id,error)
         !close group
         CALL h5gclose_f(group_id,error)
@@ -233,6 +250,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ALLOCATE(xmi_hdf5F%ComptonPhi_ICDF(dims(1),dims(2),dims(3)))
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%ComptonPhi_ICDF,dims,error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
 
         CALL h5sclose_f(dspace_id,error)
         CALL h5dclose_f(dset_id,error)
@@ -241,16 +264,34 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         CALL h5dopen_f(group_id,'Thetas',dset_id,error)
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%ComptonThetas,[dims(1)],error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5dclose_f(dset_id,error)
         ALLOCATE(xmi_hdf5F%ComptonEnergies(dims(2)))
         CALL h5dopen_f(group_id,'Energies',dset_id,error)
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%ComptonEnergies,[dims(2)],error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5dclose_f(dset_id,error)
         ALLOCATE(xmi_hdf5F%ComptonRandomNumbers(dims(3)))
         CALL h5dopen_f(group_id,'Random numbers',dset_id,error)
         CALL h5dread_f(dset_id,&
         H5T_NATIVE_DOUBLE,xmi_hdf5F%ComptonRandomNumbers,[dims(3)],error)
+        IF (error == -1) THEN
+                WRITE (error_unit,'(A,I4)') &
+                'xmi_init_from_hdf5 error at line: ',__LINE__
+                rv = 0
+                RETURN
+        ENDIF
         CALL h5dclose_f(dset_id,error)
         !close group
         CALL h5gclose_f(group_id,error)
@@ -283,6 +324,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF(dims(1),dims(2)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF,dims,error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
 
                 CALL h5sclose_f(dspace_id,error)
                 CALL h5dclose_f(dset_id,error)
@@ -292,6 +339,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF(dims(1),dims(2)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF,dims,error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
 
                 !Read Doppler pz ICDF
@@ -299,6 +352,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF(dims(2)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF,[dims(2)],error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
 
                 !Read corrected fluorescence yields
@@ -306,6 +365,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr(K_SHELL:M5_SHELL))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr,[INT(M5_SHELL-K_SHELL+1,KIND=HSIZE_T)],error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
 
                 !Read energies
@@ -313,6 +378,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%Energies(dims(1)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%Energies,dims,error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
 
                 !Read random numbers
@@ -320,6 +391,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RandomNumbers(dims(2)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%RandomNumbers,dims,error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
 
                 DEALLOCATE(dims)
@@ -339,6 +416,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies(dims(1)))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies,dims,error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5sclose_f(dspace_id,error)
                 CALL h5dclose_f(dset_id,error)
 
@@ -347,6 +430,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt(dims(1),2))
                 CALL h5dread_f(dset_id,&
                 H5T_NATIVE_DOUBLE,xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt,[dims(1),2_8],error)
+                IF (error == -1) THEN
+                        WRITE (error_unit,'(A,I4)') &
+                        'xmi_init_from_hdf5 error at line: ',__LINE__
+                        rv = 0
+                        RETURN
+                ENDIF
                 CALL h5dclose_f(dset_id,error)
                 CALL h5gclose_f(group_id,error)
 
@@ -1104,113 +1193,6 @@ CALL h5close_f(h5error)
 ENDSUBROUTINE xmi_db
 
 
-SUBROUTINE xmi_test_phis
-
-IMPLICIT NONE
-
-REAL (C_DOUBLE) :: theta = M_PI/2.0_C_DOUBLE
-REAL (C_DOUBLE),ALLOCATABLE, DIMENSION(:) :: phis
-
-TYPE (fgsl_rng_type) :: rng_type
-TYPE (fgsl_rng) :: rng
-INTEGER (HID_T) :: file_id
-INTEGER (HID_T) :: group_id,group_id2
-INTEGER (HID_T) :: dset_id
-INTEGER (HID_T) :: dspace_id
-INTEGER :: ndims
-INTEGER (HSIZE_T),DIMENSION(:), ALLOCATABLE:: dims,maxdims
-INTEGER :: error
-
-REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: RayleighPhi_ICDF
-REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: RayleighThetas,RayleighRandomNumbers
-
-INTEGER :: i
-REAL (C_DOUBLE) :: r
-INTEGER (C_INT) :: pos_1, pos_2
-INTEGER (C_LONG),PARAMETER :: nphis = 10000000
-
-
-
-rng_type = fgsl_rng_mt19937
-rng = fgsl_rng_alloc(rng_type)
-CALL fgsl_rng_set(rng, 314_C_LONG)
-
-CALL h5open_f(error)
-
-!open file for reading
-CALL h5fopen_f(XMIMSIM_HDF5_DEFAULT, H5F_ACC_RDONLY_F, file_id, error)
-#if DEBUG == 1
-WRITE (*,'(A,I)') 'error code: ',error
-#endif
-IF (error /= 0) THEN
-        WRITE (*,'(A,A)') 'Error opening HDF5 file ',XMIMSIM_HDF5_DEFAULT
-        STOP
-ENDIF
-
-!RayleighPhi
-CALL h5gopen_f(file_id,'RayleighPhi',group_id,error)
-CALL h5dopen_f(group_id,'RayleighPhi_ICDF',dset_id,error)
-CALL h5dget_space_f(dset_id, dspace_id,error)
-CALL h5sget_simple_extent_ndims_f(dspace_id, ndims, error)
-WRITE (*,'(A,I6)') 'ndims: ',ndims
-!Allocate memory
-ALLOCATE(dims(ndims))
-ALLOCATE(maxdims(ndims))
-CALL h5sget_simple_extent_dims_f(dspace_id, dims, maxdims, error)
-WRITE (*,'(A,2I6)') 'dims: ',dims
-!read the dataset
-ALLOCATE(RayleighPhi_ICDF(dims(1),dims(2)))
-CALL h5dread_f(dset_id,&
-H5T_NATIVE_DOUBLE,RayleighPhi_ICDF,dims,error)
-
-CALL h5sclose_f(dspace_id,error)
-CALL h5dclose_f(dset_id,error)
-WRITE (*,'(A)') 'After RayleighPhi_ICDF'
-!Read RayleighThetas and RayleighRandomNumbers
-ALLOCATE(RayleighThetas(dims(1)))
-CALL h5dopen_f(group_id,'Thetas',dset_id,error)
-CALL h5dread_f(dset_id,&
-H5T_NATIVE_DOUBLE,RayleighThetas,[dims(1)],error)
-CALL h5dclose_f(dset_id,error)
-WRITE (*,'(A)') 'After RayleighThetas'
-ALLOCATE(RayleighRandomNumbers(dims(2)))
-CALL h5dopen_f(group_id,'Random numbers',dset_id,error)
-CALL h5dread_f(dset_id,&
-H5T_NATIVE_DOUBLE,RayleighRandomNumbers,[dims(2)],error)
-CALL h5dclose_f(dset_id,error)
-!close group
-CALL h5gclose_f(group_id,error)
-WRITE (*,'(A)') 'After RayleighRandomNumbers'
-
-
-!close file
-CALL h5fclose_f(file_id,error)
-
-!close hdf5 fortran interface
-CALL h5close_f(error)
-
-
-
-!everything read in... calculate the phis
-ALLOCATE(phis(nphis))
-
-DO i=1, nphis 
-        pos_1=0
-        pos_2=0
-        phis(i) = bilinear_interpolation(RayleighPhi_ICDF, &
-                RayleighThetas, RayleighRandomNumbers,&
-                theta, fgsl_rng_uniform(rng), pos_1, pos_2)
-
-ENDDO
-
-OPEN(UNIT=500,FILE='rayleigh_phis_pi2.txt',STATUS='replace',ACTION='write')
-WRITE (500,'(I15)') nphis 
-DO i=1,nphis
-        WRITE (500,'(ES14.5)') phis(i)
-ENDDO
-        CLOSE(UNIT=500)
-
-ENDSUBROUTINE xmi_test_phis
 
 
 ENDMODULE xmimsim_hdf5

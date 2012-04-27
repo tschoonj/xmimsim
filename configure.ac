@@ -36,10 +36,11 @@ fi
 
 #are we dealing with windows?
 OS_WINDOWS=0
+LDFLAGS_XMIMSIM_LIB=""
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
-		LDFLAGS+="-no-undefined"
+		LDFLAGS_XMIMSIM_LIB+="-no-undefined"
 		;;
 esac
 
@@ -257,7 +258,6 @@ AC_OPENMP
 AC_LANG_POP(C)
 
 XLINKER=""
-LDFLAGS_XMIMSIM_LIB=""
 #when we have Intel Fortran on Mac OS X, add the openmp static link option
 #let's hope they won't remove it anytime soon...
 if test "x${FC:0:5}" = "xifort" && test "x$OS_DARWIN" = "x1" ; then

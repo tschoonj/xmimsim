@@ -67,7 +67,8 @@ gulong spectra_properties_linestyleG;
 gulong spectra_properties_widthG;
 gulong spectra_properties_colorG;
 gulong spectra_region_mouse_movedG;
-
+gulong spectra_region_changedG;
+gulong spectra_region_double_clickedG;
 
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
 GtkWidget *print_button;
@@ -692,7 +693,7 @@ static void print_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_print_operation_set_n_pages(operation, 1);
 	//gtk_print_operation_set_use_full_page(operation,TRUE);
 
-	gtk_print_operation_run(operation, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, GTK_WINDOW(data),&error);
+	res = gtk_print_operation_run(operation, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, GTK_WINDOW(data),&error);
 
 	if (res == GTK_PRINT_OPERATION_RESULT_APPLY) {
 		g_object_unref(print_settings);
@@ -832,8 +833,10 @@ GtkWidget *init_results(GtkWidget *window) {
 	graphics_hbox = gtk_hbox_new(FALSE,2); 
 	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W,magnifier);
 	canvas_height = 0;
-	g_signal_connect(G_OBJECT(canvas),"select-region",G_CALLBACK(spectra_region_changed_cb),NULL);
-	g_signal_connect(G_OBJECT(canvas),"button-press-event",G_CALLBACK(spectra_region_double_clicked_cb),NULL);
+	spectra_region_changedG = g_signal_connect(G_OBJECT(canvas),"select-region",G_CALLBACK(spectra_region_changed_cb),NULL);
+	g_signal_handler_block(G_OBJECT(canvas),spectra_region_changedG);
+	spectra_region_double_clickedG = g_signal_connect(G_OBJECT(canvas),"button-press-event",G_CALLBACK(spectra_region_double_clicked_cb),NULL);
+	g_signal_handler_block(G_OBJECT(canvas),spectra_region_double_clickedG);
 	g_signal_connect(G_OBJECT(canvas),"expose-event", G_CALLBACK(resize_canvas_cb),paned);
 	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
@@ -941,7 +944,7 @@ GtkWidget *init_results(GtkWidget *window) {
 					G_TYPE_DOUBLE,
 					G_TYPE_BOOLEAN,
 					G_TYPE_BOOLEAN,
-					G_TYPE_PLOT_DATA,
+					G_TYPE_POINTER,
 					G_TYPE_STRING,
 					G_TYPE_DOUBLE
 					);
@@ -1008,7 +1011,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	
 	//finalize widget
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), paned);
 
 
@@ -1028,7 +1031,6 @@ static void clear_container (GtkWidget *widget, gpointer data) {
 }
 
 int plot_spectra_from_file(char *xmsofile) {
-	GList *buttonbox_children;
 	int i,j,k;
 	GtkWidget *checkButton;
 	GtkWidget *button;
@@ -1089,6 +1091,8 @@ int plot_spectra_from_file(char *xmsofile) {
 		return 0;
 	}
 
+	g_signal_handler_unblock(G_OBJECT(canvas),spectra_region_changedG);
+	g_signal_handler_unblock(G_OBJECT(canvas),spectra_region_double_clickedG);
 
 	g_signal_handler_unblock((gpointer) canvas, spectra_region_mouse_movedG);
 
@@ -1096,7 +1100,6 @@ int plot_spectra_from_file(char *xmsofile) {
 	//clear plotwindow if necessary
 	//start with buttonbox	
 	//clear it if necessary
-	buttonbox_children = gtk_container_get_children(GTK_CONTAINER(spectra_button_box));
 	gtk_container_foreach(GTK_CONTAINER(spectra_button_box), clear_container, spectra_button_box);
 
 	//clear tree
@@ -1121,8 +1124,8 @@ int plot_spectra_from_file(char *xmsofile) {
 	for (i=0 ; i < results_nchannels ; i++) {
 		temp_channels[i] = results_channels_conv[i][results_ninteractions-1];
 	}
-	free(temp_channels);
 	plot_ymax = xmi_maxval_double(temp_channels,results_nchannels)*1.2;
+	free(temp_channels);
 	plot_ymin = 1.0;
 	plot_xmin = 0.0;
 	plot_xmax = results_nchannels * results_input->detector->gain + results_input->detector->zero;

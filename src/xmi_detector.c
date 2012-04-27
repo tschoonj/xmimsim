@@ -27,10 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include <xraylib.h>
+#include <sys/stat.h>
 
 void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
 
-void xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
+int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
 	hid_t file_id;   /* file identifier */
 	hid_t root_group_id;	
@@ -43,6 +44,10 @@ void xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
 	/* Create a new file using default properties. */
 	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	if (file_id < 0) {
+		fprintf(stderr,"Could not create escape ratios HDF5 file %s\n",hdf5_file);
+		return 0;
+	}
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
 
 	dataspace_id = H5Screate(H5S_SCALAR);
@@ -57,7 +62,7 @@ void xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
 	/* Terminate access to the file. */
 	status = H5Fclose(file_id); 
-	return;
+	return 1;
 }
 
 void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options) {
@@ -420,3 +425,46 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 	free(escape_ratios->compton_escape_output_energies);
 	free(escape_ratios->xmi_input_string);
 }
+
+int xmi_get_escape_ratios_file(char **filePtr) {
+	//behavior is very much platform dependent
+	//general rule
+	//Linux: use g_get_user_data_dir
+	//Windows: use g_get_user_data_dir BUT 
+	//since it creates problems when spawned, use xmimsim.exe commandline for path
+	//Mac OS X: use g_get_user_data_dir unless when packaged in App
+
+	//create the file if it doesn't exist already!
+
+	char *file = *filePtr;
+	char *dir;
+
+
+
+	if (file == NULL) {
+//if MAC OS X APP...
+//
+//endif
+		const gchar *data_dir = g_get_user_data_dir();
+		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5")+1));
+		strcpy(file, data_dir);
+		strcat(file,G_DIR_SEPARATOR_S "xmimsim" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5");
+		*filePtr = file;
+	}
+
+	//check if file exists
+	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+		//create underlying directory if necessary
+		dir = g_path_get_dirname(file);
+		if (g_mkdir_with_parents(dir,S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
+			fprintf(stderr,"Could not create directory: %s\n",dir);
+			return 0;
+		}
+		g_free(dir);
+		return xmi_create_empty_escape_ratios_hdf5_file(file);
+	}
+
+	return 1;
+}
+
+

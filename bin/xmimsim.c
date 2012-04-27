@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale.h>
 #include <xraylib.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -46,6 +47,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <windows.h>
   #include "xmi_registry_win.h"
   #include <Shlobj.h>
+  //bugfix in mingw headers
+  #ifndef SHGFP_TYPE_CURRENT
+    #define SHGFP_TYPE_CURRENT 0
+  #endif
   //NO MPI
   #ifdef HAVE_OPENMPI
     #undef HAVE_OPENMPI
@@ -57,9 +62,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
+XMI_MAIN
 
-int main (int argc, char *argv[]) {
-	
 	//openmpi variables
 #ifdef HAVE_OPENMPI
 	int numprocs, rank, namelen;
@@ -70,12 +74,10 @@ int main (int argc, char *argv[]) {
 	int numprocs = 1;
 #endif
 
-	int argc_orig = argc;
-	char **argv_orig = argv;
 
 
 	//general variables
-	char *xmimsim_hdf5_solid_angles;
+	static char *xmimsim_hdf5_solid_angles = NULL;
 	struct xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
@@ -108,15 +110,14 @@ int main (int argc, char *argv[]) {
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
 	static int nchannels=2048;
+	static int omp_num_threads;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
-#ifndef _WIN32
-	uid_t uid, euid;
-#endif
 	char *xmi_input_string;
-	char *xmimsim_hdf5_escape_ratios;
+	static char *xmimsim_hdf5_escape_ratios = NULL;
 
+	omp_num_threads = omp_get_max_threads();
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -129,7 +130,9 @@ int main (int argc, char *argv[]) {
 		{ "disable-radiative-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Disable radiative cascade effects", NULL },
 		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
 		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
-		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"with-hdf5-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
+		{"with-solid-angles-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_solid_angles,"Select a HDF5 solid angles file (advanced usage)",NULL},
+		{"with-escape-ratios-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_escape_ratios,"Select a HDF5 escape ratios file (advanced usage)",NULL},
 		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
@@ -143,6 +146,7 @@ int main (int argc, char *argv[]) {
 		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{ NULL }
 	};
@@ -159,7 +163,6 @@ int main (int argc, char *argv[]) {
         DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
 
-	char appDataPath[1024];
 #endif
 
 
@@ -174,17 +177,6 @@ int main (int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 #endif
 
-#ifndef _WIN32
-	//change euid to uid
-	uid = getuid();
-	euid = geteuid();
-#if DEBUG == 1
-	fprintf(stdout,"Begin uid: %i\n",(int) uid);
-	fprintf(stdout,"Begin euid: %i\n",(int) euid);
-#endif
-	//start without privileges
-	seteuid(uid);
-#endif
 
 	setbuf(stdout,NULL);
 
@@ -227,12 +219,19 @@ int main (int argc, char *argv[]) {
 		exit (1);
 	}
 
+	if (omp_num_threads > omp_get_max_threads() ||
+			omp_num_threads < 1) {
+		omp_num_threads = omp_get_max_threads();
+	}
+	omp_set_num_threads(omp_num_threads);
+
+
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
 	else if (options.verbose)
-		fprintf(stdout,"XML catalog loaded\n");
+		g_fprintf(stdout,"XML catalog loaded\n");
 
 
 	if (hdf5_file == NULL) {
@@ -257,7 +256,7 @@ int main (int argc, char *argv[]) {
 		}
 		else {
 			//if not found abort...	
-			fprintf(stderr,"Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
+			g_fprintf(stderr,"Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
 			exit(1);
 		}
 	}
@@ -277,7 +276,7 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}
 	else if (options.verbose)
-		fprintf(stdout,"Inputfile %s successfully parsed\n",argv[1]);
+		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
@@ -289,15 +288,15 @@ int main (int argc, char *argv[]) {
 
 
 	if (options.verbose)
-		fprintf(stdout,"Reading HDF5 datafile\n");
+		g_fprintf(stdout,"Reading HDF5 datafile\n");
 	
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
-		fprintf(stderr,"Could not initialize from hdf5 data file\n");
+		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
 	else if (options.verbose)
-		fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
+		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
@@ -308,42 +307,17 @@ int main (int argc, char *argv[]) {
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
-		//determine filename first
-#ifndef _WIN32
-		xmimsim_hdf5_solid_angles = strdup(XMIMSIM_HDF5_SOLID_ANGLES);
-#else
-
-		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-			fprintf(stderr,"Error retrieving AppDataPath\n");
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
 			return 1;
-		}
-		//add solid angle filename
-		strcat(appDataPath,"\\xmimsim\\xmimsim-solid-angles.h5");
-		/*
-		//check if file exist, if not create it
-		if (g_access(appDataPath, F_OK) != 0) {
-			//file does not exist, needs to be created
-			xmi_create_empty_solid_angle_hdf5_file(appDataPath);
-		}
-		*/
-		//check if file is readable and writable
-		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-			fprintf(stderr,"Error accessing solid angles HDF5 file %s\n",appDataPath);
-			return 1;
-		}
-		xmimsim_hdf5_solid_angles = appDataPath;
-#endif
-
-
 
 		//check if solid angles are already precalculated
 		if (options.verbose)
-			fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
+			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options.verbose)
-				fprintf(stdout,"Precalculating solid angle grid\n");
+				g_fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
@@ -351,23 +325,17 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string,options);
 			//update hdf5 file
-#ifndef _WIN32
-			seteuid(euid);
-#endif
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
 			else if (options.verbose)
-				fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
-#ifndef _WIN32
-			seteuid(uid);
-#endif
+				g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 		}
 		else if (options.verbose)
-			fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
+			g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	}
 	else if (options.verbose)
-		fprintf(stdout,"Operating in brute-force mode: solid angle grid is redundant\n");
+		g_fprintf(stdout,"Operating in brute-force mode: solid angle grid is redundant\n");
 
 
 #ifdef HAVE_OPENMPI
@@ -378,10 +346,10 @@ int main (int argc, char *argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	//read solid angles for the other nodes
 	if (options.use_variance_reduction == 1 && rank != 0) {
-		if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
-			fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
+			g_fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
 			return 1;
 		}	
 	}
@@ -389,16 +357,16 @@ int main (int argc, char *argv[]) {
 #endif
 
 	if (options.verbose)
-		fprintf(stdout,"Simulating interactions\n");
+		g_fprintf(stdout,"Simulating interactions\n");
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
-		fprintf(stderr,"Error in xmi_main_msim\n");
+		g_fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
 
 	
 	if (options.verbose)
-		fprintf(stdout,"Interactions simulation finished\n");
+		g_fprintf(stdout,"Interactions simulation finished\n");
 
 
 
@@ -492,23 +460,8 @@ int main (int argc, char *argv[]) {
 #endif
 
 		//read escape ratios
-#ifndef _WIN32
-		xmimsim_hdf5_escape_ratios = strdup(XMIMSIM_HDF5_ESCAPE_RATIOS);
-#else
-
-		if (SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA|CSIDL_FLAG_CREATE,NULL,SHGFP_TYPE_CURRENT,appDataPath) != S_OK) {
-			fprintf(stderr,"Error retrieving AppDataPath\n");
+		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
 			return 1;
-		}
-		//add escape ratios filename
-		strcat(appDataPath,"\\xmimsim\\xmimsim-escape-ratios.h5");
-		//check if file is readable and writable
-		if (g_access(appDataPath, F_OK | R_OK | W_OK) != 0) {
-			fprintf(stderr,"Error accessing escape ratios HDF5 file %s\n",appDataPath);
-			return 1;
-		}
-		xmimsim_hdf5_escape_ratios = appDataPath;
-#endif
 
 
 		//check if escape ratios are already precalculated
@@ -516,7 +469,7 @@ int main (int argc, char *argv[]) {
 			return 1;
 		if (escape_ratios_def == NULL) {
 			if (options.verbose)
-				fprintf(stdout,"Precalculating escape peak ratios\n");
+				g_fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
@@ -524,19 +477,13 @@ int main (int argc, char *argv[]) {
 			}
 			xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
 			//update hdf5 file
-#ifndef _WIN32
-			seteuid(euid);
-#endif
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
 			else if (options.verbose)
-				fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_solid_angles);
-#ifndef _WIN32
-			seteuid(uid);
-#endif
+				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_solid_angles);
 		}
 		else if (options.verbose)
-			fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);
+			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);
 
 
 		
@@ -559,19 +506,19 @@ int main (int argc, char *argv[]) {
 
 		if (csv_file_noconv != NULL) {
 			if ((csv_noconvPtr = fopen(csv_file_noconv,"w")) == NULL) {
-				fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
+				g_fprintf(stderr,"Could not write to %s\n",csv_file_noconv);
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
+				g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 		}
 		if (csv_file_conv != NULL) {
 			if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
-				fprintf(stdout,"Could not write to %s\n",csv_file_conv);
+				g_fprintf(stderr,"Could not write to %s\n",csv_file_conv);
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
+				g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
 		}
 
 
@@ -581,11 +528,11 @@ int main (int argc, char *argv[]) {
 			if (spe_file_noconv != NULL) {
 				sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
 				if ((outPtr=fopen(filename,"w")) == NULL ) {
-					fprintf(stdout,"Could not write to %s\n",filename);
+					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
 				else if (options.verbose)
-					fprintf(stdout,"Writing to SPE file %s\n",filename);
+					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
@@ -604,11 +551,11 @@ int main (int argc, char *argv[]) {
 			if (spe_file_conv != NULL) {
 				sprintf(filename,"%s_%i.spe",spe_file_conv,i);
 				if ((outPtr=fopen(filename,"w")) == NULL ) {
-					fprintf(stdout,"Could not write to %s\n",filename);
+					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
 				else if (options.verbose)
-					fprintf(stdout,"Writing to SPE file %s\n",filename);
+					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"1\t%i\n",nchannels);
@@ -666,7 +613,7 @@ int main (int argc, char *argv[]) {
 			return 1;
 		}
 		else if (options.verbose)
-			fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
+			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		
 		if (svg_file_conv != NULL) {
@@ -675,7 +622,7 @@ int main (int argc, char *argv[]) {
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
+				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
 		}
 
 		if (svg_file_noconv != NULL) {
@@ -684,7 +631,7 @@ int main (int argc, char *argv[]) {
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
+				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 		}
 
 
@@ -694,7 +641,7 @@ int main (int argc, char *argv[]) {
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Output written to HTML file %s\n",htm_file_conv);
+				g_fprintf(stdout,"Output written to HTML file %s\n",htm_file_conv);
 		}
 
 		if (htm_file_noconv != NULL) {
@@ -703,7 +650,7 @@ int main (int argc, char *argv[]) {
 				return 1;
 			}
 			else if (options.verbose)
-				fprintf(stdout,"Output written to HTML file %s\n",htm_file_noconv);
+				g_fprintf(stdout,"Output written to HTML file %s\n",htm_file_noconv);
 		}
 
 

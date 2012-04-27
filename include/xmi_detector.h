@@ -34,9 +34,11 @@ struct xmi_escape_ratios {
 	char *xmi_input_string;
 };
 
+int xmi_get_escape_ratios_file(char **file);
+
 void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options);
 
-void xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file);
+int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file);
 
 int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios *escape_ratios);
 

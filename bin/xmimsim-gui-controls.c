@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <signal.h>
 #elif defined(G_OS_WIN32)
   #include <windows.h>
+  #include "xmi_detector.h"
+  #include "xmi_solid_angle.h"
 #endif
 
 struct window_entry {
@@ -79,7 +81,7 @@ GtkObject *nthreadsA;
 
 
 
-GPid xmimsim_pid;
+GPid xmimsim_pid = GPID_INACTIVE;
 
 gboolean xmimsim_paused;
 
@@ -360,6 +362,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #endif
 
 	g_spawn_close_pid(xmimsim_pid);
+	xmimsim_pid = (GPid) -1;
 
 	//g_strfreev(argv);
 
@@ -454,30 +457,6 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	return;
 }
 
-#if !GLIB_CHECK_VERSION(2,28,0)
-extern char **environ;
-gchar ** g_get_environ (void) {
-#ifndef G_OS_WIN32
-  return g_strdupv (environ);
-#else
-  gunichar2 *strings;
-  gchar **result;
-  gint i, n;
-
-  strings = GetEnvironmentStringsW ();
-  for (n = 0; strings[n]; n += wcslen (strings + n) + 1);
-  result = g_new (char *, n + 1);
-  for (i = 0; strings[i]; i += wcslen (strings + i) + 1)
-    result[i] = g_utf16_to_utf8 (strings + i, -1, NULL, NULL, NULL);
-  FreeEnvironmentStringsW (strings);
-  result[i] = NULL;
-
-  return result;
-#endif
-}
-
-
-#endif
 
 
 
@@ -485,10 +464,8 @@ gchar ** g_get_environ (void) {
 
 void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gchar **argv;
-	gchar **env;
 	gchar *wd;
 	gchar *tmp_string;
-	guint env_length;
 	gint arg_counter;
 	gboolean spawn_rv;
 	gint out_fh, err_fh;
@@ -593,37 +570,46 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	}
 	g_free(tmp_string);
 
+#ifdef G_OS_WIN32
+	//set solid angles and escape ratios files ourself!
+	char *xmimsim_hdf5_solid_angles = NULL;
+	char *xmimsim_hdf5_escape_ratios = NULL;
+	
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0) {
+		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
+		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		gtk_widget_set_sensitive(playButton,TRUE);
+		return;	
+	}
+	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+	argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
+	arg_counter++;
+
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0) {
+		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
+		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		gtk_widget_set_sensitive(playButton,TRUE);
+		return;	
+	}
+	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+	argv[arg_counter] = g_strdup_printf("--with-escape-ratios-data=%s",xmimsim_hdf5_escape_ratios);
+	arg_counter++;
+#endif
+
+
+
+	//number of threads
+	if (nthreadsW != NULL) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter++] = g_strdup_printf("--set-threads=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
+	}
+
 	argv[arg_counter++] = g_strdup(xmimsim_struct->filename);
 	argv[arg_counter] = NULL;
 
 	wd = g_path_get_dirname(xmimsim_struct->xi->general->outputfile);
-
-	//number of threads
-	env = g_get_environ();
-	env_length = g_strv_length(env);
-
-
-	if (nthreadsW != NULL) {
-		for (i = 0 ; i < env_length ; i++) {
-			if (strncmp(env[i],"OMP_NUM_THREADS=",strlen("OMP_NUM_THREADS")) == 0) {
-				omp_found = TRUE;
-				break;
-			}
-		}
-		if (omp_found) {
-			g_free(env[i]);
-			env[i] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
-		}
-		else {
-			env = (gchar **) g_realloc(env,sizeof(gchar *)*(env_length+2));
-			env[env_length] = g_strdup_printf("OMP_NUM_THREADS=%i",(int) gtk_range_get_value(GTK_RANGE(nthreadsW)));
-			env[env_length+1] = NULL;
-		}
-	}
-
-
 	//execute command
-	spawn_rv = g_spawn_async_with_pipes(wd, argv, env, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
+	spawn_rv = g_spawn_async_with_pipes(wd, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
 
@@ -634,11 +620,11 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		g_error_free(spawn_error);
 		gtk_widget_set_sensitive(playButton,TRUE);
+		xmimsim_pid = (GPid) -1;
 		return;
 	}
 	sprintf(buffer,"%s was started with process id %i\n",argv[0],(int)xmimsim_pid);
 	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
-	g_strfreev(env);
 	g_free(wd);
 
 	xmimsim_paused=FALSE;
@@ -826,6 +812,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
+	xmimsim_pid = GPID_INACTIVE;
 	//make sensitive again
 	gtk_widget_set_sensitive(executableW,TRUE);	
 	gtk_widget_set_sensitive(executableB,TRUE);	
