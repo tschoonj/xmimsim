@@ -130,13 +130,6 @@ XMI_MAIN
 #endif
 
 
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
-
-
-
 
 	options.use_M_lines = 1;
 	options.use_self_enhancement = 0;
@@ -161,7 +154,14 @@ XMI_MAIN
 			omp_num_threads < 1) {
 		omp_num_threads = omp_get_max_threads();
 	}
-	omp_set_num_threads(omp_num_threads);
+	g_setenv("OMP_NUM_THREADS",g_strdup_printf("%i",omp_num_threads),TRUE);
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
+
 
 	if (hdf5_file == NULL) {
 		//no option detected

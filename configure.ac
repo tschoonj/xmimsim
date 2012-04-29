@@ -61,6 +61,7 @@ AC_SUBST(LIB_AGE)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_USE_SYSTEM_EXTENSIONS
+AM_PROG_AR
 
 #libtool
 LT_PREREQ([2.0.0])
@@ -69,6 +70,8 @@ AC_PROG_LIBTOOL
 
 #
 AC_PROG_CC
+AM_PROG_CC_C_O
+
 #this next line may never be reached...
 if test -z $CC ; then
         AC_MSG_ERROR([no C compiler was found on the system.])

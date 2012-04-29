@@ -495,8 +495,9 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(cw->okButton,FALSE);
 		}
-		if (cp_rv == 1 && lastPtr == endPtr && weight > 0.0)
+		if (cp_rv == 1 && lastPtr == endPtr && weight > 0.0) {
 			gtk_widget_set_sensitive(cw->okButton,TRUE);
+		}
 	}
 	else if (widget == cw->weightEntry) {
 		if (lastPtr == endPtr && weight > 0.0) {

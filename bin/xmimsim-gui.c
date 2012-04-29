@@ -308,6 +308,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
+gboolean saveas_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkOSXApplication *app, gpointer data);
@@ -352,6 +353,101 @@ void signal_handler(int sig) {
 #endif
 
 
+gboolean process_pre_file_operation (GtkWidget *window) {
+
+	struct undo_single *check_rv;
+	int check_status;
+	GtkWidget *dialog = NULL;
+	GtkWidget *content;
+	gint dialog_rv;
+	GtkWidget *label;
+	GtkTextIter iterb, itere;
+
+	//check if last changes have been saved, because they will be lost otherwise!
+	check_rv = check_changes_saved(&check_status);
+
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(window),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(window),
+			GTK_DIALOG_MODAL,
+			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
+			NULL
+		);	
+		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
+		gtk_widget_show(label);
+		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	}
+
+	if (dialog != NULL) {
+		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
+			gtk_widget_destroy(dialog);
+			return FALSE;
+		}
+		else if (dialog_rv == GTK_RESPONSE_NOSAVE) {
+			//do nothing
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
+			//run saveas dialog
+			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
+			if(saveas_function(dialog, (gpointer) dialog) == FALSE) {
+				gtk_widget_destroy(dialog);
+				return FALSE;
+			}
+		}
+		else if (dialog_rv == GTK_RESPONSE_SAVE) {
+			//update file
+		//get text from comments...
+			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup("");
+			}
+			else {
+				free(current->xi->general->comments);
+				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			}
+			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+		        		GTK_MESSAGE_ERROR,
+		        		GTK_BUTTONS_CLOSE,
+		        		"Could not write to file %s: not writeable?",check_rv->filename
+	                	);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return FALSE;
+			}
+
+		}
+
+
+		gtk_widget_destroy(dialog);
+	}
+
+	return TRUE;
+}
 
 void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename) {
 	g_free(xmimsim_title_xmsi);
@@ -2553,103 +2649,19 @@ struct osx_load_data {
 
 static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	GtkWidget *dialog = NULL;
-	GtkFileFilter *filter1, *filter2;
-	char *filename;
 	struct xmi_input *xi;
-	struct undo_single *check_rv;
-	int check_status;
-	GtkWidget *content;
-	gint dialog_rv;
-	GtkWidget *label;
-	char *title;
-	GtkTextIter iterb, itere;
+	gchar *title;
 	struct osx_load_data *old = (struct osx_load_data *) data;
-	gchar *path = old->path;
+	gchar *filename = old->path;
 
-	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",path);
+	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",filename);
 
 
-	check_rv = check_changes_saved(&check_status);
+	if (process_pre_file_operation(old->window) == FALSE)
+		return FALSE;
 
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(old->window),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-
-	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(old->window),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-	}
-
-	if (dialog != NULL) {
-		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
-			gtk_widget_destroy(dialog);
-			return FALSE;
-		}
-		else if (dialog_rv == GTK_RESPONSE_NO) {
-			//do nothing
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
-			//run saveas dialog
-			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
-			saveas_cb(dialog, (gpointer) dialog);
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVE) {
-			//update file
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				return FALSE;
-			}
-
-		}
-
-		fprintf(stdout,"about to destroy dialog\n");
-		gtk_widget_destroy(dialog);
-	}
-
-	filename=path;
 	//check for filetype
-	if (strcmp(path+strlen(path)-5,".xmsi") == 0) {
+	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		//XMSI file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 		if (xmi_read_input_xml(filename, &xi) == 1) {
@@ -2673,7 +2685,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy(dialog);
 		}
 	}
-	else if (strcmp(path+strlen(path)-5,".xmso") == 0) {
+	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
@@ -2706,10 +2718,6 @@ static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpoin
 	g_idle_add(load_from_file_osx_helper_cb, (gpointer) old);
 
 	g_fprintf(stdout,"OSX File open event: %s\n",path);
-
-
-	
-
 
 
 	return TRUE;
@@ -4388,99 +4396,14 @@ void change_all_values(struct xmi_input *new_input) {
 }
 
 void new_cb(GtkWidget *widget, gpointer data) {
-	struct undo_single *check_rv;
 	struct xmi_input *xi;
-	int check_status;
-	GtkWidget *dialog = NULL;
-	GtkWidget *content;
-	gint dialog_rv;
-	GtkWidget *label;
-	char *title;
-	GtkTextIter iterb, itere;
 	
 
 
 	//start a new inputfile, using default settings
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
 
-	//check if last changes have been saved, because they will be lost otherwise!
-	check_rv = check_changes_saved(&check_status);
-
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-
-	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-	}
-
-	if (dialog != NULL) {
-		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
-			gtk_widget_destroy(dialog);
-			return;
-		}
-		else if (dialog_rv == GTK_RESPONSE_NO) {
-			//do nothing
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
-			//run saveas dialog
-			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
-			saveas_cb(dialog, (gpointer) dialog);
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVE) {
-			//update file
-		//get text from comments...
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				return;
-			}
-
-		}
-
-
-		gtk_widget_destroy(dialog);
-	}
 
 	xi = xmi_init_empty_input();
 	change_all_values(xi);
@@ -4496,97 +4419,11 @@ void quit_program_cb(GtkOSXApplication *app, gpointer data) {
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data) {
 #endif
-	struct undo_single *check_rv;
-	int check_status;
-	GtkWidget *dialog = NULL;
-	GtkWidget *content;
-	gint dialog_rv;
-	GtkWidget *label;
-	GtkTextIter iterb, itere;
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
 
 
-
-
-
-	//check if last changes have been saved, because they will be lost otherwise!
-	check_rv = check_changes_saved(&check_status);
-
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-
-	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-	}
-
-	if (dialog != NULL) {
-		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
-			gtk_widget_destroy(dialog);
-			return;
-		}
-		else if (dialog_rv == GTK_RESPONSE_NO) {
-			//do nothing
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
-			//run saveas dialog
-			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
-			saveas_cb(dialog, (gpointer) dialog);
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVE) {
-			//get text from comments...
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			//update file
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				return;
-			}
-
-		}
-
-
-		gtk_widget_destroy(dialog);
-	}
 
 	if (xmimsim_pid != GPID_INACTIVE) {
 		//if UNIX -> send sigterm
@@ -4629,95 +4466,13 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog = NULL;
 	GtkFileFilter *filter1, *filter2;
-	char *filename;
+	gchar *filename;
 	struct xmi_input *xi;
-	struct undo_single *check_rv;
-	int check_status;
-	GtkWidget *content;
-	gint dialog_rv;
-	GtkWidget *label;
-	char *title;
-	GtkTextIter iterb, itere;
-
-	//check if last changes have been saved, because they will be lost otherwise!
-	check_rv = check_changes_saved(&check_status);
-
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_SAVE, GTK_RESPONSE_SAVE,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have made changes since your last save. This is your last chance to save them or they will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-
-	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW((GtkWidget *) data),
-			GTK_DIALOG_MODAL,
-			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
-			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			GTK_STOCK_NO, GTK_RESPONSE_NOSAVE,
-			NULL
-		);	
-		content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		label = gtk_label_new("You have never saved the introduced information. This is your last chance to save it or it will be lost otherwise!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-	}
-
-	if (dialog != NULL) {
-		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
-			gtk_widget_destroy(dialog);
-			return;
-		}
-		else if (dialog_rv == GTK_RESPONSE_NO) {
-			//do nothing
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVEAS) {
-			//run saveas dialog
-			//incomplete -> case is not handled when user clicks cancel in saveas_cb...
-			saveas_cb(dialog, (gpointer) dialog);
-		}
-		else if (dialog_rv == GTK_RESPONSE_SAVE) {
-			//update file
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: model is incomplete/invalid",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				return;
-			}
-
-		}
+	gchar *title;
 
 
-		gtk_widget_destroy(dialog);
-	}
-
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
 
 
 	filter1 = gtk_file_filter_new();
@@ -4820,10 +4575,77 @@ int check_changeables(void) {
 
 
 void saveas_cb(GtkWidget *widget, gpointer data) {
+	
+	saveas_function(widget, data);
+
+	return;
+}
+
+void save_cb(GtkWidget *widget, gpointer data) {
+	int check_status;
+	GtkWidget *dialog;
+	struct undo_single *check_rv; 
+	gchar *filename;
+	GtkTextIter iterb, itere;
+
+	check_rv = check_changes_saved(&check_status);
+#if DEBUG == 1
+	fprintf(stdout,"check_status: %i\n",check_status);
+#endif
+	//check if it was saved before... otherwise call saveas
+	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		//get text from comments...
+		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
+		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup("");
+		}
+		else {
+			free(current->xi->general->comments);
+			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+		}
+		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not read file %s: file writeable?",check_rv->filename
+	               	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
+
+		}
+		else {
+			filename = strdup(last_saved->filename);
+			free(last_saved->filename);
+			xmi_free_input(last_saved->xi);
+			free(last_saved);
+			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+			xmi_copy_input(current->xi, &(last_saved->xi));
+			last_saved->filename = strdup(filename);
+			free(filename);
+		}
+	}
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+		//never saved -> call saveas
+		saveas_function(widget, data);
+	}
+	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
+		//do nothing
+	}
+
+
+
+	return;
+
+
+}
+gboolean saveas_function(GtkWidget *widget, gpointer data) {
+
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-	char *title;
+	gchar *title;
 	GtkTextIter iterb, itere;
 
 	if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
@@ -4835,7 +4657,7 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 	                );
 	     gtk_dialog_run (GTK_DIALOG (dialog));
 	     gtk_widget_destroy (dialog);
-	     return;
+	     return FALSE;
 	}
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmsi");
@@ -4893,7 +4715,7 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
      			gtk_dialog_run (GTK_DIALOG (dialog));
      			gtk_widget_destroy (dialog);
 			g_free (filename);							
-			return;
+			return FALSE;
 		}
 
 	}
@@ -4902,65 +4724,7 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 		
 
 
-	return;
-}
-
-void save_cb(GtkWidget *widget, gpointer data) {
-	int check_status;
-	GtkWidget *dialog;
-	struct undo_single *check_rv; 
-	char *filename;
-	GtkTextIter iterb, itere;
-
-	check_rv = check_changes_saved(&check_status);
-#if DEBUG == 1
-	fprintf(stdout,"check_status: %i\n",check_status);
-#endif
-	//check if it was saved before... otherwise call saveas
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
-		//get text from comments...
-		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup("");
-		}
-		else {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-		}
-		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
-			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
-				GTK_DIALOG_DESTROY_WITH_PARENT,
-		       		GTK_MESSAGE_ERROR,
-		       		GTK_BUTTONS_CLOSE,
-		       		"Could not read file %s: model is incomplete/invalid",check_rv->filename
-	               	);
-	     		gtk_dialog_run (GTK_DIALOG (dialog));
-			gtk_widget_destroy(dialog);
-
-		}
-		else {
-			filename = strdup(last_saved->filename);
-			free(last_saved->filename);
-			xmi_free_input(last_saved->xi);
-			free(last_saved);
-			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
-			xmi_copy_input(current->xi, &(last_saved->xi));
-			last_saved->filename = strdup(filename);
-			free(filename);
-		}
-	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
-		//never saved -> call saveas
-		saveas_cb(widget, data);
-	}
-	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
-		//do nothing
-	}
-
-
-
-	return;
+	return TRUE;
 
 
 }
