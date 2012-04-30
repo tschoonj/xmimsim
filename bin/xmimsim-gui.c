@@ -366,7 +366,10 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 	//check if last changes have been saved, because they will be lost otherwise!
 	check_rv = check_changes_saved(&check_status);
 
-	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+	if (check_status == CHECK_CHANGES_NEW) {
+		return TRUE;
+	}
+	else if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
 		dialog = gtk_dialog_new_with_buttons("",GTK_WINDOW(window),
 			GTK_DIALOG_MODAL,
 			GTK_STOCK_SAVE_AS, GTK_RESPONSE_SAVEAS,
@@ -615,7 +618,12 @@ struct undo_single *check_changes_saved(int *status) {
 
 	commentsEqual = strcmp(commentsText,current->xi->general->comments);
 
-	if (last_saved == NULL) {
+	if (last_saved == NULL && redo_buffer == current && 
+		strcmp(redo_buffer->filename,UNLIKELY_FILENAME) == 0) {
+		*status = CHECK_CHANGES_NEW;
+		temp = NULL;
+	}
+	else if (last_saved == NULL) {
 		*status = CHECK_CHANGES_NEVER_SAVED;
 		temp = NULL;
 	}
@@ -4626,7 +4634,8 @@ void save_cb(GtkWidget *widget, gpointer data) {
 			free(filename);
 		}
 	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
+		check_status == CHECK_CHANGES_NEW) {
 		//never saved -> call saveas
 		saveas_function(widget, data);
 	}
