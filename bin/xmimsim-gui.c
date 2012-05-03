@@ -314,6 +314,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkOSXApplication *app, gpointer data);
+gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data);
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
@@ -403,6 +404,7 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 	if (dialog != NULL) {
 		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
 		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
+			fprintf(stdout,"Cancel button clicked\n");
 			gtk_widget_destroy(dialog);
 			return FALSE;
 		}
@@ -2538,6 +2540,51 @@ struct val_changed {
 };
 
 
+static gboolean double_changed_current_check(int kind, double new_value) {
+	gboolean rv;
+
+#define DOUBLE_CHANGED_CURRENT_CHECK(my_kind,my_current) case my_kind: \
+		if (new_value == current->xi->my_current) {\
+			rv = FALSE;\
+		}\
+		else {\
+			rv = TRUE;\
+		}\
+		break;	
+
+
+	switch (kind) {	
+		DOUBLE_CHANGED_CURRENT_CHECK(D_SAMPLE_SOURCE,geometry->d_sample_source)
+		DOUBLE_CHANGED_CURRENT_CHECK(AREA_DETECTOR,geometry->area_detector)
+		DOUBLE_CHANGED_CURRENT_CHECK(D_SOURCE_SLIT,geometry->d_source_slit)
+		DOUBLE_CHANGED_CURRENT_CHECK(SLIT_SIZE_X,geometry->slit_size_x)
+		DOUBLE_CHANGED_CURRENT_CHECK(SLIT_SIZE_Y,geometry->slit_size_y)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_GAIN,detector->gain)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_LIVE_TIME,detector->live_time)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_FANO,detector->fano)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_NOISE,detector->noise)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_MAX_CONVOLUTION_ENERGY,detector->max_convolution_energy)
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_PULSE_WIDTH,detector->pulse_width)
+		DOUBLE_CHANGED_CURRENT_CHECK(COLLIMATOR_HEIGHT,geometry->collimator_height)
+		DOUBLE_CHANGED_CURRENT_CHECK(COLLIMATOR_DIAMETER,geometry->collimator_diameter)
+		DOUBLE_CHANGED_CURRENT_CHECK(N_SAMPLE_ORIENTATION_X,geometry->n_sample_orientation[0])
+		DOUBLE_CHANGED_CURRENT_CHECK(N_SAMPLE_ORIENTATION_Y,geometry->n_sample_orientation[1])
+		DOUBLE_CHANGED_CURRENT_CHECK(N_SAMPLE_ORIENTATION_Z,geometry->n_sample_orientation[2])
+		DOUBLE_CHANGED_CURRENT_CHECK(P_DETECTOR_WINDOW_X,geometry->p_detector_window[0])
+		DOUBLE_CHANGED_CURRENT_CHECK(P_DETECTOR_WINDOW_Y,geometry->p_detector_window[1])
+		DOUBLE_CHANGED_CURRENT_CHECK(P_DETECTOR_WINDOW_Z,geometry->p_detector_window[2])
+		DOUBLE_CHANGED_CURRENT_CHECK(N_DETECTOR_ORIENTATION_X,geometry->n_detector_orientation[0])
+		DOUBLE_CHANGED_CURRENT_CHECK(N_DETECTOR_ORIENTATION_Y,geometry->n_detector_orientation[1])
+		DOUBLE_CHANGED_CURRENT_CHECK(N_DETECTOR_ORIENTATION_Z,geometry->n_detector_orientation[2])
+		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_ZERO,detector->zero)
+
+		default:
+			g_print("Unknown kind detected in double_changed_current_check. Aborting\n");
+			exit(1);
+	}
+
+	return rv;
+}
 
 static void double_changed(GtkWidget *widget, gpointer data) {
 	struct val_changed *vc = (struct val_changed *) data;
@@ -2570,7 +2617,8 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
-				update_undo_buffer(kind, widget);
+				if (double_changed_current_check(kind,value))
+					update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
@@ -2586,7 +2634,8 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
-				update_undo_buffer(kind, widget);
+				if (double_changed_current_check(kind,value))
+					update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
@@ -2610,7 +2659,8 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
-				update_undo_buffer(kind, widget);
+				if (double_changed_current_check(kind,value))
+					update_undo_buffer(kind, widget);
 			}
 			else {
 				//bad value
@@ -2619,7 +2669,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		default:
-			g_print("Unknown kind detected. Aborting\n");
+			g_print("Unknown kind detected in double_changed. Aborting\n");
 			exit(1);
 	}
 
@@ -3497,6 +3547,7 @@ XMI_MAIN
 #ifndef MAC_INTEGRATION
 	g_signal_connect(G_OBJECT(quitW),"activate",G_CALLBACK(quit_program_cb),(gpointer) window);
 #else
+	g_signal_connect(theApp, "NSApplicationBlockTermination",G_CALLBACK(quit_blocker_mac_cb),(gpointer)window);
 	g_signal_connect(theApp, "NSApplicationWillTerminate",G_CALLBACK(quit_program_cb),(gpointer)window);
 	g_signal_connect(theApp, "NSApplicationOpenFile", G_CALLBACK(load_from_file_osx_cb),(gpointer) window);
 #endif
@@ -4502,13 +4553,20 @@ void new_cb(GtkWidget *widget, gpointer data) {
 }
 
 #ifdef MAC_INTEGRATION
+gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data){
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return TRUE;
+	return FALSE;
+
+}
+
 void quit_program_cb(GtkOSXApplication *app, gpointer data) {
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data) {
-#endif
-
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 		return;
+#endif
 
 
 
@@ -4544,6 +4602,8 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 		xmimsim_pid = GPID_INACTIVE;
 
 	}
+
+	fprintf(stdout,"quitting\n");
 
 	gtk_main_quit();
 
