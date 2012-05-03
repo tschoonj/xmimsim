@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <gdk/gdkkeysyms.h>
 #include <locale.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #ifdef G_OS_UNIX
 #include <signal.h>
@@ -43,6 +44,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #import <Foundation/Foundation.h>
 #include <gtkosxapplication.h>
 #include <gdk/gdkquartz.h>
+#include "xmi_resources_mac.h"
 #define PRIMARY_ACCEL_KEY GDK_META_MASK
 #else
 #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
@@ -2055,6 +2057,68 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 }
 
+static void about_click(GtkWidget *widget, gpointer data) {
+	fprintf(stdout,"About clicked\n");
+
+	static const gchar * const authors[] = {
+		"Tom Schoonjans <Tom.Schoonjans@me.com>",
+		"Laszlo Vincze <Laszlo.Vincze@UGent.be>",
+		"Vicente Armando Sol\303\251 <sole@esrf.fr>",
+		"Philip Brondeel <Philip.Brondeel@UGent.be>",
+		"Manuel Sanchez del Rio <srio@esrf.fr>",
+		"Claudio Ferrero <ferrero@esrf.fr>",
+		NULL
+	};
+
+	static const gchar * const artists[] = {
+		"Jan Garrevoet <Jan.Garrevoet@UGent.be>",
+		NULL
+	};
+
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2012 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+
+	static const gchar comments[] = "XMI-MSIM is a tool for the Monte Carlo simulation of ED-XRF spectrometers";
+
+	GdkPixbuf *logo = NULL;
+	gchar *logo_file = NULL;
+
+#if defined(MAC_INTEGRATION)
+	xmi_resources_mac_query(XMI_RESOURCES_MAC_LOGO,&logo_file);
+#elif defined(G_OS_WIN32)
+	xmi_registry_win_query(XMI_REGISTRY_WIN_LOGO,&logo_file);
+#else
+	logo_file = g_strdup(XMIMSIM_ICON_DEFAULT);
+#endif
+
+	GError *error = NULL;
+	if (logo_file) {
+		logo = gdk_pixbuf_new_from_file_at_scale(logo_file, 100,-1,TRUE,&error);
+		if (error != NULL) {
+			fprintf(stderr,"Could not load logo in %s: %s\n",logo_file,error->message);
+		}
+
+		g_free(logo_file);
+	}
+
+	gtk_show_about_dialog(GTK_WINDOW(data),
+		"program-name", "XMI-MSIM",
+		"authors", authors,
+		"comments", comments,
+		"copyright", copyright,
+		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html", 
+		"logo", logo,
+		"artists", artists,
+		"version", VERSION,
+		"website", "http://github.com/tschoonj/xmimsim",
+		"website-label", "github.com/tschoonj/xmimsim",
+		"wrap-license",TRUE,
+		NULL
+	);
+	if (logo)
+		g_object_unref(logo);
+
+}
+
 static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	char buffer[512];
 	GtkListStore *store;
@@ -3273,6 +3337,7 @@ XMI_MAIN
 	gint main_temp;
 	GtkWidget *resultsPageW, *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
+	GtkWidget *aboutW;
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif
@@ -3471,9 +3536,23 @@ XMI_MAIN
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
 	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
+	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, NULL);
+	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
+	gtk_osxapplication_insert_app_menu_item(theApp, aboutW, 0);
+	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
 	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
 	gtk_osxapplication_set_window_menu(theApp, NULL);
 #else
+	GtkWidget *helpmenu, *help;
+	helpmenu = gtk_menu_new();
+	help = gtk_menu_item_new_with_label("Help");
+	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
+	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
+	
+
 	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
 	gtk_widget_show_all(menubar);

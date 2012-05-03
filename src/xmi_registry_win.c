@@ -63,6 +63,9 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_XMSO2HTM:
 			strcat(stringkey,"xmso2htm");
 			break;
+		case XMI_REGISTRY_WIN_LOGO:
+			strcat(stringkey,"icon");
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
 			return 0;
@@ -75,7 +78,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		fprintf(stderr,"Error opening key %s in registry\n",stringkey);
 		return 0;
 	}
-	PerfData = (PPERF_DATA_BLOCK) malloc( BufferSize );
+	PerfData = (PPERF_DATA_BLOCK) g_malloc( BufferSize );
 	cbdata = BufferSize;
 
 
@@ -83,7 +86,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 	while( QueryRV == ERROR_MORE_DATA ) {
 	        // Get a buffer that is big enough.
 		BufferSize += BYTEINCREMENT;
-		PerfData = (PPERF_DATA_BLOCK) realloc( PerfData, BufferSize );
+		PerfData = (PPERF_DATA_BLOCK) g_realloc( PerfData, BufferSize );
 		cbdata = BufferSize;
 		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
 	}

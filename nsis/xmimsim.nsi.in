@@ -192,6 +192,11 @@ File "${MY_HOME}github\xmimsim\xml\xmso2csv.xml"
 File "${MY_HOME}github\xmimsim\xml\xmso2svg.xml"
 File "${MY_HOME}github\xmimsim\xml\xmso2htm.xml"
 
+DetailPrint "Installing logo"
+File "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.png"
+
+
+
 ;catalog needs to be produced upon installation
 FileOpen $9 "$INSTDIR\Share\xmimsim_cat.xml" w
 FileWrite $9 "<?xml version=$\"1.0$\"?>$\r$\n"
@@ -233,6 +238,7 @@ WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2spe" "" "$INSTDIR\Share\xmso2spe
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2csv" "" "$INSTDIR\Share\xmso2csv.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2xmsi" "" "$INSTDIR\Share\xmso2xmsi.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2htm" "" "$INSTDIR\Share\xmso2htm.xml"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}\icon" "" "$INSTDIR\Share\Logo_xmi_msim.png"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayName" "${PRODUCT_NAME} ${VERSION}"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayVersion" "${VERSION}"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "Publisher" "Tom Schoonjans"

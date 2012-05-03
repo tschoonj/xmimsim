@@ -32,12 +32,13 @@ dist_icons16_DATA = 16x16/Logo_xmi_msim.png
 dist_icons32_DATA = 32x32/Logo_xmi_msim.png
 dist_icons64_DATA = 64x64/Logo_xmi_msim.png
 dist_icons128_DATA = 128x128/Logo_xmi_msim.png
+xmimsimdir = $(datadir)/xmimsim
+dist_xmimsim_DATA = Logo_xmi_msim.png
 
 
 
 EXTRA_DIST = Logo_xmi_msim.bmp \
 	Logo_xmi_msim.eps \
 	Logo_xmi_msim.ico \
-	Logo_xmi_msim.png \
 	Logo_xmi_msim.pdf \
 	applications-x-xmimsim.xml
