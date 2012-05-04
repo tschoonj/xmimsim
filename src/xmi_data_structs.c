@@ -525,7 +525,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->general->outputfile = strdup("");
 	rv->general->comments= strdup("");
 	rv->general->n_photons_interval = 10000;
-	rv->general->n_photons_line = 10000;
+	rv->general->n_photons_line = 100000;
 	rv->general->n_interactions_trajectory = 4;
 
 	//layer

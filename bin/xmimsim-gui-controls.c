@@ -999,7 +999,8 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		//launch simulation...
 		start_job(check_rv, (GtkWidget *) data);
 	}
-	else if (check_status == CHECK_CHANGES_NEVER_SAVED) {
+	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
+		check_status == CHECK_CHANGES_NEW) {
 		//hmmm... send user back to first page with error message
 		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1260,7 +1261,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	xmimsim_executable = g_find_program_in_path("xmimsim");
 #endif
 	executableW = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(executableW),100);
+	gtk_entry_set_width_chars(GTK_ENTRY(executableW),80);
 	if (xmimsim_executable == NULL) {
 		//bad...
 		gtk_entry_set_text(GTK_ENTRY(executableW),"xmimsim");

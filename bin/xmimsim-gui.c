@@ -355,6 +355,38 @@ void signal_handler(int sig) {
 
 #endif
 
+void adjust_save_buttons(void) {
+
+	int status;
+
+	check_changes_saved(&status);
+
+
+	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0) {
+		if (status == CHECK_CHANGES_SAVED_BEFORE || status == CHECK_CHANGES_NEVER_SAVED) {
+			gtk_widget_set_sensitive(saveW,TRUE);
+		 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(saveW,FALSE);
+		 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		}
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(save_asW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+	}
+
+}
+
+
+
+
+
 
 gboolean process_pre_file_operation (GtkWidget *window) {
 
@@ -691,18 +723,6 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
 		update_undo_buffer(OUTPUTFILE,outputfileW);
 
-		if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-			gtk_widget_set_sensitive(saveW,TRUE);
-			gtk_widget_set_sensitive(save_asW,TRUE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-		}
-		else {
-			gtk_widget_set_sensitive(saveW,FALSE);
-			gtk_widget_set_sensitive(save_asW,FALSE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-		}
 		g_free (filename);							
 	}
 
@@ -845,18 +865,6 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 		}
 		update_undo_buffer(updateKind, (GtkWidget *) store);	
 
-		if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-			gtk_widget_set_sensitive(saveW,TRUE);
-			gtk_widget_set_sensitive(save_asW,TRUE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-		}
-		else {
-			gtk_widget_set_sensitive(saveW,FALSE);
-			gtk_widget_set_sensitive(save_asW,FALSE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-			gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-		}
 
 	}  	
 	else
@@ -1224,18 +1232,6 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 		
-			if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-				gtk_widget_set_sensitive(saveW,TRUE);
-				gtk_widget_set_sensitive(save_asW,TRUE);
-				gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-				gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-			}
-			else {
-				gtk_widget_set_sensitive(saveW,FALSE);
-				gtk_widget_set_sensitive(save_asW,FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-			}
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
 			//add line... testing only for now...
@@ -2044,18 +2040,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		fprintf(stdout,"current: %p\n",current);
 		fprintf(stdout,"last: %p\n",last);
 #endif
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
+
+	adjust_save_buttons();
 
 }
 
@@ -2486,19 +2472,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
 
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
-
+	adjust_save_buttons();
 }
 
 static void file_menu_click(GtkWidget *widget, gpointer data) {
@@ -2518,18 +2492,6 @@ static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 	//should always work out
 	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
 
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
 	return;
 }
 
@@ -2539,6 +2501,31 @@ struct val_changed {
 	int *check;
 };
 
+
+static gboolean pos_int_changed_current_check(int kind, long new_value) {
+	gboolean rv;
+
+#define POS_INT_CHANGED_CURRENT_CHECK(my_kind,my_current) case my_kind: \
+		if (new_value == current->xi->my_current) {\
+			rv = FALSE;\
+		}\
+		else {\
+			rv = TRUE;\
+		}\
+		break;	
+
+	switch (kind) {	
+		POS_INT_CHANGED_CURRENT_CHECK(N_PHOTONS_INTERVAL,general->n_photons_interval)
+		POS_INT_CHANGED_CURRENT_CHECK(N_PHOTONS_LINE,general->n_photons_line)
+		POS_INT_CHANGED_CURRENT_CHECK(N_INTERACTIONS_TRAJECTORY,general->n_interactions_trajectory)
+
+		default:
+			g_print("Unknown kind detected in pos_int_changed_current_check. Aborting\n");
+			exit(1);
+	}
+
+	return rv;
+}
 
 static gboolean double_changed_current_check(int kind, double new_value) {
 	gboolean rv;
@@ -2619,11 +2606,26 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
+				else
+					adjust_save_buttons();
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+					gtk_widget_set_sensitive(redoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+				}
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+					gtk_widget_set_sensitive(undoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				}
+				return;
 			}
 			else {
 				//bad value
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+				gtk_widget_set_sensitive(redoW,FALSE);
+				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 			}
 			break;
 		//positive
@@ -2636,11 +2638,26 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
+				else
+					adjust_save_buttons();
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+					gtk_widget_set_sensitive(redoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+				}
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+					gtk_widget_set_sensitive(undoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				}
+				return;
 			}
 			else {
 				//bad value
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+				gtk_widget_set_sensitive(redoW,FALSE);
+				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 			}
 			break;
 		
@@ -2661,11 +2678,26 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
+				else
+					adjust_save_buttons();
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+					gtk_widget_set_sensitive(redoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+				}
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+					gtk_widget_set_sensitive(undoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				}
+				return;
 			}
 			else {
 				//bad value
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+				gtk_widget_set_sensitive(redoW,FALSE);
+				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 			}
 			break;
 		default:
@@ -2673,18 +2705,11 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			exit(1);
 	}
 
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
+	gtk_widget_set_sensitive(saveW,FALSE);
+	gtk_widget_set_sensitive(save_asW,FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
+
 	return;
 }
 
@@ -2705,6 +2730,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 	int *check = vc->check;
 	char buffer[512];
 	char *textPtr;
+	long value;
 
 
 #if DEBUG == 1
@@ -2718,14 +2744,32 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(widget));
 			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
+				value = strtol(textPtr, NULL, 10);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
-				update_undo_buffer(kind, widget);
+				if (pos_int_changed_current_check(kind,value))
+					update_undo_buffer(kind, widget);
+				else
+					adjust_save_buttons();
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+					gtk_widget_set_sensitive(redoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+				}
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+					gtk_widget_set_sensitive(undoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				}
+					
+				return;
 			}
 			else {
 				//bad value
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+				gtk_widget_set_sensitive(redoW,FALSE);
+				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 			}
 			break;
 		default:
@@ -2733,18 +2777,10 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			exit(1);
 	}
 
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
+	gtk_widget_set_sensitive(saveW,FALSE);
+	gtk_widget_set_sensitive(save_asW,FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
 
 }
 
@@ -2761,6 +2797,16 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 	return TRUE;
 
 }
+
+static gboolean dialog_helper_cb(gpointer data) {
+	GtkWidget *dialog = (GtkWidget *) data;
+
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+	return FALSE;
+}
+
+
 
 #ifdef MAC_INTEGRATION
 
@@ -2873,6 +2919,8 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
 		last_saved->filename = strdup(filename);
+		gtk_widget_set_sensitive(save_asW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
 	}
 	//clear undo/redo messages
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
@@ -2895,7 +2943,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	char buffer[512];
 	ptrdiff_t last_diff, current_diff;
 	struct undo_single *tempPtr;
-	int i;
+	int i, status;
 
 	//two cases... 
 	//current == last (NO REDO(s) used)
@@ -3337,7 +3385,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	} 
 */	
 
-	
+	adjust_save_buttons();	
 }
 
 void comments_begin(GtkTextBuffer *textbuffer, gpointer user_data){
@@ -3725,6 +3773,8 @@ XMI_MAIN
 	label = gtk_label_new("Comments");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	commentsW = gtk_text_view_new();	
+	gtk_container_set_border_width(GTK_CONTAINER(commentsW),2);
+
 	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
 	//comments_beginG = g_signal_connect(G_OBJECT(commentsBuffer), "begin-user-action", G_CALLBACK(comments_begin), NULL);
 	//comments_endG = g_signal_connect(G_OBJECT(commentsBuffer), "end-user-action", G_CALLBACK(comments_end), NULL);
@@ -4193,31 +4243,73 @@ XMI_MAIN
 	gtk_widget_show(window);
 	g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
 
+
+	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),"Redo");		
+	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),"Undo");		
+
+
 #ifdef MAC_INTEGRATION
 	gtk_osxapplication_ready(theApp);
 #endif
+
+	gchar *filename = g_strdup(argv[1]);
+	struct xmi_input *xi;
+	GtkWidget *dialog;
 	if (argc == 2) {
-		if (xmi_read_input_xml(argv[1], &xi_temp) == 1) {
-			//success reading it in...
-			change_all_values(xi_temp);
-			//reset redo_buffer
-			reset_undo_buffer(xi_temp, argv[1]);	
-			title = g_path_get_basename(argv[1]);
-			update_xmimsim_title_xmsi(title, window, argv[1]);
-			g_free(title);
+		if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+			update_xmimsim_title_xmso("No simulation data available", window, NULL);
+			//XMSI file
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
+			if (xmi_read_input_xml(filename, &xi) == 1) {
+				//success reading it in...
+				change_all_values(xi);
+				//reset redo_buffer
+				reset_undo_buffer(xi, filename);	
+				title = g_path_get_basename(filename);
+				update_xmimsim_title_xmsi(title, window,filename);
+				g_free(title);
+			}
+			else {
+				update_xmimsim_title_xmsi("New file", window, NULL);
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+			       		GTK_MESSAGE_ERROR,
+			       		GTK_BUTTONS_CLOSE,
+			       		"Could not read file %s: model is incomplete/invalid",filename
+	        	        	);
+	     			//gtk_dialog_run (GTK_DIALOG (dialog));
+				//gtk_widget_destroy(dialog);
+				g_idle_add(dialog_helper_cb,(gpointer) dialog);
+			}
 		}
-		else {
-			//this has to be fixed -> popup instead of quitting
-			//problem is that this is called before gtk_main
-			fprintf(stderr,"Could not read in xml file %s\n",argv[1]);
-			return 1;
+		else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+			update_xmimsim_title_xmsi("New file", window, NULL);
+			//XMSO file
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
+			if (plot_spectra_from_file(filename) == 1) {
+				gchar *temp_base = g_path_get_basename(filename);
+				update_xmimsim_title_xmso(temp_base, window, filename);
+				g_free(temp_base);
+			}
+			else {
+				update_xmimsim_title_xmso("No simulation data available", window, NULL);
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+			       		GTK_MESSAGE_ERROR,
+			       		GTK_BUTTONS_CLOSE,
+			       		"Could not read file %s",filename
+	               		);
+	     			//gtk_dialog_run (GTK_DIALOG (dialog));
+				//gtk_widget_destroy (dialog);
+				g_idle_add(dialog_helper_cb,(gpointer) dialog);
+			}
 		}
 	}
 	else { 
 		update_xmimsim_title_xmsi("New file", window, NULL);
+		update_xmimsim_title_xmso("No simulation data available", window, NULL);
 	}
 
-	update_xmimsim_title_xmso("No simulation data available", window, NULL);
 
 
 
@@ -4756,10 +4848,11 @@ void save_cb(GtkWidget *widget, gpointer data) {
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 		       		GTK_MESSAGE_ERROR,
 		       		GTK_BUTTONS_CLOSE,
-		       		"Could not read file %s: file writeable?",check_rv->filename
+		       		"Could not write to file %s: file writeable?",check_rv->filename
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
+			return;
 
 		}
 		else {
@@ -4772,11 +4865,14 @@ void save_cb(GtkWidget *widget, gpointer data) {
 			last_saved->filename = strdup(filename);
 			free(filename);
 		}
+		gtk_widget_set_sensitive(saveW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	}
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
 		check_status == CHECK_CHANGES_NEW) {
 		//never saved -> call saveas
 		saveas_function(widget, data);
+
 	}
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
 		//do nothing
@@ -4851,6 +4947,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 			update_xmimsim_title_xmsi(title, data, filename);
 			g_free(title);
 			g_free (filename);							
+			gtk_widget_set_sensitive(saveW,FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 		}
 		else {
 			gtk_widget_destroy (dialog);
