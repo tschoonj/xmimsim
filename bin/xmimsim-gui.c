@@ -4304,6 +4304,17 @@ XMI_MAIN
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 		}
+		else {
+			update_xmimsim_title_xmsi("New file", window, NULL);
+			update_xmimsim_title_xmso("No simulation data available", window, NULL);
+			dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+			      	GTK_BUTTONS_CLOSE,
+			       	"Could not read file %s\nExtenstion must be either xmsi or xmso.",filename
+	               	);
+			g_idle_add(dialog_helper_cb,(gpointer) dialog);
+		}
 	}
 	else { 
 		update_xmimsim_title_xmsi("New file", window, NULL);
