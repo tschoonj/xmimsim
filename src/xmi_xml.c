@@ -1573,7 +1573,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
        			fprintf(stderr,"Error writing symbol\n");                     
 			return 0;
 		} 
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lg",counts_sum) < 0) {
        			fprintf(stderr,"Error writing total_counts\n");                     
 			return 0;
 		} 
@@ -1598,7 +1598,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lg",counts_sum) < 0) {
        				fprintf(stderr,"Error writing total_counts\n");                     
 				return 0;
 			} 
@@ -1674,7 +1674,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
        			fprintf(stderr,"Error writing symbol\n");                     
 			return 0;
 		} 
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lg",counts_sum) < 0) {
        			fprintf(stderr,"Error writing total_counts\n");                     
 			return 0;
 		} 
@@ -1699,7 +1699,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lf",counts_sum) < 0) {
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%lg",counts_sum) < 0) {
        				fprintf(stderr,"Error writing total_counts\n");                     
 				return 0;
 			} 
