@@ -20,7 +20,9 @@
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-pymca</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-db</binary>
 
-<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.icns</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX.icns</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:build}/xml/xmimsim_cat.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>

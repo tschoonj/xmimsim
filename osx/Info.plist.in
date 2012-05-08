@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>xmimsim-gui</string>
 	<key>CFBundleIconFile</key>
-	<string>Logo_xmi_msim</string>
+	<string>Logo_xmi_msim_MacOSX</string>
 	<key>CFBundleIdentifier</key>
 	<string>be.ugent.xmi.xmi-msim</string>
 	<key>CFBundleName</key>
@@ -43,7 +43,7 @@
 			<key>CFBundleTypeName</key>
 			<string>XMI-MSIM Input File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>Logo_xmi_msim</string>
+			<string>Logo_xmi_msim_MacOSX_XMSI</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
@@ -57,7 +57,7 @@
 			<key>CFBundleTypeName</key>
 			<string>XMI-MSIM Output File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>Logo_xmi_msim</string>
+			<string>Logo_xmi_msim_MacOSX_XMSO</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>

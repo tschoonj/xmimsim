@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SLEEP_TIME 1
 #define MAX_NUMBERS 8192
-#define RANDOM_DEVICE "/dev/random"
+#define RANDOM_DEVICE "/dev/urandom"
 
 static unsigned long int *xmi_random_numbers;
 static int xmi_numbers_in_memory;

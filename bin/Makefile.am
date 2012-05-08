@@ -67,6 +67,10 @@ xmimsim_gui_CFLAGS += -xobjective-c
 xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+else
+xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_LDFLAGS) $(LDFLAGS) xmimsim_gui_CFLAGS -o $@
 endif
 
 #xmimsim_test_SOURCES = xmimsim-test.c

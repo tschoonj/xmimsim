@@ -723,10 +723,10 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation) {
 	contWidget = initialize_single_energies(excitation->continuous, excitation->n_continuous,CONTINUOUS);
 	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Discrete energies"), FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainvbox), discWidget->widget, FALSE, FALSE, 2);
-	separator = gtk_hseparator_new();
-	gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
+	//separator = gtk_hseparator_new();
+	//gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
+	//gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
+	//gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
 
 
 
