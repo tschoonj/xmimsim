@@ -125,7 +125,11 @@ xmso2htm_CFLAGS = @glib2_CFLAGS@
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc
-	$(WINDRES) -v --use-temp-file -F pe-i386 -DXMIMSIM_WIN_ICO=\"${top_srcdir}/icons/Logo_xmi_msim.ico\" ${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
+	$(WINDRES) -v --use-temp-file -F pe-i386 \
+	-DXMIMSIM_WIN_ICO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7.ico\" \
+	-DXMIMSIM_WIN_ICO_XMSI=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSI.ico\" \
+	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \
+	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 endif
 
 

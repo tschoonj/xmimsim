@@ -51,18 +51,18 @@ SetOverwrite ifnewer
 CRCCheck on
 
 !define MUI_ABORTWARNING
-!define MUI_ICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.ico"
-!define MUI_UNICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.ico"
-!define MUI_HEADERIMAGE "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
-!define MUI_HEADERIMAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
-!define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
-!define MUI_HEADERIMAGE_UNBITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
-!define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
+!define MUI_ICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_Win7.ico"
+!define MUI_UNICON "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_Win7.ico"
+;!define MUI_HEADERIMAGE "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+;!define MUI_HEADERIMAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+;!define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+;!define MUI_HEADERIMAGE_UNBITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
+;!define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
 
 !define MUI_WELCOMEPAGE_TEXT "Thank you for downloading xmimsim. This wizard will assist you in installing the required components to run the program"
 !define MUI_WELCOMEPAGE_TITLE_3LINES
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_164.bmp"
-!define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
+;!define MUI_WELCOMEFINISHPAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_164.bmp"
+;!define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_LICENSEPAGE_CHECKBOX
 !insertmacro MUI_PAGE_LICENSE "${MY_HOME}github\xmimsim\nsis\License.rtf"
@@ -256,7 +256,22 @@ createShortCut "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall
 
 ;register xmsi extension
 DetailPrint "Registering xmsi extension"
-${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+;${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+WriteRegStr HKCR "XMI-MSIM inputfile" "" "XMI-MSIM inputfile"
+WriteRegStr HKCR "XMI-MSIM inputfile\shell" "" "open"
+WriteRegStr HKCR "XMI-MSIM inputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,1"
+WriteRegStr HKCR "XMI-MSIM inputfile\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+WriteRegStr HKCR "XMI-MSIM inputfile\shell\edit" "" "Edit XMI-MSIM inputfile"
+WriteRegStr HKCR "XMI-MSIM inputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+
+DetailPrint "Registering xmso extension"
+;${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+WriteRegStr HKCR "XMI-MSIM outputfile" "" "XMI-MSIM outputfile"
+WriteRegStr HKCR "XMI-MSIM outputfile\shell" "" "open"
+WriteRegStr HKCR "XMI-MSIM outputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,2"
+WriteRegStr HKCR "XMI-MSIM outputfile\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit" "" "Edit XMI-MSIM outputfile"
+WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
 
 
@@ -370,7 +385,9 @@ delete "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk"
 RmDir "$SMPROGRAMS\XMI MSIM" 
 
 DetailPrint "Unregistering xmsi extension"
-${unregisterExtension} ".xmsi" "XMI MSIM inputfile"
+${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+DetailPrint "Unregistering xmso extension"
+${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
 
 SectionEnd
 
