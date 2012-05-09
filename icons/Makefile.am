@@ -46,6 +46,16 @@ convert_linux:
 	convert ${srcdir}/Logo_xmi_msim.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim.png
 	convert ${srcdir}/Logo_xmi_msim.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim.png
 	convert ${srcdir}/Logo_xmi_msim.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim_Gnome_XMSI.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 32x32 ${srcdir}/32x32/Logo_xmi_msim_Gnome_XMSI.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim_Gnome_XMSI.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim_Gnome_XMSI.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim_Gnome_XMSI.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSO.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim_Gnome_XMSO.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSO.png -resize 32x32 ${srcdir}/32x32/Logo_xmi_msim_Gnome_XMSO.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSO.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim_Gnome_XMSO.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSO.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim_Gnome_XMSO.png
+	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSO.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim_Gnome_XMSO.png
 
 
 convert_windows:
@@ -106,6 +116,5 @@ convert_windows:
 
 EXTRA_DIST = Logo_xmi_msim.bmp \
 	Logo_xmi_msim.eps \
-	Logo_xmi_msim.ico \
 	Logo_xmi_msim.pdf \
 	applications-x-xmimsim.xml

@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-	<mime-type type="application/x-xmimsim">
-	<comment>XMI MSIM inputfile</comment>
-	<icon name="Logo_xmi_msim"/>
+	<mime-type type="application/x-xmimsim-xmsi">
+	<comment>XMI-MSIM Inputfile</comment>
+	<icon name="Logo_xmi_msim_Gnome_XMSI"/>
 	<glob-deleteall/>
 	<glob pattern="*.xmsi"/>
+	</mime-type>
+	<mime-type type="application/x-xmimsim-xmso">
+	<comment>XMI-MSIM Outputfile</comment>
+	<icon name="Logo_xmi_msim_Gnome_XMSO"/>
+	<glob-deleteall/>
+	<glob pattern="*.xmso"/>
 	</mime-type>
 </mime-info>
