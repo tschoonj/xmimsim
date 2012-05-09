@@ -39,7 +39,7 @@ Name ${PRODUCT_NAME}
 OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
 RequestExecutionLevel none
 
-InstallDir "$PROGRAMFILES\xmimsim"
+InstallDir "$PROGRAMFILES\XMI-MSIM"
 InstallDirRegKey HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory"
 
 ShowInstDetails show
@@ -257,6 +257,7 @@ createShortCut "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall
 ;register xmsi extension
 DetailPrint "Registering xmsi extension"
 ;${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+WriteRegStr HKCR ".xmsi" "" "XMI-MSIM inputfile"  ; set our file association
 WriteRegStr HKCR "XMI-MSIM inputfile" "" "XMI-MSIM inputfile"
 WriteRegStr HKCR "XMI-MSIM inputfile\shell" "" "open"
 WriteRegStr HKCR "XMI-MSIM inputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,1"
@@ -266,6 +267,7 @@ WriteRegStr HKCR "XMI-MSIM inputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmims
 
 DetailPrint "Registering xmso extension"
 ;${registerExtension} "$INSTDIR\Bin\xmimsim-gui.exe" ".xmsi" "XMI MSIM inputfile"
+WriteRegStr HKCR ".xmso" "" "XMI-MSIM outputfile"  ; set our file association
 WriteRegStr HKCR "XMI-MSIM outputfile" "" "XMI-MSIM outputfile"
 WriteRegStr HKCR "XMI-MSIM outputfile\shell" "" "open"
 WriteRegStr HKCR "XMI-MSIM outputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,2"
@@ -273,6 +275,7 @@ WriteRegStr HKCR "XMI-MSIM outputfile\shell\open\command" "" '"$INSTDIR\Bin\xmim
 WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit" "" "Edit XMI-MSIM outputfile"
 WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
+System::Call 'shell32.dll::SHChangeNotify(i, i, i, i) v (0x08000000, 0, 0, 0)'
 
 
 
@@ -351,6 +354,7 @@ Delete "$INSTDIR\Share\xmimsim_cat.xml"
 Delete "$INSTDIR\Share\xmimsim-1.0.dtd"
 ;Delete "$APPDATA\xmimsim\xmimsim-solid-angles.h5"
 ;Delete "$APPDATA\xmimsim\xmimsim-escape-ratios.h5"
+Delete "$INSTDIR\Share\Logo_xmi_msim.png"
 
 ;RMDir "$APPDATA\xmimsim"
 RMDir "$INSTDIR\Share"
@@ -386,8 +390,11 @@ RmDir "$SMPROGRAMS\XMI MSIM"
 
 DetailPrint "Unregistering xmsi extension"
 ${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+DeleteRegKey HKCR "XMI-MSIM inputfile" 
+
 DetailPrint "Unregistering xmso extension"
 ${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
+DeleteRegKey HKCR "XMI-MSIM outputfile" 
 
 SectionEnd
 
@@ -411,11 +418,11 @@ FunctionEnd
 Function "un.EraseAppDataCB"
 	Pop $0
 	ReadRegStr $1 HKU "$0\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" "Local AppData"
-	Delete "$1\xmimsim\xmimsim-escape-ratios.h5"
-	Delete "$1\xmimsim\xmimsim-solid-angles.h5"
-	RmDir "$1\xmimsim"
+	Delete "$1\XMI-MSIM\xmimsim-escape-ratios.h5"
+	Delete "$1\XMI-MSIM\xmimsim-solid-angles.h5"
+	RmDir "$1\XMI-MSIM"
 	ReadRegStr $1 HKU "$0\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" "AppData"
-	Delete "$1\xmimsim\xmimsim-escape-ratios.h5"
-	Delete "$1\xmimsim\xmimsim-solid-angles.h5"
-	RmDir "$1\xmimsim"
+	Delete "$1\XMI-MSIM\xmimsim-escape-ratios.h5"
+	Delete "$1\XMI-MSIM\xmimsim-solid-angles.h5"
+	RmDir "$1\XMI-MSIM"
 FunctionEnd

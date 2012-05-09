@@ -38,6 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <signal.h>
 #elif defined(G_OS_WIN32)
 #include <windows.h>
+#include "xmi_registry_win.h"
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -1678,7 +1679,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),(current-1)->xi->general->outputfile);
 			break;
 		case N_PHOTONS_INTERVAL:
-			sprintf(buffer,"%li",(current-1)->xi->general->n_photons_interval);
+			g_sprintf(buffer,"%li",(current-1)->xi->general->n_photons_interval);
 #if DEBUG == 1
 			fprintf(stdout,"n_photons_interval undo to %s\n",buffer);
 #endif
@@ -1687,13 +1688,13 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_photons_intervalG);
 			break;
 		case N_PHOTONS_LINE:
-			sprintf(buffer,"%li",(current-1)->xi->general->n_photons_line);
+			g_sprintf(buffer,"%li",(current-1)->xi->general->n_photons_line);
 			g_signal_handler_block(G_OBJECT(current->widget), n_photons_lineG);
 			gtk_entry_set_text(GTK_ENTRY(current->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_photons_lineG);
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			sprintf(buffer,"%i",(current-1)->xi->general->n_interactions_trajectory);
+			g_sprintf(buffer,"%i",(current-1)->xi->general->n_interactions_trajectory);
 			g_signal_handler_block(G_OBJECT(current->widget), n_interactions_trajectoryG);
 			gtk_entry_set_text(GTK_ENTRY(current->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_interactions_trajectoryG);
@@ -1733,97 +1734,97 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
 		case D_SAMPLE_SOURCE:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_sample_source);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current)->widget), d_sample_sourceG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), d_sample_sourceG);
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[0]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_xG);
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[1]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_yG);
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[2]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_zG);
 			break;
 		case P_DETECTOR_WINDOW_X:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[0]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_xG);
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[1]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_yG);
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[2]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_zG);
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[0]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_xG);
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[1]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_yG);
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[2]);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_zG);
 			break;
 		case AREA_DETECTOR:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->area_detector);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->area_detector);
 			g_signal_handler_block(G_OBJECT((current)->widget), area_detectorG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), area_detectorG);
 			break;
 		case COLLIMATOR_HEIGHT:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_height);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_height);
 			g_signal_handler_block(G_OBJECT((current)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_heightG);
 			break;
 		case COLLIMATOR_DIAMETER:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_diameter);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_diameter);
 			g_signal_handler_block(G_OBJECT((current)->widget), collimator_diameterG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->d_source_slit);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->d_source_slit);
 			g_signal_handler_block(G_OBJECT((current)->widget), d_source_slitG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), d_source_slitG);
 			break;
 		case SLIT_SIZE_X:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_x);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_x);
 			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_xG);
 			break;
 		case SLIT_SIZE_Y:
-			sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_y);
+			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_y);
 			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_yG);
@@ -1965,69 +1966,69 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_abs_or_crystal2composition((current-1)->xi->detector->crystal_layers,(current-1)->xi->detector->n_crystal_layers , &crystal_compositionS);
 			break;
 		case DETECTOR_TYPE:
-			//sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			//g_sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_typeG);
 			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX((current)->widget),(current-1)->xi->detector->detector_type);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_typeG);
 			break;
 		case DETECTOR_GAIN:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->gain);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_gainG);
 			break;
 		case DETECTOR_LIVE_TIME:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->live_time);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_live_timeG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_live_timeG);
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->pulse_width);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->pulse_width);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_pulse_widthG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_pulse_widthG);
 			break;
 		case DETECTOR_ZERO:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->zero);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_zeroG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_zeroG);
 			break;
 		case DETECTOR_NOISE:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->noise);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->noise);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_noiseG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_noiseG);
 			break;
 		case DETECTOR_FANO:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->fano);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->fano);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_fanoG);
 			break;
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			sprintf(buffer,"%lg",(current-1)->xi->detector->max_convolution_energy);
+			g_sprintf(buffer,"%lg",(current-1)->xi->detector->max_convolution_energy);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_max_convolution_energyG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_max_convolution_energyG);
 			break;
 	}
 	if (current-1 != redo_buffer) {
-		sprintf(buffer,"Undo: %s",(current-1)->message);
+		g_sprintf(buffer,"Undo: %s",(current-1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);		
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 	}
 	else {
-		sprintf(buffer,"Undo");
+		g_sprintf(buffer,"Undo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);		
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 		gtk_widget_set_sensitive(undoW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	}
 	//update redo
-	sprintf(buffer,"Redo: %s",current->message);
+	g_sprintf(buffer,"Redo: %s",current->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
 	gtk_tool_item_set_tooltip_text(redoT,buffer);
 	gtk_widget_set_sensitive(redoW,TRUE);
@@ -2122,19 +2123,19 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),(current+1)->xi->general->outputfile);
 			break;
 		case N_PHOTONS_INTERVAL:
-			sprintf(buffer,"%li",(current+1)->xi->general->n_photons_interval);
+			g_sprintf(buffer,"%li",(current+1)->xi->general->n_photons_interval);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_photons_intervalG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_photons_intervalG);
 			break;
 		case N_PHOTONS_LINE:
-			sprintf(buffer,"%li",(current+1)->xi->general->n_photons_line);
+			g_sprintf(buffer,"%li",(current+1)->xi->general->n_photons_line);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_photons_lineG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_photons_lineG);
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			sprintf(buffer,"%i",(current+1)->xi->general->n_interactions_trajectory);
+			g_sprintf(buffer,"%i",(current+1)->xi->general->n_interactions_trajectory);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_interactions_trajectoryG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_interactions_trajectoryG);
@@ -2171,97 +2172,97 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_composition((current+1)->xi->composition, &compositionS);
 			break;
 		case D_SAMPLE_SOURCE:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_sample_source);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), d_sample_sourceG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_sample_sourceG);
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[0]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[1]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[2]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
 			break;
 		case P_DETECTOR_WINDOW_X:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[0]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_xG);
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[1]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_yG);
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[2]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_zG);
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[0]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[1]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[2]);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
 			break;
 		case AREA_DETECTOR:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->area_detector);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->area_detector);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), area_detectorG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), area_detectorG);
 			break;
 		case COLLIMATOR_HEIGHT:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_height);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_height);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_heightG);
 			break;
 		case COLLIMATOR_DIAMETER:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_diameter);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_diameter);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_diameterG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->d_source_slit);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->d_source_slit);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), d_source_slitG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_source_slitG);
 			break;
 		case SLIT_SIZE_X:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_x);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_x);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_xG);
 			break;
 		case SLIT_SIZE_Y:
-			sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_y);
+			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_y);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_yG);
@@ -2397,50 +2398,50 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->detector->crystal_layers,(current+1)->xi->detector->n_crystal_layers , &crystal_compositionS);
 			break;
 		case DETECTOR_TYPE:
-			//sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			//g_sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_typeG);
 			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX((current+1)->widget),(current+1)->xi->detector->detector_type);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_typeG);
 			break;
 		case DETECTOR_GAIN:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->gain);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_gainG);
 			break;
 		case DETECTOR_LIVE_TIME:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->live_time);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_live_timeG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_live_timeG);
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->pulse_width);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->pulse_width);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_pulse_widthG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_pulse_widthG);
 			break;
 		case DETECTOR_ZERO:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->zero);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_zeroG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_zeroG);
 			break;
 		case DETECTOR_NOISE:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->noise);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->noise);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_noiseG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_noiseG);
 			break;
 		case DETECTOR_FANO:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->fano);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->fano);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_fanoG);
 			break;
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			sprintf(buffer,"%lg",(current+1)->xi->detector->max_convolution_energy);
+			g_sprintf(buffer,"%lg",(current+1)->xi->detector->max_convolution_energy);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
@@ -2450,7 +2451,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	}
 
 	
-	sprintf(buffer,"Undo: %s",(current+1)->message);
+	g_sprintf(buffer,"Undo: %s",(current+1)->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);		
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
 	gtk_widget_set_sensitive(undoW,TRUE);
@@ -2460,14 +2461,14 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 
 	current++;
 	if (current == last) {
-		sprintf(buffer,"Redo");
+		g_sprintf(buffer,"Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 		gtk_widget_set_sensitive(redoW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	}
 	else {
-		sprintf(buffer,"Redo: %s",(current+1)->message);
+		g_sprintf(buffer,"Redo: %s",(current+1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
@@ -2927,10 +2928,10 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
-	sprintf(buffer,"Undo");
+	g_sprintf(buffer,"Undo");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
-	sprintf(buffer,"Redo");
+	g_sprintf(buffer,"Redo");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 	gtk_tool_item_set_tooltip_text(redoT,buffer);
 
@@ -2960,7 +2961,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			xmi_free_input(tempPtr->xi);
 		}
 		//disable redo
-		sprintf(buffer,"Redo");
+		g_sprintf(buffer,"Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_widget_set_sensitive(redoW,FALSE);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
@@ -3366,7 +3367,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 	} 
 	current = last;
-	sprintf(buffer,"Undo: %s",last->message);
+	g_sprintf(buffer,"Undo: %s",last->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 	gtk_widget_set_sensitive(undoW,TRUE);
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
@@ -3467,10 +3468,15 @@ XMI_MAIN
 #endif
 
 	//needs to be checked on Windows... especially XP!
+#if defined(G_OS_WIN32)
+	setlocale(LC_ALL,"English_United States");
+	//g_setenv("LANG","en_US",TRUE);
+#else
 	g_setenv("LANG","en_US",TRUE);
+#endif
+	gtk_disable_setlocale();
 	setbuf(stdout,NULL);
 	//let's use the default C locale
-	gtk_disable_setlocale();
 	//g_type_init
 	g_type_init();
 
@@ -3731,7 +3737,7 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_photons_intervalW = text;
-	sprintf(buffer,"%li",current->xi->general->n_photons_interval);
+	g_sprintf(buffer,"%li",current->xi->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = N_PHOTONS_INTERVAL;
@@ -3745,7 +3751,7 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_photons_lineW = text;
-	sprintf(buffer,"%li",current->xi->general->n_photons_line);
+	g_sprintf(buffer,"%li",current->xi->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = N_PHOTONS_LINE;
@@ -3759,7 +3765,7 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_interactions_trajectoryW = text;
-	sprintf(buffer,"%i",current->xi->general->n_interactions_trajectory);
+	g_sprintf(buffer,"%i",current->xi->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = N_INTERACTIONS_TRAJECTORY;
@@ -3832,7 +3838,7 @@ XMI_MAIN
 	label = gtk_label_new("Sample-source distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_sample_sourceW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
+	g_sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
 	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = D_SAMPLE_SOURCE;
@@ -3845,7 +3851,7 @@ XMI_MAIN
 	label = gtk_label_new("Sample orientation vector");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_zW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[2]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_zW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3856,7 +3862,7 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_yW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[1]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_yW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3867,7 +3873,7 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_xW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[0]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_xW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3884,7 +3890,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector window position (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_zW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_zW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3895,7 +3901,7 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_yW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[1]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[1]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_yW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3906,7 +3912,7 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_xW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[0]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[0]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_xW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3923,7 +3929,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector window normal vector");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_zW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[2]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_zW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3934,7 +3940,7 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_yW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[1]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_yW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3945,7 +3951,7 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_xW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[0]);
+	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_xW),10);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
@@ -3963,7 +3969,7 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"Active detector area (cm<sup>2</sup>)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	area_detectorW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->area_detector);
+	g_sprintf(buffer,"%lg",current->xi->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = AREA_DETECTOR;
@@ -3977,7 +3983,7 @@ XMI_MAIN
 	label = gtk_label_new("Collimator height (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_heightW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->collimator_height);
+	g_sprintf(buffer,"%lg",current->xi->geometry->collimator_height);
 	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = COLLIMATOR_HEIGHT;
@@ -3991,7 +3997,7 @@ XMI_MAIN
 	label = gtk_label_new("Collimator diameter (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_diameterW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->collimator_diameter);
+	g_sprintf(buffer,"%lg",current->xi->geometry->collimator_diameter);
 	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = COLLIMATOR_DIAMETER;
@@ -4005,7 +4011,7 @@ XMI_MAIN
 	label = gtk_label_new("Source-slits distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_source_slitW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
+	g_sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = D_SOURCE_SLIT;
@@ -4019,7 +4025,7 @@ XMI_MAIN
 	label = gtk_label_new("Slits size (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_yW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
+	g_sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = SLIT_SIZE_Y;
@@ -4029,7 +4035,7 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_xW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->geometry->slit_size_x);
+	g_sprintf(buffer,"%lg",current->xi->geometry->slit_size_x);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = SLIT_SIZE_X;
@@ -4112,7 +4118,7 @@ XMI_MAIN
 	label = gtk_label_new("Live time (s)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_live_timeW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->live_time);
+	g_sprintf(buffer,"%lg",current->xi->detector->live_time);
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_LIVE_TIME;
@@ -4126,7 +4132,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector gain (keV/channel)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_gainW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->gain);
+	g_sprintf(buffer,"%lg",current->xi->detector->gain);
 	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_GAIN;
@@ -4140,7 +4146,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector zero (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_zeroW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->zero);
+	g_sprintf(buffer,"%lg",current->xi->detector->zero);
 	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_ZERO;
@@ -4154,7 +4160,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector Fano factor");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_fanoW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->fano);
+	g_sprintf(buffer,"%lg",current->xi->detector->fano);
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_FANO;
@@ -4168,7 +4174,7 @@ XMI_MAIN
 	label = gtk_label_new("Detector electronic noise (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_noiseW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->noise);
+	g_sprintf(buffer,"%lg",current->xi->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_NOISE;
@@ -4182,7 +4188,7 @@ XMI_MAIN
 	label = gtk_label_new("Pulse width (s)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_pulse_widthW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->pulse_width);
+	g_sprintf(buffer,"%lg",current->xi->detector->pulse_width);
 	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_PULSE_WIDTH;
@@ -4196,7 +4202,7 @@ XMI_MAIN
 	label = gtk_label_new("Max convolution energy (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_max_convolution_energyW = gtk_entry_new();
-	sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);
+	g_sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);
 	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
 	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_MAX_CONVOLUTION_ENERGY;
@@ -4404,11 +4410,11 @@ void change_all_values(struct xmi_input *new_input) {
 
 	//general
 	gtk_entry_set_text(GTK_ENTRY(outputfileW),new_input->general->outputfile);
-	sprintf(buffer,"%li",new_input->general->n_photons_interval);
+	g_sprintf(buffer,"%li",new_input->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(n_photons_intervalW),buffer);
-	sprintf(buffer,"%li",new_input->general->n_photons_line);
+	g_sprintf(buffer,"%li",new_input->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
-	sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
+	g_sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
 	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
 	gtk_text_buffer_set_text(commentsBuffer,new_input->general->comments,-1);
@@ -4441,37 +4447,37 @@ void change_all_values(struct xmi_input *new_input) {
 	xmi_copy_composition(new_input->composition,&compositionS);	
 
 	//geometry
-	sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
+	g_sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
 	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->area_detector);
+	g_sprintf(buffer,"%lg",new_input->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->collimator_height);
+	g_sprintf(buffer,"%lg",new_input->geometry->collimator_height);
 	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
+	g_sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
 	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
+	g_sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
+	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
-	sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
+	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
 	
 
@@ -4555,25 +4561,25 @@ void change_all_values(struct xmi_input *new_input) {
 	//detector
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
 	
-	sprintf(buffer,"%lg",new_input->detector->gain);
+	g_sprintf(buffer,"%lg",new_input->detector->gain);
 #if DEBUG == 1
 	fprintf(stdout,"gain: %s\n",buffer);
 #endif
 	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->zero);
+	g_sprintf(buffer,"%lg",new_input->detector->zero);
 #if DEBUG == 1
 	fprintf(stdout,"zero: %s\n",buffer);
 #endif
 	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->fano);
+	g_sprintf(buffer,"%lg",new_input->detector->fano);
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->noise);
+	g_sprintf(buffer,"%lg",new_input->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
+	g_sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
 	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->live_time);
+	g_sprintf(buffer,"%lg",new_input->detector->live_time);
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
-	sprintf(buffer,"%lg",new_input->detector->pulse_width);
+	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
 	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
 
 	gtk_list_store_clear(crystal_compositionL);

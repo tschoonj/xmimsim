@@ -191,7 +191,12 @@ XMI_MAIN
 #endif
 
 	//locale...
-	setlocale(LC_ALL,"C");
+	//setlocale(LC_ALL,"C");
+#if defined(G_OS_WIN32)
+	setlocale(LC_ALL,"English_United States");
+#else
+	g_setenv("LANG","en_US",TRUE);
+#endif
 
 
 	//
