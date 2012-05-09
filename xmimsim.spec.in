@@ -86,8 +86,7 @@ fi || :
 %files
 %defattr(-,root,root)
 %{_libdir}/libxmimsim.so.*
-#%attr(0755,root,root) %caps(cap_setuid)  %{_bindir}/xmimsim
-#%attr(0755,root,root) %caps(cap_setuid)  %{_bindir}/xmimsim-pymca
+%{_libdir}/pkgconfig/libxmimsim.pc
 %{_bindir}/xmimsim
 %{_bindir}/xmimsim-pymca
 %{_bindir}/xmimsim-gui
@@ -105,6 +104,8 @@ fi || :
 %{_prefix}/share/xmimsim/xmso2spe.xml
 %{_prefix}/share/xmimsim/xmso2htm.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
+%{_prefix}/share/xmimsim/Logo_xmi_msim.png
+
 %{_prefix}/share/xmimsim/xmimsimdata.h5
 %{_datadir}/applications/xmimsim.desktop
 #%{_datadir}/pixmaps/Logo_xmi_msim*.png
@@ -123,9 +124,9 @@ fi || :
 
 
 %changelog
-* Tue May 17 2011 Tom Schoonjans
-- First version of spec file
-* Mon Jun 20 2011 Tom Schoonjans
-- added escape ratios hdf5 file
 * Wed May 9 2012 Tom Schoonjans
 - Getting ready for first real release
+* Mon Jun 20 2011 Tom Schoonjans
+- added escape ratios hdf5 file
+* Tue May 17 2011 Tom Schoonjans
+- First version of spec file

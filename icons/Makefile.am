@@ -29,11 +29,11 @@ icons128dir = $(iconsdatadir)/128x128/apps/
 icons256dir = $(iconsdatadir)/256x256/apps/
 
 dist_appdata_DATA = xmimsim.desktop
-dist_icons16_DATA = 16x16/Logo_xmi_msim.png
-dist_icons32_DATA = 32x32/Logo_xmi_msim.png
-dist_icons64_DATA = 64x64/Logo_xmi_msim.png
-dist_icons128_DATA = 128x128/Logo_xmi_msim.png
-dist_icons256_DATA = 256x256/Logo_xmi_msim.png
+dist_icons16_DATA = 16x16/Logo_xmi_msim.png 16x16/Logo_xmi_msim_Gnome_XMSI.png 16x16/Logo_xmi_msim_Gnome_XMSO.png
+dist_icons32_DATA = 32x32/Logo_xmi_msim.png 32x32/Logo_xmi_msim_Gnome_XMSI.png 32x32/Logo_xmi_msim_Gnome_XMSO.png
+dist_icons64_DATA = 64x64/Logo_xmi_msim.png 64x64/Logo_xmi_msim_Gnome_XMSI.png 64x64/Logo_xmi_msim_Gnome_XMSO.png
+dist_icons128_DATA = 128x128/Logo_xmi_msim.png 128x128/Logo_xmi_msim_Gnome_XMSI.png 128x128/Logo_xmi_msim_Gnome_XMSO.png
+dist_icons256_DATA = 256x256/Logo_xmi_msim.png 256x256/Logo_xmi_msim_Gnome_XMSI.png 256x256/Logo_xmi_msim_Gnome_XMSO.png
 xmimsimdir = $(datadir)/xmimsim
 dist_xmimsim_DATA = Logo_xmi_msim.png
 
