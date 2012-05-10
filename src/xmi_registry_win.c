@@ -41,7 +41,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 	char stringkey[1024];
 
 
-	strcpy(stringkey,"Software\\xmimsim\\");
+	strcpy(stringkey,"Software\\XMI-MSIM\\");
 	switch (kind) {
 		case XMI_REGISTRY_WIN_DATA:
 			strcat(stringkey,"data");

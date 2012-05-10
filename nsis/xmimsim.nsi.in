@@ -100,7 +100,7 @@ ${If} $R0 == ""
 ${ElseIf} $R0 == ${XRAYLIB_VERSION}
 	Goto gtk2install
 ${Else}
-	MessageBox MB_OK "The version of xraylib that was found on this system is incompatible with this release of XMI MSIM. The correct version of xraylib will now be downloaded and installed."
+	MessageBox MB_OK "The version of xraylib that was found on this system is incompatible with this release of XMI-MSIM. The correct version of xraylib will now be downloaded and installed."
 	;quiet uninstall first
 	ReadRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "QuietUninstallString"
 	ExecWait '$R1'	
@@ -249,9 +249,9 @@ WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString" "$\"$INSTDIR\Unins
 
 ;start menu
 DetailPrint "Creating Start menu shortcuts"
-CreateDirectory "$SMPROGRAMS\XMI MSIM"
-createShortCut "$SMPROGRAMS\XMI MSIM\XMI MSIM.lnk" "$INSTDIR\Bin\xmimsim-gui.exe"
-createShortCut "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall.exe"
+CreateDirectory "$SMPROGRAMS\XMI-MSIM"
+createShortCut "$SMPROGRAMS\XMI-MSIM\XMI-MSIM.lnk" "$INSTDIR\Bin\xmimsim-gui.exe"
+createShortCut "$SMPROGRAMS\XMI-MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall.exe"
 
 
 ;register xmsi extension
@@ -384,9 +384,9 @@ DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2htm"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 
-delete "$SMPROGRAMS\XMI MSIM\XMI MSIM.lnk"
-delete "$SMPROGRAMS\XMI MSIM\Uninstall XMI-MSIM.lnk"
-RmDir "$SMPROGRAMS\XMI MSIM" 
+delete "$SMPROGRAMS\XMI-MSIM\XMI-MSIM.lnk"
+delete "$SMPROGRAMS\XMI-MSIM\Uninstall XMI-MSIM.lnk"
+RmDir "$SMPROGRAMS\XMI-MSIM" 
 
 DetailPrint "Unregistering xmsi extension"
 ${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
