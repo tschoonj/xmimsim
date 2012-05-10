@@ -151,7 +151,7 @@ enum {
 #ifdef MAC_INTEGRATION 
   #define XMIMSIM_TITLE_PREFIX ""
 #else
-  #define XMIMSIM_TITLE_PREFIX "XMI MSIM: "
+  #define XMIMSIM_TITLE_PREFIX "XMI-MSIM: "
 #endif
 
 

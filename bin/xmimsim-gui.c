@@ -702,7 +702,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmso");
-	gtk_file_filter_set_name(filter,"XMI MSIM outputfiles");
+	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
 	dialog = gtk_file_chooser_dialog_new("Select the outputfile for the simulation",
 		GTK_WINDOW((GtkWidget *) data),
@@ -4733,10 +4733,10 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 	filter1 = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter1,"*.xmsi");
-	gtk_file_filter_set_name(filter1,"XMI MSIM inputfiles");
+	gtk_file_filter_set_name(filter1,"XMI-MSIM inputfiles");
 	filter2 = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter2,"*.xmso");
-	gtk_file_filter_set_name(filter2,"XMI MSIM outputfiles");
+	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -4922,7 +4922,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	}
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmsi");
-	gtk_file_filter_set_name(filter,"XMI MSIM inputfiles");
+	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	dialog = gtk_file_chooser_dialog_new ("Save simulation inputfile",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_SAVE,

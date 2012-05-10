@@ -15,7 +15,7 @@
 
 
 
-!define PRODUCT_NAME "xmimsim"
+!define PRODUCT_NAME "XMI-MSIM"
 !define VERSION @VERSION@ 
 !define PRODUCT_WEB_SITE "http://github.com/tschoonj/xmimsim"
 !define PRODUCT_DIR_REGKEY "Software\${PRODUCT_NAME}"
@@ -59,7 +59,7 @@ CRCCheck on
 ;!define MUI_HEADERIMAGE_UNBITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_57.bmp"
 ;!define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
 
-!define MUI_WELCOMEPAGE_TEXT "Thank you for downloading xmimsim. This wizard will assist you in installing the required components to run the program"
+!define MUI_WELCOMEPAGE_TEXT "Thank you for downloading XMI-MSIM. This wizard will assist you in installing the required components to run the program"
 !define MUI_WELCOMEPAGE_TITLE_3LINES
 ;!define MUI_WELCOMEFINISHPAGE_BITMAP "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim_164.bmp"
 ;!define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
@@ -69,8 +69,8 @@ CRCCheck on
 
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_TEXT "Thank you for installing xmimsim. Remember: the latest version of xmimsim can be obtained from the development repository on github"
-!define MUI_FINISHPAGE_LINK "xmimsim development link"
+!define MUI_FINISHPAGE_TEXT "Thank you for installing XMI-MSIM. Remember: the latest version of XMI-MSIM can be obtained from the development repository on github"
+!define MUI_FINISHPAGE_LINK "XMI-MSIM development link"
 !define MUI_FINISHPAGE_LINK_LOCATION ${PRODUCT_WEB_SITE} 
 ;!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.txt"
 !insertmacro MUI_PAGE_FINISH
@@ -165,10 +165,10 @@ DetailPrint "Installing POSIX threads runtime libraries"
 ;!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" "$INSTDIR"
 
 ;my own stuff
-DetailPrint "Installing XMIMSIM runtime library"
+DetailPrint "Installing XMI-MSIM runtime library"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxmimsim-0.dll" "$INSTDIR\Lib\libxmimsim-0.dll" "$INSTDIR"
 
-DetailPrint "Installing XMIMSIM executables"
+DetailPrint "Installing XMI-MSIM executables"
 SetOutPath "$INSTDIR\Bin"
 File "${MY_HOME}bin\xmimsim.exe"
 File "${MY_HOME}bin\xmimsim-db.exe"
@@ -181,10 +181,10 @@ File "${MY_HOME}bin\xmso2csv.exe"
 File "${MY_HOME}bin\xmso2htm.exe"
 
 SetOutPath "$INSTDIR\Share"
-DetailPrint "Installing XMIMSIM HDF5 database"
+DetailPrint "Installing XMI-MSIM HDF5 database"
 File "${MY_HOME}github\xmimsim\build\bin\xmimsimdata.h5"
 
-DetailPrint "Installing XMIMSIM XML and XSLT files"
+DetailPrint "Installing XMI-MSIM XML and XSLT files"
 File "${MY_HOME}github\xmimsim\xml\xmimsim-1.0.dtd"
 File "${MY_HOME}github\xmimsim\xml\xmso2xmsi.xml"
 File "${MY_HOME}github\xmimsim\xml\xmso2spe.xml"
@@ -325,12 +325,12 @@ DetailPrint "Uninstalling POSIX threads runtime libraries"
 ;DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
 ;!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" 
 
-DetailPrint "Uninstalling XMIMSIM runtime library"
+DetailPrint "Uninstalling XMI-MSIM runtime library"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 
 
 RMDir "$INSTDIR\Lib"
 
-DetailPrint "Uninstalling XMIMSIM executables"
+DetailPrint "Uninstalling XMI-MSIM executables"
 Delete "$INSTDIR\Bin\xmimsim.exe"
 Delete "$INSTDIR\Bin\xmimsim-db.exe"
 Delete "$INSTDIR\Bin\xmimsim-gui.exe"

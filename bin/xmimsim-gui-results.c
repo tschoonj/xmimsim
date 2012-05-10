@@ -551,9 +551,14 @@ static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data
 
 
 static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
-
-	fprintf(stdout,"Entering settings_button_clicked_cb\n");
-
+	GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(data),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+	        GTK_MESSAGE_INFO,
+		GTK_BUTTONS_CLOSE,
+		"Plot properties will be implemented in a future version of XMI-MSIM"
+	         );
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy(dialog);
 	return;
 }
 
@@ -877,8 +882,8 @@ GtkWidget *init_results(GtkWidget *window) {
 	magnifier_hbox = gtk_hbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(magnifier_hbox), gtk_label_new("Canvas magnification"),FALSE, FALSE,1);
 	magnifierW = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(magnifier, 0.25,2.0,0.05,0.1,0.0)),0.05,2);
-	gtk_box_pack_start(GTK_BOX(magnifier_hbox), magnifierW,FALSE, FALSE,1);
-	g_signal_connect(G_OBJECT(magnifierW),"value-changed",G_CALLBACK(magnifier_changed_cb),NULL);
+	//gtk_box_pack_start(GTK_BOX(magnifier_hbox), magnifierW,FALSE, FALSE,1);
+	//g_signal_connect(G_OBJECT(magnifierW),"value-changed",G_CALLBACK(magnifier_changed_cb),NULL);
 
 
 
@@ -893,7 +898,7 @@ GtkWidget *init_results(GtkWidget *window) {
 #endif
 	
 
-	gtk_box_pack_end(GTK_BOX(spectra_box),magnifier_hbox, FALSE, FALSE, 2);
+	//gtk_box_pack_end(GTK_BOX(spectra_box),magnifier_hbox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),settings_button, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),export_button, FALSE, FALSE, 2);
 #if GTKEXTRA_CHECK_VERSION(3,0,0)
