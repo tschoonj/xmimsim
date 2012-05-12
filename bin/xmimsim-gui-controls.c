@@ -412,6 +412,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 		        "Could not read file %s",cd->outputfile
 	                );
 	     	gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
 	
 	}
 
