@@ -1301,7 +1301,10 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	}
 
 	xmlFreeTextWriter(writer);
-	xmlSaveFileEnc(xmlfile,doc,NULL);
+	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
+		fprintf(stderr,"Could not write to %s\n",xmlfile);
+		return 0;
+	}
 	xmlFreeDoc(doc);
 
 	return 1;
@@ -1339,7 +1342,6 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	xmlTextWriterPtr writer;
 
 
-//	fprintf(stdout, "pbro tells : xmi_write_output_doc \n"); 
 
 	LIBXML_TEST_VERSION
 
@@ -1860,15 +1862,18 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_input *input, double *brute_h
 
 	xmlDocPtr doc;
 
-//	fprintf(stdout," pbro tells: xmi_write_output_xml \n " );
 
 	LIBXML_TEST_VERSION
 
-	if(xmi_write_output_doc(&doc, input, brute_history, var_red_history, channels_conv, channels_unconv, nchannels, inputfile, use_zero_interactions) == 0){	//pbro return 0;
-}
+	if(xmi_write_output_doc(&doc, input, brute_history, var_red_history, channels_conv, channels_unconv, nchannels, inputfile, use_zero_interactions) == 0){
+		return 0;
+	}
 
 
-	xmlSaveFileEnc(xmlfile,doc,NULL);
+	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
+		fprintf(stderr,"Could not write to %s\n",xmlfile);
+		return 0;
+	}
 	xmlFreeDoc(doc);
 
 	return 1;
