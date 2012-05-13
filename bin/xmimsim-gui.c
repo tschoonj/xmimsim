@@ -2822,8 +2822,16 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	gchar *title;
 	struct osx_load_data *old = (struct osx_load_data *) data;
 	gchar *filename = old->path;
+	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(old->window));
 
 	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",filename);
+
+	//bring window to front if necessary
+	if ([NSApp isHidden] == YES)
+		[NSApp unhide: nil];
+	else if ([qwindow isMiniaturized])
+		[qwindow deminiaturize:nil];
+	
 
 
 	if (process_pre_file_operation(old->window) == FALSE)
