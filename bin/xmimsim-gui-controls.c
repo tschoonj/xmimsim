@@ -420,7 +420,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #ifdef MAC_INTEGRATION
 	gtk_osxapplication_attention_request(g_object_new(GTK_TYPE_OSX_APPLICATION, NULL), CRITICAL_REQUEST);
 #endif
-	//free(cd);
+	g_free(cd->outputfile);
+	g_free(cd);
 
 	return;
 }
@@ -645,8 +646,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 #endif
 	gtk_widget_set_sensitive(stopButton,TRUE);
 
-	cd = (struct child_data *) malloc(sizeof(struct child_data));
-	cd->outputfile = xmimsim_struct->xi->general->outputfile;
+	cd = (struct child_data *) g_malloc(sizeof(struct child_data));
+	cd->outputfile = g_strdup(xmimsim_struct->xi->general->outputfile);
 	cd->argv = argv;
 	cd->window = window;
 
