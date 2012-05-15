@@ -4754,6 +4754,14 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
 																
+	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
+	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter1);
+	}
+	else
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter2);
+
+	  
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		//get filetype
