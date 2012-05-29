@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gdk/gdkkeysyms.h>
 #include <locale.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <unistd.h>
 
 #ifdef G_OS_UNIX
 #include <signal.h>
