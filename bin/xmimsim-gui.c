@@ -1219,8 +1219,10 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			//watch out for reference layer... for now... leave it to the user
 			//update composition
 			xmi_free_layer(composition->layers+index);
-			for (i = index ;  i < nindices ; i++)
-				composition->layers[i] = composition->layers[i+1];
+			if (nindices > 1) {
+				for (i = index ;  i < nindices-1 ; i++)
+					composition->layers[i] = composition->layers[i+1];
+			}
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
@@ -3151,10 +3153,17 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case DISCRETE_ENERGY_DELETE:
 			strcpy(last->message,"deletion of discrete energy");
 			last->kind = kind;
-			for (i = current_index ; i < current_nindices ; i++) {
-				last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
-			}	
-			last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*last->xi->excitation->n_discrete--);
+			if (current_nindices > 1) {
+				for (i = current_index ; i < current_nindices-1 ; i++) {
+					last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
+				}
+				last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*--last->xi->excitation->n_discrete);
+			}
+			else {
+				free(last->xi->excitation->discrete);
+				last->xi->excitation->discrete = NULL;
+				last->xi->excitation->n_discrete = 0;
+			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
 			strcpy(last->message,"addition of continuous energy");
@@ -3171,10 +3180,17 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
 			last->kind = kind;
-			for (i = current_index ; i < current_nindices ; i++) {
-				last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
-			}	
-			last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*last->xi->excitation->n_continuous--);
+			if (current_nindices > 1) {
+				for (i = current_index ; i < current_nindices-1 ; i++) {
+					last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
+				}
+				last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*--last->xi->excitation->n_continuous);
+			}
+			else {
+				free(last->xi->excitation->continuous);
+				last->xi->excitation->continuous = NULL;
+				last->xi->excitation->n_continuous = 0;
+			}
 			break;
 		case EXC_COMPOSITION_ORDER:
 			strcpy(last->message,"change of excitation absorber ordering");
