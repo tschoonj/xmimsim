@@ -111,6 +111,20 @@ fi
 
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes)])
 
+JSONGLIB_FOUND=no
+LIBCURL_FOUND=no
+if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
+	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8, 
+	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
+	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
+	PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2, 
+	AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
+	[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
+fi
+
+AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL_FOUND" = xyes])
+
+
 GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
 	#check for quartz backend

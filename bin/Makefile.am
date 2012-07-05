@@ -28,6 +28,10 @@ bin_PROGRAMS = xmimsim \
 	xmso2htm \
 	xmso2xmsi
 
+if ENABLE_UPDATER
+bin_PROGRAMS +=	xmimsim-test-updater
+endif
+
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -52,9 +56,15 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
 xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h
+if ENABLE_UPDATER
+xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
+endif
+
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
--DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" 
-xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@ @GTK_MAC_LIBS@
+-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
+@JsonGlib_CFLAGS@ \
+@libcurl_CFLAGS@
+xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@ @GTK_MAC_LIBS@ @JsonGlib_LIBS@ @libcurl_LIBS@
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
@@ -120,7 +130,11 @@ xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
-
+if ENABLE_UPDATER
+xmimsim_test_updater_SOURCES = xmimsim-test-updater.c xmimsim-gui-updater.h xmimsim-gui-updater.c
+xmimsim_test_updater_CFLAGS= @glib2_CFLAGS@ @JsonGlib_CFLAGS@ @libcurl_CFLAGS@ @GTK_MAC_CFLAGS@
+xmimsim_test_updater_LDADD = @glib2_LIBS@ @JsonGlib_LIBS@ @libcurl_LIBS@
+endif
 
 
 
