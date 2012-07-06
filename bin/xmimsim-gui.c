@@ -2478,18 +2478,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	adjust_save_buttons();
 }
 
-static void file_menu_click(GtkWidget *widget, gpointer data) {
-
-#if DEBUG == 1
-	g_print("%s\n",(char *) data);
-#endif
-
-	if (strcmp((char *)data, "quit") == 0)
-		gtk_main_quit();
-
-
-}
-
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 
 	//should always work out

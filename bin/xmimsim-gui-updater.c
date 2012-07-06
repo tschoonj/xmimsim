@@ -1,10 +1,32 @@
+/*
+Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <config.h>
 #include "xmimsim-gui-updater.h"
+#include "xmimsim-gui-layer.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <glib/gprintf.h>
+#include <math.h>
+#ifdef MAC_INTEGRATION
+	#import <Foundation/Foundation.h>
+#endif
 
 /*
  *
@@ -29,6 +51,21 @@ struct MemoryStruct {
 	size_t size;
 };
 
+struct DownloadVars {
+	gboolean started;
+	GtkWidget *progressbar;
+	GtkWidget *cancelButton;
+	GtkWidget *expander;
+	GtkWidget *update_dialog;
+	GtkWidget *button;
+	gulong downloadG;
+	gulong stopG;
+	gulong exitG;
+	CURL *curl;
+	FILE *fp;
+	gchar *download_location;
+};
+
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
@@ -50,6 +87,75 @@ static size_t WriteData(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 
 }
 
+static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
+	dv->started=FALSE;
+
+	return;
+}
+
+static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
+	fprintf(stdout,"exit clicked\n");
+
+	return;
+}
+static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
+	FILE *fp;
+	CURLcode res;
+	char curlerrors[CURL_ERROR_SIZE];
+
+	fp = fopen(dv->download_location, "wb");
+	dv->fp = fp;
+	if (fp == NULL) {
+		fprintf(stderr,"download_updates: Could not open %s for writing\n",dv->download_location);
+		//set buttons ok
+		
+
+		return;
+	}
+
+	curl_easy_setopt(dv->curl, CURLOPT_WRITEDATA, fp);
+	gtk_widget_set_sensitive(dv->cancelButton, FALSE);
+	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
+	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
+	g_signal_handler_disconnect(dv->button, dv->downloadG);
+	g_signal_handler_unblock(dv->button, dv->stopG);
+
+	dv->started=TRUE;
+	gtk_expander_set_expanded(GTK_EXPANDER(dv->expander), TRUE);
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0 %");
+	while(gtk_events_pending())
+	    gtk_main_iteration();
+	
+	res = curl_easy_perform(dv->curl);
+	if (res != 0) {
+		//download aborted
+		fclose(fp);
+		unlink(dv->download_location);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download aborted");
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		curl_easy_cleanup(dv->curl);
+		gtk_widget_set_sensitive(dv->cancelButton, TRUE);
+		gtk_widget_set_sensitive(dv->button, FALSE);
+
+
+	}
+	else {
+		dv->started=FALSE;
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		curl_easy_cleanup(dv->curl);
+		gtk_widget_set_sensitive(dv->cancelButton, TRUE);
+		g_signal_handler_disconnect(dv->button, dv->stopG);
+		g_signal_handler_unblock(dv->button, dv->exitG);
+		gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
+	}
+	return;
+} 
+
+
+
 struct UrlStruct {
 	char *filename;
 	char *url;
@@ -66,7 +172,6 @@ static void check_download_url(JsonArray *array, guint index, JsonNode *node, st
 	if (strcmp(filename, us->filename) == 0) {
 		us->url = strdup(html_url_string);
 	}
-	fprintf(stdout,"html_url: %s\n",html_url_string);
 
 	return;
 }
@@ -79,25 +184,43 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 	
 	const gchar *ref_string = json_object_get_string_member(object, "ref");
 
-	//fprintf(stdout,"ref: %s\n",ref_string);
 	//discard old tag...
 	if (strncmp(ref_string,"refs/tags/XMI-MSIM-",strlen("refs/tags/XMI-MSIM-")) != 0)
 		return;
 
 	char *tag_version_str = strrchr(ref_string,'-')+1;
 	gdouble tag_version = g_ascii_strtod(tag_version_str,NULL);
-	fprintf(stdout,"tag_version: %lf\n", tag_version);
 	if (tag_version > g_ascii_strtod(*max_version,NULL)) {
 		free(*max_version);
 		*max_version = strdup(tag_version_str);
-		fprintf(stdout,"New version found: %lf\n",tag_version);
 	}
 		
 	return;
 }
 
-static int DownloadProgress(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow) {
-	fprintf(stdout,"Progress: %lf/%lf\n",dlnow,dltotal);
+static int DownloadProgress(struct DownloadVars *dv, double dltotal, double dlnow, double ultotal, double ulnow) {
+	if (dv->started == FALSE)
+		return -1;
+	
+
+	if (dltotal < 1000)
+		return 0;
+
+	double ratio = dlnow/dltotal;
+	gchar buffer[10];
+	if (floor(ratio*100.0)/100.0 > floor(gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(dv->progressbar))*100.0)/100.0) {
+		//update progress bar
+		g_sprintf(buffer,"%i %%",(int) floor(ratio*100.0));
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),buffer);
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(dv->progressbar),ratio);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+	}
+
+
+
+
+
 	return 0;
 }
 
@@ -132,9 +255,6 @@ int check_for_updates(char **max_version_rv) {
 		fprintf(stderr,"check_for_updates: %s\n",curlerrors);
 		return XMIMSIM_UPDATES_ERROR;
 	}
-/*	else {
-		fprintf(stdout,"%s\n",chunk.memory);
-	}*/
 	curl_easy_cleanup(curl);
 
 
@@ -185,8 +305,10 @@ int download_updates(GtkWidget *window, char *max_version) {
 	CURL *curl;
 	CURLcode res;
 	struct MemoryStruct chunk;
-	FILE *fp;
 
+#ifdef MAC_INTEGRATION
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+#endif
 	chunk.memory = malloc(1);
 	chunk.size = 0;
 
@@ -198,66 +320,43 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 	//construct filename -> platform dependent!!!
 	gchar *filename;
-
+	const gchar *downloadfolder;
 
 /*
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
 	filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
+	NSString *documentsDirectory = [paths objectAtIndex:0];
+	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
 	
 #elif defined(G_OS_WIN32)*/
 	//Win 32
 	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
+	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
 /*	
 #else
 	//Linux??
-	//filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
+	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
+	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
 	
 //#endif
 */
-	fprintf(stdout,"filename: %s\n",filename);
 	//check if file exists!	
 	
 
 
 	res = curl_easy_setopt(curl, CURLOPT_URL,XMIMSIM_GITHUB_DOWNLOADS_LOCATION);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 	res = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 	res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 	res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 	res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 	res = curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
 
 	res = curl_easy_perform(curl);
 	if (res != 0) {
 		fprintf(stderr,"download_updates: %s\n",curlerrors);
 		return 0;
-	}
-	else {
-		fprintf(stdout,"x%sx\n",chunk.memory);
 	}
 	curl_easy_cleanup(curl);
 
@@ -284,38 +383,75 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 	//spawn dialog
 	//write your own code for this
+	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
+		window != NULL ? GTK_DIALOG_MODAL : 0, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,NULL);
 
+	struct DownloadVars dv;
 
-	//construct download location
-	gchar *download_location = g_strdup_printf("%s/%s",g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD),filename);
-	fprintf(stdout,"download_location: %s\n",download_location);
+	GtkWidget *update_content = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
+	GtkWidget *label_and_button_hbox = gtk_hbox_new(FALSE,5);
+	gchar *label_text = g_strdup_printf("A new version of XMI-MSIM (%s) is available.\nYou are currently running version %s.",max_version, PACKAGE_VERSION);
+	GtkWidget *label = gtk_label_new(label_text);
+	GtkWidget *button = gtk_button_new_with_label("Download");
+	gtk_box_pack_start(GTK_BOX(label_and_button_hbox), label, TRUE, TRUE, 1);
+	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(label_and_button_hbox), 8);
+	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, TRUE, FALSE, 2);
 
-	fp = fopen(download_location, "wb");
-	if (fp == NULL) {
-		fprintf(stderr,"download_updates: Could not open %s for writing\n",download_location);
-		return 0;
-	}
+	GtkWidget *expander = gtk_expander_new("Download progress");
+	gtk_container_set_border_width(GTK_CONTAINER(expander), 8);
+	gtk_expander_set_expanded(GTK_EXPANDER(expander),FALSE);
+	gtk_expander_set_spacing(GTK_EXPANDER(expander),3);
+	GtkWidget *progressbar = gtk_progress_bar_new();
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar), "Download not started");
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar), 0.0);
+
+	gtk_container_add(GTK_CONTAINER(expander), progressbar);
+
+	gtk_box_pack_start(GTK_BOX(update_content), expander, TRUE, FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(update_content), 8);
+
+	gtk_widget_show_all(update_content);
+
+	dv.started = FALSE;
+	dv.progressbar = progressbar;
+	dv.button = button;
+	dv.cancelButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(update_dialog),GTK_RESPONSE_REJECT);
+	dv.expander = expander;
+	dv.update_dialog = update_dialog;
+	
+	dv.downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), &dv);
+	dv.stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), &dv);
+	dv.exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), &dv);
+	g_signal_handler_block(button, dv.stopG);
+	g_signal_handler_block(button, dv.exitG);
+	
 	curl = curl_easy_init();
 	if (!curl) {
 		fprintf(stderr,"Could not initialize cURL\n");
 		return 0;
 	} 
+	dv.curl = curl;
 	curl_easy_setopt(curl, CURLOPT_URL,us->url);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, DownloadProgress);
+	curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &dv);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
+	//construct download location
+	gchar *download_location = g_strdup_printf("%s/%s",downloadfolder,filename);
+	dv.download_location = download_location;
 
-	res = curl_easy_perform(curl);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
-	fclose(fp);
-	curl_easy_cleanup(curl);
+
+	gint result = gtk_dialog_run(GTK_DIALOG(update_dialog));
+
+
+#ifdef MAC_INTEGRATION
+	[pool drain];
+#endif
 
 	return 1;
 }

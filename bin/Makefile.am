@@ -133,7 +133,19 @@ xmso2htm_CFLAGS = @glib2_CFLAGS@
 if ENABLE_UPDATER
 xmimsim_test_updater_SOURCES = xmimsim-test-updater.c xmimsim-gui-updater.h xmimsim-gui-updater.c
 xmimsim_test_updater_CFLAGS= @glib2_CFLAGS@ @JsonGlib_CFLAGS@ @libcurl_CFLAGS@ @GTK_MAC_CFLAGS@
-xmimsim_test_updater_LDADD = @glib2_LIBS@ @JsonGlib_LIBS@ @libcurl_LIBS@
+xmimsim_test_updater_LDADD = @glib2_LIBS@ @JsonGlib_LIBS@ @libcurl_LIBS@ @GTK_MAC_LIBS@
+if ENABLE_MAC_APP
+xmimsim_test_updater_CFLAGS += -xobjective-c
+#next line is necessary to avoid the -xobjective-c flag to be passed to the linker
+xmimsim_test_updater_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+else
+xmimsim_test_updater_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_LDFLAGS) $(LDFLAGS) $(xmimsim_test_updater_CFLAGS) \
+	$(xmimsim_test_updater_LDFLAGS) -o $@
+endif
 endif
 
 
