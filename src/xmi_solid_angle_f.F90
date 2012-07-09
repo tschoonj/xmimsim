@@ -210,7 +210,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_anglePtr = C_LOC(solid_angle)
 
         IF (options%verbose == 1_C_INT) THEN
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 5
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Solid angle calculation finished'&
                 //C_NULL_CHAR,-1_C_INT)
 #else

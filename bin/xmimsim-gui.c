@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gdk/gdkkeysyms.h>
 #include <locale.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <unistd.h>
 
 #ifdef G_OS_UNIX
 #include <signal.h>
@@ -2812,8 +2813,16 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	gchar *title;
 	struct osx_load_data *old = (struct osx_load_data *) data;
 	gchar *filename = old->path;
+	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(old->window));
 
 	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",filename);
+
+	//bring window to front if necessary
+	if ([NSApp isHidden] == YES)
+		[NSApp unhide: nil];
+	else if ([qwindow isMiniaturized])
+		[qwindow deminiaturize:nil];
+	
 
 
 	if (process_pre_file_operation(old->window) == FALSE)
@@ -4750,6 +4759,14 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
 																
+	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
+	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter1);
+	}
+	else
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter2);
+
+	  
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		//get filetype
