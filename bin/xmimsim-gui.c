@@ -2852,6 +2852,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			title = g_path_get_basename(filename);
 			update_xmimsim_title_xmsi(title,old->window,filename);
 			g_free(title);
+			adjust_save_buttons();
 			return FALSE;			
 		}
 		else {
@@ -2931,8 +2932,6 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
 		last_saved->filename = strdup(filename);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
 	}
 	//clear undo/redo messages
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
@@ -4682,6 +4681,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	reset_undo_buffer(xi,UNLIKELY_FILENAME);
 
 	update_xmimsim_title_xmsi("New file", data, NULL);
+	adjust_save_buttons();
 
 	return;
 }
@@ -4828,6 +4828,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	}
 
 	gtk_widget_destroy (dialog);
+	adjust_save_buttons();
 }
 
 int check_changeables(void) {
