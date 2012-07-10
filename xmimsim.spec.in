@@ -34,7 +34,7 @@ XMI-MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 #export FCFLAGS=$RPM_OPT_FLAGS
 #%endif
 
-%configure --enable-gui --disable-mpi
+%configure --enable-gui --disable-mpi --disable-updater
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 

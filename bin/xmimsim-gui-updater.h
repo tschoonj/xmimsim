@@ -28,6 +28,8 @@ enum {
 	XMIMSIM_UPDATES_NONE
 };
 
+
+
 int check_for_updates(char **max_version);
 
 int download_updates(GtkWidget *window, char *max_version);

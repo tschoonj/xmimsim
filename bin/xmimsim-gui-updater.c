@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
-
+#define GTK_RESPONSE_QUIT 7
 
 
 
@@ -54,10 +54,10 @@ struct MemoryStruct {
 struct DownloadVars {
 	gboolean started;
 	GtkWidget *progressbar;
-	GtkWidget *cancelButton;
 	GtkWidget *expander;
 	GtkWidget *update_dialog;
 	GtkWidget *button;
+	GtkWidget *label;
 	gulong downloadG;
 	gulong stopG;
 	gulong exitG;
@@ -94,6 +94,7 @@ static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 }
 
 static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
+	gtk_dialog_response(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_QUIT);
 	fprintf(stdout,"exit clicked\n");
 
 	return;
@@ -114,7 +115,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	}
 
 	curl_easy_setopt(dv->curl, CURLOPT_WRITEDATA, fp);
-	gtk_widget_set_sensitive(dv->cancelButton, FALSE);
+	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
 	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
 	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
@@ -135,8 +136,9 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		curl_easy_cleanup(dv->curl);
-		gtk_widget_set_sensitive(dv->cancelButton, TRUE);
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 		gtk_widget_set_sensitive(dv->button, FALSE);
+		gtk_label_set_text(GTK_LABEL(dv->label),"Download aborted.\nTry again at a later time.");
 
 
 	}
@@ -146,10 +148,12 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		curl_easy_cleanup(dv->curl);
-		gtk_widget_set_sensitive(dv->cancelButton, TRUE);
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 		g_signal_handler_disconnect(dv->button, dv->stopG);
 		g_signal_handler_unblock(dv->button, dv->exitG);
+		gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
 		gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
+		gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 	}
 	return;
 } 
@@ -238,6 +242,9 @@ int check_for_updates(char **max_version_rv) {
 	chunk.memory = malloc(1);
 	chunk.size = 0;
 
+	fprintf(stdout,"checking for updates...\n");
+
+
 	curl = curl_easy_init();
 	if (!curl) {
 		fprintf(stderr,"Could not initialize cURL\n");
@@ -250,6 +257,7 @@ int check_for_updates(char **max_version_rv) {
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
 	res = curl_easy_perform(curl);
 	if (res != 0) {
 		fprintf(stderr,"check_for_updates: %s\n",curlerrors);
@@ -286,6 +294,7 @@ int check_for_updates(char **max_version_rv) {
 	*max_version_rv = strdup(g_strstrip(max_version));	
 
 	g_object_unref(parser);
+	fprintf(stdout,"done checking for updates\n");
 
 	return rv;
 }
@@ -322,26 +331,27 @@ int download_updates(GtkWidget *window, char *max_version) {
 	gchar *filename;
 	const gchar *downloadfolder;
 
-/*
+
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
 	filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
+	//filename = g_strdup_printf("XMI-MSIM.dmg");
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
 	NSString *documentsDirectory = [paths objectAtIndex:0];
 	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
 	
-#elif defined(G_OS_WIN32)*/
+#elif defined(G_OS_WIN32)
 	//Win 32
 	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-/*	
+	
 #else
 	//Linux??
 	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
 	
-//#endif
-*/
+#endif
+
 	//check if file exists!	
 	
 
@@ -352,6 +362,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 	res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	res = curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
+	res = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
 
 	res = curl_easy_perform(curl);
 	if (res != 0) {
@@ -388,6 +399,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 	struct DownloadVars dv;
 
+	gtk_window_set_resizable(GTK_WINDOW(update_dialog), FALSE);
 	GtkWidget *update_content = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
 	GtkWidget *label_and_button_hbox = gtk_hbox_new(FALSE,5);
 	gchar *label_text = g_strdup_printf("A new version of XMI-MSIM (%s) is available.\nYou are currently running version %s.",max_version, PACKAGE_VERSION);
@@ -397,6 +409,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
 	gtk_container_set_border_width(GTK_CONTAINER(label_and_button_hbox), 8);
 	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, TRUE, FALSE, 2);
+	dv.label = label;
 
 	GtkWidget *expander = gtk_expander_new("Download progress");
 	gtk_container_set_border_width(GTK_CONTAINER(expander), 8);
@@ -416,7 +429,6 @@ int download_updates(GtkWidget *window, char *max_version) {
 	dv.started = FALSE;
 	dv.progressbar = progressbar;
 	dv.button = button;
-	dv.cancelButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(update_dialog),GTK_RESPONSE_REJECT);
 	dv.expander = expander;
 	dv.update_dialog = update_dialog;
 	
@@ -441,19 +453,29 @@ int download_updates(GtkWidget *window, char *max_version) {
 	curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, DownloadProgress);
 	curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &dv);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
 	//construct download location
 	gchar *download_location = g_strdup_printf("%s/%s",downloadfolder,filename);
 	dv.download_location = download_location;
 
 
 	gint result = gtk_dialog_run(GTK_DIALOG(update_dialog));
+	int rv;
 
-
+	if (result == GTK_RESPONSE_QUIT) {
+		//quit XMI-MSIM
+		rv = 1;	
+	}
+	else
+		rv = 0;
+	
+	gtk_widget_destroy(update_dialog);
 #ifdef MAC_INTEGRATION
 	[pool drain];
 #endif
+	
 
-	return 1;
+	return rv;
 }
 
 

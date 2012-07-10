@@ -29,8 +29,8 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout,"%s\n",version);
 */
 
-	download_updates(NULL,"1.0");
+	return download_updates(NULL,"1.0");
 
-	return 0;
+	
 
 }
