@@ -119,7 +119,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
 	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
-	g_signal_handler_unblock(dv->button, dv->stopG);
+	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
 	dv->started=TRUE;
 	gtk_expander_set_expanded(GTK_EXPANDER(dv->expander), TRUE);
@@ -148,12 +148,12 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		curl_easy_cleanup(dv->curl);
-		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 		g_signal_handler_disconnect(dv->button, dv->stopG);
-		g_signal_handler_unblock(dv->button, dv->exitG);
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 		gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
 		gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
 		gtk_label_set_text(GTK_LABEL(dv->label), buffer);
+		dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
 	}
 	return;
 } 
@@ -202,7 +202,8 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 	return;
 }
 
-static int DownloadProgress(struct DownloadVars *dv, double dltotal, double dlnow, double ultotal, double ulnow) {
+static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double ultotal, double ulnow) {
+	struct DownloadVars *dv = (struct DownloadVars *) dvvoid;
 	if (dv->started == FALSE)
 		return -1;
 	
@@ -433,10 +434,6 @@ int download_updates(GtkWidget *window, char *max_version) {
 	dv.update_dialog = update_dialog;
 	
 	dv.downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), &dv);
-	dv.stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), &dv);
-	dv.exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), &dv);
-	g_signal_handler_block(button, dv.stopG);
-	g_signal_handler_block(button, dv.exitG);
 	
 	curl = curl_easy_init();
 	if (!curl) {
@@ -455,7 +452,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
 	//construct download location
-	gchar *download_location = g_strdup_printf("%s/%s",downloadfolder,filename);
+	gchar *download_location = g_strdup_printf("%s%s%s",downloadfolder,G_DIR_SEPARATOR_S,filename);
 	dv.download_location = download_location;
 
 
