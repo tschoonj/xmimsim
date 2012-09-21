@@ -57,8 +57,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
-        !REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: channelsF
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET, SAVE :: channelsF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: channelsF
+        !REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET, SAVE :: channelsF
         INTEGER :: max_threads, thread_num
 
         TYPE (fgsl_rng_type) :: rng_type
@@ -77,11 +77,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (C_INT) :: channel,line
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels 
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
-        !INTEGER (C_LONG), DIMENSION(:,:,:), POINTER :: brute_historyF
-        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
+        REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: brute_historyF
+        !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
-        REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
-        !REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
+        !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
+        REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
@@ -665,14 +665,13 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         
         !now we can access the history in C using the same indices...
-        IF (ALLOCATED(brute_historyF)) DEALLOCATE(brute_historyF)
         ALLOCATE(brute_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
         brute_historyF = RESHAPE(brute_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
 
         !multiply with live time
         brute_historyF = brute_historyF*inputF%detector%live_time*n_mpi_hosts
 
-        brute_historyPtr = C_LOC(brute_historyF)
+        brute_historyPtr = C_LOC(brute_historyF(1,1,1))
 
 
 #if DEBUG == 1
@@ -680,27 +679,25 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #endif
        
         IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
-                IF (ALLOCATED(var_red_historyF)) DEALLOCATE(var_red_historyF)
                 ALLOCATE(var_red_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
                 var_red_historyF = RESHAPE(var_red_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
                 !multiply with live time
                 var_red_historyF =&
                 var_red_historyF*inputF%detector%live_time*n_mpi_hosts
 
-                var_red_historyPtr = C_LOC(var_red_historyF)
+                var_red_historyPtr = C_LOC(var_red_historyF(1,1,1))
         ELSE
                 var_red_historyPtr = C_NULL_PTR
         ENDIF
 
 
 
-        IF (ALLOCATED(channelsF)) DEALLOCATE(channelsF)
         ALLOCATE(channelsF(nchannels,0:inputF%general%n_interactions_trajectory))
         channelsF = RESHAPE(channels, [nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
         !multiply with live time
         channelsF = channelsF*inputF%detector%live_time
 
-        channelsPtr = C_LOC(channelsF)
+        channelsPtr = C_LOC(channelsF(1,0))
 
         rv = 1
 
@@ -3714,13 +3711,17 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_LONG), PARAMETER :: n_input_energies = 990
         INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 999
         INTEGER (C_LONG), PARAMETER :: n_photons = 1000000
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: &
         fluo_escape_ratios
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: &
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: &
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: &
         compton_escape_ratios
-        INTEGER (C_INT), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
+        INTEGER (C_INT), POINTER, DIMENSION(:) :: &
+        !INTEGER (C_INT), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         Z
         REAL (C_DOUBLE) :: theta_elecv
         REAL (C_DOUBLE) :: photons_simulated, photons_no_interaction,&
@@ -3739,11 +3740,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
 
-        IF (ALLOCATED(input_energies)) DEALLOCATE(input_energies)
-        IF (ALLOCATED(compton_escape_output_energies)) &
-        DEALLOCATE(compton_escape_output_energies)
-        IF (ALLOCATED(fluo_escape_ratios)) DEALLOCATE(fluo_escape_ratios)
-        IF (ALLOCATED(compton_escape_ratios)) DEALLOCATE(compton_escape_ratios)
         ALLOCATE(input_energies(n_input_energies))
         ALLOCATE(compton_escape_output_energies(n_compton_output_energies))
         DO i=0,n_input_energies-1
@@ -3982,12 +3978,12 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         n_input_energies
         escape_ratios%n_compton_output_energies =&
         n_compton_output_energies
-        escape_ratios%Z=C_LOC(Z)
-        escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios)
-        escape_ratios%fluo_escape_input_energies=C_LOC(input_energies)
-        escape_ratios%compton_escape_ratios=C_LOC(compton_escape_ratios)
-        escape_ratios%compton_escape_input_energies=C_LOC(input_energies)
-        escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies)
+        escape_ratios%Z=C_LOC(Z(1))
+        escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios(1,1,1))
+        escape_ratios%fluo_escape_input_energies=C_LOC(input_energies(1))
+        escape_ratios%compton_escape_ratios=C_LOC(compton_escape_ratios(1,1))
+        escape_ratios%compton_escape_input_energies=C_LOC(input_energies(1))
+        escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies(1))
         escape_ratios%xmi_input_string = input_string
 
         escape_ratiosPtr = C_LOC(escape_ratios)

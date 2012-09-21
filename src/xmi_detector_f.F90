@@ -190,7 +190,8 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
         channels_temp
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET, SAVE ::&
+        !REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET, SAVE ::&
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) ::&
         channels_conv
         INTEGER (C_LONG) :: nlim
         REAL (C_DOUBLE) :: a,b
@@ -234,7 +235,6 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
         !allocate memory for results
         ALLOCATE(channels_temp(nchannels))
-        IF (ALLOCATED(channels_conv)) DEALLOCATE(channels_conv)
         ALLOCATE(channels_conv(nchannels))
         !
         nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
@@ -363,7 +363,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
         DEALLOCATE(channels_temp)
-        channels_convPtr = C_LOC(channels_conv)
+        channels_convPtr = C_LOC(channels_conv(1))
 
         RETURN
 ENDSUBROUTINE xmi_detector_convolute

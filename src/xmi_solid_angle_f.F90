@@ -60,10 +60,12 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
         INTEGER :: max_threads, thread_num
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
@@ -120,8 +122,6 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 !                (inputF%detector%collimator_radius+inputF%detector%detector_radius))
 !        ENDIF
 
-        IF (ALLOCATED(grid_dims_r_vals)) DEALLOCATE(grid_dims_r_vals)
-        IF (ALLOCATED(grid_dims_theta_vals)) DEALLOCATE(grid_dims_theta_vals)
         ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
         ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
 
@@ -145,7 +145,6 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
-        IF (ALLOCATED(solid_angles)) DEALLOCATE(solid_angles)
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
@@ -195,11 +194,11 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         
         !put everything in the structure
         ALLOCATE(solid_angle)
-        solid_angle%solid_angles = C_LOC(solid_angles)
+        solid_angle%solid_angles = C_LOC(solid_angles(1,1))
         solid_angle%grid_dims_r_n = grid_dims_r_n
         solid_angle%grid_dims_theta_n = grid_dims_theta_n
-        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals)
-        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals)
+        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals(1))
+        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals(1))
         solid_angle%xmi_input_string = input_string 
 
 #if DEBUG == 1

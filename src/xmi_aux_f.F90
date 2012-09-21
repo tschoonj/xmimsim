@@ -1684,4 +1684,16 @@ FUNCTION xmi_check_detector_intersection&
         RETURN
 ENDFUNCTION xmi_check_detector_intersection
 
+!wrapper around deallocate
+SUBROUTINE xmi_deallocate(ptr) BIND(C,NAME='xmi_deallocate')
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE :: ptr
+        REAL(C_DOUBLE), DIMENSION(:), POINTER :: array
+
+        CALL C_F_POINTER(ptr, array, [1])
+
+        DEALLOCATE(array)
+
+ENDSUBROUTINE xmi_deallocate
+
 ENDMODULE 

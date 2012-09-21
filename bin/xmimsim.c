@@ -513,7 +513,8 @@ XMI_MAIN
 			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
 #endif
 			xmi_detector_convolute(inputFPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
-			channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
+			//channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
+			channels_conv[i] = channels_conv_temp;
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
 			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*nchannels+222]);
@@ -679,6 +680,14 @@ XMI_MAIN
 			return 1;
 		}
 
+		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+			xmi_deallocate(channels_conv[i] );
+		}
+		free(channels_conv);
+		xmi_deallocate(channelsdef);
+		xmi_deallocate(brute_history);
+		if (options.use_variance_reduction)
+			xmi_deallocate(var_red_history);
 
 #ifdef HAVE_OPENMPI
 	}	
