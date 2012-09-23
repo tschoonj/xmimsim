@@ -1690,6 +1690,8 @@ SUBROUTINE xmi_deallocate(ptr) BIND(C,NAME='xmi_deallocate')
         TYPE (C_PTR), VALUE :: ptr
         REAL(C_DOUBLE), DIMENSION(:), POINTER :: array
 
+        IF (.NOT. C_ASSOCIATED(ptr)) RETURN
+
         CALL C_F_POINTER(ptr, array, [1])
 
         DEALLOCATE(array)

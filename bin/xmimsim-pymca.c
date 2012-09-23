@@ -77,6 +77,7 @@ XMI_MAIN
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
+	static int use_matrix_override= 0;
 	int rayleigh_channel;
 	int matched;
 	double max_scale;
@@ -98,6 +99,8 @@ XMI_MAIN
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
+		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a light matrix instead",NULL},
+		{"disnable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a light matrix instead (default)",NULL},
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
@@ -221,7 +224,45 @@ XMI_MAIN
 #endif
 
 	//calculate initial 
-	xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+	if (use_matrix_override) {
+		//override matrix if necessary
+		//look if any of the elements in the matrix are supposed to quantified
+		struct xmi_layer * matrix_temp;
+		xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix_temp);
+		int found=0;
+		for (i=0 ; i < xp->n_z_arr_pymca_conc ; i++) {
+			for (j=0 ; j < matrix_temp->n_elements ; j++) {
+				if (xp->z_arr_pymca_conc[i] == matrix_temp->Z[j]) {
+					found = 1;
+					break;
+				}
+			
+			}
+			if (found)
+				break;
+		}
+		if (found) {
+			matrix = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+			matrix->density = matrix_temp->density;
+			matrix->thickness = matrix_temp->thickness;
+			matrix->n_elements = 1;
+			matrix->Z = (int *) malloc(sizeof(int));
+			matrix->Z[0] = 6;
+			matrix->weight = (double *) malloc(sizeof(double));
+			matrix->weight[0] = 1.0;
+			xmi_free_layer(matrix_temp);	
+		}	
+		else {
+			xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+		}
+	}
+	else {
+		xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+	}
+
+
+
+
 	weights_arr_quant = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
 
 	if (xp->n_z_arr_pymca_conc == 0) {
@@ -348,6 +389,9 @@ XMI_MAIN
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
+		xmi_deallocate(channels);
+		xmi_deallocate(brute_history);
+		xmi_deallocate(var_red_history);
 
 		if (i++ > XMI_PYMCA_MAX_ITERATIONS) {
 			fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
