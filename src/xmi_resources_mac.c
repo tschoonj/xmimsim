@@ -55,6 +55,9 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 		case XMI_RESOURCES_MAC_LOGO:
 			temp = g_strdup_printf("%s/Logo_xmi_msim.png",resource_path);	
 			break;
+		case XMI_RESOURCES_MAC_OPENCL_DIR:
+			temp = g_strdup_printf("%s",resource_path);	
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_resources_mac_query\n");
 			return 0;

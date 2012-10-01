@@ -14,7 +14,11 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimincludedir = ${includedir}/xmimsim
+xmimsimdir = $(datadir)/xmimsim
+
 xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
+
+dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
@@ -38,16 +42,17 @@ endif
 
 
 libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS@ \
-	@glib2_CFLAGS@ @xraylib_CFLAGS@ @GTK_MAC_CFLAGS@ \
+	@glib2_CFLAGS@ @xraylib_CFLAGS@ @GTK_MAC_CFLAGS@ @CPPFLAGS_CL@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 	-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
 	-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
 	-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\" \
 	-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
-	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\"
+	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
+	-DXMI_OPENCL_DIR=\"$(datadir)/xmimsim\"
 libxmimsim_la_FCFLAGS =@H5FC_INCLUDE@ @OPENMP_FCFLAGS@ @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
-libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_LIBS@ @H5FC_STATIC@ @fgsl_LIBS@ @glib2_LIBS@ 
+libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_LIBS@ @H5FC_STATIC@ @fgsl_LIBS@ @glib2_LIBS@ @LIBS_CL@
 
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 

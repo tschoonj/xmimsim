@@ -21,9 +21,10 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: fgsl
 
-INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000 
-!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1, grid_dims_theta_n = 1 
-INTEGER (C_LONG), PARAMETER :: hits_per_single = 5000
+INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1024, grid_dims_theta_n = 1024 
+!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 5, grid_dims_theta_n = 5 
+INTEGER (C_LONG) :: hits_per_single = 5000
+BIND(C,NAME='hits_per_single') :: hits_per_single
 
 
 
@@ -40,9 +41,88 @@ ENDTYPE
 
 CONTAINS
 
-SUBROUTINE xmi_solid_angle_calculation(inputFPtr,&
+SUBROUTINE xmi_solid_angle_inputs_f(inputFPtr, solid_anglePtr, &
+collimator_present, detector_radius, collimator_radius, &
+collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
+        IMPLICIT NONE
+
+        TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
+        TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
+        INTEGER (C_INT), INTENT(INOUT) :: collimator_present
+        REAL (C_FLOAT), INTENT(INOUT) :: detector_radius,&
+        collimator_radius, collimator_height
+
+
+        TYPE (xmi_solid_angleC), POINTER :: solid_angle
+        TYPE (xmi_input), POINTER :: inputF
+
+        REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
+        REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
+        grid_dims_theta_vals
+
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
+        INTEGER (C_INT) :: i,j
+
+
+
+        CALL C_F_POINTER(inputFPtr, inputF)
+
+        IF (inputF%detector%collimator_present .EQV. .TRUE.) THEN
+                collimator_present = 1_C_INT
+        ELSE
+                collimator_present = 0_C_INT
+        ENDIF
+
+        detector_radius = REAL(inputF%detector%detector_radius, C_FLOAT)
+        collimator_radius = REAL(inputF%detector%collimator_radius, C_FLOAT)
+        collimator_height = REAL(inputF%geometry%collimator_height, C_FLOAT)
+
+
+        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(1)%Z_coord_begin],&
+                                        inputF%geometry%p_detector_window),&
+                                        xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
+                                        inputF%composition%layers(inputF%composition%n_layers)&
+                                        %Z_coord_end],&
+                                        inputF%geometry%p_detector_window))*2.0_C_DOUBLE
+        grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
+
+        !calculate useful theta range
+        grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
+        grid_dims_theta(1)= 0.00001_C_DOUBLE
+
+        ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
+        ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
+
+        DO i=1,grid_dims_r_n
+                grid_dims_r_vals(i) = grid_dims_r(1) + &
+                (grid_dims_r(2)-grid_dims_r(1))*REAL(i-1,C_DOUBLE)&
+                /REAL(grid_dims_r_n-1,C_DOUBLE)
+        ENDDO
+        DO i=1,grid_dims_theta_n
+                grid_dims_theta_vals(i) = grid_dims_theta(1) + &
+                (grid_dims_theta(2)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
+                /REAL(grid_dims_theta_n-1,C_DOUBLE)
+        ENDDO
+
+        ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
+
+        solid_angles = 0.0_C_DOUBLE
+        !put everything in the structure
+        ALLOCATE(solid_angle)
+        solid_angle%solid_angles = C_LOC(solid_angles(1,1))
+        solid_angle%grid_dims_r_n = grid_dims_r_n
+        solid_angle%grid_dims_theta_n = grid_dims_theta_n
+        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals(1))
+        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals(1))
+
+        solid_anglePtr = C_LOC(solid_angle)
+ENDSUBROUTINE xmi_solid_angle_inputs_f
+
+SUBROUTINE xmi_solid_angle_calculation_f(inputFPtr,&
 solid_anglePtr,input_string,options)&
-BIND(C,NAME='xmi_solid_angle_calculation')
+BIND(C,NAME='xmi_solid_angle_calculation_f')
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
 #if DEBUG == 1
@@ -78,7 +158,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
 #endif
-
+        REAL (C_DOUBLE) :: temp
         !write message 
         !WRITE (6,'(A)') 'Precalculating solid angle grid'
         !WRITE (6,'(A)') 'This could take a long time...'
@@ -150,8 +230,15 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         solid_angles = 0.0_C_DOUBLE
         rng_type = fgsl_rng_mt19937
 
+        !WRITE (6,'(A)') 'before single solid angle calc'
+
         grid_done=0
         CALL omp_init_lock(omp_lock)
+
+        !temp= xmi_single_solid_angle_calculation(inputF,&
+        !        grid_dims_r_vals(200), grid_dims_theta_vals(200), rng)
+
+        !WRITE (6,'(A)') 'after single solid angle calc'
 
 !$omp parallel default(shared) private(j,rng, thread_num)
         thread_num = omp_get_thread_num()
@@ -220,7 +307,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
 
         RETURN
-ENDSUBROUTINE xmi_solid_angle_calculation
+ENDSUBROUTINE xmi_solid_angle_calculation_f
 
 
 FUNCTION xmi_single_solid_angle_calculation(inputF, r1, theta1, rng) &
@@ -390,13 +477,6 @@ RESULT(rv)
         rotation_matrix(:,3) = [0.0_C_DOUBLE,&
         -1.0_C_DOUBLE*COS(theta),-1.0_C_DOUBLE*SIN(theta)]
 
-#if DEBUG == 1
-        WRITE (6,'(A,F12.6)') 'r: ',r
-        WRITE (6,'(A,F12.6)') 'theta: ',theta
-        WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex 
-        WRITE (6,'(A,F12.6)') 'full_cone_solid_angle' , full_cone_solid_angle
-
-#endif
 
         detector_hits = 0_C_LONG
 
@@ -408,9 +488,29 @@ RESULT(rv)
         ENDIF
         
         photon_line%point = [0.0_C_DOUBLE, r1*COS(theta1), r1*SIN(theta1)]
+!#define DEBUG 1
+#if DEBUG == 1
+        WRITE (6,'(A,F12.6)') 'r: ',r
+        WRITE (6,'(A,F12.6)') 'theta: ',theta
+        WRITE (6,'(A,F12.6)') 'r1: ',r1
+        WRITE (6,'(A,F12.6)') 'theta1: ',theta1
+        WRITE (6,'(A,L4)') 'collimator_present: ',inputF%detector%collimator_present
+        WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex 
+        WRITE (6,'(A,F12.6)') 'full_cone_solid_angle ' , full_cone_solid_angle
+        WRITE (6,'(A,F12.6)') 'detector_radius ',inputF%detector%detector_radius
+        WRITE (6,'(A,F12.6)') 'collimator_radius ',inputF%detector%collimator_radius
+        WRITE (6,'(A,F12.6)') 'collimator_height ',inputF%geometry%collimator_height
+        WRITE (6,'(A,I6)') 'hits_per_single ', hits_per_single
+        WRITE (6,'(A,3F12.6)') 'photon_line%point ',photon_line%point
+        WRITE (6,'(A,3F12.6)') 'detector_plane%point ',detector_plane%point
+        WRITE (6,'(A,3F12.6)') 'detector_plane%normv ',detector_plane%normv
+#endif
+#undef DEBUG       
+
 
         DO i=1,hits_per_single
             theta_rng = ACOS(1.0_C_DOUBLE-fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
+            !theta_rng = ACOS(1.0_C_DOUBLE-0.5*(1.0_C_DOUBLE-cos_full_cone_apex))
 #if DEBUG == 1
             CALL ieee_get_flag(ieee_usual, flag_value)
             IF (ANY(flag_value)) THEN
@@ -421,6 +521,7 @@ RESULT(rv)
 #endif
             !theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
             phi_rng = fgsl_rng_uniform(rng)*2.0_C_DOUBLE*M_PI
+            !phi_rng = 0.5*2.0_C_DOUBLE*M_PI
 
 #if DEBUG == 1
                 WRITE (*,'(A,F12.4)') 'theta_rng:',theta_rng
@@ -471,18 +572,21 @@ RESULT(rv)
                 IF (norm(intersection_point) .LE. inputF%detector%detector_radius) &
                         detector_hits = detector_hits +1
         ENDDO
-
+!#define DEBUG 1
 #if DEBUG == 1
         WRITE (6,'(A, F12.4)') 'beta',beta
         WRITE (6,'(A, F12.4)') 'alpha1',alpha1
-        WRITE (6,'(A, F12.4)') 'full_cone_solid_angle',full_cone_solid_angle
         WRITE (6,'(A,I10)') 'detector_hits:',detector_hits
+        WRITE (6,'(A, 3F12.4)') 'intersection_point',intersection_point
 #endif
-
+#undef DEBUG
 
         rv = full_cone_solid_angle &
         *REAL(detector_hits,C_DOUBLE)/REAL(hits_per_single,C_DOUBLE)
 
+        
+
+        !CALL EXIT(0)
         RETURN
 ENDFUNCTION xmi_single_solid_angle_calculation
 
