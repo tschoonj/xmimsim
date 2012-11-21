@@ -77,7 +77,8 @@ XMI_MAIN
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
-	static int use_matrix_override= 0;
+	static int use_matrix_override= 1;
+	static int use_single_run= 0;
 	int rayleigh_channel;
 	int matched;
 	double max_scale;
@@ -99,11 +100,12 @@ XMI_MAIN
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
-		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a light matrix instead",NULL},
-		{"disnable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a light matrix instead (default)",NULL},
+		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead (default)",NULL},
+		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead",NULL},
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
+		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -216,49 +218,68 @@ XMI_MAIN
 		return 1;
 	}
 
-	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp) == 0)
+	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp, use_matrix_override) == 0)
 		return 1;
 
 #if DEBUG == 2
 	xmi_print_input(stdout,pymca_input);
 #endif
 
-	//calculate initial 
-	if (use_matrix_override) {
-		//override matrix if necessary
-		//look if any of the elements in the matrix are supposed to quantified
-		struct xmi_layer * matrix_temp;
-		xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix_temp);
-		int found=0;
-		for (i=0 ; i < xp->n_z_arr_pymca_conc ; i++) {
-			for (j=0 ; j < matrix_temp->n_elements ; j++) {
-				if (xp->z_arr_pymca_conc[i] == matrix_temp->Z[j]) {
-					found = 1;
-					break;
-				}
-			
-			}
-			if (found)
-				break;
+
+
+	if (use_single_run) {
+		//just simulate...
+		//copy to the corresponding fortran variable
+		xmi_input_C2F(pymca_input,&inputFPtr);
+		//initialization
+		if (xmi_init_input(&inputFPtr) == 0) {
+			return 1;
 		}
-		if (found) {
-			matrix = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
-			matrix->density = matrix_temp->density;
-			matrix->thickness = matrix_temp->thickness;
-			matrix->n_elements = 1;
-			matrix->Z = (int *) malloc(sizeof(int));
-			matrix->Z[0] = 6;
-			matrix->weight = (double *) malloc(sizeof(double));
-			matrix->weight[0] = 1.0;
-			xmi_free_layer(matrix_temp);	
+		//initialize HDF5 data
+		//read from HDF5 file what needs to be read in
+		if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+			fprintf(stderr,"Could not initialize from hdf5 data file\n");
+			return 1;
 		}	
-		else {
-			xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+
+		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+		
+		//determine filename first
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
+			return 1;
+
+
+
+		//check if solid angles are already precalculated
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , pymca_input, &solid_angle_def) == 0)
+			return 1;
+		if (solid_angle_def == NULL) {
+			//doesn't exist yet
+			//convert input to string
+			if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
+				return 1;
+			}
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
+			//update hdf5 file
+			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
+				return 1;
 		}
+		//launch simulation
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+			fprintf(stderr,"Error in xmi_main_msim\n");
+			return 1;
+		}
+		//the dreaded goto statement
+		goto single_run;
 	}
-	else {
-		xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
-	}
+
+
+
+
+
+
+	//calculate initial 
+	xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
 
 
 
@@ -308,7 +329,6 @@ XMI_MAIN
 	}	
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
-
 
 	//determine filename first
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
@@ -580,6 +600,8 @@ XMI_MAIN
 
 
 	}
+
+single_run:
 
 	
 	xmi_free_hdf5_F(&hdf5FPtr);

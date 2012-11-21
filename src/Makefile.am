@@ -54,6 +54,7 @@ libxmimsim_la_FCFLAGS += -DXMI_WINDOWS
 endif
 if ENABLE_MAC_APP
 libxmimsim_la_CFLAGS += -xobjective-c
+libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 endif
 
 xmimsim_main.mod: libxmimsim.la

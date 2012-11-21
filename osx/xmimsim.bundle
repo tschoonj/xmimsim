@@ -19,6 +19,11 @@
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-pymca</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-db</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmso2xmsi</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmso2spe</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmso2csv</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmso2htm</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmso2svg</binary>
 
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>

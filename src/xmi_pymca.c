@@ -997,7 +997,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 }
 
 
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input) {
+int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override) {
 	int rv = 0;
 	GKeyFile *pymcaFile;
 	GError *error=NULL;
@@ -1071,51 +1071,6 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #if DEBUG == 2
 	fprintf(stdout,"After get_peak_areas\n");
 #endif
-	//determine elements that will actually be quantified (non-matrix)
-	//1st condition: there has to be a (positive) net-line intensity available
-	//2nd condition: the element may not be part of the matrix composition
-	//3rd condition: the element may not be part of any of the other layers
-	(*pymca_input)->z_arr_quant = NULL;
-	(*pymca_input)->n_z_arr_quant = 0;
-	for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
-#if DEBUG == 2
-		fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
-#endif
-		found = 0;
-		//check multilayer
-		for (j = 0 ; j < n_multilayer_layers ; j++) {
-			for (k = 0 ; k < multilayer_layers[j].n_elements ; k++) {
-				if (multilayer_layers[j].Z[k] == (*pymca_input)->z_arr[i]) {
-					found = 1;
-					break;
-				}
-			}
-			if (found == 1)
-				break;
-		}
-		if (found == 0 && atmosphere_layer != NULL) {
-			//check atmosphere
-			for (k = 0 ; k < atmosphere_layer->n_elements ; k++) {
-				if (atmosphere_layer->Z[k] == (*pymca_input)->z_arr[i]) {
-					found = 1;
-					break;
-				}
-			}
-			
-		}
-		if (found == 0) {
-			//found
-			(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
-			(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
-#if DEBUG == 2
-			fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
-#endif
-		}
-	}
-
-	//sort
-	qsort((*pymca_input)->z_arr_quant, (*pymca_input)->n_z_arr_quant, sizeof(int),xmi_cmp_int  );
-
 
 
 	//absorbers and  crystal
@@ -1145,6 +1100,60 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	//energy
 	if (read_excitation_spectrum(pymcaFile, &excitation, detector) == 0)
 		return rv;
+
+	//determine elements that will actually be quantified (non-matrix)
+	//1st condition: there has to be a (positive) net-line intensity available
+	//2nd condition: the element may not be part of the matrix composition unless matrix is overridden
+	//3rd condition: the element may not be part of any of the other layers
+	(*pymca_input)->z_arr_quant = NULL;
+	(*pymca_input)->n_z_arr_quant = 0;
+	int override_required = 0;
+	for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
+#if DEBUG == 2
+		fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
+#endif
+		found = 0;
+		//check multilayer
+		for (j = 0 ; j < n_multilayer_layers ; j++) {
+			for (k = 0 ; k < multilayer_layers[j].n_elements ; k++) {
+				if (multilayer_layers[j].Z[k] == (*pymca_input)->z_arr[i]) {
+					if (use_matrix_override == 1 && j == (*pymca_input)->ilay_pymca-1) {
+						found = 0;
+						override_required = 1;
+					}
+					else {
+						found = 1;
+						override_required = 0;
+						break;
+					}
+				}
+			}
+			if (found == 1)
+				break;
+		}
+		if (found == 0 && atmosphere_layer != NULL) {
+			//check atmosphere
+			for (k = 0 ; k < atmosphere_layer->n_elements ; k++) {
+				if (atmosphere_layer->Z[k] == (*pymca_input)->z_arr[i]) {
+					found = 1;
+					break;
+				}
+			}
+			
+		}
+		if (found == 0) {
+			//found
+			(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
+			(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
+#if DEBUG == 2
+			fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
+#endif
+		}
+	}
+
+	//sort
+	qsort((*pymca_input)->z_arr_quant, (*pymca_input)->n_z_arr_quant, sizeof(int),xmi_cmp_int  );
+
 
 	//general
 	general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
@@ -1193,13 +1202,6 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	detector->n_crystal_layers = n_crystal_layers;
 	detector->crystal_layers = crystal_layers;
 
-	//adjust ilay_pymca if necessary
-	if (atmosphere_layer == NULL)
-		(*pymca_input)->ilay_pymca = 0;			
-
-#if DEBUG == 2
-	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
-#endif
 	//nchannels
 	energy_string = g_key_file_get_string(pymcaFile, "result", "xdata", NULL);
 
@@ -1224,6 +1226,155 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	}
 
 
+	//adjust ilay_pymca if necessary
+	if (atmosphere_layer == NULL)
+		(*pymca_input)->ilay_pymca--;			
+
+#if DEBUG == 2
+	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
+#endif
+
+	if (override_required) {
+		//replace all quantifiable elements with one element, determined based on the weighted average
+		int *Z_or = NULL;
+		int n_elements_or = 0;
+		double *weight_or = NULL;
+		
+		int *Z_orig = NULL;
+		int n_elements_orig = 0;
+		double *weight_orig = NULL;
+
+		int found = 0;
+
+		for (i = 0 ; i < (*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements ; i++) {
+			found = 0;
+			for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+				if ((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i] ==
+					(*pymca_input)->z_arr_quant[j]) {
+					n_elements_or++;
+					Z_or = (int *) realloc(Z_or, sizeof(int)*n_elements_or);
+					weight_or = (double *) realloc(weight_or, sizeof(double)*n_elements_or);
+					Z_or[n_elements_or-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i];
+					weight_or[n_elements_or-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[i];
+					found = 1;
+					break;
+				}
+			}	
+			if (! found) {
+				n_elements_orig++;
+				Z_orig = (int *) realloc(Z_orig, sizeof(int)*n_elements_orig);
+				weight_orig = (double *) realloc(weight_orig, sizeof(double)*n_elements_orig);
+				Z_orig[n_elements_orig-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i];
+				weight_orig[n_elements_orig-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[i];
+			}
+		}
+
+		
+
+		if (n_elements_or == 0) {
+			fprintf(stderr,"Error in matrix override function: no elements were found that could be overridden\n");
+			rv = 0;
+			return rv;
+		}
+
+		//calculate sum of weights
+		double weights_sum_or = xmi_sum_double(weight_or, n_elements_or);
+		xmi_scale_double(weight_or, n_elements_or, 1.0/weights_sum_or);
+		double matrix_el_dbl = 0.0;
+		for (i = 0 ; i < n_elements_or ; i++) 
+			matrix_el_dbl += weight_or[i]*Z_or[i];
+
+		int matrix_el_int = (int) lround(matrix_el_dbl);
+
+		fprintf(stdout,"Matrix element start value: %i\n",matrix_el_int);
+
+		int found1, found2, found12 = 0;
+/*		for (i = 1 ; i < MIN(5, abs(matrix_el_int - 10)) ; i++) {
+			found1 = found2 = 0;
+			for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+				if (matrix_el_int - i == (*pymca_input)->z_arr_quant[j]) {
+					found1 = 1;
+					break;
+				}
+			}
+			if (found1)
+				continue;
+			for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+				if (matrix_el_int + i == (*pymca_input)->z_arr_quant[j]) {
+					found2 = 1;
+					break;
+				}
+			}
+			if (!found1 && !found2) {
+				found12 = 1;
+				break;
+			}
+		}
+
+		if (found12) {
+			//found two suitable matrix elements -> add them to the array
+			free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
+			free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements = n_elements_orig+2;
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) realloc(Z_orig, sizeof(int)*(n_elements_orig+2));
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) realloc(weight_orig,sizeof(double)*(n_elements_orig+2));
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig] = matrix_el_int-i;
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig+1] = matrix_el_int+i;
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[n_elements_orig] = 0.5*weights_sum_or;
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[n_elements_orig+1] = 0.5*weights_sum_or;
+			fprintf(stdout,"Matrix adjusted with two elements\n");
+		}
+		else {*/
+			//try with one element
+			//for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+			//	fprintf(stdout,"z_arr_quant: %i\n",(*pymca_input)->z_arr_quant[j]);
+			//}
+
+			for (i = 1 ; i < MIN(7, abs(matrix_el_int - 10)) ; i++) {
+				found1 = found2 = 0;
+				for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+					if (matrix_el_int + i == (*pymca_input)->z_arr_quant[j]) {
+						found1 = 1;
+						break;
+					}
+				}
+				if (!found1) {
+					break;
+				}
+				for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
+					if (matrix_el_int - i == (*pymca_input)->z_arr_quant[j]) {
+						found2 = 1;
+						break;
+					}
+				}
+				if (!found2) {
+					break;
+				}
+			}
+			if (!found1 || !found2) {
+				//found two suitable matrix elements -> add them to the array
+				free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
+				free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements = n_elements_orig+1;
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) realloc(Z_orig, sizeof(int)*(n_elements_orig+1));
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) realloc(weight_orig,sizeof(double)*(n_elements_orig+1));
+				if (!found1) 
+					(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig] = matrix_el_int+i;
+				else 
+					(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig] = matrix_el_int-i;
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[n_elements_orig] = 0.5*weights_sum_or;
+				fprintf(stdout,"Matrix adjusted with one element: %i\n",(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig]);
+				
+			}
+			else {
+				fprintf(stderr,"Matrix override: search for alternative matrix elements produced no results\n");
+				rv = 0;
+				return rv;
+			}
+
+
+		//}
+	}
 
 	rv = 1;
 
