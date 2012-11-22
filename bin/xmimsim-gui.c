@@ -53,10 +53,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-	#include <xmimsim-gui-updater.h>
+	#include "xmimsim-gui-updater.h"
 #endif
 
-
+#include "xmimsim-gui-prefs.h"
 
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
@@ -90,6 +90,9 @@ GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 
+#ifdef XMIMSIM_GUI_UPDATER_H
+static GtkWidget *updatesW;
+#endif
 
 //composition 
 struct layerWidget *layerW;
@@ -397,6 +400,25 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 	int rv;
 
+	//do this only if it is allowed by the preferences
+	union xmimsim_prefs_val prefs;
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+	        gtk_widget_destroy(dialog);
+#ifdef MAC_INTEGRATION
+		GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+		quit_program_cb(app, window);
+#else
+		quit_program_cb(window, window);
+#endif
+	}
+	if (prefs.b == FALSE)
+		return FALSE;
+
+
+	//gtk_widget_set_sensitive(updatesW,FALSE);
 	rv = check_for_updates(&max_version);
 	if (rv == XMIMSIM_UPDATES_ERROR) {
 		//do nothing
@@ -416,6 +438,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 	else if (rv == XMIMSIM_UPDATES_NONE) {
 		//do nothing
 	}
+	//gtk_widget_set_sensitive(updatesW,TRUE);
 
 
 
@@ -427,7 +450,8 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 	char *max_version;
 
 	int rv;
-
+	
+	//gtk_widget_set_sensitive(updatesW,FALSE);
 	rv = check_for_updates(&max_version);
 
 	if (rv == XMIMSIM_UPDATES_ERROR) {
@@ -456,6 +480,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 	}
 
 
+	//gtk_widget_set_sensitive(updatesW,TRUE);
 
 
 	return;
@@ -3525,9 +3550,6 @@ XMI_MAIN
 	GtkWidget *resultsPageW, *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
 	GtkWidget *aboutW;
-#ifdef XMIMSIM_GUI_UPDATER_H
-	GtkWidget *updatesW;
-#endif
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif

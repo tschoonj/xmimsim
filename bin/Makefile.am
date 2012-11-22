@@ -55,7 +55,7 @@ xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
 xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
-xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h
+xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h xmimsim-gui-prefs.h xmimsim-gui-prefs.c
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
@@ -131,7 +131,7 @@ xmso2htm_LDADD = ../src/libxmimsim.la
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
 if ENABLE_UPDATER
-xmimsim_test_updater_SOURCES = xmimsim-test-updater.c xmimsim-gui-updater.h xmimsim-gui-updater.c
+xmimsim_test_updater_SOURCES = xmimsim-test-updater.c xmimsim-gui-updater.h xmimsim-gui-updater.c xmimsim-gui-prefs.h xmimsim-gui-prefs.c
 xmimsim_test_updater_CFLAGS= @glib2_CFLAGS@ @JsonGlib_CFLAGS@ @libcurl_CFLAGS@ @GTK_MAC_CFLAGS@ @gtk2_CFLAGS@
 xmimsim_test_updater_LDADD = @glib2_LIBS@ @JsonGlib_LIBS@ @libcurl_LIBS@ @GTK_MAC_LIBS@ @gtk2_LIBS@
 if ENABLE_MAC_APP

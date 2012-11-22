@@ -25,9 +25,9 @@ int main(int argc, char *argv[]) {
 	gtk_init(&argc, &argv);
 	char *version;
 
-	/*fprintf(stdout,"%i\n",check_for_updates(&version));
+	fprintf(stdout,"%i\n",check_for_updates(&version));
 	fprintf(stdout,"%s\n",version);
-*/
+
 
 	return download_updates(NULL,"1.0");
 

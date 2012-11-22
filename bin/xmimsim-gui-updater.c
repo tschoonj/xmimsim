@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-updater.h"
 #include "xmimsim-gui-layer.h"
+#include "xmimsim-gui-prefs.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
+	#include <gtkosxapplication.h>
 #endif
 
 /*
@@ -65,6 +67,24 @@ struct DownloadVars {
 	FILE *fp;
 	gchar *download_location;
 };
+
+static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *window) {
+
+	union xmimsim_prefs_val prefs;
+
+	prefs.b = gtk_toggle_button_get_active(checkbutton);
+
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, prefs) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+	        gtk_widget_destroy(dialog);
+		exit(1);
+	}
+
+
+}
+
 
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
@@ -335,8 +355,8 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
-	filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
-	//filename = g_strdup_printf("XMI-MSIM.dmg");
+	//filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
+	filename = g_strdup_printf("XMI-MSIM.dmg");
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
 	NSString *documentsDirectory = [paths objectAtIndex:0];
 	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
@@ -390,8 +410,10 @@ int download_updates(GtkWidget *window, char *max_version) {
 	us->url = NULL;
 
 	json_array_foreach_element(rootArray, (JsonArrayForeach) check_download_url, us);
-	if (us->url == NULL)
+	if (us->url == NULL) {
+		fprintf(stderr,"check_download_url call failed\n");
 		return 0;
+	}
 
 	//spawn dialog
 	//write your own code for this
@@ -423,6 +445,27 @@ int download_updates(GtkWidget *window, char *max_version) {
 	gtk_container_add(GTK_CONTAINER(expander), progressbar);
 
 	gtk_box_pack_start(GTK_BOX(update_content), expander, TRUE, FALSE, 2);
+
+	//Check for updates on startup preference
+	GtkWidget *checkbutton = gtk_check_button_new_with_label("Check for updates on startup?");
+	gtk_box_pack_start(GTK_BOX(update_content), checkbutton, TRUE, FALSE, 2);
+	//get value from preferences
+	union xmimsim_prefs_val prefs;
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+	        gtk_widget_destroy(dialog);
+		exit(1);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),prefs.b);
+	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), window);
+
+
+	
+	//signal
+
+
 	gtk_container_set_border_width(GTK_CONTAINER(update_content), 8);
 
 	gtk_widget_show_all(update_content);

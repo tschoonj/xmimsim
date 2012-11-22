@@ -39,7 +39,7 @@
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>
 
-<data dest="${bundle}/Contents/Resources">${prefix:macports}/share/strings</data>
+<!--<data dest="${bundle}/Contents/Resources">${prefix:macports}/share/strings</data>-->
 <translations name="gtk20">${prefix:macports}/share/local</translations>
 
 <icon-theme icons='all'>Tango</icon-theme>
