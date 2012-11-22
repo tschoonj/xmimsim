@@ -413,7 +413,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		goto after_detector;
 	}
 
-#define XMI_IF_COMPARE_DETECTOR(a) if (fabsl(A->detector->a - B->detector->a)/A->detector->a > XMI_COMPARE_THRESHOLD){\
+#define XMI_IF_COMPARE_DETECTOR(a) if (fabsl(A->detector->a - B->detector->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_COMPARE_DETECTOR;\
 	goto after_detector;\
 	}
