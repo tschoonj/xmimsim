@@ -21,8 +21,8 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: fgsl
 
-INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1024, grid_dims_theta_n = 1024 
-!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 5, grid_dims_theta_n = 5 
+INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000
+!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 500, grid_dims_theta_n = 500 
 INTEGER (C_LONG) :: hits_per_single = 5000
 BIND(C,NAME='hits_per_single') :: hits_per_single
 

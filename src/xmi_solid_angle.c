@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef HAVE_OPENCL_CL_H
 #include <OpenCL/cl.h>
+#elif defined(HAVE_CL_CL_H)
 #endif
 
 struct xmi_solid_angles_data{
@@ -523,6 +524,9 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	}
 
 //#define DEBUG
+
+	cl_event writeEventA, writeEventB;
+	cl_event eventlist[2] = {writeEventA, writeEventB};
 #ifndef DEBUG
 	cl_mem grid_dims_r_vals_cl = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float)*sa->grid_dims_r_n, NULL, &status);
 	OPENCL_ERROR(clCreateBuffer)
@@ -593,9 +597,9 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	//cl_kernel mykernel = clCreateKernel(myprog, "xmi_kernel_test", &status);
 	OPENCL_ERROR(clCreateKernel)
 
-	fprintf(stdout,"max kernel global work size: %zi %zi %zi",globalmax[0], globalmax[1], globalmax[2]);
+	//fprintf(stdout,"max kernel global work size: %zi %zi %zi",globalmax[0], globalmax[1], globalmax[2]);
 
-	exit(0);
+	//exit(0);
 
 	status = clSetKernelArg(mykernel, 0, sizeof(cl_mem), (void *) &grid_dims_r_vals_cl);
 	OPENCL_ERROR(clSetKernelArg)
@@ -619,14 +623,23 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	size_t globalws[2] = {sa->grid_dims_r_n, sa->grid_dims_theta_n};
 	size_t localws[2] = {16, 16};
 	//size_t globalws[2] = {1,1};
-	status = clEnqueueNDRangeKernel(cmdQueue, mykernel, 2, 0, globalws, localws, 0, NULL, NULL);
+	cl_event kernelEvent;
+	status = clEnqueueNDRangeKernel(cmdQueue, mykernel, 2, 0, globalws, NULL, 0, NULL, &kernelEvent);
 	OPENCL_ERROR(clEnqueueNDRangeKernel)
 
-	fprintf(stdout,"after launching the kernel\n");
-	clFinish(cmdQueue);
+	//clReleaseEvent(writeEventA);
+	//clReleaseEvent(writeEventB);
 
-	status = clEnqueueReadBuffer(cmdQueue, solid_angles_cl, CL_TRUE, 0, (sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n), (void *) solid_angles_float, 0, NULL, NULL);
+	fprintf(stdout,"after launching the kernel\n");
+	//clFinish(cmdQueue);
+
+	cl_event readEvent;
+	status = clEnqueueReadBuffer(cmdQueue, solid_angles_cl, CL_FALSE, 0, (sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n), (void *) solid_angles_float, 1, &kernelEvent, &readEvent);
 	OPENCL_ERROR(clEnqueueReadBuffer)
+
+	clReleaseEvent(kernelEvent);
+	clWaitForEvents(1, &readEvent);
+	clReleaseEvent(readEvent);
 
 	
 	for (i = 0 ; i < sa->grid_dims_r_n * sa->grid_dims_theta_n ; i++)

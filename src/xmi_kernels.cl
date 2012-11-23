@@ -439,7 +439,7 @@ __kernel void xmi_solid_angle_calculation(__constant read_only float *grid_dims_
 	}
 	result = full_cone_solid_angle*((float) detector_hits)/((float) hits_per_single);	
 #ifdef DEBUG
-	//printf("result: %f\n",result);
+	printf("result: %f\n",result);
 	printf("beta: %f\n",beta);
 	printf("alpha1: %f\n",alpha1);
 	printf("detector_hits: %i\n",detector_hits);
