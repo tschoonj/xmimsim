@@ -227,8 +227,8 @@ __kernel void xmi_solid_angle_calculation(__constant read_only float *grid_dims_
 
 	const size_t tid0 = get_global_id(0);
 	const size_t tid1 = get_global_id(1);
-	const size_t tid_max0 = get_global_size(0);
-	const size_t tid_max1 = get_global_size(1);
+	const size_t tid_max0 = get_global_size(0)*RANGE_DIVIDER;
+	const size_t tid_max1 = get_global_size(1)*RANGE_DIVIDER;
 	threefry4x32_key_t k = {{tid0, 0xdecafbad, 0xfacebead, tid1}};
 	threefry4x32_ctr_t c = {{0, 0xf00dcafe, 0xdeadbeef, 0xbeeff00d}};
 

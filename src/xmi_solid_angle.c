@@ -32,7 +32,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAVE_OPENCL_CL_H
 #include <OpenCL/cl.h>
 #elif defined(HAVE_CL_CL_H)
+#include <CL/cl.h>
 #endif
+
+#define RANGE_DIVIDER 8
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
@@ -51,7 +54,7 @@ extern long hits_per_single;
 
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
-#ifdef HAVE_OPENCL_CL_H
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	if (xmo.use_opencl)  
 		xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
 	else {
@@ -432,7 +435,7 @@ int xmi_get_solid_angle_file(char **filePtr) {
 }
 
 
-#ifdef HAVE_OPENCL_CL_H
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 
 #define OPENCL_ERROR(name) if (status != CL_SUCCESS) { \
 	fprintf(stderr,"OpenCL error for function %s on line %i\n",#name,__LINE__);\
@@ -454,11 +457,16 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	status = clGetPlatformIDs(numPlatforms, platforms, NULL);
 	OPENCL_ERROR(clGetPlatformIDs)
 
-	fprintf(stdout,"Number of platforms found: %i\n",numPlatforms);
+
+
+	if (numPlatforms == 0) {
+		fprintf(stderr,"No OpenCL platform detected\nTry running the simulation without OpenCL support\n");
+		exit(1);
+	}
 	
 	status = clGetPlatformInfo(platforms[0], CL_PLATFORM_VERSION, info_size, info, NULL);
 	OPENCL_ERROR(clGetPlatformInfo)
-	fprintf(stdout,"OpenCL platform version %s\n", info);
+	//fprintf(stdout,"OpenCL platform version %s\n", info);
 
 	cl_uint numDevices = 0;
 	cl_device_id *devices = NULL;
@@ -469,7 +477,7 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
 	OPENCL_ERROR(clGetDeviceIDs)
 
-	fprintf(stdout,"Number of devices found: %i\n", numDevices);
+	//fprintf(stdout,"Number of devices found: %i\n", numDevices);
 
 	cl_context context = NULL;
 	context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
@@ -489,9 +497,9 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 
 	struct xmi_solid_angle *sa = *solid_angle;
 
-	fprintf(stdout,"grid_dims_r_n: %li\n", sa->grid_dims_r_n);
-	fprintf(stdout,"grid_dims_theta_n: %li\n", sa->grid_dims_theta_n);
-	fprintf(stdout,"hits_per_single: %li\n",hits_per_single);
+	//fprintf(stdout,"grid_dims_r_n: %li\n", sa->grid_dims_r_n);
+	//fprintf(stdout,"grid_dims_theta_n: %li\n", sa->grid_dims_theta_n);
+	//fprintf(stdout,"hits_per_single: %li\n",hits_per_single);
 
 	//other arguments needed
 	//	detector%collimator_present
@@ -503,7 +511,7 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 
 	float *grid_dims_r_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_r_n);
 	float *grid_dims_theta_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_theta_n);
-	int i;
+	int i,j;
 
 	for (i = 0 ; i < sa->grid_dims_r_n ; i++)
 		grid_dims_r_vals_float[i] = (float) sa->grid_dims_r_vals[i];
@@ -518,7 +526,7 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	cl_ulong constant_buffer_memory;
 	status = clGetDeviceInfo(devices[0], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constant_buffer_memory, NULL);
 	OPENCL_ERROR(clGetDeviceInfo)
-	fprintf(stdout,"Max constant buffer size: %lu\n", constant_buffer_memory);
+	//fprintf(stdout,"Max constant buffer size: %lu\n", constant_buffer_memory);
 	if (constant_buffer_memory < (sizeof(float)*sa->grid_dims_r_n+sizeof(float)*sa->grid_dims_theta_n)) {
 		fprintf(stdout,"constant buffer size too small\n");
 	}
@@ -570,7 +578,9 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
 
-	status = clBuildProgram(myprog, 0, NULL, "-I" XMI_OPENCL_DIR, NULL, NULL);
+	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,XMI_OPENCL_DIR);
+	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
+	g_free(build_options);
 	//OPENCL_ERROR(clBuildProgram)
 
 	if (status == CL_BUILD_PROGRAM_FAILURE) {
@@ -589,9 +599,9 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 		printf("%s\n", log);
 		exit(0);
 	}
-	else {
-		fprintf(stdout,"status: %i\n",status);
-	}
+	//else {
+	//	fprintf(stdout,"status: %i\n",status);
+	//}
 
 	cl_kernel mykernel = clCreateKernel(myprog, "xmi_solid_angle_calculation", &status);
 	//cl_kernel mykernel = clCreateKernel(myprog, "xmi_kernel_test", &status);
@@ -618,26 +628,43 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	status = clSetKernelArg(mykernel, 7, sizeof(cl_int), (void *) &hits_per_single);
 	OPENCL_ERROR(clSetKernelArg)
 
-	fprintf(stdout,"after setting the kernel args\n");
+	//fprintf(stdout,"after setting the kernel args\n");
 
-	size_t globalws[2] = {sa->grid_dims_r_n, sa->grid_dims_theta_n};
+	size_t globalws[2] = {sa->grid_dims_r_n/RANGE_DIVIDER, sa->grid_dims_theta_n/RANGE_DIVIDER};
 	size_t localws[2] = {16, 16};
 	//size_t globalws[2] = {1,1};
-	cl_event kernelEvent;
-	status = clEnqueueNDRangeKernel(cmdQueue, mykernel, 2, 0, globalws, NULL, 0, NULL, &kernelEvent);
-	OPENCL_ERROR(clEnqueueNDRangeKernel)
+	
+	
+	cl_event *kernelEvent;
+	size_t offset[2];
+	for (i = 0 ; i < RANGE_DIVIDER ; i++) {
+		for (j = 0 ; j < RANGE_DIVIDER ; j++) {
+			kernelEvent = (cl_event*) malloc(sizeof(kernelEvent));
+			offset[0] = i*sa->grid_dims_r_n/RANGE_DIVIDER;
+			offset[1] = j*sa->grid_dims_theta_n/RANGE_DIVIDER;
+			status = clEnqueueNDRangeKernel(cmdQueue, mykernel, 2, offset, globalws, NULL, 0, NULL, kernelEvent);
+			OPENCL_ERROR(clEnqueueNDRangeKernel)
+			status = clWaitForEvents(1, kernelEvent);
+			OPENCL_ERROR(clWaitForEvents)
+			status = clReleaseEvent(kernelEvent[0]);
+			OPENCL_ERROR(clReleaseEvent)
+			free(kernelEvent);
+			if (xmo.verbose)
+				fprintf(stdout,"Solid angle calculation at %3i %%\n",(int) floor(100.0*(float)(RANGE_DIVIDER*i+j+1)/(float)(RANGE_DIVIDER*RANGE_DIVIDER)));
+		}
+	}
 
 	//clReleaseEvent(writeEventA);
 	//clReleaseEvent(writeEventB);
 
-	fprintf(stdout,"after launching the kernel\n");
+	//fprintf(stdout,"after launching the kernel\n");
 	//clFinish(cmdQueue);
 
 	cl_event readEvent;
-	status = clEnqueueReadBuffer(cmdQueue, solid_angles_cl, CL_FALSE, 0, (sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n), (void *) solid_angles_float, 1, &kernelEvent, &readEvent);
+	status = clEnqueueReadBuffer(cmdQueue, solid_angles_cl, CL_FALSE, 0, (sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n), (void *) solid_angles_float, 0, NULL, &readEvent);
 	OPENCL_ERROR(clEnqueueReadBuffer)
 
-	clReleaseEvent(kernelEvent);
+	//clReleaseEvent(kernelEvent);
 	clWaitForEvents(1, &readEvent);
 	clReleaseEvent(readEvent);
 
@@ -646,6 +673,22 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 		sa->solid_angles[i] = (double) solid_angles_float[i];
 	sa->xmi_input_string = input_string;
 
+
+	//cleanup
+	clReleaseKernel(mykernel);
+	clReleaseProgram(myprog);
+	clReleaseCommandQueue(cmdQueue);
+	clReleaseMemObject(grid_dims_r_vals_cl);
+	clReleaseMemObject(grid_dims_theta_vals_cl);
+	clReleaseMemObject(solid_angles_cl);
+	clReleaseContext(context);
+
+	free(solid_angles_float);
+	free(devices);
+	free(platforms);
+	
+	if (xmo.verbose)
+		fprintf(stdout,"Solid angle calculation finished\n");
 }
 
 
