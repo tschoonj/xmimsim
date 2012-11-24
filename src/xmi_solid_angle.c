@@ -17,52 +17,93 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include "xmi_solid_angle.h"
-#include <hdf5.h>
 #include <glib.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include "xmi_aux.h"
-#include "xmi_xml.h"
-#include <sys/stat.h>
-#ifdef MAC_INTEGRATION
-	#import <Foundation/Foundation.h>
-#endif
-
-#ifdef HAVE_OPENCL_CL_H
-#include <OpenCL/cl.h>
-#elif defined(HAVE_CL_CL_H)
-#include <CL/cl.h>
-#endif
-
-#define RANGE_DIVIDER 8
+#include <gmodule.h>
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
 	struct xmi_input *input;
 };
 
+#ifndef XMIMSIM_CL
+#include <hdf5.h>
+#include "xmi_aux.h"
+#include "xmi_xml.h"
+#include <sys/stat.h>
+  #ifdef MAC_INTEGRATION
+	#import <Foundation/Foundation.h>
+  #endif
+
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
-
-
 extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
-static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+//static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+
+typedef void (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+#else
+
+  #ifdef HAVE_OPENCL_CL_H
+	#include <OpenCL/cl.h>
+  #elif defined(HAVE_CL_CL_H)
+	#include <CL/cl.h>
+  #endif
+
+#define RANGE_DIVIDER 8
+
 extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
 
 extern long hits_per_single;
+#endif
 
+
+
+
+#ifndef XMIMSIM_CL
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	if (xmo.use_opencl)  
-		xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
+	GModule *module;
+	gchar *module_path;
+	if (xmo.use_opencl) {
+		//try to open the module
+		if (!g_module_supported()) {
+			fprintf(stderr,"No module support on this platform\n");
+			goto fallback;
+		}
+		module_path = g_strdup_printf("%s/%s.%s",XMI_OPENCL_LIB,"xmimsim-cl",G_MODULE_SUFFIX);
+		module = g_module_open(module_path, G_MODULE_BIND_LAZY);
+		g_free(module_path);
+		if (!module) {
+			fprintf(stderr,"Could not open xmimsim-cl: %s\n", g_module_error());
+			goto fallback;
+		}
+		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &xmi_solid_angle_calculation_cl)) {
+			fprintf(stderr,"Error retrieving xmi_solid_angle_calculation_cl in xmimsim-cl: %s\n", g_module_error());
+			goto fallback;
+		}
+		if (xmi_solid_angle_calculation_cl != NULL) 
+			xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+		else {
+			fprintf(stderr,"xmi_solid_angle_calculation_cl is NULL\n");
+			goto fallback;
+		}
+		if (!g_module_close(module)) {
+			fprintf(stderr,"Warning: could not close module xmimsim-cl: %s\n",g_module_error());
+		}
+		return;
+	
+	}
 	else {
 		xmi_solid_angle_calculation_f(inputFPtr, solid_angle, input_string, xmo);
+		return;
 	}
-#else
-	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, input_string, xmo);
+fallback:
 #endif
+	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, input_string, xmo);
 }
 
 
@@ -435,14 +476,15 @@ int xmi_get_solid_angle_file(char **filePtr) {
 }
 
 
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+#else
+//#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 
 #define OPENCL_ERROR(name) if (status != CL_SUCCESS) { \
 	fprintf(stderr,"OpenCL error for function %s on line %i\n",#name,__LINE__);\
 	exit(1);\
 	} 
 
-static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
+G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
 	cl_int status;
 	char info[1000];
@@ -571,14 +613,14 @@ static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_s
 	
 
 	gchar *kernel_code;
-	if(g_file_get_contents(XMI_OPENCL_DIR "/xmi_kernels.cl", &kernel_code, NULL, NULL) == FALSE) {
-		fprintf(stderr,"Could not open %s\n",XMI_OPENCL_DIR "/xmi_kernels.cl");
+	if(g_file_get_contents(XMI_OPENCL_CODE "/xmi_kernels.cl", &kernel_code, NULL, NULL) == FALSE) {
+		fprintf(stderr,"Could not open %s\n",XMI_OPENCL_CODE "/xmi_kernels.cl");
 	}
 	
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
 
-	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,XMI_OPENCL_DIR);
+	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,XMI_OPENCL_CODE);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
 	g_free(build_options);
 	//OPENCL_ERROR(clBuildProgram)

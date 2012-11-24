@@ -28,8 +28,8 @@ AC_DEFUN([AX_CHECK_FRAMEWORK],[
 	m4_ifvaln([$2],[$2],[:])dnl
       else
 	m4_ifvaln([$3],[$3],[:])dnl
-	LIBS=$ac_check_framework_save_LIBS
       fi
+      LIBS=$ac_check_framework_save_LIBS
       AS_VAR_POPDEF([ax_Check])dnl
     ;;
   esac
