@@ -42,7 +42,7 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 //static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 
-typedef void (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 #else
 
   #ifdef HAVE_OPENCL_CL_H
@@ -52,6 +52,8 @@ typedef void (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_so
   #endif
 
 #define RANGE_DIVIDER 8
+#define XMI_OPENCL_MAJOR 1
+#define XMI_OPENCL_MINOR 1
 
 extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
 
@@ -65,7 +67,7 @@ extern long hits_per_single;
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
+	XmiSolidAngleCalculation my_xmi_solid_angle_calculation_cl;
 	GModule *module;
 	gchar *module_path;
 	if (xmo.use_opencl) {
@@ -75,18 +77,23 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			goto fallback;
 		}
 		module_path = g_strdup_printf("%s/%s.%s",XMI_OPENCL_LIB,"xmimsim-cl",G_MODULE_SUFFIX);
-		module = g_module_open(module_path, G_MODULE_BIND_LAZY);
+		module = g_module_open(module_path, 0);
 		g_free(module_path);
 		if (!module) {
 			fprintf(stderr,"Could not open xmimsim-cl: %s\n", g_module_error());
 			goto fallback;
 		}
-		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &xmi_solid_angle_calculation_cl)) {
+		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &my_xmi_solid_angle_calculation_cl)) {
 			fprintf(stderr,"Error retrieving xmi_solid_angle_calculation_cl in xmimsim-cl: %s\n", g_module_error());
 			goto fallback;
 		}
-		if (xmi_solid_angle_calculation_cl != NULL) 
-			xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+		if (my_xmi_solid_angle_calculation_cl != NULL) {
+			int rv = my_xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+			if (rv == 0) {
+				fprintf(stderr,"OpenCL calculation failed: fallback to Fortran implementation\n");
+				goto fallback;
+			}
+		}
 		else {
 			fprintf(stderr,"xmi_solid_angle_calculation_cl is NULL\n");
 			goto fallback;
@@ -481,10 +488,10 @@ int xmi_get_solid_angle_file(char **filePtr) {
 
 #define OPENCL_ERROR(name) if (status != CL_SUCCESS) { \
 	fprintf(stderr,"OpenCL error for function %s on line %i\n",#name,__LINE__);\
-	exit(1);\
+	return 0;\
 	} 
 
-G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
+G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
 	cl_int status;
 	char info[1000];
@@ -502,8 +509,8 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 
 
 	if (numPlatforms == 0) {
-		fprintf(stderr,"No OpenCL platform detected\nTry running the simulation without OpenCL support\n");
-		exit(1);
+		fprintf(stderr,"No OpenCL platform detected\n");
+		return 0;
 	}
 	
 	status = clGetPlatformInfo(platforms[0], CL_PLATFORM_VERSION, info_size, info, NULL);
@@ -515,11 +522,28 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
 	OPENCL_ERROR(clGetDeviceIDs)
 
+	if (numDevices == 0) {
+		fprintf(stderr,"No OpenCL GPU devices detected\n");
+		return 0;
+	}
+
 	devices = (cl_device_id *) malloc(sizeof(cl_device_id)*numDevices);
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
 	OPENCL_ERROR(clGetDeviceIDs)
 
 	//fprintf(stdout,"Number of devices found: %i\n", numDevices);
+
+	//check implementation... should be 1.1
+	status = clGetDeviceInfo(devices[0], CL_DEVICE_VERSION, info_size, info, NULL);
+	OPENCL_ERROR(clGetDeviceInfo)
+	//parse string;
+	int cl_minor, cl_major;
+	sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
+	if (!(cl_major >= XMI_OPENCL_MAJOR && cl_minor >= XMI_OPENCL_MINOR)) {
+		fprintf(stderr, "OpenCL device version must be at least 1.1\n");
+		return 0;
+	}
+
 
 	cl_context context = NULL;
 	context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
@@ -570,7 +594,8 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 	OPENCL_ERROR(clGetDeviceInfo)
 	//fprintf(stdout,"Max constant buffer size: %lu\n", constant_buffer_memory);
 	if (constant_buffer_memory < (sizeof(float)*sa->grid_dims_r_n+sizeof(float)*sa->grid_dims_theta_n)) {
-		fprintf(stdout,"constant buffer size too small\n");
+		fprintf(stdout,"OpenCL constant buffer size too small\n");
+		return 0;
 	}
 
 //#define DEBUG
@@ -615,6 +640,7 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 	gchar *kernel_code;
 	if(g_file_get_contents(XMI_OPENCL_CODE "/xmi_kernels.cl", &kernel_code, NULL, NULL) == FALSE) {
 		fprintf(stderr,"Could not open %s\n",XMI_OPENCL_CODE "/xmi_kernels.cl");
+		return 0;
 	}
 	
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
@@ -630,16 +656,18 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 		// Determine the size of the log
 		size_t log_size;
 		clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+		OPENCL_ERROR(clGetProgramBuildInfo)
 	
 		// Allocate memory for the log
 		char *log = (char *) malloc(log_size);
 		
 	        // Get the log
 		clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+		OPENCL_ERROR(clGetProgramBuildInfo)
 		
 		// Print the log
 		printf("%s\n", log);
-		exit(0);
+		return 0;;
 	}
 	//else {
 	//	fprintf(stdout,"status: %i\n",status);
@@ -731,6 +759,7 @@ G_MODULE_EXPORT void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, str
 	
 	if (xmo.verbose)
 		fprintf(stdout,"Solid angle calculation finished\n");
+	return 1;
 }
 
 

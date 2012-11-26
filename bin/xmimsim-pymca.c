@@ -101,6 +101,10 @@ XMI_MAIN
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
+		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
+#endif
 		{NULL}
 	};
 	double *channels;
@@ -139,6 +143,7 @@ XMI_MAIN
 	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
 	options.verbose = 0;
+	options.use_opencl = 1;
 
 
 	//parse options

@@ -64,10 +64,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-#ifdef HAVE_OPENCL_CL_H
-#include <OpenCL/cl.h>
-#endif
-
 
 XMI_MAIN
 
@@ -154,7 +150,7 @@ XMI_MAIN
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
-#ifdef HAVE_OPENCL_CL_H
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
 		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
 #endif
