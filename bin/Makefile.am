@@ -26,7 +26,8 @@ bin_PROGRAMS = xmimsim \
 	xmso2spe \
 	xmso2csv \
 	xmso2htm \
-	xmso2xmsi
+	xmso2xmsi \
+	xmimsim-conv
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -89,6 +90,10 @@ if OS_WINDOWS
 xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif
 
+xmimsim_conv_SOURCES = xmimsim-conv.c
+xmimsim_conv_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
+-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+xmimsim_conv_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@ @GTK_MAC_LIBS@
 #xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
 #xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
 ##xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
