@@ -504,7 +504,7 @@ XMI_MAIN
 				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 		}
 		else if (options.verbose)
-			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_solid_angles);
+			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 
 
 		
