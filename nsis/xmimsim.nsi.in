@@ -24,7 +24,7 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "2.15.0"
+!define XRAYLIB_VERSION "2.16.0"
 
 SetCompressor /SOLID lzma
 !include "MUI2.nsh"
@@ -109,7 +109,7 @@ ${Endif}
 
 xraylib:
 #NSISdl::download /TIMEOUT=30000 https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe xraylib-${XRAYLIB_VERSION}-win32.exe
-inetc::get /NOCANCEL "https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+inetc::get /NOCANCEL "http://lvserver.ugent.be/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
 Pop $0
 ${If} $0 == "OK"
 	DetailPrint "xraylib download has succeeded. Installing..."

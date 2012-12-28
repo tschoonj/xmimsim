@@ -45,7 +45,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define XMIMSIM_GITHUB_TAGS_LOCATION "https://api.github.com/repos/tschoonj/xmimsim/git/refs/tags"
-#define XMIMSIM_GITHUB_DOWNLOADS_LOCATION "https://api.github.com/repos/tschoonj/xmimsim/downloads"
+#define XMIMSIM_DOWNLOADS_LOCATION "http://lvserver.ugent.be/xmi-msim"
 
 
 struct MemoryStruct {
@@ -180,25 +180,6 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 
 
 
-struct UrlStruct {
-	char *filename;
-	char *url;
-};
-
-static void check_download_url(JsonArray *array, guint index, JsonNode *node, struct UrlStruct *us) {
-	JsonObject *object = json_node_get_object(node);
-	if (!json_object_has_member(object,"html_url")) {
-		return;
-	}
-	
-	const gchar *html_url_string = json_object_get_string_member(object, "html_url");
-	char *filename = strrchr(html_url_string,'/')+1;
-	if (strcmp(filename, us->filename) == 0) {
-		us->url = strdup(html_url_string);
-	}
-
-	return;
-}
 
 static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, char **max_version) {
 	JsonObject *object = json_node_get_object(node);
@@ -334,86 +315,13 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 	CURL *curl;
 	CURLcode res;
-	struct MemoryStruct chunk;
 
 #ifdef MAC_INTEGRATION
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
-	chunk.memory = malloc(1);
-	chunk.size = 0;
-
-	curl = curl_easy_init();
-	if (!curl) {
-		fprintf(stderr,"Could not initialize cURL\n");
-		return 0;
-	} 
-
-	//construct filename -> platform dependent!!!
-	gchar *filename;
-	const gchar *downloadfolder;
 
 
-#if defined(MAC_INTEGRATION)
-	//Mac OS X
-	//filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
-	filename = g_strdup_printf("XMI-MSIM.dmg");
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
-	NSString *documentsDirectory = [paths objectAtIndex:0];
-	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
-	
-#elif defined(G_OS_WIN32)
-	//Win 32
-	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
-	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-	
-#else
-	//Linux??
-	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
-	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-	
-#endif
 
-	//check if file exists!	
-	
-
-
-	res = curl_easy_setopt(curl, CURLOPT_URL,XMIMSIM_GITHUB_DOWNLOADS_LOCATION);
-	res = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-	res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-	res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-	res = curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
-	res = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
-
-	res = curl_easy_perform(curl);
-	if (res != 0) {
-		fprintf(stderr,"download_updates: %s\n",curlerrors);
-		return 0;
-	}
-	curl_easy_cleanup(curl);
-
-	parser = json_parser_new();
-	if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
-		if (error) {
-			fprintf(stderr,"download_updates: %s\n",error->message);
-			return 0;
-		}
-	}
-	JsonNode *rootNode = json_parser_get_root(parser);
-	if(json_node_get_node_type(rootNode) != JSON_NODE_ARRAY) {
-		fprintf(stderr,"check_for_updates: rootNode is not an Array\n");
-		return 0;
-	}
-	JsonArray *rootArray = json_node_get_array(rootNode);
-	struct UrlStruct *us = (struct UrlStruct *) malloc(sizeof(struct UrlStruct));
-	us->filename = filename;
-	us->url = NULL;
-
-	json_array_foreach_element(rootArray, (JsonArrayForeach) check_download_url, us);
-	if (us->url == NULL) {
-		fprintf(stderr,"check_download_url call failed\n");
-		return 0;
-	}
 
 	//spawn dialog
 	//write your own code for this
@@ -484,7 +392,34 @@ int download_updates(GtkWidget *window, char *max_version) {
 		return 0;
 	} 
 	dv.curl = curl;
-	curl_easy_setopt(curl, CURLOPT_URL,us->url);
+	//construct filename -> platform dependent!!!
+	gchar *filename;
+	const gchar *downloadfolder;
+
+
+#if defined(MAC_INTEGRATION)
+	//Mac OS X
+	//filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
+	filename = g_strdup_printf("XMI-MSIM.dmg");
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
+	NSString *documentsDirectory = [paths objectAtIndex:0];
+	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+	
+#elif defined(G_OS_WIN32)
+	//Win 32
+	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
+	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
+	
+#else
+	//Linux??
+	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
+	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
+	
+#endif
+
+	gchar *url = g_strdup_printf(XMIMSIM_DOWNLOADS_LOCATION "/%s",filename);
+
+	curl_easy_setopt(curl, CURLOPT_URL,url);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");

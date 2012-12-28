@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 
 #include "xmimsim-gui-prefs.h"
 #ifdef MAC_INTEGRATION
@@ -43,7 +44,8 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 
 
 	//first check if the preferences file exists!
-	prefs_file = g_strdup_printf("%s/XMI-MSIM/preferences.ini",config_dir);
+	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
+	prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
 
 	keyfile = g_key_file_new();
 
@@ -59,6 +61,10 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 		g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
 		g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 		//save file
+		//create dir first if necessary
+		if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+			return 0;
+		g_free(prefs_dir);
 		prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 		if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 			return 0;
@@ -171,7 +177,8 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 
 
 	//first check if the preferences file exists!
-	prefs_file = g_strdup_printf("%s/XMI-MSIM/preferences.ini",config_dir);
+	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
+	prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
 
 	keyfile = g_key_file_new();
 
@@ -187,6 +194,10 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
 		g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 		//save file
+		//create dir first if necessary
+		if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+			return 0;
+		g_free(prefs_dir);
 		prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 		if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 			return 0;
