@@ -23,11 +23,44 @@
 #endif
 
 
+gchar * xmimsim_download_locations[] = {
+		"http://lvserver.ugent.be/xmi-msim",
+		NULL};
+
+static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gchar *prefs_file) {
+	gchar *prefs_file_contents;
+	
+	//file does not exist, is not accessible or is not in key format
+	//prepare file with default values
+	g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
+	g_key_file_set_comment(keyfile, NULL, NULL, "This file should be modified through the preferences interface",NULL);
+	g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
+	g_key_file_set_boolean(keyfile, "Preferences","Check for updates", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
+	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length(xmimsim_download_locations));
+	//save file
+	//create dir first if necessary
+	if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+		return 0;
+	g_free(prefs_dir);
+	prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+		return 0;
+	g_free(prefs_file_contents);	
+
+
+	return 1;
+}
+
+
+
 
 int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
-	gchar *prefs_file_contents;
 #ifdef MAC_INTEGRATION
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
@@ -50,29 +83,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	keyfile = g_key_file_new();
 
 	if (!g_key_file_load_from_file(keyfile, prefs_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
-		//file does not exist, is not accessible or is not in key format
-		//prepare file with default values
-		g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
-		g_key_file_set_comment(keyfile, NULL, NULL, "This file should be modified through the preferences interface",NULL);
-		g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
-		g_key_file_set_boolean(keyfile, "Preferences","Check for updates", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
-		//save file
-		//create dir first if necessary
-		if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
 			return 0;
-		g_free(prefs_dir);
-		prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-		if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-			return 0;
-		g_free(prefs_file_contents);	
 	}
 		
 	//extract required information from keyfile
 	GError *error = NULL;
+	gchar *prefs_file_contents;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
@@ -85,6 +102,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_M_LINES: 
@@ -98,6 +116,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_RAD_CASCADE: 
@@ -111,6 +130,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE: 
@@ -124,6 +144,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_PILE_UP: 
@@ -137,8 +158,25 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
+				prefs->b = FALSE;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS:
+			prefs->ss = g_key_file_get_string_list(keyfile, "Preferences", "Download locations", NULL, &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Download locations not found in preferences file\n");
+				fprintf(stdout,"Number of locations: %i\n",g_strv_length(xmimsim_download_locations));
+				g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length(xmimsim_download_locations));
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->ss = g_strdupv(xmimsim_download_locations);
+			}
+			break;
+		
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
 			return 0;
@@ -160,7 +198,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
-	gchar *prefs_file_contents;
 #ifdef MAC_INTEGRATION
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
@@ -183,25 +220,8 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 	keyfile = g_key_file_new();
 
 	if (!g_key_file_load_from_file(keyfile, prefs_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
-		//file does not exist, is not accessible or is not in key format
-		//prepare file with default values
-		g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
-		g_key_file_set_comment(keyfile, NULL, NULL, "This file should be modified through the preferences interface",NULL);
-		g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
-		g_key_file_set_boolean(keyfile, "Preferences","Check for updates", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
-		g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
-		//save file
-		//create dir first if necessary
-		if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
 			return 0;
-		g_free(prefs_dir);
-		prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-		if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-			return 0;
-		g_free(prefs_file_contents);	
 	}
 
 	switch (kind) {
@@ -220,6 +240,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_PILE_UP: 
 			g_key_file_set_boolean(keyfile, "Preferences","Pile-up", prefs.b);
 			break;
+		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS: 
+			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  prefs.ss, (gsize) g_strv_length(prefs.ss));
+			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;
@@ -227,6 +250,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 	}
 	
 	//save file
+	gchar *prefs_file_contents; 
 	prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 		return 0;
