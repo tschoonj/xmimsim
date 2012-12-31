@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
 #include <glib.h>

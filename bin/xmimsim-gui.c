@@ -419,6 +419,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 
 	//gtk_widget_set_sensitive(updatesW,FALSE);
+	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
 	rv = check_for_updates(&max_version);
 	if (rv == XMIMSIM_UPDATES_ERROR) {
 		//do nothing
@@ -439,6 +440,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		//do nothing
 	}
 	//gtk_widget_set_sensitive(updatesW,TRUE);
+	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
 
 
 

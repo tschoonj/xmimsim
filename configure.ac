@@ -137,9 +137,19 @@ if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKE
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz; then 
-	   PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration,[GTK_MAC_INTEGRATION_FOUND=yes],[GTK_MAC_INTEGRATION_FOUND=no])
-	   #AC_SUBST(GTK_MAC_LIBS)
-	   #AC_SUBST(GTK_MAC_CFLAGS)
+		
+	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
+			GTK_MAC_INTEGRATION_FOUND=yes
+			AC_DEFINE([HAVE_GTK_MAC_INTEGRATION_2],[],gtk-mac-integration-2.0 present)
+			],[GTK_MAC_INTEGRATION_FOUND=no])
+	
+		if test "x$GTK_MAX_INTEGRATION_FOUND" = xyes ; then
+	   		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 1.0.1,[
+				GTK_MAC_INTEGRATION_FOUND=yes
+			],[GTK_MAC_INTEGRATION_FOUND=no])
+		fi
+	   	#AC_SUBST(GTK_MAC_LIBS)
+	   	#AC_SUBST(GTK_MAC_CFLAGS)
 	   
 	fi
 
