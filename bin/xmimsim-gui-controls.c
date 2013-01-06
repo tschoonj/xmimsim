@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-prefs.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
@@ -1280,6 +1281,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 
 	//options
+	union xmimsim_prefs_val xpv;
 	frame = gtk_frame_new("Options");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
@@ -1290,27 +1292,42 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
 	MlinesW = gtk_check_button_new_with_label("Simulate M-lines");
 	gtk_widget_set_tooltip_text(MlinesW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),MlinesW, TRUE, FALSE, 3);
 
 	rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascadeW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),rad_cascadeW, TRUE, FALSE, 3);
 
 	nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascadeW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),nonrad_cascadeW, TRUE, FALSE, 3);
 
 	variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),variance_reductionW, TRUE, FALSE, 3);
 
 	pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),FALSE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 

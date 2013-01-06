@@ -22,10 +22,53 @@
         #import <Foundation/Foundation.h>
 #endif
 
+GtkWidget *Mlines_prefsW;
+GtkWidget *rad_cascade_prefsW;
+GtkWidget *nonrad_cascade_prefsW;
+GtkWidget *variance_reduction_prefsW;
+GtkWidget *pile_up_prefsW;
 
 gchar * xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		NULL};
+static void preferences_cancel_button_clicked(GtkWidget *button, gpointer data) {
+	gtk_widget_destroy(GTK_WIDGET(data));
+	return;
+}
+
+
+static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
+	//read everything and store it in the preferences file
+	union xmimsim_prefs_val xpv;
+
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Mlines_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
+		//abort	
+	}
+	
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
+		//abort	
+	}
+
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
+		//abort	
+	}
+
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
+		//abort	
+	}
+
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_up_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
+		//abort	
+	}
+
+	gtk_widget_destroy(GTK_WIDGET(data));
+	return;
+}
 
 static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gchar *prefs_file) {
 	gchar *prefs_file_contents;
@@ -39,6 +82,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length(xmimsim_download_locations));
 	//save file
@@ -147,6 +191,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->b = TRUE;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Variance reduction", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Variance reduction not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
+			}
+			break;
 		case XMIMSIM_GUI_PREFS_PILE_UP: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Pile-up", &error);
 			if (error != NULL) {
@@ -237,6 +295,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE: 
 			g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", prefs.b);
 			break;
+		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION: 
+			g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", prefs.b);
+			break;
 		case XMIMSIM_GUI_PREFS_PILE_UP: 
 			g_key_file_set_boolean(keyfile, "Preferences","Pile-up", prefs.b);
 			break;
@@ -263,5 +324,111 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 #endif
 	return 1;
 
+}
+
+void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
+//void xmimsim_gui_launch_preferences(GtkWidget *main_window, gint page) {
+	struct xmi_preferences_data *xpd = (struct xmi_preferences_data *) data;
+
+	GtkWidget *window;
+	GtkWidget *main_window = xpd->window;
+	gint page = xpd->page;
+	GtkWidget *notebook;
+	GtkWidget *master_box;
+
+	master_box = gtk_vbox_new(FALSE,2);
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
+	gtk_widget_set_size_request(GTK_WINDOW(window),350,350);
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
+
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+	//gtk_window_set_deletable(GTK_WINDOW(window), FALSE);
+
+	notebook = gtk_notebook_new();
+	gtk_box_pack_start(GTK_BOX(master_box), notebook, TRUE,TRUE,3);
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
+	gtk_container_add(GTK_CONTAINER(window), master_box);
+
+	
+
+	GtkWidget *label;
+	
+	union xmimsim_prefs_val xpv;
+
+	GtkWidget *superframe = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
+
+	label = gtk_label_new("Simulation defaults");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation option defaults</span>");
+
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
+
+
+	Mlines_prefsW = gtk_check_button_new_with_label("Simulate M-lines");
+	gtk_widget_set_tooltip_text(Mlines_prefsW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mlines_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, TRUE, FALSE, 3);
+
+	rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
+	gtk_widget_set_tooltip_text(rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, TRUE, FALSE, 3);
+
+	nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
+	gtk_widget_set_tooltip_text(nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, TRUE, FALSE, 3);
+
+	variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
+	gtk_widget_set_tooltip_text(variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, TRUE, FALSE, 3);
+
+	pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
+	gtk_widget_set_tooltip_text(pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, TRUE, FALSE, 3);
+
+
+
+	//separator
+	GtkWidget *separator = gtk_hseparator_new();
+	gtk_box_pack_start(GTK_BOX(master_box), separator, FALSE, FALSE, 3);
+
+	//button box
+	GtkWidget *buttonbox = gtk_hbox_new(TRUE, 2);
+	GtkWidget *applyButton, *cancelButton;
+
+	applyButton = gtk_button_new_from_stock(GTK_STOCK_APPLY);
+	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+	gtk_box_pack_start(GTK_BOX(buttonbox), applyButton, TRUE,FALSE,2);
+	gtk_box_pack_start(GTK_BOX(buttonbox), cancelButton, TRUE,FALSE,2);
+	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
+	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) window);
+
+	
+	gtk_widget_show_all(window);
 }
 

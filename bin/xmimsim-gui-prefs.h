@@ -21,6 +21,7 @@
 
 #include <config.h>
 #include <glib.h>
+#include <gtk/gtk.h>
 
 enum {
 	//gboolean
@@ -31,6 +32,8 @@ enum {
 	XMIMSIM_GUI_PREFS_RAD_CASCADE,
 	//gboolean
 	XMIMSIM_GUI_PREFS_NONRAD_CASCADE,
+	//gboolean
+	XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION,
 	//gboolean
 	XMIMSIM_GUI_PREFS_PILE_UP,
 	//gchar **
@@ -51,5 +54,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs);
 //returns 1 on success, 0 on error
 int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
 
+struct xmi_preferences_data {
+	GtkWidget *window;
+	gint page;
+};
+
+void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 
 #endif

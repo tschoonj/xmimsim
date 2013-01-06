@@ -78,6 +78,7 @@ static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
+static GtkWidget *preferencesW;
 GtkWidget *saveW;
 GtkWidget *save_asW;
 #ifndef MAC_INTEGRATION
@@ -89,6 +90,7 @@ GtkToolItem *saveasT;
 GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
+static GtkToolItem *preferencesT;
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
@@ -3730,9 +3732,18 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
+	preferencesW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PREFERENCES,accel_group);
+	struct xmi_preferences_data xpd;
+	xpd.window = window;
+	xpd.page = 0;
+	g_signal_connect(G_OBJECT(preferencesW),"activate",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
+#ifndef MAC_INTEGRATION
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),g_object_ref(gtk_separator_menu_item_new()));
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),preferencesW);
+#endif
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
 	//both should be greyed out in the beginning
 	gtk_widget_set_sensitive(undoW,FALSE);
@@ -3764,8 +3775,10 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
 	gtk_osxapplication_insert_app_menu_item(theApp, updatesW, 1);
 	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
+	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 3);
   #else
 	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
+	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 2);
   #endif
 	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
 	gtk_osxapplication_set_window_menu(theApp, NULL);
