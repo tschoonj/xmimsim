@@ -226,7 +226,12 @@ XMI_MAIN
 	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
-		exit (1);
+		return 1;
+	}
+
+	if (argc != 2) {
+		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+		return 1;
 	}
 
 	if (omp_num_threads > omp_get_max_threads() ||

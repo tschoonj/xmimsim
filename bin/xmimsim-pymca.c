@@ -206,7 +206,7 @@ XMI_MAIN
 	}
 
 	if (argc != 3) {
-		fprintf(stdout,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
