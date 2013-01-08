@@ -81,6 +81,7 @@ GtkWidget *image_escapeW;
 
 GtkWidget *nthreadsW;
 GtkObject *nthreadsA;
+GTimer *timer;
 
 
 
@@ -437,10 +438,21 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
 	g_return_if_fail(text != NULL);
 
+	glong time_elapsed = (glong) g_timer_elapsed(timer,NULL);
+	glong hours = time_elapsed / 3600;
+	time_elapsed = time_elapsed % 3600;
+	glong minutes = time_elapsed / 60;
+	glong seconds = time_elapsed % 60;
+
+
+	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",hours, minutes, seconds,text);
+
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 
 	start_offset = gtk_text_iter_get_offset(&iter);
-	gtk_text_buffer_insert(buffer, &iter, text,len);
+	gtk_text_buffer_insert(buffer, &iter, to_print,len);
+
+	g_free(to_print);
 
 	if (first_tag == NULL) {
 		gtk_text_buffer_get_end_iter(buffer, &iter);
@@ -466,6 +478,8 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	gtk_text_buffer_place_cursor(buffer,&iter);
        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
 	        insert_mark, 0.0, FALSE, 0, 1.0);
+
+	
 
 	return;
 }
@@ -493,6 +507,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	fprintf(stdout,"Entering start_job\n");
 
+
+
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
 	gtk_widget_set_sensitive(executableW,FALSE);	
@@ -514,6 +530,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		gtk_widget_set_sensitive(nthreadsW,FALSE);	
 
 	reset_controls();
+	timer = g_timer_new();
 
 	argv = (gchar **) g_malloc(sizeof(gchar *)*9);
 	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
@@ -688,6 +705,8 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	char buffer[512];
 	gboolean spinning;
 
+	g_timer_stop(timer);
+
 	gtk_widget_set_sensitive(pauseButton,FALSE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	kill_rv = kill((pid_t) xmimsim_pid, SIGSTOP);
@@ -719,6 +738,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 	}
 	else {
+		g_timer_continue(timer);
 		sprintf(buffer, "Process %i could not be paused.\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		xmimsim_paused=FALSE;
@@ -826,6 +846,10 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 
 	xmimsim_pid = GPID_INACTIVE;
+
+	g_timer_stop(timer);
+	g_timer_destroy(timer);
+
 	//make sensitive again
 	gtk_widget_set_sensitive(executableW,TRUE);	
 	gtk_widget_set_sensitive(executableB,TRUE);	
@@ -844,6 +868,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_sensitive(html_convB,TRUE);	
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
+
 
 	fprintf(stdout,"stop_button_clicked_cb exited\n");
 }
@@ -869,6 +894,8 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		int kill_rv;
 		char buffer[512];
 		gboolean spinning;
+
+		g_timer_continue(timer);
 
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
 		if (kill_rv == 0) {
