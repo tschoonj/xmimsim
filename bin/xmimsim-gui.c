@@ -3810,18 +3810,25 @@ XMI_MAIN
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
+	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
 	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveT,(gint) 3);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) 4);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) 5);
+	GtkToolItem *separatorT = gtk_separator_tool_item_new();
+	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
+	gtk_tool_item_set_expand(separatorT, TRUE);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 7);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -3832,6 +3839,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);

@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 
+#include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
@@ -28,45 +29,176 @@ GtkWidget *nonrad_cascade_prefsW;
 GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 
+GtkWidget *check_updates_prefsW;
+
+enum {
+	URL_COLUMN_PREFS,
+	N_COLUMNS_PREFS
+};
+
+
+static int current_index;
+static int current_nindices;
+static GtkTreeIter current_iter;
+
 gchar * xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
+		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
+
+static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	GtkListStore *store_prefsL = (GtkListStore *) data;
+
+	gtk_list_store_remove(store_prefsL, &current_iter);
+
+	return;
+}
+
+static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, gpointer data) {
+	GtkListStore *store_prefsL = (GtkListStore *) data;
+
+	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1); 
+
+	return;
+}
+
+static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	GtkTreeIter iter;
+	GtkWidget *tree = GTK_WIDGET(data);
+	GtkListStore *store_prefsL = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)));
+
+	gtk_list_store_append(store_prefsL, &iter);
+	gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, "http://", -1);
+
+	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
+	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);   
+	gtk_widget_realize(tree);
+	gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, column, TRUE);
+	gtk_widget_grab_focus(tree);
+	gtk_tree_path_free(path);
+
+	return;
+}
+
+static void url_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
+	GtkWidget *removeButton = GTK_WIDGET(data);
+	GtkTreeIter temp_iter;
+	GtkTreeModel *model;
+	gboolean valid;
+
+	if (gtk_tree_selection_get_selected(selection, &model, &current_iter)) {
+		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+		current_index = 0;
+		current_nindices = 0;
+		while (valid) {
+			if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
+				current_index = current_nindices;
+			}
+			current_nindices++;
+			valid = gtk_tree_model_iter_next(model, &temp_iter);
+		}
+		if (current_nindices > 1) {
+			gtk_widget_set_sensitive(removeButton, TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(removeButton, FALSE);
+		}
+	}
+	else {
+		gtk_widget_set_sensitive(removeButton, FALSE);
+	}
+
+	return;
+}
+
+
 static void preferences_cancel_button_clicked(GtkWidget *button, gpointer data) {
 	gtk_widget_destroy(GTK_WIDGET(data));
 	return;
 }
 
 
+struct preferences_apply {
+	GtkWidget *window;
+	GtkTreeModel *model;
+};
+
+
+static void preferences_error_handler(GtkWidget *window) {
+	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+	exit(1);
+	
+}
+
+
 static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	//read everything and store it in the preferences file
 	union xmimsim_prefs_val xpv;
+	struct preferences_apply *pa = (struct preferences_apply *) data;
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Mlines_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
 		//abort	
+		preferences_error_handler(pa->window);
 	}
 	
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
 		//abort	
+		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
 		//abort	
+		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
 		//abort	
+		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_up_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
 		//abort	
+		preferences_error_handler(pa->window);
 	}
 
-	gtk_widget_destroy(GTK_WIDGET(data));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_updates_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+
+	gchar **urls = NULL;
+	GtkTreeIter temp_iter;
+	GtkTreeModel *model = pa->model;
+	gboolean valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+
+	gint nurls = 0;
+	while(valid) {
+		nurls++;
+		urls = (gchar **) g_realloc(urls, sizeof(gchar *)*(nurls+1));
+		gtk_tree_model_get(model, &temp_iter, URL_COLUMN_PREFS, urls+nurls-1, -1);
+		valid = gtk_tree_model_iter_next(model, &temp_iter);
+	}
+	urls[nurls] = NULL;
+	
+	xpv.ss = urls;
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+	
+	g_strfreev(xpv.ss);	
+	
+
+	gtk_widget_destroy(pa->window);
 	return;
 }
 
@@ -75,8 +207,8 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	
 	//file does not exist, is not accessible or is not in key format
 	//prepare file with default values
-	g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
-	g_key_file_set_comment(keyfile, NULL, NULL, "This file should be modified through the preferences interface",NULL);
+	//g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
+	//g_key_file_set_comment(keyfile, NULL, NULL, "This file should be modified through the preferences interface",NULL);
 	g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
 	g_key_file_set_boolean(keyfile, "Preferences","Check for updates", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
@@ -339,7 +471,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	master_box = gtk_vbox_new(FALSE,2);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
-	gtk_widget_set_size_request(GTK_WINDOW(window),350,350);
+	gtk_widget_set_size_request(window,450,450);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -348,7 +480,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	//gtk_window_set_deletable(GTK_WINDOW(window), FALSE);
 
 	notebook = gtk_notebook_new();
-	gtk_box_pack_start(GTK_BOX(master_box), notebook, TRUE,TRUE,3);
+	gtk_box_pack_start(GTK_BOX(master_box), notebook, TRUE,TRUE,1);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_container_add(GTK_CONTAINER(window), master_box);
 
@@ -365,7 +497,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
 
 	label = gtk_label_new("Simulation defaults");
-	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation option defaults</span>");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation defaults</span>");
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 
@@ -374,59 +506,152 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_tooltip_text(Mlines_prefsW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mlines_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, FALSE, FALSE, 3);
 
 	rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, FALSE, FALSE, 3);
 
 	nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, FALSE, FALSE, 3);
 
 	variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, FALSE, FALSE, 3);
 
 	pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, FALSE, FALSE, 3);
+
+
+	//second page
+	//THIS SHOULD ONLY APPEAR WHEN NOT WORKING IN RPM OR --disable-updates MODE!!!
+	superframe = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
+
+	label = gtk_label_new("");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Updates</span>");
+
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
+
+	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_updates_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), check_updates_prefsW, TRUE, FALSE, 3);
+
+	label = gtk_label_new("Download locations for updates");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(superframe), label, FALSE, FALSE, 2);
+
+	GtkWidget *updatesboxW = gtk_hbox_new(FALSE,5);
+	GtkListStore *store_prefsL;
+	GtkTreeViewColumn *column;
+	GtkTreeSelection *select;
+	GtkCellRenderer *renderer;
+	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING);
+	GtkWidget *tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_prefsL));
+	renderer = gtk_cell_renderer_text_new();
+	g_signal_connect(renderer, "edited", G_CALLBACK(url_edited_cb), (gpointer) store_prefsL);
+	g_object_set(renderer, "editable", TRUE, NULL);
+	my_gtk_cell_renderer_set_alignment(renderer, 0., 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Website", renderer,"text",URL_COLUMN_PREFS,NULL);
+	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_alignment(column, 0.);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
+	
+	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_widget_set_size_request(scrolled_window, 300,150);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), tree);
+	gtk_box_pack_start(GTK_BOX(updatesboxW),scrolled_window, FALSE, FALSE,3 );
+
+
+	GtkWidget *buttonbox = gtk_vbox_new(FALSE, 5);
+	GtkWidget *addButton;
+	GtkWidget *editButton;
+	GtkWidget *removeButton;
+
+	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
+	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
+	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+
+	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), removeButton, TRUE, FALSE, 3);
+	gtk_widget_set_sensitive(removeButton, FALSE);
+	g_signal_connect(G_OBJECT(removeButton), "clicked", G_CALLBACK(url_delete_button_clicked_cb) , (gpointer) store_prefsL);
+	g_signal_connect(G_OBJECT(addButton), "clicked", G_CALLBACK(url_add_button_clicked_cb) , (gpointer) tree);
+
+	gtk_box_pack_start(GTK_BOX(updatesboxW),buttonbox, TRUE, FALSE, 3);
+
+	int i;
+
+	//populate tree
+	GtkTreeIter iter;
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
+		gtk_list_store_append(store_prefsL,&iter);
+		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
+	}	
+
+	
+	gtk_box_pack_start(GTK_BOX(superframe), updatesboxW, FALSE, FALSE, 2);
+
+
+	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(url_selection_changed_cb), (gpointer) removeButton);
 
 
 
+	//back to master_box
 	//separator
-	GtkWidget *separator = gtk_hseparator_new();
-	gtk_box_pack_start(GTK_BOX(master_box), separator, FALSE, FALSE, 3);
+	//GtkWidget *separator = gtk_hseparator_new();
+	//gtk_box_pack_start(GTK_BOX(master_box), separator, FALSE, FALSE, 3);
 
 	//button box
-	GtkWidget *buttonbox = gtk_hbox_new(TRUE, 2);
+	buttonbox = gtk_hbox_new(TRUE, 2);
 	GtkWidget *applyButton, *cancelButton;
 
 	applyButton = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
 	gtk_box_pack_start(GTK_BOX(buttonbox), applyButton, TRUE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(buttonbox), cancelButton, TRUE,FALSE,2);
-	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 6);
 	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
-	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) window);
+	struct preferences_apply *pa = (struct preferences_apply *) malloc(sizeof(struct preferences_apply));
+	pa->window = window;
+	pa->model = GTK_TREE_MODEL(store_prefsL);
+	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pa);
 
 	
 	gtk_widget_show_all(window);

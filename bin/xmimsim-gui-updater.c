@@ -395,7 +395,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 	//get value from preferences
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(update_dialog),
 			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
@@ -434,8 +434,8 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
-	//filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
-	filename = g_strdup_printf("XMI-MSIM.dmg");
+	filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
+	//filename = g_strdup_printf("XMI-MSIM.dmg");
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
 	NSString *documentsDirectory = [paths objectAtIndex:0];
 	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
@@ -452,9 +452,7 @@ int download_updates(GtkWidget *window, char *max_version) {
 	
 #endif
 
-	gchar *url = g_strdup_printf(XMIMSIM_DOWNLOADS_LOCATION "/%s",filename);
 
-	curl_easy_setopt(curl, CURLOPT_URL,url);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");

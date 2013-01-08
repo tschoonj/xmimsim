@@ -62,7 +62,7 @@ int addOrEdit;
 int discOrCont;
 int current_index;
 int current_nindices;
-GtkTreeIter current_iter;
+static GtkTreeIter current_iter;
 
 
 struct energiesWidget *contWidget;
