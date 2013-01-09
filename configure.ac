@@ -143,7 +143,7 @@ if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKE
 			AC_DEFINE([HAVE_GTK_MAC_INTEGRATION_2],[],gtk-mac-integration-2.0 present)
 			],[GTK_MAC_INTEGRATION_FOUND=no])
 	
-		if test "x$GTK_MAX_INTEGRATION_FOUND" = xyes ; then
+		if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
 	   		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 1.0.1,[
 				GTK_MAC_INTEGRATION_FOUND=yes
 			],[GTK_MAC_INTEGRATION_FOUND=no])

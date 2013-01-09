@@ -19,6 +19,7 @@
 
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
+#include <stdlib.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
 #endif
@@ -169,6 +170,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		preferences_error_handler(pa->window);
 	}
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_updates_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
 		//abort	
@@ -196,7 +198,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 	
 	g_strfreev(xpv.ss);	
-	
+#endif
 
 	gtk_widget_destroy(pa->window);
 	return;
@@ -549,7 +551,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 
 	//second page
-	//THIS SHOULD ONLY APPEAR WHEN NOT WORKING IN RPM OR --disable-updates MODE!!!
 	superframe = gtk_vbox_new(FALSE,5);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 
@@ -557,6 +558,16 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Updates</span>");
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
+	GtkWidget *buttonbox;
+
+#if defined(RPM_BUILD)
+	label = gtk_label_new("XMI-MSIM was built with Redhat Package Manager. All updates should be installed with yum.");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
+
+#elif defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 
 	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
@@ -595,7 +606,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(updatesboxW),scrolled_window, FALSE, FALSE,3 );
 
 
-	GtkWidget *buttonbox = gtk_vbox_new(FALSE, 5);
+	buttonbox = gtk_vbox_new(FALSE, 5);
 	GtkWidget *addButton;
 	GtkWidget *editButton;
 	GtkWidget *removeButton;
@@ -631,7 +642,13 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(url_selection_changed_cb), (gpointer) removeButton);
 
-
+#else
+	label = gtk_label_new("XMI-MSIM was built without support for automatic updates. Consider recompiling after installing libcurl and json-glib.");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
+#endif
 
 	//back to master_box
 	//separator
@@ -650,7 +667,11 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
 	struct preferences_apply *pa = (struct preferences_apply *) malloc(sizeof(struct preferences_apply));
 	pa->window = window;
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 	pa->model = GTK_TREE_MODEL(store_prefsL);
+#else
+	pa->model = NULL;
+#endif
 	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pa);
 
 	
