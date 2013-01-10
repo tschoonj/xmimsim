@@ -590,7 +590,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	char *xmimsim_hdf5_solid_angles = NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	
-	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0) {
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
@@ -600,7 +600,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
 	arg_counter++;
 
-	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0) {
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
 		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);

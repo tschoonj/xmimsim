@@ -326,7 +326,7 @@ XMI_MAIN
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
-		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
 		//check if solid angles are already precalculated
@@ -479,7 +479,7 @@ XMI_MAIN
 #endif
 
 		//read escape ratios
-		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
+		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 			return 1;
 
 		if (options.verbose)

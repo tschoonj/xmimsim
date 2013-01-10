@@ -352,7 +352,7 @@ void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
 	free(solid_angle->xmi_input_string);
 }
 
-int xmi_get_solid_angle_file(char **filePtr) {
+int xmi_get_solid_angle_file(char **filePtr, int create_file) {
 	//behavior is very much platform dependent
 	//general rule
 	//Linux: use g_get_user_data_dir
@@ -387,7 +387,7 @@ int xmi_get_solid_angle_file(char **filePtr) {
 	}
 
 	//check if file exists
-	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR) && create_file) {
 		//create underlying directory if necessary
 		dir = g_path_get_dirname(file);
 		if (g_mkdir_with_parents(dir,S_IRUSR | S_IWUSR | S_IXUSR) == -1) {

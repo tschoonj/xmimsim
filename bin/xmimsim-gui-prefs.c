@@ -19,6 +19,10 @@
 
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmi_detector.h"
+#include "xmi_solid_angle.h"
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <stdlib.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
@@ -46,6 +50,42 @@ gchar * xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
+
+static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
+	GtkWidget *window = (GtkWidget *) data;
+	
+	//generate dialog
+	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
+		"Are you certain you want to delete the solid angles HDF5 file? This operation cannot be undone!");
+	gint rv = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (rv == GTK_RESPONSE_YES) {
+		//delete the file
+		char *file=NULL;
+		xmi_get_solid_angle_file(&file, 0);
+		g_fprintf(stdout, "solid_angle_file: %s\n",file);
+		g_unlink(file);
+		free(file);
+	}
+	gtk_widget_destroy(dialog);
+}
+
+static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
+	GtkWidget *window = (GtkWidget *) data;
+	
+	//generate dialog
+	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
+		"Are you certain you want to delete the escape ratios HDF5 file? This operation cannot be undone!");
+	gint rv = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (rv == GTK_RESPONSE_YES) {
+		//delete the file
+		char *file=NULL;
+		xmi_get_escape_ratios_file(&file, 0);
+		g_unlink(file);
+		free(file);
+	}
+	gtk_widget_destroy(dialog);
+}
+
 
 static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkListStore *store_prefsL = (GtkListStore *) data;
@@ -649,6 +689,32 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 #endif
+
+	//Third page: advanced
+	superframe = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
+
+	label = gtk_label_new("");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Advanced</span>");
+
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
+
+
+	GtkWidget *hbox = gtk_hbox_new(FALSE,2);
+	GtkWidget *button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
+	label = gtk_label_new("Remove the solid angles HDF5 file");
+	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_solid_angles_clicked_cb), (gpointer) window);
+
+	hbox = gtk_hbox_new(FALSE,2);
+	button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
+	label = gtk_label_new("Remove the escape ratios HDF5 file");
+	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_escape_ratios_clicked_cb), (gpointer) window);
 
 	//back to master_box
 	//separator
