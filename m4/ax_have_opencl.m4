@@ -71,6 +71,7 @@ AC_DEFUN([AX_HAVE_OPENCL],
     AC_MSG_WARN([no OpenCL library found])
     CL_ENABLED=false
     CL_VERSION=0
+    no_cl=yes
   else
     CL_ENABLED=true
     CPPFLAGS_CL=""
@@ -94,6 +95,11 @@ AC_DEFUN([AX_HAVE_OPENCL],
 	CPPFLAGS_CL="-I/usr/local/cuda/include"
       fi
       AC_MSG_RESULT([$HAVE_CL_H])
+    fi
+    if test x"$HAVE_CL_H" = xyes ; then
+    	no_cl=no
+    else
+    	no_cl_yes
     fi
   fi
 ])

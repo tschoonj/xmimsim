@@ -62,7 +62,7 @@ if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
 libxmimsim_la_CFLAGS += @gmodule_CFLAGS@ 
 libxmimsim_la_LIBADD += @gmodule_LIBS@
-xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@
+xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
 xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include -DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\"
 xmimsim_cl_la_LIBADD = @LIBS_CL@
 xmimsim_cl_la_SOURCES = xmi_solid_angle.c

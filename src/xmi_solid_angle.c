@@ -61,7 +61,13 @@ extern long hits_per_single;
 #endif
 
 
+#ifdef MAC_INTEGRATION
+#include "xmi_resources_mac.h"
+#endif
 
+#ifdef _WIN32
+  #include "xmi_registry_win.h"
+#endif
 
 #ifndef XMIMSIM_CL
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
@@ -70,15 +76,29 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 	XmiSolidAngleCalculation my_xmi_solid_angle_calculation_cl;
 	GModule *module;
 	gchar *module_path;
+	gchar *opencl_lib;
+
 	if (xmo.use_opencl) {
 		//try to open the module
 		if (!g_module_supported()) {
 			fprintf(stderr,"No module support on this platform\n");
 			goto fallback;
 		}
-		module_path = g_strdup_printf("%s/%s.%s",XMI_OPENCL_LIB,"xmimsim-cl",G_MODULE_SUFFIX);
+
+#ifdef G_OS_WIN32
+		if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_LIB,&opencl_lib) == 0)
+			goto fallback;
+#elif defined(MAC_INTEGRATION)
+		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_LIB,&opencl_lib) == 0)
+			goto fallback;
+#else
+		opencl_lib = g_strdup(XMI_OPENCL_LIB);
+#endif
+
+		module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s",opencl_lib,"xmimsim-cl",G_MODULE_SUFFIX);
 		module = g_module_open(module_path, 0);
 		g_free(module_path);
+		g_free(opencl_lib);
 		if (!module) {
 			fprintf(stderr,"Could not open xmimsim-cl: %s\n", g_module_error());
 			goto fallback;
@@ -638,17 +658,35 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	
 
 	gchar *kernel_code;
-	if(g_file_get_contents(XMI_OPENCL_CODE "/xmi_kernels.cl", &kernel_code, NULL, NULL) == FALSE) {
-		fprintf(stderr,"Could not open %s\n",XMI_OPENCL_CODE "/xmi_kernels.cl");
+	gchar *opencl_code;
+
+#ifdef G_OS_WIN32
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_CODE,&opencl_code) == 0)
+		return 0;
+#elif defined(MAC_INTEGRATION)
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_CODE,&opencl_code) == 0)
+		return 0;
+#else
+	opencl_code = g_strdup(XMI_OPENCL_CODE);
+#endif
+
+	gchar *kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);;
+
+
+	if(g_file_get_contents(kernel_file, &kernel_code, NULL, NULL) == FALSE) {
+		fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
+
+	g_free(kernel_file);
 	
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
 
-	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,XMI_OPENCL_CODE);
+	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,opencl_code);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
 	g_free(build_options);
+	g_free(opencl_code);
 	//OPENCL_ERROR(clBuildProgram)
 
 	if (status == CL_BUILD_PROGRAM_FAILURE) {

@@ -359,14 +359,24 @@ AC_SUBST(OPENMPI_LIBADD)
 AC_SUBST(OPENMPI_CFLAGS)
 
 #OpenCL test
-AX_HAVE_OPENCL
-if test "x$no_cl" = "xyes" ; then
-AC_MSG_NOTICE([no OpenCL implementation found])
-else
-PKG_CHECK_MODULES([gmodule],gmodule-2.0)
-AC_MSG_NOTICE([ OpenCL implementation found])
-AC_SUBST(CPPFLAGS_CL)
-AC_SUBST(LIBS_CL)
+no_cl=yes
+
+AC_ARG_ENABLE([opencl],[AS_HELP_STRING([--disable-opencl],[build without OpenCL support])],[enable_opencl=$enableval],[enable_opencl=check])
+
+if test "x$enable_opencl" != xno ; then
+	AX_HAVE_OPENCL
+	if test "x$no_cl" = xyes ; then
+		if test "x$enable_opencl" = xcheck ; then
+		AC_MSG_NOTICE([no OpenCL implementation found])
+		else
+		AC_MSG_ERROR([no OpenCL implementation found])
+		fi
+	else
+		PKG_CHECK_MODULES([gmodule],gmodule-2.0)
+		AC_MSG_NOTICE([OpenCL implementation found])
+		AC_SUBST(CPPFLAGS_CL)
+		AC_SUBST(LIBS_CL)
+	fi
 fi
 
 AM_CONDITIONAL([ENABLE_OPENCL], [test "x$no_cl" != "xyes"])
