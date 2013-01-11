@@ -47,7 +47,7 @@ libxmimsim_la_CFLAGS = @H5FC_INCLUDE@ @PTHREAD_CFLAGS@ @xslt_CFLAGS@ @gsl_CFLAGS
 	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\"
 libxmimsim_la_FCFLAGS =@H5FC_INCLUDE@ @OPENMP_FCFLAGS@ @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
-libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_LIBS@ @H5FC_STATIC@ @fgsl_LIBS@ @glib2_LIBS@ 
+libxmimsim_la_LIBADD = @H5FC_LINKER@ @PTHREAD_LIBS@ @xslt_LIBS@ @xraylib_f2003_LIBS@ @H5FC_STATIC@ @fgsl_LIBS@ @glib2_LIBS@ @GTK_MAC_LIBS@
 
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 
