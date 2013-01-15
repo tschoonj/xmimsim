@@ -55,7 +55,7 @@ xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
 xmimsim_harvester_LDADD = ../src/libxmimsim.la
 
 
-xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h xmimsim-gui-prefs.h xmimsim-gui-prefs.c
+xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h xmimsim-gui-prefs.h xmimsim-gui-prefs.c xmimsim-gui-tools.c xmimsim-gui-tools.h
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif

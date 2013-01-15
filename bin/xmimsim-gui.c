@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-tools.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -79,6 +80,7 @@ static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
 static GtkWidget *preferencesW;
+
 GtkWidget *saveW;
 GtkWidget *save_asW;
 #ifndef MAC_INTEGRATION
@@ -3532,6 +3534,16 @@ XMI_MAIN
 	GtkWidget *file;
 	GtkWidget *editmenu;
 	GtkWidget *edit;
+	GtkWidget *toolsmenu;
+	GtkWidget *tools;
+	GtkWidget *convertW;
+	GtkWidget *convertmenu;
+	GtkWidget *xmso2xmsiW;
+	GtkWidget *xmso2csvW;
+	GtkWidget *xmso2htmlW;
+	GtkWidget *xmso2svgW;
+	GtkWidget *xmso2speW;
+
 	GtkWidget *frame;
 	GtkWidget *superframe;
 	GtkWidget *label;
@@ -3732,6 +3744,35 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
+
+	//Tools
+	toolsmenu = gtk_menu_new();
+	tools = gtk_menu_item_new_with_label("Tools");
+	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
+
+	convertmenu = gtk_menu_new();
+	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
+	xmso2csvW = gtk_menu_item_new_with_label("CSV");
+	xmso2svgW = gtk_menu_item_new_with_label("SVG");
+	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
+	xmso2speW = gtk_menu_item_new_with_label("SPE");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2xmsiW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2csvW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2svgW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2htmlW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2speW);
+	g_signal_connect(G_OBJECT(xmso2xmsiW), "activate", G_CALLBACK(xmimsim_gui_xmso2xmsi), (gpointer) window);
+	//g_signal_connect(G_OBJECT(xmso2csvW), "activate", G_CALLBACK(xmimsim_gui_xmso2csv), (gpointer) window);
+	//g_signal_connect(G_OBJECT(xmso2svgW), "activate", G_CALLBACK(xmimsim_gui_xmso2svg), (gpointer) window);
+	//g_signal_connect(G_OBJECT(xmso2htmlW), "activate", G_CALLBACK(xmimsim_gui_xmso2html), (gpointer) window);
+	//g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
+
+
+
 	preferencesW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PREFERENCES,accel_group);
 	struct xmi_preferences_data xpd;
 	xpd.window = window;
@@ -3740,11 +3781,12 @@ XMI_MAIN
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),tools);
 #ifndef MAC_INTEGRATION
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),g_object_ref(gtk_separator_menu_item_new()));
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),preferencesW);
 #endif
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
 	//both should be greyed out in the beginning
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
