@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 XMI_MAIN
 	GError *error = NULL;
-        unsigned type=0;
+        unsigned type=1;
 	static int use_unconvoluted=0;
 
 
@@ -60,7 +60,7 @@ XMI_MAIN
 
  	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
         
-        if(use_unconvoluted == 1) type = 1;
+        if(use_unconvoluted == 1) type = 0;
 
         // type = 0 is convoluted, type = 1 is unconvoluted
 	if (xmi_xmso_to_htm_xslt(argv[1], argv[2], type) == 0) {

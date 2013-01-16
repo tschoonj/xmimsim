@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 
 void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data);
-//void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
 //void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data);
 //void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data);
 //void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data);
