@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2012 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,35 +15,23 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+
+#ifndef XMIMSIM_GUI_UPDATER_H
+#define XMIMSIM_GUI_UPDATER_H
+
 #include <gtk/gtk.h>
-#include "xmi_data_structs.h"
 
 enum {
-	LW_ADD,
-	LW_EDIT,
+	XMIMSIM_UPDATES_ERROR,
+	XMIMSIM_UPDATES_AVAILABLE,
+	XMIMSIM_UPDATES_NONE
 };
 
-struct layerWidget {
-	GtkWidget *window;
-	GtkListStore *store;
-	struct xmi_layer ** my_layer;
-	GtkWidget *sumEntry;
-	GtkWidget *densityEntry;
-	GtkWidget *thicknessEntry;
-	GtkWidget *editButton;
-	GtkWidget *okButton;
-	GtkWidget *cancelButton;
-	GtkWidget *removeButton;
-	int matrixKind;
-	int AddOrEdit;
-	int layerNumber;
-	GtkTreeIter iter;
-	gulong densityG;
-	gulong thicknessG;
-	
 
-};
 
-struct layerWidget * initialize_layer_widget(struct xmi_layer **); 
+int check_for_updates(char **max_version);
 
-GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint response_id);
+int download_updates(GtkWidget *window, char *max_version);
+
+#endif

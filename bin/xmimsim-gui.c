@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-tools.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -52,6 +53,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+	#include "xmimsim-gui-updater.h"
+#endif
+
+#include "xmimsim-gui-prefs.h"
 
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
@@ -73,6 +79,8 @@ static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
+static GtkWidget *preferencesW;
+
 GtkWidget *saveW;
 GtkWidget *save_asW;
 #ifndef MAC_INTEGRATION
@@ -84,7 +92,11 @@ GtkToolItem *saveasT;
 GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
+static GtkToolItem *preferencesT;
 
+#ifdef XMIMSIM_GUI_UPDATER_H
+static GtkWidget *updatesW;
+#endif
 
 //composition 
 struct layerWidget *layerW;
@@ -385,7 +397,101 @@ void adjust_save_buttons(void) {
 
 }
 
+#ifdef XMIMSIM_GUI_UPDATER_H
 
+static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
+	char *max_version;
+
+	int rv;
+
+	//do this only if it is allowed by the preferences
+	union xmimsim_prefs_val prefs;
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+	        gtk_widget_destroy(dialog);
+#ifdef MAC_INTEGRATION
+		GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+		quit_program_cb(app, window);
+#else
+		quit_program_cb(window, window);
+#endif
+	}
+	if (prefs.b == FALSE)
+		return FALSE;
+
+
+	//gtk_widget_set_sensitive(updatesW,FALSE);
+	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
+	rv = check_for_updates(&max_version);
+	if (rv == XMIMSIM_UPDATES_ERROR) {
+		//do nothing
+	}
+	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
+		rv = download_updates(window, max_version);
+		if (rv == 1) {
+			//exit XMI-MSIM
+#ifdef MAC_INTEGRATION
+			GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+			quit_program_cb(app, window);
+#else
+			quit_program_cb(window, window);
+#endif
+		}
+	}
+	else if (rv == XMIMSIM_UPDATES_NONE) {
+		//do nothing
+	}
+	//gtk_widget_set_sensitive(updatesW,TRUE);
+	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
+
+
+
+
+	return FALSE;
+}
+
+static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) {
+	char *max_version;
+
+	int rv;
+	
+	//gtk_widget_set_sensitive(updatesW,FALSE);
+	rv = check_for_updates(&max_version);
+
+	if (rv == XMIMSIM_UPDATES_ERROR) {
+		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "An error occurred while checking for updates.\nCheck your internet connection\nor try again later.");
+		gtk_dialog_run(GTK_DIALOG(update_dialog));
+		gtk_widget_destroy(update_dialog);
+	}
+	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
+		rv = download_updates(window, max_version);
+		if (rv == 1) {
+			//exit XMI-MSIM
+#ifdef MAC_INTEGRATION
+			GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+			quit_program_cb(app, window);
+#else
+			quit_program_cb(window, window);
+#endif
+		}
+	}
+	else if (rv == XMIMSIM_UPDATES_NONE) {
+		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GTK_DIALOG_MODAL, GTK_MESSAGE_INFO , GTK_BUTTONS_CLOSE, "No updates are available at this time.\nPlease check again later.");
+		gtk_dialog_run(GTK_DIALOG(update_dialog));
+		gtk_widget_destroy(update_dialog);
+	}
+
+
+	//gtk_widget_set_sensitive(updatesW,TRUE);
+
+
+	return;
+}
+#endif
 
 
 
@@ -2486,18 +2592,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	adjust_save_buttons();
 }
 
-static void file_menu_click(GtkWidget *widget, gpointer data) {
-
-#if DEBUG == 1
-	g_print("%s\n",(char *) data);
-#endif
-
-	if (strcmp((char *)data, "quit") == 0)
-		gtk_main_quit();
-
-
-}
-
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 
 	//should always work out
@@ -3446,6 +3540,16 @@ XMI_MAIN
 	GtkWidget *file;
 	GtkWidget *editmenu;
 	GtkWidget *edit;
+	GtkWidget *toolsmenu;
+	GtkWidget *tools;
+	GtkWidget *convertW;
+	GtkWidget *convertmenu;
+	GtkWidget *xmso2xmsiW;
+	GtkWidget *xmso2csvW;
+	GtkWidget *xmso2htmlW;
+	GtkWidget *xmso2svgW;
+	GtkWidget *xmso2speW;
+
 	GtkWidget *frame;
 	GtkWidget *superframe;
 	GtkWidget *label;
@@ -3646,10 +3750,49 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
+
+	//Tools
+	toolsmenu = gtk_menu_new();
+	tools = gtk_menu_item_new_with_label("Tools");
+	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
+
+	convertmenu = gtk_menu_new();
+	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
+	xmso2csvW = gtk_menu_item_new_with_label("CSV");
+	xmso2svgW = gtk_menu_item_new_with_label("SVG");
+	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
+	xmso2speW = gtk_menu_item_new_with_label("SPE");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2xmsiW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2csvW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2svgW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2htmlW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2speW);
+	g_signal_connect(G_OBJECT(xmso2xmsiW), "activate", G_CALLBACK(xmimsim_gui_xmso2xmsi), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2csvW), "activate", G_CALLBACK(xmimsim_gui_xmso2csv), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2svgW), "activate", G_CALLBACK(xmimsim_gui_xmso2svg), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2htmlW), "activate", G_CALLBACK(xmimsim_gui_xmso2html), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
+
+
+
+	preferencesW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PREFERENCES,accel_group);
+	struct xmi_preferences_data xpd;
+	xpd.window = window;
+	xpd.page = 0;
+	g_signal_connect(G_OBJECT(preferencesW),"activate",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),tools);
+#ifndef MAC_INTEGRATION
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),g_object_ref(gtk_separator_menu_item_new()));
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),preferencesW);
+#endif
 	//both should be greyed out in the beginning
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
@@ -3675,7 +3818,16 @@ XMI_MAIN
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
 	gtk_osxapplication_insert_app_menu_item(theApp, aboutW, 0);
+  #ifdef XMIMSIM_GUI_UPDATER_H
+	updatesW = gtk_menu_item_new_with_label("Check for updates...");
+	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
+	gtk_osxapplication_insert_app_menu_item(theApp, updatesW, 1);
+	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
+	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 3);
+  #else
 	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
+	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 2);
+  #endif
 	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
 	gtk_osxapplication_set_window_menu(theApp, NULL);
 #else
@@ -3687,7 +3839,11 @@ XMI_MAIN
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	
+  #ifdef XMIMSIM_GUI_UPDATER_H	
+	updatesW = gtk_menu_item_new_with_label("Check for updates...");
+	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),updatesW);
+  #endif
 
 	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
@@ -3702,12 +3858,25 @@ XMI_MAIN
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
+	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
+	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(saveT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(undoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveT,(gint) 3);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) 4);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) 5);
+	GtkToolItem *separatorT = gtk_separator_tool_item_new();
+	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
+	gtk_tool_item_set_expand(separatorT, TRUE);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 7);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -3718,6 +3887,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
@@ -3842,6 +4012,8 @@ XMI_MAIN
 	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 	gtk_widget_show_all(notebook);
+	gtk_widget_grab_focus(label);
+	
 
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
@@ -4359,9 +4531,11 @@ XMI_MAIN
 	}
 
 
-
-
-
+#ifdef XMIMSIM_GUI_UPDATER_H
+	g_idle_add((GSourceFunc) check_for_updates_on_init_cb, window);	
+	
+#endif
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	gtk_main();
 
 #ifdef MAC_INTEGRATION

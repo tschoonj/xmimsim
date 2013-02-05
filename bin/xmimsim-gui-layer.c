@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2012 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ static ResponseData* get_response_data (GtkWidget *widget, gboolean   create) {
 	return ad;
 }
 
-static GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint       response_id) {
+GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint       response_id) {
 	GList *children;
 	GList *tmp_list;
 

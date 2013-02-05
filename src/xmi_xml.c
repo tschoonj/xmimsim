@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <config.h>
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_lines.h"

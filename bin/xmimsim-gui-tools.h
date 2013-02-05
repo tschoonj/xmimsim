@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,16 +15,18 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_XSLT_H
-#define XMI_XSLT_H
 
 
-int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile, char *outputfile);
-//passing 1 for convoluted will use the convoluted spectra, 0 the unconvoluted
-int xmi_xmso_to_svg_xslt(char *xmsofile, char *svgfile, unsigned convoluted);
-int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int interaction_number);
-int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted);
-int xmi_xmso_to_htm_xslt(char *xmsofile, char *htmlfile, unsigned convoluted);
+#ifndef XMIMSIM_GUI_TOOLS_H
+#define XMIMSIM_GUI_TOOLS_H
+
+#include <gtk/gtk.h>
+
+void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data);
 
 
 #endif

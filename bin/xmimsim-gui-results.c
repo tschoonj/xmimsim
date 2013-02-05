@@ -849,7 +849,9 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	spectra_box = gtk_vbox_new(FALSE,1);
 	spectra_button_box = gtk_vbox_new(TRUE,3);
-	gtk_box_pack_start(GTK_BOX(spectra_button_box),gtk_label_new("Please run a simulation\nor load an XMSO file"),TRUE,TRUE,0);
+	GtkWidget *label = gtk_label_new("Please run a simulation\nor load an XMSO file");
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_box_pack_start(GTK_BOX(spectra_button_box),label,TRUE,TRUE,0);
 	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,FALSE,FALSE,0);	
 
 

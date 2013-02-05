@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[1.0],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[0.9],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.60])
 AC_CONFIG_AUX_DIR([build-aux])
 
@@ -111,15 +111,45 @@ fi
 
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes)])
 
+JSONGLIB_FOUND=no
+LIBCURL_FOUND=no
+AC_ARG_ENABLE([updater],[AS_HELP_STRING([--disable-updater],[build without updater])],[enable_updater=$enableval],[enable_updater=check])
+if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) && test "x$enable_updater" != xno ; then
+	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8, 
+	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
+	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
+	PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2, 
+	AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
+	[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
+	if test "x$enable_updater" = "xyes" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
+		AC_MSG_ERROR([no Json-Glib and/or no libcurl were found on the system, which are required to compile the updater routines])
+	elif test "x$enable_updater" = "xcheck" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
+		AC_MSG_WARN([no Json-Glib and/or no libcurl were found on the system. The updater routines will not be compiled])
+	fi
+fi
+
+AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL_FOUND" = xyes])
+
+
 GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
 	#check for quartz backend
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz; then 
-	   PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration,[GTK_MAC_INTEGRATION_FOUND=yes],[GTK_MAC_INTEGRATION_FOUND=no])
-	   #AC_SUBST(GTK_MAC_LIBS)
-	   #AC_SUBST(GTK_MAC_CFLAGS)
+		
+	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
+			GTK_MAC_INTEGRATION_FOUND=yes
+			AC_DEFINE([HAVE_GTK_MAC_INTEGRATION_2],[],gtk-mac-integration-2.0 present)
+			],[GTK_MAC_INTEGRATION_FOUND=no])
+	
+		if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
+	   		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 1.0.1,[
+				GTK_MAC_INTEGRATION_FOUND=yes
+			],[GTK_MAC_INTEGRATION_FOUND=no])
+		fi
+	   	#AC_SUBST(GTK_MAC_LIBS)
+	   	#AC_SUBST(GTK_MAC_CFLAGS)
 	   
 	fi
 

@@ -273,7 +273,7 @@ XMI_MAIN
 
 
 	//determine filename first
-	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 		return 1;
 
 
@@ -545,7 +545,7 @@ XMI_MAIN
 
 
 	//read escape ratios
-	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 		return 1;
 
 

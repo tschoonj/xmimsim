@@ -24,7 +24,7 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "2.15.0"
+!define XRAYLIB_VERSION "2.16.0"
 
 SetCompressor /SOLID lzma
 !include "MUI2.nsh"
@@ -109,7 +109,7 @@ ${Endif}
 
 xraylib:
 #NSISdl::download /TIMEOUT=30000 https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe xraylib-${XRAYLIB_VERSION}-win32.exe
-inetc::get /NOCANCEL "https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+inetc::get /NOCANCEL "http://lvserver.ugent.be/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
 Pop $0
 ${If} $0 == "OK"
 	DetailPrint "xraylib download has succeeded. Installing..."
@@ -160,6 +160,14 @@ DetailPrint "Installing OpenMP runtime libraries"
 
 DetailPrint "Installing POSIX threads runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib\pthreadGC2.dll" "$INSTDIR"
+
+DetailPrint "Installing libcurl"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libcurl-4.dll" "$INSTDIR\Lib\libcurl-4.dll" "$INSTDIR"
+;
+DetailPrint "Installing Json-Glib"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libjson-glib-1.0-0.dll" "$INSTDIR\Lib\libjson-glib-1.0-0.dll" "$INSTDIR"
+
+
 
 ;DetailPrint "Installing GTK-EXTRA runtime libraries"
 ;!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" "$INSTDIR"
@@ -321,6 +329,12 @@ DetailPrint "Uninstalling OpenMP runtime libraries"
 
 DetailPrint "Uninstalling POSIX threads runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
+
+DetailPrint "Uninstalling libcurl"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libcurl-4.dll" 
+
+DetailPrint "Uninstalling Json-Glib"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libjson-glib-1.0-0.dll" 
 
 ;DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
 ;!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" 
