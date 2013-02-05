@@ -59,7 +59,7 @@ struct xmi_pymca {
 //return 1 on success, 0 otherwise
 
 //allocation of input occurs in function!
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **);
+int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **, int use_matrix_override);
 
 struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant);
 

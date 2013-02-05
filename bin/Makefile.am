@@ -17,6 +17,9 @@
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin
+if ENABLE_MAC_APP
+AM_LDFLAGS = -headerpad_max_install_names
+endif
 
 bin_PROGRAMS = xmimsim \
 	xmimsim-db \
@@ -111,23 +114,23 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_
 
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
-xmso2xmsi_LDADD = ../src/libxmimsim.la
+xmso2xmsi_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
 xmso2xmsi_CFLAGS = @glib2_CFLAGS@
 
 xmso2svg_SOURCES = xmso2svg.c
-xmso2svg_LDADD = ../src/libxmimsim.la
+xmso2svg_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
 xmso2svg_CFLAGS = @glib2_CFLAGS@
 
 xmso2spe_SOURCES = xmso2spe.c
-xmso2spe_LDADD = ../src/libxmimsim.la
+xmso2spe_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
 xmso2spe_CFLAGS = @glib2_CFLAGS@
 
 xmso2csv_SOURCES = xmso2csv.c
-xmso2csv_LDADD = ../src/libxmimsim.la
+xmso2csv_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
 xmso2csv_CFLAGS = @glib2_CFLAGS@
 
 xmso2htm_SOURCES = xmso2htm.c
-xmso2htm_LDADD = ../src/libxmimsim.la
+xmso2htm_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
 #if ENABLE_UPDATER

@@ -77,6 +77,8 @@ XMI_MAIN
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
+	static int use_matrix_override= 1;
+	static int use_single_run= 0;
 	int rayleigh_channel;
 	int matched;
 	double max_scale;
@@ -98,11 +100,14 @@ XMI_MAIN
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
+		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead (default)",NULL},
+		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead",NULL},
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
+		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -216,15 +221,72 @@ XMI_MAIN
 		return 1;
 	}
 
-	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp) == 0)
+	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp, use_matrix_override) == 0)
 		return 1;
 
 #if DEBUG == 2
 	xmi_print_input(stdout,pymca_input);
 #endif
 
+
+
+	if (use_single_run) {
+		//just simulate...
+		//copy to the corresponding fortran variable
+		xmi_input_C2F(pymca_input,&inputFPtr);
+		//initialization
+		if (xmi_init_input(&inputFPtr) == 0) {
+			return 1;
+		}
+		//initialize HDF5 data
+		//read from HDF5 file what needs to be read in
+		if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+			fprintf(stderr,"Could not initialize from hdf5 data file\n");
+			return 1;
+		}	
+
+		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+		
+		//determine filename first
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
+			return 1;
+
+
+
+		//check if solid angles are already precalculated
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , pymca_input, &solid_angle_def) == 0)
+			return 1;
+		if (solid_angle_def == NULL) {
+			//doesn't exist yet
+			//convert input to string
+			if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
+				return 1;
+			}
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
+			//update hdf5 file
+			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
+				return 1;
+		}
+		//launch simulation
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+			fprintf(stderr,"Error in xmi_main_msim\n");
+			return 1;
+		}
+		//the dreaded goto statement
+		goto single_run;
+	}
+
+
+
+
+
+
 	//calculate initial 
 	xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+
+
+
+
 	weights_arr_quant = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
 
 	if (xp->n_z_arr_pymca_conc == 0) {
@@ -270,7 +332,6 @@ XMI_MAIN
 	}	
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
-
 
 	//determine filename first
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
@@ -351,6 +412,9 @@ XMI_MAIN
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
+		xmi_deallocate(channels);
+		xmi_deallocate(brute_history);
+		xmi_deallocate(var_red_history);
 
 		if (i++ > XMI_PYMCA_MAX_ITERATIONS) {
 			fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
@@ -539,6 +603,8 @@ XMI_MAIN
 
 
 	}
+
+single_run:
 
 	
 	xmi_free_hdf5_F(&hdf5FPtr);
