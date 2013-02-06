@@ -33,6 +33,7 @@ GtkWidget *rad_cascade_prefsW;
 GtkWidget *nonrad_cascade_prefsW;
 GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
+GtkWidget *poisson_prefsW;
 
 GtkWidget *check_updates_prefsW;
 
@@ -240,6 +241,11 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	g_strfreev(xpv.ss);	
 #endif
 
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poisson_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
 	gtk_widget_destroy(pa->window);
 	return;
 }
@@ -408,6 +414,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->ss = g_strdupv(xmimsim_download_locations);
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_POISSON: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Poisson noise", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Poisson noise not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = FALSE;
+			}
+			break;
 		
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
@@ -477,6 +497,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			break;
 		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS: 
 			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  prefs.ss, (gsize) g_strv_length(prefs.ss));
+			break;
+		case XMIMSIM_GUI_PREFS_POISSON: 
+			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);
 			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
@@ -589,6 +612,15 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, FALSE, FALSE, 3);
 
+
+	poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
+	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, FALSE, FALSE, 3);
 
 	//second page
 	superframe = gtk_vbox_new(FALSE,5);

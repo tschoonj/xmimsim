@@ -53,6 +53,7 @@ GtkWidget *rad_cascadeW;
 GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
+GtkWidget *poissonW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
@@ -386,6 +387,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
+	gtk_widget_set_sensitive(poissonW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -520,6 +522,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(nonrad_cascadeW,FALSE);	
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
+	gtk_widget_set_sensitive(poissonW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
 	gtk_widget_set_sensitive(svg_convW,FALSE);	
@@ -566,10 +569,15 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	else
 		argv[5] = g_strdup("--disable-pile-up");
 
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
+		argv[6] = g_strdup("--enable-poisson");
+	}
+	else
+		argv[6] = g_strdup("--disable-poisson");
 
-	argv[6] = g_strdup("--verbose");
+	argv[7] = g_strdup("--verbose");
 
-	arg_counter = 7;
+	arg_counter = 8;
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -860,6 +868,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
+	gtk_widget_set_sensitive(poissonW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -1356,6 +1365,16 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
+
+	poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
+	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
+		//abort	
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
+
+
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);

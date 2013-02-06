@@ -38,6 +38,8 @@ enum {
 	XMIMSIM_GUI_PREFS_PILE_UP,
 	//gchar **
 	XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS,
+	//gboolean
+	XMIMSIM_GUI_PREFS_POISSON,
 };
 
 union xmimsim_prefs_val{
