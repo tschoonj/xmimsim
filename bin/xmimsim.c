@@ -238,7 +238,8 @@ XMI_MAIN
 			omp_num_threads < 1) {
 		omp_num_threads = omp_get_max_threads();
 	}
-	g_setenv("OMP_NUM_THREADS",g_strdup_printf("%i",omp_num_threads),TRUE);
+
+	omp_set_num_threads(omp_num_threads);
 
 
 	//load xml catalog
