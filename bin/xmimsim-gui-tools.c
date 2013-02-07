@@ -60,7 +60,7 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_WINDOW(xt->window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL
 	);
 
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
