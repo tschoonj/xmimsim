@@ -651,6 +651,7 @@ single_run:
 	}
 
 	//write to CSV and SPE if necessary...
+#ifndef G_OS_WIN32
 	csv_convPtr = csv_noconvPtr = NULL;
 
 	if (csv_file_noconv != NULL) {
@@ -741,17 +742,68 @@ single_run:
 		fclose(csv_convPtr);
 	}
 
+#else
+	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
+
+	if (csv_file_conv != NULL) {
+		// 1 = convoluted
+		if (xmi_xmso_to_csv_xslt(argv[2], csv_file_conv, 1) == 0) {
+			return 1;
+		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
+		
+	}
+	if (csv_file_noconv != NULL) {
+		// 0 = unconvoluted
+		if (xmi_xmso_to_csv_xslt(argv[2], csv_file_noconv, 0) == 0) {
+			return 1;
+		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
+		
+	}
+
+	if (spe_file_conv != NULL) {
+		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+			sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+			if (xmi_xmso_to_spe_xslt(argv[2], filename, 1, i) == 0) {
+				return 1;
+			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Output written to SPE file %s\n", filename);
+	
+		}
+	}
+
+	if (spe_file_noconv != NULL) {
+		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+			sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+			if (xmi_xmso_to_spe_xslt(argv[2], filename, 0, i) == 0) {
+				return 1;
+			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Output written to SPE file %s\n", filename);
+	
+		}
+	}
+
+
+
+#endif
+
+
 	//svg files
 	if (svg_file_conv != NULL) {
 		// 0 = convoluted
-		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 0) == 0) {
+		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 1) == 0) {
 			return 1;
 		}
 	}
 
 	if (svg_file_noconv != NULL) {
        		// 1 = unconvoluted
-		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 1) == 0) {
+		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 0) == 0) {
 			return 1;
 		}
 	}
