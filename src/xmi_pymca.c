@@ -43,7 +43,7 @@ int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input
 
 	if (g_key_file_has_group(pymcaFile, "concentrations") == FALSE) {
 		//concentrations not found
-		fprintf(stdout,"No concentrations were calculated by PyMca... Using default values\n");
+		g_fprintf(stdout,"No concentrations were calculated by PyMca... Using default values\n");
 		rv = 1;
 		return rv;
 	}
@@ -52,7 +52,7 @@ int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input
 	elements = g_key_file_get_string_list(pymcaFile,"concentrations", "elements", &nelements,NULL);
 
 	if (elements == NULL) {
-		fprintf(stdout,"No elements key found in concentrations\nAborting\n");
+		g_fprintf(stderr,"No elements key found in concentrations\nAborting\n");
 		return rv;
 	}
 
@@ -155,7 +155,7 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	if (strings == NULL) {
 		/*
 		*/
-		fprintf(stderr,"Could not find parameters tag in pymca fit file\nAborting\n");
+		g_fprintf(stderr,"Could not find parameters tag in pymca fit file\nAborting\n");
 		rv = 0;
 		return rv;
 	}
@@ -170,7 +170,7 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 		sprintf(buffer,"result.%s",strings[i]);
 		peaks = g_key_file_get_string_list(pymcaFile, buffer,"peaks",&npeaks,NULL);
 		if (peaks == NULL) {
-			fprintf(stderr,"Scatter Peak found but no peaks were defined\nAborting\n");
+			g_fprintf(stderr,"Scatter Peak found but no peaks were defined\nAborting\n");
 			rv = 0;
 			return rv;
 		}
@@ -264,19 +264,19 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 		//CompoundFraction -> doubles
 		compoundfractions = g_key_file_get_double_list(pymcaFile, predefGroup, "CompoundFraction", &lengthfractions, &error);
 		if (compoundfractions == NULL) {
-			fprintf(stderr,"Error parsing compoundfractions\n");
-			fprintf(stderr,"GLib error message: %s\n",error->message);
+			g_fprintf(stderr,"Error parsing compoundfractions\n");
+			g_fprintf(stderr,"GLib error message: %s\n",error->message);
 			return rv;
 		}
 		//CompoundList -> strings
 		compoundlist = g_key_file_get_string_list(pymcaFile, predefGroup, "CompoundList", &lengthlist, &error);
 		if (compoundlist == NULL) {
-			fprintf(stderr,"Error parsing compoundlist\n");
-			fprintf(stderr,"GLib error message: %s\n",error->message);
+			g_fprintf(stderr,"Error parsing compoundlist\n");
+			g_fprintf(stderr,"GLib error message: %s\n",error->message);
 			return rv;
 		}
 		if (lengthlist != lengthfractions) {
-			fprintf(stderr,"CompoundList and CompoundFractions have different lengths\n");
+			g_fprintf(stderr,"CompoundList and CompoundFractions have different lengths\n");
 			return rv;
 		}
 
@@ -489,6 +489,7 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	gchar **strings;
 	gsize length;
 	double det_dist;
+	gchar *reference;
 
 	/*
 	 *	Armando uses mm, but we use cm!
@@ -580,6 +581,9 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	(*geometry)->slit_size_y = 10E-4;
 
 	g_strfreev(strings);
+
+
+
 
 	rv = 1;
 	return rv;
@@ -997,7 +1001,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 }
 
 
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override) {
+int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override, int use_roi_normalization) {
 	int rv = 0;
 	GKeyFile *pymcaFile;
 	GError *error=NULL;
@@ -1016,7 +1020,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	struct xmi_excitation *excitation = NULL;
 	struct xmi_detector *detector = NULL;
 	struct xmi_general *general = NULL;
-	gchar **strings, *energy_string;
+	gchar **strings, *energy_string, *ydata_string;
+	double *ydata;
 
 	//read the file...
 	pymcaFile = g_key_file_new();
@@ -1101,10 +1106,52 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (read_excitation_spectrum(pymcaFile, &excitation, detector) == 0)
 		return rv;
 
+	(*pymca_input)->usematrix = g_key_file_get_integer(pymcaFile, "result.config.concentrations", "usematrix", NULL);
+
+	if (use_roi_normalization && !(*pymca_input)->usematrix) {
+		g_fprintf(stderr, "Inconsistency detected: --enable-roi-normalization requires the option \"From matrix composition\" to be selected in PyMca\n");
+		return rv;
+	}
+
+	gchar *reference = g_key_file_get_string(pymcaFile, "result.config.concentrations", "reference", NULL);
+
+	if (reference != NULL && (*pymca_input)->usematrix == 1) {
+		if (strcmp(reference, "Auto") == 0) {
+			g_fprintf(stderr, "When using ROI normalization, the \"The matrix reference element\" has to be different from Auto\n");
+			return rv;
+		}
+		else {
+			(*pymca_input)->reference = SymbolToAtomicNumber(reference);
+			if ((*pymca_input)->reference == 0) {
+				g_fprintf(stderr,"Invalid Matrix reference element detected.\n");
+				return rv;
+			}
+			//check if the reference element is part of the layer of interest
+			found = 0;
+			for (k = 0 ; k < multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements ; k++) {
+				if (multilayer_layers[(*pymca_input)->ilay_pymca-1].Z[k] == (*pymca_input)->reference) {
+					found = 1;
+					break;
+				}
+			}
+			if (!found) {
+				g_fprintf(stderr,"Reference element %s is not part of the matrix composition\n",AtomicNumberToSymbol((*pymca_input)->reference));
+				(*pymca_input)->reference = 0;
+				return rv;
+			}
+			if (multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements < 2){
+				g_fprintf(stderr,"Matrix layer of interest must consist of at least two elements when --enable-roi-normalization is used\n");
+				return rv;
+			}
+		}
+		g_free(reference);
+	}
+
 	//determine elements that will actually be quantified (non-matrix)
 	//1st condition: there has to be a (positive) net-line intensity available
 	//2nd condition: the element may not be part of the matrix composition unless matrix is overridden
 	//3rd condition: the element may not be part of any of the other layers
+	//4th condition: the element may not be the reference element if --enable-roi-integration is active
 	(*pymca_input)->z_arr_quant = NULL;
 	(*pymca_input)->n_z_arr_quant = 0;
 	int override_required = 0;
@@ -1112,6 +1159,13 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #if DEBUG == 2
 		fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
 #endif
+
+		if ((*pymca_input)->k_alpha[i] + (*pymca_input)->l_alpha[i] <= 0.0)
+			continue;
+
+		if ((*pymca_input)->usematrix && (*pymca_input)->z_arr[i] == (*pymca_input)->reference)
+			continue;
+
 		found = 0;
 		//check multilayer
 		for (j = 0 ; j < n_multilayer_layers ; j++) {
@@ -1213,6 +1267,27 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #endif
 	g_strfreev(strings);
 	g_free(energy_string);
+
+
+
+	(*pymca_input)->xmin = (int) g_key_file_get_integer(pymcaFile, "result.config.fit", "xmin", NULL);
+	(*pymca_input)->xmax = (int) g_key_file_get_integer(pymcaFile, "result.config.fit", "xmax", NULL);
+	//g_fprintf(stdout,"xmin: %i\n",	(*pymca_input)->xmin);
+	//g_fprintf(stdout,"xmax: %i\n",	(*pymca_input)->xmax);
+	//integrate between xmin and xmax -> sum_xmin_xmax
+	//get ydata
+	ydata_string = g_key_file_get_string(pymcaFile, "result", "ydata", NULL);
+	strings = g_strsplit(ydata_string," ",100000);
+	//(*pymca_input)->xmin=0;
+	//(*pymca_input)->xmax=10;
+
+	for (i = 1 ; i <= (*pymca_input)->xmax-(*pymca_input)->xmin+1 ; i++ ) {
+		(*pymca_input)->sum_xmin_xmax += (double) g_ascii_strtod(strings[i], NULL);
+	}
+
+	g_strfreev(strings);
+	g_free(ydata_string);
+
 
 	//see if we find a nice scatter peak, which can be used for adjusting the beam intensity afterwards
 	if (read_scatter_intensity(pymcaFile, *pymca_input) == 0) {
@@ -1392,11 +1467,25 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	int maxloc;
 	double maxval;
 	double max_net_intensity;
+	double reference_weight;
 
 	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.density = matrix->density;
 	rv.thickness = matrix->thickness;
+
+	if (pymca_aux->usematrix) {
+		for (i = 0 ; i < matrix->n_elements ; i++) {
+			if (matrix->Z[i] == pymca_aux->reference) {
+				reference_weight = matrix->weight[i];
+				break;
+			}
+		}		
+	}
+	else
+		reference_weight = 0.0;
+
+
 
 
 	//calculate sum 
@@ -1404,8 +1493,8 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	sum_matrix = xmi_sum_double(matrix->weight, matrix->n_elements);
 	xmi_scale_double(matrix->weight, matrix->n_elements, 1.0/sum_matrix);
 
-	if (sum_quant > 1.0) {
-		fprintf(stdout,"weights sum of quantifiable elements > 1.0\nRescaling...\n");
+	if (sum_quant + reference_weight > 1.0) {
+		g_fprintf(stdout,"weights sum of quantifiable elements > 1.0\nRescaling...\n");
 		//look up maximum in array
 		//if value is > 1.0... abort...
 		//else keep this value and scale the others accordingly. Matrix will be set to zero
@@ -1445,8 +1534,6 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 						}
 						break;
 					}
-					
-
 				}
 			}
 		}
@@ -1464,14 +1551,14 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 		fprintf(stdout,"maxloc: %i\n",maxloc);
 #endif
 		if (maxval > 1.0) {
-			fprintf(stderr,"Maximum weight is above 100 %%: element %i (%lf %%)\nAborting",pymca_aux->z_arr_quant[maxloc],maxval*100.0);
+			g_fprintf(stderr,"Maximum weight is above 100 %%: element %i (%lf %%)\nAborting",pymca_aux->z_arr_quant[maxloc],maxval*100.0);
 			exit(1);
 		}
 		//calculate sum of elements before the one with maximal line intensity
 		sum_above = xmi_sum_double(weights_arr_quant, maxloc+1);
-		xmi_scale_double(weights_arr_quant, maxloc+1, (1.0-(sum_quant-sum_above))/(sum_above));
+		xmi_scale_double(weights_arr_quant, maxloc+1, (1.0-(sum_quant-sum_above)-reference_weight)/(sum_above));
 		//weights_arr_quant[maxloc] = maxval;
-		sum_quant = 1.0;
+		sum_quant = 1.0-reference_weight;
 	}
 
 #if DEBUG == 1
@@ -1480,16 +1567,31 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	}
 #endif
 
+	if (pymca_aux->usematrix) {
+		if (sum_quant + reference_weight > 1.0) {
+			g_fprintf(stderr, "Sum of quantifiable element weight fractions plus reference element is greater than 1.0\n");
+			exit(1);
+		}
+	}
+
 	for (i = 0 ; i < matrix->n_elements ; i++) {
 		rv.Z[i] = matrix->Z[i];
-		rv.weight[i] = matrix->weight[i]*(1.0-sum_quant);
+		if (pymca_aux->usematrix && matrix->Z[i] == pymca_aux->reference) {
+			rv.weight[i] = reference_weight;	
+		}
+		else {
+			rv.weight[i] = matrix->weight[i]*(1.0-sum_quant-reference_weight)/(1.0-reference_weight);
+		}
+#if DEBUG == 1
+		g_fprintf(stdout, "Matrix: %i -> %lf\n", rv.Z[i], rv.weight[i]);
+#endif
 	}
 
 	for (i = 0 ; i < pymca_aux->n_z_arr_quant ; i++) {
 		rv.Z[i+matrix->n_elements] = pymca_aux->z_arr_quant[i];
 		rv.weight[i+matrix->n_elements] = weights_arr_quant[i];
 		if (weights_arr_quant[i] < 0.0 ) {
-			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
+			g_fprintf(stderr,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
 			exit(1);
 		}
 	}
@@ -1511,10 +1613,14 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 		rv.Z[i] = Z[sorted_Z_ind[i]];
 		rv.weight[i] = weight[sorted_Z_ind[i]];
 		if (weight[sorted_Z_ind[i]] < 0.0 ) {
-			fprintf(stdout,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
+			g_fprintf(stderr,"Negative weight fraction detected in xmi_ilay_composition_pymca\nUsually indicates that an element was fitted that should be omitted\n");
 			exit(1);
 		}
 	}
+
+#if DEBUG == 1
+	g_fprintf(stdout, "total weights sum: %lf\n", xmi_sum_double(rv.weight,rv.n_elements));
+#endif
 
 
 	free(Z);

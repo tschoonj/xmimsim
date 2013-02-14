@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_random.h"
 #include "xmi_detector.h"
 #include <omp.h>
+#include <math.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -56,7 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 XMI_MAIN
 	char *xmimsim_hdf5_solid_angles=NULL;
-	struct xmi_input *pymca_input = NULL;
+	struct xmi_input *xi = NULL;
 	struct xmi_pymca *xp = NULL ;
 	struct xmi_layer *matrix;
 	double *weights_arr_quant;
@@ -77,7 +78,8 @@ XMI_MAIN
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
-	static int use_matrix_override= 1;
+	static int use_roi_normalization = 0;
+	static int use_matrix_override= 0;
 	static int use_single_run= 0;
 	int rayleigh_channel;
 	int matched;
@@ -85,6 +87,7 @@ XMI_MAIN
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
+	double sum_roi;
 	
 	omp_num_threads=omp_get_max_threads();
 	
@@ -100,8 +103,10 @@ XMI_MAIN
 		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
 		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
 		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
-		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead (default)",NULL},
-		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead",NULL},
+		{"enable-roi-normalization", 0, 0, G_OPTION_ARG_NONE,&use_roi_normalization,"Enable region of interest integration based intensity normalization",NULL},
+		{"disable-roi-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_roi_normalization,"Disable region of interest integration based intensity normalization (default)",NULL},
+		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead",NULL},
+		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead (default)",NULL},
 		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
@@ -154,9 +159,17 @@ XMI_MAIN
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_set_summary(context, "xmimsim-pymca: a program for the quantification of X-ray fluorescence spectra using inverse Monte-Carlo simulations. Inputfiles should be prepared using PyMCA\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_print ("option parsing failed: %s\n", error->message);
+		g_fprintf (stderr, "option parsing failed: %s\n", error->message);
 		exit (1);
 	}
+
+	//check for conflicting options
+	if (use_rayleigh_normalization + use_roi_normalization + use_matrix_override + use_single_run > 1) {
+		g_fprintf(stderr,"Options conflict: Use either --enable-rayleigh-normalization or --enable-roi-normalization or --enable-matrix-override or --enable-single-run. No combinations of these are allowed\n");
+		exit(1);
+	}
+	
+
 
 	if (omp_num_threads > omp_get_max_threads() ||
 			omp_num_threads < 1) {
@@ -192,7 +205,7 @@ XMI_MAIN
 			//do nothing
 		}
 		else if (g_access(hdf5_file, F_OK | R_OK) != 0) {
-			fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
+			g_fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
 			return 1;
 		}
 #else
@@ -206,13 +219,13 @@ XMI_MAIN
 		}
 		else {
 			//if not found abort...	
-			g_printf("Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
+			g_fprintf(stderr, "Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
 			exit(1);
 		}
 	}
 
 	if (argc != 3) {
-		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+		g_fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
@@ -222,11 +235,11 @@ XMI_MAIN
 		return 1;
 	}
 
-	if(xmi_read_input_pymca(argv[1], &pymca_input, &xp, use_matrix_override) == 0)
+	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization) == 0)
 		return 1;
 
 #if DEBUG == 2
-	xmi_print_input(stdout,pymca_input);
+	xmi_print_input(stdout,xi);
 #endif
 
 
@@ -234,7 +247,7 @@ XMI_MAIN
 	if (use_single_run) {
 		//just simulate...
 		//copy to the corresponding fortran variable
-		xmi_input_C2F(pymca_input,&inputFPtr);
+		xmi_input_C2F(xi,&inputFPtr);
 		//initialization
 		if (xmi_init_input(&inputFPtr) == 0) {
 			return 1;
@@ -242,7 +255,7 @@ XMI_MAIN
 		//initialize HDF5 data
 		//read from HDF5 file what needs to be read in
 		if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
-			fprintf(stderr,"Could not initialize from hdf5 data file\n");
+			g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 			return 1;
 		}	
 
@@ -255,12 +268,12 @@ XMI_MAIN
 
 
 		//check if solid angles are already precalculated
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , pymca_input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			//doesn't exist yet
 			//convert input to string
-			if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
+			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
 				return 1;
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
@@ -270,9 +283,30 @@ XMI_MAIN
 		}
 		//launch simulation
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
-			fprintf(stderr,"Error in xmi_main_msim\n");
+			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
+
+		//read escape ratios
+		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
+			return 1;
+
+
+		//check if escape ratios are already precalculated
+		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
+			return 1;
+		if (escape_ratios_def == NULL) {
+			//doesn't exist yet
+			//convert input to string
+			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+				return 1;
+			}
+			xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file,options);
+			//update hdf5 file
+			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
+				return 1;
+		}
+	
 		//the dreaded goto statement
 		goto single_run;
 	}
@@ -283,7 +317,7 @@ XMI_MAIN
 
 
 	//calculate initial 
-	xmi_copy_layer(pymca_input->composition->layers + xp->ilay_pymca, &matrix);
+	xmi_copy_layer(xi->composition->layers + xp->ilay_pymca, &matrix);
 
 
 
@@ -313,14 +347,14 @@ XMI_MAIN
 	}
 
 
-	pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+	xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
 
 #if DEBUG == 2
-	xmi_print_layer(stdout,pymca_input->composition->layers+xp->ilay_pymca,1);
+	xmi_print_layer(stdout,xi->composition->layers+xp->ilay_pymca,1);
 #endif
 
 	//copy to the corresponding fortran variable
-	xmi_input_C2F(pymca_input,&inputFPtr);
+	xmi_input_C2F(xi,&inputFPtr);
 	//initialization
 	if (xmi_init_input(&inputFPtr) == 0) {
 		return 1;
@@ -328,7 +362,7 @@ XMI_MAIN
 	//initialize HDF5 data
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
-		fprintf(stderr,"Could not initialize from hdf5 data file\n");
+		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
 
@@ -341,12 +375,12 @@ XMI_MAIN
 
 
 	//check if solid angles are already precalculated
-	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , pymca_input, &solid_angle_def) == 0)
+	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
 		return 1;
 	if (solid_angle_def == NULL) {
 		//doesn't exist yet
 		//convert input to string
-		if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
+		if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
 			return 1;
 		}
 		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
@@ -366,20 +400,43 @@ XMI_MAIN
 	brute_history = NULL;
 	var_red_history = NULL;
 
-#if DEBUG == 1
-	fprintf(stdout,"\n\nEntering iterative loop\n\n");
-#endif
+
+
+	//read escape ratios
+	
+	SetErrorMessages(0);
+
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
+		return 1;
+
+
+	//check if escape ratios are already precalculated
+	if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
+		return 1;
+	if (escape_ratios_def == NULL) {
+		//doesn't exist yet
+		//convert input to string
+		if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+			return 1;
+		}
+		xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file,options);
+		//update hdf5 file
+		if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
+			return 1;
+	}
 
 	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
-		rayleigh_channel = (int) ((xp->scatter_energy - pymca_input->detector->zero)/pymca_input->detector->gain);
+		rayleigh_channel = (int) ((xp->scatter_energy - xi->detector->zero)/xi->detector->gain);
 		if (rayleigh_channel > xp->nchannels) {
-			fprintf(stderr,"Channel of excitation energy is not included in spectrum from pymca\n");
+			g_fprintf(stderr,"Channel of excitation energy is not included in spectrum from pymca\n");
 			return 1;
 		}
 #if DEBUG == 1
 		fprintf(stdout,"rayleigh_channel: %i\n", rayleigh_channel);
 #endif
 	}
+
+
 
 	scale = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
 	k_exp= (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
@@ -401,7 +458,7 @@ XMI_MAIN
 					k_exp[j] = 0.0;
 				}
 				else {
-					fprintf(stdout,"k_exp/l_exp problem detected\n");
+					g_fprintf(stdout,"k_exp/l_exp problem detected\n");
 					return 1;
 				}
 				break;
@@ -409,44 +466,52 @@ XMI_MAIN
 		}
 	}
 
+	//g_fprintf(stdout, "sum_xmin_xmax: %lf\n", xp->sum_xmin_xmax);
+
+	if (use_roi_normalization) {
+		sum_roi = 5*xp->sum_xmin_xmax;
+	}
+	else {
+		sum_roi = xp->sum_xmin_xmax;
+	}
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
 
-	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD)) {
+	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
 		xmi_deallocate(channels);
 		xmi_deallocate(brute_history);
 		xmi_deallocate(var_red_history);
 
 		if (i++ > XMI_PYMCA_MAX_ITERATIONS) {
-			fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
+			g_fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
 			return 0;
 		}
 #if DEBUG == 1
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmsi",i);
-		xmi_write_input_xml(tempFile, pymca_input);	
+		xmi_write_input_xml(tempFile, xi);	
 #endif
 
 
 
 		//launch simulation
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
-			fprintf(stderr,"Error in xmi_main_msim\n");
+			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
 #if DEBUG == 1
 		//write input structure
-		//xmi_print_input(stdout,pymca_input);
+		//xmi_print_input(stdout,xi);
 		zero_sum = xmi_sum_double(channels, xp->nchannels);
 		//convolute_spectrum
-		channels_conv_temp = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
+		channels_conv_temp = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
-		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= pymca_input->general->n_interactions_trajectory ; j++) {
+		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= xi->general->n_interactions_trajectory ; j++) {
 			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, &channels_conv_temp2, xp->nchannels, options);
 			channels_conv_temp[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 		}
 		//write to xml outputfile
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
-		if (xmi_write_output_xml(tempFile, pymca_input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
 		}
 
@@ -458,7 +523,7 @@ XMI_MAIN
 
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
-		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i==1)) {
+		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i == 1) && !(use_roi_normalization && i % 2 == 1)) {
 			sum_k = sum_l = 0.0;
 			sum_scale = 0.0;
 			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
@@ -469,13 +534,13 @@ XMI_MAIN
 				k_sim[j] = 0.0;	
 				l_sim[j] = 0.0;	
 
-				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				for (k = 0 ; k <= xi->general->n_interactions_trajectory ; k++) {
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,xi->general->n_interactions_trajectory);
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,xi->general->n_interactions_trajectory);
 				}
-				for (k = 0 ; k <= pymca_input->general->n_interactions_trajectory ; k++) {
-					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
-					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,pymca_input->general->n_interactions_trajectory);
+				for (k = 0 ; k <= xi->general->n_interactions_trajectory ; k++) {
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,xi->general->n_interactions_trajectory);
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,xi->general->n_interactions_trajectory);
 				}
 
 				if (k_exp[j] > 0.0 && k_sim[j] > 0.0) {
@@ -497,8 +562,8 @@ XMI_MAIN
 				fprintf(stdout,"l_exp[j]: %lf\n",l_exp[j]);
 				fprintf(stdout,"l_sim[j]: %lf\n",l_sim[j]);
 				fprintf(stdout,"scale[j]: %lf\n",scale[j]);
-				fprintf(stdout,"scatter_intensity from file: %lf\n",xp->scatter_intensity);
-				fprintf(stdout,"scatter_intensity from MC: %lf\n",ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
+	//			fprintf(stdout,"scatter_intensity from file: %lf\n",xp->scatter_intensity);
+	//			fprintf(stdout,"scatter_intensity from MC: %lf\n",ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels));
 #endif
 
 			}
@@ -561,46 +626,70 @@ XMI_MAIN
 		}
 		//update energy intensities when required
 		if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
-			for (j = 0 ; j < pymca_input->excitation->n_discrete ; j++) {
-				pymca_input->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
-				pymca_input->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+			for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
+				xi->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
+				xi->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
 			}
 
-			for (j = 0 ; j < pymca_input->excitation->n_continuous ; j++) {
-				pymca_input->excitation->continuous[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
-				pymca_input->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,pymca_input->general->n_interactions_trajectory,rayleigh_channel,pymca_input->general->n_interactions_trajectory+1,xp->nchannels);
+			for (j = 0 ; j < xi->excitation->n_continuous ; j++) {
+				xi->excitation->continuous[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
+				xi->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
 			}
 			if (i > 1) {
 				//update concentrations in input	
-				free(pymca_input->composition->layers[xp->ilay_pymca].Z);
-				free(pymca_input->composition->layers[xp->ilay_pymca].weight);
-				pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+				free(xi->composition->layers[xp->ilay_pymca].Z);
+				free(xi->composition->layers[xp->ilay_pymca].weight);
+				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
 			}
-			//reload fortran input
-			xmi_free_input_F(&inputFPtr);
-			xmi_input_C2F(pymca_input, &inputFPtr);
-			if (xmi_init_input(&inputFPtr) == 0) {
-				return 1;
+		}
+		else if (use_roi_normalization) {
+			//integrate the region of interest
+			//first apply detector convolution
+			if (i % 2 == 1) {
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, xp->nchannels, options, escape_ratios_def);
+
+				sum_roi = 0.0;
+				for (j = xp->xmin ; j <= xp->xmax ; j++)
+					sum_roi += channels_conv_temp2[j];
+
+				//g_fprintf(stdout,"sum_roi: %lf\n", sum_roi);
+
+				xmi_deallocate(channels_conv_temp2);
+
+				for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
+					xi->excitation->discrete[j].horizontal_intensity *= xp->sum_xmin_xmax/sum_roi;
+					xi->excitation->discrete[j].vertical_intensity *= xp->sum_xmin_xmax/sum_roi;
+				}
+
+				for (j = 0 ; j < xi->excitation->n_continuous ; j++) {
+					xi->excitation->continuous[j].horizontal_intensity *= xp->sum_xmin_xmax/sum_roi;
+					xi->excitation->continuous[j].vertical_intensity *= xp->sum_xmin_xmax/sum_roi;
+				}
 			}
-			xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+			else if (i % 2 == 0) {
+				//update concentrations in input	
+				free(xi->composition->layers[xp->ilay_pymca].Z);
+				free(xi->composition->layers[xp->ilay_pymca].weight);
+				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+			}
 		}
 		else {
 			//update concentrations in input	
-			free(pymca_input->composition->layers[xp->ilay_pymca].Z);
-			free(pymca_input->composition->layers[xp->ilay_pymca].weight);
-			pymca_input->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
-			//reload fortran input
-			xmi_free_input_F(&inputFPtr);
-			xmi_input_C2F(pymca_input, &inputFPtr);
-			if (xmi_init_input(&inputFPtr) == 0) {
-				return 1;
-			}
-			xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
+			free(xi->composition->layers[xp->ilay_pymca].Z);
+			free(xi->composition->layers[xp->ilay_pymca].weight);
+			xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
 		}
+		//reload fortran input
+		xmi_free_input_F(&inputFPtr);
+		xmi_input_C2F(xi, &inputFPtr);
+		if (xmi_init_input(&inputFPtr) == 0) {
+			return 1;
+		}
+		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 	
-		fprintf(stdout,"Iteration: %i\n",i);
-		fprintf(stdout,"sum_k: %lf\n",sum_k);
-		fprintf(stdout,"sum_l: %lf\n",sum_l);
+		g_fprintf(stdout,"Iteration: %i\n",i);
+		g_fprintf(stdout,"sum_k: %lf\n",sum_k);
+		g_fprintf(stdout,"sum_l: %lf\n",sum_l);
 
 
 	}
@@ -611,32 +700,11 @@ single_run:
 	xmi_free_hdf5_F(&hdf5FPtr);
 
 
-	//read escape ratios
-	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
-		return 1;
-
-
-	//check if escape ratios are already precalculated
-	if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , pymca_input, &escape_ratios_def) == 0)
-		return 1;
-	if (escape_ratios_def == NULL) {
-		//doesn't exist yet
-		//convert input to string
-		if (xmi_write_input_xml_to_string(&xmi_input_string,pymca_input) == 0) {
-			return 1;
-		}
-		xmi_escape_ratios_calculation(pymca_input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
-		//update hdf5 file
-		if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
-			return 1;
-	}
-
-
 	zero_sum = xmi_sum_double(channels, xp->nchannels);
 	//convolute_spectrum
-	channels_conv = (double **) malloc(sizeof(double *)*(pymca_input->general->n_interactions_trajectory+1));
+	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
-	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options,escape_ratios_def);
 		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 	}
@@ -646,7 +714,7 @@ single_run:
 	}
 
 	//write to xml outputfile
-	if (xmi_write_output_xml(argv[2], pymca_input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+	if (xmi_write_output_xml(argv[2], xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 		return 1;
 	}
 
@@ -668,7 +736,7 @@ single_run:
 	}
 
 
-	for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+	for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 
 		//write it to outputfile... spe style
 		if (spe_file_noconv != NULL) {
@@ -681,7 +749,7 @@ single_run:
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"1\t%i\n",xp->nchannels);
 			for (j=1 ; j <= xp->nchannels ; j++) {
-				fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channels,i,j,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
 				}
@@ -719,10 +787,10 @@ single_run:
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
 		for (j=1 ; j <= xp->nchannels ; j++) {
-			fprintf(csv_noconvPtr,"%i,%lf",j,(j)*pymca_input->detector->gain+pymca_input->detector->zero);	
-			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+			fprintf(csv_noconvPtr,"%i,%lf",j,(j)*xi->detector->gain+xi->detector->zero);	
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channels,i,j,pymca_input->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 			}
 			fprintf(csv_noconvPtr,"\n");
 		}
@@ -732,8 +800,8 @@ single_run:
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*pymca_input->detector->gain+pymca_input->detector->zero);	
-			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+			fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*xi->detector->gain+xi->detector->zero);	
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
 				fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
 			}
@@ -765,7 +833,7 @@ single_run:
 	}
 
 	if (spe_file_conv != NULL) {
-		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 			sprintf(filename,"%s_%i.spe",spe_file_conv,i);
 			if (xmi_xmso_to_spe_xslt(argv[2], filename, 1, i) == 0) {
 				return 1;
@@ -777,7 +845,7 @@ single_run:
 	}
 
 	if (spe_file_noconv != NULL) {
-		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= pymca_input->general->n_interactions_trajectory ; i++) {
+		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 			sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
 			if (xmi_xmso_to_spe_xslt(argv[2], filename, 0, i) == 0) {
 				return 1;

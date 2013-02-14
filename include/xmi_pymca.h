@@ -52,6 +52,12 @@ struct xmi_pymca {
 	int *z_arr_pymca_conc;
 	int n_z_arr_pymca_conc;
 	double *weight_arr_pymca_conc;
+	int xmin;
+	int xmax;
+	double sum_xmin_xmax;
+	int usematrix;
+	//0 if Auto, else Z
+	int reference;
 };
 
 
@@ -59,7 +65,7 @@ struct xmi_pymca {
 //return 1 on success, 0 otherwise
 
 //allocation of input occurs in function!
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **, int use_matrix_override);
+int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **, int use_matrix_override, int use_roi_normalization);
 
 struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant);
 
