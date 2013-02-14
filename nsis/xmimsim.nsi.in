@@ -31,9 +31,9 @@ SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 !include "Library.nsh"
 !include "LogicLib.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\EnumUsersReg.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\EnumUsersReg.nsh"
 !include "Sections.nsh"
 !include "WordFunc.nsh"
 
@@ -190,14 +190,40 @@ DetailPrint "Installing XMI-MSIM runtime library"
 DetailPrint "Installing XMI-MSIM executables"
 SetOutPath "$INSTDIR\Bin"
 File "${MY_HOME}bin\xmimsim.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "" "$INSTDIR\Bin/xmimsim.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-db.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "" "$INSTDIR\Bin/xmimsim-db.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-gui.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "" "$INSTDIR\Bin/xmimsim-gui.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-pymca.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "" "$INSTDIR\Bin/xmimsim-pymca.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2xmsi.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "" "$INSTDIR\Bin/xmso2xmsi.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2svg.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "" "$INSTDIR\Bin/xmso2svg.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2spe.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "" "$INSTDIR\Bin/xmso2spe.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2csv.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "" "$INSTDIR\Bin/xmso2csv.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2htm.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "" "$INSTDIR\Bin/xmso2htm.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 SetOutPath "$INSTDIR\Share"
 DetailPrint "Installing XMI-MSIM HDF5 database"
@@ -243,9 +269,9 @@ SetOutPath "$INSTDIR\Sources"
 File "${MY_HOME}github\xmimsim\build\xmimsim-${VERSION}.tar.gz"
 
 ;path modification
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Lib"
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\GTK2"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Lib"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\GTK2"
 
 ;registry modifications
 WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory" "$INSTDIR"
@@ -394,10 +420,11 @@ RMDir "$INSTDIR\Sources"
 Delete "$INSTDIR\Uninstall.exe"
 RMDir "$INSTDIR"
 
-DetailPrint "Cleaning registry"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Lib"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
+;DetailPrint "Cleaning registry"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Lib"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
+
 ;clean registry
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\data"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\catalog"
@@ -409,16 +436,29 @@ DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2htm"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe"
+
+
 delete "$SMPROGRAMS\XMI-MSIM\XMI-MSIM.lnk"
 delete "$SMPROGRAMS\XMI-MSIM\Uninstall XMI-MSIM.lnk"
 RmDir "$SMPROGRAMS\XMI-MSIM" 
 
 DetailPrint "Unregistering xmsi extension"
-${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+;${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+DeleteRegKey HKCR ".xmsi"
 DeleteRegKey HKCR "XMI-MSIM inputfile" 
 
 DetailPrint "Unregistering xmso extension"
-${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
+;${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
+DeleteRegKey HKCR ".xmso"
 DeleteRegKey HKCR "XMI-MSIM outputfile" 
 
 SectionEnd
