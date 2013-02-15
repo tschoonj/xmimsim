@@ -510,35 +510,35 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
   	beta  = beta*M_PI/180.0;
 
 	//detector area	
-	(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "result.config.concentrations", "area",NULL)/100.0; 
+	(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "result.config.concentrations", "area",NULL); 
 	if ((*geometry)->area_detector <= 0.0) {
 		fprintf(stderr,"Detector area must be positive... Fatal error\n");
 		return rv;
 	}
 
 	//sample_source_distance
-	(*geometry)->d_sample_source = g_key_file_get_double(pymcaFile, "xrfmc.setup", "source_sample_distance",NULL)/10.0; 
+	(*geometry)->d_sample_source = g_key_file_get_double(pymcaFile, "xrfmc.setup", "source_sample_distance",NULL); 
 	if ((*geometry)->d_sample_source <= 0.0) {
 		fprintf(stderr,"Sample-source distance must be positive... Fatal error\n");
 		return rv;
 	}
 	
 	//collimator_height
-	(*geometry)->collimator_height = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_height",NULL)/10.0; 
+	(*geometry)->collimator_height = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_height",NULL); 
 	if ((*geometry)->collimator_height < 0.0) {
 		fprintf(stderr,"Collimator height must be greater or equal to zero... Fatal error\n");
 		return rv;
 	}
 	
 	//collimator_diameter
-	(*geometry)->collimator_diameter = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_diameter",NULL)/10.0; 
+	(*geometry)->collimator_diameter = g_key_file_get_double(pymcaFile, "xrfmc.setup", "collimator_diameter",NULL); 
 	if ((*geometry)->collimator_diameter < 0.0) {
 		fprintf(stderr,"Collimator opening diameter must be greater or equal to zero... Fatal error\n");
 		return rv;
 	}
 	
 	//detector-sample distance
-	det_dist = g_key_file_get_double(pymcaFile, "result.config.concentrations", "distance",NULL)/10.0; 
+	det_dist = g_key_file_get_double(pymcaFile, "result.config.concentrations", "distance",NULL); 
 	if (det_dist <= 0.0) {
 		fprintf(stderr,"Detector-sample distance must be positive... Fatal error\n");
 		return rv;
@@ -549,6 +549,10 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	fprintf(stdout,"beta: %lf\n",beta);
 #endif
 
+	if (alpha < 0.0 || beta < 0.0) {
+		g_fprintf(stderr, "The incoming and outgoing angles must be positive... Fatal error\n");
+		return rv;
+	}
 
 
 	(*geometry)->p_detector_window[0] = 0.0;
@@ -575,10 +579,11 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	fprintf(stdout,"(*geometry)->n_sample_orientation[1]: %lf\n",(*geometry)->n_sample_orientation[1]);
 	fprintf(stdout,"(*geometry)->n_sample_orientation[2]: %lf\n",(*geometry)->n_sample_orientation[2]);
 #endif
-	//simplify slits by using default values!!!
-	(*geometry)->d_source_slit = (*geometry)->d_sample_source;
-	(*geometry)->slit_size_x = 10E-4;
-	(*geometry)->slit_size_y = 10E-4;
+
+	//slits
+	(*geometry)->d_source_slit = g_key_file_get_double(pymcaFile, "xrfmc.setup","slit_distance", NULL);
+	(*geometry)->slit_size_x = g_key_file_get_double(pymcaFile, "xrfmc.setup","slit_width_x", NULL);
+	(*geometry)->slit_size_y = g_key_file_get_double(pymcaFile, "xrfmc.setup","slit_width_y", NULL);
 
 	g_strfreev(strings);
 
@@ -982,11 +987,10 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 		}
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].horizontal_intensity = energyweight[i]*flux*(1.0+pdeg)/2.0;
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].vertical_intensity = energyweight[i]*flux*(1.0-pdeg)/2.0;
-		//assume point source
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_x = 0.0;
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_y = 0.0;
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_xp = 0.0;
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_yp = 0.0;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_x = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_size_x", NULL);
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_y = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_size_y", NULL);
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_xp = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_diverg_x", NULL);
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_yp = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_diverg_y", NULL);
 	
 	}	
 
