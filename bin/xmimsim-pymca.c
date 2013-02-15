@@ -113,6 +113,7 @@ XMI_MAIN
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
 		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
+		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -182,6 +183,8 @@ XMI_MAIN
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
+	else if (options.verbose)
+		g_fprintf(stdout,"XML catalog loaded\n");
 
 
 
@@ -237,6 +240,8 @@ XMI_MAIN
 
 	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization) == 0)
 		return 1;
+	else if (options.verbose)
+		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);
 
 #if DEBUG == 2
 	xmi_print_input(stdout,xi);
@@ -252,12 +257,17 @@ XMI_MAIN
 		if (xmi_init_input(&inputFPtr) == 0) {
 			return 1;
 		}
+		if (options.verbose)
+			g_fprintf(stdout,"Reading HDF5 datafile\n");
+
 		//initialize HDF5 data
 		//read from HDF5 file what needs to be read in
 		if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
 			g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 			return 1;
 		}	
+		else if (options.verbose)
+			g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 		
@@ -265,12 +275,16 @@ XMI_MAIN
 		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
+		if (options.verbose)
+			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 
 
 		//check if solid angles are already precalculated
 		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
+			if (options.verbose)
+				g_fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
@@ -280,22 +294,36 @@ XMI_MAIN
 			//update hdf5 file
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
+			else if (options.verbose)
+				g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 		//launch simulation
+		if (options.verbose)
+			g_fprintf(stdout,"Simulating interactions\n");
+
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
 
+		if (options.verbose)
+			g_fprintf(stdout,"Interactions simulation finished\n");
+
 		//read escape ratios
 		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 			return 1;
 
+		if (options.verbose)
+			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 		//check if escape ratios are already precalculated
 		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
+			if (options.verbose)
+				g_fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
 			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
@@ -305,7 +333,11 @@ XMI_MAIN
 			//update hdf5 file
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
+			else if (options.verbose)
+				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 	
 		//the dreaded goto statement
 		goto single_run;
@@ -360,11 +392,16 @@ XMI_MAIN
 		return 1;
 	}
 	//initialize HDF5 data
+	if (options.verbose)
+		g_fprintf(stdout,"Reading HDF5 datafile\n");
+
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
+	else if (options.verbose)
+		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
@@ -372,12 +409,16 @@ XMI_MAIN
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 		return 1;
 
+	if (options.verbose)
+		g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 
 
 	//check if solid angles are already precalculated
 	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
 		return 1;
 	if (solid_angle_def == NULL) {
+		if (options.verbose)
+			g_fprintf(stdout,"Precalculating solid angle grid\n");
 		//doesn't exist yet
 		//convert input to string
 		if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
@@ -387,7 +428,11 @@ XMI_MAIN
 		//update hdf5 file
 		if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 			return 1;
+		else if (options.verbose)
+			g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 	}
+	else if (options.verbose)
+		g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	//everything is read in... start iteration
 	i = 0;
@@ -494,10 +539,15 @@ XMI_MAIN
 
 
 		//launch simulation
+		if (options.verbose)
+			g_fprintf(stdout,"Simulating interactions\n");
+
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
+		if (options.verbose)
+			g_fprintf(stdout,"Interactions simulation finished\n");
 #if DEBUG == 1
 		//write input structure
 		//xmi_print_input(stdout,xi);
@@ -524,6 +574,9 @@ XMI_MAIN
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
 		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i == 1) && !(use_roi_normalization && i % 2 == 1)) {
+			if (options.verbose)
+				g_fprintf(stdout, "Recalculating weight fractions\n");
+
 			sum_k = sum_l = 0.0;
 			sum_scale = 0.0;
 			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
@@ -626,6 +679,8 @@ XMI_MAIN
 		}
 		//update energy intensities when required
 		if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
+			if (options.verbose)
+				g_fprintf(stdout, "Scaling beam intensity according to Rayleigh signal\n");
 			for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
 				xi->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
 				xi->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
@@ -646,6 +701,8 @@ XMI_MAIN
 			//integrate the region of interest
 			//first apply detector convolution
 			if (i % 2 == 1) {
+				if (options.verbose)
+					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
 				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, xp->nchannels, options, escape_ratios_def);
 
 				sum_roi = 0.0;
@@ -717,6 +774,8 @@ single_run:
 	if (xmi_write_output_xml(argv[2], xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 		return 1;
 	}
+	else if (options.verbose)
+		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
 	//write to CSV and SPE if necessary...
 #ifndef G_OS_WIN32
@@ -727,12 +786,16 @@ single_run:
 			fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
 			return 1;
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 	}
 	if (csv_file_conv != NULL) {
 		if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
 			fprintf(stdout,"Could not write to %s\n",csv_file_conv);
 			return 1;
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
 	}
 
 
@@ -745,6 +808,9 @@ single_run:
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
 			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Writing to SPE file %s\n",filename);
+
 			fprintf(outPtr,"$SPEC_ID:\n\n");
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"1\t%i\n",xp->nchannels);
@@ -766,6 +832,9 @@ single_run:
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
 			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Writing to SPE file %s\n",filename);
+
 			fprintf(outPtr,"$SPEC_ID:\n\n");
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"1\t%i\n",xp->nchannels);
@@ -867,6 +936,8 @@ single_run:
 		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 1) == 0) {
 			return 1;
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
 	}
 
 	if (svg_file_noconv != NULL) {
@@ -874,6 +945,8 @@ single_run:
 		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 0) == 0) {
 			return 1;
 		}
+		else if (options.verbose)
+			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 	}
 
 	return 0;
