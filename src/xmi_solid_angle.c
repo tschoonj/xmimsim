@@ -268,6 +268,9 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 
 int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	int i;
+	double *thickness_along_Z_a, *thickness_along_Z_b;
+	double *Z_coord_begin_a, *Z_coord_begin_b;
+	double *Z_coord_end_a, *Z_coord_end_b;
 
 	//composition
 	if (A->composition->n_layers != B->composition->n_layers) {
@@ -281,7 +284,31 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 			return 0;
 		}
 	}
-	//
+	//new approach: compare extremes of the layer system
+	thickness_along_Z_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_begin_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_end_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	thickness_along_Z_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_begin_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_end_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+
+	int i;
+
+	for (i = 0 ; i < A->composition ; i++) {
+		thickness_along_Z = fabs(A->composition->layers[i].thickness/sin(atan(
+			A->composition->layers[i].n_sample_orientation[2]/A->composition->layers[i].n_sample_orientation[1]
+		)));
+	}
+	for (i = 0 ; i < B->composition ; i++) {
+		thickness_along_Z = fabs(B->composition->layers[i].thickness/sin(atan(
+			B->composition->layers[i].n_sample_orientation[2]/B->composition->layers[i].n_sample_orientation[1]
+		)));
+	}
+
+	Z_coord_begin_a[A->composition->reference_layer-1] = 0.0;
+	Z_coord_end_a[A->composition->reference_layer-1] = 0.0;
+
+
 	//geometry
 #define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/A->geometry->a > XMI_COMPARE_THRESHOLD){\
 	return 0;\
