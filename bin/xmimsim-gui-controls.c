@@ -946,6 +946,19 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	xmimsim_paused = FALSE;
 
+	if (check_changeables() == 0) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Cannot start simulation. The input parameters page contains invalid values."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	     	return;
+	
+	}
+
 	check_rv = check_changes_saved(&check_status);
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
 		//saved before: give option to continue or to SAVE
@@ -1003,6 +1016,8 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					last_saved->filename = strdup(filename);
 					free(filename);
 					gtk_widget_destroy (dialog);
+					gtk_widget_set_sensitive(saveW,FALSE);
+					gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 					start_job(last_saved, (GtkWidget *) data);
 					break;
 				}
