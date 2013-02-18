@@ -27,6 +27,10 @@
 !define XRAYLIB_VERSION "2.16.0"
 !define XRAYLIB_VERSION_MIN "2.15.0"
 
+
+!define WITH_XRAYLIB
+
+
 SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 !include "Library.nsh"
@@ -93,6 +97,7 @@ SetAutoClose false
 SetShellVarContext all
 SetOutPath "$INSTDIR"
 ;check for presence of xraylib and whether it has the right version
+!ifndef WITH_XRAYLIB
 DetailPrint "Checking xraylib presence..."
 ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "DisplayVersion"
 
@@ -130,6 +135,9 @@ ${Else}
 	MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
 	Abort "xraylib download failed: $0"
 ${Endif}
+
+!endif
+
 gtk2install:
 DetailPrint "Installing GTK2 runtime"
 File "${MY_HOME}\github\xmimsim\nsis\${GTK_INSTALLER_EXE}"
@@ -178,6 +186,10 @@ DetailPrint "Installing libcurl"
 DetailPrint "Installing Json-Glib"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libjson-glib-1.0-0.dll" "$INSTDIR\Lib\libjson-glib-1.0-0.dll" "$INSTDIR"
 
+!ifdef WITH_XRAYLIB
+DetailPrint "Installing xraylib"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib\libxrl-3.dll" "$INSTDIR"
+!endif
 
 
 ;DetailPrint "Installing GTK-EXTRA runtime libraries"
@@ -190,39 +202,39 @@ DetailPrint "Installing XMI-MSIM runtime library"
 DetailPrint "Installing XMI-MSIM executables"
 SetOutPath "$INSTDIR\Bin"
 File "${MY_HOME}bin\xmimsim.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "" "$INSTDIR\Bin/xmimsim.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "" "$INSTDIR\Bin\xmimsim.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmimsim-db.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "" "$INSTDIR\Bin/xmimsim-db.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "" "$INSTDIR\Bin\xmimsim-db.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmimsim-gui.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "" "$INSTDIR\Bin/xmimsim-gui.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "" "$INSTDIR\Bin\xmimsim-gui.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmimsim-pymca.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "" "$INSTDIR\Bin/xmimsim-pymca.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "" "$INSTDIR\Bin\xmimsim-pymca.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmso2xmsi.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "" "$INSTDIR\Bin/xmso2xmsi.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "" "$INSTDIR\Bin\xmso2xmsi.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmso2svg.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "" "$INSTDIR\Bin/xmso2svg.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "" "$INSTDIR\Bin\xmso2svg.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmso2spe.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "" "$INSTDIR\Bin/xmso2spe.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "" "$INSTDIR\Bin\xmso2spe.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmso2csv.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "" "$INSTDIR\Bin/xmso2csv.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "" "$INSTDIR\Bin\xmso2csv.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 File "${MY_HOME}bin\xmso2htm.exe"
-WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "" "$INSTDIR\Bin/xmso2htm.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "" "$INSTDIR\Bin\xmso2htm.exe"
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 SetOutPath "$INSTDIR\Share"
@@ -335,6 +347,12 @@ SetAutoClose false
 DetailPrint "Uninstalling GTK2 runtime"
 ExecWait "$INSTDIR\GTK2\gtk2_runtime_uninst.exe /remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S"
 RMDir /R "$INSTDIR\GTK2"
+
+!ifdef WITH_XRAYLIB
+DetailPrint "Uninstalling xraylib"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll"
+!endif
+
 
 DetailPrint "Uninstalling GNU Scientific Library (GSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgsl-0.dll"
