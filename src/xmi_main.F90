@@ -1345,9 +1345,9 @@ BIND(C,NAME='xmi_init_input_escape_ratios') RESULT(rv)
         DO j=1,SIZE(layer)
                 !calculate thickness in Z direction
                 layer(j)%thickness_along_Z = &
-                ABS(layer(j)%thickness*COS(ASIN(my_n_sample_orientation(1)))/SIN(&
-                ATAN(my_n_sample_orientation(3)/&
-                my_n_sample_orientation(2))))
+                ABS(layer(j)%thickness/DOT_PRODUCT(my_n_sample_orientation,&
+                [0.0_C_DOUBLE,0.0_C_DOUBLE,1.0_C_DOUBLE]))
+
         ENDDO
 
         layer(inputF%composition%reference_layer)%Z_coord_begin =&
@@ -1530,9 +1530,8 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         DO j=1,SIZE(layer)
                 !calculate thickness in Z direction
                 layer(j)%thickness_along_Z = &
-                ABS(layer(j)%thickness*COS(ASIN(my_n_sample_orientation(1)))/SIN(&
-                ATAN(my_n_sample_orientation(3)/&
-                my_n_sample_orientation(2))))
+                ABS(layer(j)%thickness/DOT_PRODUCT(my_n_sample_orientation,&
+                [0.0_C_DOUBLE,0.0_C_DOUBLE,1.0_C_DOUBLE]))
         ENDDO
 
         layer(inputF%composition%reference_layer)%Z_coord_begin =&

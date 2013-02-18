@@ -273,18 +273,9 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	double *Z_coord_end_a, *Z_coord_end_b;
 
 	//composition
-	if (A->composition->n_layers != B->composition->n_layers) {
-		return 0;
-	}
-	if (A->composition->reference_layer != B->composition->reference_layer) {
-		return 0;
-	}
-	for (i = 0 ; i < A->composition->n_layers ; i++) {
-		if (fabsl(A->composition->layers[i].thickness- B->composition->layers[i].thickness)/A->composition->layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-			return 0;
-		}
-	}
 	//new approach: compare extremes of the layer system
+	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
+	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
 	thickness_along_Z_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
 	Z_coord_begin_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
 	Z_coord_end_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
@@ -292,21 +283,63 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	Z_coord_begin_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
 	Z_coord_end_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
 
-	int i;
 
-	for (i = 0 ; i < A->composition ; i++) {
-		thickness_along_Z = fabs(A->composition->layers[i].thickness/sin(atan(
-			A->composition->layers[i].n_sample_orientation[2]/A->composition->layers[i].n_sample_orientation[1]
-		)));
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		thickness_along_Z_a[i] = fabs(A->composition->layers[i].thickness/A->geometry->n_sample_orientation[2]);
 	}
-	for (i = 0 ; i < B->composition ; i++) {
-		thickness_along_Z = fabs(B->composition->layers[i].thickness/sin(atan(
-			B->composition->layers[i].n_sample_orientation[2]/B->composition->layers[i].n_sample_orientation[1]
-		)));
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		thickness_along_Z_b[i] = fabs(B->composition->layers[i].thickness/B->geometry->n_sample_orientation[2]);
 	}
 
 	Z_coord_begin_a[A->composition->reference_layer-1] = 0.0;
-	Z_coord_end_a[A->composition->reference_layer-1] = 0.0;
+	Z_coord_end_a[A->composition->reference_layer-1] = thickness_along_Z_a[A->composition->reference_layer-1];
+
+	for (i = A->composition->reference_layer-1+1 ; i < A->composition->n_layers ; i++) {
+		Z_coord_begin_a[i] = Z_coord_end_a[i-1];
+		Z_coord_end_a[i] = Z_coord_begin_a[i]+thickness_along_Z_a[i];
+	}
+
+	for (i = A->composition->reference_layer-1-1 ; i == 0 ; i--) {
+		Z_coord_end_a[i] = Z_coord_begin_a[i+1];
+		Z_coord_begin_a[i] = Z_coord_end_a[i]-thickness_along_Z_a[i];
+	}
+
+	Z_coord_begin_b[B->composition->reference_layer-1] = 0.0;
+	Z_coord_end_b[B->composition->reference_layer-1] = thickness_along_Z_b[B->composition->reference_layer-1];
+
+	for (i = B->composition->reference_layer-1+1 ; i < B->composition->n_layers ; i++) {
+		Z_coord_begin_b[i] = Z_coord_end_b[i-1];
+		Z_coord_end_b[i] = Z_coord_begin_b[i]+thickness_along_Z_b[i];
+	}
+
+	for (i = B->composition->reference_layer-1-1 ; i == 0 ; i--) {
+		Z_coord_end_b[i] = Z_coord_begin_b[i+1];
+		Z_coord_begin_b[i] = Z_coord_end_b[i]-thickness_along_Z_b[i];
+	}
+
+
+	//fprintf(stderr, "Z_coord_end_b: %lf\n", Z_coord_end_b[0]);
+	//fprintf(stderr, "Z_coord_end_a: %lf\n", Z_coord_end_a[0]);
+	//fprintf(stderr, "Z_coord_begin_b: %lf\n", Z_coord_begin_b[0]);
+	//fprintf(stderr, "Z_coord_begin_a: %lf\n", Z_coord_begin_a[0]);
+
+
+	if (Z_coord_end_a[A->composition->n_layers-1] - Z_coord_end_b[B->composition->n_layers-1] < -0.0001 || Z_coord_begin_a[0] - Z_coord_begin_b[0] > 0.0001) {
+		free(thickness_along_Z_a);
+		free(thickness_along_Z_b);
+		free(Z_coord_begin_a);
+		free(Z_coord_end_a);
+		free(Z_coord_begin_b);
+		free(Z_coord_end_b);
+		return 0;
+	}
+
+	free(thickness_along_Z_a);
+	free(thickness_along_Z_b);
+	free(Z_coord_begin_a);
+	free(Z_coord_end_a);
+	free(Z_coord_begin_b);
+	free(Z_coord_end_b);
 
 
 	//geometry
@@ -318,11 +351,9 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	}	
 
 	//should compare normalized orientations...
-	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
-	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
 	if (fabsl((A->geometry->p_detector_window[2]-A->geometry->d_sample_source)-(B->geometry->p_detector_window[2]-B->geometry->d_sample_source)) > XMI_COMPARE_THRESHOLD)
