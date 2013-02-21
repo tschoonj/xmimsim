@@ -73,7 +73,7 @@ extern long hits_per_single;
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	XmiSolidAngleCalculation my_xmi_solid_angle_calculation_cl;
+	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
 	GModule *module;
 	gchar *module_path;
 	gchar *opencl_lib;
@@ -103,12 +103,12 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			fprintf(stderr,"Could not open xmimsim-cl: %s\n", g_module_error());
 			goto fallback;
 		}
-		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &my_xmi_solid_angle_calculation_cl)) {
+		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &xmi_solid_angle_calculation_cl)) {
 			fprintf(stderr,"Error retrieving xmi_solid_angle_calculation_cl in xmimsim-cl: %s\n", g_module_error());
 			goto fallback;
 		}
-		if (my_xmi_solid_angle_calculation_cl != NULL) {
-			int rv = my_xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+		if (xmi_solid_angle_calculation_cl != NULL) {
+			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
 			if (rv == 0) {
 				fprintf(stderr,"OpenCL calculation failed: fallback to Fortran implementation\n");
 				goto fallback;
@@ -123,10 +123,6 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 		}
 		return;
 	
-	}
-	else {
-		xmi_solid_angle_calculation_f(inputFPtr, solid_angle, input_string, xmo);
-		return;
 	}
 fallback:
 #endif

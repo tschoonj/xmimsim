@@ -42,7 +42,7 @@ case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
 		LDFLAGS_XMIMSIM_LIB+="-no-undefined"
-		LDFLAGS_XMIMSIM_CL+="-no-undefined"
+		LDFLAGS_XMIMSIM_CL+="-no-undefined -export-dynamic"
 		;;
 esac
 

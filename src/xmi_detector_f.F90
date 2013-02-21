@@ -110,9 +110,9 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                 npulses_all = npulses_all+1
        
                 IF (npulses .GT. 100) THEN
-                        WRITE (6,'(A)') 'pulsetrain maximum reached'
-                        WRITE (6,'(A)') 'Adjust pulsewidth value or'
-                        WRITE (6,'(A)') 'disable the pileup generation'
+                        WRITE (error_unit,'(A)') 'pulsetrain maximum reached'
+                        WRITE (error_unit,'(A)') 'Adjust pulsewidth value or'
+                        WRITE (error_unit,'(A)') 'disable the pileup generation'
                         CALL EXIT(1)
                 ENDIF
 
@@ -136,7 +136,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                                 !just one pulse...
                                 IF (pulses(1) .LT. 0 .OR. pulses(1) .GE.&
                                 nchannels) THEN
-                                        WRITE (6,'(A,I10)') 'pulses exception:',&
+                                        WRITE (error_unit,'(A,I10)') 'pulses exception:',&
                                         pulses(1)
                                 ENDIF
                                 new_channels(pulses(1)) = &
@@ -294,7 +294,6 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                 WRITE(output_unit,'(A)') 'Applying Gaussian convolution'
 #endif
 
-!!!$omp parallel do default(private) shared(a,b,inputF,I0,nlim,nchannels)
         DO I0=1,nlim
                 E0 = inputF%detector%zero + inputF%detector%gain*I0
                 IF (E0 .LT. 1.0_C_DOUBLE) CYCLE
@@ -349,13 +348,18 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                 ENDDO
 
         ENDDO
-!!!omp end parallel do
-!        my_sum = SUM(channels_conv(1:nlim))
-!        DO I=1, NLIM
-!                E = inputF%detector%gain*I
-!                CBG=EXP(1./(0.15_C_DOUBLE+1.4E-2_C_DOUBLE*(E-1.0_C_DOUBLE)))*my_sum/1.0E7
-!                channels_conv(I)=channels_conv(I)+CBG*0.4_C_DOUBLE
-!        ENDDO
+
+        IF (options%use_poisson == 1_C_INT) THEN
+                IF (options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
+                        CALL xmi_print_progress('Calculating Poisson noise'&
+                        //C_NULL_CHAR, -1_C_INT)
+#else
+                        WRITE(output_unit,'(A)') 'Calculating Poisson noise'
+#endif
+                CALL xmi_detector_poisson(channels_conv)
+        ENDIF
+
 
 #if DEBUG == 1
         WRITE (*,'(A,F15.4)') 'channel 223 contents after conv: ', channels_conv(223)
@@ -647,6 +651,27 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
         RETURN
 ENDSUBROUTINE xmi_detector_escape_SiLi
 
+SUBROUTINE xmi_detector_poisson(channels)
+        IMPLICIT NONE
 
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT) :: channels
+        TYPE (fgsl_rng_type) :: rng_type
+        TYPE (fgsl_rng) :: rng
+        INTEGER (C_LONG), TARGET :: seed
+        INTEGER :: i
+
+
+        rng_type = fgsl_rng_mt19937
+        IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) RETURN
+
+        rng = fgsl_rng_alloc(rng_type)
+        CALL fgsl_rng_set(rng,seed)
+        DO i=1,SIZE(channels)
+                IF (channels(i) > 0.0) channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+        ENDDO
+
+        CALL fgsl_rng_free(rng) 
+
+ENDSUBROUTINE xmi_detector_poisson
 
 ENDMODULE xmimsim_detector
