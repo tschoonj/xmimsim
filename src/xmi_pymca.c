@@ -388,7 +388,7 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	*detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
 
 	(*detector)->gain = g_key_file_get_double(pymcaFile, "result.config.detector","gain", NULL);
-	(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL);
+	(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL)-(*detector->gain);
 	(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", NULL);
 	(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", NULL);
 	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
