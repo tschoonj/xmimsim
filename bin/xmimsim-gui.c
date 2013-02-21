@@ -2175,9 +2175,9 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		NULL
 	};
 
-	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2012 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2013 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
 
-	static const gchar comments[] = "XMI-MSIM is a tool for the Monte Carlo simulation of ED-XRF spectrometers\n\n\nPlease read carefully the License section and the links therein.";
+	static const gchar comments[] = "A tool for the Monte Carlo simulation of ED-XRF spectrometers\n\n\nPlease read carefully the License section and the links therein.";
 
 	GdkPixbuf *logo = NULL;
 	gchar *logo_file = NULL;
@@ -2205,7 +2205,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		"authors", authors,
 		"comments", comments,
 		"copyright", copyright,
-		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011) in your manuscripts when using this tool.", 
+		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011) in your manuscripts.", 
 		"logo", logo,
 		"artists", artists,
 		"version", VERSION,

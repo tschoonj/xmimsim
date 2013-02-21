@@ -382,6 +382,7 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
                 	);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
+		gtk_widget_destroy(xt->window);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -439,6 +440,7 @@ static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
                 	);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
+		gtk_widget_destroy(xt->window);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -496,6 +498,7 @@ static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) 
                 	);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
+		gtk_widget_destroy(xt->window);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -553,6 +556,7 @@ static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
                 	);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
+		gtk_widget_destroy(xt->window);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -610,6 +614,7 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
                 	);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
+		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
