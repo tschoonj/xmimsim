@@ -24,8 +24,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:param name="interaction"></xsl:param>
 <xsl:variable name="interaction_val"><xsl:value-of select="$interaction"/></xsl:variable>
 <xsl:output method="text"/>
-<xsl:template match="/" name="main">
-$SPEC_ID:
+<xsl:template match="/" name="main">$SPEC_ID:
 
 $DATA:
 <xsl:choose>
