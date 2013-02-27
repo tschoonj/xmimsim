@@ -382,17 +382,30 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	int rv;
 	gchar *type;
+	gchar **params;
+	gsize nparams;
 
 	rv = 0;
 
 	*detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
 
-	(*detector)->gain = g_key_file_get_double(pymcaFile, "result.config.detector","gain", NULL);
-	(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL)-(*detector)->gain;
-	(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", NULL);
-	(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", NULL);
-	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
+	//get parameters from result, if available
+	params = g_key_file_get_string_list(pymcaFile, "result", "fittedpar", &nparams, NULL);
 
+	if (params != NULL && nparams > 4) {
+		(*detector)->gain = g_ascii_strtod(params[1], NULL);
+		(*detector)->zero = g_ascii_strtod(params[0], NULL)-(*detector)->gain;
+		(*detector)->fano= g_ascii_strtod(params[3], NULL);
+		(*detector)->noise = g_ascii_strtod(params[2], NULL);
+		g_strfreev(params);
+	}
+	else {
+		(*detector)->gain = g_key_file_get_double(pymcaFile, "result.config.detector","gain", NULL);
+		(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL)-(*detector)->gain;
+		(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", NULL);
+		(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", NULL);
+	}
+	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
 	type = g_key_file_get_string(pymcaFile, "result.config.detector", "detele", NULL);
 
 	if (strcmp("Si",type) == 0) {

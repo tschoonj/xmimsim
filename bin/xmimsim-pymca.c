@@ -454,11 +454,16 @@ XMI_MAIN
 	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 		return 1;
 
+	if (options.verbose)
+		g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
+
 
 	//check if escape ratios are already precalculated
 	if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
 		return 1;
 	if (escape_ratios_def == NULL) {
+		if (options.verbose)
+			g_fprintf(stdout,"Precalculating escape peak ratios\n");
 		//doesn't exist yet
 		//convert input to string
 		if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
@@ -468,7 +473,11 @@ XMI_MAIN
 		//update hdf5 file
 		if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 			return 1;
+		else if (options.verbose)
+			g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 	}
+	else if (options.verbose)
+		g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 
 	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
 		rayleigh_channel = (int) ((xp->scatter_energy - xi->detector->zero)/xi->detector->gain);
