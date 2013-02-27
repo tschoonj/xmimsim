@@ -986,7 +986,22 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	(*excitation)->discrete = NULL;
 	(*excitation)->n_continuous = 0;
 	(*excitation)->continuous = NULL;
+
+	gdouble weights_sum = 0.0;
+
+	for (i = 0 ; i < n_energy ; i++) {
+		if (energyflag[i] == FALSE)
+			continue;
+		else 
+			weights_sum += energyweight[i];
+	}
+
+	if (weights_sum <= 0.0) {
+		g_fprintf(stderr,"Sum of flagged energy weights must be strictly positive... Fatal error\n");
+		return rv;
+	}
 	
+
 	for (i = 0 ; i < n_energy ; i++) {
 		//check flag
 		if (energyflag[i] == FALSE)
@@ -998,8 +1013,8 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 			fprintf(stderr,"A flagged energy turned out to be negative or zero... Fatal error\n");
 			return rv;
 		}
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].horizontal_intensity = energyweight[i]*flux*(1.0+pdeg)/2.0;
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].vertical_intensity = energyweight[i]*flux*(1.0-pdeg)/2.0;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].horizontal_intensity = energyweight[i]*flux*(1.0+pdeg)/2.0/weights_sum;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].vertical_intensity = energyweight[i]*flux*(1.0-pdeg)/2.0/weights_sum;
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_x = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_size_x", NULL);
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_y = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_size_y", NULL);
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_xp = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_diverg_x", NULL);
