@@ -438,7 +438,7 @@ enum {
 
 int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layers, int kind) {
 	char *exc_names[]={"BeamFilter0","BeamFilter1", NULL};
-	char *det_names[]={"deadlayer","absorber","window","contact","Filter 6",
+	char *det_names[]={"kapton", "deadlayer","absorber","window","contact","Filter 6",
 	                 "Filter 7", NULL};
 	char *crystal_names[]={"Detector", NULL};
 
