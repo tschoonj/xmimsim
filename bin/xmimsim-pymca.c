@@ -238,7 +238,7 @@ XMI_MAIN
 		return 1;
 	}
 
-	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization) == 0)
+	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization, use_single_run) == 0)
 		return 1;
 	else if (options.verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);

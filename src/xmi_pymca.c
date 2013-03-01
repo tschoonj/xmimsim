@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_pymca.h"
 #include "xmi_aux.h"
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <xraylib-parser.h>
 #include <stdlib.h>
@@ -647,7 +648,7 @@ int read_atmosphere_composition(GKeyFile *pymcaFile, struct xmi_layer **atmosphe
 	return rv;
 }
 
-int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca) {
+int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run) {
 	int rv = 0;
 	gint active;
 	gsize length, length2;
@@ -712,23 +713,25 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 		(*multilayer_layers)->thickness= g_ascii_strtod(strings[3],NULL);
 	}
 
-	if (ilay_pymca > *n_multilayer_layers) {
-		fprintf(stderr,"Invalid value for xrfmc.setup.layer found\nMust be less or equal than the number of layers in Matrix\n");
-		return rv;
-	}
+	if (!use_single_run) {
+		if (ilay_pymca > *n_multilayer_layers) {
+			fprintf(stderr,"Invalid value for xrfmc.setup.layer found\nMust be less or equal than the number of layers in Matrix\n");
+			return rv;
+		}
 
-	for (i = 0 ; i < (*multilayer_layers+ilay_pymca-1)->n_elements ; i++) {
+		for (i = 0 ; i < (*multilayer_layers+ilay_pymca-1)->n_elements ; i++) {
 			flags[(*multilayer_layers+ilay_pymca-1)->Z[i]] = 1;
-	}
+		}
 
-	g_strfreev(strings);
 
 #if DEBUG == 2
-	for (i = 1 ; i < 100 ; i++)
-		if (flags[i] == 1) 
-			fprintf(stdout,"Element flagged: %s\n",AtomicNumberToSymbol(i));
+		for (i = 1 ; i < 100 ; i++)
+			if (flags[i] == 1) 
+				fprintf(stdout,"Element flagged: %s\n",AtomicNumberToSymbol(i));
 
 #endif
+	}
+	g_strfreev(strings);
 
 	rv = 1;
 	return rv;
@@ -1033,7 +1036,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 }
 
 
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override, int use_roi_normalization) {
+int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override, int use_roi_normalization, int use_single_run) {
 	int rv = 0;
 	GKeyFile *pymcaFile;
 	GError *error=NULL;
@@ -1054,6 +1057,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	struct xmi_general *general = NULL;
 	gchar **strings, *energy_string, *ydata_string;
 	double *ydata;
+	int override_required = 0;
 
 	//read the file...
 	pymcaFile = g_key_file_new();
@@ -1070,19 +1074,19 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	*pymca_input = (struct xmi_pymca *) malloc(sizeof(struct xmi_pymca));
 
 
-	//get layer that will be quantified...
-	//1 means first layer of MULTILAYER Matrix
-	//2 means second layer of MULTILAYER Matrix etc...
-	(*pymca_input)->ilay_pymca = g_key_file_get_integer(pymcaFile, "xrfmc.setup","layer", &error); 
-	if((*pymca_input)->ilay_pymca < 1) {
-		fprintf(stdout,"Found invalid value for xrfmc.setup:layer\nMust be greater or equal to 1\n");
-		return rv;
-	}
-
+	if (!use_single_run) {
+		//get layer that will be quantified...
+		//1 means first layer of MULTILAYER Matrix
+		//2 means second layer of MULTILAYER Matrix etc...
+		(*pymca_input)->ilay_pymca = g_key_file_get_integer(pymcaFile, "xrfmc.setup","layer", &error); 
+		if((*pymca_input)->ilay_pymca < 1) {
+			fprintf(stdout,"Found invalid value for xrfmc.setup:layer\nMust be greater or equal to 1\n");
+			return rv;
+		}
 #if DEBUG == 2
 	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
 #endif
-
+	}
 
 	//read atmosphere composition
 	if (read_atmosphere_composition(pymcaFile, &atmosphere_layer) == 0)
@@ -1094,17 +1098,18 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	for (i = 0 ; i < 100 ; i++)
 		(*pymca_input)->flags[i] = 0;
 
-	if (read_multilayer_composition(pymcaFile, &multilayer_layers, &n_multilayer_layers, (*pymca_input)->flags, (*pymca_input)->ilay_pymca) == 0)
+	if (read_multilayer_composition(pymcaFile, &multilayer_layers, &n_multilayer_layers, (*pymca_input)->flags, (*pymca_input)->ilay_pymca, use_single_run) == 0)
 		return rv;
 	
 #if DEBUG == 2
 	fprintf(stdout,"Before get_peak_areas\n");
 #endif
 
+	if (!use_single_run) {
 	//get_peak_areas
-	if (get_peak_areas(pymcaFile, *pymca_input) == 0)
-		return rv;
-
+		if (get_peak_areas(pymcaFile, *pymca_input) == 0)
+			return rv;
+	}
 #if DEBUG == 2
 	fprintf(stdout,"After get_peak_areas\n");
 #endif
@@ -1138,107 +1143,111 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (read_excitation_spectrum(pymcaFile, &excitation, detector) == 0)
 		return rv;
 
-	(*pymca_input)->usematrix = g_key_file_get_integer(pymcaFile, "result.config.concentrations", "usematrix", NULL);
 
-	if (use_roi_normalization && !(*pymca_input)->usematrix) {
-		g_fprintf(stderr, "Inconsistency detected: --enable-roi-normalization requires the option \"From matrix composition\" to be selected in PyMca\n");
-		return rv;
-	}
+	if (!use_single_run) {
 
-	gchar *reference = g_key_file_get_string(pymcaFile, "result.config.concentrations", "reference", NULL);
+		(*pymca_input)->usematrix = g_key_file_get_integer(pymcaFile, "result.config.concentrations", "usematrix", NULL);
 
-	if (reference != NULL && (*pymca_input)->usematrix == 1) {
-		if (strcmp(reference, "Auto") == 0) {
-			g_fprintf(stderr, "When using ROI normalization, the \"The matrix reference element\" has to be different from Auto\n");
+		if (use_roi_normalization && !(*pymca_input)->usematrix) {
+			g_fprintf(stderr, "Inconsistency detected: --enable-roi-normalization requires the option \"From matrix composition\" to be selected in PyMca\n");
 			return rv;
 		}
-		else {
-			(*pymca_input)->reference = SymbolToAtomicNumber(reference);
-			if ((*pymca_input)->reference == 0) {
-				g_fprintf(stderr,"Invalid Matrix reference element detected.\n");
+
+		gchar *reference = g_key_file_get_string(pymcaFile, "result.config.concentrations", "reference", NULL);
+
+		if (reference != NULL && (*pymca_input)->usematrix == 1) {
+			if (strcmp(reference, "Auto") == 0) {
+				g_fprintf(stderr, "When using ROI normalization, the \"The matrix reference element\" has to be different from Auto\n");
 				return rv;
 			}
-			//check if the reference element is part of the layer of interest
-			found = 0;
-			for (k = 0 ; k < multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements ; k++) {
-				if (multilayer_layers[(*pymca_input)->ilay_pymca-1].Z[k] == (*pymca_input)->reference) {
-					found = 1;
-					break;
+			else {
+				(*pymca_input)->reference = SymbolToAtomicNumber(reference);
+				if ((*pymca_input)->reference == 0) {
+					g_fprintf(stderr,"Invalid Matrix reference element detected.\n");
+					return rv;
 				}
-			}
-			if (!found) {
-				g_fprintf(stderr,"Reference element %s is not part of the matrix composition\n",AtomicNumberToSymbol((*pymca_input)->reference));
-				(*pymca_input)->reference = 0;
-				return rv;
-			}
-			if (multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements < 2){
-				g_fprintf(stderr,"Matrix layer of interest must consist of at least two elements when --enable-roi-normalization is used\n");
-				return rv;
-			}
-		}
-		g_free(reference);
-	}
-
-	//determine elements that will actually be quantified (non-matrix)
-	//1st condition: there has to be a (positive) net-line intensity available
-	//2nd condition: the element may not be part of the matrix composition unless matrix is overridden
-	//3rd condition: the element may not be part of any of the other layers
-	//4th condition: the element may not be the reference element if --enable-roi-integration is active
-	(*pymca_input)->z_arr_quant = NULL;
-	(*pymca_input)->n_z_arr_quant = 0;
-	int override_required = 0;
-	for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
-#if DEBUG == 2
-		fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
-#endif
-
-		if ((*pymca_input)->k_alpha[i] + (*pymca_input)->l_alpha[i] <= 0.0)
-			continue;
-
-		if ((*pymca_input)->usematrix && (*pymca_input)->z_arr[i] == (*pymca_input)->reference)
-			continue;
-
-		found = 0;
-		//check multilayer
-		for (j = 0 ; j < n_multilayer_layers ; j++) {
-			for (k = 0 ; k < multilayer_layers[j].n_elements ; k++) {
-				if (multilayer_layers[j].Z[k] == (*pymca_input)->z_arr[i]) {
-					if (use_matrix_override == 1 && j == (*pymca_input)->ilay_pymca-1) {
-						found = 0;
-						override_required = 1;
-					}
-					else {
+				//check if the reference element is part of the layer of interest
+				found = 0;
+				for (k = 0 ; k < multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements ; k++) {
+					if (multilayer_layers[(*pymca_input)->ilay_pymca-1].Z[k] == (*pymca_input)->reference) {
 						found = 1;
-						override_required = 0;
 						break;
 					}
 				}
-			}
-			if (found == 1)
-				break;
-		}
-		if (found == 0 && atmosphere_layer != NULL) {
-			//check atmosphere
-			for (k = 0 ; k < atmosphere_layer->n_elements ; k++) {
-				if (atmosphere_layer->Z[k] == (*pymca_input)->z_arr[i]) {
-					found = 1;
-					break;
+				if (!found) {
+					g_fprintf(stderr,"Reference element %s is not part of the matrix composition\n",AtomicNumberToSymbol((*pymca_input)->reference));
+					(*pymca_input)->reference = 0;
+					return rv;
+				}
+				if (multilayer_layers[(*pymca_input)->ilay_pymca-1].n_elements < 2){
+					g_fprintf(stderr,"Matrix layer of interest must consist of at least two elements when --enable-roi-normalization is used\n");
+					return rv;
 				}
 			}
-			
+			g_free(reference);
 		}
-		if (found == 0) {
-			//found
-			(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
-			(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
-#if DEBUG == 2
-			fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
-#endif
-		}
-	}
 
-	//sort
-	qsort((*pymca_input)->z_arr_quant, (*pymca_input)->n_z_arr_quant, sizeof(int),xmi_cmp_int  );
+		//determine elements that will actually be quantified (non-matrix)
+		//1st condition: there has to be a (positive) net-line intensity available
+		//2nd condition: the element may not be part of the matrix composition unless matrix is overridden
+		//3rd condition: the element may not be part of any of the other layers
+		//4th condition: the element may not be the reference element if --enable-roi-integration is active
+		(*pymca_input)->z_arr_quant = NULL;
+		(*pymca_input)->n_z_arr_quant = 0;
+		for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
+#if DEBUG == 2
+			fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
+#endif
+
+			if ((*pymca_input)->k_alpha[i] + (*pymca_input)->l_alpha[i] <= 0.0)
+				continue;
+
+			if ((*pymca_input)->usematrix && (*pymca_input)->z_arr[i] == (*pymca_input)->reference)
+				continue;
+
+			found = 0;
+			//check multilayer
+			for (j = 0 ; j < n_multilayer_layers ; j++) {
+				for (k = 0 ; k < multilayer_layers[j].n_elements ; k++) {
+					if (multilayer_layers[j].Z[k] == (*pymca_input)->z_arr[i]) {
+						if (use_matrix_override == 1 && j == (*pymca_input)->ilay_pymca-1) {
+							found = 0;
+							override_required = 1;
+						}
+						else {
+							found = 1;
+							override_required = 0;
+							break;
+						}
+					}
+				}
+				if (found == 1)
+					break;
+			}
+			if (found == 0 && atmosphere_layer != NULL) {
+				//check atmosphere
+				for (k = 0 ; k < atmosphere_layer->n_elements ; k++) {
+					if (atmosphere_layer->Z[k] == (*pymca_input)->z_arr[i]) {
+						found = 1;
+						break;
+					}
+				}
+			
+			}
+			if (found == 0) {
+				//found
+				(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
+				(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
+#if DEBUG == 2	
+				fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
+#endif
+			}
+		}
+
+		//sort
+		qsort((*pymca_input)->z_arr_quant, (*pymca_input)->n_z_arr_quant, sizeof(int),xmi_cmp_int  );
+
+	}
 
 
 	//general
@@ -1301,17 +1310,17 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	g_free(energy_string);
 
 
+	if (use_single_run) {
+		rv = 1;
+		return rv;
+	}
 
 	(*pymca_input)->xmin = (int) g_key_file_get_integer(pymcaFile, "result.config.fit", "xmin", NULL);
 	(*pymca_input)->xmax = (int) g_key_file_get_integer(pymcaFile, "result.config.fit", "xmax", NULL);
-	//g_fprintf(stdout,"xmin: %i\n",	(*pymca_input)->xmin);
-	//g_fprintf(stdout,"xmax: %i\n",	(*pymca_input)->xmax);
 	//integrate between xmin and xmax -> sum_xmin_xmax
 	//get ydata
 	ydata_string = g_key_file_get_string(pymcaFile, "result", "ydata", NULL);
 	strings = g_strsplit(ydata_string," ",100000);
-	//(*pymca_input)->xmin=0;
-	//(*pymca_input)->xmax=10;
 
 	for (i = 1 ; i <= (*pymca_input)->xmax-(*pymca_input)->xmin+1 ; i++ ) {
 		(*pymca_input)->sum_xmin_xmax += (double) g_ascii_strtod(strings[i], NULL);

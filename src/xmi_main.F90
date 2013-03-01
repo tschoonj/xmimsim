@@ -233,7 +233,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !variables... just allocate it anyway..
         !IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
                 ALLOCATE(var_red_history(100,383+2,inputF%general%n_interactions_trajectory)) 
-                var_red_history = 0_C_INT
+                var_red_history = 0.0_C_DOUBLE
         !ENDIF
 
         rng_type = fgsl_rng_mt19937
