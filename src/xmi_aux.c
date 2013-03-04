@@ -230,6 +230,18 @@ void xmi_print_progress(char *string, int progress) {
 	}
 }
 
+int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
+	
+	if (diff > 0.0)
+		return 1;
+	else if (diff < 0.0)
+		return -1;
+	return 0;
+
+}
 
 
 

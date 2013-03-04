@@ -1134,6 +1134,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	
 	}	
 
+	qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 
 
 	g_strfreev(energy);
@@ -1379,18 +1380,25 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	detector->crystal_layers = crystal_layers;
 
 	//nchannels
-	(*pymca_input)->nchannels = (int) (g_key_file_get_double(pymcaFile, "result.config.fit", "xmax", &error)*1.10);
+	//get max from energies and from xmax
+	int nchannels_energy = (int) (1.10*((excitation)->discrete[((excitation)->n_discrete)-1].energy - detector->zero)/detector->gain);
+	int nchannels_xmax;
+
+
+	nchannels_xmax = (int) (g_key_file_get_double(pymcaFile, "result.config.fit", "xmax", &error)*1.10);
 	if (error != NULL) {
 		g_clear_error(&error);	
-		(*pymca_input)->nchannels = (int) (g_key_file_get_double(pymcaFile, "fit", "xmax", &error)*1.10);
+		nchannels_xmax = (int) (g_key_file_get_double(pymcaFile, "fit", "xmax", &error)*1.10);
 		if (error != NULL) {
-			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "xmax");
+			nchannels_xmax = 0;
 			return rv;
 		}
 	}
-
+	(*pymca_input)->nchannels = MAX(nchannels_xmax, nchannels_energy);
 #if DEBUG == 1
 	fprintf(stdout,"nchannels: %i\n",(*pymca_input)->nchannels);
+	fprintf(stdout,"nchannels_xmax: %i\n", nchannels_xmax);
+	fprintf(stdout,"nchannels_energy: %i\n", nchannels_energy);
 #endif
 
 

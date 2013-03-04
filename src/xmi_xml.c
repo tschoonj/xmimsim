@@ -57,7 +57,6 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, double ***channels
 static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
 
-static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
@@ -1309,18 +1308,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	xmlFreeDoc(doc);
 
 	return 1;
-
-}
-static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
-	double diff;
-
-	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
-	
-	if (diff > 0.0)
-		return 1;
-	else if (diff < 0.0)
-		return -1;
-	return 0;
 
 }
 

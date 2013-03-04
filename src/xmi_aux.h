@@ -69,6 +69,8 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl);
 
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
 
+int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
+
 #ifdef G_OS_WIN32
   #include <windows.h>
   #define XMI_ARGC_ORIG argc_orig
