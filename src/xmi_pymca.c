@@ -247,9 +247,16 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 #endif
 
 
-	predefGroup = (gchar *) malloc(sizeof(gchar)*(strlen("result.config.materials.")+strlen(compositionString)+1));
-	strcpy(predefGroup,"result.config.materials.");
-	strcat(predefGroup,compositionString);
+
+	predefGroup = g_strdup_printf("result.config.materials.%s",compositionString);
+	if (g_key_file_has_group(pymcaFile, predefGroup) == FALSE) {
+		g_free(predefGroup);
+		predefGroup = g_strdup_printf("materials.%s",compositionString);
+		if (g_key_file_has_group(pymcaFile, predefGroup) == FALSE) {
+			g_free(predefGroup);
+			predefGroup = NULL;
+		}
+	}
 
 #if DEBUG == 2
 	fprintf(stdout,"predefGroup: %s\n",predefGroup);
@@ -257,7 +264,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 
 
 	//First check if it's not one of the predefined layers...
-	if (g_key_file_has_group(pymcaFile, predefGroup) == TRUE) {
+	if (predefGroup != NULL) {
 #if DEBUG == 2
 		fprintf(stdout,"Found predefGroup\n");
 #endif
@@ -374,6 +381,8 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	free(weight);
 	free(sorted_Z_ind);
 
+	if (predefGroup != NULL)
+		g_free(predefGroup);
 
 	rv = 1;
 	return rv;
@@ -385,6 +394,7 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	gchar *type;
 	gchar **params;
 	gsize nparams;
+	GError *error = NULL;
 
 	rv = 0;
 
@@ -401,13 +411,54 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 		g_strfreev(params);
 	}
 	else {
-		(*detector)->gain = g_key_file_get_double(pymcaFile, "result.config.detector","gain", NULL);
-		(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", NULL)-(*detector)->gain;
-		(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", NULL);
-		(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", NULL);
+		(*detector)->gain = g_key_file_get_double(pymcaFile, "result.config.detector","gain", &error);
+		if (error != NULL) {
+			g_clear_error(&error);
+			(*detector)->gain = g_key_file_get_double(pymcaFile, "detector","gain", &error);
+			if (error != NULL) {
+				g_fprintf(stderr,"Could not find gain key in inputfile... Aborting\n");
+				return rv;
+			}
+		}
+		(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", &error)-(*detector)->gain;
+		if (error != NULL) {
+			g_clear_error(&error);
+			(*detector)->zero = g_key_file_get_double(pymcaFile, "detector","zero", &error)-(*detector)->gain;
+			if (error != NULL) {
+				g_fprintf(stderr,"Could not find zero key in inputfile... Aborting\n");
+				return rv;
+			}
+		}
+		(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", &error);
+		if (error != NULL) {
+			g_clear_error(&error);
+			(*detector)->fano = g_key_file_get_double(pymcaFile, "detector","fano", &error);
+			if (error != NULL) {
+				g_fprintf(stderr,"Could not find fano key in inputfile... Aborting\n");
+				return rv;
+			}
+		}
+		(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", &error);
+		if (error != NULL) {
+			g_clear_error(&error);
+			(*detector)->noise = g_key_file_get_double(pymcaFile, "detector","noise", &error);
+			if (error != NULL) {
+				g_fprintf(stderr,"Could not find noise key in inputfile... Aborting\n");
+				return rv;
+			}
+		}
 	}
 	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
-	type = g_key_file_get_string(pymcaFile, "result.config.detector", "detele", NULL);
+	type = g_key_file_get_string(pymcaFile, "result.config.detector", "detele", &error);
+	if (error != NULL) {
+		g_clear_error(&error);
+		type = g_key_file_get_string(pymcaFile, "detector", "detele", &error);
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find detele key in inputfile... Aborting\n");
+			return rv;
+		}
+	}
+
 
 	if (strcmp("Si",type) == 0) {
 		(*detector)->detector_type = XMI_DETECTOR_SILI;
@@ -438,12 +489,11 @@ enum {
 
 
 int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layers, int kind) {
-	char *exc_names[]={"BeamFilter0","BeamFilter1", NULL};
-	char *det_names[]={"kapton", "deadlayer","absorber","window","contact","Filter 6",
-	                 "Filter 7", NULL};
-	char *crystal_names[]={"Detector", NULL};
+	gchar *exc_names[]={"BeamFilter0","BeamFilter1", NULL};
+	gchar **det_names;
+	gchar *crystal_names[]={"Detector", NULL};
 
-	char **names;
+	gchar **names;
 
 	char **strings = NULL;
 	gsize length = 0;
@@ -452,11 +502,41 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 	struct xmi_layer *temp;
 
 	int rv = 0;
+	GError *error = NULL;
 
 	if (kind == ABSORBER_BEAM)
 		names = exc_names;
-	else if (kind == ABSORBER_DETECTOR)
-		names = det_names;
+	else if (kind == ABSORBER_DETECTOR) {
+		det_names = g_key_file_get_keys(pymcaFile,"result.config.attenuators", NULL, &error );
+		if (error != NULL) {
+			g_clear_error(&error);
+			det_names = g_key_file_get_keys(pymcaFile,"attenuators", NULL, &error );
+			if (error != NULL) {
+				g_fprintf(stderr, "Could not find attenuators in inputfile... Aborting\n");
+				return rv;
+			}
+		}
+		length = 0;
+		names = NULL;
+		i = 0;
+		while (det_names[i] != NULL) {
+			if (strcmp(det_names[i], "Matrix") == 0 ||
+				strcmp(det_names[i], "Detector") == 0 ||
+				strcmp(det_names[i], "BeamFilter0") == 0 ||
+				strcmp(det_names[i], "BeamFilter1") == 0
+			) {
+				//do nothing
+			}
+			else {
+				names = (gchar**) g_realloc(names, sizeof(gchar *)*(++length+1));
+				names[length-1] = g_strdup(det_names[i]);
+				names[length] = NULL;
+			}
+			i++;
+		}
+		
+		g_strfreev(det_names);
+	}
 	else if (kind == ABSORBER_CRYSTAL)
 		names = crystal_names;
 	else {
@@ -470,8 +550,9 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 #if DEBUG == 2
 		fprintf(stdout,"names: %s\n",names[i]);
 #endif
-		if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", names[i], &length, NULL)) == NULL) {
-			fprintf(stderr,"Could not find reference for %s... Looks suspicious\n",names[i]);
+		if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", names[i], &length, NULL)) == NULL && (strings = g_key_file_get_string_list(pymcaFile, "attenuators", names[i], &length, NULL)) == NULL) {
+
+			g_fprintf(stderr,"Could not find reference for %s... Looks suspicious\n",names[i]);
 			continue;
 		}
 		//check activity
@@ -491,6 +572,8 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 
 	}
 
+	if (kind == ABSORBER_DETECTOR)
+		g_strfreev(names);
 
 
 	rv = 1;
@@ -504,11 +587,8 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	gsize length;
 	double det_dist;
 	gchar *reference;
+	GError *error = NULL;
 
-	/*
-	 *	Armando uses mm, but we use cm!
-	 *
-	 */
 
 
 	//allocate memory
@@ -516,7 +596,11 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 
 
 	//calculate sample normal using Matrix angles alpha and beta
-	strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL);
+	if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL)) == NULL && (strings = g_key_file_get_string_list(pymcaFile, "attenuators", "Matrix", &length, NULL)) == NULL) {
+		g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "Matrix");
+		return rv;
+	}
+
 	//no need to do checking here... it has been done before
 	alpha = g_ascii_strtod(strings[4], NULL);
 	beta = g_ascii_strtod(strings[5], NULL);
@@ -524,7 +608,15 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
   	beta  = beta*M_PI/180.0;
 
 	//detector area	
-	(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "result.config.concentrations", "area",NULL); 
+	(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "result.config.concentrations", "area", &error); 
+	if (error != NULL) {
+		g_clear_error(&error);
+		(*geometry)->area_detector = g_key_file_get_double(pymcaFile, "concentrations", "area", &error); 
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "area");
+			return rv;
+		}
+	}
 	if ((*geometry)->area_detector <= 0.0) {
 		fprintf(stderr,"Detector area must be positive... Fatal error\n");
 		return rv;
@@ -552,7 +644,17 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	}
 	
 	//detector-sample distance
-	det_dist = g_key_file_get_double(pymcaFile, "result.config.concentrations", "distance",NULL); 
+	det_dist = g_key_file_get_double(pymcaFile, "result.config.concentrations", "distance", &error);
+	if (error != NULL) {
+		g_clear_error(&error);
+		det_dist = g_key_file_get_double(pymcaFile, "concentrations", "distance", &error); 
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "distance");
+			return rv;
+		}
+	}
+
+
 	if (det_dist <= 0.0) {
 		fprintf(stderr,"Detector-sample distance must be positive... Fatal error\n");
 		return rv;
@@ -609,46 +711,7 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 }
 
 
-int read_atmosphere_composition(GKeyFile *pymcaFile, struct xmi_layer **atmosphere_layer ) {
-	int rv=0;
-	char **strings = NULL;
-	gsize length = 0;
-	int i;
-	gint active ;
-
-	if ( (strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "atmosphere", &length, NULL)) == NULL) {
-		fprintf(stdout,"No atmosphere reference found in model... looks suspicious\n");
-		return 1;
-	}
-
-	//see if it's activated
-	active = atoi(strings[0]);
-	
-	if (active != 1) {
-		fprintf(stdout,"Atmosphere layer inactive\n");
-		return 1;
-	}
-
-
-#if DEBUG == 2
-	for (i=0 ; i < length ; i++)
-		fprintf(stdout,"x%sx\n",strings[i]);
-#endif
-	if (get_composition(pymcaFile, strings[1], atmosphere_layer, TRUE) == 0)
-		return rv;
-
-	//get density and thickness
-	(*atmosphere_layer)->density = g_ascii_strtod(strings[2],NULL);
-	(*atmosphere_layer)->thickness= g_ascii_strtod(strings[3],NULL);
-
-	g_strfreev(strings);
-
-
-	rv = 1;
-	return rv;
-}
-
-int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run) {
+int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run, int *reference_layer) {
 	int rv = 0;
 	gint active;
 	gsize length, length2;
@@ -658,7 +721,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 	struct xmi_layer *temp;
 
 	//see it Matrix is toggled -> absolute requirement!
-	if ( (strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL)) == NULL) {
+	if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL)) == NULL && (strings = g_key_file_get_string_list(pymcaFile, "attenuators", "Matrix", &length, NULL)) == NULL) {
 		fprintf(stderr,"No Matrix reference found in model... Fatal error\n");
 		return rv;
 	}
@@ -666,39 +729,57 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 	active = atoi(strings[0]);
 
 	if (active != 1) {
-		fprintf(stderr,"Matrix layer inactive... Fatal error\n");
+		g_fprintf(stderr,"Matrix layer inactive... Fatal error\n");
 		return rv;
 	}
 
+	
 	//see if we're dealing with a multilayer here or a single layer Matrix
 	if (strcmp(g_strstrip(strings[1]),"MULTILAYER") == 0) {
 		//Multilayer found
+		//look for the reference layer
+		gchar *reference_layer_str = g_key_file_get_string(pymcaFile, "result.config.multilayer", "ReferenceLayer", NULL);
+		if (reference_layer_str == NULL) {
+			reference_layer_str = g_key_file_get_string(pymcaFile, "multilayer", "ReferenceLayer", NULL);
+		}
+		gboolean reference_layer_match = FALSE;
+		if (reference_layer_str == NULL) {
+			g_fprintf(stderr, "Could not find reference for ReferenceLayer... Assuming first layer\n");
+			*reference_layer = 1;
+			reference_layer_match = TRUE;
+		}
 		for (i = 0 ; i < 10 ; i++) {
 			sprintf(buffer,"Layer%i",i);
-			if ((strings2 = g_key_file_get_string_list(pymcaFile, "result.config.multilayer", buffer ,&length2, NULL)) == NULL) {
-				fprintf(stderr,"Couldn't find key %s in result.config.multilayer... Fatal error",buffer);
+			if ((strings2 = g_key_file_get_string_list(pymcaFile, "result.config.multilayer", buffer ,&length2, NULL)) == NULL && (strings2 = g_key_file_get_string_list(pymcaFile, "multilayer", buffer ,&length2, NULL)) == NULL) {
+				g_fprintf(stderr,"Could not find key %s in multilayer... Fatal error",buffer);
 				return rv;
 
 			}
 			//check if it's active
 			active = atoi(strings2[0]);
 			if (active != 1) {
-				if (i == 0) {
-					fprintf(stderr,"Multilayer was selected but the first individual layer is inactive... Fatal error\n");
-					return rv;
-				}
-				break;
+				continue;
 			}
+			if (reference_layer_match == FALSE && strcmp(reference_layer_str, buffer) == 0) {
+				reference_layer_match = TRUE;
+				*reference_layer = *n_multilayer_layers;
+				g_free(reference_layer_str);
+			}
+
 			//ok... allocate memory
 			*(multilayer_layers) = (struct xmi_layer *) realloc(*(multilayer_layers), sizeof(struct xmi_layer)*++(*n_multilayer_layers));
-			temp = *multilayer_layers+i;
+			temp = *multilayer_layers+*n_multilayer_layers-1;
 			if (get_composition(pymcaFile, strings2[1], &temp, FALSE) == 0)
 				return rv;
 			//density and thickness
-			(*multilayer_layers+i)->density = g_ascii_strtod(strings2[2],NULL);
-			(*multilayer_layers+i)->thickness= g_ascii_strtod(strings2[3],NULL);
+			(*multilayer_layers+*n_multilayer_layers-1)->density = g_ascii_strtod(strings2[2],NULL);
+			(*multilayer_layers+*n_multilayer_layers-1)->thickness= g_ascii_strtod(strings2[3],NULL);
 
 			g_strfreev(strings2);
+		}
+		if (reference_layer_match == FALSE) {
+			g_fprintf(stderr,"ReferenceLayer was not active... Assuming first layer\n");
+			*reference_layer = 1;
 		}
 	}
 	else {
@@ -707,6 +788,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 			return rv;
 	
 		*n_multilayer_layers = 1;
+		*reference_layer = 1;
 
 		//get density and thickness
 		(*multilayer_layers)->density = g_ascii_strtod(strings[2],NULL);
@@ -950,11 +1032,29 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	double pdeg;
 	double flux;
 	double livetime;
+	GError *error = NULL;
 
 	//get degree of polarization;
 	pdeg = g_key_file_get_double(pymcaFile, "xrfmc.setup", "p_polarisation", NULL);
-	flux = g_key_file_get_double(pymcaFile, "result.config.concentrations", "flux", NULL);
-	livetime = g_key_file_get_double(pymcaFile, "result.config.concentrations", "time", NULL);
+	flux = g_key_file_get_double(pymcaFile, "result.config.concentrations", "flux", &error);
+	if (error != NULL) {
+		g_clear_error(&error);
+		flux = g_key_file_get_double(pymcaFile, "concentrations", "flux", &error);
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "flux");
+			return rv;
+		}
+	}
+
+	livetime = g_key_file_get_double(pymcaFile, "result.config.concentrations", "time", &error);
+	if (error != NULL) {
+		g_clear_error(&error);
+		livetime = g_key_file_get_double(pymcaFile, "concentrations", "time", &error);
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "time");
+			return rv;
+		}
+	}
 
 	if (flux <= 0.0) {
 		fprintf(stderr,"Flux must be a positive value... Fatal error\n");
@@ -967,9 +1067,18 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 
 	detector->live_time = livetime;
 
-	energy = g_key_file_get_string_list(pymcaFile, "result.config.fit","energy",&n_energy, NULL);
-	energyweight = g_key_file_get_double_list(pymcaFile, "result.config.fit","energyweight", &n_energyweight, NULL);
-	energyflag = g_key_file_get_integer_list(pymcaFile, "result.config.fit","energyflag", &n_energyflag, NULL);
+	if ((energy = g_key_file_get_string_list(pymcaFile, "result.config.fit","energy",&n_energy, NULL)) == NULL && (energy = g_key_file_get_string_list(pymcaFile, "fit","energy",&n_energy, NULL)) == NULL) {
+		g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "energy");
+		return rv;
+	}
+	if ((energyweight = g_key_file_get_double_list(pymcaFile, "result.config.fit","energyweight", &n_energyweight, NULL)) == NULL && (energyweight = g_key_file_get_double_list(pymcaFile, "fit","energyweight", &n_energyweight, NULL)) == NULL) {
+		g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "energyweight");
+		return rv;
+	}
+	if ((energyflag = g_key_file_get_integer_list(pymcaFile, "result.config.fit","energyflag", &n_energyflag, NULL)) == NULL && (energyflag = g_key_file_get_integer_list(pymcaFile, "fit","energyflag", &n_energyflag, NULL)) == NULL) {
+		g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "energyflag");
+		return rv;
+	}
 
 #if DEBUG == 2
 	fprintf(stdout,"n_energy: %i\n",n_energy);
@@ -1040,7 +1149,6 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	int rv = 0;
 	GKeyFile *pymcaFile;
 	GError *error=NULL;
-	struct xmi_layer *atmosphere_layer = NULL;
 	struct xmi_layer *multilayer_layers = NULL;
 	int n_multilayer_layers=0;
 	struct xmi_layer *det_layers = NULL;
@@ -1088,17 +1196,14 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 #endif
 	}
 
-	//read atmosphere composition
-	if (read_atmosphere_composition(pymcaFile, &atmosphere_layer) == 0)
-		return rv;
-	
-
 	//read multilayer
 	//set flags to zero
 	for (i = 0 ; i < 100 ; i++)
 		(*pymca_input)->flags[i] = 0;
 
-	if (read_multilayer_composition(pymcaFile, &multilayer_layers, &n_multilayer_layers, (*pymca_input)->flags, (*pymca_input)->ilay_pymca, use_single_run) == 0)
+	int reference_layer = 1;
+
+	if (read_multilayer_composition(pymcaFile, &multilayer_layers, &n_multilayer_layers, (*pymca_input)->flags, (*pymca_input)->ilay_pymca, use_single_run, &reference_layer) == 0)
 		return rv;
 	
 #if DEBUG == 2
@@ -1224,16 +1329,6 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 				if (found == 1)
 					break;
 			}
-			if (found == 0 && atmosphere_layer != NULL) {
-				//check atmosphere
-				for (k = 0 ; k < atmosphere_layer->n_elements ; k++) {
-					if (atmosphere_layer->Z[k] == (*pymca_input)->z_arr[i]) {
-						found = 1;
-						break;
-					}
-				}
-			
-			}
 			if (found == 0) {
 				//found
 				(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
@@ -1267,24 +1362,10 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	(*input)->general = general;
 	//allocate composition
 	(*input)->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
-	//if an atmosphere layer is present... some advanced tricks are required...
-	if (atmosphere_layer != NULL) {
-		//atmosphere is present
-		(*input)->composition->n_layers = n_multilayer_layers + 2;
-		(*input)->composition->layers = (struct xmi_layer *) realloc(multilayer_layers, (*input)->composition->n_layers*sizeof(struct xmi_layer));
-		(*input)->composition->layers[(*input)->composition->n_layers-1] = *atmosphere_layer; 	
-		for (i =(*input)->composition->n_layers-2 ; i >= 1 ; i--) {
-			(*input)->composition->layers[i] = (*input)->composition->layers[i-1];
-		}
-		(*input)->composition->layers[0] = *atmosphere_layer; 	
-		(*input)->composition->reference_layer = 2;	
-	}
-	else {
-		//no atmosphere
-		(*input)->composition->n_layers = n_multilayer_layers;
-		(*input)->composition->layers = multilayer_layers;
-		(*input)->composition->reference_layer = 1;	
-	}
+	(*input)->composition->n_layers = n_multilayer_layers;
+	(*input)->composition->layers = multilayer_layers;
+	//check ReferenceLayer
+	(*input)->composition->reference_layer = 1;	
 
 	(*input)->geometry = geometry;
 	(*input)->excitation = excitation;
@@ -1298,16 +1379,19 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	detector->crystal_layers = crystal_layers;
 
 	//nchannels
-	energy_string = g_key_file_get_string(pymcaFile, "result", "xdata", NULL);
-
-	strings = g_strsplit(energy_string," ",100000);
-	(*pymca_input)->nchannels = (int) strtol(strings[g_strv_length(strings)-2], NULL, 10);
+	(*pymca_input)->nchannels = (int) (g_key_file_get_double(pymcaFile, "result.config.fit", "xmax", &error)*1.10);
+	if (error != NULL) {
+		g_clear_error(&error);	
+		(*pymca_input)->nchannels = (int) (g_key_file_get_double(pymcaFile, "fit", "xmax", &error)*1.10);
+		if (error != NULL) {
+			g_fprintf(stderr,"Could not find reference for %s... Aborting\n", "xmax");
+			return rv;
+		}
+	}
 
 #if DEBUG == 1
 	fprintf(stdout,"nchannels: %i\n",(*pymca_input)->nchannels);
 #endif
-	g_strfreev(strings);
-	g_free(energy_string);
 
 
 	if (use_single_run) {
@@ -1343,8 +1427,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 
 	//adjust ilay_pymca if necessary
-	if (atmosphere_layer == NULL)
-		(*pymca_input)->ilay_pymca--;			
+	(*pymca_input)->ilay_pymca--;			
 
 #if DEBUG == 2
 	fprintf(stdout,"ilay_pymca: %i\n",(*pymca_input)->ilay_pymca);
