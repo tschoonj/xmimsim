@@ -1353,6 +1353,20 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	general->n_photons_interval = 100000;
 	general->n_photons_line = 100000;
 
+
+	int n_photons_line = g_key_file_get_integer(pymcaFile, "xrfmc.setup","histories",&error);
+
+	if (error == NULL) {
+		//key not found: use default value
+		g_clear_error(&error);
+	}
+	else if (n_photons_line < 1) {
+		g_fprintf(stderr, "histories key in xrfmc.setup must be a strictly positive integer... Fatal error\n");
+		return rv;
+	}
+	else 
+		general->n_photons_line = n_photons_line;
+
 	general->n_interactions_trajectory = g_key_file_get_integer(pymcaFile, "xrfmc.setup","nmax_interaction",NULL);
 	if (general->n_interactions_trajectory < 1) {
 		fprintf(stderr,"Maximum number of interactions must be at least one... Fatal error\n");
