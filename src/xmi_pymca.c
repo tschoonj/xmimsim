@@ -1356,7 +1356,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 	int n_photons_line = g_key_file_get_integer(pymcaFile, "xrfmc.setup","histories",&error);
 
-	if (error == NULL) {
+	if (error != NULL) {
 		//key not found: use default value
 		g_clear_error(&error);
 	}
