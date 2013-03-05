@@ -167,7 +167,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***chan
 	channels_loc = (double **) malloc(sizeof(double *)* *nchannels);
 	*channels = channels_loc;
 	
-	channel_loc = NULL;
+	channel_loc = 0;
 	channelPtr = spectrumPtr->children;
 
 	while (channelPtr != NULL) {
