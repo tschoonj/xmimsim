@@ -347,10 +347,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         channel = INT((photon%energy - &
                         inputF%detector%zero)/inputF%detector%gain)
                 ELSE
-                        channel = 0
+                        channel = -1
                 ENDIF
 
-                IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
                         photon%channels(n_ia:, channel) =&
                         photon%channels(n_ia:, channel)+&
                         temp_weight
@@ -394,10 +394,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         channel = INT((energy_compton - &
                         inputF%detector%zero)/inputF%detector%gain)
                 ELSE
-                        channel = 0
+                        channel = -1
                 ENDIF
 
-                IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
                         photon%channels(n_ia:, channel) =&
                         photon%channels(n_ia:, channel)+&
                         temp_weight
@@ -653,10 +653,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 channel = INT((energy_fluo - &
                                 inputF%detector%zero)/inputF%detector%gain)
                         ELSE
-                                channel = 0
+                                channel = -1
                         ENDIF
 
-                        IF (channel .GT. 0 .AND. channel .LE. SIZE(photon%channels,DIM=2)) THEN
+                        IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
                                 photon%channels(n_ia:, channel) =&
                                 photon%channels(n_ia:, channel)+&
                                 temp_weight

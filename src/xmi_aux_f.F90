@@ -1166,17 +1166,17 @@ FUNCTION findpos_fast(array,searchvalue)
 
         findpos_fast = -1
 
-        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+        IF (ABS(searchvalue-array(LBOUND(array, DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos_fast = 1
                 RETURN
         ENDIF
 
         guess = INT((searchvalue-0.1_C_DOUBLE)/(0.10999100-0.1) +&
-1.0_C_DOUBLE,KIND=C_INT)
+1.0_C_DOUBLE,KIND=C_INT)-1
 
 
 
-        DO i=guess, SIZE(array)
+        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos_fast = i-1
                         RETURN
@@ -1196,13 +1196,13 @@ FUNCTION findpos(array, searchvalue)
 
         !this would appear to be necessary... the rng generates exactly 0.0
         !sometimes...
-        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+        IF (ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos = 1
                 RETURN
         ENDIF
 
 
-        DO i=1, SIZE(array)
+        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
                         RETURN

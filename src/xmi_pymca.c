@@ -405,7 +405,7 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 
 	if (params != NULL && nparams > 4) {
 		(*detector)->gain = g_ascii_strtod(params[1], NULL);
-		(*detector)->zero = g_ascii_strtod(params[0], NULL)-(*detector)->gain;
+		(*detector)->zero = g_ascii_strtod(params[0], NULL);
 		(*detector)->fano= g_ascii_strtod(params[3], NULL);
 		(*detector)->noise = g_ascii_strtod(params[2], NULL);
 		g_strfreev(params);
@@ -420,10 +420,10 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 				return rv;
 			}
 		}
-		(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", &error)-(*detector)->gain;
+		(*detector)->zero = g_key_file_get_double(pymcaFile, "result.config.detector","zero", &error);
 		if (error != NULL) {
 			g_clear_error(&error);
-			(*detector)->zero = g_key_file_get_double(pymcaFile, "detector","zero", &error)-(*detector)->gain;
+			(*detector)->zero = g_key_file_get_double(pymcaFile, "detector","zero", &error);
 			if (error != NULL) {
 				g_fprintf(stderr,"Could not find zero key in inputfile... Aborting\n");
 				return rv;

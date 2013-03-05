@@ -28,7 +28,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
 $MCA_CAL:
 2
-<xsl:value-of select="/xmimsim-results/xmimsim-input/detector/zero + /xmimsim-results/xmimsim-input/detector/gain"/><xsl:text>  </xsl:text><xsl:value-of select="/xmimsim-results/xmimsim-input/detector/gain"/>
+<xsl:value-of select="/xmimsim-results/xmimsim-input/detector/zero"/><xsl:text>  </xsl:text><xsl:value-of select="/xmimsim-results/xmimsim-input/detector/gain"/>
 
 $DATA:
 <xsl:choose>
