@@ -25,9 +25,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include <sys/stat.h>
+#include <xraylib.h>
+#include <glib/gstdio.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 #endif
+
+#define MIN_VERSION 2.0
+
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
@@ -265,7 +270,8 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	
 	return 1;
 }
-
+//A -> from HDF5 file (existing - old)
+//B -> from XMSI file (new)
 int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	int i;
 	double *thickness_along_Z_a, *thickness_along_Z_b;
@@ -318,13 +324,161 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	}
 
 
-	//fprintf(stderr, "Z_coord_end_b: %lf\n", Z_coord_end_b[0]);
-	//fprintf(stderr, "Z_coord_end_a: %lf\n", Z_coord_end_a[0]);
-	//fprintf(stderr, "Z_coord_begin_b: %lf\n", Z_coord_begin_b[0]);
-	//fprintf(stderr, "Z_coord_begin_a: %lf\n", Z_coord_begin_a[0]);
+
+	//calculate absorption coefficients
+	double *mu_a;
+	double *mu_b;
+
+	double Pabs_a, Pabs_b;
+	double S1_a, S1_b, S2_a, S2_b;
+	double sum;
+	double R1 = 0.00001;
+	double R2 = 0.99999;
+	double myln;
+	int m;
+	int j;
+
+#if DEBUG == 0
+	g_fprintf(stdout, "energy A: %lf\n",A->excitation->discrete[0].energy);
+	g_fprintf(stdout, "energy B: %lf\n",B->excitation->discrete[0].energy);
+	g_fprintf(stdout, "thickness 0 A:%lf\n",thickness_along_Z_a[0]);
+	g_fprintf(stdout, "thickness 0 b:%lf\n",thickness_along_Z_b[0]);
+#endif
 
 
-	if (Z_coord_end_a[A->composition->n_layers-1] - Z_coord_end_b[B->composition->n_layers-1] < -0.0001 || Z_coord_begin_a[0] - Z_coord_begin_b[0] > 0.0001) {
+
+	//S1
+	//low energy limit
+	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	sum = 0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		mu_a[i] = 0.0;
+		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) A->excitation->discrete[0].energy)*A->composition->layers[i].weight[j];
+		}
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+	}
+	Pabs_a = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R1*Pabs_a);
+
+	sum=0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_a[i]*A->composition->layers[i].density)/(mu_a[m]*A->composition->layers[m].density))*thickness_along_Z_a[i];
+
+	S1_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0];; 
+
+	//S2
+	//high energy limit
+	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	sum = 0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		mu_a[i] = 0.0;
+		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) A->excitation->discrete[A->excitation->n_discrete-1].energy)*A->composition->layers[i].weight[j];
+		}
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+	}
+	Pabs_a = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R2*Pabs_a);
+
+	sum=0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_a[i]*A->composition->layers[i].density)/(mu_a[m]*A->composition->layers[m].density))*thickness_along_Z_a[i];
+
+	S2_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0]; 
+
+	free(mu_a);
+
+
+	//S1
+	//low energy limit
+	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	sum = 0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		mu_b[i] = 0.0;
+		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) B->excitation->discrete[0].energy)*B->composition->layers[i].weight[j];
+		}
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+	}
+	Pabs_b = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R1*Pabs_b);
+
+	sum=0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_b[i]*B->composition->layers[i].density)/(mu_b[m]*B->composition->layers[m].density))*thickness_along_Z_b[i];
+
+	S1_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0];; 
+
+	//S2
+	//high energy limit
+	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	sum = 0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		mu_b[i] = 0.0;
+		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) B->excitation->discrete[B->excitation->n_discrete-1].energy)*B->composition->layers[i].weight[j];
+		}
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+	}
+	Pabs_b = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R2*Pabs_b);
+
+	sum=0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_b[i]*B->composition->layers[i].density)/(mu_b[m]*B->composition->layers[m].density))*thickness_along_Z_b[i];
+
+	S2_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0]; 
+
+	free(mu_b);
+
+#if DEBUG == 0
+	fprintf(stdout, "S2_b: %lg\n", S2_b);
+	fprintf(stderr, "Z_coord_end_b: %lg\n", Z_coord_end_b[B->composition->n_layers-1]);
+	fprintf(stdout, "S2_a: %lg\n", S2_a);
+	fprintf(stderr, "Z_coord_end_a: %lg\n", Z_coord_end_a[A->composition->n_layers-1]);
+	fprintf(stdout, "S1_b: %lg\n", S1_b);
+	fprintf(stderr, "Z_coord_begin_b: %lg\n", Z_coord_begin_b[0]);
+	fprintf(stdout, "S1_a: %lg\n", S1_a);
+	fprintf(stderr, "Z_coord_begin_a: %lg\n", Z_coord_begin_a[0]);
+	exit(0);
+#endif
+
+
+	//if (Z_coord_end_a[A->composition->n_layers-1] - Z_coord_end_b[B->composition->n_layers-1] < -0.0001 || Z_coord_begin_a[0] - Z_coord_begin_b[0] > 0.0001) {
+	if (S2_a - S2_b < -0.0001 || S1_a - S1_b > 0.0001) {
 		free(thickness_along_Z_a);
 		free(thickness_along_Z_b);
 		free(Z_coord_begin_a);
@@ -383,6 +537,52 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	if (file_id < 0 ) {
 		fprintf(stderr,"Cannot open file %s for reading\n",hdf5_file);
 		return 0;
+	}
+
+	//version check!
+	hid_t root_group_id;
+	hid_t attribute_id;
+
+	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "Solid angles file %s does not contain the version tag\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+		
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_solid_angle_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+	//attribute exists -> let's read it
+	float version;
+	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+
+	if (version < MIN_VERSION) {
+		//too old -> delete file
+		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+
+		H5Aclose(attribute_id);
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_solid_angle_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
 	}
 
 	data.solid_angles = rv;
