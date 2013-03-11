@@ -40,6 +40,8 @@ enum {
 	XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS,
 	//gboolean
 	XMIMSIM_GUI_PREFS_POISSON,
+	//int
+	XMIMSIM_GUI_PREFS_NCHANNELS,
 };
 
 union xmimsim_prefs_val{
@@ -62,5 +64,6 @@ struct xmi_preferences_data {
 };
 
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
+void preferences_error_handler(GtkWidget *window);
 
 #endif

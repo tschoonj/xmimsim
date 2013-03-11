@@ -54,6 +54,7 @@ GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *poissonW;
+GtkWidget *nchannelsW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
@@ -388,6 +389,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
+	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -523,6 +525,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
 	gtk_widget_set_sensitive(poissonW,FALSE);	
+	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
 	gtk_widget_set_sensitive(svg_convW,FALSE);	
@@ -537,7 +540,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	reset_controls();
 	timer = g_timer_new();
 
-	argv = (gchar **) g_malloc(sizeof(gchar *)*9);
+	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
 	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[1] = g_strdup("--enable-M-lines");
@@ -575,9 +578,11 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	else
 		argv[6] = g_strdup("--disable-poisson");
 
-	argv[7] = g_strdup("--verbose");
+	argv[7]	= g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
 
-	arg_counter = 8;
+	argv[8] = g_strdup("--verbose");
+
+	arg_counter = 9;
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -869,6 +874,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
+	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -1345,6 +1351,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(MlinesW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),MlinesW, TRUE, FALSE, 3);
@@ -1353,6 +1360,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(rad_cascadeW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),rad_cascadeW, TRUE, FALSE, 3);
@@ -1361,6 +1369,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(nonrad_cascadeW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),nonrad_cascadeW, TRUE, FALSE, 3);
@@ -1369,6 +1378,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),variance_reductionW, TRUE, FALSE, 3);
@@ -1377,6 +1387,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
@@ -1385,9 +1396,30 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort	
+		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
+
+	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
+	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
+	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannelsW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannelsW), TRUE);
+	gtk_entry_set_max_length(GTK_ENTRY(nchannelsW), 7);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannelsW), (gdouble) xpv.i);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
+	label = gtk_label_new("Number of spectrum channels");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, FALSE, FALSE, 3);
+
+
+
 
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);

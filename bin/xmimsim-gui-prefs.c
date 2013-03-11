@@ -34,6 +34,7 @@ GtkWidget *nonrad_cascade_prefsW;
 GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
+GtkWidget *nchannels_prefsW;
 
 GtkWidget *check_updates_prefsW;
 
@@ -166,7 +167,7 @@ struct preferences_apply {
 };
 
 
-static void preferences_error_handler(GtkWidget *window) {
+void preferences_error_handler(GtkWidget *window) {
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 	gtk_dialog_run(GTK_DIALOG(dialog));
@@ -246,6 +247,13 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		//abort	
 		preferences_error_handler(pa->window);
 	}
+
+	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+
 	gtk_widget_destroy(pa->window);
 	return;
 }
@@ -428,6 +436,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->b = FALSE;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_NCHANNELS: 
+			prefs->b = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Number of channels not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Number of channels", FALSE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->i = 2048;
+			}
+			break;
 		
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
@@ -500,6 +522,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON: 
 			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);
+			break;
+		case XMIMSIM_GUI_PREFS_NCHANNELS: 
+			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
 			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
@@ -622,6 +647,24 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, FALSE, FALSE, 3);
 
+	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
+	nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);
+	gtk_editable_set_editable(GTK_EDITABLE(nchannels_prefsW), TRUE);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannels_prefsW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannels_prefsW), TRUE);
+	gtk_entry_set_max_length(GTK_ENTRY(nchannels_prefsW), 7);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannels_prefsW), (gdouble) xpv.i);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
+	label = gtk_label_new("Number of spectrum channels");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), nchannels_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	
+
 	//second page
 	superframe = gtk_vbox_new(FALSE,5);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
@@ -732,7 +775,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 
 
-	GtkWidget *hbox = gtk_hbox_new(FALSE,2);
+	hbox = gtk_hbox_new(FALSE,2);
 	GtkWidget *button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
 	label = gtk_label_new("Remove the solid angles HDF5 file");
 	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
