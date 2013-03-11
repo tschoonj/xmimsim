@@ -545,19 +545,12 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                         NULLIFY(photon_temp2)
                                 ENDIF
                                
-                                !IF (options%use_variance_reduction&
-                                !.EQ. 1 .AND.&
-                                !ALLOCATED(photon_temp%variance_reduction))&
-                                !THEN
-                                !DO k=1, inputF%composition%n_layers
-                                !   DO &
-                                !   l=1,inputF%general%n_interactions_trajectory
-                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%weight)
-                                !        DEALLOCATE(photon_temp%variance_reduction(k,l)%energy)
-                                !   ENDDO
-                                !ENDDO
-                                !DEALLOCATE(photon_temp%variance_reduction)
-                                !ENDIF
+                                IF (options%use_variance_reduction&
+                                .EQ. 1) THEN
+                                        detector_solid_angle_not_found =&
+                                        photon%detector_solid_angle_not_found+&
+                                        detector_solid_angle_not_found
+                                ENDIF
                                 DEALLOCATE(photon_temp%history)
                                 DEALLOCATE(photon_temp%mus)
                                 DEALLOCATE(photon_temp)
@@ -598,13 +591,13 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         CALL omp_destroy_lock(omp_lock)
 #if DEBUG == 1
-        WRITE (*,'(A,I)') 'Photons simulated: ',photons_simulated
-        WRITE (*,'(A,I)') 'Photons hitting the detector...: ',detector_hits
-        WRITE (*,'(A,I)') 'Photons hitting the detector2...: ',detector_hits2
-        WRITE (*,'(A,I)') 'Rayleighs: ',rayleighs
-        WRITE (*,'(A,I)') 'Comptons: ',comptons
-        WRITE (*,'(A,I)') 'Photoelectric: ',einsteins
-        WRITE (*,'(A,I)') 'detector_solid_angle_not_found: ',&
+        WRITE (*,'(A,I10)') 'Photons simulated: ',photons_simulated
+        WRITE (*,'(A,I10)') 'Photons hitting the detector...: ',detector_hits
+        WRITE (*,'(A,I10)') 'Photons hitting the detector2...: ',detector_hits2
+        WRITE (*,'(A,I10)') 'Rayleighs: ',rayleighs
+        WRITE (*,'(A,I10)') 'Comptons: ',comptons
+        WRITE (*,'(A,I10)') 'Photoelectric: ',einsteins
+        WRITE (*,'(A,I10)') 'detector_solid_angle_not_found: ',&
         detector_solid_angle_not_found
 !        WRITE (*,'(A)') 'Brute force'
 !        WRITE (*,'(A,I)') 'Ba-KL3: ',brute_history(56,ABS(KL3_LINE),1)

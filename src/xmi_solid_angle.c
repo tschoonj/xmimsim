@@ -338,7 +338,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	int m;
 	int j;
 
-#if DEBUG == 0
+#if DEBUG == 1
 	g_fprintf(stdout, "energy A: %lf\n",A->excitation->discrete[0].energy);
 	g_fprintf(stdout, "energy B: %lf\n",B->excitation->discrete[0].energy);
 	g_fprintf(stdout, "thickness 0 A:%lf\n",thickness_along_Z_a[0]);
@@ -373,7 +373,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	for (i = 0; i < m ; i++)
 		sum += (1.0 - (mu_a[i]*A->composition->layers[i].density)/(mu_a[m]*A->composition->layers[m].density))*thickness_along_Z_a[i];
 
-	S1_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0];; 
+	S1_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0]; 
 
 	//S2
 	//high energy limit
@@ -420,6 +420,11 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	Pabs_b = 1.0 - exp(-1.0*sum);
 	myln = -1.0*log(1.0-R1*Pabs_b);
 
+#if DEBUG == 1
+	g_fprintf(stdout,"S1 Pabs_b: %lf\n", Pabs_b);
+	g_fprintf(stdout,"S1 myln: %lf\n", myln);
+#endif
+
 	sum=0.0;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
@@ -432,6 +437,11 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	for (i = 0; i < m ; i++)
 		sum += (1.0 - (mu_b[i]*B->composition->layers[i].density)/(mu_b[m]*B->composition->layers[m].density))*thickness_along_Z_b[i];
 
+#if DEBUG == 1
+	g_fprintf(stdout,"S1 my_sum: %lf\n", sum);
+	g_fprintf(stdout,"S1 my_sum plus: %lf\n", sum+ myln/(mu_b[m]*B->composition->layers[m].density));
+	g_fprintf(stdout,"S1 Z_coord_begin: %lf\n",Z_coord_begin_b[0]);
+#endif
 	S1_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0];; 
 
 	//S2
@@ -447,6 +457,10 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	}
 	Pabs_b = 1.0 - exp(-1.0*sum);
 	myln = -1.0*log(1.0-R2*Pabs_b);
+#if DEBUG == 1
+	g_fprintf(stdout,"S2 Pabs_b: %lf\n", Pabs_b);
+	g_fprintf(stdout,"S2 myln: %lf\n", myln);
+#endif
 
 	sum=0.0;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
@@ -464,7 +478,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	free(mu_b);
 
-#if DEBUG == 0
+#if DEBUG == 1
 	fprintf(stdout, "S2_b: %lg\n", S2_b);
 	fprintf(stderr, "Z_coord_end_b: %lg\n", Z_coord_end_b[B->composition->n_layers-1]);
 	fprintf(stdout, "S2_a: %lg\n", S2_a);
@@ -473,7 +487,6 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	fprintf(stderr, "Z_coord_begin_b: %lg\n", Z_coord_begin_b[0]);
 	fprintf(stdout, "S1_a: %lg\n", S1_a);
 	fprintf(stderr, "Z_coord_begin_a: %lg\n", Z_coord_begin_a[0]);
-	exit(0);
 #endif
 
 
@@ -565,6 +578,8 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	//attribute exists -> let's read it
 	float version;
 	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+	H5Aclose(attribute_id);
+	H5Gclose(root_group_id);
 
 	if (version < MIN_VERSION) {
 		//too old -> delete file
@@ -597,7 +612,14 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	}
 	
 
-	H5Fclose(file_id);
+	if (H5Fclose(file_id) < 0) {
+		g_fprintf(stderr, "Error closing %s... Fatal error\n", hdf5_file);
+		return 0;
+	}
+#if DEBUG == 1
+	else
+		g_fprintf(stderr,"HDF5 closed succesfully\n");
+#endif
 	return 1;
 }
 
