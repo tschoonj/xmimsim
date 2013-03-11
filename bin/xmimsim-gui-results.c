@@ -91,6 +91,7 @@ struct spectra_data {
 struct coords_data {
 	GtkWidget *xCoordW;
 	GtkWidget *yCoordW;
+	GtkWidget *channelCoordW;
 };
 
 enum {
@@ -459,6 +460,9 @@ static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event
 
 	buffer = g_strdup_printf("%lg",px);
 	gtk_entry_set_text(GTK_ENTRY(cd->xCoordW), buffer);
+	g_free(buffer);
+	buffer = g_strdup_printf("%i",(int) ((px-results_input->detector->zero)/results_input->detector->gain));
+	gtk_entry_set_text(GTK_ENTRY(cd->channelCoordW), buffer);
 	g_free(buffer);
 	buffer = g_strdup_printf("%lg",py);
 	gtk_entry_set_text(GTK_ENTRY(cd->yCoordW), buffer);
@@ -856,24 +860,37 @@ GtkWidget *init_results(GtkWidget *window) {
 
 
 	cd = (struct coords_data*) malloc(sizeof(struct coords_data));
-	coords_hbox = gtk_hbox_new(FALSE,2);
-	gtk_box_pack_start(GTK_BOX(coords_hbox), gtk_label_new("Energy"),FALSE, FALSE,1);
+	GtkWidget *table = gtk_table_new(3, 2 , FALSE);
+	label = gtk_label_new("Energy (keV)");
+	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
 	entry = gtk_entry_new();
-	gtk_widget_set_size_request(GTK_WIDGET(entry), 80, -1);
+	gtk_table_attach_defaults(GTK_TABLE(table), entry, 1, 2, 0, 1);
+	gtk_widget_set_size_request(GTK_WIDGET(entry), 100, -1);
 	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
 	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
 	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
-	gtk_box_pack_start(GTK_BOX(coords_hbox), entry,TRUE, FALSE,1);
 	cd->xCoordW = entry;
-	gtk_box_pack_start(GTK_BOX(coords_hbox), gtk_label_new("Intensity"),FALSE, FALSE,1);
+	
+	label = gtk_label_new("Channel number");
+	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
 	entry = gtk_entry_new();
-	gtk_widget_set_size_request(GTK_WIDGET(entry), 80, -1);
+	gtk_table_attach_defaults(GTK_TABLE(table), entry, 1, 2, 1, 2);
+	gtk_widget_set_size_request(GTK_WIDGET(entry), 100, -1);
 	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
 	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
 	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
-	gtk_box_pack_start(GTK_BOX(coords_hbox), entry,TRUE, FALSE,1);
+	cd->channelCoordW = entry;
+
+	label = gtk_label_new("Intensity");
+	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 2, 3);
+	entry = gtk_entry_new();
+	gtk_table_attach_defaults(GTK_TABLE(table), entry, 1, 2, 2, 3);
+	gtk_widget_set_size_request(GTK_WIDGET(entry), 100, -1);
+	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
+	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
+	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
 	cd->yCoordW = entry;
-	gtk_box_pack_end(GTK_BOX(spectra_box),coords_hbox, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(spectra_box), table, FALSE, FALSE, 2);
 	spectra_region_mouse_movedG = g_signal_connect(G_OBJECT(canvas),"motion-notify-event",G_CALLBACK(spectra_region_mouse_moved_cb),(gpointer) cd);
 	g_signal_handler_block((gpointer) canvas, spectra_region_mouse_movedG);
 
