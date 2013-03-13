@@ -1,4 +1,4 @@
-#Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+#Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -93,10 +93,11 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
+GTKEXTRA2_FOUND=no
+GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.14.0, [GTK_FOUND=yes],[GTK_FOUND=no])
 	PKG_CHECK_MODULES([gtk3extra],gtkextra-3.0, [GTKEXTRA3_FOUND=yes],[GTKEXTRA3_FOUND=no])
-	GTKEXTRA2_FOUND=no
 	if test "x$GTKEXTRA3_FOUND" = xno ; then
 		PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0, [GTKEXTRA2_FOUND=yes],[GTKEXTRA2_FOUND=no])
 	fi
@@ -106,6 +107,14 @@ if test "x$enable_gui" != xno ; then
 		AC_MSG_WARN([no gtk found on the system. The GUI will not be built.])
 	elif test "x$GTKEXTRA3_FOUND" = xno && test "x$GTKEXTRA2_FOUND" = xno && test "x$enable_gui" = xcheck ; then
 		AC_MSG_WARN([no gtkextra found on the system. The GUI will not be built.])
+	else
+		AC_MSG_NOTICE([Building with GUI])
+		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.14.0")
+	fi
+	if test "x$GTKEXTRA3_FOUND" = xyes ; then
+		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0")
+	elif test "x$GTKEXTRA2_FOUND" = xyes ; then
+		AC_SUBST(GTKEXTRA_PC, "gtkextra-2.0") 
 	fi
 fi
 
@@ -119,12 +128,31 @@ if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKE
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
 	PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2, 
-	AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
 	[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
+
+	if test "x$LIBCURL_FOUND" = xyes ; then
+		#test if HTTPS is supported
+		AC_MSG_CHECKING([whether libcurl has https support])
+		CURL_SUPPORT=`$PKG_CONFIG --variable=supported_protocols libcurl`
+		case "$CURL_SUPPORT" in
+			*HTTPS*)
+			AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
+			AC_MSG_RESULT(yes)
+			;;
+			*)
+			LIBCURL_FOUND=no
+			AC_MSG_RESULT(no)
+			;;
+		esac
+	fi
+
 	if test "x$enable_updater" = "xyes" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
 		AC_MSG_ERROR([no Json-Glib and/or no libcurl were found on the system, which are required to compile the updater routines])
 	elif test "x$enable_updater" = "xcheck" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
 		AC_MSG_WARN([no Json-Glib and/or no libcurl were found on the system. The updater routines will not be compiled])
+	else
+		AC_SUBST(UPDATER_PC, "json-glib-1.0 >= 0.8 libcurl >= 7.18.2")
+		AC_MSG_NOTICE([Building with support for automatic updates])
 	fi
 fi
 
@@ -140,6 +168,7 @@ if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKE
 		
 	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
 			GTK_MAC_INTEGRATION_FOUND=yes
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, [gtk-mac-integration])
 			AC_DEFINE([HAVE_GTK_MAC_INTEGRATION_2],[],gtk-mac-integration-2.0 present)
 			],[GTK_MAC_INTEGRATION_FOUND=no])
 	

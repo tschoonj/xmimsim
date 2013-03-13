@@ -20,6 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct xmi_general {
 	float version;
 	char *outputfile;
@@ -209,5 +214,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input);
 
 void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

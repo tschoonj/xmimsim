@@ -22,7 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define XMI_PYMCA_START_CONC 0.0001
 #define XMI_PYMCA_MAX_ITERATIONS 100
@@ -69,5 +71,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

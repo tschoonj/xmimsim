@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct xmi_solid_angle {
 	double *solid_angles;
 	long int grid_dims_r_n;
@@ -43,5 +47,9 @@ int xmi_check_solid_angle_match(struct xmi_input *input_in, struct xmi_input *in
 int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv);
 
 void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

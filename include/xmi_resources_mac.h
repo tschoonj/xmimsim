@@ -19,6 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _XMI_RESOURCES_MAC_H
 #define _XMI_RESOURCES_MAC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#ifdef MAC_INTEGRATION
+
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
 	XMI_RESOURCES_MAC_XMSO2XMSI,
@@ -43,7 +50,11 @@ enum xmi_resources_mac {
 
 int xmi_resources_mac_query(int kind, char **resource_file);
 
+#ifdef __cplusplus
+}
+#endif
 
+#endif
 
 #endif
 
