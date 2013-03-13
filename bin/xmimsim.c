@@ -448,9 +448,9 @@ XMI_MAIN
 #endif
 
 
-#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
 //watch out, I'm doing something naughty here :-)
-#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
 
 
@@ -567,9 +567,11 @@ XMI_MAIN
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
+				fprintf(outPtr,"$MCA_CAL:\n2\n");
+				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"1\t%i\n",nchannels);
-				for (j=1 ; j <= nchannels ; j++) {
+				fprintf(outPtr,"0\t%i\n",nchannels-1);
+				for (j=0 ; j < nchannels ; j++) {
 					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
@@ -590,8 +592,10 @@ XMI_MAIN
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
+				fprintf(outPtr,"$MCA_CAL:\n2\n");
+				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"1\t%i\n",nchannels);
+				fprintf(outPtr,"0\t%i\n",nchannels-1);
 				for (j=0 ; j < nchannels ; j++) {
 					fprintf(outPtr,"%lg",channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
@@ -608,7 +612,7 @@ XMI_MAIN
 
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
-			for (j=1 ; j <= nchannels ; j++) {
+			for (j=0 ; j < nchannels ; j++) {
 				fprintf(csv_noconvPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
@@ -622,7 +626,7 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_convPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
 					fprintf(csv_convPtr,",%lf",channels_conv[i][j]);

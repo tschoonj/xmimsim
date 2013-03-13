@@ -199,7 +199,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         brute_history = 0.0_C_DOUBLE
         last_shell = 0_C_INT
 
-        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,nchannels))
+        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:nchannels-1))
         channels = 0.0_C_DOUBLE
 
         ALLOCATE(det_corr_all(100,383+2))
@@ -467,10 +467,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                 channel = INT((photon_temp%energy - &
                                                 inputF%detector%zero)/inputF%detector%gain)
                                         ELSE
-                                                channel = 0
+                                                channel = -1
                                         ENDIF
 
-                                        IF (channel .GT. 0 .AND. channel .LE. nchannels) THEN
+                                        IF (channel .GE. 0 .AND. channel .LT. nchannels) THEN
 #if DEBUG == 1
 !$omp critical                        
                                         WRITE (*,'(A,I)') 'channel:'&
@@ -620,7 +620,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         DEALLOCATE(precalc_mu_cs)
 
         !multiply with detector absorbers and detector crystal
-        DO i=1,nchannels
+        DO i=0,nchannels-1
                 det_corr = 1.0_C_DOUBLE
                 DO j=1,inputF%absorbers%n_det_layers
                         det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
@@ -685,12 +685,12 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 
-        ALLOCATE(channelsF(nchannels,0:inputF%general%n_interactions_trajectory))
+        ALLOCATE(channelsF(0:nchannels-1,0:inputF%general%n_interactions_trajectory))
         channelsF = RESHAPE(channels, [nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
         !multiply with live time
         channelsF = channelsF*inputF%detector%live_time
 
-        channelsPtr = C_LOC(channelsF(1,0))
+        channelsPtr = C_LOC(channelsF(0,0))
 
         rv = 1
 

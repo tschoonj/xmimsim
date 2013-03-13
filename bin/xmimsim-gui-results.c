@@ -1176,7 +1176,7 @@ int plot_spectra_from_file(char *xmsofile) {
 
 	temp_energies = (double *) malloc(sizeof(double)*results_nchannels);
 	for (i = 0 ; i < results_nchannels ; i++) {
-		temp_energies[i] = results_input->detector->gain * (i+1) + results_input->detector->zero;
+		temp_energies[i] = results_input->detector->gain * i + results_input->detector->zero;
 	}
 
 	//fill it up again

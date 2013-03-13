@@ -1456,17 +1456,17 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
-#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 	for (j = 0 ; j < nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j+1) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j) < 0) {
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*(j+1)+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*j+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
@@ -1513,7 +1513,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
-	for (j = 1 ; j <= nchannels ; j++) {
+	for (j = 0 ; j < nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
@@ -1562,7 +1562,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	}
 
 	//brute_history.. only print the relevant elements...
-#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
 
 	if (xmlTextWriterStartElement(writer, BAD_CAST "brute_force_history") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement brute_force_history\n");
@@ -2562,7 +2562,7 @@ double *channels, int nchannels, double maximum2 ) {
 
 
 	energies = xmi_dindgen(nchannels);
-	xmi_add_val_to_array_double(energies, nchannels, 1.0);
+	//xmi_add_val_to_array_double(energies, nchannels, 1.0);
 	xmi_scale_double(energies, nchannels, input->detector->gain);
 	xmi_add_val_to_array_double(energies, nchannels, input->detector->zero);
 

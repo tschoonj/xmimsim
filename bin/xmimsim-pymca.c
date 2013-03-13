@@ -529,7 +529,7 @@ XMI_MAIN
 		sum_roi = xp->sum_xmin_xmax;
 	}
 
-#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
 		xmi_deallocate(channels);
@@ -821,9 +821,11 @@ single_run:
 				g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
+				fprintf(outPtr,"$MCA_CAL:\n2\n");
+				fprintf(outPtr,"%lf %lf\n\n", xi->detector->zero, xi->detector->gain);
 			fprintf(outPtr,"$DATA:\n");
-			fprintf(outPtr,"1\t%i\n",xp->nchannels);
-			for (j=1 ; j <= xp->nchannels ; j++) {
+			fprintf(outPtr,"0\t%i\n",xp->nchannels-1);
+			for (j=0 ; j < xp->nchannels ; j++) {
 				fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
@@ -864,7 +866,7 @@ single_run:
 
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
-		for (j=1 ; j <= xp->nchannels ; j++) {
+		for (j=0 ; j < xp->nchannels ; j++) {
 			fprintf(csv_noconvPtr,"%i,%lf",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
@@ -878,7 +880,7 @@ single_run:
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_convPtr,"%i,%lf",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
 				fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
