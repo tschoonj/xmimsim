@@ -40,13 +40,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 
 #ifdef MAC_INTEGRATION
-#include "xmi_registry_win.h"
+#include "xmi_resources_mac.h"
 #endif
 
 
 
 #ifdef G_OS_WIN32
-#include "xmi_resources_mac.h"
+#include "xmi_registry_win.h"
 #endif
 
 
