@@ -21,7 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 #include <gmodule.h>
+#endif
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
