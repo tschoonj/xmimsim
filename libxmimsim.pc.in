@@ -10,4 +10,4 @@ Requires.private: glib-2.0 >= 2.18.0 @GTK_PC@ @GTKEXTRA_PC@ @UPDATER_PC@ @GTK_MA
 Conflicts:
 Libs: -L${libdir} -lxmimsim
 Libs.private: @H5FC_LINKER@
-Cflags: -I${includedir}
+Cflags: -I${includedir} -DXMIMSIM_HDF5_DEFAULT=\"${prefix}/share/xmimsim/xmimsimdata.h5\"
