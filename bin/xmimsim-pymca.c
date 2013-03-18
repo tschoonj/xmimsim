@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_xslt.h"
+#include "xmi_hdf5.h"
 #include <xraylib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -188,44 +189,10 @@ XMI_MAIN
 
 
 
-	if (hdf5_file == NULL) {
-		//no option detected
-		//first look at default file
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_DATA,&hdf5_file) == 0)
-			return 1;
-
-
-		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
-			//do nothing
-		}
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_DATA,&hdf5_file) == 0)
-			return 1;
-
-
-		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
-			//do nothing
-		}
-		else if (g_access(hdf5_file, F_OK | R_OK) != 0) {
-			g_fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
-			return 1;
-		}
-#else
-		//UNIX mode...
-		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
-			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-#endif
-		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
-			//look in current folder
-			hdf5_file = strdup("xmimsimdata.h5");
-		}
-		else {
-			//if not found abort...	
-			g_fprintf(stderr, "Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
-			exit(1);
-		}
+	if (xmi_get_hdf5_data_file(&hdf5_file) == 0) {
+		return 1;
 	}
+
 
 	if (argc != 3) {
 		g_fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));

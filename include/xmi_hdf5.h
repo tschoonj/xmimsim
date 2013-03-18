@@ -15,40 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_MSIM_H
-#define XMI_MSIM_H
 
-/*
- * this file should be included
- * when you want to compile your
- * own software against XMI-MSIM
- */
+#ifndef XMI_HDF5_H
+#define XMI_HDF5_H
 
 
 
-#define XMI_MSIM_VERSION_MAJOR 2
-#define XMI_MSIM_VERSION_MINOR 0
-
-#include <glib.h>
-#include "xmi_data_structs.h"
-#include "xmi_detector.h"
-#include "xmi_main.h"
-#include "xmi_pymca.h"
-#include "xmi_random.h"
-#include "xmi_solid_angle.h"
-#include "xmi_xml.h"
-#include "xmi_xslt.h"
-#include "xmi_hdf5.h"
-
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
-
-
-#ifdef G_OS_WIN32
-#include "xmi_registry_win.h"
-#endif
+//returns 1 on success; 0 on error
+//hdf5_filePtr must be a pointer to char *, which may be equal to NULL, in which case the function try to allocate a string containing the path to hDF5 data file of XMI-MSIM
+int xmi_get_hdf5_data_file(char **hdf5_filePtr);
 
 
 #endif
