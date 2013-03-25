@@ -586,8 +586,6 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
 		g_fprintf(stderr, "The file will be deleted and recreated\n");
 
-		H5Aclose(attribute_id);
-		H5Gclose(root_group_id);
 		H5Fclose(file_id);
 		if(g_unlink(hdf5_file) == -1) {
 			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
