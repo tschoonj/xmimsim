@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdio.h>
 #include <glib/gprintf.h>
+#include <glib/gstdio.h>
 
 #ifdef MAC_INTEGRATION
   #import <Foundation/Foundation.h>
