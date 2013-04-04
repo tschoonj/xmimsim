@@ -1352,6 +1352,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	general->comments = strdup("");
 	general->n_photons_interval = 100000;
 	general->n_photons_line = 100000;
+	general->version = 1.0;
 
 
 	int n_photons_line = g_key_file_get_integer(pymcaFile, "xrfmc.setup","histories",&error);
