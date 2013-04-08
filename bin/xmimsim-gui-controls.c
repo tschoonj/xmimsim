@@ -329,6 +329,10 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 
 	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
+	gtk_widget_set_sensitive(stopButton,FALSE);
+#ifdef G_OS_UNIX
+	gtk_widget_set_sensitive(pauseButton,TRUE);
+#endif
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
