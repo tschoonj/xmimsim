@@ -376,10 +376,6 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	//g_strfreev(argv);
 
 	gtk_widget_set_sensitive(playButton,TRUE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
-	gtk_widget_set_sensitive(stopButton,FALSE);
 	//make sensitive again
 	gtk_widget_set_sensitive(executableW,TRUE);	
 	gtk_widget_set_sensitive(executableB,TRUE);	
@@ -774,6 +770,10 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	char buffer[512];
 	gboolean spinning;
 
+	gtk_widget_set_sensitive(stopButton,FALSE);
+#ifdef G_OS_UNIX
+	gtk_widget_set_sensitive(pauseButton,FALSE);
+#endif
 	//g_io_channel_unref(xmimsim_stdout);
 	//g_io_channel_unref(xmimsim_stderr);
 
