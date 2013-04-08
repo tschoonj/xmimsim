@@ -328,7 +328,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gchar *data = cd->argv[0];
 
 
-	fprintf(stdout,"xmimsim_child_watcher_cb called\n");
+	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
@@ -371,7 +371,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #endif
 
 	g_spawn_close_pid(xmimsim_pid);
-	xmimsim_pid = (GPid) -1;
+	xmimsim_pid = GPID_INACTIVE;
 
 	//g_strfreev(argv);
 
@@ -400,6 +400,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(html_convB,TRUE);	
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
+
+	g_timer_stop(timer);
+	g_timer_destroy(timer);
 
 	if (!success)
 		return; 
@@ -451,7 +454,7 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	glong seconds = time_elapsed % 60;
 
 
-	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",hours, minutes, seconds,text);
+	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",(int) hours, (int) minutes, (int) seconds,text);
 
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 
@@ -775,18 +778,18 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//g_io_channel_unref(xmimsim_stderr);
 
 	//set buttons back in order
-	gtk_widget_set_sensitive(playButton,TRUE);
-	gtk_widget_set_sensitive(stopButton,FALSE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
 	xmimsim_paused = FALSE;
 #ifdef G_OS_UNIX
 	int kill_rv;
 	
 	fprintf(stdout,"stop_button_clicked_cb entered\n");
 	kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
+#if !GLIB_CHECK_VERSION (2, 35, 0)
+	//starting with 2.36.0 (and some unstable versions before),
+	//waitpid is called from within the main loop
+	//causing all kinds of trouble if I would call wait here
 	wait(NULL);
+#endif
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
@@ -815,31 +818,22 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//check spinners
 #if GTK_CHECK_VERSION(2,20,0)
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
-			gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_solidW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_solidW);
 	}
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_mainW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
-			gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_mainW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_mainW);
 	}
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_escapeW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
-			gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_escapeW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_escapeW);
 	}
 #else
 		//should query status of progressbar
@@ -860,31 +854,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
-	xmimsim_pid = GPID_INACTIVE;
 
-	g_timer_stop(timer);
-	g_timer_destroy(timer);
-
-	//make sensitive again
-	gtk_widget_set_sensitive(executableW,TRUE);	
-	gtk_widget_set_sensitive(executableB,TRUE);	
-	gtk_widget_set_sensitive(MlinesW,TRUE);	
-	gtk_widget_set_sensitive(rad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
-	gtk_widget_set_sensitive(pile_upW,TRUE);	
-	gtk_widget_set_sensitive(poissonW,TRUE);	
-	gtk_widget_set_sensitive(nchannelsW,TRUE);	
-	gtk_widget_set_sensitive(spe_convW,TRUE);	
-	gtk_widget_set_sensitive(csv_convW,TRUE);	
-	gtk_widget_set_sensitive(svg_convW,TRUE);	
-	gtk_widget_set_sensitive(html_convW,TRUE);	
-	gtk_widget_set_sensitive(spe_convB,TRUE);	
-	gtk_widget_set_sensitive(csv_convB,TRUE);	
-	gtk_widget_set_sensitive(svg_convB,TRUE);	
-	gtk_widget_set_sensitive(html_convB,TRUE);	
-	if (nthreadsW != NULL)
-		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
 
 	fprintf(stdout,"stop_button_clicked_cb exited\n");

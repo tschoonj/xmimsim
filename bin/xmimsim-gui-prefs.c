@@ -437,11 +437,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_NCHANNELS: 
-			prefs->b = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
+			prefs->i = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
 			if (error != NULL) {
 				//error
 				fprintf(stderr,"Number of channels not found in preferences file\n");
-				g_key_file_set_boolean(keyfile, "Preferences","Number of channels", FALSE);
+				g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))

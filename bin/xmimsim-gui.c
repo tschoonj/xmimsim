@@ -3613,7 +3613,9 @@ XMI_MAIN
 	setbuf(stdout,NULL);
 	//let's use the default C locale
 	//g_type_init
+#if !GLIB_CHECK_VERSION (2, 35, 3)
 	g_type_init();
+#endif
 
 
 	//load xml catalog
