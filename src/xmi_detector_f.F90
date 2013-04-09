@@ -207,7 +207,8 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
-        channels_noconv(0:nchannels-1) => channels_noconv
+        !pointer remapping doesnt work with gfortran 4.4
+        !channels_noconv(0:nchannels-1) => channels_noconv
 
         !escape_ratios
         escape_ratios%n_elements = escape_ratiosCPtr%n_elements
@@ -252,7 +253,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
 
-        channels_temp = channels_noconv
+        channels_temp(0:nchannels-1) = channels_noconv(1:nchannels)
         channels_conv = 0.0_C_DOUBLE
 
 #if DEBUG == 1
