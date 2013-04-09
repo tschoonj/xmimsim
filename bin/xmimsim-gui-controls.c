@@ -87,6 +87,8 @@ GtkWidget *nthreadsW;
 GtkObject *nthreadsA;
 GTimer *timer;
 
+GIOChannel *xmimsim_stdout;
+GIOChannel *xmimsim_stderr;
 
 
 
@@ -331,7 +333,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
 	gtk_widget_set_sensitive(stopButton,FALSE);
 #ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,TRUE);
+	gtk_widget_set_sensitive(pauseButton,FALSE);
 #endif
 
 	//windows <-> unix issues here
@@ -508,8 +510,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	GError *spawn_error = NULL;
 	char buffer[512];
 	const gchar *encoding = NULL;
-	GIOChannel *xmimsim_stdout;
-	GIOChannel *xmimsim_stderr;
 	gint i;
 	gboolean omp_found=FALSE;
 	struct child_data *cd;
@@ -686,8 +686,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	cd->argv = argv;
 	cd->window = window;
 
-	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
-	
 #ifdef G_OS_WIN32
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
 	xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
@@ -695,6 +693,9 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	xmimsim_stderr= g_io_channel_unix_new(err_fh);
 	xmimsim_stdout = g_io_channel_unix_new(out_fh);
 #endif
+
+	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
+	
 
 	g_get_charset(&encoding);
 
@@ -778,6 +779,8 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,FALSE);
 #endif
+	//g_io_channel_shutdown(xmimsim_stdout, FALSE, NULL);
+	//g_io_channel_shutdown(xmimsim_stderr, FALSE, NULL);
 	//g_io_channel_unref(xmimsim_stdout);
 	//g_io_channel_unref(xmimsim_stderr);
 
@@ -792,7 +795,8 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//starting with 2.36.0 (and some unstable versions before),
 	//waitpid is called from within the main loop
 	//causing all kinds of trouble if I would call wait here
-	wait(NULL);
+	//wait(NULL);
+	waitpid(xmimsim_pid, NULL, WNOHANG);
 #endif
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
