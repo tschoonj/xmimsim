@@ -128,13 +128,24 @@ xraylib:
 inetc::get /NOCANCEL "http://lvserver.ugent.be/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
 Pop $0
 ${If} $0 == "OK"
-	DetailPrint "xraylib download has succeeded. Installing..."
-	ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
-	Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
+	Goto xraylib_install
 ${Else}
-	MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
-	Abort "xraylib download failed: $0"
+	#try to get it from S3
+	inetc::get /NOCANCEL "http://xraylib.s3.amazonaws.com/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+	Pop $0
+	${If} $0 == "OK"
+		Goto xraylib_install
+	${Else}
+		MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
+		Abort "xraylib download failed: $0"
+	${Endif}
 ${Endif}
+
+xraylib_install:
+DetailPrint "xraylib download has succeeded. Installing..."
+ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
+Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
+
 
 !endif
 
