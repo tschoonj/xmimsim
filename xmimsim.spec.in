@@ -16,7 +16,7 @@ XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 
 %package devel
 Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers: development package
-Requires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel xraylib-fortran >= 2.15.0 xmimsim == @VERSION@
+Requires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel xraylib-fortran >= 2.15.0 xmimsim == @VERSION@ gtkextra3-devel >= 3.0.1
 
 %description devel
 XMI-MSIM is designed to predict the spectral X-ray fluorescence response of a sample when irradiated with an X-ray beam.
@@ -124,6 +124,8 @@ fi || :
 
 
 %changelog
+*Wed Apr 10 2013 Tom Schoonjans
+- gtkextra3-devel dependency added to xmimsim-devel
 * Wed May 9 2012 Tom Schoonjans
 - Getting ready for first real release
 * Mon Jun 20 2011 Tom Schoonjans
