@@ -679,15 +679,28 @@ SUBROUTINE xmi_detector_poisson(channels)
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), TARGET :: seed
         INTEGER :: i
-
+        REAL (C_DOUBLE), PARAMETER :: poisson_limit = 2.0_C_DOUBLE**32 -&
+        1.0_C_DOUBLE
 
         rng_type = fgsl_rng_mt19937
         IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) RETURN
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seed)
+#if DEBUG == 1
+        WRITE (6,'(A, I6)') 'lbound: ',lbound(channels,DIM=1)
+        WRITE (6,'(A, I6)') 'ubound: ',ubound(channels,DIM=1)
+#endif
+
         DO i=LBOUND(channels,DIM=1),UBOUND(channels, DIM=1)
-                IF (channels(i) > 0.0) channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+#if DEBUG == 1
+                WRITE (6, '(I4,ES15.6)') i, channels(i)
+#endif
+                IF (channels(i) > poisson_limit) THEN
+                        WRITE (error_unit, '(A)') 'Channel intensity too high for poisson distribution, ignoring...'
+                ELSEIF (channels(i) > 1.0) THEN
+                        channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+                ENDIF
         ENDDO
 
         CALL fgsl_rng_free(rng) 
