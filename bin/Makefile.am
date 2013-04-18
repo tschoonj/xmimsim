@@ -90,7 +90,8 @@ xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    @gtk3extra_LIBS@ \
 		    @gtk2extra_LIBS@ \
 		    @gtk2_LIBS@ \
-		    @GTK_MAC_LIBS@ 
+		    @GTK_MAC_LIBS@ \
+		    @xraylib_LIBS@
 if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
@@ -139,7 +140,7 @@ xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
-xmimsim_pymca_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
+xmimsim_pymca_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@ @xraylib_LIBS@
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
