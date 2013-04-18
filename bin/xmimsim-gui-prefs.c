@@ -682,6 +682,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 
+#elif defined(DEB_BUILD)
+	label = gtk_label_new("XMI-MSIM was built with Debian Package Manager. All updates should be installed with apt-get or aptitude.");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 #elif defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 
 	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
