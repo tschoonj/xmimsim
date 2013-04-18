@@ -86,7 +86,6 @@ fi || :
 %files
 %defattr(-,root,root)
 %{_libdir}/libxmimsim.so.*
-%{_libdir}/pkgconfig/libxmimsim.pc
 %{_bindir}/xmimsim
 %{_bindir}/xmimsim-pymca
 %{_bindir}/xmimsim-gui
@@ -121,6 +120,7 @@ fi || :
 %{_includedir}/xmimsim/*.mod
 %{_libdir}/libxmimsim.so
 %{_libdir}/libxmimsim.a
+%{_libdir}/pkgconfig/libxmimsim.pc
 
 
 %changelog
