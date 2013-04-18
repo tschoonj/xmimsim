@@ -1,0 +1,5 @@
+usr/lib/libxmimsim*.so
+usr/lib/libxmimsim*.a
+usr/lib/libxmimsim*.la
+usr/include/xmimsim/*
+usr/lib/pkgconfig/libxmimsim.pc

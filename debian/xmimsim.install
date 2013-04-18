@@ -1,0 +1,5 @@
+usr/bin/*
+usr/share/applications/xmimsim.desktop
+usr/share/mime/packages/*xml
+usr/share/icons/*
+

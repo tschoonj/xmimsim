@@ -1,0 +1,48 @@
+Source: xmimsim
+Section: science
+Priority: extra
+Maintainer: Tom Schoonjans <Tom.Schoonjans@me.com>
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, gcc (>= 4.4.0), gfortran (>= 4.4), libfgsl0-dev, libxslt1-dev, libgtkextra3-dev (>= 3.0.1), libhdf5-serial-dev, hdf5-tools, desktop-file-utils, libgtk2.0-bin, libxrl3-dev (>= 2.15.0), quilt, dh-autoreconf
+Standards-Version: 3.9.1
+Homepage: http://github.com/tschoonj/xmimsim 
+
+Package: xmimsim
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxmimsim0 (= ${binary:Version})
+Description: XMI-MSIM is a software package to simulate ED-XRF spectrometers -- executables
+ XMI-MSIM is a software package to simulate the spectral response of energy 
+ dispersive X-ray fluorescence  spectrometers using Monte Carlo simulations.
+ .
+ This package contains the executables necessary to run the package.
+
+Package: libxmimsim0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfgsl0, libxslt1.1, libgtkextra3, libhdf5-serial-dev, desktop-file-utils, libxrlf03-3 (>= 2.15.0)
+Description: XMI-MSIM is a software package to simulate ED-XRF spectrometers -- core library
+ XMI-MSIM is a software package to simulate the spectral response of energy 
+ dispersive X-ray fluorescence  spectrometers using Monte Carlo simulations.
+ .
+ This package contains the shared library and the dataset. 
+
+
+Package: libxmimsim0-dev
+Architecture: any
+Section: libdevel
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxmimsim0 (= ${binary:Version}), libfgsl0-dev, libxslt1-dev, libgtkextra3-dev (>= 3.0.1), libhdf5-serial-dev, libgtk2.0-bin, libxrl3-dev (>= 2.15.0)
+Description: XMI-MSIM is a software package to simulate ED-XRF spectrometers -- SDK
+ XMI-MSIM is a software package to simulate the spectral response of energy 
+ dispersive X-ray fluorescence  spectrometers using Monte Carlo simulations.
+ .
+ This package contains the development components of XMI-MSIM. 
+
+
+
+Package: libxmimsim0-dbg
+Section: debug
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxmimsim0 (= ${binary:Version})
+Description: XMI-MSIM is a software package to simulate ED-XRF spectrometers -- debug symbols
+ XMI-MSIM is a software package to simulate the spectral response of energy 
+ dispersive X-ray fluorescence  spectrometers using Monte Carlo simulations.
+ .
+ This package contains the debugging symbols of XMI-MSIM. 
