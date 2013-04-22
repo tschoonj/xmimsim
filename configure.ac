@@ -20,7 +20,6 @@ AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
-AS_INIT
 
 AC_CANONICAL_HOST
 
