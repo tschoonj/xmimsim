@@ -45,6 +45,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef MAC_INTEGRATION
 #import <Foundation/Foundation.h>
+#include <CoreFoundation/CFBundle.h>
+#include <ApplicationServices/ApplicationServices.h>
 #include <gtkosxapplication.h>
 #include <gdk/gdkquartz.h>
 #include "xmi_resources_mac.h"
@@ -2155,7 +2157,14 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 }
 
-
+static void about_activate_link(GtkAboutDialog *about, const gchar *link, gpointer data) {
+	xmi_open_url((char *) link);
+	return;
+}
+static void about_activate_email(GtkAboutDialog *about, const gchar *address, gpointer data) {
+	xmi_open_email((char *) address);
+	return;
+}
 
 static void about_click(GtkWidget *widget, gpointer data) {
 	fprintf(stdout,"About clicked\n");
@@ -3622,6 +3631,11 @@ XMI_MAIN
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
+
+
+	//about dialog hooks
+	gtk_about_dialog_set_url_hook(about_activate_link, NULL, NULL);
+	gtk_about_dialog_set_email_hook(about_activate_email, NULL, NULL);
 
 
 	//initialize undo system
@@ -5207,4 +5221,63 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	return TRUE;
 
 
+}
+
+void xmi_open_email(char *address) {
+	char *link;
+
+	link = g_strdup_printf("mailto:%s",address);
+
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link, 
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char *argv[3];
+	argv[0] = "xdg-email";
+	argv[1] = link;
+	argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp("xdg-email", argv);
+#endif
+	g_free(link);
+	return;
+
+}
+void xmi_open_url(char *link) {
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link, 
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char *argv[3];
+	argv[0] = "xdg-open";
+	argv[1] = link;
+	argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp("xdg-open", argv);
+#endif
+	return;
 }

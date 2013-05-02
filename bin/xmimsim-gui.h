@@ -158,4 +158,7 @@ enum {
 void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename);
 void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename);
 
+void xmi_open_url(char *url);
+void xmi_open_email(char *address);
+
 #endif
