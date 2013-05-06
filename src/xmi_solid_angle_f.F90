@@ -255,7 +255,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         
 
         !second step: for every grid point calculate the solid angle
-        max_threads = omp_get_max_threads()
+        max_threads = options%omp_num_threads
 
         ALLOCATE(seeds(max_threads))
 
@@ -270,7 +270,8 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         grid_done=0
         CALL omp_init_lock(omp_lock)
 
-!$omp parallel default(shared) private(j,rng, thread_num)
+!$omp parallel default(shared) private(j,rng, thread_num)&
+!$omp num_threads(max_threads)
         thread_num = omp_get_thread_num()
 
         rng = fgsl_rng_alloc(rng_type)

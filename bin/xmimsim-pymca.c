@@ -75,7 +75,6 @@ XMI_MAIN
 	static gchar *csv_file_conv=NULL;
 	static gchar *svg_file_noconv=NULL;
 	static gchar *svg_file_conv=NULL;
-	static int omp_num_threads;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
@@ -90,7 +89,6 @@ XMI_MAIN
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	double sum_roi;
 	
-	omp_num_threads=omp_get_max_threads();
 	
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -112,7 +110,7 @@ XMI_MAIN
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
-		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
+		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{NULL}
@@ -130,20 +128,6 @@ XMI_MAIN
 	char *xmi_input_string;
 
 
-#ifdef _WIN32
-#define TOTALBYTES    8192
-#define BYTEINCREMENT 4096
-	LONG RegRV;
-	DWORD QueryRV;
-	LPTSTR subKey;
-	HKEY key;
-    	DWORD BufferSize = TOTALBYTES;
-        DWORD cbdata;
-	PPERF_DATA_BLOCK PerfData;
-
-#endif
-
-
 
 	options.use_M_lines = 1;
 	options.use_self_enhancement = 0;
@@ -154,6 +138,7 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.omp_num_threads = omp_get_max_threads();
 
 
 	//parse options
@@ -172,13 +157,13 @@ XMI_MAIN
 	}
 	
 
-
-	if (omp_num_threads > omp_get_max_threads() ||
-			omp_num_threads < 1) {
-		omp_num_threads = omp_get_max_threads();
+	if (options.omp_num_threads > omp_get_max_threads() ||
+			options.omp_num_threads < 1) {
+		options.omp_num_threads = omp_get_max_threads();
 	}
 
-	omp_set_num_threads(omp_num_threads);
+	//omp_set_num_threads(omp_num_threads);
+	//omp_set_dynamic(0);
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {

@@ -99,6 +99,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
         INTEGER (OMP_LOCK_KIND) :: omp_lock
+        INTEGER (4) :: time_before, time_after
 
         
         CALL SetErrorMessages(0)
@@ -156,7 +157,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         ENDIF
 
-        max_threads = omp_get_max_threads()
+        max_threads = options%omp_num_threads
 
         ALLOCATE(seeds(max_threads))
 
@@ -242,12 +243,15 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         CALL omp_init_lock(omp_lock)
 
 
+        !time_before = TIME()
+
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
 !$omp photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy,&
 !$omp iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,&
 !$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle)&
 !$omp reduction(+:photons_simulated,detector_hits, detector_hits2,channels,&
-!$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found)
+!$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found) &
+!$omp num_threads(options%omp_num_threads)
 
 !
 !
@@ -274,65 +278,65 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 #define exc inputF%excitation
-        cont:DO i=1,exc%n_continuous
-                hor_ver_ratio = &
-                exc%continuous(i)%horizontal_intensity/ &
-                (exc%continuous(i)%vertical_intensity+ &
-                exc%continuous(i)%horizontal_intensity)
-                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
-                !Calculate the initial energy -> interval boundaries
-                IF (i .EQ. 1) THEN
-                        !first interval
-                        iv_start_energy = (1.5_C_DOUBLE * &
-                        exc%continuous(1)%energy) - 0.5_C_DOUBLE*exc%continuous(2)%energy
-                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(2)%energy+&
-                        exc%continuous(1)%energy)
-                ELSEIF (i .EQ. exc%n_continuous) THEN
-                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
-                        exc%continuous(i)%energy)
-                        !this next line needs verification...
-                        iv_end_energy = (1.5_C_DOUBLE * &
-                        exc%continuous(i)%energy) - 0.5_C_DOUBLE*exc%continuous(i-1)%energy
-                ELSE
-                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
-                        exc%continuous(i)%energy)
-                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(i)%energy+&
-                        exc%continuous(i+1)%energy)
+!        cont:DO i=1,exc%n_continuous
+!                hor_ver_ratio = &
+!                exc%continuous(i)%horizontal_intensity/ &
+!                (exc%continuous(i)%vertical_intensity+ &
+!                exc%continuous(i)%horizontal_intensity)
+!                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
+!                !Calculate the initial energy -> interval boundaries
+!                IF (i .EQ. 1) THEN
+!                        !first interval
+!                        iv_start_energy = (1.5_C_DOUBLE * &
+!                        exc%continuous(1)%energy) - 0.5_C_DOUBLE*exc%continuous(2)%energy
+!                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(2)%energy+&
+!                        exc%continuous(1)%energy)
+!                ELSEIF (i .EQ. exc%n_continuous) THEN
+!                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
+!                        exc%continuous(i)%energy)
+!                        !this next line needs verification...
+!                        iv_end_energy = (1.5_C_DOUBLE * &
+!                        exc%continuous(i)%energy) - 0.5_C_DOUBLE*exc%continuous(i-1)%energy
+!                ELSE
+!                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
+!                        exc%continuous(i)%energy)
+!                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(i)%energy+&
+!                        exc%continuous(i+1)%energy)
 
-                ENDIF
+!                ENDIF
 
-                DO j=1,n_photons
-                        !Allocate the photon
-                        ALLOCATE(photon)
-                        photon%n_interactions=0
-                        NULLIFY(photon%offspring)
-                        
-                        !Calculate energy with rng
-                        photon%energy = &
-                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
+!                DO j=1,n_photons
+!                        !Allocate the photon
+!                        ALLOCATE(photon)
+!                        photon%n_interactions=0
+!                        NULLIFY(photon%offspring)
+!                        
+!                        !Calculate energy with rng
+!                        photon%energy = &
+!                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
 
-                        !Calculate its initial coordinates and direction
-                        CALL xmi_coords_dir(rng,exc%continuous(i), inputF%geometry,&
-                        photon)
-
-
-
-                        !Calculate the electric field vector
-                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
-                        !.LT. hor_ver_ratio ) THEN
-                        !        !horizontal polarization
-                        !ELSE
-                        !        !vertical polarization
-                        !ENDIF
+!                        !Calculate its initial coordinates and direction
+!                        CALL xmi_coords_dir(rng,exc%continuous(i), inputF%geometry,&
+!                        photon)
 
 
 
+!                        !Calculate the electric field vector
+!                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
+!                        !.LT. hor_ver_ratio ) THEN
+!                        !        !horizontal polarization
+!                        !ELSE
+!                        !        !vertical polarization
+!                        !ENDIF
 
 
-                        DEALLOCATE(photon%mus)
-                        DEALLOCATE(photon)
-                ENDDO
-        ENDDO cont
+
+
+
+!                        DEALLOCATE(photon%mus)
+!                        DEALLOCATE(photon)
+!                ENDDO
+!        ENDDO cont
 
         disc:DO i=1,exc%n_discrete
                 n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
@@ -588,6 +592,12 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         CALL fgsl_rng_free(rng)
 
 !$omp end parallel
+
+
+
+        !time_after = TIME()
+        !WRITE (output_unit, '(A,I8, A)') 'Time elapsed: ',&
+        !time_after - time_before, ' sec'
 
         CALL omp_destroy_lock(omp_lock)
 #if DEBUG == 1
@@ -3764,7 +3774,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         xmi_cascade_type = XMI_CASCADE_NONE
 
 
-        max_threads = omp_get_max_threads()
+        max_threads = input_options%omp_num_threads
 
         ALLOCATE(seeds(max_threads))
 
@@ -3798,15 +3808,18 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         !allocate the escape ratio arrays...
 
         n_photons_sim = 0_C_INT64_T
-        n_photons_tot = n_input_energies*n_photons/omp_get_max_threads()
+        n_photons_tot = n_input_energies*n_photons/input_options%omp_num_threads
         n_photons_tot = n_photons_tot/100_C_INT64_T
         n_photons_tot = n_photons_tot*100_C_INT64_T
+
+
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
 !$omp photons_rayleigh, photons_compton,energy,&
 !$omp cosalfa, c_alfa, c_ae, c_be,&
-!$omp photons_einstein,photons_interacted,element,compton_index,line)
+!$omp photons_einstein,photons_interacted,element,compton_index,line)&
+!$omp num_threads(input_options%omp_num_threads)
 
 
 
@@ -3961,6 +3974,9 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         ENDDO
 !$omp end do
 !$omp end parallel
+
+
+
 
         ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)

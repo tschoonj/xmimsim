@@ -260,6 +260,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: escape_ratios_mode
         INTEGER (C_INT) :: verbose 
         INTEGER (C_INT) :: use_poisson
+        INTEGER (C_INT) :: omp_num_threads
 ENDTYPE xmi_main_options
 !
 !

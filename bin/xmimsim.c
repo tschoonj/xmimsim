@@ -113,14 +113,12 @@ XMI_MAIN
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
 	static int nchannels=2048;
-	static int omp_num_threads;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
 
-	omp_num_threads = omp_get_max_threads();
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
@@ -151,26 +149,10 @@ XMI_MAIN
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
-		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
+		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{ NULL }
 	};
-
-
-#ifdef _WIN32
-#define TOTALBYTES    8192
-#define BYTEINCREMENT 4096
-	LONG RegRV;
-	DWORD QueryRV;
-	LPTSTR subKey;
-	HKEY key;
-    	DWORD BufferSize = TOTALBYTES;
-        DWORD cbdata;
-	PPERF_DATA_BLOCK PerfData;
-
-#endif
-
-
 
 
 
@@ -218,6 +200,7 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.omp_num_threads = omp_get_max_threads();
 
 
 
@@ -235,13 +218,15 @@ XMI_MAIN
 		return 1;
 	}
 
-	if (omp_num_threads > omp_get_max_threads() ||
-			omp_num_threads < 1) {
-		omp_num_threads = omp_get_max_threads();
+	
+	if (options.omp_num_threads > omp_get_max_threads() ||
+			options.omp_num_threads < 1) {
+		options.omp_num_threads = omp_get_max_threads();
 	}
 
-	omp_set_num_threads(omp_num_threads);
-
+	//omp_set_num_threads(omp_num_threads);
+	//omp_set_dynamic(0);
+	
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
