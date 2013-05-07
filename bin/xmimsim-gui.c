@@ -2170,6 +2170,9 @@ static void url_click(GtkWidget *widget, char *url) {
 	xmi_open_url(url);
 }
 
+static void email_click(GtkWidget *widget, char *url) {
+	xmi_open_email(url);
+}
 
 
 static void about_click(GtkWidget *widget, gpointer data) {
@@ -3588,6 +3591,10 @@ XMI_MAIN
 	GtkAccelGroup *accel_group = NULL;
 	GtkWidget *aboutW;
 	GtkWidget *userguideW;
+	GtkWidget *github_rootW;
+	GtkWidget *github_wikiW;
+	GtkWidget *report_bugW;
+	GtkWidget *request_featureW;
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif
@@ -3836,9 +3843,22 @@ XMI_MAIN
 	help = gtk_menu_item_new_with_label("Help");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
-	userguideW= gtk_menu_item_new_with_label("Visit the Userguide online");
+	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
+	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
+	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_rootW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_wikiW);
 	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
+	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/");
+	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/Home");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+	report_bugW= gtk_menu_item_new_with_label("Report a Bug");
+	request_featureW= gtk_menu_item_new_with_label("Request a feature");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),report_bugW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
+	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
+	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
@@ -3864,16 +3884,31 @@ XMI_MAIN
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
-	userguideW= gtk_menu_item_new_with_label("Visit the Userguide online");
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
-	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
+	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
+	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
+	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_rootW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_wikiW);
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
+	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/");
+	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/Home");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+	report_bugW= gtk_menu_item_new_with_label("Report a Bug");
+	request_featureW= gtk_menu_item_new_with_label("Request a feature");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),report_bugW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
+	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
+	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
   #ifdef XMIMSIM_GUI_UPDATER_H	
 	updatesW = gtk_menu_item_new_with_label("Check for updates...");
 	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),updatesW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
   #endif
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 
 	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
