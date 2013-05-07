@@ -2166,6 +2166,12 @@ static void about_activate_email(GtkAboutDialog *about, const gchar *address, gp
 	return;
 }
 
+static void url_click(GtkWidget *widget, char *url) {
+	xmi_open_url(url);
+}
+
+
+
 static void about_click(GtkWidget *widget, gpointer data) {
 	fprintf(stdout,"About clicked\n");
 
@@ -3581,6 +3587,7 @@ XMI_MAIN
 	GtkWidget *resultsPageW, *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
 	GtkWidget *aboutW;
+	GtkWidget *userguideW;
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif
@@ -3823,10 +3830,15 @@ XMI_MAIN
 	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
 
+	GtkWidget *helpmenu, *help;
 #ifdef MAC_INTEGRATION
-	GtkWidget *help = gtk_menu_item_new_with_label("Help");
+	helpmenu = gtk_menu_new();
+	help = gtk_menu_item_new_with_label("Help");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), gtk_menu_new());
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
+	userguideW= gtk_menu_item_new_with_label("Visit the Userguide online");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
@@ -3847,12 +3859,14 @@ XMI_MAIN
 	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
 	gtk_osxapplication_set_window_menu(theApp, NULL);
 #else
-	GtkWidget *helpmenu, *help;
 	helpmenu = gtk_menu_new();
 	help = gtk_menu_item_new_with_label("Help");
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
+	userguideW= gtk_menu_item_new_with_label("Visit the Userguide online");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
   #ifdef XMIMSIM_GUI_UPDATER_H	
