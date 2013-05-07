@@ -1421,7 +1421,7 @@ int plot_spectra_from_file(char *xmsofile) {
 void init_spectra_properties(GtkWidget *parent) {
 
 
-	spectra_propertiesW = gtk_dialog_new_with_buttons(NULL, GTK_WINDOW(parent), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,NULL);
+	spectra_propertiesW = gtk_dialog_new_with_buttons("Spectrum properties", GTK_WINDOW(parent), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,NULL);
 	spectra_properties_dataset_active = NULL;
 
 
