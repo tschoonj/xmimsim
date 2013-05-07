@@ -645,7 +645,7 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	gtk_box_pack_start(GTK_BOX(contentArea), HBox, FALSE, FALSE, 1);
 
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Weightfraction (%)");
+	label = gtk_label_new("Weight fraction (%)");
 	weightEntry = gtk_entry_new();
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), weightEntry, FALSE, FALSE, 2);
