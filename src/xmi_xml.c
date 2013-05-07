@@ -1669,7 +1669,10 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
 		return 0;
-	}
+		}
+
+	if (var_red_history == NULL)
+		goto after_var_red_history;
 
 	//Z loop
 	for (i = 0 ; i < nuniqZ ; i++) {
@@ -1761,12 +1764,13 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	
 	}//Z loop
 
+after_var_red_history:
+	
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending variance_reduction_history\n");
 		return 0;
 	}
 
-	
 	//write inputfile
 	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
 		fprintf(stderr,"Error writing xmimsim tag\n");

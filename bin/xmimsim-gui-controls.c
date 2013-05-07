@@ -118,6 +118,15 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		    gtk_main_iteration();
 		return 1;
 	}
+	else if(strncmp(string, "Operating in brute-force mode: solid angle grid is redundant", strlen("Operating in brute-force mode: solid angle grid is redundant")) == 0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid redundant");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
 	else if(strncmp(string,"Precalculating solid angle grid",strlen("Precalculating solid angle grid")) == 0) {
 #if GTK_CHECK_VERSION(2,20,0)
 		//spinner is relatively new -> not for centos 6 :-(
