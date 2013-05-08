@@ -2227,8 +2227,8 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		"logo", logo,
 		"artists", artists,
 		"version", VERSION,
-		"website", "http://github.com/tschoonj/xmimsim",
-		"website-label", "github.com/tschoonj/xmimsim",
+		"website", "https://github.com/tschoonj/xmimsim",
+		"website-label", "https://github.com/tschoonj/xmimsim",
 		"wrap-license",TRUE,
 		NULL
 	);
@@ -3595,6 +3595,13 @@ XMI_MAIN
 	GtkWidget *github_wikiW;
 	GtkWidget *report_bugW;
 	GtkWidget *request_featureW;
+	GOptionContext *context;
+	GError *error = NULL;
+	static int version = 0;
+	static GOptionEntry entries[] = {
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{NULL}
+	};
 #ifdef MAC_INTEGRATION
 	GtkOSXApplication *theApp;
 #endif
@@ -3608,6 +3615,21 @@ XMI_MAIN
  *
  *
  */
+
+	context = g_option_context_new ("XMSI_or_XMSO_file");
+	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_set_summary(context, "xmimsim-gui: a graphical user interface for generating and running XMSI files and visualizing XMSO files\n");
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_print ("option parsing failed: %s\n", error->message);
+		return 1;
+	}
+
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
+	}
+	
+
 
 	//signal handlers
 #ifdef G_OS_UNIX
@@ -3708,9 +3730,6 @@ XMI_MAIN
 	}
 	*/
 	pos_int = g_regex_new("^[1-9][0-9]*$", G_REGEX_EXTENDED,0, NULL);
-
-
-
 
 
 	gtk_init(&argc, &argv);

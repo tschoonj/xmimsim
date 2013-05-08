@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
+#include "xmi_msim.h"
 #include "xmi_aux.h"
 #include "xmi_data_structs.h"
 #include <stdio.h>
@@ -244,7 +245,91 @@ int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 
 }
 
+#include <xraylib.h>
+#include <gtk/gtk.h>
+#include <gsl/gsl_version.h>
+#include <hdf5.h>
+#include <libxml/xmlversion.h>
+#include <libxslt/xsltconfig.h>
+#include <gtkextra/gtkextra.h>
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#include <curl/curl.h>
+#include <json-glib/json-glib.h>
+#endif
 
+gchar *xmi_version_string() {
+	gchar *string = g_malloc(sizeof(gchar)*5*1024);
+	gchar *temp;
+
+	temp = g_strdup_printf("XMI-MSIM %i.%i\n\n", XMI_MSIM_VERSION_MAJOR, XMI_MSIM_VERSION_MINOR);
+	strcat(string,temp);
+	g_free(temp);
+	strcat(string,"Compiled with ");
+	//xraylib
+	temp = g_strdup_printf("xraylib %i.%i, ", XRAYLIB_MAJOR, XRAYLIB_MINOR);
+	strcat(string,temp);
+	g_free(temp);
+	//glib
+	temp = g_strdup_printf("glib %i.%i.%i, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//gtk2
+	temp = g_strdup_printf("gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//GSL
+	temp = g_strdup_printf("gsl %i.%i, ", GSL_MAJOR_VERSION, GSL_MINOR_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//hdf5
+	temp = g_strdup_printf("HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
+	strcat(string,temp);
+	g_free(temp);
+	//libxml2
+	temp = g_strdup_printf("libxml2 %s,\n", LIBXML_DOTTED_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//libxslt
+	temp = g_strdup_printf("libxslt %s, ", LIBXSLT_DOTTED_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//fgsl
+	temp = g_strdup_printf("fgsl 0.9.4, ");
+	strcat(string,temp);
+	g_free(temp);
+	//gtkextra
+	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+	temp = g_strdup_printf(", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+	strcat(string,temp);
+	g_free(temp);
+	temp = g_strdup_printf(", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+#endif
+	strcat(string,"\n\n");
+	strcat(string,
+"Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze\n"
+"\n"
+"This program is free software: you can redistribute it and/or modify\n"
+"it under the terms of the GNU General Public License as published by\n"
+"the Free Software Foundation, either version 3 of the License, or\n"
+"(at your option) any later version.\n"
+"\n"
+"This program is distributed in the hope that it will be useful,\n"
+"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+"GNU General Public License for more details.\n"
+"\n"
+"You should have received a copy of the GNU General Public License\n"
+"along with this program.  If not, see <http://www.gnu.org/licenses/>.\n"
+);
+
+	return string;
+}
 
 
 

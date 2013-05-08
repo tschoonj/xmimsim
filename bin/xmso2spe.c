@@ -28,20 +28,16 @@ XMI_MAIN
         unsigned type=1;
 	static int use_unconvoluted=0;
 	static int interaction_number=1;
+	static int version = 0;
 
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
            	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &use_unconvoluted, "Use unconvoluted data", NULL },
 		{ "interaction-number", 'i', 0, G_OPTION_ARG_INT, &interaction_number, "Spectrum after n interactions"},
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
-
-
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
 
 	//parse options
 	context = g_option_context_new ("XMSO_file SPE_file");
@@ -52,10 +48,19 @@ XMI_MAIN
 		return 1;
 	}
 
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
+	}
 
 	if (argc < 3) {
 		fprintf(stderr,"At least two arguments are required\n");
 		fprintf(stderr,"%s",  g_option_context_get_help(context, FALSE, NULL ));
+		return 1;
+	}
+
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
 

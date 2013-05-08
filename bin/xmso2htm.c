@@ -27,19 +27,17 @@ XMI_MAIN
 	GError *error = NULL;
         unsigned type=1;
 	static int use_unconvoluted=0;
+	static int version = 0;
 
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
            	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Create unconvoluted graphs", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
 
 
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
 	//parse options
 	context = g_option_context_new ("XMSO_file HTML_file");
 	g_option_context_add_main_entries (context, entries, NULL);
@@ -47,6 +45,11 @@ XMI_MAIN
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
+	}
+
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
 	}
 
 
@@ -57,6 +60,10 @@ XMI_MAIN
 	}
 
 
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
 
  	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
         

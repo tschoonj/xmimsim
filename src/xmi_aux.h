@@ -139,4 +139,7 @@ int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 #define quartz_application_get_bundle_info gtkosx_application_get_bundle_info
 
 #endif
+
+gchar *xmi_version_string();
+
 #endif

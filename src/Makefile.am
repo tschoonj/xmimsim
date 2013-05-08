@@ -59,6 +59,9 @@ libxmimsim_la_CFLAGS =  @H5FC_INCLUDE@ \
 			@glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@GTK_MAC_CFLAGS@ \
+		 	@gtk3extra_CFLAGS@ \
+			@JsonGlib_CFLAGS@ \
+		      	@libcurl_CFLAGS@ \
 			-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 			-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
 			-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \

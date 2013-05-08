@@ -118,6 +118,7 @@ XMI_MAIN
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
+	static int version = 0;
 
 
 	static GOptionEntry entries[] = {
@@ -151,6 +152,7 @@ XMI_MAIN
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{ NULL }
 	};
 
@@ -211,6 +213,11 @@ XMI_MAIN
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
+	}
+
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
 	}
 
 	if (argc != 2) {

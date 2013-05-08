@@ -88,6 +88,7 @@ XMI_MAIN
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	double sum_roi;
+	static int version = 0;
 	
 	
 	static GOptionEntry entries[] = {
@@ -113,6 +114,7 @@ XMI_MAIN
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -147,7 +149,11 @@ XMI_MAIN
 	g_option_context_set_summary(context, "xmimsim-pymca: a program for the quantification of X-ray fluorescence spectra using inverse Monte-Carlo simulations. Inputfiles should be prepared using PyMCA\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_fprintf (stderr, "option parsing failed: %s\n", error->message);
-		exit (1);
+		return 1;
+	}
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
 	}
 
 	//check for conflicting options
