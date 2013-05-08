@@ -1574,7 +1574,12 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//column = gtk_tree_view_column_new_with_attributes("Density (g/cm3)", renderer,"text",DENSITY_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_title(column, "Density (g/cm3)");
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.5, 0.2);
+	//gtk_label_set_text(GTK_LABEL(label), "Density(g/cm3)");
+	gtk_widget_show(label);
+	gtk_tree_view_column_set_widget(column, label);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
