@@ -386,8 +386,6 @@ TYPE :: xmi_photon
         !weight of the photon
         REAL (C_DOUBLE) :: weight
 
-        INTEGER (C_LONG) :: weight_long
-
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 

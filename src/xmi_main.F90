@@ -100,6 +100,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         precalc_mu_cs
         INTEGER (OMP_LOCK_KIND) :: omp_lock
         INTEGER (4) :: time_before, time_after
+        REAL (C_DOUBLE) :: weight
 
         
         CALL SetErrorMessages(0)
@@ -248,7 +249,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
 !$omp photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy,&
 !$omp iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,&
-!$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle)&
+!$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle,weight)&
 !$omp reduction(+:photons_simulated,detector_hits, detector_hits2,channels,&
 !$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found) &
 !$omp num_threads(options%omp_num_threads)
@@ -359,6 +360,14 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
 
+                weight = (total_intensity)*exc_corr/inputF%general%n_photons_line
+
+#if DEBUG == 1
+!$omp critical
+                WRITE (output_unit, '(A,ES12.6)') 'weight float: ',weight
+!$omp end critical
+#endif
+
 
                 photons:DO j=1,n_photons
                         !Allocate the photon
@@ -397,7 +406,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         !Calculate its weight and electric field...
                         IF (j .LE. hor_ver_ratio) THEN
                                 !horizontal
-                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
+                                photon%weight = weight 
                                 photon%elecv(1) = 0.0_C_DOUBLE
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -406,7 +415,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #endif
                         ELSE
                                 !vertical
-                                photon%weight = (total_intensity)*exc_corr/inputF%general%n_photons_line 
+                                photon%weight = weight 
                                 photon%elecv(1) = 1.0_C_DOUBLE
                                 photon%elecv(2) = 0.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -415,7 +424,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #endif
                         ENDIF
 
-                        photon%weight_long = NINT(photon%weight,KIND=C_LONG)
 
 
 
@@ -2738,7 +2746,6 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%history=photon%history
         photon%offspring%current_layer = photon%current_layer
         photon%offspring%weight = photon%weight
-        photon%offspring%weight_long = photon%weight_long
         photon%offspring%coords = photon%coords
         photon%offspring%detector_hit = .FALSE.
         photon%offspring%detector_hit2 = .FALSE.
@@ -3035,7 +3042,6 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%options%use_cascade_radiative = 0_C_INT
         photon%offspring%options%use_variance_reduction = 0_C_INT
         photon%offspring%weight = photon%weight
-        photon%offspring%weight_long = photon%weight_long
         photon%offspring%coords = photon%coords
         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
         !photon%offspring%theta = M_PI *fgsl_rng_uniform(rng)
