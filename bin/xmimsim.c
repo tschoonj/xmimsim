@@ -152,6 +152,7 @@ XMI_MAIN
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{ "very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{ NULL }
 	};
@@ -202,6 +203,7 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.extra_verbose = 0;
 	options.omp_num_threads = omp_get_max_threads();
 
 
@@ -231,6 +233,9 @@ XMI_MAIN
 		options.omp_num_threads = omp_get_max_threads();
 	}
 
+	if (options.extra_verbose)
+		options.verbose = 1;
+
 	//omp_set_num_threads(omp_num_threads);
 	//omp_set_dynamic(0);
 	
@@ -259,12 +264,15 @@ XMI_MAIN
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
 
+
 	if (rv != 1) {
 		return 1;
 	}
 	else if (options.verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
+	if (options.extra_verbose)
+		xmi_print_input(stdout,input);
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
@@ -300,7 +308,7 @@ XMI_MAIN
 		//check if solid angles are already precalculated
 		if (options.verbose)
 			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options.verbose)
@@ -454,7 +462,7 @@ XMI_MAIN
 			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 		//check if escape ratios are already precalculated
-		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def) == 0)
+		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def, options) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
 			if (options.verbose)

@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include "xmi_solid_angle.h"
+#include "xmi_data_structs.h"
 #include <hdf5.h>
 #include <glib.h>
 #include <string.h>
@@ -37,6 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
 	struct xmi_input *input;
+	struct xmi_main_options options;
 };
 
 static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
@@ -187,7 +189,9 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	fprintf(stdout,"Group name: %s\n",name);
 #endif
 
-
+	if (data->options.extra_verbose) {
+		fprintf(stdout,"Checking solid angle grid group with name %s\n", name);
+	} 
 
 
 	//open group
@@ -259,12 +263,16 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"Match in solid angle grid\n");
 	}
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		free(xmi_input_string);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"No match in solid angle grid\n");
 		return 0;
 	}
 	
@@ -539,7 +547,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	return 1;
 }
 
-int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv) {
+int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv, struct xmi_main_options options) {
 
 	hid_t file_id;
 	struct xmi_solid_angles_data data;
@@ -600,6 +608,7 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 
 	data.solid_angles = rv;
 	data.input = A;
+	data.options = options;
 
 	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) &data);
 

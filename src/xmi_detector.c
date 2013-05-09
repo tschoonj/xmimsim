@@ -255,6 +255,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 struct xmi_escape_ratios_data{
 	struct xmi_escape_ratios **escape_ratios;
 	struct xmi_input *input;
+	struct xmi_main_options options;
 };
 
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
@@ -267,6 +268,10 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	struct xmi_input *temp_input;
 	struct xmi_escape_ratios *escape_ratios;
 	
+
+	if (data->options.extra_verbose) {
+		fprintf(stdout,"Checking escape ratios group with name %s\n", name);
+	} 
 
 	//open group
 	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
@@ -374,19 +379,23 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"Match in escape ratios\n");
 	}
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		free(xmi_input_string);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"No match in escape ratios\n");
 		return 0;
 	}
 
 	return 1;
 }
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv) {
+int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options) {
 
 	//let's take this one on a bit more elegant than xmi_find_solid_angle_match...
 	//open the hdf5 file and iterate through all the groups

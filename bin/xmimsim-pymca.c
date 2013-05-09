@@ -140,6 +140,7 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.extra_verbose = 0;
 	options.omp_num_threads = omp_get_max_threads();
 
 
@@ -238,7 +239,7 @@ XMI_MAIN
 
 
 		//check if solid angles are already precalculated
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options.verbose)
@@ -277,7 +278,7 @@ XMI_MAIN
 			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 		//check if escape ratios are already precalculated
-		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
+		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def, options) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
 			if (options.verbose)
@@ -372,7 +373,7 @@ XMI_MAIN
 
 
 	//check if solid angles are already precalculated
-	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def) == 0)
+	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def, options) == 0)
 		return 1;
 	if (solid_angle_def == NULL) {
 		if (options.verbose)
@@ -417,7 +418,7 @@ XMI_MAIN
 
 
 	//check if escape ratios are already precalculated
-	if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def) == 0)
+	if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def, options) == 0)
 		return 1;
 	if (escape_ratios_def == NULL) {
 		if (options.verbose)

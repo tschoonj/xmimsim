@@ -147,6 +147,7 @@ struct xmi_main_options {
 	int verbose;
 	int use_poisson;
 	int omp_num_threads;
+	int extra_verbose;
 };
 
 //typedefs are clearer then using void *...

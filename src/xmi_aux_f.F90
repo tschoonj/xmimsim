@@ -261,6 +261,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: verbose 
         INTEGER (C_INT) :: use_poisson
         INTEGER (C_INT) :: omp_num_threads
+        INTEGER (C_INT) :: extra_verbose
 ENDTYPE xmi_main_options
 !
 !

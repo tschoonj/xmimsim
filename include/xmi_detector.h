@@ -50,7 +50,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 //return 1 on success, 0 on no match
 int xmi_check_escape_ratios_match(struct xmi_input *input_in, struct xmi_input *input_h5);
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv);
+int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options);
 
 void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios);
 
