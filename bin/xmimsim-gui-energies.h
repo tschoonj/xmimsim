@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_ENERGIES_H
 #define XMIMSIM_GUI_ENERGIES_H
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation); 
+GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window); 
 
 extern struct xmi_energy *energy;
 extern int current_index;

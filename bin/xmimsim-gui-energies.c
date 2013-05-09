@@ -587,7 +587,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	return;	
 }
 
-struct energyWidget *initialize_energy_widget() {
+static struct energyWidget *initialize_energy_widget(GtkWidget *main_window) {
 	GtkWidget *window;
 	GtkWidget *mainVBox;
 	GtkWidget *HBox;
@@ -607,6 +607,7 @@ struct energyWidget *initialize_energy_widget() {
 	gtk_window_set_default_size(GTK_WINDOW(window),420,300);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(energy_window_show_cb), (gpointer) rv);
 	g_signal_connect(G_OBJECT(window), "hide",G_CALLBACK(energy_window_hide_cb), (gpointer) rv);
 	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
@@ -706,15 +707,15 @@ struct energyWidget *initialize_energy_widget() {
 }
 
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation) {
+GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window) {
 	GtkWidget *mainvbox;
 	GtkWidget *separator;
 
 
 
 	//dialog initialization first
-	energyWidget_disc = initialize_energy_widget(); 
-	energyWidget_cont = initialize_energy_widget(); 
+	energyWidget_disc = initialize_energy_widget(main_window); 
+	energyWidget_cont = initialize_energy_widget(main_window); 
 
 	mainvbox = gtk_vbox_new(FALSE, 5);
 

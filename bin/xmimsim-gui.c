@@ -4108,7 +4108,7 @@ XMI_MAIN
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
 
 	//initialize layer widget
-	layerW = initialize_layer_widget(&layer);
+	layerW = initialize_layer_widget(&layer, window);
 	g_signal_connect(G_OBJECT(layerW->window),"hide",G_CALLBACK(layer_widget_hide_cb), (gpointer) layerW);
 
 
@@ -4353,7 +4353,7 @@ XMI_MAIN
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Excitation</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
-	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation));
+	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation, window));
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 

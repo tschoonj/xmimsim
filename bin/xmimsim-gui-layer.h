@@ -44,6 +44,6 @@ struct layerWidget {
 
 };
 
-struct layerWidget * initialize_layer_widget(struct xmi_layer **); 
+struct layerWidget * initialize_layer_widget(struct xmi_layer **, GtkWidget *main_window); 
 
 GtkWidget* my_gtk_dialog_get_widget_for_response (GtkDialog *dialog,gint response_id);

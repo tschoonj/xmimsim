@@ -702,7 +702,7 @@ void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTree
 	return;
 }
 
-struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
+struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWidget *main_window) {
 #if DEBUG == 1
 	fprintf(stdout,"Entering initialize_layer_widget\n");
 #endif
@@ -741,6 +741,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer) {
 	gtk_window_set_default_size(GTK_WINDOW(window),200,200);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(window_show_cb), (gpointer) rv);
 	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
