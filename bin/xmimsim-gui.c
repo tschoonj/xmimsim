@@ -3047,7 +3047,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	last = redo_buffer;
 	redo_buffer->filename = strdup(filename);
 	redo_buffer->xi = xi_new;
-	if (filename != NULL) {
+	if (filename != NULL && strcmp(filename,UNLIKELY_FILENAME) != 0) {
 		if (last_saved != NULL) {
 			free(last_saved->filename);
 			xmi_free_input(last_saved->xi);
@@ -3056,6 +3056,9 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
 		last_saved->filename = strdup(filename);
+	}
+	else {
+		last_saved = NULL;
 	}
 	//clear undo/redo messages
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
