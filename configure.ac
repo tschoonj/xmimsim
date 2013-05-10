@@ -232,6 +232,8 @@ AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
 
+AC_CHECK_FUNCS_ONCE([getdelim getline])
+
 #check for types
 AC_CHECK_TYPE([ptrdiff_t],,[AC_MSG_ERROR([ptrdiff_t type not found])])
 

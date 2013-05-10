@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui.h"
+#include "xmimsim-gui-layer.h"
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include <string.h>
@@ -75,6 +76,7 @@ struct energyButtons {
 	GtkWidget *deleteButton;
 };
 
+static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies);
 static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	return TRUE;
 }
@@ -95,7 +97,82 @@ static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rend
 
 }
 
-void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) {
+	
+	//first launch a message box
+	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Import spectrum from file");
+	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), 
+	"Files must be ascii files consisting of rows with either 2, 3 or 7 elements."
+	"First element must contain the energy (in keV)"
+	"Second element must be the intensity: if there are only two elements, it is assumed to be unpolarized."
+	"If three elements are found, then the second element and third elements are assumed to correspond to the horizontal and vertical polarized intensities."
+	"Seven elements are considered to be identical to the three elements case with additionally source size x and y, as well as source divergence x and y."
+	);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	//open filechooser without filters
+	GtkWidget *dialog;
+
+	dialog = gtk_file_chooser_dialog_new ("Open File",
+                 main_window,
+                 GTK_FILE_CHOOSER_ACTION_OPEN,
+                 GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                 GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                 NULL);	
+
+	
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		gtk_widget_destroy (dialog);	
+		gchar *filename;
+
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+    		int rv = xmi_read_energies_from_ascii_file(filename, &energy);
+		if (rv > 0) {
+			//success
+			g_fprintf(stdout,"File %s read in successfully\n",filename);
+			//now ask if we have to add or replace...
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
+			gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
+			gtk_button_set_label(GTK_BUTTON(my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL)), "Replace");
+			//this may not work on all platforms -> Mac OS X
+			gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
+			
+			if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK) {
+				
+			}
+			else if 
+
+			
+			g_free (filename);
+
+			return;
+		}
+		else if (rv == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "No valid values found in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+		}
+		else if (rv == -1) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open file %s",filename);
+		}
+		else if (rv == -2) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not close file %s",filename);
+		}
+		else if (rv == -3) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+		}
+		g_free (filename);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+  	}
+	else {
+		gtk_widget_destroy (dialog);	
+	}
+
+
+	
+}
+
+static void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct energyWidget *ew = (struct energyWidget *) data;
 	
 	if (widget == ew->okButton) {
@@ -283,7 +360,7 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 }
 
 
-struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, int n_energies, int kind) {
+struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, int n_energies, int kind, GtkWidget *main_window) {
 	GtkListStore *store;
 	GtkTreeIter iter;
 	GtkWidget *tree;
@@ -295,7 +372,10 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	GtkWidget *buttonbox;
 	GtkWidget *editButton;
 	GtkWidget *addButton;
+	GtkWidget *importButton;
+	GtkWidget *EbelButton;
 	GtkWidget *deleteButton;
+	GtkWidget *clearButton;
 	int i;
 
 	struct energiesWidget *rv;
@@ -427,7 +507,12 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), editButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), deleteButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 
+	buttonbox = gtk_vbox_new(FALSE, 5);
+	importButton = gtk_button_new_with_label("Import");
+	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), main_window);
+	gtk_box_pack_start(GTK_BOX(buttonbox), importButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 
 	gtk_widget_set_sensitive(editButton, FALSE);
@@ -720,8 +805,8 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 	mainvbox = gtk_vbox_new(FALSE, 5);
 
 	//discrete first...
-	discWidget = initialize_single_energies(excitation->discrete, excitation->n_discrete,DISCRETE);
-	contWidget = initialize_single_energies(excitation->continuous, excitation->n_continuous,CONTINUOUS);
+	discWidget = initialize_single_energies(excitation->discrete, excitation->n_discrete,DISCRETE, main_window);
+	contWidget = initialize_single_energies(excitation->continuous, excitation->n_continuous,CONTINUOUS, main_window);
 	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Discrete energies"), FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainvbox), discWidget->widget, FALSE, FALSE, 2);
 	//separator = gtk_hseparator_new();
@@ -733,3 +818,73 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 
 	return mainvbox;
 }
+
+
+static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies) {
+	FILE *fp;
+	struct xmi_energy *xe = NULL;
+	int nxe = 0;
+
+	if ((fp = fopen(filename, "r")) == NULL) {
+		g_fprintf(stderr,"Could not open file %s\n", filename);
+		return -1;
+	}
+
+	//read line per line...
+	char *line = NULL;
+	size_t linecap = 0;
+	ssize_t linelen;
+	int values;
+	double energy;
+	double horizontal_intensity;
+	double vertical_intensity;
+	double sigma_x;
+	double sigma_y;
+	double sigma_xp;
+	double sigma_yp;
+
+	while ((linelen = getline(&line, &linecap, fp)) > 0) {
+		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
+		xe = (struct xmi_energy *) realloc(xe, sizeof(struct xmi_energy) * ++nxe);
+		xe[nxe-1].sigma_x = 0.0;
+		xe[nxe-1].sigma_y = 0.0;
+		xe[nxe-1].sigma_xp = 0.0;
+		xe[nxe-1].sigma_yp = 0.0;
+
+		switch (values) {
+			case 7:
+				xe[nxe-1].sigma_x = sigma_x;
+				xe[nxe-1].sigma_y = sigma_y;
+				xe[nxe-1].sigma_xp = sigma_xp;
+				xe[nxe-1].sigma_yp = sigma_yp;
+			case 3: 
+				xe[nxe-1].horizontal_intensity = horizontal_intensity;
+				xe[nxe-1].vertical_intensity = vertical_intensity;
+				xe[nxe-1].energy = energy;
+				break;
+			case 2:
+				xe[nxe-1].horizontal_intensity = horizontal_intensity/2.0;
+				xe[nxe-1].vertical_intensity = vertical_intensity/2.0;
+				xe[nxe-1].energy = energy;
+				break;
+			default:
+				g_fprintf(stderr,"Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+				return -3;
+		};
+	}
+
+
+	if (fclose(fp) != 0) {
+		g_fprintf(stderr,"Could not close file %s\n", filename);
+		return -2;
+	}
+
+	*energies = xe;
+
+	return nxe;
+}
+
+
+
+
+

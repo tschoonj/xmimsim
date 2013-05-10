@@ -22,6 +22,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stddef.h>
 #include "xmi_data_structs.h"
 #include <glib.h>
+#include <stdio.h>
+
+
+
+#ifndef HAVE_GETLINE
+ssize_t getline (char **lineptr, size_t *n, FILE *stream);
+#endif
+
+
 
 //returns NULL on error
 void *xmi_memdup(const void *mem, size_t bytes);
