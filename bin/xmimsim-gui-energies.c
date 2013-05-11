@@ -97,25 +97,33 @@ static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rend
 
 }
 
+static void clear_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) {
+	gtk_list_store_clear(discWidget->store);
+	update_undo_buffer(DISCRETE_ENERGY_CLEAR, NULL);
+
+
+}
 static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) {
 	
 	//first launch a message box
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Import spectrum from file");
 	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), 
-	"Files must be ascii files consisting of rows with either 2, 3 or 7 elements."
-	"First element must contain the energy (in keV)"
-	"Second element must be the intensity: if there are only two elements, it is assumed to be unpolarized."
-	"If three elements are found, then the second element and third elements are assumed to correspond to the horizontal and vertical polarized intensities."
-	"Seven elements are considered to be identical to the three elements case with additionally source size x and y, as well as source divergence x and y."
+	"Files must be ascii files consisting of rows with either 2, 3 or 7 elements. "
+	"First element must contain the energy (in keV). "
+	"Second element must be the intensity: if there are only two elements, it is assumed to be unpolarized. "
+	"If three elements are found, then the second and third elements are assumed to correspond to the horizontal and vertical polarized intensities. "
+	"Seven elements are considered to be identical to the three elements case with additionally the source size x and y, as well as the source divergence x and y. "
+	"Empty lines are ignored."
 	);
-	gtk_dialog_run(GTK_DIALOG(dialog));
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_BUTTONS_CLOSE) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
 	gtk_widget_destroy(dialog);
 
 	//open filechooser without filters
-	GtkWidget *dialog;
-
 	dialog = gtk_file_chooser_dialog_new ("Open File",
-                 main_window,
+                 GTK_WINDOW(main_window),
                  GTK_FILE_CHOOSER_ACTION_OPEN,
                  GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                  GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
@@ -124,10 +132,10 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 	
 
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-		gtk_widget_destroy (dialog);	
 		gchar *filename;
 
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		gtk_widget_destroy (dialog);	
     		int rv = xmi_read_energies_from_ascii_file(filename, &energy);
 		if (rv > 0) {
 			//success
@@ -135,16 +143,50 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 			//now ask if we have to add or replace...
 			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
 			gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
-			gtk_button_set_label(GTK_BUTTON(my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL)), "Replace");
+			GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+			GList *children = gtk_container_get_children(GTK_CONTAINER(button));
+			GtkWidget *temp = g_list_nth_data(children, 0);
+			g_list_free(children);
+			children = gtk_container_get_children(GTK_CONTAINER(temp));
+			temp = g_list_nth_data(children, 0);
+			g_list_free(children);
+			children = gtk_container_get_children(GTK_CONTAINER(temp));
+			gtk_label_set_text(GTK_LABEL(g_list_nth_data(children,1)), "Replace");
+			g_list_free(children);
 			//this may not work on all platforms -> Mac OS X
 			gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
-			
-			if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK) {
-				
+		
+			int rv2 = gtk_dialog_run (GTK_DIALOG (dialog));
+			if (rv2 == GTK_RESPONSE_OK) {
+				//add	
+				update_undo_buffer(DISCRETE_ENERGY_IMPORT_ADD, GINT_TO_POINTER(rv));
 			}
-			else if 
-
-			
+			else if (rv2 == GTK_RESPONSE_CANCEL) {
+				//replace
+				update_undo_buffer(DISCRETE_ENERGY_IMPORT_REPLACE, GINT_TO_POINTER(rv));
+			}
+			else {
+				gtk_widget_destroy(dialog);
+				g_free (filename);
+				return;
+			}
+			gtk_list_store_clear(discWidget->store);
+			int i;
+			GtkTreeIter iter;
+			for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+				ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
+				HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+				VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+				SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
+				SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
+				SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
+				SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+				-1);
+			}
+			adjust_save_buttons();
+			gtk_widget_destroy(dialog);
 			g_free (filename);
 
 			return;
@@ -164,12 +206,10 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 		g_free (filename);
 		gtk_dialog_run(GTK_DIALOG(dialog));
   	}
-	else {
-		gtk_widget_destroy (dialog);	
-	}
+	gtk_widget_destroy (dialog);	
+	energy = NULL;
 
-
-	
+	return;	
 }
 
 static void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
@@ -304,19 +344,7 @@ void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		update_undo_buffer(CONTINUOUS_ENERGY_DELETE,NULL);
 	}
 
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
-
+	adjust_save_buttons();
 	
 	return;
 }
@@ -482,7 +510,7 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
-	gtk_widget_set_size_request(scrolledWindow, 700,100);
+	gtk_widget_set_size_request(scrolledWindow, 660,100);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
 
@@ -510,9 +538,28 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
-	importButton = gtk_button_new_with_label("Import");
+	importButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	GList *children = gtk_container_get_children(GTK_CONTAINER(importButton));
+	GtkWidget *temp = g_list_nth_data(children, 0);
+	g_list_free(children);
+	children = gtk_container_get_children(GTK_CONTAINER(temp));
+	temp = g_list_nth_data(children, 0);
+	g_list_free(children);
+	children = gtk_container_get_children(GTK_CONTAINER(temp));
+	gtk_label_set_text(GTK_LABEL(g_list_nth_data(children,1)), "Import");
+	g_list_free(children);
 	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), main_window);
 	gtk_box_pack_start(GTK_BOX(buttonbox), importButton, TRUE, FALSE, 3);
+
+	EbelButton = gtk_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	gtk_box_pack_start(GTK_BOX(buttonbox), EbelButton, TRUE, FALSE, 3);
+
+	clearButton = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
+	g_signal_connect(G_OBJECT(clearButton), "clicked", G_CALLBACK(clear_button_clicked_cb), NULL);
+	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, TRUE, FALSE, 3);
+	
+
+
 	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 
 	gtk_widget_set_sensitive(editButton, FALSE);
@@ -590,19 +637,7 @@ void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
 		}
 	}
 	
-	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0 ) {
-		gtk_widget_set_sensitive(saveW,TRUE);
-		gtk_widget_set_sensitive(save_asW,TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(saveW,FALSE);
-		gtk_widget_set_sensitive(save_asW,FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
-	}
-
+	adjust_save_buttons();
 }
 
 
@@ -843,7 +878,11 @@ static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy 
 	double sigma_xp;
 	double sigma_yp;
 
-	while ((linelen = getline(&line, &linecap, fp)) > 0) {
+
+	while ((linelen = getline(&line, &linecap, fp)) > -1) {
+		//ignore empty lines
+		if (linelen == 0 || strlen(g_strstrip(line)) == 0)
+			continue;
 		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
 		xe = (struct xmi_energy *) realloc(xe, sizeof(struct xmi_energy) * ++nxe);
 		xe[nxe-1].sigma_x = 0.0;
@@ -864,7 +903,7 @@ static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy 
 				break;
 			case 2:
 				xe[nxe-1].horizontal_intensity = horizontal_intensity/2.0;
-				xe[nxe-1].vertical_intensity = vertical_intensity/2.0;
+				xe[nxe-1].vertical_intensity = horizontal_intensity/2.0;
 				xe[nxe-1].energy = energy;
 				break;
 			default:

@@ -28,12 +28,10 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
-<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-2.0.tar.gz</data>
+<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-2.1.tar.gz</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/nsis/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.png</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.bmp</data>
 
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/engines/*.so</binary>
 <binary>${prefix:macports}/lib/gtk-2.0/modules/*.so</binary>
@@ -42,6 +40,7 @@
 <binary>${prefix:macports}/lib/gdk-pixbuf-2.0/${pkg:gtk+-2.0:gtk_binary_version}/loaders/*.so</binary>
 
 <data>${prefix:macports}/share/themes</data>
+<data>${prefix:install}/share/icons/hicolor</data>
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>
 
@@ -49,4 +48,5 @@
 <translations name="gtk20">${prefix:macports}/share/local</translations>
 
 <icon-theme icons='all'>Tango</icon-theme>
+<icon-theme icons='all'>hicolor</icon-theme>
 </app-bundle>
