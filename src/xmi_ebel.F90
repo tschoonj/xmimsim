@@ -1,0 +1,343 @@
+!Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+
+!This program is free software: you can redistribute it and/or modify
+!it under the terms of the GNU General Public License as published by
+!the Free Software Foundation, either version 3 of the License, or
+!(at your option) any later version.
+
+!This program is distributed in the hope that it will be useful,
+!but WITHOUT ANY WARRANTY; without even the implied warranty of
+!MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!GNU General Public License for more details.
+
+!You should have received a copy of the GNU General Public License
+!along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#define TUBE_MINIMUM_ENERGY 1.0
+
+
+MODULE xmimsim_ebel
+
+USE, INTRINSIC :: ISO_C_BINDING
+USE :: xmimsim_aux
+USE :: omp_lib
+USE :: fgsl
+
+REAL (C_DOUBLE),PARAMETER :: DEG2RAD=0.01745329
+
+CONTAINS
+
+
+!
+!
+!xray tube related functions
+!
+!
+INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
+tube_filter,tube_voltage, tube_current, tube_angle_electron, &
+tube_angle_xray, tube_delta_energy, result, n_ebel_spectrum) BIND(C,NAME='xmi_tube_ebel')
+
+
+
+!
+! Note: this function makes heavy use of the automatic allocation feature of the
+! fortran 2003 standard
+!
+
+IMPLICIT NONE
+
+TYPE (xmi_layerC), INTENT(IN) :: tube_anode,tube_window,tube_filter
+TARGET :: tube_window, tube_filter
+REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy
+TYPE (C_PTR), INTENT(INOUT) :: result 
+INTEGER (C_INT), INTENT(OUT) :: n_ebel_spectrum
+TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum
+TYPE (xmi_energy), POINTER, DIMENSION(:) :: ebel_spectrum_rv
+TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_temp
+
+
+!fortran aux variables
+TYPE (xmi_layer), ALLOCATABLE :: tube_anodeF, tube_windowF, tube_filterF
+INTEGER (C_INT), POINTER, DIMENSION(:) :: Z
+REAL (C_DOUBLE), POINTER, DIMENSION(:) :: weight
+
+!characteristic line variables
+REAL (C_DOUBLE), POINTER, DIMENSION(:) :: disc_energy, disc_intensity, disc_pol_degree
+REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: &
+disc_edge_energy,disc_edge_energy_temp
+INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
+
+!bremsstrahlung variables
+REAL (C_DOUBLE), POINTER, DIMENSION(:) :: cont_energy, cont_intensity, cont_pol_degree
+
+!
+INTEGER (C_INT) :: i, ndisc, ncont
+REAL (C_DOUBLE) :: sinalphae, sinalphax,sinfactor
+!const2 is mentioned only in the conclusion of the article and appears to be an
+!average of the const values for both K and L lines...
+REAL (C_DOUBLE), PARAMETER :: const1 = 1.35E+09, const2 = 6.0E+13,zk=2.0,zl=8.0,bk=0.35,bl=0.25
+REAL (C_DOUBLE) :: x, m, logz, eta, p3, rhozmax
+REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: u0,logu0,tau,p1,p2,rhoz,rhelp
+REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: oneovers, r
+
+
+!bind the C variables to their fortran counterparts
+ALLOCATE(tube_anodeF)
+
+tube_anodeF%n_elements = tube_anode%n_elements
+tube_anodeF%density = tube_anode%density
+tube_anodeF%thickness= tube_anode%thickness
+ALLOCATE(tube_anodeF%Z(tube_anodeF%n_elements),&
+tube_anodeF%weight(tube_anodeF%n_elements))
+CALL C_F_POINTER(tube_anode%Z, Z, [tube_anodeF%n_elements])
+tube_anodeF%Z = Z
+
+CALL C_F_POINTER(tube_anode%weight, weight, [tube_anodeF%n_elements])
+tube_anodeF%weight = weight
+
+IF (C_ASSOCIATED(C_LOC(tube_window))) THEN
+        tube_windowF%n_elements = tube_window%n_elements
+        tube_windowF%density = tube_window%density
+        tube_windowF%thickness= tube_window%thickness
+        ALLOCATE(tube_windowF%Z(tube_windowF%n_elements),&
+        tube_windowF%weight(tube_windowF%n_elements))
+        CALL C_F_POINTER(tube_window%Z, Z, [tube_windowF%n_elements])
+        tube_windowF%Z = Z
+
+        CALL C_F_POINTER(tube_window%weight, weight, [tube_windowF%n_elements])
+        tube_windowF%weight = weight
+ENDIF
+
+IF (C_ASSOCIATED(C_LOC(tube_filter))) THEN
+        tube_filterF%n_elements = tube_filter%n_elements
+        tube_filterF%density = tube_filter%density
+        tube_filterF%thickness= tube_filter%thickness
+        ALLOCATE(tube_filterF%Z(tube_filterF%n_elements),&
+        tube_filterF%weight(tube_filterF%n_elements))
+        CALL C_F_POINTER(tube_filter%Z, Z, [tube_filterF%n_elements])
+        tube_filterF%Z = Z
+
+        CALL C_F_POINTER(tube_filter%weight, weight, [tube_filterF%n_elements])
+        tube_filterF%weight = weight
+ENDIF
+
+
+
+
+!angles
+sinalphae = SIN(DEG2RAD*tube_angle_electron)
+sinalphax = SIN(DEG2RAD*tube_angle_xray)
+sinfactor = sinalphae/sinalphax
+
+
+
+!Bremsstrahlung energies
+!determine number of intervals
+!set minimum energy equal to 1 keV
+ALLOCATE(ebel_spectrum(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)+1_C_LONG))
+IF (tube_voltage/tube_delta_energy /= INT(tube_voltage/tube_delta_energy)) THEN
+        ALLOCATE(ebel_spectrum_temp(SIZE(ebel_spectrum)+1))
+        ebel_spectrum_temp(1:SIZE(ebel_spectrum)) = ebel_spectrum
+        CALL MOVE_ALLOC(ebel_spectrum_temp, ebel_spectrum)
+ENDIF
+
+!fill up the energies array
+DO i=1,SIZE(ebel_spectrum)-1
+        ebel_spectrum(i)%energy=TUBE_MINIMUM_ENERGY+(i-1)*tube_delta_energy
+ENDDO
+
+ebel_spectrum(SIZE(ebel_spectrum))%energy = tube_voltage
+ncont= SIZE(ebel_spectrum)
+
+!let's calculate some variables important for the bremsstrahlung part
+x = 1.109_C_DOUBLE - 0.00435_C_DOUBLE * tube_anodeF%Z(1) + 0.00175_C_DOUBLE*tube_voltage
+m = 0.1382_C_DOUBLE -0.9211_C_DOUBLE/SQRT(REAL(tube_anodeF%Z(1),KIND=C_DOUBLE))
+logz = LOG(REAL(tube_anodeF%Z(1),KIND=C_DOUBLE))
+eta = (0.1904_C_DOUBLE -0.2236_C_DOUBLE*logz +0.1292_C_DOUBLE * (logz**2)-0.0149_C_DOUBLE*(logz**3))*tube_voltage**m
+
+p3 = 0.787E-05_C_DOUBLE*SQRT(REAL(tube_anodeF%Z(1),KIND=C_DOUBLE)*0.0135_C_DOUBLE)*tube_voltage**1.5+0.735E-06*tube_voltage**2
+rhozmax = AtomicWeight(tube_anodeF%Z(1))*p3/tube_anodeF%Z(1)
+
+ALLOCATE(u0(SIZE(ebel_spectrum)))
+ALLOCATE(logu0(SIZE(ebel_spectrum)))
+ALLOCATE(tau(SIZE(ebel_spectrum)))
+ALLOCATE(p1(SIZE(ebel_spectrum)))
+ALLOCATE(p2(SIZE(ebel_spectrum)))
+ALLOCATE(rhoz(SIZE(ebel_spectrum)))
+ALLOCATE(rhelp(SIZE(ebel_spectrum)))
+
+u0=tube_voltage/ebel_spectrum(:)%energy
+logu0=LOG(u0)
+p1=logu0 * (0.49269_C_DOUBLE - 1.09870_C_DOUBLE * eta + 0.78557_C_DOUBLE*eta**2)
+p2=0.70256_C_DOUBLE-1.09865_C_DOUBLE*eta+1.00460_C_DOUBLE*eta**2 + logu0
+rhoz = rhozmax*(p1/p2)
+
+!photoelectric absorption of Bremsstrahlung
+DO i=1,ncont
+        tau(i)=CS_Photo_Total(tube_anodeF%Z(1),REAL(ebel_spectrum(i)%energy,KIND=C_FLOAT))
+ENDDO
+
+rhelp = tau*2.0_C_DOUBLE*rhoz*sinfactor
+
+ebel_spectrum(:)%horizontal_intensity = 0.0_C_DOUBLE
+WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
+        =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*(1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
+
+!take window in account
+#if DEBUG == 1
+        WRITE (6,*) 'Window calculation'
+        WRITE (6,*) 'tube window density: ',tube_window%rho
+        WRITE (6,*) 'tube window thickness: ',tube_window%thickness
+        WRITE (6,*) 'tube window element: ',tube_window%Z(1)
+#endif
+
+
+!End of Bremsstrahlung calculation
+
+!
+!
+!Discrete calculation...
+!
+!
+
+ndisc=0
+DO i=KL1_LINE,L3Q1_LINE,-1
+        IF (RadRate(tube_anodeF%Z(1),i) > 0.0 .AND.&
+        LineEnergy(tube_anodeF%Z(1),i) > TUBE_MINIMUM_ENERGY) THEN
+                WRITE (output_unit, '(I4)') i
+                ndisc = ndisc + 1
+                IF (ndisc .EQ. 1) THEN 
+                        ALLOCATE(disc_lines(1))
+                        ALLOCATE(disc_edge_energy(1))
+                ELSE
+                        ALLOCATE(disc_lines_temp(ndisc))
+                        disc_lines_temp(1:ndisc-1) = disc_lines
+                        CALL MOVE_ALLOC(disc_lines_temp,disc_lines)
+
+                        ALLOCATE(disc_edge_energy_temp(ndisc))
+                        disc_edge_energy_temp(1:ndisc-1) = disc_edge_energy
+                        CALL MOVE_ALLOC(disc_edge_energy_temp,disc_edge_energy)
+                ENDIF
+                disc_lines(ndisc) = i
+                
+                ALLOCATE(ebel_spectrum_temp(SIZE(ebel_spectrum)+1))
+                ebel_spectrum_temp(1:SIZE(ebel_spectrum)) = ebel_spectrum
+                CALL MOVE_ALLOC(ebel_spectrum_temp, ebel_spectrum)
+                ebel_spectrum(SIZE(ebel_spectrum))%energy = REAL(LineEnergy(tube_anodeF%Z(1),i),C_DOUBLE)
+
+
+                SELECT CASE (i)
+                CASE (KP5_LINE:KL1_LINE)
+                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),K_SHELL),C_DOUBLE)
+                CASE (L1P5_LINE:L1L2_LINE)
+                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L1_SHELL),C_DOUBLE)
+                CASE (L2Q1_LINE:L2L3_LINE)
+                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L2_SHELL),C_DOUBLE)
+                CASE (L3Q1_LINE:L3M1_LINE)
+                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L3_SHELL),C_DOUBLE)
+                CASE default
+                        WRITE (error_unit,*) &
+                        'Unknown line encountered in xmi_tube_ebel: check your xraylib version'
+                        xmi_tube_ebel = 0
+                        RETURN 
+                ENDSELECT
+        ENDIF
+ENDDO
+
+
+DEALLOCATE(u0,logu0,p1,p2,rhoz,rhelp,tau)
+ALLOCATE(u0(ndisc))
+ALLOCATE(logu0(ndisc))
+ALLOCATE(tau(ndisc))
+ALLOCATE(p1(ndisc))
+ALLOCATE(p2(ndisc))
+ALLOCATE(rhoz(ndisc))
+ALLOCATE(rhelp(ndisc))
+ALLOCATE(oneovers(ndisc))
+ALLOCATE(r(ndisc))
+
+u0 = tube_voltage/disc_edge_energy
+logu0 = LOG(u0)
+oneovers = (SQRT(u0)*logu0 + 2.0_C_DOUBLE*(1.0_C_DOUBLE - SQRT(u0)) )
+oneovers = oneovers/(u0*logu0+1.0_C_DOUBLE-u0)
+oneovers = 1.0_C_DOUBLE+(16.05_C_DOUBLE*SQRT(0.0135_C_DOUBLE*tube_anodeF%Z(1)/disc_edge_energy)*oneovers)
+WHERE (disc_lines .GT. L1L2_LINE) 
+        !K lines
+        oneovers = (zk*bk/tube_anodeF%Z(1))*(u0*logu0 + 1.0_C_DOUBLE - u0) * oneovers
+ELSEWHERE 
+        !L lines
+        oneovers = (zl*bl/tube_anodeF%Z(1))*(u0*logu0 + 1.0_C_DOUBLE - u0) * oneovers
+ENDWHERE
+
+
+
+r = 1.0_C_DOUBLE -&
+(0.0081517_C_DOUBLE*tube_anodeF%Z(1))+(3.613e-05*tube_anodeF%Z(1)**2) +&
+(0.009583_C_DOUBLE * tube_anodeF%Z(1) * EXP(-1.0_C_DOUBLE*u0)) + (tube_voltage*0.001141_C_DOUBLE)
+
+p1=logu0 * (0.49269_C_DOUBLE - 1.09870_C_DOUBLE * eta + 0.78557_C_DOUBLE*eta**2)
+p2=0.70256_C_DOUBLE-1.09865_C_DOUBLE*eta+1.00460_C_DOUBLE*eta**2 + logu0
+rhoz = rhozmax*(p1/p2)
+
+DEALLOCATE(tau)
+ALLOCATE(tau(ndisc))
+DO i=1,ndisc
+        tau(i)=CS_Photo_Total(tube_anodeF%Z(1),REAL(ebel_spectrum(i+ncont)%energy,C_FLOAT))
+       !tau(i)=CS_Photo(Z,REAL(disc_energy(i),C_FLOAT))
+ENDDO
+
+rhelp = tau * 2.0_C_DOUBLE * rhoz *sinfactor
+rhelp = (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
+
+#if DEBUG == 1
+        WRITE (6,*) 'rhelp: ',rhelp
+        WRITE (6,*) 'oneovers: ',oneovers
+        WRITE (6,*) 'r: ',r 
+        WRITE (6,*) 'disc_lines: ',disc_lines
+#endif
+
+
+DO i=1,ndisc
+        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
+ENDDO
+
+!take window in account
+IF (ALLOCATED(tube_windowF)) THEN
+DO i=1,SIZE(ebel_spectrum)
+        ebel_spectrum(i)%horizontal_intensity=ebel_spectrum(i)%horizontal_intensity*&
+        EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
+        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum(i)%energy,C_FLOAT)))
+ENDDO
+ENDIF
+!and if there's a filter, use that one too
+IF (ALLOCATED(tube_filterF)) THEN
+DO i=1,SIZE(ebel_spectrum)
+        ebel_spectrum(i)%horizontal_intensity=ebel_spectrum(i)%horizontal_intensity*&
+        EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
+        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum(i)%energy,C_FLOAT)))
+ENDDO
+ENDIF
+
+!correct for the current
+ebel_spectrum(:)%horizontal_intensity=ebel_spectrum(:)%horizontal_intensity*tube_current/2.0
+ebel_spectrum(:)%vertical_intensity=ebel_spectrum(:)%horizontal_intensity
+ebel_spectrum(:)%sigma_x = 0.0_C_DOUBLE
+ebel_spectrum(:)%sigma_y = 0.0_C_DOUBLE
+ebel_spectrum(:)%sigma_xp = 0.0_C_DOUBLE
+ebel_spectrum(:)%sigma_yp = 0.0_C_DOUBLE
+
+
+ALLOCATE(ebel_spectrum_rv(SIZE(ebel_spectrum)))
+ebel_spectrum_rv = ebel_spectrum
+n_ebel_spectrum = SIZE(ebel_spectrum)
+
+
+
+result = C_LOC(ebel_spectrum_rv(1))
+
+xmi_tube_ebel=1
+
+ENDFUNCTION xmi_tube_ebel
+
+ENDMODULE
