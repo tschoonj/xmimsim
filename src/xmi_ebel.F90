@@ -25,6 +25,20 @@ USE :: fgsl
 
 REAL (C_DOUBLE),PARAMETER :: DEG2RAD=0.01745329
 
+
+INTERFACE
+FUNCTION xmi_cmp_struct_xmi_energy(a, b)&
+BIND(C,NAME='xmi_cmp_struct_xmi_energy')&
+RESULT(rv)
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPORT :: xmi_energy
+        IMPLICIT NONE
+        TYPE (xmi_energy), INTENT(IN) :: a, b
+        INTEGER (C_INT) :: rv
+ENDFUNCTION xmi_cmp_struct_xmi_energy
+
+ENDINTERFACE
+
 CONTAINS
 
 
@@ -35,14 +49,22 @@ CONTAINS
 !
 INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
 tube_filter,tube_voltage, tube_current, tube_angle_electron, &
-tube_angle_xray, tube_delta_energy, result, n_ebel_spectrum) BIND(C,NAME='xmi_tube_ebel')
+tube_angle_xray, tube_delta_energy, tube_transmission, &
+result, n_ebel_spectrum_cont, n_ebel_spectrum_disc) &
+BIND(C,NAME='xmi_tube_ebel')
 
-
-
+!Reference:
+!       H. Ebel, X-Ray Spectrometry 28 (1999) 255-266
+!       Tube voltage from 5 to 50 kV
+!       Electron incident angle from 50 to 90 deg.
+!       X-Ray take off angle from 90 to 5 deg.
 !
-! Note: this function makes heavy use of the automatic allocation feature of the
-! fortran 2003 standard
 !
+!
+!Mostly taken from PyMca's XRayTubeEbel.py, with some important differences
+!Here support is included for L-lines
+!
+
 
 IMPLICIT NONE
 
@@ -50,7 +72,8 @@ TYPE (xmi_layerC), INTENT(IN) :: tube_anode,tube_window,tube_filter
 TARGET :: tube_window, tube_filter
 REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy
 TYPE (C_PTR), INTENT(INOUT) :: result 
-INTEGER (C_INT), INTENT(OUT) :: n_ebel_spectrum
+INTEGER (C_INT), INTENT(OUT) :: n_ebel_spectrum_cont, n_ebel_spectrum_disc
+INTEGER (C_INT), VALUE, INTENT(IN) :: tube_transmission
 TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum
 TYPE (xmi_energy), POINTER, DIMENSION(:) :: ebel_spectrum_rv
 TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_temp
@@ -96,6 +119,7 @@ CALL C_F_POINTER(tube_anode%weight, weight, [tube_anodeF%n_elements])
 tube_anodeF%weight = weight
 
 IF (C_ASSOCIATED(C_LOC(tube_window))) THEN
+        ALLOCATE(tube_windowF)
         tube_windowF%n_elements = tube_window%n_elements
         tube_windowF%density = tube_window%density
         tube_windowF%thickness= tube_window%thickness
@@ -109,6 +133,7 @@ IF (C_ASSOCIATED(C_LOC(tube_window))) THEN
 ENDIF
 
 IF (C_ASSOCIATED(C_LOC(tube_filter))) THEN
+        ALLOCATE(tube_filterF)
         tube_filterF%n_elements = tube_filter%n_elements
         tube_filterF%density = tube_filter%density
         tube_filterF%thickness= tube_filter%thickness
@@ -174,22 +199,23 @@ rhoz = rhozmax*(p1/p2)
 
 !photoelectric absorption of Bremsstrahlung
 DO i=1,ncont
-        tau(i)=CS_Photo_Total(tube_anodeF%Z(1),REAL(ebel_spectrum(i)%energy,KIND=C_FLOAT))
+        tau(i)=CS_Photo(tube_anodeF%Z(1),REAL(ebel_spectrum(i)%energy,KIND=C_FLOAT))
 ENDDO
 
 rhelp = tau*2.0_C_DOUBLE*rhoz*sinfactor
 
-ebel_spectrum(:)%horizontal_intensity = 0.0_C_DOUBLE
-WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
-        =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*(1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
-
-!take window in account
-#if DEBUG == 1
-        WRITE (6,*) 'Window calculation'
-        WRITE (6,*) 'tube window density: ',tube_window%rho
-        WRITE (6,*) 'tube window thickness: ',tube_window%thickness
-        WRITE (6,*) 'tube window element: ',tube_window%Z(1)
-#endif
+IF (tube_transmission .EQ. 0_C_INT) THEN
+        !no transmission tube
+        ebel_spectrum(:)%horizontal_intensity = 0.0_C_DOUBLE
+        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
+          =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*(1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
+ELSE
+        !transmission case
+        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
+          =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*&
+          (EXP(-tau*(tube_anodeF%density*tube_anodeF%thickness -2.0_C_DOUBLE*rhoz)/sinalphax) -&
+          EXP(-tau*tube_anodeF%density*tube_anodeF%thickness /sinalphax))/rhelp
+ENDIF
 
 
 !End of Bremsstrahlung calculation
@@ -204,7 +230,6 @@ ndisc=0
 DO i=KL1_LINE,L3Q1_LINE,-1
         IF (RadRate(tube_anodeF%Z(1),i) > 0.0 .AND.&
         LineEnergy(tube_anodeF%Z(1),i) > TUBE_MINIMUM_ENERGY) THEN
-                WRITE (output_unit, '(I4)') i
                 ndisc = ndisc + 1
                 IF (ndisc .EQ. 1) THEN 
                         ALLOCATE(disc_lines(1))
@@ -282,26 +307,39 @@ rhoz = rhozmax*(p1/p2)
 DEALLOCATE(tau)
 ALLOCATE(tau(ndisc))
 DO i=1,ndisc
-        tau(i)=CS_Photo_Total(tube_anodeF%Z(1),REAL(ebel_spectrum(i+ncont)%energy,C_FLOAT))
+        tau(i)=CS_Photo(tube_anodeF%Z(1),REAL(ebel_spectrum(i+ncont)%energy,C_FLOAT))
        !tau(i)=CS_Photo(Z,REAL(disc_energy(i),C_FLOAT))
 ENDDO
 
 rhelp = tau * 2.0_C_DOUBLE * rhoz *sinfactor
-rhelp = (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
 
-#if DEBUG == 1
-        WRITE (6,*) 'rhelp: ',rhelp
-        WRITE (6,*) 'oneovers: ',oneovers
-        WRITE (6,*) 'r: ',r 
-        WRITE (6,*) 'disc_lines: ',disc_lines
-#endif
-
+IF (tube_transmission .EQ. 0_C_INT) THEN
+        !no transmission tube
+        WHERE (rhelp > 0.0_C_DOUBLE)&
+                rhelp = (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
+ELSE
+        WHERE (rhelp > 0.0_C_DOUBLE) 
+                rhelp = (EXP(-tau*(tube_anodeF%density*tube_anodeF%thickness -2.0_C_DOUBLE*rhoz)/sinalphax) -&
+                EXP(-tau*tube_anodeF%density*tube_anodeF%thickness /sinalphax))/rhelp
+        ENDWHERE
+ENDIF
 
 DO i=1,ndisc
+        SELECT CASE(disc_lines(i))
+        CASE (KP5_LINE:KL1_LINE)
         ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
+        CASE (L1P5_LINE:L1L2_LINE)
+        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L1_SHELL)
+        CASE (L2Q1_LINE:L2L3_LINE)
+        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L2_SHELL)
+        CASE (L3Q1_LINE:L3M1_LINE)
+        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L3_SHELL)
+        ENDSELECT
 ENDDO
-
 !take window in account
 IF (ALLOCATED(tube_windowF)) THEN
 DO i=1,SIZE(ebel_spectrum)
@@ -330,9 +368,13 @@ ebel_spectrum(:)%sigma_yp = 0.0_C_DOUBLE
 
 ALLOCATE(ebel_spectrum_rv(SIZE(ebel_spectrum)))
 ebel_spectrum_rv = ebel_spectrum
-n_ebel_spectrum = SIZE(ebel_spectrum)
+n_ebel_spectrum_cont = ncont
+n_ebel_spectrum_disc = ndisc
 
 
+
+!CALL qsort(C_LOC(ebel_spectrum_rv(1)), INT(n_ebel_spectrum,KIND=C_SIZE_T),&
+!INT(7*8, KIND=C_SIZE_T), C_FUNLOC(xmi_cmp_struct_xmi_energy))
 
 result = C_LOC(ebel_spectrum_rv(1))
 
