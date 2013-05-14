@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include <string.h>
+#include <search.h>
 
 
 struct energyWidget {
@@ -76,7 +77,15 @@ struct energyButtons {
 	GtkWidget *deleteButton;
 };
 
-static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies);
+
+
+struct kind_and_window {
+	int kind;
+	GtkWidget *main_window;
+};
+
+
+static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies, int start_line, int nlines);
 static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	return TRUE;
 }
@@ -97,14 +106,33 @@ static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rend
 
 }
 
-static void clear_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) {
-	gtk_list_store_clear(discWidget->store);
-	update_undo_buffer(DISCRETE_ENERGY_CLEAR, NULL);
+static void clear_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k_a_w) {
+	int kind = k_a_w->kind;
 
+	if (kind == DISCRETE) {
+		gtk_list_store_clear(discWidget->store);
+		update_undo_buffer(DISCRETE_ENERGY_CLEAR, NULL);
+	}
+	else if (kind == CONTINUOUS) {
+		gtk_list_store_clear(contWidget->store);
+		update_undo_buffer(CONTINUOUS_ENERGY_CLEAR, NULL);
+	}
 
 }
-static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) {
-	
+
+
+static void radio_button_toggled_cb(GtkToggleButton *button, GtkWidget *spinner){
+	if (gtk_toggle_button_get_active(button))
+		gtk_widget_set_sensitive(spinner, TRUE);
+	else
+		gtk_widget_set_sensitive(spinner, FALSE);
+}
+
+static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k_a_w) {
+	GtkWidget *main_window = k_a_w->main_window;
+	int kind = k_a_w->kind;
+
+
 	//first launch a message box
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Import spectrum from file");
 	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), 
@@ -115,7 +143,7 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 	"Seven elements are considered to be identical to the three elements case with additionally the source size x and y, as well as the source divergence x and y. "
 	"Empty lines are ignored."
 	);
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_BUTTONS_CLOSE) {
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_CLOSE) {
 		gtk_widget_destroy(dialog);
 		return;
 	}
@@ -129,14 +157,71 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
                  GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
                  NULL);	
 
+	//add widget
+	GtkWidget *start_at_begin;
+	GtkWidget *start_at_line;
+	GtkWidget *start_at_line_spinner;
+	GtkWidget *read_all_lines;
+	GtkWidget *read_only_lines;
+	GtkWidget *read_only_lines_spinner;
+	GtkWidget *vbox, *hbox;
+
+	vbox = gtk_vbox_new(FALSE, 1);
+
+	start_at_begin = gtk_radio_button_new_with_label_from_widget(NULL,"Start at first line");
+	start_at_line = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(start_at_begin), "Start at line:");
+	GtkObject *adj = gtk_adjustment_new(1,1,10000,1,10,0);
+	start_at_line_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1, 0);
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), start_at_line, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), start_at_line_spinner, FALSE, FALSE, 1);
+	g_signal_connect(G_OBJECT(start_at_line), "toggled",G_CALLBACK(radio_button_toggled_cb),start_at_line_spinner);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(start_at_begin), TRUE);
+	gtk_widget_set_sensitive(start_at_line_spinner, FALSE);
+	gtk_box_pack_start(GTK_BOX(vbox), start_at_begin, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE, 1);
+
+	read_all_lines = gtk_radio_button_new_with_label_from_widget(NULL,"Read all lines");
+	read_only_lines = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(read_all_lines), "Number of lines to be read:");
+	adj = gtk_adjustment_new(1,1,10000,1,10,0);
+	read_only_lines_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1, 0);
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), read_only_lines, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), read_only_lines_spinner, FALSE, FALSE, 1);
+	g_signal_connect(G_OBJECT(read_only_lines), "toggled",G_CALLBACK(radio_button_toggled_cb),read_only_lines_spinner);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(read_all_lines), TRUE);
+	gtk_widget_set_sensitive(read_only_lines_spinner, FALSE);
+	gtk_box_pack_start(GTK_BOX(vbox), read_all_lines, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
+
+	gtk_widget_show_all(vbox);
+	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), vbox);
 	
 
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename;
 
+		int start_line, nlines;
+
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(start_at_begin))) {
+			start_line = 1;
+		}
+		else {
+			start_line = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(start_at_line_spinner));
+		}
+		
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(read_all_lines))) {
+			nlines = -1;
+		}
+		else {
+			nlines = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(read_only_lines_spinner));
+		}
+
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_widget_destroy (dialog);	
-    		int rv = xmi_read_energies_from_ascii_file(filename, &energy);
+    		int rv = xmi_read_energies_from_ascii_file(filename, &energy, start_line, nlines);
 		if (rv > 0) {
 			//success
 			g_fprintf(stdout,"File %s read in successfully\n",filename);
@@ -159,31 +244,87 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 			int rv2 = gtk_dialog_run (GTK_DIALOG (dialog));
 			if (rv2 == GTK_RESPONSE_OK) {
 				//add	
-				update_undo_buffer(DISCRETE_ENERGY_IMPORT_ADD, GINT_TO_POINTER(rv));
+				int i;
+				if (kind == DISCRETE) {
+					if (current->xi->excitation->n_discrete > 0) {
+						for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
+							if (bsearch(energy+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+								gtk_widget_destroy(dialog);
+								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or several of the new energies exist already in the list of lines."); 
+								gtk_dialog_run(GTK_DIALOG(dialog));
+								gtk_widget_destroy(dialog);
+								free(energy);
+								energy = NULL;
+								return;
+							}
+						}
+					}
+					update_undo_buffer(DISCRETE_ENERGY_IMPORT_ADD, GINT_TO_POINTER(rv));
+				}
+				else if (kind == CONTINUOUS) {
+					if (current->xi->excitation->n_continuous > 0) {
+						for (i = 0 ; i < current->xi->excitation->n_continuous ; i++) {
+							if (bsearch(energy+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+								gtk_widget_destroy(dialog);
+								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or several of the new energies exist already in the list of lines."); 
+								gtk_dialog_run(GTK_DIALOG(dialog));
+								gtk_widget_destroy(dialog);
+								free(energy);
+								energy = NULL;
+								return;
+							}
+						}
+					}
+					update_undo_buffer(CONTINUOUS_ENERGY_IMPORT_ADD, GINT_TO_POINTER(rv));
+				}
 			}
 			else if (rv2 == GTK_RESPONSE_CANCEL) {
-				//replace
-				update_undo_buffer(DISCRETE_ENERGY_IMPORT_REPLACE, GINT_TO_POINTER(rv));
+				//replace -> no need to check for duplicates here
+				if (kind == DISCRETE) {
+					update_undo_buffer(DISCRETE_ENERGY_IMPORT_REPLACE, GINT_TO_POINTER(rv));
+				}
+				else if (kind == CONTINUOUS) {
+					update_undo_buffer(CONTINUOUS_ENERGY_IMPORT_REPLACE, GINT_TO_POINTER(rv));
+				}
 			}
 			else {
 				gtk_widget_destroy(dialog);
 				g_free (filename);
 				return;
 			}
-			gtk_list_store_clear(discWidget->store);
-			int i;
-			GtkTreeIter iter;
-			for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
-				gtk_list_store_append(discWidget->store, &iter);
-				gtk_list_store_set(discWidget->store, &iter,
-				ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
-				HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
-				VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
-				SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
-				SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
-				SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
-				SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
-				-1);
+			if (kind == DISCRETE) {
+				gtk_list_store_clear(discWidget->store);
+				int i;
+				GtkTreeIter iter;
+				for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
+					gtk_list_store_append(discWidget->store, &iter);
+					gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+					-1);
+				}
+			}
+			else if (kind == CONTINUOUS) {
+				gtk_list_store_clear(contWidget->store);
+				int i;
+				GtkTreeIter iter;
+				for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
+					gtk_list_store_append(contWidget->store, &iter);
+					gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+				}
 			}
 			adjust_save_buttons();
 			gtk_widget_destroy(dialog);
@@ -202,6 +343,9 @@ static void import_button_clicked_cb(GtkWidget *widget, GtkWidget *main_window) 
 		}
 		else if (rv == -3) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+		}
+		else if (rv == -4) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Duplicate energies found in %s. The energies of the lines or intervals in the first column must be unique\n", filename);
 		}
 		g_free (filename);
 		gtk_dialog_run(GTK_DIALOG(dialog));
@@ -401,7 +545,7 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	GtkWidget *editButton;
 	GtkWidget *addButton;
 	GtkWidget *importButton;
-	GtkWidget *EbelButton;
+	//GtkWidget *EbelButton;
 	GtkWidget *deleteButton;
 	GtkWidget *clearButton;
 	int i;
@@ -548,14 +692,18 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	children = gtk_container_get_children(GTK_CONTAINER(temp));
 	gtk_label_set_text(GTK_LABEL(g_list_nth_data(children,1)), "Import");
 	g_list_free(children);
-	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), main_window);
+
+	struct kind_and_window *k_a_w = (struct kind_and_window *) malloc(sizeof(struct kind_and_window));
+	k_a_w->kind = kind;
+	k_a_w->main_window = main_window;
+	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), (gpointer) k_a_w);
 	gtk_box_pack_start(GTK_BOX(buttonbox), importButton, TRUE, FALSE, 3);
 
-	EbelButton = gtk_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
-	gtk_box_pack_start(GTK_BOX(buttonbox), EbelButton, TRUE, FALSE, 3);
+	//EbelButton = gtk_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	//gtk_box_pack_start(GTK_BOX(buttonbox), EbelButton, TRUE, FALSE, 3);
 
 	clearButton = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
-	g_signal_connect(G_OBJECT(clearButton), "clicked", G_CALLBACK(clear_button_clicked_cb), NULL);
+	g_signal_connect(G_OBJECT(clearButton), "clicked", G_CALLBACK(clear_button_clicked_cb), (gpointer) k_a_w);
 	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, TRUE, FALSE, 3);
 	
 
@@ -572,7 +720,7 @@ struct energiesWidget *initialize_single_energies(struct xmi_energy *energies, i
 	return rv;
 }
 
-void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
+void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 	int i;
 	GtkTreeIter iter;
 
@@ -586,10 +734,28 @@ void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
 	if (addOrEdit == ENERGY_ADD) {
 		//update undo buffer and afterwards update store
 		if (discOrCont == DISCRETE) {
+			//check if the energy is not present already
+			if (current->xi->excitation->n_discrete > 0 && bsearch(energy, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy line: the energy already exists in the list of lines."); 
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				free(energy);
+				energy = NULL;
+				return;
+			}	
 			update_undo_buffer(DISCRETE_ENERGY_ADD,NULL);
 
 		}
 		else if (discOrCont == CONTINUOUS) {
+			//check if the energy is not present already
+			if (current->xi->excitation->n_continuous > 0 && bsearch(energy, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy interval: the energy already exists in the list of intervals."); 
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				free(energy);
+				energy = NULL;
+				return;
+			}	
 			update_undo_buffer(CONTINUOUS_ENERGY_ADD,NULL);
 
 		}
@@ -597,10 +763,28 @@ void energy_window_hide_cb(GtkWidget *widget, gpointer data) {
 	else if (addOrEdit == ENERGY_EDIT) {
 		//update undo buffer and afterwards update store
 		if (discOrCont == DISCRETE) {
+			//check if the energy is not present already
+			if (current->xi->excitation->n_discrete > 0 && bsearch(energy, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy line: the energy already exists in the list of lines."); 
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				free(energy);
+				energy = NULL;
+				return;
+			}	
 			update_undo_buffer(DISCRETE_ENERGY_EDIT,NULL);
 
 		}
 		else if (discOrCont == CONTINUOUS) {
+			//check if the energy is not present already
+			if (current->xi->excitation->n_continuous > 0 && bsearch(energy, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) != NULL) {
+				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy interval: the energy already exists in the list of intervals."); 
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				free(energy);
+				energy = NULL;
+				return;
+			}	
 			update_undo_buffer(CONTINUOUS_ENERGY_EDIT,NULL);
 
 		}
@@ -729,7 +913,7 @@ static struct energyWidget *initialize_energy_widget(GtkWidget *main_window) {
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
 	g_signal_connect(G_OBJECT(window), "show",G_CALLBACK(energy_window_show_cb), (gpointer) rv);
-	g_signal_connect(G_OBJECT(window), "hide",G_CALLBACK(energy_window_hide_cb), (gpointer) rv);
+	g_signal_connect(G_OBJECT(window), "hide",G_CALLBACK(energy_window_hide_cb), main_window);
 	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
 	mainVBox = gtk_vbox_new(FALSE, 5);
@@ -844,10 +1028,10 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 	contWidget = initialize_single_energies(excitation->continuous, excitation->n_continuous,CONTINUOUS, main_window);
 	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Discrete energies"), FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainvbox), discWidget->widget, FALSE, FALSE, 2);
-	//separator = gtk_hseparator_new();
-	//gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
-	//gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
-	//gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
+	separator = gtk_hseparator_new();
+	gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
 
 
 
@@ -855,11 +1039,16 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 }
 
 
-static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies) {
+static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy **energies, int start_line, int nlines) {
 	FILE *fp;
 	struct xmi_energy *xe = NULL;
-	int nxe = 0;
-
+#ifdef G_OS_WIN32
+	unsigned int nxe = 0;
+	unsigned int nxe_old = 0;
+#else
+	size_t nxe = 0;
+	size_t nxe_old = 0;
+#endif
 	if ((fp = fopen(filename, "r")) == NULL) {
 		g_fprintf(stderr,"Could not open file %s\n", filename);
 		return -1;
@@ -877,39 +1066,64 @@ static int xmi_read_energies_from_ascii_file(gchar *filename, struct xmi_energy 
 	double sigma_y;
 	double sigma_xp;
 	double sigma_yp;
+	struct xmi_energy temp;
+	int lines_read = 0;
 
 
 	while ((linelen = getline(&line, &linecap, fp)) > -1) {
 		//ignore empty lines
 		if (linelen == 0 || strlen(g_strstrip(line)) == 0)
 			continue;
+		lines_read++;
+		if (lines_read < start_line)
+			continue;
 		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
-		xe = (struct xmi_energy *) realloc(xe, sizeof(struct xmi_energy) * ++nxe);
-		xe[nxe-1].sigma_x = 0.0;
-		xe[nxe-1].sigma_y = 0.0;
-		xe[nxe-1].sigma_xp = 0.0;
-		xe[nxe-1].sigma_yp = 0.0;
+		temp.sigma_x = 0.0;
+		temp.sigma_y = 0.0;
+		temp.sigma_xp = 0.0;
+		temp.sigma_yp = 0.0;
 
 		switch (values) {
 			case 7:
-				xe[nxe-1].sigma_x = sigma_x;
-				xe[nxe-1].sigma_y = sigma_y;
-				xe[nxe-1].sigma_xp = sigma_xp;
-				xe[nxe-1].sigma_yp = sigma_yp;
+				temp.sigma_x = sigma_x;
+				temp.sigma_y = sigma_y;
+				temp.sigma_xp = sigma_xp;
+				temp.sigma_yp = sigma_yp;
 			case 3: 
-				xe[nxe-1].horizontal_intensity = horizontal_intensity;
-				xe[nxe-1].vertical_intensity = vertical_intensity;
-				xe[nxe-1].energy = energy;
+				temp.horizontal_intensity = horizontal_intensity;
+				temp.vertical_intensity = vertical_intensity;
+				temp.energy = energy;
 				break;
 			case 2:
-				xe[nxe-1].horizontal_intensity = horizontal_intensity/2.0;
-				xe[nxe-1].vertical_intensity = horizontal_intensity/2.0;
-				xe[nxe-1].energy = energy;
+				temp.horizontal_intensity = horizontal_intensity/2.0;
+				temp.vertical_intensity = horizontal_intensity/2.0;
+				temp.energy = energy;
 				break;
 			default:
 				g_fprintf(stderr,"Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
 				return -3;
 		};
+		if (nxe == 0) {
+			xe = (struct xmi_energy *) realloc(xe, sizeof(struct xmi_energy) * ++nxe);
+			xe[0] = temp;
+		}
+		else {
+			//make sure the value was not already in the list
+#ifdef G_OS_WIN32
+			if(_find(&temp, xe, &nxe, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) == NULL) {
+#else
+			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy) == NULL) {
+#endif
+				xe = (struct xmi_energy *) realloc(xe, sizeof(struct xmi_energy) * ++nxe);
+				xe[nxe-1] = temp;
+			}
+			else  {
+				g_printf(stderr,"Duplicate energies found in %s\n", filename);
+				return -4;
+			}
+		}
+		if (nxe == nlines) 
+			break;
 	}
 
 

@@ -813,16 +813,16 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 		subnode = subnode->next;
 	}
 
-	if ((*excitation)->n_continuous == 0 && (*excitation)->n_discrete == 0) {
+	if ((*excitation)->n_continuous < 2 && (*excitation)->n_discrete == 0) {
 		fprintf(stderr,"Found no valid discrete or continuous energies in xml file\n");
 		return 0;
 	}
 
 	//sort!
-	if ((*excitation)->n_continuous != 0) {
+	if ((*excitation)->n_continuous > 1) {
 		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 	}
-	if ((*excitation)->n_discrete != 0) {
+	if ((*excitation)->n_discrete > 1) {
 		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
 	}
 

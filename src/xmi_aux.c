@@ -237,9 +237,9 @@ int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
 
 	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
 	
-	if (diff > 0.0)
+	if (diff > 0.000000001)
 		return 1;
-	else if (diff < 0.0)
+	else if (diff < -0.000000001)
 		return -1;
 	return 0;
 

@@ -82,6 +82,7 @@ static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
 static GtkWidget *preferencesW;
+static GtkWidget *tube_ebelW;
 
 GtkWidget *saveW;
 GtkWidget *save_asW;
@@ -95,6 +96,7 @@ GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 static GtkToolItem *preferencesT;
+static GtkToolItem *tube_ebelT;
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
@@ -1966,6 +1968,9 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
 			gtk_list_store_clear(contWidget->store);
@@ -2427,6 +2432,9 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
 			gtk_list_store_clear(contWidget->store);
@@ -3259,6 +3267,9 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy;
 			free(energy);
 			energy = NULL;
+			//sort
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
 			break;
 		case DISCRETE_ENERGY_IMPORT_ADD:
 			strcpy(last->message,"addition of imported discrete energies");
@@ -3271,6 +3282,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			}
 			free(energy);
 			energy = NULL;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
 			break;
 		case DISCRETE_ENERGY_IMPORT_REPLACE:
 			strcpy(last->message,"replacing energies with imported discrete energies");
@@ -3279,6 +3292,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->discrete = xmi_memdup(energy, sizeof(struct xmi_energy)*last->xi->excitation->n_discrete);
 			free(energy);
 			energy = NULL;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
 			break;
 		case DISCRETE_ENERGY_CLEAR:
 			strcpy(last->message,"clearing of all discrete energies");
@@ -3290,6 +3305,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case DISCRETE_ENERGY_EDIT:
 			strcpy(last->message,"editing of discrete energy");
 			last->xi->excitation->discrete[current_index] = *energy;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
 			break;
 		case DISCRETE_ENERGY_DELETE:
 			strcpy(last->message,"deletion of discrete energy");
@@ -3310,6 +3327,37 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			//realloc continuous energies
 			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*++last->xi->excitation->n_continuous);
 			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy;
+			break;
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+			strcpy(last->message,"addition of imported continuous energies");
+			int n_continuous_old = last->xi->excitation->n_continuous;
+			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
+			//realloc continuous energies
+			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*last->xi->excitation->n_continuous);
+			for (i = n_continuous_old ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i] = energy[i-n_continuous_old];
+			}
+			free(energy);
+			energy = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+			break;
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+			strcpy(last->message,"replacing energies with imported continuous energies");
+			last->xi->excitation->n_continuous = GPOINTER_TO_INT(widget);
+			free(last->xi->excitation->continuous);
+			last->xi->excitation->continuous = xmi_memdup(energy, sizeof(struct xmi_energy)*last->xi->excitation->n_continuous);
+			free(energy);
+			energy = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+			break;
+		case CONTINUOUS_ENERGY_CLEAR:
+			strcpy(last->message,"clearing of all continuous energies");
+			free(last->xi->excitation->continuous);
+			last->xi->excitation->continuous = NULL;
+			last->xi->excitation->n_continuous = 0;
+
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			strcpy(last->message,"editing of continuous energy");
@@ -3824,10 +3872,12 @@ XMI_MAIN
 	//Tools
 	toolsmenu = gtk_menu_new();
 	tools = gtk_menu_item_new_with_label("Tools");
+	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
 
 	convertmenu = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
@@ -3964,6 +4014,7 @@ XMI_MAIN
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
 	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
+	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
 	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
@@ -3971,6 +4022,7 @@ XMI_MAIN
 	gtk_widget_set_can_focus(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(tube_ebelT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
@@ -3981,7 +4033,8 @@ XMI_MAIN
 	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
 	gtk_tool_item_set_expand(separatorT, TRUE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 7);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 7);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 8);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -4038,7 +4091,7 @@ XMI_MAIN
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_photons_interval
 	hbox_text_label = gtk_hbox_new(FALSE,5);
-	//gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Number of photons per interval");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();

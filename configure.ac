@@ -205,6 +205,7 @@ AC_CHECK_HEADER(time.h,,[AC_MSG_ERROR([Required header not found on the system])
 AC_CHECK_HEADER(unistd.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(stddef.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(math.h,,[AC_MSG_ERROR([Required header not found on the system])])
+AC_CHECK_HEADER(search.h,,[AC_MSG_ERROR([Required header not found on the system])])
 
 #check for functions
 if test x$OS_WINDOWS = x0 ; then
