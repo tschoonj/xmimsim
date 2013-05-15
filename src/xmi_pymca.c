@@ -1120,7 +1120,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 		if (energyflag[i] == FALSE)
 			continue;
 
-		(*excitation)->discrete = (struct xmi_energy *) realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(struct xmi_energy));
+		(*excitation)->discrete = (struct xmi_energy_discrete *) realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].energy = g_ascii_strtod(energy[i],NULL);
 		if ((*excitation)->discrete[((*excitation)->n_discrete)-1].energy <= 0.0) {
 			fprintf(stderr,"A flagged energy turned out to be negative or zero... Fatal error\n");
@@ -1135,7 +1135,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	
 	}	
 
-	qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
+	qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
 
 
 	g_strfreev(energy);

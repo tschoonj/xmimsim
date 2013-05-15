@@ -144,10 +144,22 @@ TYPE, BIND(C) :: xmi_geometry
         REAL (C_DOUBLE) :: slit_size_y
 ENDTYPE
 
-!  xmi_energy
+!  xmi_energy_discrete
 
-TYPE, BIND(C) :: xmi_energy
+TYPE, BIND(C) :: xmi_energy_discrete
         REAL (C_DOUBLE) :: energy
+        REAL (C_DOUBLE) :: horizontal_intensity
+        REAL (C_DOUBLE) :: vertical_intensity
+        REAL (C_DOUBLE) :: sigma_x
+        REAL (C_DOUBLE) :: sigma_xp
+        REAL (C_DOUBLE) :: sigma_y
+        REAL (C_DOUBLE) :: sigma_yp
+ENDTYPE
+
+!  xmi_energy_continuous
+
+TYPE, BIND(C) :: xmi_energy_continuous
+        REAL (C_DOUBLE) :: start_energy
         REAL (C_DOUBLE) :: horizontal_intensity
         REAL (C_DOUBLE) :: vertical_intensity
         REAL (C_DOUBLE) :: sigma_x
@@ -163,13 +175,15 @@ TYPE, BIND(C) :: xmi_excitationC
         TYPE (C_PTR) :: discrete
         INTEGER (C_INT) :: n_continuous
         TYPE (C_PTR) :: continuous
+        REAL (C_DOUBLE) :: last_energy
 ENDTYPE
 
 TYPE :: xmi_excitation
         INTEGER (C_INT) :: n_discrete
-        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: discrete
+        TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: discrete
         INTEGER (C_INT) :: n_continuous
-        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: continuous
+        TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: continuous
+        REAL (C_DOUBLE) :: last_energy
 ENDTYPE
 
 !   xmi_absorbers
@@ -570,7 +584,7 @@ INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_BAD_INTERSECTION = 3
 
 
 !threshold is 1 keV
-REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: energy_threshold = 1.0_C_DOUBLE
 
 CONTAINS
 
@@ -676,7 +690,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         TYPE (xmi_absorbersC),POINTER :: xmi_absorbers_temp
         TYPE (xmi_detectorC),POINTER :: xmi_detector_temp
         TYPE (xmi_layerC),POINTER, DIMENSION(:) :: xmi_layer_temp
-        TYPE (xmi_energy),POINTER, DIMENSION(:) :: xmi_energy_temp
+        TYPE (xmi_energy_discrete),POINTER, DIMENSION(:) :: xmi_energy_temp_disc
+        TYPE (xmi_energy_continuous),POINTER, DIMENSION(:) :: xmi_energy_temp_cont
         INTEGER (C_INT), POINTER,DIMENSION(:) :: Z_temp
         REAL (C_DOUBLE), POINTER,DIMENSION(:) :: weight_temp
 
@@ -761,18 +776,20 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
 
         IF (xmi_inputF%excitation%n_discrete .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%discrete,&
-                xmi_energy_temp,&
+                xmi_energy_temp_disc,&
                 [xmi_inputF%excitation%n_discrete]) 
                 ALLOCATE(xmi_inputF%excitation%discrete(xmi_inputF%excitation%n_discrete))
-                xmi_inputF%excitation%discrete = xmi_energy_temp
+                xmi_inputF%excitation%discrete = xmi_energy_temp_disc
         ENDIF
 
         IF (xmi_inputF%excitation%n_continuous .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%continuous,&
-                xmi_energy_temp,&
+                xmi_energy_temp_cont,&
                 [xmi_inputF%excitation%n_continuous]) 
                 ALLOCATE(xmi_inputF%excitation%continuous(xmi_inputF%excitation%n_continuous))
-                xmi_inputF%excitation%continuous = xmi_energy_temp
+                xmi_inputF%excitation%continuous = xmi_energy_temp_cont
+                xmi_inputF%excitation%last_energy = &
+                xmi_excitation_temp%last_energy
         ENDIF
 
 #if DEBUG == 1

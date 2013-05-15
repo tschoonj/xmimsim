@@ -232,19 +232,29 @@ void xmi_print_progress(char *string, int progress) {
 	}
 }
 
-int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
+int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 	double diff;
 
-	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
+	diff = ((struct xmi_energy_discrete *)a)->energy - ((struct xmi_energy_discrete *)b)->energy;
 	
 	if (diff > 0.000000001)
 		return 1;
 	else if (diff < -0.000000001)
 		return -1;
 	return 0;
-
 }
 
+int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy_continuous *)a)->start_energy - ((struct xmi_energy_continuous *)b)->start_energy;
+	
+	if (diff > 0.000000001)
+		return 1;
+	else if (diff < -0.000000001)
+		return -1;
+	return 0;
+}
 #include <xraylib.h>
 #include <gtk/gtk.h>
 #include <gsl/gsl_version.h>

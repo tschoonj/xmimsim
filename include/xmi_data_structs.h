@@ -67,8 +67,18 @@ struct xmi_geometry {
 	double slit_size_y;
 };
 
-struct xmi_energy {
+struct xmi_energy_discrete {
 	double energy;
+	double horizontal_intensity;
+	double vertical_intensity;
+	double sigma_x;
+	double sigma_xp;
+	double sigma_y;
+	double sigma_yp;
+};
+
+struct xmi_energy_continuous {
+	double start_energy;
 	double horizontal_intensity;
 	double vertical_intensity;
 	double sigma_x;
@@ -79,9 +89,10 @@ struct xmi_energy {
 
 struct xmi_excitation {
 	int n_discrete;
-	struct xmi_energy *discrete;
+	struct xmi_energy_discrete *discrete;
 	int n_continuous;
-	struct xmi_energy *continuous;
+	struct xmi_energy_continuous *continuous;
+	double last_energy;
 };
 
 
@@ -155,21 +166,21 @@ struct xmi_main_options {
 typedef void* xmi_inputFPtr;  
 typedef void* xmi_hdf5FPtr;
 
-#define XMI_COMPARE_GENERAL 1
-#define XMI_COMPARE_COMPOSITION 2
-#define XMI_COMPARE_GEOMETRY 4
-#define XMI_COMPARE_EXCITATION 8
-#define XMI_COMPARE_ABSORBERS 16
-#define XMI_COMPARE_DETECTOR 32
+#define XMI_CONFLICT_GENERAL 1
+#define XMI_CONFLICT_COMPOSITION 2
+#define XMI_CONFLICT_GEOMETRY 4
+#define XMI_CONFLICT_EXCITATION 8
+#define XMI_CONFLICT_ABSORBERS 16
+#define XMI_CONFLICT_DETECTOR 32
 
 #define XMI_COMPARE_THRESHOLD 0.000001
 
 void xmi_free_input(struct xmi_input *);
 
-//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_COMPARE_* macros if not identical
+//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
-//returns 0 when ok
+//returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
 int xmi_validate_input(struct xmi_input *);
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);

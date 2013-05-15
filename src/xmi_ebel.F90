@@ -27,16 +27,25 @@ REAL (C_DOUBLE),PARAMETER :: DEG2RAD=0.01745329
 
 
 INTERFACE
-FUNCTION xmi_cmp_struct_xmi_energy(a, b)&
-BIND(C,NAME='xmi_cmp_struct_xmi_energy')&
+FUNCTION xmi_cmp_struct_xmi_energy_discrete(a, b)&
+BIND(C,NAME='xmi_cmp_struct_xmi_energy_discrete')&
 RESULT(rv)
         USE, INTRINSIC :: ISO_C_BINDING
-        IMPORT :: xmi_energy
+        IMPORT :: xmi_energy_discrete
         IMPLICIT NONE
-        TYPE (xmi_energy), INTENT(IN) :: a, b
+        TYPE (xmi_energy_discrete), INTENT(IN) :: a, b
         INTEGER (C_INT) :: rv
-ENDFUNCTION xmi_cmp_struct_xmi_energy
+ENDFUNCTION xmi_cmp_struct_xmi_energy_discrete
 
+FUNCTION xmi_cmp_struct_xmi_energy_continuous(a, b)&
+BIND(C,NAME='xmi_cmp_struct_xmi_energy_continuous')&
+RESULT(rv)
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPORT :: xmi_energy_continuous
+        IMPLICIT NONE
+        TYPE (xmi_energy_continuous), INTENT(IN) :: a, b
+        INTEGER (C_INT) :: rv
+ENDFUNCTION xmi_cmp_struct_xmi_energy_continuous
 ENDINTERFACE
 
 CONTAINS
@@ -50,7 +59,7 @@ CONTAINS
 INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
 tube_filter,tube_voltage, tube_current, tube_angle_electron, &
 tube_angle_xray, tube_delta_energy, tube_transmission, &
-result, n_ebel_spectrum_cont, n_ebel_spectrum_disc) &
+ebel_excitation)&
 BIND(C,NAME='xmi_tube_ebel')
 
 !Reference:
@@ -71,12 +80,16 @@ IMPLICIT NONE
 TYPE (xmi_layerC), INTENT(IN) :: tube_anode,tube_window,tube_filter
 TARGET :: tube_window, tube_filter
 REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy
-TYPE (C_PTR), INTENT(INOUT) :: result 
-INTEGER (C_INT), INTENT(OUT) :: n_ebel_spectrum_cont, n_ebel_spectrum_disc
+TYPE (C_PTR), INTENT(INOUT) :: ebel_excitation
+TYPE (xmi_excitationC), POINTER :: ebel_excitation_rv
+REAL (C_DOUBLE) :: last_energy
 INTEGER (C_INT), VALUE, INTENT(IN) :: tube_transmission
-TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum
-TYPE (xmi_energy), POINTER, DIMENSION(:) :: ebel_spectrum_rv
-TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_temp
+TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_cont
+TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc
+TYPE (xmi_energy_continuous), POINTER, DIMENSION(:) :: ebel_spectrum_cont_rv
+TYPE (xmi_energy_discrete), POINTER, DIMENSION(:) :: ebel_spectrum_disc_rv
+TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_cont_temp
+TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc_temp
 
 
 !fortran aux variables
@@ -159,20 +172,20 @@ sinfactor = sinalphae/sinalphax
 !Bremsstrahlung energies
 !determine number of intervals
 !set minimum energy equal to 1 keV
-ALLOCATE(ebel_spectrum(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)+1_C_LONG))
+ALLOCATE(ebel_spectrum_cont(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)))
 IF (tube_voltage/tube_delta_energy /= INT(tube_voltage/tube_delta_energy)) THEN
-        ALLOCATE(ebel_spectrum_temp(SIZE(ebel_spectrum)+1))
-        ebel_spectrum_temp(1:SIZE(ebel_spectrum)) = ebel_spectrum
-        CALL MOVE_ALLOC(ebel_spectrum_temp, ebel_spectrum)
+        ALLOCATE(ebel_spectrum_cont_temp(SIZE(ebel_spectrum_cont)+1))
+        ebel_spectrum_cont_temp(1:SIZE(ebel_spectrum_cont)) = ebel_spectrum_cont
+        CALL MOVE_ALLOC(ebel_spectrum_cont_temp, ebel_spectrum_cont)
 ENDIF
 
 !fill up the energies array
-DO i=1,SIZE(ebel_spectrum)-1
-        ebel_spectrum(i)%energy=TUBE_MINIMUM_ENERGY+(i-1)*tube_delta_energy
+DO i=1,SIZE(ebel_spectrum_cont)
+        ebel_spectrum_cont(i)%start_energy=TUBE_MINIMUM_ENERGY+(i-1)*tube_delta_energy
 ENDDO
 
-ebel_spectrum(SIZE(ebel_spectrum))%energy = tube_voltage
-ncont= SIZE(ebel_spectrum)
+last_energy = tube_voltage
+ncont= SIZE(ebel_spectrum_cont)
 
 !let's calculate some variables important for the bremsstrahlung part
 x = 1.109_C_DOUBLE - 0.00435_C_DOUBLE * tube_anodeF%Z(1) + 0.00175_C_DOUBLE*tube_voltage
@@ -183,15 +196,15 @@ eta = (0.1904_C_DOUBLE -0.2236_C_DOUBLE*logz +0.1292_C_DOUBLE * (logz**2)-0.0149
 p3 = 0.787E-05_C_DOUBLE*SQRT(REAL(tube_anodeF%Z(1),KIND=C_DOUBLE)*0.0135_C_DOUBLE)*tube_voltage**1.5+0.735E-06*tube_voltage**2
 rhozmax = AtomicWeight(tube_anodeF%Z(1))*p3/tube_anodeF%Z(1)
 
-ALLOCATE(u0(SIZE(ebel_spectrum)))
-ALLOCATE(logu0(SIZE(ebel_spectrum)))
-ALLOCATE(tau(SIZE(ebel_spectrum)))
-ALLOCATE(p1(SIZE(ebel_spectrum)))
-ALLOCATE(p2(SIZE(ebel_spectrum)))
-ALLOCATE(rhoz(SIZE(ebel_spectrum)))
-ALLOCATE(rhelp(SIZE(ebel_spectrum)))
+ALLOCATE(u0(ncont))
+ALLOCATE(logu0(ncont))
+ALLOCATE(tau(ncont))
+ALLOCATE(p1(ncont))
+ALLOCATE(p2(ncont))
+ALLOCATE(rhoz(ncont))
+ALLOCATE(rhelp(ncont))
 
-u0=tube_voltage/ebel_spectrum(:)%energy
+u0=tube_voltage/(ebel_spectrum_cont(:)%start_energy + tube_delta_energy/2.0_C_DOUBLE)
 logu0=LOG(u0)
 p1=logu0 * (0.49269_C_DOUBLE - 1.09870_C_DOUBLE * eta + 0.78557_C_DOUBLE*eta**2)
 p2=0.70256_C_DOUBLE-1.09865_C_DOUBLE*eta+1.00460_C_DOUBLE*eta**2 + logu0
@@ -199,19 +212,20 @@ rhoz = rhozmax*(p1/p2)
 
 !photoelectric absorption of Bremsstrahlung
 DO i=1,ncont
-        tau(i)=CS_Photo(tube_anodeF%Z(1),REAL(ebel_spectrum(i)%energy,KIND=C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        + tube_delta_energy/2.0_C_DOUBLE,KIND=C_FLOAT))
 ENDDO
 
 rhelp = tau*2.0_C_DOUBLE*rhoz*sinfactor
 
 IF (tube_transmission .EQ. 0_C_INT) THEN
         !no transmission tube
-        ebel_spectrum(:)%horizontal_intensity = 0.0_C_DOUBLE
-        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
+        ebel_spectrum_cont(:)%horizontal_intensity = 0.0_C_DOUBLE
+        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum_cont(:)%horizontal_intensity&
           =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*(1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
 ELSE
         !transmission case
-        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum(:)%horizontal_intensity&
+        WHERE (rhelp > 0.0_C_DOUBLE) ebel_spectrum_cont(:)%horizontal_intensity&
           =const1*tube_anodeF%Z(1)*((u0-1.0_C_DOUBLE)**x)*&
           (EXP(-tau*(tube_anodeF%density*tube_anodeF%thickness -2.0_C_DOUBLE*rhoz)/sinalphax) -&
           EXP(-tau*tube_anodeF%density*tube_anodeF%thickness /sinalphax))/rhelp
@@ -234,6 +248,7 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                 IF (ndisc .EQ. 1) THEN 
                         ALLOCATE(disc_lines(1))
                         ALLOCATE(disc_edge_energy(1))
+                        ALLOCATE(ebel_spectrum_disc(1))
                 ELSE
                         ALLOCATE(disc_lines_temp(ndisc))
                         disc_lines_temp(1:ndisc-1) = disc_lines
@@ -242,13 +257,15 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                         ALLOCATE(disc_edge_energy_temp(ndisc))
                         disc_edge_energy_temp(1:ndisc-1) = disc_edge_energy
                         CALL MOVE_ALLOC(disc_edge_energy_temp,disc_edge_energy)
+
+                        ALLOCATE(ebel_spectrum_disc_temp(ndisc))
+                        ebel_spectrum_disc_temp(1:ndisc-1) = ebel_spectrum_disc
+                        CALL &
+                        MOVE_ALLOC(ebel_spectrum_disc_temp,ebel_spectrum_disc)
                 ENDIF
                 disc_lines(ndisc) = i
                 
-                ALLOCATE(ebel_spectrum_temp(SIZE(ebel_spectrum)+1))
-                ebel_spectrum_temp(1:SIZE(ebel_spectrum)) = ebel_spectrum
-                CALL MOVE_ALLOC(ebel_spectrum_temp, ebel_spectrum)
-                ebel_spectrum(SIZE(ebel_spectrum))%energy = REAL(LineEnergy(tube_anodeF%Z(1),i),C_DOUBLE)
+                ebel_spectrum_disc(ndisc)%energy = REAL(LineEnergy(tube_anodeF%Z(1),i),C_DOUBLE)
 
 
                 SELECT CASE (i)
@@ -307,7 +324,7 @@ rhoz = rhozmax*(p1/p2)
 DEALLOCATE(tau)
 ALLOCATE(tau(ndisc))
 DO i=1,ndisc
-        tau(i)=CS_Photo(tube_anodeF%Z(1),REAL(ebel_spectrum(i+ncont)%energy,C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT))
        !tau(i)=CS_Photo(Z,REAL(disc_energy(i),C_FLOAT))
 ENDDO
 
@@ -327,56 +344,83 @@ ENDIF
 DO i=1,ndisc
         SELECT CASE(disc_lines(i))
         CASE (KP5_LINE:KL1_LINE)
-        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
         CASE (L1P5_LINE:L1L2_LINE)
-        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L1_SHELL)
         CASE (L2Q1_LINE:L2L3_LINE)
-        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L2_SHELL)
         CASE (L3Q1_LINE:L3M1_LINE)
-        ebel_spectrum(ncont+i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L3_SHELL)
         ENDSELECT
 ENDDO
 !take window in account
 IF (ALLOCATED(tube_windowF)) THEN
-DO i=1,SIZE(ebel_spectrum)
-        ebel_spectrum(i)%horizontal_intensity=ebel_spectrum(i)%horizontal_intensity*&
+DO i=1,ndisc
+        ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+ENDDO
+DO i=1,ncont
+        ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
+        EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
+        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        +tube_delta_energy/2.0_C_DOUBLE,C_FLOAT)))
 ENDDO
 ENDIF
 !and if there's a filter, use that one too
 IF (ALLOCATED(tube_filterF)) THEN
-DO i=1,SIZE(ebel_spectrum)
-        ebel_spectrum(i)%horizontal_intensity=ebel_spectrum(i)%horizontal_intensity*&
+DO i=1,ndisc
+        ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+ENDDO
+DO i=1,ncont
+        ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
+        EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
+        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        ,C_FLOAT)))
 ENDDO
 ENDIF
 
 !correct for the current
-ebel_spectrum(:)%horizontal_intensity=ebel_spectrum(:)%horizontal_intensity*tube_current/2.0
-ebel_spectrum(:)%vertical_intensity=ebel_spectrum(:)%horizontal_intensity
-ebel_spectrum(:)%sigma_x = 0.0_C_DOUBLE
-ebel_spectrum(:)%sigma_y = 0.0_C_DOUBLE
-ebel_spectrum(:)%sigma_xp = 0.0_C_DOUBLE
-ebel_spectrum(:)%sigma_yp = 0.0_C_DOUBLE
+ebel_spectrum_cont(:)%horizontal_intensity=ebel_spectrum_cont(:)%horizontal_intensity*tube_current/2.0
+ebel_spectrum_cont(:)%vertical_intensity=ebel_spectrum_cont(:)%horizontal_intensity
+ebel_spectrum_cont(:)%sigma_x = 0.0_C_DOUBLE
+ebel_spectrum_cont(:)%sigma_y = 0.0_C_DOUBLE
+ebel_spectrum_cont(:)%sigma_xp = 0.0_C_DOUBLE
+ebel_spectrum_cont(:)%sigma_yp = 0.0_C_DOUBLE
 
+ebel_spectrum_disc(:)%horizontal_intensity=ebel_spectrum_disc(:)%horizontal_intensity*tube_current/2.0
+ebel_spectrum_disc(:)%vertical_intensity=ebel_spectrum_disc(:)%horizontal_intensity
+ebel_spectrum_disc(:)%sigma_x = 0.0_C_DOUBLE
+ebel_spectrum_disc(:)%sigma_y = 0.0_C_DOUBLE
+ebel_spectrum_disc(:)%sigma_xp = 0.0_C_DOUBLE
+ebel_spectrum_disc(:)%sigma_yp = 0.0_C_DOUBLE
 
-ALLOCATE(ebel_spectrum_rv(SIZE(ebel_spectrum)))
-ebel_spectrum_rv = ebel_spectrum
-n_ebel_spectrum_cont = ncont
-n_ebel_spectrum_disc = ndisc
+ALLOCATE(ebel_excitation_rv)
+ALLOCATE(ebel_spectrum_cont_rv(ncont))
+ALLOCATE(ebel_spectrum_disc_rv(ndisc))
+
+ebel_spectrum_disc_rv = ebel_spectrum_disc
+ebel_spectrum_cont_rv = ebel_spectrum_cont
+
+ebel_excitation_rv%n_discrete = ndisc
+ebel_excitation_rv%n_continuous = ncont
+ebel_excitation_rv%discrete = C_LOC(ebel_spectrum_disc_rv(1))
+ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
+ebel_excitation_rv%last_energy = last_energy
+
 
 
 
 !CALL qsort(C_LOC(ebel_spectrum_rv(1)), INT(n_ebel_spectrum,KIND=C_SIZE_T),&
 !INT(7*8, KIND=C_SIZE_T), C_FUNLOC(xmi_cmp_struct_xmi_energy))
 
-result = C_LOC(ebel_spectrum_rv(1))
+ebel_excitation = C_LOC(ebel_excitation_rv)
 
 xmi_tube_ebel=1
 

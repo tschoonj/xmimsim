@@ -24,7 +24,13 @@ USE :: fgsl
 
 
 
+INTERFACE xmi_coords_dir
+        MODULE PROCEDURE xmi_coords_dir_cont, xmi_coords_dir_disc
+ENDINTERFACE xmi_coords_dir
 
+INTERFACE xmi_coords_gaussian
+        MODULE PROCEDURE xmi_coords_gaussian_cont, xmi_coords_gaussian_disc
+ENDINTERFACE xmi_coords_gaussian
 
 
 !some physical constants
@@ -715,10 +721,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 ENDFUNCTION xmi_main_msim
 
 
-SUBROUTINE xmi_coords_dir(rng, energy, geometry, photon) 
+SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon) 
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        TYPE (xmi_energy), INTENT(IN) :: energy
+        TYPE (xmi_energy_discrete), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
 
@@ -767,7 +773,61 @@ SUBROUTINE xmi_coords_dir(rng, energy, geometry, photon)
         
         RETURN
 
-ENDSUBROUTINE xmi_coords_dir
+ENDSUBROUTINE xmi_coords_dir_disc
+
+SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon) 
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_energy_continuous), INTENT(IN) :: energy
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+
+        REAL (C_DOUBLE) :: x1, y1
+
+#if DEBUG == 2
+        WRITE (*,*) 'Entering xmi_coords_dir'
+        WRITE (*,*) 'energy: ',energy
+#endif
+
+
+
+        !Determine whether it's a point or Gaussian source...
+
+        IF (ABS(energy%sigma_x*energy%sigma_y) .LT. 1.0E-20) THEN
+                !point source
+                CALL xmi_coords_point(rng, geometry, photon, x1, y1)
+        ELSE
+                !gaussian source
+                CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
+        ENDIF
+
+        photon%dirv(1) = SIN(x1) 
+        photon%dirv(2) = SIN(y1) 
+        photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+
+#if DEBUG == 2
+        WRITE (*,*) 'dirv: ', photon%dirv
+#endif
+
+
+        photon%theta = ACOS(photon%dirv(3))
+
+        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+                !watch out... if photon%dirv(2) EQ 0.0 then result may be
+                !processor dependent...
+                photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        ELSE
+#if DEBUG == 2
+                WRITE (*,'(A)') 'Dont think we should get here'
+#endif
+                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        ENDIF
+        
+!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+        
+        RETURN
+
+ENDSUBROUTINE xmi_coords_dir_cont
 
 SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1) 
         IMPLICIT NONE
@@ -793,10 +853,10 @@ SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1)
         RETURN
 ENDSUBROUTINE xmi_coords_point
 
-SUBROUTINE xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1) 
+SUBROUTINE xmi_coords_gaussian_disc(rng, energy, geometry, photon, x1, y1) 
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        TYPE (xmi_energy), INTENT(IN) :: energy
+        TYPE (xmi_energy_discrete), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
@@ -811,7 +871,27 @@ SUBROUTINE xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
                 geometry%d_source_slit*SIN(y1)
         photon%coords(3) = 0.0_C_DOUBLE
 
-ENDSUBROUTINE xmi_coords_gaussian
+ENDSUBROUTINE xmi_coords_gaussian_disc
+
+SUBROUTINE xmi_coords_gaussian_cont(rng, energy, geometry, photon, x1, y1) 
+        IMPLICIT NONE
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_energy_continuous), INTENT(IN) :: energy
+        TYPE (xmi_geometry), INTENT(IN) :: geometry
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
+
+
+        x1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_xp)
+        y1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_yp)
+
+        photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
+                geometry%d_source_slit*SIN(x1)
+        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - & 
+                geometry%d_source_slit*SIN(y1)
+        photon%coords(3) = 0.0_C_DOUBLE
+
+ENDSUBROUTINE xmi_coords_gaussian_cont
 
 
 
@@ -3737,7 +3817,8 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: element,line
         INTEGER (C_INT) :: compton_index
-        TYPE (xmi_energy) :: energy
+        TYPE (xmi_energy_discrete) :: energy_disc
+        TYPE (xmi_energy_continuous) :: energy_cont
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
         INTEGER (C_INT64_T) :: n_photons_sim,n_photons_tot 
 
@@ -3822,7 +3903,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 !$omp parallel default(shared) private(rng, thread_num,j,k,l,photon, theta_elecv,&
 !$omp initial_mus,photons_simulated, photons_no_interaction,&
-!$omp photons_rayleigh, photons_compton,energy,&
+!$omp photons_rayleigh, photons_compton,energy_disc,&
 !$omp cosalfa, c_alfa, c_ae, c_be,&
 !$omp photons_einstein,photons_interacted,element,compton_index,line)&
 !$omp num_threads(input_options%omp_num_threads)
@@ -3836,11 +3917,11 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 !$omp do schedule(dynamic)
         DO i=1,n_input_energies
-                energy%energy = input_energies(i)
-                energy%sigma_x = 0.0
-                energy%sigma_xp = 0.0
-                energy%sigma_y = 0.0
-                energy%sigma_yp = 0.0
+                energy_disc%energy = input_energies(i)
+                energy_disc%sigma_x = 0.0
+                energy_disc%sigma_xp = 0.0
+                energy_disc%sigma_y = 0.0
+                energy_disc%sigma_yp = 0.0
                 !Calculate initial mu's
                 ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
@@ -3873,7 +3954,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
 
-                        CALL xmi_coords_dir(rng,energy, inputF%geometry,&
+                        CALL xmi_coords_dir(rng,energy_disc, inputF%geometry,&
                         photon)
                 
                         photon%weight = 1.0

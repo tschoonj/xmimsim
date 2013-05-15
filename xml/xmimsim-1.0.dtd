@@ -54,10 +54,11 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT slit_size_x (#PCDATA)>
 <!ELEMENT slit_size_y (#PCDATA)>
 
-<!ELEMENT excitation (discrete*,continuous*)>
+<!ELEMENT excitation (discrete*,continuous*,last_energy?)>
 <!ELEMENT discrete (energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
-<!ELEMENT continuous (energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
+<!ELEMENT continuous (start_energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
 <!ELEMENT energy (#PCDATA)>
+<!ELEMENT start_energy (#PCDATA)>
 <!ELEMENT horizontal_intensity (#PCDATA)>
 <!ELEMENT vertical_intensity (#PCDATA)>
 
