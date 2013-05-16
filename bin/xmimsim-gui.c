@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -186,6 +186,8 @@ static gulong detector_fanoG;
 static gulong detector_noiseG;
 static gulong detector_max_convolution_energyG;
 
+gulong last_energyG;
+
 //notebook
 gulong notebookG;
 
@@ -230,6 +232,7 @@ static int detector_fanoC;
 static int detector_noiseC;
 static int detector_max_convolution_energyC;
 
+static int last_energyC;
 
 
 
@@ -1977,7 +1980,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
 				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
+					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].start_energy,
 					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
 					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
 					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
@@ -1986,6 +1989,12 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
+			break;
+		case LAST_ENERGY:
+			g_sprintf(buffer,"%lg",(current-1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT((current)->widget), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), last_energyG);
 			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
@@ -2441,7 +2450,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
 				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
+					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].start_energy,
 					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
 					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
 					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
@@ -2450,6 +2459,12 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
+			break;
+		case LAST_ENERGY:
+			g_sprintf(buffer,"%lg",(current+1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT((current+1)->widget), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), last_energyG);
 			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
@@ -2703,6 +2718,7 @@ static gboolean double_changed_current_check(int kind, double new_value) {
 		DOUBLE_CHANGED_CURRENT_CHECK(N_DETECTOR_ORIENTATION_Y,geometry->n_detector_orientation[1])
 		DOUBLE_CHANGED_CURRENT_CHECK(N_DETECTOR_ORIENTATION_Z,geometry->n_detector_orientation[2])
 		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_ZERO,detector->zero)
+		DOUBLE_CHANGED_CURRENT_CHECK(LAST_ENERGY,excitation->last_energy)
 
 		default:
 			g_print("Unknown kind detected in double_changed_current_check. Aborting\n");
@@ -2739,6 +2755,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
+		case LAST_ENERGY:
 			if (lastPtr == endPtr && value > 0.0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
@@ -3263,37 +3280,37 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case DISCRETE_ENERGY_ADD:
 			strcpy(last->message,"addition of discrete energy");
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy)*++last->xi->excitation->n_discrete);
-			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy;
-			free(energy);
-			energy = NULL;
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy_disc;
+			free(energy_disc);
+			energy_disc = NULL;
 			//sort
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_IMPORT_ADD:
 			strcpy(last->message,"addition of imported discrete energies");
 			int n_discrete_old = last->xi->excitation->n_discrete;
 			last->xi->excitation->n_discrete += GPOINTER_TO_INT(widget);
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			for (i = n_discrete_old ; i < last->xi->excitation->n_discrete ; i++) {
-				last->xi->excitation->discrete[i] = energy[i-n_discrete_old];
+				last->xi->excitation->discrete[i] = energy_disc[i-n_discrete_old];
 			}
-			free(energy);
-			energy = NULL;
+			free(energy_disc);
+			energy_disc = NULL;
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_IMPORT_REPLACE:
 			strcpy(last->message,"replacing energies with imported discrete energies");
 			last->xi->excitation->n_discrete = GPOINTER_TO_INT(widget);
 			free(last->xi->excitation->discrete);
-			last->xi->excitation->discrete = xmi_memdup(energy, sizeof(struct xmi_energy)*last->xi->excitation->n_discrete);
-			free(energy);
-			energy = NULL;
+			last->xi->excitation->discrete = xmi_memdup(energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			free(energy_disc);
+			energy_disc = NULL;
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_CLEAR:
 			strcpy(last->message,"clearing of all discrete energies");
@@ -3304,9 +3321,11 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case DISCRETE_ENERGY_EDIT:
 			strcpy(last->message,"editing of discrete energy");
-			last->xi->excitation->discrete[current_index] = *energy;
+			last->xi->excitation->discrete[current_index] = *energy_disc;
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			free(energy_disc);
+			energy_disc = NULL;
 			break;
 		case DISCRETE_ENERGY_DELETE:
 			strcpy(last->message,"deletion of discrete energy");
@@ -3314,7 +3333,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				for (i = current_index ; i < current_nindices-1 ; i++) {
 					last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
 				}
-				last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*--last->xi->excitation->n_discrete);
+				last->xi->excitation->discrete = (struct xmi_energy_discrete *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*--last->xi->excitation->n_discrete);
 			}
 			else {
 				free(last->xi->excitation->discrete);
@@ -3325,32 +3344,37 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case CONTINUOUS_ENERGY_ADD:
 			strcpy(last->message,"addition of continuous energy");
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*++last->xi->excitation->n_continuous);
-			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy;
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy_cont;
+			free(energy_cont);
+			energy_cont = NULL;
+			//sort
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 			strcpy(last->message,"addition of imported continuous energies");
 			int n_continuous_old = last->xi->excitation->n_continuous;
 			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			for (i = n_continuous_old ; i < last->xi->excitation->n_continuous ; i++) {
-				last->xi->excitation->continuous[i] = energy[i-n_continuous_old];
+				last->xi->excitation->continuous[i] = energy_cont[i-n_continuous_old];
 			}
-			free(energy);
-			energy = NULL;
+			free(energy_cont);
+			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
 			strcpy(last->message,"replacing energies with imported continuous energies");
 			last->xi->excitation->n_continuous = GPOINTER_TO_INT(widget);
 			free(last->xi->excitation->continuous);
-			last->xi->excitation->continuous = xmi_memdup(energy, sizeof(struct xmi_energy)*last->xi->excitation->n_continuous);
-			free(energy);
-			energy = NULL;
+			last->xi->excitation->continuous = xmi_memdup(energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			free(energy_cont);
+			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy), xmi_cmp_struct_xmi_energy);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_CLEAR:
 			strcpy(last->message,"clearing of all continuous energies");
@@ -3361,7 +3385,11 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			strcpy(last->message,"editing of continuous energy");
-			last->xi->excitation->continuous[current_index] = *energy;
+			last->xi->excitation->continuous[current_index] = *energy_cont;
+			free(energy_cont);
+			energy_cont = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
@@ -3369,13 +3397,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				for (i = current_index ; i < current_nindices-1 ; i++) {
 					last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
 				}
-				last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*--last->xi->excitation->n_continuous);
+				last->xi->excitation->continuous = (struct xmi_energy_continuous *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*--last->xi->excitation->n_continuous);
 			}
 			else {
 				free(last->xi->excitation->continuous);
 				last->xi->excitation->continuous = NULL;
 				last->xi->excitation->n_continuous = 0;
 			}
+			break;
+		case LAST_ENERGY: 
+			strcpy(last->message,"change of end energy of last interval");
+			last->xi->excitation->last_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
+			last->widget = widget;
 			break;
 		case EXC_COMPOSITION_ORDER:
 			strcpy(last->message,"change of excitation absorber ordering");
@@ -4425,6 +4458,12 @@ XMI_MAIN
 	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation, window));
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
+	g_sprintf(buffer, "%lg", current->xi->excitation->last_energy);
+	gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = LAST_ENERGY;
+	vc->check = &last_energyC;
+	last_energyG = g_signal_connect(G_OBJECT(contWidget->last_energyW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 
 	//absorbers
 	//convert to composition struct
@@ -4862,7 +4901,7 @@ void change_all_values(struct xmi_input *new_input) {
 	for (i = 0 ; i < (new_input)->excitation->n_continuous ; i++) {
 		gtk_list_store_append(contWidget->store, &iter);
 		gtk_list_store_set(contWidget->store, &iter,
-			ENERGY_COLUMN, (new_input)->excitation->continuous[i].energy,
+			ENERGY_COLUMN, (new_input)->excitation->continuous[i].start_energy,
 			HOR_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].horizontal_intensity,
 			VER_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].vertical_intensity,
 			SIGMA_X_COLUMN, (new_input)->excitation->continuous[i].sigma_x,

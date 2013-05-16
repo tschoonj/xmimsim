@@ -565,6 +565,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->excitation->n_discrete = 1;
 	rv->excitation->n_continuous = 0;
 	rv->excitation->continuous = NULL;
+	rv->excitation->last_energy= 1.0;
 	rv->excitation->discrete = (struct xmi_energy_discrete *) malloc(sizeof(struct xmi_energy_discrete));
 	rv->excitation->discrete[0].energy = 28.0;
 	rv->excitation->discrete[0].horizontal_intensity= 1E12;

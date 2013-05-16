@@ -23,13 +23,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window); 
 
-extern struct xmi_energy *energy;
+extern struct xmi_energy_discrete *energy_disc;
+extern struct xmi_energy_continuous *energy_cont;
 extern int current_index;
 extern int current_nindices;
 
 struct energiesWidget {
 	GtkListStore *store;
 	GtkWidget *widget;
+	GtkWidget *last_energyW;
 };
 
 extern struct energiesWidget *contWidget;

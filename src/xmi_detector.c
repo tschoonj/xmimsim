@@ -414,6 +414,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 
 	data.escape_ratios = rv;
 	data.input = A;
+	data.options = options;
 
 	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_escape_ratios,(void *) &data);
 

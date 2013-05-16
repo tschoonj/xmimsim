@@ -13,9 +13,7 @@ int main(int argc, char *argv[]) {
 	double tube_angle_xray= 90.0;
 	double tube_delta_energy = 0.1;
 
-	struct xmi_energy *ebel_spectrum;
-	int n_ebel_spectrum_cont;
-	int n_ebel_spectrum_disc;
+	struct xmi_excitation *excitation;
 	int tube_transmission = 1;
 
 	tube_anode.n_elements = 1;
@@ -46,18 +44,33 @@ int main(int argc, char *argv[]) {
 
 
 	xmi_tube_ebel(&tube_anode, &tube_window, &tube_filter, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray,
-	tube_delta_energy, tube_transmission, &ebel_spectrum, &n_ebel_spectrum_cont, &n_ebel_spectrum_disc);
+	tube_delta_energy, tube_transmission, &excitation);
 
 	int i; 
 
-	for (i = 0 ; i < n_ebel_spectrum_cont+n_ebel_spectrum_disc ; i++)
-		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", ebel_spectrum[i].energy, 
-			ebel_spectrum[i].horizontal_intensity,
-			ebel_spectrum[i].vertical_intensity,
-			ebel_spectrum[i].sigma_x,
-			ebel_spectrum[i].sigma_y,
-			ebel_spectrum[i].sigma_xp,
-			ebel_spectrum[i].sigma_yp);
+	fprintf(stdout, "Continuous energies\n");
+
+	for (i = 0 ; i < excitation->n_continuous ; i++)
+		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->continuous[i].start_energy, 
+			excitation->continuous[i].horizontal_intensity,
+			excitation->continuous[i].vertical_intensity,
+			excitation->continuous[i].sigma_x,
+			excitation->continuous[i].sigma_y,
+			excitation->continuous[i].sigma_xp,
+			excitation->continuous[i].sigma_yp);
+
+	fprintf(stdout, "Last energy: %lf\n", excitation->last_energy);
+
+	fprintf(stdout, "Discrete energies\n");
+
+	for (i = 0 ; i < excitation->n_discrete ; i++)
+		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->discrete[i].energy, 
+			excitation->discrete[i].horizontal_intensity,
+			excitation->discrete[i].vertical_intensity,
+			excitation->discrete[i].sigma_x,
+			excitation->discrete[i].sigma_y,
+			excitation->discrete[i].sigma_xp,
+			excitation->discrete[i].sigma_yp);
 
 	return 0;
 
