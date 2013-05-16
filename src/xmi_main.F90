@@ -189,19 +189,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 ENDDO
 
         ENDDO
-        
-
-
-
-
-
-!
-!
-!
-!  Starting the main OpenMP loop
-!
-!
-!
 
         ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
         brute_history = 0.0_C_DOUBLE
@@ -246,7 +233,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         rng_type = fgsl_rng_mt19937
         n_photons_sim = 0_C_LONG
-        n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line
+        n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line +&
+                        inputF%excitation%n_continuous*inputF%general%n_photons_interval
         CALL omp_init_lock(omp_lock)
 
 
@@ -269,6 +257,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
+        ALLOCATE(initial_mus(inputF%composition%n_layers))
 
 !
 !
@@ -285,65 +274,264 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 #define exc inputF%excitation
-!        cont:DO i=1,exc%n_continuous
-!                hor_ver_ratio = &
-!                exc%continuous(i)%horizontal_intensity/ &
-!                (exc%continuous(i)%vertical_intensity+ &
-!                exc%continuous(i)%horizontal_intensity)
-!                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
-!                !Calculate the initial energy -> interval boundaries
-!                IF (i .EQ. 1) THEN
-!                        !first interval
-!                        iv_start_energy = (1.5_C_DOUBLE * &
-!                        exc%continuous(1)%energy) - 0.5_C_DOUBLE*exc%continuous(2)%energy
-!                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(2)%energy+&
-!                        exc%continuous(1)%energy)
-!                ELSEIF (i .EQ. exc%n_continuous) THEN
-!                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
-!                        exc%continuous(i)%energy)
-!                        !this next line needs verification...
-!                        iv_end_energy = (1.5_C_DOUBLE * &
-!                        exc%continuous(i)%energy) - 0.5_C_DOUBLE*exc%continuous(i-1)%energy
-!                ELSE
-!                        iv_start_energy = 0.5_C_DOUBLE * (exc%continuous(i-1)%energy+&
-!                        exc%continuous(i)%energy)
-!                        iv_end_energy = 0.5_C_DOUBLE * (exc%continuous(i)%energy+&
-!                        exc%continuous(i+1)%energy)
-
-!                ENDIF
-
-!                DO j=1,n_photons
-!                        !Allocate the photon
-!                        ALLOCATE(photon)
-!                        photon%n_interactions=0
-!                        NULLIFY(photon%offspring)
-!                        
-!                        !Calculate energy with rng
-!                        photon%energy = &
-!                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
-
-!                        !Calculate its initial coordinates and direction
-!                        CALL xmi_coords_dir(rng,exc%continuous(i), inputF%geometry,&
-!                        photon)
+        cont:DO i=1,exc%n_continuous
+                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
+                total_intensity=exc%continuous(i)%vertical_intensity+ &
+                exc%continuous(i)%horizontal_intensity
+                hor_ver_ratio = &
+                exc%continuous(i)%horizontal_intensity*n_photons/ &
+                total_intensity
+                !Calculate the initial energy -> interval boundaries
+                iv_start_energy = exc%continuous(i)%start_energy
+                IF (i .EQ. exc%n_continuous) THEN
+                        iv_end_energy = exc%last_energy
+                ELSE
+                        iv_end_energy = exc%continuous(i+1)%start_energy
+                ENDIF
 
 
+                photons_cont:DO j=1,n_photons
+                        !Allocate the photon
+                        ALLOCATE(photon)
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        IF (options%use_variance_reduction .EQ. 1) THEN
+                                photon%solid_angle => solid_angles 
+                                photon%detector_solid_angle_not_found = 0
+                                photon%var_red_history => var_red_history
+                                photon%channels => channels
+                        ENDIF
+                        photon%history(1,1)=NO_INTERACTION
+                        photon%n_interactions=0
+                        NULLIFY(photon%offspring)
+                        
+                        !Calculate energy with rng
+                        photon%energy = &
+                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
 
-!                        !Calculate the electric field vector
-!                        !IF (REAL(i,KIND=C_DOUBLE)/REAL(n_photons,KIND=C_DOUBLE) &
-!                        !.LT. hor_ver_ratio ) THEN
-!                        !        !horizontal polarization
-!                        !ELSE
-!                        !        !vertical polarization
-!                        !ENDIF
+                        exc_corr = 1.0_C_DOUBLE
+                        DO k=1,inputF%absorbers%n_exc_layers
+                                exc_corr = exc_corr * EXP(-1.0_C_DOUBLE*&
+                                inputF%absorbers%exc_layers(k)%density*&
+                                inputF%absorbers%exc_layers(k)%thickness*&
+                                xmi_mu_calc(inputF%absorbers%exc_layers(k),photon%energy))
+                        ENDDO
+
+                        !Calculate initial mu's
+                        initial_mus = xmi_mu_calc(inputF%composition,&
+                        exc%discrete(i)%energy)
+
+                        weight = (total_intensity)*exc_corr/inputF%general%n_photons_interval
+                        !/(iv_end_energy-iv_start_energy)
+                        photon%energy_changed=.FALSE.
+                        ALLOCATE(photon%mus(inputF%composition%n_layers))
+                        photon%mus = initial_mus
+                        photon%current_layer = 1
+                        photon%detector_hit = .FALSE.
+                        photon%detector_hit2 = .FALSE.
+                        photon%options = options
+                        photon%xmi_cascade_type = xmi_cascade_type
+                        photon%precalc_mu_cs => precalc_mu_cs
+                        photon%det_corr_all => det_corr_all
+
+
+                        !Calculate its initial coordinates and direction
+                        CALL xmi_coords_dir(rng,exc%continuous(i), inputF%geometry,&
+                        photon)
+
+                        !Calculate its weight and electric field...
+                        IF (j .LE. hor_ver_ratio) THEN
+                                !horizontal
+                                photon%weight = weight 
+                                photon%elecv(1) = 0.0_C_DOUBLE
+                                photon%elecv(2) = 1.0_C_DOUBLE
+                                photon%elecv(3) = 0.0_C_DOUBLE
+#if DEBUG == 1
+                                WRITE (*,'(A)') 'horizontal'
+#endif
+                        ELSE
+                                !vertical
+                                photon%weight = weight 
+                                photon%elecv(1) = 1.0_C_DOUBLE
+                                photon%elecv(2) = 0.0_C_DOUBLE
+                                photon%elecv(3) = 0.0_C_DOUBLE
+#if DEBUG == 1
+                                WRITE (*,'(A)') 'vertical'
+#endif
+                        ENDIF
+
+
+
+
+                        cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
+
+                        IF (ABS(cosalfa) .GT. 1.0) THEN
+                                WRITE (error_unit,'(A)') 'cosalfa exception detected'
+                                CALL EXIT(1)
+                        ENDIF
+
+                        c_alfa = ACOS(cosalfa)
+                        c_ae = 1.0/SIN(c_alfa)
+                        c_be = -c_ae*cosalfa
+
+                        photon%elecv = c_ae*photon%elecv + c_be*photon%dirv
+
+                        CALL &
+                        xmi_photon_shift_first_layer(photon,inputF%composition,inputF%geometry)
+
+
+                        IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
+                                CALL EXIT(1)
+                        ENDIF
+
+                        photon_temp => photon
+                        photon_eval_cont:DO 
+
+                                photons_simulated = photons_simulated + 1
+
+                                det_hit_cont:IF (photon_temp%detector_hit .EQV. .TRUE.) THEN
+                                        detector_hits = detector_hits + 1
+!
+!
+!                                       Add to channelsF
+!
+!
+                                        IF (options%use_variance_reduction .EQ. 0) THEN
+#if DEBUG == 1
+                                        IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
+                                        INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
+                                        .LT. 1) CALL EXIT(1)
+                                        IF (photon_temp%last_interaction ==&
+                                        RAYLEIGH_INTERACTION .OR. &
+                                        photon_temp%last_interaction ==&
+                                        COMPTON_INTERACTION) THEN
+                                        theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)=&
+                                        theta_i_hist(INT(photon_temp%theta_i*999.0_C_DOUBLE/M_PI)+1)+1
+                                        phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)=&
+                                        phi_i_hist(INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0_C_DOUBLE)+1)+1
+                                        ENDIF
+#endif
+                                        IF (photon_temp%energy .GE. energy_threshold) THEN
+                                                channel = INT((photon_temp%energy - &
+                                                inputF%detector%zero)/inputF%detector%gain)
+                                        ELSE
+                                                channel = -1
+                                        ENDIF
+
+                                        IF (channel .GE. 0 .AND. channel .LT. nchannels) THEN
+#if DEBUG == 1
+!$omp critical                        
+                                        WRITE (*,'(A,I)') 'channel:'&
+                                        ,channel
+                                        WRITE (*,'(A,ES14.4)') &
+                                        'photon_temp%weight:',photon_temp%weight
+!$omp end critical
+#endif
+                                                channels(photon_temp%n_interactions:, channel) =&
+                                                channels(photon_temp%n_interactions:, channel)+photon_temp%weight
+                                        ENDIF
+                                        ENDIF
+                                        SELECT CASE (photon_temp%last_interaction)
+                                                CASE (RAYLEIGH_INTERACTION)
+                                                        rayleighs = rayleighs + 1
+                                                CASE (COMPTON_INTERACTION)
+                                                        comptons = comptons + 1
+                                                CASE (PHOTOELECTRIC_INTERACTION)
+                                                        einsteins = einsteins + 1
+                                        ENDSELECT
+                                        !update history -> record only the last
+                                        !interaction
+                                        IF (photon_temp%n_interactions .GT. 0)&
+                                        THEN
+                                                k=photon_temp%n_interactions
+                                                element =&
+                                                photon_temp%history(k,2)
+                                                IF (photon_temp%history(k,1) .LE. KL1_LINE .AND.&
+                                                photon_temp%history(k,1) .GE. P3P5_LINE) THEN
+                                                        !fluorescence
+                                                        brute_history(element,&
+                                                        ABS(photon_temp%history(k,1)),k) = &
+                                                        brute_history(element,&
+                                                        ABS(photon_temp%history(k,1)),k) + &
+                                                        photon_temp%weight*det_corr_all&
+                                                        (element,ABS(photon_temp%history(k,1)))
+                                                         
+                                                ELSEIF &
+                                                        (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
+                                                        !rayleigh
+                                                        brute_history(element,383+1,k) = &
+                                                        brute_history(element,383+1,k) + &
+                                                        photon_temp%weight
+                                                ELSEIF &
+                                                (photon_temp%history(k,1) .EQ. COMPTON_INTERACTION) THEN
+                                                        !compton
+                                                        brute_history(element,383+2,k) = &
+                                                        brute_history(element,383+2,k) + &
+                                                        photon_temp%weight
+                                                ENDIF
+                                                !ENDDO
+#if DEBUG == 1
+                                                IF (photon_temp%last_interaction .EQ. PHOTOELECTRIC_INTERACTION) THEN
+                                                last_shell(photon_temp%last_shell) =&
+                                                last_shell(photon_temp%last_shell)+1
+                                                ENDIF
+#endif
+                                        ENDIF
+
+                                ENDIF det_hit_cont
+                                IF (photon_temp%detector_hit2 .EQV. .TRUE.) THEN
+                                        detector_hits2 = detector_hits2 + 1
+                                ENDIF
+
+                                IF (ASSOCIATED(photon_temp%offspring)) THEN
+                                        photon_temp2 => photon_temp%offspring
+                                        IF (.NOT. ASSOCIATED(photon_temp2)) THEN
+                                                WRITE (error_unit,'(A)') 'This line should not appear'
+                                                CALL EXIT(1)
+                                        ENDIF
+                                ELSE
+                                        NULLIFY(photon_temp2)
+                                ENDIF
+                               
+                                IF (options%use_variance_reduction&
+                                .EQ. 1) THEN
+                                        detector_solid_angle_not_found =&
+                                        photon%detector_solid_angle_not_found+&
+                                        detector_solid_angle_not_found
+                                ENDIF
+                                DEALLOCATE(photon_temp%history)
+                                DEALLOCATE(photon_temp%mus)
+                                DEALLOCATE(photon_temp)
+                                IF (ASSOCIATED(photon_temp2)) THEN
+                                        photon_temp => photon_temp2
+                                ELSE
+                                        EXIT photon_eval_cont
+                                ENDIF
+
+                        ENDDO photon_eval_cont
+
+                        CALL omp_set_lock(omp_lock)
+                        n_photons_sim = n_photons_sim+1                  
+                        IF(n_photons_sim*100/n_photons_tot == &
+                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
+                        options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
+                        CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                        INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+#else
+                        WRITE(output_unit,'(A,I3,A)')&
+                        'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
+#endif
+                        CALL omp_unset_lock(omp_lock)
 
 
 
 
 
-!                        DEALLOCATE(photon%mus)
-!                        DEALLOCATE(photon)
-!                ENDDO
-!        ENDDO cont
+
+
+
+                ENDDO photons_cont
+        ENDDO cont
 
         disc:DO i=1,exc%n_discrete
                 n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
@@ -362,7 +550,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 ENDDO
 
                 !Calculate initial mu's
-                ALLOCATE(initial_mus(inputF%composition%n_layers))
                 initial_mus = xmi_mu_calc(inputF%composition,&
                 exc%discrete(i)%energy)
 
@@ -455,11 +642,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         ENDIF
 
                         photon_temp => photon
-                        photon_eval:DO 
+                        photon_eval_disc:DO 
 
                                 photons_simulated = photons_simulated + 1
 
-                                det_hit:IF (photon_temp%detector_hit .EQV. .TRUE.) THEN
+                                det_hit_disc:IF (photon_temp%detector_hit .EQV. .TRUE.) THEN
                                         detector_hits = detector_hits + 1
 !
 !
@@ -548,7 +735,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 #endif
                                         ENDIF
 
-                                ENDIF det_hit
+                                ENDIF det_hit_disc
                                 IF (photon_temp%detector_hit2 .EQV. .TRUE.) THEN
                                         detector_hits2 = detector_hits2 + 1
                                 ENDIF
@@ -575,10 +762,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 IF (ASSOCIATED(photon_temp2)) THEN
                                         photon_temp => photon_temp2
                                 ELSE
-                                        EXIT photon_eval
+                                        EXIT photon_eval_disc
                                 ENDIF
 
-                        ENDDO photon_eval
+                        ENDDO photon_eval_disc
 
                         CALL omp_set_lock(omp_lock)
                         n_photons_sim = n_photons_sim+1                  
@@ -595,7 +782,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         CALL omp_unset_lock(omp_lock)
 
                 ENDDO photons
-                DEALLOCATE(initial_mus)
         ENDDO disc 
 
 #undef exc
