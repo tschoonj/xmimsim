@@ -452,7 +452,7 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 	textPtr6 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->sigma_xpEntry));
 	textPtr7 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->sigma_ypEntry));
 
-#define energy_short(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
+#define energy_short1(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
 	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
 	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0) \
 		ok ## n = 1;\
@@ -467,13 +467,71 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 		}\
 	}
 
-	energy_short(1, ew->energyEntry)
-	energy_short(2, ew->hor_intensityEntry)
-	energy_short(3, ew->ver_intensityEntry)
-	energy_short(4, ew->sigma_xEntry)
-	energy_short(5, ew->sigma_yEntry)
-	energy_short(6, ew->sigma_xpEntry)
-	energy_short(7, ew->sigma_ypEntry)
+#define energy_short2(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
+	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
+	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0 && value ## n >= 0.0) \
+		ok ## n = 1;\
+	else\
+		ok ## n = 0;\
+	if (widget == my_entry) {\
+		if (ok ## n)\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+		else {\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+			gtk_widget_set_sensitive(ew->okButton, FALSE);\
+		}\
+	}
+	energy_short2(1, ew->energyEntry)
+	//energy_short1(2, ew->hor_intensityEntry)
+	//energy_short1(3, ew->ver_intensityEntry)
+	energy_short2(4, ew->sigma_xEntry)
+	energy_short2(5, ew->sigma_yEntry)
+	energy_short2(6, ew->sigma_xpEntry)
+	energy_short2(7, ew->sigma_ypEntry)
+
+
+	value2 = strtod(textPtr2, &endPtr2);
+	value3 = strtod(textPtr3, &endPtr3);
+
+	if (value2 > 0.0)
+		ok2 = 1;
+	else if (strlen(textPtr2) == 0 || textPtr2 + strlen(textPtr2) != endPtr2)
+		ok2 = 0;
+	else if (value2 == 0.0)
+		ok2 = -1;
+	else 
+		ok2 = 0;
+
+	if (value3 > 0.0)
+		ok3 = 1;
+	else if (strlen(textPtr3) == 0 || textPtr3 + strlen(textPtr3) != endPtr3)
+		ok3 = 0;
+	else if (value3 == 0.0)
+		ok3 = -1;
+	else 
+		ok3 = 0;
+
+
+	if (ok2 == 1)	
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
+	else if (ok2 == 0)
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&red);
+
+	if (ok3 == 1)	
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
+	else if (ok3 == 0)
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
+
+	if ((ok2 == 1 && ok3 == -1)||(ok2 == -1 && ok3 == 1)) {
+		ok2 = ok3 = 1;
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
+	}
+	else if ((ok2 == -1 && ok3 == -1)) {
+		ok2 = ok3 = 0;
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&red);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
+	}
 
 	if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7) {
 		gtk_widget_set_sensitive(ew->okButton, TRUE);
@@ -496,6 +554,8 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			energy_cont->sigma_yp = value7;
 		}
 	}
+	else 
+		gtk_widget_set_sensitive(ew->okButton, FALSE);
 
 	return;
 }
@@ -1183,12 +1243,16 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 
 
 	while ((linelen = getline(&line, &linecap, fp)) > -1) {
-		//ignore empty lines
-		if (linelen == 0 || strlen(g_strstrip(line)) == 0)
-			continue;
 		lines_read++;
 		if (lines_read < start_line)
 			continue;
+		//ignore empty lines
+		if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+			nlines--;
+			continue;
+		}
+		if (nlines == nxe)
+			break;
 		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
 		temp.sigma_x = 0.0;
 		temp.sigma_y = 0.0;
@@ -1212,9 +1276,16 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf(stderr,"Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+				g_fprintf(stderr,"Syntax error in file %s at line %i\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read);
 				return -3;
 		};
+		//ignore the useless lines
+		if (energy <= 0.0000000001 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+			nlines--;
+			continue;
+		}
+		if (nlines == nxe)
+			break;
 		if (nxe == 0) {
 			xe = (struct xmi_energy_discrete *) realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
 			xe[0] = temp;
@@ -1282,12 +1353,16 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 
 
 	while ((linelen = getline(&line, &linecap, fp)) > -1) {
-		//ignore empty lines
-		if (linelen == 0 || strlen(g_strstrip(line)) == 0)
-			continue;
 		lines_read++;
 		if (lines_read < start_line)
 			continue;
+		//ignore empty lines
+		if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+			nlines--;
+			continue;
+		}
+		if (nlines == nxe)
+			break;
 		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
 		temp.sigma_x = 0.0;
 		temp.sigma_y = 0.0;
@@ -1311,9 +1386,18 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.start_energy = energy;
 				break;
 			default:
-				g_fprintf(stderr,"Syntax error in file %s\nNumber of columns must be 2, 3 or 7!\n", filename);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %i lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
 				return -3;
 		};
+
+		//ignore the useless lines
+		if (energy <= 0.0000000001 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+			nlines--;
+			continue;
+		}
+		if (nlines == nxe)
+			break;
+
 		if (nxe == 0) {
 			xe = (struct xmi_energy_continuous *) realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
 			xe[0] = temp;
