@@ -84,6 +84,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         REAL (C_DOUBLE) :: my_sum, myln
         REAL (C_DOUBLE), PARAMETER :: R1 = 0.00001, R2 = 0.99999
         INTEGER (C_INT) :: m
+        REAL (C_DOUBLE) :: energy
 
 
 
@@ -102,12 +103,23 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         !S1
         ALLOCATE(mu(inputF%composition%n_layers))
         my_sum = 0.0_C_DOUBLE
+
+        IF (inputF%excitation%n_continuous > 0 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy = MIN(inputF%excitation%continuous(1)%start_energy,&
+                inputF%excitation%discrete(1)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 0) THEN
+                energy = inputF%excitation%continuous(1)%start_energy
+        ELSE
+                energy = inputF%excitation%discrete(1)%energy
+        ENDIF
+
         DO i = 1, inputF%composition%n_layers
                 mu(i) = 0.0_C_DOUBLE
                 DO j = 1, inputF%composition%layers(i)%n_elements
                         mu(i) = &
                         mu(i)+CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        REAL(inputF%excitation%discrete(1)%energy,KIND=C_FLOAT))*&
+                        REAL(energy,KIND=C_FLOAT))*&
                         inputF%composition%layers(i)%weight(j)
                 ENDDO
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
@@ -122,6 +134,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 #endif
 
         my_sum = 0.0_C_DOUBLE
+
         DO i=1, inputF%composition%n_layers
                 my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
                 inputF%composition%layers(i)%thickness_along_Z
@@ -152,13 +165,22 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         !S2
         my_sum = 0.0_C_DOUBLE
+        IF (inputF%excitation%n_continuous > 0 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy = MAX(inputF%excitation%last_energy,&
+                inputF%excitation%discrete(inputF%excitation%n_discrete)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 0) THEN
+                energy = inputF%excitation%last_energy
+        ELSE
+                energy = inputF%excitation%discrete(inputF%excitation%n_discrete)%energy
+        ENDIF
+
         DO i = 1, inputF%composition%n_layers
                 mu(i) = 0.0_C_DOUBLE
                 DO j = 1, inputF%composition%layers(i)%n_elements
                         mu(i) = mu(i)&
                         +CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        REAL(inputF%excitation%discrete(&
-                        inputF%excitation%n_discrete)%energy,KIND=C_FLOAT))&
+                        REAL(energy,KIND=C_FLOAT))&
                         *inputF%composition%layers(i)%weight(j)
                 ENDDO
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
