@@ -536,6 +536,26 @@ void energy_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+
+void energy_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer data) {
+	int kind = GPOINTER_TO_INT(data);
+	if (kind == DISCRETE) {
+		energy_disc = xmi_memdup(current->xi->excitation->discrete+current_index, sizeof(struct xmi_energy_discrete));	
+	}
+	else if (kind == CONTINUOUS) {
+		energy_cont = xmi_memdup(current->xi->excitation->continuous+current_index, sizeof(struct xmi_energy_continuous));	
+	}
+	else {
+		fprintf(stderr,"Invalid kind detected\n");
+		exit(1);
+	}
+	addOrEdit = ENERGY_EDIT;
+	discOrCont = kind; 
+
+	gtk_widget_show_all(kind == DISCRETE ? energyDialog_disc->window :  energyDialog_cont->window);
+	return;
+}
+
 void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
 
@@ -729,7 +749,9 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	g_signal_connect(G_OBJECT(editButton), "clicked", G_CALLBACK(energy_edit_button_clicked_cb) , GINT_TO_POINTER(kind));
 	deleteButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
 	g_signal_connect(G_OBJECT(deleteButton), "clicked", G_CALLBACK(energy_delete_button_clicked_cb) , GINT_TO_POINTER(kind));
-	
+
+	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(energy_row_activated_cb), GINT_TO_POINTER(kind));
+
 	eb->editButton = editButton;
 	eb->deleteButton = deleteButton;
 
@@ -926,7 +948,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		//set values
 		if (discOrCont == DISCRETE) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%lf",energy_disc->energy);
+			sprintf(buffer,"%lg",energy_disc->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
 			sprintf(buffer,"%lg",energy_disc->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
@@ -943,7 +965,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (discOrCont == CONTINUOUS) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%lf",energy_cont->start_energy);
+			sprintf(buffer,"%lg",energy_cont->start_energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
 			sprintf(buffer,"%lg",energy_cont->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
@@ -1105,6 +1127,7 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 	energyDialog_cont = initialize_energy_widget(main_window, CONTINUOUS); 
 
 	mainvbox = gtk_vbox_new(FALSE, 5);
+	gtk_container_set_border_width(GTK_CONTAINER(mainvbox), 10);
 
 	//discrete first...
 	discWidget = initialize_single_energies((void *) excitation->discrete, excitation->n_discrete,DISCRETE, main_window);

@@ -2198,8 +2198,8 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->continuous[i].start_energy) < 0) {
-				fprintf(stderr,"Error writing energy\n");
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_energy","%lf",input->excitation->continuous[i].start_energy) < 0) {
+				fprintf(stderr,"Error writing start_energy\n");
 				return 0;
 			}
 			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lg",input->excitation->continuous[i].horizontal_intensity) < 0) {

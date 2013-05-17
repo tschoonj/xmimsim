@@ -59,6 +59,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT continuous (start_energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
 <!ELEMENT energy (#PCDATA)>
 <!ELEMENT start_energy (#PCDATA)>
+<!ELEMENT last_energy (#PCDATA)>
 <!ELEMENT horizontal_intensity (#PCDATA)>
 <!ELEMENT vertical_intensity (#PCDATA)>
 

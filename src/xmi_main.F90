@@ -318,7 +318,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                         !Calculate initial mu's
                         initial_mus = xmi_mu_calc(inputF%composition,&
-                        exc%discrete(i)%energy)
+                        photon%energy)
 
                         weight = (total_intensity)*exc_corr/inputF%general%n_photons_interval
                         !/(iv_end_energy-iv_start_energy)

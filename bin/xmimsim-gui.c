@@ -1989,6 +1989,10 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
+			g_sprintf(buffer,"%lg",(current-1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case LAST_ENERGY:
 			g_sprintf(buffer,"%lg",(current-1)->xi->excitation->last_energy);
@@ -2459,6 +2463,10 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
+			g_sprintf(buffer,"%lg",(current+1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case LAST_ENERGY:
 			g_sprintf(buffer,"%lg",(current+1)->xi->excitation->last_energy);
@@ -2755,7 +2763,6 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-		case LAST_ENERGY:
 			if (lastPtr == endPtr && value > 0.0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
@@ -2829,6 +2836,46 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case N_DETECTOR_ORIENTATION_Z:
 		case DETECTOR_ZERO:
 			if (lastPtr == endPtr) {
+				//ok
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				*check = 1;
+				if (double_changed_current_check(kind,value))
+					update_undo_buffer(kind, widget);
+				else
+					adjust_save_buttons();
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+					gtk_widget_set_sensitive(redoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+				}
+				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+					gtk_widget_set_sensitive(undoW,TRUE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				}
+				return;
+			}
+			else {
+				//bad value
+				*check = 0;
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+				gtk_widget_set_sensitive(redoW,FALSE);
+				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+			}
+			break;
+		case LAST_ENERGY:
+			//special case here
+			if (lastPtr == endPtr) {
+				if (current->xi->excitation->n_continuous > 0 && value <= current->xi->excitation->continuous[current->xi->excitation->n_continuous-1].start_energy) {
+					//invalid value
+					*check = 0;
+					gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
+					gtk_widget_set_sensitive(redoW,FALSE);
+					gtk_widget_set_sensitive(undoW,FALSE);
+					gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+					gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+					break;
+				}
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -3351,6 +3398,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			//sort
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			if (last->xi->excitation->n_continuous == 1) {
+				last->xi->excitation->last_energy = last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy + 0.1;
+			}
+			else {
+				last->xi->excitation->last_energy = 2*last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy - last->xi->excitation->continuous[last->xi->excitation->n_continuous-2].start_energy;
+			}
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 			strcpy(last->message,"addition of imported continuous energies");
@@ -3365,6 +3424,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			if (last->xi->excitation->n_continuous == 1) {
+				last->xi->excitation->last_energy = last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy + 0.1;
+			}
+			else {
+				last->xi->excitation->last_energy = 2*last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy - last->xi->excitation->continuous[last->xi->excitation->n_continuous-2].start_energy;
+			}
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
 			strcpy(last->message,"replacing energies with imported continuous energies");
@@ -3375,6 +3446,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			if (last->xi->excitation->n_continuous == 1) {
+				last->xi->excitation->last_energy = last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy + 0.1;
+			}
+			else {
+				last->xi->excitation->last_energy = 2*last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy - last->xi->excitation->continuous[last->xi->excitation->n_continuous-2].start_energy;
+			}
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case CONTINUOUS_ENERGY_CLEAR:
 			strcpy(last->message,"clearing of all continuous energies");
@@ -3382,6 +3465,13 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->continuous = NULL;
 			last->xi->excitation->n_continuous = 0;
 
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			last->xi->excitation->last_energy = 0.0;
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			strcpy(last->message,"editing of continuous energy");
@@ -3390,6 +3480,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			if (last->xi->excitation->n_continuous == 1) {
+				last->xi->excitation->last_energy = last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy + 0.1;
+			}
+			else {
+				last->xi->excitation->last_energy = 2*last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy - last->xi->excitation->continuous[last->xi->excitation->n_continuous-2].start_energy;
+			}
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
@@ -3404,6 +3506,18 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				last->xi->excitation->continuous = NULL;
 				last->xi->excitation->n_continuous = 0;
 			}
+			//update last_energy
+			//temporarily block handler
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			if (last->xi->excitation->n_continuous == 1) {
+				last->xi->excitation->last_energy = last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy + 0.1;
+			}
+			else {
+				last->xi->excitation->last_energy = 2*last->xi->excitation->continuous[last->xi->excitation->n_continuous-1].start_energy - last->xi->excitation->continuous[last->xi->excitation->n_continuous-2].start_energy;
+			}
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case LAST_ENERGY: 
 			strcpy(last->message,"change of end energy of last interval");
@@ -3792,6 +3906,7 @@ XMI_MAIN
 	detector_fanoC = 1;
 	detector_noiseC = 1;
 	detector_max_convolution_energyC = 1;
+	last_energyC = 1;
 
 	//initialize regex patterns
 	/*
@@ -4208,6 +4323,7 @@ XMI_MAIN
 
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 	//initialize layer widget
 	layerW = initialize_layer_widget(&layer, window);
@@ -4808,6 +4924,7 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 	g_signal_handler_block(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
+	g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
 	
 
 	//general
@@ -4910,6 +5027,8 @@ void change_all_values(struct xmi_input *new_input) {
 			SIGMA_YP_COLUMN,(new_input)->excitation->continuous[i].sigma_yp,
 			-1);
 	}
+	g_sprintf(buffer,"%lg",new_input->excitation->last_energy);
+	gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
 
 	//absorbers
 	gtk_list_store_clear(exc_compositionL);
@@ -5038,6 +5157,7 @@ void change_all_values(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 	g_signal_handler_unblock(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
+	g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 	
 	
 
@@ -5237,7 +5357,8 @@ int check_changeables(void) {
  detector_zeroC &&
  detector_fanoC &&
  detector_noiseC &&
- detector_max_convolution_energyC;
+ detector_max_convolution_energyC &&
+ last_energyC;
 }
 
 

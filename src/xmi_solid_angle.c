@@ -352,17 +352,25 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	g_fprintf(stdout, "thickness 0 A:%lf\n",thickness_along_Z_a[0]);
 	g_fprintf(stdout, "thickness 0 b:%lf\n",thickness_along_Z_b[0]);
 #endif
-
-
+	
+	double energy;
 
 	//S1
 	//low energy limit
 	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
+	if (A->excitation->n_continuous > 0 && A->excitation->n_discrete > 0) {
+		energy = MIN(A->excitation->continuous[0].start_energy, A->excitation->discrete[0].energy);
+	}
+	else if (A->excitation->n_continuous > 0)
+		energy = A->excitation->continuous[0].start_energy;
+	else
+		energy = A->excitation->discrete[0].energy;
+
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) A->excitation->discrete[0].energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) energy)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -387,10 +395,17 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//high energy limit
 	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
+	if (A->excitation->n_continuous > 0 && A->excitation->n_discrete > 0) {
+		energy = MAX(A->excitation->last_energy, A->excitation->discrete[A->excitation->n_discrete-1].energy);
+	}
+	else if (A->excitation->n_continuous > 0)
+		energy = A->excitation->last_energy;
+	else
+		energy = A->excitation->discrete[A->excitation->n_discrete-1].energy;
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) A->excitation->discrete[A->excitation->n_discrete-1].energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) energy)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -418,10 +433,17 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//low energy limit
 	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
+	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
+		energy = MIN(B->excitation->continuous[0].start_energy, B->excitation->discrete[0].energy);
+	}
+	else if (B->excitation->n_continuous > 0)
+		energy = B->excitation->continuous[0].start_energy;
+	else
+		energy = B->excitation->discrete[0].energy;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) B->excitation->discrete[0].energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
@@ -456,10 +478,17 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//high energy limit
 	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
+	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
+		energy = MAX(B->excitation->last_energy, B->excitation->discrete[B->excitation->n_discrete-1].energy);
+	}
+	else if (B->excitation->n_continuous > 0)
+		energy = B->excitation->last_energy;
+	else
+		energy = B->excitation->discrete[B->excitation->n_discrete-1].energy;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) B->excitation->discrete[B->excitation->n_discrete-1].energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
