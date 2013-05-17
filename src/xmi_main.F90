@@ -325,7 +325,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
-                        photon%current_layer = 1
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
@@ -580,7 +579,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
-                        photon%current_layer = 1
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
@@ -1088,9 +1086,18 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         TYPE (xmi_composition), INTENT(IN) :: composition
         TYPE (xmi_line) :: line
         TYPE (xmi_plane) :: plane
+        INTEGER :: i
 
         IF (photon%coords(3) .GE. &
-        composition%layers(1)%Z_coord_begin) RETURN
+        composition%layers(1)%Z_coord_begin) THEN
+                DO i=1,composition%n_layers
+                        IF (photon%coords(3) .LT. &
+                        composition%layers(i)%Z_coord_end) THEN
+                                photon%current_layer=i
+                                RETURN
+                        ENDIF
+                ENDDO
+        ENDIF
 
         !Calculate intersection of photon trajectory with plane of first layer
         line%point = photon%coords
@@ -1107,13 +1114,8 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
                 WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
                 CALL EXIT(1)
         ENDIF
-        !
-        !
-        ! Problem: what if source lies in the first (air) layer???
-        !
-        !
 
-
+        photon%current_layer = 1
 
         RETURN
 ENDSUBROUTINE xmi_photon_shift_first_layer
