@@ -2763,7 +2763,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			if (lastPtr == endPtr && value > 0.0) {
+			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2795,7 +2795,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_PULSE_WIDTH:
 		case COLLIMATOR_HEIGHT:
 		case COLLIMATOR_DIAMETER:
-			if (lastPtr == endPtr && value >= 0.0) {
+			if (lastPtr == endPtr && value >= 0.0 && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2835,7 +2835,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case N_DETECTOR_ORIENTATION_Y:
 		case N_DETECTOR_ORIENTATION_Z:
 		case DETECTOR_ZERO:
-			if (lastPtr == endPtr) {
+			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2865,7 +2865,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			break;
 		case LAST_ENERGY:
 			//special case here
-			if (lastPtr == endPtr) {
+			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				if (current->xi->excitation->n_continuous > 0 && value <= current->xi->excitation->continuous[current->xi->excitation->n_continuous-1].start_energy) {
 					//invalid value
 					*check = 0;
