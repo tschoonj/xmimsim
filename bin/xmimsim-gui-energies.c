@@ -1801,12 +1801,20 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	
 	//row 1
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
+#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *anodeMaterialW = gtk_combo_box_text_new();
+#else
+	GtkWidget *anodeMaterialW = gtk_combo_box_new_text();
+#endif
 	int i;
 	gchar *symbol;
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX(anodeMaterialW), symbol);
+#else
 		gtk_combo_box_append_text(GTK_COMBO_BOX(anodeMaterialW), symbol);
+#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(anodeMaterialW), 46);
@@ -1825,10 +1833,18 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	//row 2
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Window"), 0, 1, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
+#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *windowMaterialW = gtk_combo_box_text_new();
+#else
+	GtkWidget *windowMaterialW = gtk_combo_box_new_text();
+#endif
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX(windowMaterialW), symbol);
+#else
 		gtk_combo_box_append_text(GTK_COMBO_BOX(windowMaterialW), symbol);
+#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(windowMaterialW), 3);
@@ -1842,10 +1858,18 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 		
 	//row 3
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Filter"), 0, 1, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
+#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *filterMaterialW = gtk_combo_box_text_new();
+#else
+	GtkWidget *filterMaterialW = gtk_combo_box_new_text();
+#endif
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX(filterMaterialW), symbol);
+#else
 		gtk_combo_box_append_text(GTK_COMBO_BOX(filterMaterialW), symbol);
+#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(filterMaterialW), 1);
