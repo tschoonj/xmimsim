@@ -2000,6 +2000,38 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), last_energyG);
 			break;
+		case EBEL_SPECTRUM_REPLACE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					-1);
+			}
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].start_energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			g_sprintf(buffer,"%lg",(current-1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
+			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
 		case EXC_COMPOSITION_ADD:
@@ -2473,6 +2505,38 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_block(G_OBJECT((current+1)->widget), last_energyG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), last_energyG);
+			break;
+		case EBEL_SPECTRUM_REPLACE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					-1);
+			}
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].start_energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			g_sprintf(buffer,"%lg",(current+1)->xi->excitation->last_energy);
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
 			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
@@ -3524,6 +3588,20 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->last_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->widget = widget;
 			break;
+		case EBEL_SPECTRUM_REPLACE:
+			strcpy(last->message,"importing of Ebel X-ray tube spectrum");
+			if (last->xi->excitation->n_continuous > 0)
+				free(last->xi->excitation->continuous);
+			if (last->xi->excitation->n_discrete > 0)
+				free(last->xi->excitation->discrete);
+			free(last->xi->excitation);
+			struct xmi_excitation *temp_exc = (struct xmi_excitation*) widget;
+			last->xi->excitation = temp_exc;
+			g_signal_handler_block(G_OBJECT(contWidget->last_energyW), last_energyG);
+			g_sprintf(buffer, "%lg", last->xi->excitation->last_energy);
+			gtk_entry_set_text(GTK_ENTRY(contWidget->last_energyW),buffer);
+			g_signal_handler_unblock(G_OBJECT(contWidget->last_energyW), last_energyG);
+			break;
 		case EXC_COMPOSITION_ORDER:
 			strcpy(last->message,"change of excitation absorber ordering");
 			if (last->xi->absorbers->n_exc_layers > 0) {
@@ -4021,6 +4099,7 @@ XMI_MAIN
 	toolsmenu = gtk_menu_new();
 	tools = gtk_menu_item_new_with_label("Tools");
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
+	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
@@ -4194,6 +4273,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
+	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);

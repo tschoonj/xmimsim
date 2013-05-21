@@ -58,8 +58,8 @@ CONTAINS
 !
 INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
 tube_filter,tube_voltage, tube_current, tube_angle_electron, &
-tube_angle_xray, tube_delta_energy, tube_transmission, &
-ebel_excitation)&
+tube_angle_xray, tube_delta_energy, tube_solid_angle, &
+tube_transmission, ebel_excitation)&
 BIND(C,NAME='xmi_tube_ebel')
 
 !Reference:
@@ -79,7 +79,8 @@ IMPLICIT NONE
 
 TYPE (xmi_layerC), INTENT(IN) :: tube_anode,tube_window,tube_filter
 TARGET :: tube_window, tube_filter
-REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy
+REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, &
+tube_angle_electron, tube_angle_xray, tube_delta_energy, tube_solid_angle
 TYPE (C_PTR), INTENT(INOUT) :: ebel_excitation
 TYPE (xmi_excitationC), POINTER :: ebel_excitation_rv
 REAL (C_DOUBLE) :: last_energy
@@ -387,14 +388,16 @@ ENDDO
 ENDIF
 
 !correct for the current
-ebel_spectrum_cont(:)%horizontal_intensity=ebel_spectrum_cont(:)%horizontal_intensity*tube_current/2.0
+ebel_spectrum_cont(:)%horizontal_intensity=ebel_spectrum_cont(:)%horizontal_intensity*&
+tube_solid_angle*tube_current/2.0
 ebel_spectrum_cont(:)%vertical_intensity=ebel_spectrum_cont(:)%horizontal_intensity
 ebel_spectrum_cont(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_y = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_xp = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_yp = 0.0_C_DOUBLE
 
-ebel_spectrum_disc(:)%horizontal_intensity=ebel_spectrum_disc(:)%horizontal_intensity*tube_current/2.0
+ebel_spectrum_disc(:)%horizontal_intensity=ebel_spectrum_disc(:)%horizontal_intensity*&
+tube_solid_angle*tube_current/2.0
 ebel_spectrum_disc(:)%vertical_intensity=ebel_spectrum_disc(:)%horizontal_intensity
 ebel_spectrum_disc(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_y = 0.0_C_DOUBLE

@@ -48,4 +48,5 @@ enum {
 	NCOLUMNS_ENERGIES,
 };
 
+void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
 #endif
