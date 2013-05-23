@@ -389,7 +389,7 @@ ENDIF
 
 !correct for the current
 ebel_spectrum_cont(:)%horizontal_intensity=ebel_spectrum_cont(:)%horizontal_intensity*&
-tube_solid_angle*tube_current/2.0
+tube_solid_angle*tube_current*tube_delta_energy/2.0
 ebel_spectrum_cont(:)%vertical_intensity=ebel_spectrum_cont(:)%horizontal_intensity
 ebel_spectrum_cont(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_y = 0.0_C_DOUBLE
