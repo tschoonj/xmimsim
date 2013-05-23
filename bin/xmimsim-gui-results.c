@@ -22,11 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <math.h>
 #include <xraylib.h>
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
-//pdfs is just for version 3 :-(
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
-#endif
 
 GdkColor white_plot;
 GdkColor blue_plot;
@@ -70,11 +67,9 @@ gulong spectra_region_mouse_movedG;
 gulong spectra_region_changedG;
 gulong spectra_region_double_clickedG;
 
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 GtkWidget *print_button;
 GtkPrintSettings *print_settings;
 GtkPageSetup *page_setup;
-#endif
 GtkWidget *export_button;
 GtkWidget *settings_button;
 
@@ -570,10 +565,8 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 	cairo_t *cairo;
 	cairo_surface_t *surface;
-#endif
 
 	dialog = gtk_file_chooser_dialog_new("Export spectra", 
 		GTK_WINDOW(data), GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -584,25 +577,22 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),g_path_get_dirname(results_input->general->outputfile));
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.eps");
-	gtk_file_filter_set_name(filter,"Encapsulated PostScript");
+	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.pdf");
-	gtk_file_filter_set_name(filter,"Adobe Portable Document Format");
+	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.png");
-	gtk_file_filter_set_name(filter,"Portable Network Graphics");
+	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-#endif
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//get selected filter
 		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
-		if (strcmp(gtk_file_filter_get_name(filter),"Encapsulated PostScript"  ) == 0) {
+		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
 			fprintf(stdout,"EPS selected\n");
 			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
@@ -624,7 +614,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 			cairo_destroy(cairo);
 
 		}
-		else if (strcmp(gtk_file_filter_get_name(filter),"Adobe Portable Document Format"  ) == 0) {
+		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
 			fprintf(stdout,"PDF selected\n");
 			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
@@ -638,7 +628,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 			cairo_surface_destroy(surface);
 			cairo_destroy(cairo);
 		}
-		else if (strcmp(gtk_file_filter_get_name(filter),"Portable Network Graphics"  ) == 0) {
+		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
 			fprintf(stdout,"PNG selected\n");
 			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
@@ -652,16 +642,6 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 			cairo_surface_destroy(surface);
 			cairo_destroy(cairo);
 		}			
-#else
-		if (strcmp(gtk_file_filter_get_name(filter),"Encapsulated PostScript"  ) == 0) {
-			fprintf(stdout,"EPS selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".eps");
-			}
-			gtk_plot_export_ps(GTK_PLOT(plot_window),filename,GTK_PLOT_LANDSCAPE,TRUE,GTK_PLOT_A4);
-		}
-#endif
 		g_free(filename);
 		gtk_widget_destroy(dialog);
 	}
@@ -672,7 +652,6 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 	return;
 }
 
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 
 static void draw_page(GtkPrintOperation *operation, GtkPrintContext *context, gint page_nr, gpointer data) {
 	cairo_t *cairo;
@@ -716,7 +695,6 @@ static void print_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	return;
 }
-#endif
 
 static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	struct spectra_data *sd = (struct spectra_data *) data;
@@ -911,16 +889,13 @@ GtkWidget *init_results(GtkWidget *window) {
 	g_signal_connect(G_OBJECT(settings_button),"clicked",G_CALLBACK(settings_button_clicked_cb),(gpointer)window);
 	export_button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	g_signal_connect(G_OBJECT(export_button),"clicked",G_CALLBACK(export_button_clicked_cb),(gpointer)window);
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 	print_button = gtk_button_new_from_stock(GTK_STOCK_PRINT);
 	g_signal_connect(G_OBJECT(print_button),"clicked",G_CALLBACK(print_button_clicked_cb),(gpointer)window);
-#endif
 	
 
 	//gtk_box_pack_end(GTK_BOX(spectra_box),magnifier_hbox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),settings_button, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(spectra_box),export_button, FALSE, FALSE, 2);
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 	gtk_box_pack_end(GTK_BOX(spectra_box),print_button, FALSE, FALSE, 2);
 	gtk_widget_set_sensitive(print_button,FALSE);
 
@@ -932,7 +907,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_page_setup_set_orientation(page_setup,GTK_PAGE_ORIENTATION_LANDSCAPE);
 	gtk_page_setup_set_paper_size_and_default_margins(page_setup,gtk_paper_size_new(GTK_PAPER_NAME_A4));
 
-#endif
 	gtk_widget_set_sensitive(export_button,FALSE);
 	gtk_widget_set_sensitive(settings_button,FALSE);
 
@@ -1285,9 +1259,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
 
-#if GTKEXTRA_CHECK_VERSION(3,0,0)
 	gtk_widget_set_sensitive(print_button,TRUE);
-#endif
 	gtk_widget_set_sensitive(export_button,TRUE);
 	gtk_widget_set_sensitive(settings_button,TRUE);
 

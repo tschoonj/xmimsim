@@ -93,37 +93,29 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
-GTKEXTRA2_FOUND=no
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.14.0, [GTK_FOUND=yes],[GTK_FOUND=no])
+	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
 	PKG_CHECK_MODULES([gtk3extra],gtkextra-3.0, [GTKEXTRA3_FOUND=yes],[GTKEXTRA3_FOUND=no])
-	if test "x$GTKEXTRA3_FOUND" = xno ; then
-		PKG_CHECK_MODULES([gtk2extra],gtkextra-2.0, [GTKEXTRA2_FOUND=yes],[GTKEXTRA2_FOUND=no])
-	fi
-	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes && test "x$GTKEXTRA2_FOUND" = xno && test "x$GTKEXTRA3_FOUND" = xno ; then
+	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes && test "x$GTKEXTRA3_FOUND" = xno ; then
 		AC_MSG_ERROR([no gtk and/or gtkextra found on the system.])
 	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
 		AC_MSG_WARN([no gtk found on the system. The GUI will not be built.])
-	elif test "x$GTKEXTRA3_FOUND" = xno && test "x$GTKEXTRA2_FOUND" = xno && test "x$enable_gui" = xcheck ; then
+	elif test "x$GTKEXTRA3_FOUND" = xno && test "x$enable_gui" = xcheck ; then
 		AC_MSG_WARN([no gtkextra found on the system. The GUI will not be built.])
 	else
 		AC_MSG_NOTICE([Building with GUI])
-		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.14.0")
-	fi
-	if test "x$GTKEXTRA3_FOUND" = xyes ; then
+		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.18.0")
 		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0")
-	elif test "x$GTKEXTRA2_FOUND" = xyes ; then
-		AC_SUBST(GTKEXTRA_PC, "gtkextra-2.0") 
 	fi
 fi
 
-AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes)])
+AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes])
 
 JSONGLIB_FOUND=no
 LIBCURL_FOUND=no
 AC_ARG_ENABLE([updater],[AS_HELP_STRING([--disable-updater],[build without updater])],[enable_updater=$enableval],[enable_updater=check])
-if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) && test "x$enable_updater" != xno ; then
+if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes && test "x$enable_updater" != xno ; then
 	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8, 
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
@@ -160,7 +152,7 @@ AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL
 
 
 GTK_MAC_INTEGRATION_FOUND=no
-if test "x$GTK_FOUND" = xyes && (test "x$GTKEXTRA2_FOUND" = xyes || test "x$GTKEXTRA3_FOUND" = xyes) ; then
+if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 	#check for quartz backend
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])

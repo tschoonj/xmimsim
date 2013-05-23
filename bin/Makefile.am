@@ -77,7 +77,6 @@ xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
 
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
-		     @gtk2extra_CFLAGS@ \
 		     @gtk2_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
 		     @OPENMP_CFLAGS@ \
@@ -90,7 +89,6 @@ endif
 
 xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    @gtk3extra_LIBS@ \
-		    @gtk2extra_LIBS@ \
 		    @gtk2_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@
