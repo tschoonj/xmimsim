@@ -658,7 +658,6 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	(*excitation)->discrete = NULL;
 	(*excitation)->n_continuous = 0;
 	(*excitation)->continuous = NULL;
-	(*excitation)->last_energy = 0.0;
 
 
 	subnode = node->children;
@@ -726,13 +725,23 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				subsubnode = subsubnode->next;
 			}
 			xed.energy = energy;
+			struct xmi_energy_discrete *xed_match;
 #ifdef G_OS_WIN32
 			unsigned int n_discrete = (*excitation)->n_discrete;
+			if ((xed_match = _lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
 #else
 			size_t n_discrete = (*excitation)->n_discrete;
+			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
 #endif
-			if (lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
-				fprintf(stderr,"Error: Duplicate discrete line energy detected\n");
+				fprintf(stdout,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
+				if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
+					xed_match->horizontal_intensity += horizontal_intensity;	
+					xed_match->vertical_intensity += vertical_intensity;	
+				}
+				else {
+					fprintf(stderr,"Error: Invalid discrete energy detected\n");
+					return 0;
+				}
 			}
 			else if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
 				(*excitation)->discrete = (struct xmi_energy_discrete *) realloc((*excitation)->discrete,++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
@@ -745,13 +754,14 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp = sigma_yp;
 			}
 			else {
-				fprintf(stderr,"Skipping invalid continuous energy\n");
+				fprintf(stderr,"Error: Invalid discrete energy detected\n");
+				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "continuous")) {
 			subsubnode = subnode->children;
 			while (subsubnode != NULL) {
-				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "start_energy")) {
+				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
 					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
 						fprintf(stderr,"error reading in continuous energy of xml file\n");
@@ -809,18 +819,20 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				subsubnode = subsubnode->next;
 			}
-			xec.start_energy = energy;
+			xec.energy = energy;
 #ifdef G_OS_WIN32
 			unsigned int n_continuous = (*excitation)->n_continuous;
+			if (_lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #else
 			size_t n_continuous = (*excitation)->n_continuous;
-#endif
 			if (lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
-				fprintf(stderr,"Error: Duplicate continuous energy interval start_energy detected\n");
+#endif
+				fprintf(stderr,"Error: Duplicate continuous energy interval energy detected\n");
+				return 0;
 			}
-			else if (energy >= 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
+			else if (energy >= 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) >= 0.0) {
 				(*excitation)->continuous = (struct xmi_energy_continuous *) realloc((*excitation)->continuous,++((*excitation)->n_continuous)*sizeof(struct xmi_energy_continuous));
-				(*excitation)->continuous[(*excitation)->n_continuous-1].start_energy= energy ;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].energy= energy ;
 				(*excitation)->continuous[(*excitation)->n_continuous-1].horizontal_intensity = horizontal_intensity;
 				(*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity = vertical_intensity;
 				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_x = sigma_x;
@@ -829,26 +841,30 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_yp = sigma_yp;
 			}
 			else {
-				fprintf(stderr,"Skipping invalid continuous energy\n");
-			}
-		}
-		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "last_energy")) {
-			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*excitation)->last_energy)) != 1) {
-				fprintf(stderr,"error reading in last_energy of xml file\n");
+				fprintf(stderr,"Error: Invalid continuous interval detected\n");
 				return 0;
 			}
-			xmlFree(txt);
 		}
 		subnode = subnode->next;
 	}
 
-	if ((*excitation)->n_continuous == 0 && (*excitation)->n_discrete == 0) {
+	if ((*excitation)->n_continuous < 2 && (*excitation)->n_discrete == 0) {
 		fprintf(stderr,"Found no valid discrete or continuous energies in xml file\n");
 		return 0;
 	}
 
-	//should check for uniqueness here...
+	//make sure that two consecutive intervals do not have zero intensity
+	if ((*excitation)->n_continuous > 2) {
+		int i;
+		for (i = 0 ; i < (*excitation)->n_continuous-1 ; i++) {
+			if ((*excitation)->continuous[i].horizontal_intensity + (*excitation)->continuous[i].vertical_intensity + 
+			(*excitation)->continuous[i+1].horizontal_intensity + (*excitation)->continuous[i+1].vertical_intensity == 0.0
+			) {
+				fprintf(stderr, "Error: Two consecutive continuous intervals cannot both have a total intensity of zero\n");
+				return 0;
+			}
+		}
+	}
 
 	//sort!
 	if ((*excitation)->n_continuous > 1) {
@@ -858,10 +874,6 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
 	}
 
-	if ((*excitation)->n_continuous > 0 && (*excitation)->last_energy <= (*excitation)->continuous[(*excitation)->n_continuous-1].start_energy) {
-		fprintf(stderr,"last_energy must be greater than start_energy of the highest energy interval\n");
-		return 0;
-	}
 	return 1;
 }
 
@@ -2198,8 +2210,8 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_energy","%lf",input->excitation->continuous[i].start_energy) < 0) {
-				fprintf(stderr,"Error writing start_energy\n");
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->continuous[i].energy) < 0) {
+				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
 			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%lg",input->excitation->continuous[i].horizontal_intensity) < 0) {
@@ -2230,10 +2242,6 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error calling xmlTextWriterEndElement for continuous\n");
 				return 0;
 			}
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "last_energy","%lf",input->excitation->last_energy) < 0) {
-				fprintf(stderr,"Error writing last_energy\n");
-				return 0;
 		}
 	}
 

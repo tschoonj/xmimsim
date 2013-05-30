@@ -18,6 +18,8 @@ MODULE xmimsim_aux
 USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
+USE :: fgsl
+
 IMPLICIT NONE
 
 !
@@ -159,7 +161,7 @@ ENDTYPE
 !  xmi_energy_continuous
 
 TYPE, BIND(C) :: xmi_energy_continuous
-        REAL (C_DOUBLE) :: start_energy
+        REAL (C_DOUBLE) :: energy
         REAL (C_DOUBLE) :: horizontal_intensity
         REAL (C_DOUBLE) :: vertical_intensity
         REAL (C_DOUBLE) :: sigma_x
@@ -175,7 +177,6 @@ TYPE, BIND(C) :: xmi_excitationC
         TYPE (C_PTR) :: discrete
         INTEGER (C_INT) :: n_continuous
         TYPE (C_PTR) :: continuous
-        REAL (C_DOUBLE) :: last_energy
 ENDTYPE
 
 TYPE :: xmi_excitation
@@ -183,7 +184,6 @@ TYPE :: xmi_excitation
         TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: discrete
         INTEGER (C_INT) :: n_continuous
         TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: continuous
-        REAL (C_DOUBLE) :: last_energy
 ENDTYPE
 
 !   xmi_absorbers
@@ -479,6 +479,23 @@ TYPE :: xmi_plane
         REAL (C_DOUBLE), DIMENSION(3) :: point
         REAL (C_DOUBLE), DIMENSION(3) :: normv 
 ENDTYPE
+
+!
+!
+!       datatype for the trapezoidal distribution
+!
+!
+TYPE, PUBLIC :: xmi_ran_trap_workspace
+        PRIVATE
+        REAL (C_DOUBLE) :: denom
+        REAL (C_DOUBLE) :: m
+        REAL (C_DOUBLE) :: x1
+        REAL (C_DOUBLE) :: x2
+        REAL (C_DOUBLE) :: y1
+        REAL (C_DOUBLE) :: y2
+ENDTYPE
+
+
 
 INTERFACE
 !interface for the libc qsort function
@@ -788,8 +805,6 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 [xmi_inputF%excitation%n_continuous]) 
                 ALLOCATE(xmi_inputF%excitation%continuous(xmi_inputF%excitation%n_continuous))
                 xmi_inputF%excitation%continuous = xmi_energy_temp_cont
-                xmi_inputF%excitation%last_energy = &
-                xmi_excitation_temp%last_energy
         ENDIF
 
 #if DEBUG == 1
@@ -1714,6 +1729,79 @@ SUBROUTINE xmi_deallocate(ptr) BIND(C,NAME='xmi_deallocate')
 
         DEALLOCATE(array)
 
+        RETURN
 ENDSUBROUTINE xmi_deallocate
+
+!
+!
+!       initialize xmi_trap_dist_workspace
+!
+!
+
+FUNCTION xmi_ran_trap_workspace_init(x1, x2, y1, y2, workspace)&
+        RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: x1, x2, y1, y2
+        TYPE (xmi_ran_trap_workspace), INTENT(OUT) :: workspace
+        INTEGER (C_INT) :: rv
+
+        IF (x1 .GE. x2) THEN
+                WRITE (error_unit, '(A)') &
+                'Error in xmi_trap_dist_workspace_init: x1 >= x2'
+                rv = 0_C_INT
+                RETURN
+        ELSEIF (x1 .EQ. 0.0_C_DOUBLE .AND. x2 .EQ. 0.0_C_DOUBLE) THEN
+                WRITE (error_unit, '(A)') &
+                'Error in xmi_trap_dist_workspace_init: x1 == x2 == 0'
+                rv = 0_C_INT
+                RETURN
+        ENDIF
+
+        workspace%x1 = x1
+        workspace%x2 = x2
+        workspace%y1 = y1
+        workspace%y2 = y2
+        workspace%m = (y2-y1)/(x2-x1)
+        workspace%denom = (x2-x1)*(y1-x1*workspace%m) + &
+        workspace%m*(x2**2-x1**2)/2.0
+
+        rv = 1_C_INT
+        RETURN
+ENDFUNCTION xmi_ran_trap_workspace_init
+
+FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_ran_trap_workspace) :: workspace
+        REAL (C_DOUBLE) :: rv
+        REAL (C_DOUBLE) :: rv1, rv2
+        REAL (C_DOUBLE) :: a, b, c
+
+        a = workspace%m/2.0_C_DOUBLE
+        b = workspace%y1-workspace%x1*workspace%m
+        c = -workspace%x1*workspace%y1+workspace%m*workspace%x1**2/2.0_C_DOUBLE&
+            -workspace%denom*fgsl_rng_uniform(rng)
+
+        IF (fgsl_poly_solve_quadratic(a, &
+            b, &
+            c, &
+            rv1, &
+            rv2) == 0_C_INT) THEN
+                WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
+                WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                CALL EXIT(1)
+        ENDIF
+
+        IF (workspace%x1 .LE. rv1 .AND. rv1 .LE. workspace%x2) THEN
+                rv = rv1
+        ELSEIF (workspace%x1 .LE. rv2 .AND. rv2 .LE. workspace%x2) THEN
+                rv = rv2
+        ELSE
+                WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
+                WRITE (error_unit, '(A)') 'roots are not within interval'
+                CALL EXIT(1)
+        ENDIF
+
+        RETURN
+ENDFUNCTION xmi_ran_trap
 
 ENDMODULE 

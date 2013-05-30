@@ -247,7 +247,7 @@ int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	double diff;
 
-	diff = ((struct xmi_energy_continuous *)a)->start_energy - ((struct xmi_energy_continuous *)b)->start_energy;
+	diff = ((struct xmi_energy_continuous *)a)->energy - ((struct xmi_energy_continuous *)b)->energy;
 	
 	if (diff > 0.000000001)
 		return 1;

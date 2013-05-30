@@ -83,7 +83,6 @@ REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, &
 tube_angle_electron, tube_angle_xray, tube_delta_energy, tube_solid_angle
 TYPE (C_PTR), INTENT(INOUT) :: ebel_excitation
 TYPE (xmi_excitationC), POINTER :: ebel_excitation_rv
-REAL (C_DOUBLE) :: last_energy
 INTEGER (C_INT), VALUE, INTENT(IN) :: tube_transmission
 TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_cont
 TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc
@@ -173,7 +172,7 @@ sinfactor = sinalphae/sinalphax
 !Bremsstrahlung energies
 !determine number of intervals
 !set minimum energy equal to 1 keV
-ALLOCATE(ebel_spectrum_cont(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)))
+ALLOCATE(ebel_spectrum_cont(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)+1))
 IF (tube_voltage/tube_delta_energy /= INT(tube_voltage/tube_delta_energy)) THEN
         ALLOCATE(ebel_spectrum_cont_temp(SIZE(ebel_spectrum_cont)+1))
         ebel_spectrum_cont_temp(1:SIZE(ebel_spectrum_cont)) = ebel_spectrum_cont
@@ -181,11 +180,11 @@ IF (tube_voltage/tube_delta_energy /= INT(tube_voltage/tube_delta_energy)) THEN
 ENDIF
 
 !fill up the energies array
-DO i=1,SIZE(ebel_spectrum_cont)
-        ebel_spectrum_cont(i)%start_energy=TUBE_MINIMUM_ENERGY+(i-1)*tube_delta_energy
+DO i=1,SIZE(ebel_spectrum_cont)-1
+        ebel_spectrum_cont(i)%energy=TUBE_MINIMUM_ENERGY+(i-1)*tube_delta_energy
 ENDDO
 
-last_energy = tube_voltage
+ebel_spectrum_cont(SIZE(ebel_spectrum_cont))%energy = tube_voltage
 ncont= SIZE(ebel_spectrum_cont)
 
 !let's calculate some variables important for the bremsstrahlung part
@@ -205,7 +204,7 @@ ALLOCATE(p2(ncont))
 ALLOCATE(rhoz(ncont))
 ALLOCATE(rhelp(ncont))
 
-u0=tube_voltage/(ebel_spectrum_cont(:)%start_energy + tube_delta_energy/2.0_C_DOUBLE)
+u0=tube_voltage/(ebel_spectrum_cont(:)%energy + tube_delta_energy/2.0_C_DOUBLE)
 logu0=LOG(u0)
 p1=logu0 * (0.49269_C_DOUBLE - 1.09870_C_DOUBLE * eta + 0.78557_C_DOUBLE*eta**2)
 p2=0.70256_C_DOUBLE-1.09865_C_DOUBLE*eta+1.00460_C_DOUBLE*eta**2 + logu0
@@ -213,7 +212,7 @@ rhoz = rhozmax*(p1/p2)
 
 !photoelectric absorption of Bremsstrahlung
 DO i=1,ncont
-        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
         + tube_delta_energy/2.0_C_DOUBLE,KIND=C_FLOAT))
 ENDDO
 
@@ -368,7 +367,7 @@ ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
         +tube_delta_energy/2.0_C_DOUBLE,C_FLOAT)))
 ENDDO
 ENDIF
@@ -382,14 +381,14 @@ ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_cont(i)%start_energy&
+        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
         ,C_FLOAT)))
 ENDDO
 ENDIF
 
 !correct for the current
 ebel_spectrum_cont(:)%horizontal_intensity=ebel_spectrum_cont(:)%horizontal_intensity*&
-tube_solid_angle*tube_current*tube_delta_energy/2.0
+tube_solid_angle*tube_current/2.0
 ebel_spectrum_cont(:)%vertical_intensity=ebel_spectrum_cont(:)%horizontal_intensity
 ebel_spectrum_cont(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_y = 0.0_C_DOUBLE
@@ -415,7 +414,6 @@ ebel_excitation_rv%n_discrete = ndisc
 ebel_excitation_rv%n_continuous = ncont
 ebel_excitation_rv%discrete = C_LOC(ebel_spectrum_disc_rv(1))
 ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
-ebel_excitation_rv%last_energy = last_energy
 
 
 

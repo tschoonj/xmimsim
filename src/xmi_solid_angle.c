@@ -359,11 +359,11 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//low energy limit
 	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
-	if (A->excitation->n_continuous > 0 && A->excitation->n_discrete > 0) {
-		energy = MIN(A->excitation->continuous[0].start_energy, A->excitation->discrete[0].energy);
+	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
+		energy = MIN(A->excitation->continuous[0].energy, A->excitation->discrete[0].energy);
 	}
-	else if (A->excitation->n_continuous > 0)
-		energy = A->excitation->continuous[0].start_energy;
+	else if (A->excitation->n_continuous > 1)
+		energy = A->excitation->continuous[0].energy;
 	else
 		energy = A->excitation->discrete[0].energy;
 
@@ -395,11 +395,11 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//high energy limit
 	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
-	if (A->excitation->n_continuous > 0 && A->excitation->n_discrete > 0) {
-		energy = MAX(A->excitation->last_energy, A->excitation->discrete[A->excitation->n_discrete-1].energy);
+	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
+		energy = MAX(A->excitation->continuous[A->excitation->n_continuous-1].energy, A->excitation->discrete[A->excitation->n_discrete-1].energy);
 	}
-	else if (A->excitation->n_continuous > 0)
-		energy = A->excitation->last_energy;
+	else if (A->excitation->n_continuous > 1)
+		energy = A->excitation->continuous[A->excitation->n_continuous-1].energy;
 	else
 		energy = A->excitation->discrete[A->excitation->n_discrete-1].energy;
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
@@ -434,10 +434,10 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
 	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
-		energy = MIN(B->excitation->continuous[0].start_energy, B->excitation->discrete[0].energy);
+		energy = MIN(B->excitation->continuous[0].energy, B->excitation->discrete[0].energy);
 	}
 	else if (B->excitation->n_continuous > 0)
-		energy = B->excitation->continuous[0].start_energy;
+		energy = B->excitation->continuous[0].energy;
 	else
 		energy = B->excitation->discrete[0].energy;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
@@ -478,11 +478,11 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//high energy limit
 	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
-	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
-		energy = MAX(B->excitation->last_energy, B->excitation->discrete[B->excitation->n_discrete-1].energy);
+	if (B->excitation->n_continuous > 1 && B->excitation->n_discrete > 0) {
+		energy = MAX(B->excitation->continuous[B->excitation->n_continuous-1].energy, B->excitation->discrete[B->excitation->n_discrete-1].energy);
 	}
-	else if (B->excitation->n_continuous > 0)
-		energy = B->excitation->last_energy;
+	else if (B->excitation->n_continuous > 1)
+		energy = B->excitation->continuous[B->excitation->n_continuous-1].energy;
 	else
 		energy = B->excitation->discrete[B->excitation->n_discrete-1].energy;
 	for (i = 0 ; i < B->composition->n_layers ; i++) {

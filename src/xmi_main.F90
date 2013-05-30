@@ -75,6 +75,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         REAL (C_DOUBLE) :: hor_ver_ratio
         INTEGER (C_LONG) :: n_photons
         REAL (C_DOUBLE) :: iv_start_energy, iv_end_energy
+        REAL (C_DOUBLE) :: iv_start_intensity, iv_end_intensity
         INTEGER :: ipol
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
         INTEGER (C_LONG) :: photons_simulated, detector_hits, rayleighs,&
@@ -107,6 +108,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (OMP_LOCK_KIND) :: omp_lock
         INTEGER (4) :: time_before, time_after
         REAL (C_DOUBLE) :: weight
+
+        TYPE (xmi_ran_trap_workspace) :: workspace
 
         
         CALL SetErrorMessages(0)
@@ -243,9 +246,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
 !$omp photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy,&
 !$omp iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,&
-!$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle,weight)&
+!$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle,weight, workspace,&
+!$omp iv_start_intensity, iv_end_intensity)&
 !$omp reduction(+:photons_simulated,detector_hits, detector_hits2,channels,&
-!$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history, detector_solid_angle_not_found) &
+!$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history,&
+!$omp detector_solid_angle_not_found) &
 !$omp num_threads(options%omp_num_threads)
 
 !
@@ -274,21 +279,28 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 #define exc inputF%excitation
-        cont:DO i=1,exc%n_continuous
+        cont:DO i=1,exc%n_continuous-1
                 n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
-                total_intensity=exc%continuous(i)%vertical_intensity+ &
-                exc%continuous(i)%horizontal_intensity
-                hor_ver_ratio = &
-                exc%continuous(i)%horizontal_intensity*n_photons/ &
-                total_intensity
+                !total_intensity=exc%continuous(i)%vertical_intensity+ &
+                !exc%continuous(i)%horizontal_intensity
+                !hor_ver_ratio = &
+                !exc%continuous(i)%horizontal_intensity*n_photons/ &
+                !total_intensity
                 !Calculate the initial energy -> interval boundaries
-                iv_start_energy = exc%continuous(i)%start_energy
-                IF (i .EQ. exc%n_continuous) THEN
-                        iv_end_energy = exc%last_energy
-                ELSE
-                        iv_end_energy = exc%continuous(i+1)%start_energy
-                ENDIF
+                iv_start_energy = exc%continuous(i)%energy
+                iv_end_energy = exc%continuous(i+1)%energy
+                iv_start_intensity = exc%continuous(i)%vertical_intensity+ &
+                exc%continuous(i)%horizontal_intensity
+                iv_end_intensity = exc%continuous(i+1)%vertical_intensity+ &
+                exc%continuous(i+1)%horizontal_intensity
 
+                total_intensity = (iv_start_intensity+iv_end_intensity)* &
+                (iv_end_energy-iv_start_energy)/2.0_C_DOUBLE
+
+                IF (xmi_ran_trap_workspace_init(iv_start_energy, iv_end_energy,&
+                iv_start_intensity, iv_end_intensity,workspace) == 0_C_INT) THEN
+                        CALL EXIT(1)
+                ENDIF
 
                 photons_cont:DO j=1,n_photons
                         !Allocate the photon
@@ -304,9 +316,16 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
                         
-                        !Calculate energy with rng
+                        !Calculate energy with rng -> sample from trapezoidal distribution
                         photon%energy = &
-                        fgsl_ran_flat(rng,iv_start_energy,iv_end_energy)
+                        xmi_ran_trap(rng,workspace)
+
+                        hor_ver_ratio = interpolate_simple([iv_start_energy,&
+                        exc%continuous(i)%horizontal_intensity],[iv_end_energy,&
+                        exc%continuous(i+1)%horizontal_intensity],photon%energy)/&
+                        interpolate_simple([iv_start_energy,&
+                        iv_start_intensity],[iv_end_energy,&
+                        iv_end_intensity],photon%energy)
 
                         exc_corr = 1.0_C_DOUBLE
                         DO k=1,inputF%absorbers%n_exc_layers
@@ -321,7 +340,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%energy)
 
                         weight = (total_intensity)*exc_corr/inputF%general%n_photons_interval
-                        !/(iv_end_energy-iv_start_energy)
+                        !/(iv_end_energy-iv_energy)
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
@@ -338,7 +357,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon)
 
                         !Calculate its weight and electric field...
-                        IF (j .LE. hor_ver_ratio) THEN
+                        IF (fgsl_rng_uniform(rng) .LE. hor_ver_ratio) THEN
                                 !horizontal
                                 photon%weight = weight 
                                 photon%elecv(1) = 0.0_C_DOUBLE

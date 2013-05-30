@@ -267,7 +267,7 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		else {
 			int i;
 			for (i = 0 ; i < gen->excitation->n_continuous ; i++) {
-				fprintf(filePtr, "%lg     %lg\n", gen->excitation->continuous[i].start_energy, gen->excitation->continuous[i].horizontal_intensity*2.0);
+				fprintf(filePtr, "%lg     %lg\n", gen->excitation->continuous[i].energy, gen->excitation->continuous[i].horizontal_intensity*2.0);
 			}
 			for (i = 0 ; i < gen->excitation->n_discrete ; i++) {
 				fprintf(filePtr, "%lg     %lg\n", gen->excitation->discrete[i].energy, gen->excitation->discrete[i].horizontal_intensity*2.0);
@@ -302,7 +302,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
 		gtk_list_store_append(contWidget->store, &iter);
 		gtk_list_store_set(contWidget->store, &iter,
-		ENERGY_COLUMN, (current)->xi->excitation->continuous[i].start_energy,
+		ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
 		HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
 		VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
 		SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
@@ -499,11 +499,11 @@ static void generate_spectrum(struct generate *gen) {
 	int i,j;
 
 	for (i = 0 ; i < gen->excitation->n_continuous ; i++)
-		bins[i] = gen->excitation->continuous[i].horizontal_intensity*2.0;
+		bins[i] = gen->excitation->continuous[i].horizontal_intensity*2.0*tube_deltaE;
 
 	for (i = 0 ; i < gen->excitation->n_discrete ; i++) {
 		for (j = 0 ; j < gen->excitation->n_continuous ; j++) {
-			if (gen->excitation->discrete[i].energy < gen->excitation->continuous[j].start_energy && j != 0) {
+			if (gen->excitation->discrete[i].energy < gen->excitation->continuous[j].energy && j != 0) {
 				bins[j-1] += gen->excitation->discrete[i].horizontal_intensity*2.0;
 				break;
 			}
@@ -511,14 +511,14 @@ static void generate_spectrum(struct generate *gen) {
 	}
 	
 	double plot_ymax = xmi_maxval_double(bins,gen->excitation->n_continuous)*1.2;
-	double plot_ymin = xmi_minval_double(bins,gen->excitation->n_continuous)*0.8;
-	//double plot_ymin = 0.0;
+	//double plot_ymin = xmi_minval_double(bins,gen->excitation->n_continuous)*0.8;
+	double plot_ymin = 0.0;
 	double plot_xmin = 0.0;
-	double plot_xmax = gen->excitation->last_energy;
+	double plot_xmax = gen->excitation->continuous[gen->excitation->n_continuous-1].energy;
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,5.0,5);
-	//gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,(plot_ymax-plot_ymin)/10,5);
-	gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,(plot_ymax-plot_ymin)/10,5);
+	//gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
 	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
@@ -557,7 +557,7 @@ static void generate_spectrum(struct generate *gen) {
 
 	double *energies = (double *) malloc(sizeof(double) * gen->excitation->n_continuous);
 	for (i=0 ; i < gen->excitation->n_continuous ; i++)
-		energies[i] = gen->excitation->continuous[i].start_energy;
+		energies[i] = gen->excitation->continuous[i].energy;
 
 	GtkPlotData *dataset;
 	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
@@ -804,7 +804,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 				for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
 					gtk_list_store_append(contWidget->store, &iter);
 					gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current)->xi->excitation->continuous[i].start_energy,
+					ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
 					HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
 					VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
 					SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
@@ -1027,7 +1027,7 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			energy_disc->sigma_yp = value7;
 		}
 		else if (discOrCont == CONTINUOUS) {
-			energy_cont->start_energy = value1;
+			energy_cont->energy = value1;
 			energy_cont->horizontal_intensity = value2;
 			energy_cont->vertical_intensity = value3;
 			energy_cont->sigma_x = value4;
@@ -1176,7 +1176,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 		for (i = 0 ; i < n_energies ; i++) {
 			gtk_list_store_append(store,&iter);
 			gtk_list_store_set(store, &iter,
-			ENERGY_COLUMN, energies_c[i].start_energy,
+			ENERGY_COLUMN, energies_c[i].energy,
 			HOR_INTENSITY_COLUMN, energies_c[i].horizontal_intensity,
 			VER_INTENSITY_COLUMN, energies_c[i].vertical_intensity,
 			SIGMA_X_COLUMN, energies_c[i].sigma_x,
@@ -1194,10 +1194,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Energy (keV)", renderer,"text",ENERGY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
-	if (kind == DISCRETE)
-		gtk_tree_view_column_set_title(column, "Energy (keV)");
-	else
-		gtk_tree_view_column_set_title(column, "Start energy (keV)");
+	gtk_tree_view_column_set_title(column, "Energy (keV)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -1208,7 +1205,10 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Horizontal intensity (ph/s)", renderer,"text",HOR_INTENSITY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_title(column, "Horizontal intensity (ph/s)");
+	if (kind == DISCRETE) 
+		gtk_tree_view_column_set_title(column, "Horizontal intensity (ph/s)");
+	else
+		gtk_tree_view_column_set_title(column, "Horizontal intensity (ph/s/keV)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -1219,7 +1219,10 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Vertical intensity (ph/s)", renderer,"text",VER_INTENSITY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_title(column, "Vertical intensity (ph/s)");
+	if (kind == DISCRETE) 
+		gtk_tree_view_column_set_title(column, "Vertical intensity (ph/s)");
+	else
+		gtk_tree_view_column_set_title(column, "Vertical intensity (ph/s/keV)");
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
@@ -1427,7 +1430,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 		for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
 			gtk_list_store_append(contWidget->store, &iter);
 			gtk_list_store_set(contWidget->store, &iter,
-				ENERGY_COLUMN, (current)->xi->excitation->continuous[i].start_energy,
+				ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
 				HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
 				VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
 				SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
@@ -1499,7 +1502,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (discOrCont == CONTINUOUS) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%lg",energy_cont->start_energy);
+			sprintf(buffer,"%lg",energy_cont->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
 			sprintf(buffer,"%lg",energy_cont->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
@@ -1558,10 +1561,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 
 	//Energy
 	HBox = gtk_hbox_new(FALSE,2);
-	if (kind == DISCRETE)
-		label = gtk_label_new("Energy (keV)");
-	else
-		label = gtk_label_new("Start energy (keV)");
+	label = gtk_label_new("Energy (keV)");
 	entry = gtk_entry_new();
 	rv->energyGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -1571,7 +1571,10 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 
 	//horizontal intensity
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Horizontally polarized intensity (ph/s)");
+	if (kind == DISCRETE)
+		label = gtk_label_new("Horizontally polarized intensity (ph/s)");
+	else
+		label = gtk_label_new("Horizontally polarized intensity (ph/s/keV)");
 	entry = gtk_entry_new();
 	rv->hor_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -1581,7 +1584,10 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 
 	//vertical intensity
 	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Vertically polarized intensity (ph/s)");
+	if (kind == DISCRETE)
+		label = gtk_label_new("Vertically polarized intensity (ph/s)");
+	else
+		label = gtk_label_new("Vertically polarized intensity (ph/s/keV)");
 	entry = gtk_entry_new();
 	rv->ver_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -1672,11 +1678,6 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 	gtk_box_pack_start(GTK_BOX(mainvbox), separator, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(mainvbox), gtk_label_new("Continuous energies"), FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainvbox), contWidget->widget, FALSE, FALSE, 2);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(mainvbox), hbox, TRUE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("End energy of last interval (keV)"), FALSE, FALSE, 0);
-	contWidget->last_energyW = gtk_entry_new();
-	gtk_box_pack_end(GTK_BOX(hbox), contWidget->last_energyW, FALSE, FALSE, 0);
 
 
 
@@ -1852,12 +1853,12 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 			case 3: 
 				temp.horizontal_intensity = horizontal_intensity;
 				temp.vertical_intensity = vertical_intensity;
-				temp.start_energy = energy;
+				temp.energy = energy;
 				break;
 			case 2:
 				temp.horizontal_intensity = horizontal_intensity/2.0;
 				temp.vertical_intensity = horizontal_intensity/2.0;
-				temp.start_energy = energy;
+				temp.energy = energy;
 				break;
 			default:
 				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %i lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
@@ -1865,7 +1866,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 		};
 
 		//ignore the useless lines
-		if (energy <= 0.0000000001 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+		if (energy <= 0.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
 			nlines--;
 			continue;
 		}

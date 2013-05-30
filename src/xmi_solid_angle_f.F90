@@ -104,12 +104,12 @@ BIND(C,NAME='xmi_solid_angle_calculation')
         ALLOCATE(mu(inputF%composition%n_layers))
         my_sum = 0.0_C_DOUBLE
 
-        IF (inputF%excitation%n_continuous > 0 .AND. &
+        IF (inputF%excitation%n_continuous > 1 .AND. &
         inputF%excitation%n_discrete > 0) THEN
-                energy = MIN(inputF%excitation%continuous(1)%start_energy,&
+                energy = MIN(inputF%excitation%continuous(1)%energy,&
                 inputF%excitation%discrete(1)%energy)
-        ELSEIF (inputF%excitation%n_continuous > 0) THEN
-                energy = inputF%excitation%continuous(1)%start_energy
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(1)%energy
         ELSE
                 energy = inputF%excitation%discrete(1)%energy
         ENDIF
@@ -165,12 +165,13 @@ BIND(C,NAME='xmi_solid_angle_calculation')
 
         !S2
         my_sum = 0.0_C_DOUBLE
-        IF (inputF%excitation%n_continuous > 0 .AND. &
+        IF (inputF%excitation%n_continuous > 1 .AND. &
         inputF%excitation%n_discrete > 0) THEN
-                energy = MAX(inputF%excitation%last_energy,&
+                energy =&
+                MAX(inputF%excitation%continuous(inputF%excitation%n_continuous)%energy,&
                 inputF%excitation%discrete(inputF%excitation%n_discrete)%energy)
-        ELSEIF (inputF%excitation%n_continuous > 0) THEN
-                energy = inputF%excitation%last_energy
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(inputF%excitation%n_continuous)%energy
         ELSE
                 energy = inputF%excitation%discrete(inputF%excitation%n_discrete)%energy
         ENDIF

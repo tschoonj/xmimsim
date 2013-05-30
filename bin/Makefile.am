@@ -29,8 +29,7 @@ bin_PROGRAMS =  xmimsim \
 		xmso2spe \
 		xmso2csv \
 		xmso2htm \
-		xmso2xmsi #\
-		#xmimsim-test-ebel
+		xmso2xmsi 
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -181,8 +180,7 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmso2htm_CFLAGS = @glib2_CFLAGS@
 
-#xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
-#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la
+
 
 
 if OS_WINDOWS

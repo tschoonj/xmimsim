@@ -31,7 +31,6 @@ extern int current_nindices;
 struct energiesWidget {
 	GtkListStore *store;
 	GtkWidget *widget;
-	GtkWidget *last_energyW;
 };
 
 extern struct energiesWidget *contWidget;

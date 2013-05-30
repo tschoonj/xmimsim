@@ -78,7 +78,7 @@ struct xmi_energy_discrete {
 };
 
 struct xmi_energy_continuous {
-	double start_energy;
+	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
 	double sigma_x;

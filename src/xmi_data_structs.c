@@ -128,7 +128,6 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	if ((*B)->excitation->n_continuous > 0) {
 		(*B)->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup((A)->excitation->continuous,(A)->excitation->n_continuous*sizeof(struct xmi_energy_continuous));
 
-		(*B)->excitation->last_energy = (A)->excitation->last_energy;
 	}
 	else 
 		(*B)->excitation->continuous = NULL;
@@ -329,7 +328,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		}
 		else {
 			for (i = 0 ; i < A->excitation->n_continuous ; i++) {
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(start_energy)
+				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(energy)
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(horizontal_intensity)
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(vertical_intensity)
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_x)
@@ -337,9 +336,6 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_y)
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_yp)
 			}
-		}
-		if (A->excitation->last_energy != B->excitation->last_energy) {
-			rv |= XMI_CONFLICT_EXCITATION;
 		}
 	}	
 
@@ -565,7 +561,6 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->excitation->n_discrete = 1;
 	rv->excitation->n_continuous = 0;
 	rv->excitation->continuous = NULL;
-	rv->excitation->last_energy= 1.0;
 	rv->excitation->discrete = (struct xmi_energy_discrete *) malloc(sizeof(struct xmi_energy_discrete));
 	rv->excitation->discrete[0].energy = 28.0;
 	rv->excitation->discrete[0].horizontal_intensity= 1E12;
@@ -758,7 +753,7 @@ after_composition:
 
 after_geometry:
 
-	if (a->excitation->n_discrete == 0 && a->excitation->n_continuous == 0) {
+	if (a->excitation->n_discrete == 0 && a->excitation->n_continuous < 2) {
 		rv |= XMI_CONFLICT_EXCITATION;
 		goto after_excitation;
 	}
@@ -789,7 +784,7 @@ after_geometry:
 		}
 	}
 	for (i = 0 ; i < a->excitation->n_continuous ; i++) {
-		if (a->excitation->continuous[i].start_energy < 0.0) {
+		if (a->excitation->continuous[i].energy < 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
@@ -801,7 +796,7 @@ after_geometry:
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
-		else if (a->excitation->continuous[i].vertical_intensity+a->excitation->continuous[i].horizontal_intensity <= 0.0) {
+		else if (a->excitation->continuous[i].vertical_intensity+a->excitation->continuous[i].horizontal_intensity < 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
@@ -813,9 +808,6 @@ after_geometry:
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
-	}
-	if (a->excitation->n_continuous > 0 && a->excitation->last_energy <= a->excitation->continuous[a->excitation->n_continuous-1].start_energy) {
-		rv |= XMI_CONFLICT_EXCITATION;
 	}
 
 after_excitation:
@@ -956,16 +948,13 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 
 	fprintf(fPtr, "continuous\n");
 	for (i = 0 ; i < input->excitation->n_continuous ; i++) {
-		fprintf(fPtr, "Start energy %i: %lf\n",i,input->excitation->continuous[i].start_energy);
+		fprintf(fPtr, "Energy %i: %lf\n",i,input->excitation->continuous[i].energy);
 		fprintf(fPtr, "Horizontal intensity: %lf\n",input->excitation->continuous[i].horizontal_intensity);
 		fprintf(fPtr, "Vertical intensity: %lf\n",input->excitation->continuous[i].vertical_intensity);
 		fprintf(fPtr, "sigma_x: %lf\n",input->excitation->continuous[i].sigma_x);
 		fprintf(fPtr, "sigma_xp: %lf\n",input->excitation->continuous[i].sigma_xp);
 		fprintf(fPtr, "sigma_y: %lf\n",input->excitation->continuous[i].sigma_y);
 		fprintf(fPtr, "sigma_yp: %lf\n",input->excitation->continuous[i].sigma_yp);
-	}
-	if (input->excitation->n_continuous > 0) {
-		fprintf(fPtr, "Last energy %lf\n", input->excitation->last_energy);
 	}
 	fprintf(fPtr, "\n");
 
