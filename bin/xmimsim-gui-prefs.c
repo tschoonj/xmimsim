@@ -48,7 +48,7 @@ static int current_index;
 static int current_nindices;
 static GtkTreeIter current_iter;
 
-gchar * xmimsim_download_locations[] = {
+const gchar * const xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
@@ -272,7 +272,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
-	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length(xmimsim_download_locations));
+	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	//save file
 	//create dir first if necessary
 	if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
@@ -412,14 +412,14 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			if (error != NULL) {
 				//error
 				fprintf(stderr,"Download locations not found in preferences file\n");
-				fprintf(stdout,"Number of locations: %i\n",g_strv_length(xmimsim_download_locations));
-				g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length(xmimsim_download_locations));
+				fprintf(stdout,"Number of locations: %i\n",g_strv_length((gchar **) xmimsim_download_locations));
+				g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
-				prefs->ss = g_strdupv(xmimsim_download_locations);
+				prefs->ss = g_strdupv((gchar **) xmimsim_download_locations);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON: 
@@ -518,7 +518,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_boolean(keyfile, "Preferences","Pile-up", prefs.b);
 			break;
 		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS: 
-			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  prefs.ss, (gsize) g_strv_length(prefs.ss));
+			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  (const gchar * const *) prefs.ss, (gsize) g_strv_length(prefs.ss));
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON: 
 			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);

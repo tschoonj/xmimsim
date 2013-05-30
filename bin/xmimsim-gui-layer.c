@@ -179,8 +179,8 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		fprintf(stdout,"n_elements: %i\n",(*(lw->my_layer))->n_elements);
 		fprintf(stdout,"first element: %lf\n",(*(lw->my_layer))->weight[0]);
 #endif
-		sprintf(buffer,"%g", xmi_sum_double((*(lw->my_layer))->weight,(*(lw->my_layer))->n_elements )*100.0);
-		gtk_entry_set_text(GTK_ENTRY(lw->sumEntry), buffer);
+		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(lw->my_layer))->weight,(*(lw->my_layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(lw->sumEntry), buffer);
 
 		//fill up the different elements
 		gtk_list_store_clear(lw->store);
@@ -198,7 +198,7 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 	else {
 		//clear it
 		gtk_list_store_clear(lw->store);
-		gtk_entry_set_text(GTK_ENTRY(lw->sumEntry),"0");
+		gtk_label_set_markup(GTK_LABEL(lw->sumEntry),"<span weight=\"bold\">0.0</span>");
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
 		gtk_widget_set_sensitive(lw->okButton, FALSE);
@@ -208,6 +208,9 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 
 	g_signal_handler_unblock(G_OBJECT(lw->densityEntry),lw->densityG);
 	g_signal_handler_unblock(G_OBJECT(lw->thicknessEntry),lw->thicknessG);
+
+	
+	gtk_widget_grab_default(lw->okButton);
 
 }
 
@@ -219,7 +222,7 @@ void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if ((*(ad->layer))->n_elements > 0) {
 		sum = xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements );
-		gtk_entry_set_text(GTK_ENTRY(ad->sumEntry),"100");
+		gtk_label_set_markup(GTK_LABEL(ad->sumEntry),"<span weight=\"bold\">100.0</span>");
 		xmi_scale_double((*(ad->layer))->weight,(*(ad->layer))->n_elements, 1.0/sum);	
 
 		gtk_list_store_clear(ad->store);
@@ -243,7 +246,7 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(lw->densityEntry));
 	textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry));
-	textPtr3 = (char *) gtk_entry_get_text(GTK_ENTRY(lw->sumEntry));
+	textPtr3 = (char *) gtk_label_get_text(GTK_LABEL(lw->sumEntry));
 
 	density = strtod(textPtr, &endPtr);
 	thickness = strtod(textPtr2, &endPtr2);
@@ -425,8 +428,8 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		(*(ad->cw->lw->my_layer))->Z = (int *) realloc((*(ad->cw->lw->my_layer))->Z, sizeof(int)*((*(ad->cw->lw->my_layer))->n_elements-1));
 		(*(ad->cw->lw->my_layer))->n_elements--;
 		gtk_list_store_remove(ad->store, &iter);
-		sprintf(buffer,"%g", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
-		gtk_entry_set_text(GTK_ENTRY(ad->cw->lw->sumEntry), buffer);
+		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(ad->cw->lw->sumEntry), buffer);
 		if ((*(ad->cw->lw->my_layer))->n_elements == 0)
 			gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
 		else{
@@ -455,6 +458,7 @@ void dialog_show_cb(GtkWidget *widget, gpointer data) {
 
 	gtk_widget_modify_base(cw->compoundEntry,GTK_STATE_NORMAL,&white);
 	gtk_widget_modify_base(cw->weightEntry,GTK_STATE_NORMAL,&white);
+	gtk_dialog_set_default_response(GTK_DIALOG(widget), GTK_RESPONSE_ACCEPT);
 
 }
 
@@ -605,8 +609,8 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 				-1
 			);
 		} 
-		sprintf(buffer,"%g", xmi_sum_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements )*100.0);
-		gtk_entry_set_text(GTK_ENTRY(cw->lw->sumEntry), buffer);
+		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(cw->lw->sumEntry), buffer);
 
 
 
@@ -630,6 +634,9 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	GtkWidget *label;
 	GtkWidget *okButton=my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 	GtkWidget *cancelButton=my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_REJECT);
+
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+
 	struct compoundWidget *rv;
 
 	gtk_widget_set_sensitive(okButton, FALSE);
@@ -639,6 +646,7 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Compound");
 	compoundEntry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(compoundEntry), TRUE);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), compoundEntry, FALSE, FALSE, 2);
 
@@ -647,6 +655,7 @@ struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWin
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Weight fraction (%)");
 	weightEntry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(weightEntry), TRUE);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), weightEntry, FALSE, FALSE, 2);
 
@@ -816,11 +825,11 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	//Sum and normalize
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Weights sum (%)");
-	sumEntry = gtk_entry_new();
-	gtk_entry_set_editable(GTK_ENTRY(sumEntry),FALSE);
+	sumEntry = gtk_label_new("");
+	gtk_label_set_justify(GTK_LABEL(sumEntry), GTK_JUSTIFY_CENTER);
 	normalizeButton = gtk_button_new_with_label("Normalize");
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(HBox), sumEntry, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(HBox), sumEntry, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), normalizeButton, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(normalizeButton), "clicked", G_CALLBACK(normalize_button_clicked_cb), (gpointer) ad);
@@ -834,6 +843,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
 	densityEntry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(densityEntry), TRUE);
 	rv->densityG =g_signal_connect(G_OBJECT(densityEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
@@ -841,6 +851,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Thickness (cm)");
 	thicknessEntry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(thicknessEntry), TRUE);
 	rv->thicknessG = g_signal_connect(G_OBJECT(thicknessEntry),"changed",G_CALLBACK(density_thickness_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), thicknessEntry, FALSE, FALSE, 2);
@@ -859,6 +870,8 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	gtk_box_pack_start(GTK_BOX(HBox), okButton, TRUE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(HBox), cancelButton, TRUE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
+	gtk_widget_set_can_default(okButton, TRUE);
+	gtk_widget_grab_default(okButton);
 
 	//end of drawing widgets
 

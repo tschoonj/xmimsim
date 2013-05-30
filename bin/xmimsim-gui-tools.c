@@ -363,9 +363,9 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
-	const gchar *xmsofile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	const gchar *xmsifile = gtk_entry_get_text(GTK_ENTRY(xt->entry2));
-	const gchar *outputfile= gtk_entry_get_text(GTK_ENTRY(xt->entry3));
+	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *xmsifile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *outputfile= (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry3));
 
 	if (strcmp(outputfile,"(optional)") == 0)
 		outputfile = NULL;
@@ -414,8 +414,8 @@ static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 		return ;
 	}
 
-	const gchar *xmsofile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	const gchar *csvfile = gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *csvfile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
 	unsigned convoluted;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1)))
@@ -472,8 +472,8 @@ static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
-	const gchar *xmsofile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	const gchar *htmlfile = gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *htmlfile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
 	unsigned convoluted;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1)))
@@ -530,8 +530,8 @@ static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 		return ;
 	}
 
-	const gchar *xmsofile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	const gchar *svgfile = gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *svgfile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
 	unsigned convoluted;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1)))
@@ -587,8 +587,8 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 		return ;
 	}
 
-	const gchar *xmsofile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	const gchar *spefile = gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *spefile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
 	unsigned convoluted;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1)))

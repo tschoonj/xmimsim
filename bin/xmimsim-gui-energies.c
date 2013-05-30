@@ -977,39 +977,43 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 
 	if (value2 > 0.0)
 		ok2 = 1;
-	else if (strlen(textPtr2) == 0 || textPtr2 + strlen(textPtr2) != endPtr2)
+	else if (strlen(textPtr2) == 0)
 		ok2 = 0;
-	else if (value2 == 0.0)
+	else if (textPtr2 + strlen(textPtr2) != endPtr2)
 		ok2 = -1;
+	else if (value2 == 0.0)
+		ok2 = -2;
 	else 
-		ok2 = 0;
+		ok2 = -1;
 
 	if (value3 > 0.0)
 		ok3 = 1;
-	else if (strlen(textPtr3) == 0 || textPtr3 + strlen(textPtr3) != endPtr3)
+	else if (strlen(textPtr3) == 0)
 		ok3 = 0;
-	else if (value3 == 0.0)
+	else if (textPtr3 + strlen(textPtr3) != endPtr3)
 		ok3 = -1;
+	else if (value3 == 0.0)
+		ok3 = -2;
 	else 
-		ok3 = 0;
+		ok3 = -1;
 
 
-	if (ok2 == 1)	
+	if (ok2 == 1 || ok2 == 0)	
 		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
-	else if (ok2 == 0)
+	else if (ok2 == -1)
 		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&red);
 
-	if (ok3 == 1)	
+	if (ok3 == 1 || ok3 == 0)	
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
-	else if (ok3 == 0)
+	else if (ok3 == -1)
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
 
-	if ((ok2 == 1 && ok3 == -1)||(ok2 == -1 && ok3 == 1)) {
+	if ((ok2 == 1 && ok3 == -2 && discOrCont == DISCRETE)||(ok2 == -2 && ok3 == 1 && discOrCont == DISCRETE)) {
 		ok2 = ok3 = 1;
 		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
 	}
-	else if ((ok2 == -1 && ok3 == -1)) {
+	else if ((ok2 == -2 && ok3 == -2 && discOrCont == DISCRETE)) {
 		ok2 = ok3 = 0;
 		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&red);
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
@@ -1449,6 +1453,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	struct energyDialog *ew = (struct energyDialog *) data;
 	char buffer[512];
 
+	
 
 	g_signal_handler_block(G_OBJECT(ew->energyEntry),ew->energyGulong);
 	g_signal_handler_block(G_OBJECT(ew->hor_intensityEntry),ew->hor_intensityGulong);
@@ -1527,6 +1532,8 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	g_signal_handler_unblock(G_OBJECT(ew->sigma_xpEntry),ew->sigma_xpGulong);
 	g_signal_handler_unblock(G_OBJECT(ew->sigma_ypEntry),ew->sigma_ypGulong);
 
+	gtk_widget_grab_default(ew->okButton);
+
 	return;	
 }
 
@@ -1563,6 +1570,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Energy (keV)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->energyGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1576,6 +1584,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	else
 		label = gtk_label_new("Horizontally polarized intensity (ph/s/keV)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->hor_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1589,6 +1598,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	else
 		label = gtk_label_new("Vertically polarized intensity (ph/s/keV)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->ver_intensityGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1599,6 +1609,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source size x (cm)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->sigma_xGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1609,6 +1620,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source size y (cm)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->sigma_yGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1619,6 +1631,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source divergence x (rad)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->sigma_xpGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1629,6 +1642,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	HBox = gtk_hbox_new(FALSE,2);
 	label = gtk_label_new("Source divergence y (rad)");
 	entry = gtk_entry_new();
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
 	rv->sigma_ypGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
 	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
@@ -1650,7 +1664,8 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	rv->okButton = okButton;
 	rv->cancelButton = cancelButton;
-
+	gtk_widget_set_can_default(okButton, TRUE);
+	gtk_widget_grab_default(okButton);
 
 	return rv;
 }

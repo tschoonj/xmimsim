@@ -849,7 +849,11 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	}
 
 	if ((*excitation)->n_continuous < 2 && (*excitation)->n_discrete == 0) {
-		fprintf(stderr,"Found no valid discrete or continuous energies in xml file\n");
+		fprintf(stderr,"Error: Found no valid discrete or continuous energies in xml file\n");
+		return 0;
+	}
+	else if ((*excitation)->n_continuous == 1) {
+		fprintf(stderr,"Error: Found only one continuous interval in xml file\nMust be either none or at least two\n");
 		return 0;
 	}
 

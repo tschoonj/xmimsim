@@ -757,6 +757,10 @@ after_geometry:
 		rv |= XMI_CONFLICT_EXCITATION;
 		goto after_excitation;
 	}
+	else if (a->excitation->n_continuous == 1) {
+		rv |= XMI_CONFLICT_EXCITATION;
+		goto after_excitation;
+	}
 	for (i = 0 ; i < a->excitation->n_discrete ; i++) {
 		if (a->excitation->discrete[i].energy <= 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
@@ -805,6 +809,10 @@ after_geometry:
 			goto after_excitation;
 		}
 		else if (a->excitation->continuous[i].sigma_y < 0.0) {
+			rv |= XMI_CONFLICT_EXCITATION;
+			goto after_excitation;
+		}
+		else if (i < a->excitation->n_continuous-1 && a->excitation->continuous[i].horizontal_intensity + a->excitation->continuous[i].vertical_intensity + a->excitation->continuous[i+1].horizontal_intensity + a->excitation->continuous[i+1].vertical_intensity == 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
