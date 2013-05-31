@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include "xmi_aux.h"
 

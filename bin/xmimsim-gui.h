@@ -167,6 +167,7 @@ void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *file
 
 void xmi_open_url(char *url);
 void xmi_open_email(char *address);
+void adjust_save_buttons(void);
 
 #define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
 #define XMI_STOCK_LOGO "Logo_xmi_msim"

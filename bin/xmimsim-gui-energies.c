@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <stdlib.h>
 #include "xmi_aux.h"
+#include "xmi_ebel.h"
+#include <glib/gstdio.h>
 #include <string.h>
 #include <search.h>
 #include <gtkextra/gtkextra.h>
@@ -1783,7 +1785,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		else {
 			//make sure the value was not already in the list
 #ifdef G_OS_WIN32
-			if(_find(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) == NULL) {
+			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) == NULL) {
 #else
 			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) == NULL) {
 #endif
@@ -1895,7 +1897,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 		else {
 			//make sure the value was not already in the list
 #ifdef G_OS_WIN32
-			if(_find(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) {
+			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) {
 #else
 			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) {
 #endif

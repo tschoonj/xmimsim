@@ -342,31 +342,6 @@ gchar *xmi_version_string() {
 }
 
 
-/* getline.c --- Implementation of replacement getline function.
-   Copyright (C) 2005-2007, 2009-2013 Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation; either version 2, or (at
-   your option) any later version.
-
-   This program is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
-
-/* Written by Simon Josefsson. */
-
-#ifndef HAVE_GETLINE
-ssize_t
-getline (char **lineptr, size_t *n, FILE *stream)
-{
-  return getdelim (lineptr, n, '\n', stream);
-}
-#endif
 
 /* getdelim.c --- Implementation of replacement getdelim function.
    Copyright (C) 1994, 1996-1998, 2001, 2003, 2005-2013 Free Software
@@ -422,6 +397,14 @@ getline (char **lineptr, size_t *n, FILE *stream)
    NULL), pointing to *N characters of space.  It is realloc'ed as
    necessary.  Returns the number of characters read (not including
    the null terminator), or -1 on error or EOF.  */
+
+/* Ugly hack to get around MinGW not defining EOVERFLOW 
+ * Should be future proof though
+ */
+
+#ifndef EOVERFLOW 
+# define EOVERFLOW 132
+#endif
 
 ssize_t
 getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
@@ -502,5 +485,31 @@ getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
   funlockfile (fp); /* doesn't set errno */
 
   return result;
+}
+#endif
+
+/* getline.c --- Implementation of replacement getline function.
+   Copyright (C) 2005-2007, 2009-2013 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+
+/* Written by Simon Josefsson. */
+
+#ifndef HAVE_GETLINE
+ssize_t
+getline (char **lineptr, size_t *n, FILE *stream)
+{
+  return getdelim (lineptr, n, '\n', stream);
 }
 #endif
