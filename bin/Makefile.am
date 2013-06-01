@@ -99,7 +99,8 @@ if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc 
 xmimsim_gui_LDADD += xmimsim-icon.o
-nodist_xmimsim_gui_SOURCES = xmimsim-icons.h
+nodist_xmimsim_gui_SOURCES = xmimsim-gui-icons.h
+xmimsim_gui_CFLAGS += -I$(builddir)
 endif
 
 if ENABLE_MAC_APP
@@ -192,14 +193,17 @@ xmimsim-icon.o: xmimsim-icon.rc
 	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 
-xmimsim-icons.h:
+
+xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
-	Radiation_warning_symbol_pixbuf $(top_srcdir)/icons/256x256/apps/Radiation_warning_symbol.png \
-	Logo_xmi_msim_pixbuf $(top_srcdir)/icons/256x256/apps/Logo_xmi_msim.png \
-	> xmimsim-icons.h
+	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
+	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
+	> xmimsim-gui-icons.h
 endif
 
 
+clean-local:
+	rm -rf xmimsim-gui-icons.h
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

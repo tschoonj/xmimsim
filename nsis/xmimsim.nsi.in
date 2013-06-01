@@ -204,7 +204,7 @@ DetailPrint "Installing xraylib"
 
 
 DetailPrint "Installing GTK-EXTRA runtime libraries"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0-4.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0-4.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0-5.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" "$INSTDIR"
 
 ;my own stuff
 DetailPrint "Installing XMI-MSIM runtime library"
@@ -403,7 +403,7 @@ DetailPrint "Uninstalling Json-Glib"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libjson-glib-1.0-0.dll" 
 
 DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0-4.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" 
 
 DetailPrint "Uninstalling XMI-MSIM runtime library"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 

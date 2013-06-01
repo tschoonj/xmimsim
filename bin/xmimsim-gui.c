@@ -41,6 +41,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
+#include <gdk-pixbuf/gdk-pixdata.h>
 #include "xmimsim-gui-icons.h"
 #endif
 
@@ -3870,11 +3871,16 @@ XMI_MAIN
 	GtkIconSource *source;
 
 #ifdef G_OS_WIN32
-	iconset = gtk_icon_set_new_from_pixbuf(&Radiation_warning_symbol_pixbuf);
+	GdkPixbuf *pixbuf;
+	pixbuf = gdk_pixbuf_from_pixdata(&Radiation_warning_symbol_pixbuf, TRUE, NULL);
+	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
+	g_object_unref(pixbuf);
 	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
 	gtk_icon_set_unref (iconset);
 
-	iconset = gtk_icon_set_new_from_pixbuf(&Logo_xmi_msim_pixbuf);
+	pixbuf = gdk_pixbuf_from_pixdata(&Logo_xmi_msim_pixbuf, TRUE, NULL);
+	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
+	g_object_unref(pixbuf);
 	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
 	gtk_icon_set_unref (iconset);
 

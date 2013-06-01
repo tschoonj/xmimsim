@@ -1793,7 +1793,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 				xe[nxe-1] = temp;
 			}
 			else  {
-				g_printf(stderr,"Duplicate energies found in %s\n", filename);
+				g_fprintf(stderr,"Duplicate energies found in %s\n", filename);
 				return -4;
 			}
 		}
@@ -1905,7 +1905,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				xe[nxe-1] = temp;
 			}
 			else  {
-				g_printf(stderr,"Duplicate energies found in %s\n", filename);
+				g_fprintf(stderr,"Duplicate energies found in %s\n", filename);
 				return -4;
 			}
 		}
