@@ -41,6 +41,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
+#include "xmimsim-gui-icons.h"
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -3862,10 +3863,22 @@ XMI_MAIN
 		{XMI_STOCK_LOGO, "XMI-MSIM", 0, 0, NULL}
 	};
 	gtk_stock_add_static (stock_items, G_N_ELEMENTS (stock_items));
+
 	GtkIconFactory *factory = gtk_icon_factory_new();
 	gtk_icon_factory_add_default (factory);
 	GtkIconSet *iconset;
 	GtkIconSource *source;
+
+#ifdef G_OS_WIN32
+	iconset = gtk_icon_set_new_from_pixbuf(&Radiation_warning_symbol_pixbuf);
+	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
+	gtk_icon_set_unref (iconset);
+
+	iconset = gtk_icon_set_new_from_pixbuf(&Logo_xmi_msim_pixbuf);
+	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
+	gtk_icon_set_unref (iconset);
+
+#else
 	source = gtk_icon_source_new ();
 	gtk_icon_source_set_icon_name (source, XMI_STOCK_RADIATION_WARNING);
 
@@ -3885,6 +3898,8 @@ XMI_MAIN
 
 	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
 	gtk_icon_set_unref (iconset);
+#endif
+
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	accel_group = gtk_accel_group_new();
