@@ -134,6 +134,16 @@ struct generate {
 	GtkWidget *canvas;
 };
 
+static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
+	int Z = gtk_combo_box_get_active(widget)+1;
+	float density = ElementDensity(Z);	
+	char buffer[512];
+
+	sprintf(buffer,"%g", density);
+	gtk_entry_set_text(GTK_ENTRY(densityW), buffer);
+}
+
+
 struct transmission_data {
 	GtkWidget *anodeDensityW;
 	GtkWidget *anodeThicknessW;
@@ -1986,11 +1996,13 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	
 	//row 1
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	GtkWidget *anodeDensityW = gtk_entry_new();
 #if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *anodeMaterialW = gtk_combo_box_text_new();
 #else
 	GtkWidget *anodeMaterialW = gtk_combo_box_new_text();
 #endif
+	g_signal_connect(G_OBJECT(anodeMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) anodeDensityW);
 	int i;
 	gchar *symbol;
 	for (i = 1 ; i <= 94 ; i++) {
@@ -2004,7 +2016,6 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(anodeMaterialW), 46);
 	gtk_table_attach(GTK_TABLE(table), anodeMaterialW, 1, 2, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	GtkWidget *anodeDensityW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), anodeDensityW, 2, 3, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *anodeThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), anodeThicknessW, 3, 4, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -2021,6 +2032,8 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 #else
 	GtkWidget *windowMaterialW = gtk_combo_box_new_text();
 #endif
+	GtkWidget *windowDensityW = gtk_entry_new();
+	g_signal_connect(G_OBJECT(windowMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) windowDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
 #if GTK_CHECK_VERSION(2,24,0)
@@ -2032,7 +2045,6 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(windowMaterialW), 3);
 	gtk_table_attach(GTK_TABLE(table), windowMaterialW, 1, 2, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	GtkWidget *windowDensityW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), windowDensityW, 2, 3, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *windowThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), windowThicknessW, 3, 4, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -2046,6 +2058,8 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 #else
 	GtkWidget *filterMaterialW = gtk_combo_box_new_text();
 #endif
+	GtkWidget *filterDensityW = gtk_entry_new();
+	g_signal_connect(G_OBJECT(filterMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) filterDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
 #if GTK_CHECK_VERSION(2,24,0)
@@ -2057,11 +2071,10 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(filterMaterialW), 1);
 	gtk_table_attach(GTK_TABLE(table), filterMaterialW, 1, 2, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	GtkWidget *filterDensityW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), filterDensityW, 2, 3, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *filterThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), filterThicknessW, 3, 4, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_entry_set_text(GTK_ENTRY(filterDensityW), "0.00018");
+	gtk_entry_set_text(GTK_ENTRY(filterDensityW), "0.000166");
 	gtk_entry_set_text(GTK_ENTRY(filterThicknessW), "0");
 	
 	GtkObject *adj2 = gtk_adjustment_new(60.0,50,90,1,10,0);
