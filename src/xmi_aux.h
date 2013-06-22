@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include <glib.h>
 #include <stdio.h>
+#include <xraylib.h>
 
 
 
@@ -77,6 +78,7 @@ int xmi_cmp_int(const void *a, const void *b);
 struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl);
 
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
+struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd);
 
 int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b);
 int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b);

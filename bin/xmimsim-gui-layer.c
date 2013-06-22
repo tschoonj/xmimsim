@@ -396,6 +396,81 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	struct layerWidget *lw = (struct layerWidget *) data;
+	GtkWidget *dialog;
+	char **list = GetCompoundDataNISTList(NULL);
+	GtkWidget *content_area, *vbox;
+
+	dialog = gtk_dialog_new_with_buttons("NIST composition", GTK_WINDOW(gtk_widget_get_toplevel(widget)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	vbox = gtk_vbox_new(FALSE,2);
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Select a composition from the list"),TRUE, FALSE, 2);
+
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *listW = gtk_combo_box_text_new();
+#else
+	GtkWidget *listW = gtk_combo_box_new_text();
+#endif
+
+	int i;
+	for (i = 0 ; list[i] != NULL ; i++) {
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(listW), list[i]);
+#else
+		gtk_combo_box_append_text(GTK_COMBO_BOX(listW), list[i]);
+#endif
+		xrlFree(list[i]);
+	}
+	xrlFree(list);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(listW), 0);
+	gtk_box_pack_start(GTK_BOX(vbox), listW, TRUE, FALSE, 2);
+	gtk_widget_show_all(vbox);
+	gtk_container_add (GTK_CONTAINER (content_area), vbox);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(listW));	
+		struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
+		if (cdn == NULL) {
+			fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
+			exit(1);
+		}
+		double thickness;
+		if (*(lw->my_layer) != NULL) {
+			thickness = (*(lw->my_layer))->thickness;
+			if ((*(lw->my_layer))->n_elements > 0) {
+				free((*(lw->my_layer))->Z);
+				free((*(lw->my_layer))->weight);
+			}
+			free(*(lw->my_layer));
+		}
+		double sum = xmi_sum_double(cdn->massFractions, cdn->nElements);
+		xmi_scale_double(cdn->massFractions, cdn->nElements, 1.0/sum);
+		*(lw->my_layer) = compoundDataNIST2xmi_layer(cdn);
+
+		(*(lw->my_layer))->thickness = thickness;
+		FreeCompoundDataNIST(cdn);
+		//update store
+		gtk_list_store_clear(lw->store);
+		GtkTreeIter iter;
+		for (i = 0 ; i < (*(lw->my_layer))->n_elements ; i++) {
+			gtk_list_store_append(lw->store, &iter);
+			gtk_list_store_set(lw->store, &iter,
+				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(lw->my_layer))->Z[i]),
+				WEIGHT_COLUMN,  (*(lw->my_layer))->weight[i]*100.0,
+				-1
+			);
+		} 
+		char buffer[512];
+		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(lw->my_layer))->weight,(*(lw->my_layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(lw->sumEntry), buffer);
+		sprintf(buffer,"%g", (*(lw->my_layer))->density);
+		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry), buffer);
+	}
+	gtk_widget_destroy(dialog);
+}
 void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 	GtkTreeIter iter,temp_iter;
@@ -468,14 +543,13 @@ void dialog_show_cb(GtkWidget *widget, gpointer data) {
 void compound_changed(GtkWidget * widget, gpointer data) {
 	char *textPtr,*textPtr2,*endPtr,*lastPtr;
 	struct compoundWidget *cw = (struct compoundWidget *) data;
-	struct compoundData cd;
+	struct compoundData *cd;
 	double weight;
-	int cp_rv;
 
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry));
 	textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(cw->weightEntry));
 	weight = strtod(textPtr2, &endPtr);
-	cp_rv = CompoundParser(textPtr, &cd); 
+	cd = CompoundParser(textPtr); 
 
 #if DEBUG == 1
 	fprintf(stdout,"weight: %lf\n",weight);
@@ -490,16 +564,16 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 #endif
 
 	if (widget == cw->compoundEntry) {
-		if (cp_rv == 1) {
+		if (cd) {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
-			FREE_COMPOUND_DATA(cd);
+			FreeCompoundData(cd);
 		}
 		else {
 			//bad value
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(cw->okButton,FALSE);
 		}
-		if (cp_rv == 1 && lastPtr == endPtr && weight > 0.0) {
+		if (cd && lastPtr == endPtr && weight > 0.0) {
 			gtk_widget_set_sensitive(cw->okButton,TRUE);
 		}
 	}
@@ -512,9 +586,9 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(cw->okButton,FALSE);
 		}
-		if (cp_rv == 1 && lastPtr == endPtr && weight > 0.0) {
+		if (cd && lastPtr == endPtr && weight > 0.0) {
 			gtk_widget_set_sensitive(cw->okButton,TRUE);
-			FREE_COMPOUND_DATA(cd);
+			FreeCompoundData(cd);
 		}
 	}
 
@@ -552,8 +626,7 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 	fprintf(stdout,"Before mallocing cd2\n");
 #endif
 			//adding something
-			cd2 = (struct compoundData *) malloc(sizeof(struct compoundData));
-			if (CompoundParser(gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry)),cd2 ) != 1) {
+			if ((cd2 = CompoundParser(gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry)))) == NULL) {
 				fprintf(stdout,"compoundParser error in dialog_buttons_clicked_cb\n");
 				exit(1);
 			}
@@ -576,6 +649,8 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 				*(cw->lw->my_layer) = compoundData2xmi_layer (cdsum);
 				(*(cw->lw->my_layer))->thickness = thickness;
 				(*(cw->lw->my_layer))->density = density;
+				FreeCompoundData(cdsum);
+				FreeCompoundData(cd);
 			}
 			else if (*(cw->lw->my_layer) == NULL) {
 				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
@@ -592,11 +667,13 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 				fprintf(stdout,"error in dialog_buttons_clicked_cb\n");
 				exit(1);
 			}
+			FreeCompoundData(cd2);
 		}
 		else if (cw->kind == CW_EDIT) {
 			weight = strtod(gtk_entry_get_text(GTK_ENTRY(cw->weightEntry)),NULL);
 			(*(cw->lw->my_layer))->weight[cw->index] = weight/100.0;
 		}
+
 
 
 		//update store
@@ -723,6 +800,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	GtkWidget *addButton;
 	GtkWidget *editButton;
 	GtkWidget *removeButton;
+	GtkWidget *predefButton;
 	GtkWidget *normalizeButton;
 	GtkWidget *okButton;
 	GtkWidget *cancelButton;
@@ -805,14 +883,17 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
 	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
 	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+	predefButton = gtk_button_new_with_label("NIST composition");
 
 	gtk_widget_set_sensitive(addButton, TRUE);
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(removeButton, FALSE);
+	gtk_widget_set_sensitive(predefButton, TRUE);
 
 	gtk_box_pack_start(GTK_BOX(VBox), addButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(VBox), editButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(VBox), removeButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(VBox), predefButton, TRUE, FALSE, 3);
 
 	gtk_box_pack_start(GTK_BOX(HBox),VBox, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -820,6 +901,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	g_signal_connect(G_OBJECT(addButton),"clicked", G_CALLBACK(add_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(editButton),"clicked", G_CALLBACK(edit_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(removeButton),"clicked", G_CALLBACK(remove_button_clicked_cb), (gpointer) ad );
+	g_signal_connect(G_OBJECT(predefButton),"clicked", G_CALLBACK(predef_button_clicked_cb), (gpointer) rv );
 	g_signal_connect(G_OBJECT(tree),"row-activated", G_CALLBACK(element_row_activated_cb), (gpointer) ad);
 
 	//Sum and normalize

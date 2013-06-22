@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_linalg.h>
-#include <xraylib-parser.h>
 
 
 
@@ -194,6 +193,17 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 	return rv;
 }
 
+struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
+	struct xmi_layer *rv;
+
+	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+
+		rv->n_elements = cd->nElements;
+		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
+		rv->weight = (double *) xmi_memdup(cd->massFractions, sizeof(double)*cd->nElements);
+		rv->density = cd->density;
+	return rv;
+}
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
 	struct xmi_layer *rv;
 

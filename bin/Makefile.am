@@ -156,31 +156,36 @@ xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
-xmso2xmsi_CFLAGS = @glib2_CFLAGS@
+xmso2xmsi_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2svg_CFLAGS = @glib2_CFLAGS@
+xmso2svg_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2spe_CFLAGS = @glib2_CFLAGS@
+xmso2spe_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2csv_CFLAGS = @glib2_CFLAGS@
+xmso2csv_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2htm_CFLAGS = @glib2_CFLAGS@
+xmso2htm_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 
 

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <stdio.h>
-#include <xraylib-parser.h>
+#include <xraylib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -291,8 +291,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 
 		if (lengthlist == 1) {
 			//only one compound
-			cd1 = (struct compoundData *) malloc(sizeof(struct compoundData));
-			if (CompoundParser(g_strchug(compoundlist[0]),cd1) == 0) {
+			if ((cd1 = CompoundParser(g_strchug(compoundlist[0]))) == NULL) {
 				fprintf(stderr,"Could not parse compound %s\n",compoundlist[0]);
 				return rv;
 			}
@@ -303,30 +302,25 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 				//this creates a memory leak... but one we can live with...
 				xmi_copy_layer2(compoundData2xmi_layer (cd1), *layer);
 			}
-			FREE_COMPOUND_DATA(*cd1);
-			free(cd1);
+			FreeCompoundData(cd1);
 		}
 		else {
 			//more than one compound...
 			//start with the first compound
-			cd1 = (struct compoundData *) malloc(sizeof(struct compoundData));
-			if (CompoundParser(g_strchug(compoundlist[0]),cd1) == 0) {
+			if ((cd1 = CompoundParser(g_strchug(compoundlist[0]))) == NULL) {
 				fprintf(stderr,"Could not parse compound %s\n",compoundlist[0]);
 				return rv;
 			}
 			for (i = 1 ; i < lengthlist ; i++) {
-				cd2 = (struct compoundData *) malloc(sizeof(struct compoundData));
-				if (CompoundParser(g_strchug(compoundlist[i]),cd2) == 0) {
+				if ((cd2 = CompoundParser(g_strchug(compoundlist[i]))) == NULL) {
 					fprintf(stderr,"Could not parse compound %s\n",compoundlist[i]);
 					return rv;
 				}
 				//sum up cd1 and cd2
 				cd_sum = add_compound_data(*cd1,i==1 ? compoundfractions[0] : 1.0,*cd2, compoundfractions[i]);
-				FREE_COMPOUND_DATA(*cd1);
-				free(cd1);
+				FreeCompoundData(cd1);
 				cd1 = cd_sum;
-				FREE_COMPOUND_DATA(*cd2);
-				free(cd2);
+				FreeCompoundData(cd2);
 			}
 			if (alloc == TRUE) {
 				*layer = compoundData2xmi_layer (cd_sum);
@@ -344,8 +338,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	}
 	else {
 		//not predefined... feed it directly to xraylib
-		cd1 = (struct compoundData *) malloc(sizeof(struct compoundData));
-		if (CompoundParser(compositionString,cd1) == 0) {
+		if ((cd1 = CompoundParser(compositionString)) == NULL) {
 			fprintf(stderr,"Could not parse compound %s\n",compositionString);
 			return rv;
 		}
@@ -356,8 +349,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 			//this creates a memory leak... but one we can live with...
 			xmi_copy_layer2(compoundData2xmi_layer (cd1), *layer);
 		}
-		FREE_COMPOUND_DATA(*cd1);
-		free(cd1);
+		FreeCompoundData(cd1);
 	}
 
 #if DEBUG == 2
