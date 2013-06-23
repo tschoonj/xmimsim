@@ -210,7 +210,7 @@ void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int i;
 	GtkTreeIter iter;
 
-	if ((*(ad->layer))->n_elements > 0) {
+	if (*(ad->layer) != NULL && (*(ad->layer))->n_elements > 0) {
 		sum = xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements );
 		gtk_label_set_markup(GTK_LABEL(ad->sumEntry),"<span weight=\"bold\">100.0</span>");
 		xmi_scale_double((*(ad->layer))->weight,(*(ad->layer))->n_elements, 1.0/sum);	
