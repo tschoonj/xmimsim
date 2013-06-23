@@ -110,37 +110,27 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 }
 
 static void element_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
-	GtkTreeIter iter,temp_iter;
-	GtkTreeModel *model;
-	gboolean valid;
-	int index,nindices;
 	struct layerWidget *ad = (struct layerWidget *) data;
 
 
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		index = 0;
-		nindices = 0;
-		while(valid) {
-			if (gtk_tree_selection_iter_is_selected(selection, &temp_iter)) {
-#if DEBUG == 1
-				fprintf(stdout,"Index: %i\n",nindices);
-#endif
-				index = nindices;
-			}
-			nindices++;
-			valid = gtk_tree_model_iter_next(model, &temp_iter);
-		}
-
-		gtk_widget_set_sensitive(ad->editButton, TRUE);
-		gtk_widget_set_sensitive(ad->removeButton, TRUE);
-
+	int nselected = gtk_tree_selection_count_selected_rows(selection);
+	switch (nselected) {
+		case 0:
+			gtk_widget_set_sensitive(ad->editButton, FALSE);
+			gtk_widget_set_sensitive(ad->removeButton, FALSE);
+			break;
+		case 1:
+			gtk_widget_set_sensitive(ad->editButton, TRUE);
+			gtk_widget_set_sensitive(ad->removeButton, TRUE);
+			break;
+		default:
+			gtk_widget_set_sensitive(ad->editButton, FALSE);
+			gtk_widget_set_sensitive(ad->removeButton, TRUE);
+			break;
 	}
-	else {
-		gtk_widget_set_sensitive(ad->editButton, FALSE);
-		gtk_widget_set_sensitive(ad->removeButton, FALSE);
-	}
-	return;
+
+
+
 }
 void window_show_cb(GtkWidget *window, gpointer data) {
 
@@ -479,8 +469,43 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int index,nindices;
 	int i;
 	char buffer[512];
+	GtkTreePath *path;
 
-	if (gtk_tree_selection_get_selected(ad->select, &model, &iter)) {
+	int n_elements = (*(ad->cw->lw->my_layer))->n_elements;
+	int j;
+
+	for (i = n_elements-1 ; i >= 0 ; i--) {
+		path = gtk_tree_path_new_from_indices(i, -1);
+		if (gtk_tree_selection_path_is_selected(ad->select, path)) {
+			//row is selected
+			gtk_tree_model_get_iter (GTK_TREE_MODEL (ad->store),  &iter, path);
+			gtk_list_store_remove(ad->store, &iter);
+			//remove element from my_layer
+			for (j = i ; j < (*(ad->cw->lw->my_layer))->n_elements-1 ; j++) {
+				(*(ad->cw->lw->my_layer))->weight[j] =(*(ad->cw->lw->my_layer))->weight[j+1];
+				(*(ad->cw->lw->my_layer))->Z[j] =(*(ad->cw->lw->my_layer))->Z[j+1];
+			
+			}
+			(*(ad->cw->lw->my_layer))->weight = (double *) realloc((*(ad->cw->lw->my_layer))->weight, sizeof(double)*((*(ad->cw->lw->my_layer))->n_elements-1));
+			(*(ad->cw->lw->my_layer))->Z = (int *) realloc((*(ad->cw->lw->my_layer))->Z, sizeof(int)*((*(ad->cw->lw->my_layer))->n_elements-1));
+			(*(ad->cw->lw->my_layer))->n_elements--;
+		}
+		gtk_tree_path_free(path);
+	}
+	sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
+	gtk_label_set_markup(GTK_LABEL(ad->cw->lw->sumEntry), buffer);
+	if ((*(ad->cw->lw->my_layer))->n_elements == 0)
+		gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
+/*	else{
+		//select next line if available
+		if (index == nindices -1)
+			gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(nindices-2,-1));
+		else 
+			gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(index,-1));
+
+	}*/
+
+	/*if (gtk_tree_selection_get_selected(ad->select, &model, &iter)) {
 		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
 		index = 0;
 		nindices = 0;
@@ -515,7 +540,7 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(index,-1));
 
 		}
-	}
+	}*/
 }
 
 void dialog_hide_cb(GtkWidget *widget, gpointer data) {
@@ -871,7 +896,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 
 	//selections
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
+	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(G_OBJECT(select), "changed",
 			G_CALLBACK(element_selection_changed_cb),
 			(gpointer) rv
@@ -883,7 +908,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
 	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
 	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
-	predefButton = gtk_button_new_with_label("NIST composition");
+	predefButton = gtk_button_new_with_label("Catalog");
 
 	gtk_widget_set_sensitive(addButton, TRUE);
 	gtk_widget_set_sensitive(editButton, FALSE);
