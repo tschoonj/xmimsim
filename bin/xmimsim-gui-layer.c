@@ -505,42 +505,6 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	}*/
 
-	/*if (gtk_tree_selection_get_selected(ad->select, &model, &iter)) {
-		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		index = 0;
-		nindices = 0;
-		while(valid) {
-			if (gtk_tree_selection_iter_is_selected(ad->select, &temp_iter)) {
-#if DEBUG == 1
-				fprintf(stdout,"Index: %i\n",nindices);
-#endif
-				index = nindices;
-			}
-			nindices++;
-			valid = gtk_tree_model_iter_next(model, &temp_iter);
-		}
-
-		for (i = index ; i < nindices ; i++) {
-			(*(ad->cw->lw->my_layer))->weight[i] =(*(ad->cw->lw->my_layer))->weight[i+1];
-			(*(ad->cw->lw->my_layer))->Z[i] =(*(ad->cw->lw->my_layer))->Z[i+1];
-		}
-		(*(ad->cw->lw->my_layer))->weight = (double *) realloc((*(ad->cw->lw->my_layer))->weight, sizeof(double)*((*(ad->cw->lw->my_layer))->n_elements-1));
-		(*(ad->cw->lw->my_layer))->Z = (int *) realloc((*(ad->cw->lw->my_layer))->Z, sizeof(int)*((*(ad->cw->lw->my_layer))->n_elements-1));
-		(*(ad->cw->lw->my_layer))->n_elements--;
-		gtk_list_store_remove(ad->store, &iter);
-		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
-		gtk_label_set_markup(GTK_LABEL(ad->cw->lw->sumEntry), buffer);
-		if ((*(ad->cw->lw->my_layer))->n_elements == 0)
-			gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
-		else{
-			//select next line if available
-			if (index == nindices -1)
-				gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(nindices-2,-1));
-			else 
-				gtk_tree_selection_select_path(ad->select,gtk_tree_path_new_from_indices(index,-1));
-
-		}
-	}*/
 }
 
 void dialog_hide_cb(GtkWidget *widget, gpointer data) {

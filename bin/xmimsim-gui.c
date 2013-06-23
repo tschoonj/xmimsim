@@ -2987,6 +2987,8 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 	//should check if the user maybe would like to save his stuff...
 	
 #ifdef MAC_INTEGRATION
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return TRUE;
 	quit_program_cb((GtkOSXApplication*) data, widget);
 #else
 	quit_program_cb(widget, widget);
@@ -3370,11 +3372,20 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case DISCRETE_ENERGY_DELETE:
 			strcpy(last->message,"deletion of discrete energy");
-			if (current_nindices > 1) {
-				for (i = current_index ; i < current_nindices-1 ; i++) {
-					last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
+			int n = last->xi->excitation->n_discrete;
+			int j;
+			if (n != delete_current_nindices) {
+				for (i = n-1 ; i >= 0 ; i--) {
+					if (i == delete_current_indices[delete_current_nindices-1]) {
+						delete_current_nindices--;
+						//delete this energy
+						for (j = i ; j < last->xi->excitation->n_discrete-1 ; j++)
+							last->xi->excitation->discrete[j] = last->xi->excitation->discrete[j+1];	
+						last->xi->excitation->n_discrete--;
+					}	
 				}
-				last->xi->excitation->discrete = (struct xmi_energy_discrete *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*--last->xi->excitation->n_discrete);
+			
+				last->xi->excitation->discrete = (struct xmi_energy_discrete *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			}
 			else {
 				free(last->xi->excitation->discrete);
@@ -3433,11 +3444,20 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
-			if (current_nindices > 1) {
-				for (i = current_index ; i < current_nindices-1 ; i++) {
-					last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
+			 n = last->xi->excitation->n_continuous;
+			j;
+			if (n != delete_current_nindices) {
+				for (i = n-1 ; i >= 0 ; i--) {
+					if (i == delete_current_indices[delete_current_nindices-1]) {
+						delete_current_nindices--;
+						//delete this energy
+						for (j = i ; j < last->xi->excitation->n_continuous-1 ; j++)
+							last->xi->excitation->continuous[j] = last->xi->excitation->continuous[j+1];	
+						last->xi->excitation->n_continuous--;
+					}	
 				}
-				last->xi->excitation->continuous = (struct xmi_energy_continuous *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*--last->xi->excitation->n_continuous);
+			
+				last->xi->excitation->continuous = (struct xmi_energy_continuous *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			}
 			else {
 				free(last->xi->excitation->continuous);
@@ -4150,12 +4170,7 @@ XMI_MAIN
 	gtk_widget_show_all(toolbar);
 
 
-	//g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(quit_program_cb),(gpointer) window);
-#ifdef MAC_INTEGRATION
-	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),theApp);
-#else
 	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),window);
-#endif
 
 	//notebook
 	notebook = gtk_notebook_new();

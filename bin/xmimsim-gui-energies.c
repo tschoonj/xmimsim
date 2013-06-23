@@ -74,7 +74,8 @@ int addOrEdit;
 int discOrCont;
 int current_index;
 int current_nindices;
-static GtkTreeIter current_iter;
+int *delete_current_indices = NULL;
+int delete_current_nindices;
 
 
 struct energiesWidget *contWidget;
@@ -898,28 +899,52 @@ static void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data)
 void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	struct energyButtons *eb = (struct energyButtons *) data;
 	GtkTreeIter temp_iter;
-	GtkTreeModel *model;
+	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(selection));
 	gboolean valid;
 
+	int nselected = gtk_tree_selection_count_selected_rows(selection);
 
-	if (gtk_tree_selection_get_selected(selection, &model, &current_iter)) {
-		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		current_index = 0;
-		current_nindices = 0;
-		while (valid) {
-			if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
-				current_index = current_nindices;
+	fprintf(stdout, "energy_selection_changed_cb: %i\n",nselected);
+
+	switch (nselected) {
+		case 0:
+			gtk_widget_set_sensitive(eb->deleteButton,FALSE);
+			gtk_widget_set_sensitive(eb->editButton,FALSE);
+			break;
+		case 1:
+			valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+			current_index = 0;
+			current_nindices = 0;
+			while (valid) {
+				if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
+					current_index = current_nindices;
+				}
+				current_nindices++;
+				valid = gtk_tree_model_iter_next(model, &temp_iter);
 			}
-			current_nindices++;
-			valid = gtk_tree_model_iter_next(model, &temp_iter);
-		}
-		gtk_widget_set_sensitive(eb->deleteButton,TRUE);
-		gtk_widget_set_sensitive(eb->editButton,TRUE);
+			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
+			gtk_widget_set_sensitive(eb->editButton,TRUE);
+		default:
+			//multiple selected
+			if (delete_current_indices)
+				free(delete_current_indices);
+			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
+			if (nselected > 1)
+				gtk_widget_set_sensitive(eb->editButton,FALSE);
+			delete_current_indices = malloc(sizeof(int)*nselected);
+			delete_current_nindices = nselected;
+			int i = 0, j = 0;
+			valid = gtk_tree_model_get_iter_first(model, &temp_iter);
+			while (valid) {
+				if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
+					delete_current_indices[i++] = j;
+				}
+				j++;
+				valid = gtk_tree_model_iter_next(model, &temp_iter);
+			}
+			break;
 	}
-	else {
-		gtk_widget_set_sensitive(eb->deleteButton,FALSE);
-		gtk_widget_set_sensitive(eb->editButton,FALSE);
-	}
+
 
 	return;
 }
@@ -1061,15 +1086,27 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
 	int i;
+	GtkTreeIter iter;
+	int delete_current_nindices_local = delete_current_nindices;
 
 	if (kind == DISCRETE) {
 		//update undo buffer... and then the store
-		gtk_list_store_remove(discWidget->store, &current_iter);
 		update_undo_buffer(DISCRETE_ENERGY_DELETE,NULL);
+		for (i = delete_current_nindices_local-1 ; i >= 0 ; i--){
+			GtkTreePath *path = gtk_tree_path_new_from_indices(delete_current_indices[i], -1);
+			gtk_tree_model_get_iter(GTK_TREE_MODEL(discWidget->store), &iter, path);
+			gtk_tree_path_free(path);
+			gtk_list_store_remove(discWidget->store, &iter);
+		}
 	}
 	else if (kind == CONTINUOUS) {
-		gtk_list_store_remove(contWidget->store, &current_iter);
 		update_undo_buffer(CONTINUOUS_ENERGY_DELETE,NULL);
+		for (i = delete_current_nindices_local-1 ; i >= 0 ; i--){
+			GtkTreePath *path = gtk_tree_path_new_from_indices(delete_current_indices[i], -1);
+			gtk_tree_model_get_iter(GTK_TREE_MODEL(contWidget->store), &iter, path);
+			gtk_tree_path_free(path);
+			gtk_list_store_remove(contWidget->store, &iter);
+		}
 	}
 
 	adjust_save_buttons();
@@ -1300,7 +1337,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	eb = (struct energyButtons *) malloc(sizeof(struct energyButtons));
 
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-	gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
+	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(energy_selection_changed_cb), (gpointer) eb);
 
 	buttonbox = gtk_vbox_new(FALSE, 5);

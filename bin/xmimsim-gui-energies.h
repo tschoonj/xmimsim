@@ -27,6 +27,8 @@ extern struct xmi_energy_discrete *energy_disc;
 extern struct xmi_energy_continuous *energy_cont;
 extern int current_index;
 extern int current_nindices;
+extern int *delete_current_indices;
+extern int delete_current_nindices;
 
 struct energiesWidget {
 	GtkListStore *store;
