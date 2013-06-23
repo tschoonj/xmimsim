@@ -1330,9 +1330,9 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
-	gtk_widget_set_size_request(scrolledWindow, 660,100);
+	//gtk_widget_set_size_request(scrolledWindow, 660,100);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
-	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
+	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
 
 	eb = (struct energyButtons *) malloc(sizeof(struct energyButtons));
 

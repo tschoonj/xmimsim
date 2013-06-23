@@ -1472,6 +1472,8 @@ static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rende
 
 	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
 
+	g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	double_text = g_strdup_printf("%lg",value);
 	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
 
@@ -1561,15 +1563,18 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Number of elements", renderer,"text",N_ELEMENTS_COLUMN,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_set_expand(column, FALSE);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Elements", renderer,"text",ELEMENTS_COLUMN,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
+	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_column_set_expand(column, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
@@ -1584,7 +1589,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//gtk_label_set_text(GTK_LABEL(label), "Density(g/cm3)");
 	gtk_widget_show(label);
 	gtk_tree_view_column_set_widget(column, label);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
@@ -1598,10 +1603,10 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Thickness (cm)");
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, layer_print_double, GINT_TO_POINTER(THICKNESS_COLUMN),NULL);
 
 	
@@ -1615,16 +1620,17 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 		my_gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
 		g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(reference_layer_toggled_cb), rt);
 		column = gtk_tree_view_column_new_with_attributes("Reference layer?", renderer,"active",REFERENCE_COLUMN,NULL);
-		gtk_tree_view_column_set_resizable(column,TRUE);
+		gtk_tree_view_column_set_resizable(column,FALSE);
 		gtk_tree_view_column_set_alignment(column, 0.5);
 		gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+		gtk_tree_view_column_set_expand(column, FALSE);
 	}
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
-	gtk_widget_set_size_request(scrolledWindow, 550,100);
+	//gtk_widget_set_size_request(scrolledWindow, 550,100);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
-	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
+	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
 	
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
@@ -4545,6 +4551,7 @@ XMI_MAIN
 	//convert to composition struct
 	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->exc_layers, current->xi->absorbers->n_exc_layers   ,&temp_composition)	;
 	tempW = initialize_matrix(temp_composition  , EXC_COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 
 	frame = gtk_frame_new("Beam absorbers");
@@ -4559,6 +4566,7 @@ XMI_MAIN
 	xmi_free_composition(temp_composition);
 	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->det_layers, current->xi->absorbers->n_det_layers   ,&temp_composition);	
 	tempW = initialize_matrix(temp_composition  , DET_COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 
 	frame = gtk_frame_new("Detection absorbers");
