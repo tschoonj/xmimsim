@@ -14,6 +14,8 @@
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
+#define MIN_VERSION 2.1
+
 
 MODULE xmimsim_hdf5
 
@@ -126,6 +128,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INTEGER :: ndims
         INTEGER (HSIZE_T),DIMENSION(:), ALLOCATABLE:: dims,maxdims
         CHARACTER (LEN=2) :: element
+        REAL (C_DOUBLE) :: version
+        INTEGER (HID_T) :: attr_id
 
 
 
@@ -182,6 +186,37 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 rv = 0
                 RETURN
         ENDIF
+
+        !check version
+        CALL h5aopen_f(file_id, 'version', attr_id, error)
+        
+        IF (error /= 0) THEN
+                WRITE (error_unit,'(A,A)') 'Could not determine version of ',xmi_hdf5_fileFF
+                WRITE (error_unit,'(A)') 'Generate a new file with xmimsim-db'
+                rv = 0
+                RETURN
+        ENDIF
+       
+        CALL h5aread_f(attr_id, H5T_NATIVE_DOUBLE, version, [1_HSIZE_T], error)
+
+        IF (error /= 0) THEN
+                WRITE (error_unit,'(A,A)') 'Could not read version of ',xmi_hdf5_fileFF
+                WRITE (error_unit,'(A)') 'Generate a new file with xmimsim-db'
+                rv = 0
+                RETURN
+        ENDIF
+      
+        IF (version .LT. MIN_VERSION) THEN
+                WRITE (error_unit,'(A,A,A)') 'XMI-MSIM datafile ',xmi_hdf5_fileFF,' is outdated '
+                WRITE (error_unit,'(A)') 'Generate a new file with xmimsim-db'
+                rv = 0
+                RETURN
+        ENDIF
+
+        WRITE (output_unit, '(A, F6.1)') 'version: ', version
+
+        !close version attribute
+        CALL h5aclose_f(attr_id, error)
 
         !allocate xmi_hdf5 structure
         ALLOCATE(xmi_hdf5F)
@@ -875,13 +910,13 @@ ENDDO Zloop
 !create to hdf5 file
 CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F,file_id,h5error)
 
-!create version attribute
 
 
 
 !Create groups and fill them up...
 CALL h5gopen_f(file_id, '/', group_id, h5error)
 CALL h5screate_f(H5S_SCALAR_F, dspace_id, h5error)
+!create version attribute
 CALL h5acreate_f(group_id, 'version', H5T_NATIVE_DOUBLE, dspace_id,&
 attribute_id,h5error)
 !convert version string to double

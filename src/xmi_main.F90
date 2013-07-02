@@ -2356,35 +2356,19 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         IF (shell .EQ. K_SHELL) THEN
                 !K shell excitation
                 auger_first = K_L1L1_AUGER
-                auger_last = K_M5M5_AUGER
+                auger_last = K_M5Q3_AUGER
         ELSEIF (shell .EQ. L1_SHELL) THEN
                 !L1 shell excitation
-                auger_first = L1_L2L2_AUGER
-                auger_last = L1_M5M5_AUGER
+                auger_first = L1_M1M1_AUGER
+                auger_last = L1_M5Q3_AUGER
         ELSEIF (shell .EQ. L2_SHELL) THEN
                 !L2 shell excitation
-                auger_first = L2_L3L3_AUGER
-                auger_last = L2_M5M5_AUGER
+                auger_first = L2_M1M1_AUGER
+                auger_last = L2_M5Q3_AUGER
         ELSEIF (shell .EQ. L3_SHELL) THEN
                 !L3 shell excitation
                 auger_first = L3_M1M1_AUGER
-                auger_last = L3_M5M5_AUGER
-        ELSEIF (shell .EQ. M1_SHELL) THEN
-                !M1 shell excitation
-                auger_first = M1_M2M2_AUGER
-                auger_last = M1_M5M5_AUGER
-        ELSEIF (shell .EQ. M2_SHELL) THEN
-                !M2 shell excitation
-                auger_first = M2_M3M3_AUGER
-                auger_last = M2_M5M5_AUGER
-        ELSEIF (shell .EQ. M3_SHELL) THEN
-                !M3 shell excitation
-                auger_first = M3_M4M4_AUGER
-                auger_last = M3_M5M5_AUGER
-        ELSEIF (shell .EQ. M4_SHELL) THEN
-                !M4 shell excitation
-                auger_first = M4_M5M5_AUGER
-                auger_last = M4_M5M5_AUGER
+                auger_last = L3_M5Q3_AUGER
         ELSE
                 RETURN
         ENDIF
@@ -2408,619 +2392,1943 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
         !if we found something, determine the new shells involved
         !thanks to vim and its substitute command, this is not so tricky :-)
+        !'a,'bs/.\+_\(..\)\(..\)_AUGER/\t\tCASE(\0)\r\t\t\tshell_new1 = \1_SHELL\r\t\t\tshell_new2 = \2_SHELL/
         SELECT CASE (auger)
-                CASE (K_L1L1_AUGER)
+                CASE(K_L1L1_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_L1L2_AUGER)
+                CASE(K_L1L2_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_L1L3_AUGER)
+                CASE(K_L1L3_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_L1M1_AUGER)
+                CASE(K_L1M1_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_L1M2_AUGER)
+                CASE(K_L1M2_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_L1M3_AUGER)
+                CASE(K_L1M3_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_L1M4_AUGER)
+                CASE(K_L1M4_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_L1M5_AUGER)
+                CASE(K_L1M5_AUGER)
                         shell_new1 = L1_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_L2L1_AUGER)
+                CASE(K_L1N1_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_L1N2_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_L1N3_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_L1N4_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_L1N5_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_L1N6_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_L1N7_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_L1O1_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_L1O2_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_L1O3_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_L1O4_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_L1O5_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_L1O6_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_L1O7_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_L1P1_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_L1P2_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_L1P3_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_L1P4_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_L1P5_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_L1Q1_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_L1Q2_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_L1Q3_AUGER)
+                        shell_new1 = L1_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_L2L1_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_L2L2_AUGER)
+                CASE(K_L2L2_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_L2L3_AUGER)
+                CASE(K_L2L3_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_L2M1_AUGER)
+                CASE(K_L2M1_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_L2M2_AUGER)
+                CASE(K_L2M2_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_L2M3_AUGER)
+                CASE(K_L2M3_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_L2M4_AUGER)
+                CASE(K_L2M4_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_L2M5_AUGER)
+                CASE(K_L2M5_AUGER)
                         shell_new1 = L2_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_L3L1_AUGER)
+                CASE(K_L2N1_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_L2N2_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_L2N3_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_L2N4_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_L2N5_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_L2N6_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_L2N7_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_L2O1_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_L2O2_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_L2O3_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_L2O4_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_L2O5_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_L2O6_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_L2O7_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_L2P1_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_L2P2_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_L2P3_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_L2P4_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_L2P5_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_L2Q1_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_L2Q2_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_L2Q3_AUGER)
+                        shell_new1 = L2_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_L3L1_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_L3L2_AUGER)
+                CASE(K_L3L2_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_L3L3_AUGER)
+                CASE(K_L3L3_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_L3M1_AUGER)
+                CASE(K_L3M1_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_L3M2_AUGER)
+                CASE(K_L3M2_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_L3M3_AUGER)
+                CASE(K_L3M3_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_L3M4_AUGER)
+                CASE(K_L3M4_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_L3M5_AUGER)
+                CASE(K_L3M5_AUGER)
                         shell_new1 = L3_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_M1L1_AUGER)
+                CASE(K_L3N1_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_L3N2_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_L3N3_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_L3N4_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_L3N5_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_L3N6_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_L3N7_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_L3O1_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_L3O2_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_L3O3_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_L3O4_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_L3O5_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_L3O6_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_L3O7_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_L3P1_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_L3P2_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_L3P3_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_L3P4_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_L3P5_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_L3Q1_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_L3Q2_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_L3Q3_AUGER)
+                        shell_new1 = L3_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_M1L1_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_M1L2_AUGER)
+                CASE(K_M1L2_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_M1L3_AUGER)
+                CASE(K_M1L3_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_M1M1_AUGER)
+                CASE(K_M1M1_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_M1M2_AUGER)
+                CASE(K_M1M2_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_M1M3_AUGER)
+                CASE(K_M1M3_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_M1M4_AUGER)
+                CASE(K_M1M4_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_M1M5_AUGER)
+                CASE(K_M1M5_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_M2L1_AUGER)
+                CASE(K_M1N1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_M1N2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_M1N3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_M1N4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_M1N5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_M1N6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_M1N7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_M1O1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_M1O2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_M1O3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_M1O4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_M1O5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_M1O6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_M1O7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_M1P1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_M1P2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_M1P3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_M1P4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_M1P5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_M1Q1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_M1Q2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_M1Q3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_M2L1_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_M2L2_AUGER)
+                CASE(K_M2L2_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_M2L3_AUGER)
+                CASE(K_M2L3_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_M2M1_AUGER)
+                CASE(K_M2M1_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_M2M2_AUGER)
+                CASE(K_M2M2_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_M2M3_AUGER)
+                CASE(K_M2M3_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_M2M4_AUGER)
+                CASE(K_M2M4_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_M2M5_AUGER)
+                CASE(K_M2M5_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_M3L1_AUGER)
+                CASE(K_M2N1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_M2N2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_M2N3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_M2N4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_M2N5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_M2N6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_M2N7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_M2O1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_M2O2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_M2O3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_M2O4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_M2O5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_M2O6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_M2O7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_M2P1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_M2P2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_M2P3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_M2P4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_M2P5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_M2Q1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_M2Q2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_M2Q3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_M3L1_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_M3L2_AUGER)
+                CASE(K_M3L2_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_M3L3_AUGER)
+                CASE(K_M3L3_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_M3M1_AUGER)
+                CASE(K_M3M1_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_M3M2_AUGER)
+                CASE(K_M3M2_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_M3M3_AUGER)
+                CASE(K_M3M3_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_M3M4_AUGER)
+                CASE(K_M3M4_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_M3M5_AUGER)
+                CASE(K_M3M5_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_M4L1_AUGER)
+                CASE(K_M3N1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_M3N2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_M3N3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_M3N4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_M3N5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_M3N6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_M3N7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_M3O1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_M3O2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_M3O3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_M3O4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_M3O5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_M3O6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_M3O7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_M3P1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_M3P2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_M3P3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_M3P4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_M3P5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_M3Q1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_M3Q2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_M3Q3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_M4L1_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_M4L2_AUGER)
+                CASE(K_M4L2_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_M4L3_AUGER)
+                CASE(K_M4L3_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_M4M1_AUGER)
+                CASE(K_M4M1_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_M4M2_AUGER)
+                CASE(K_M4M2_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_M4M3_AUGER)
+                CASE(K_M4M3_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_M4M4_AUGER)
+                CASE(K_M4M4_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_M4M5_AUGER)
+                CASE(K_M4M5_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M5_SHELL
-                CASE (K_M5L1_AUGER)
+                CASE(K_M4N1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(K_M4N2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(K_M4N3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(K_M4N4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(K_M4N5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(K_M4N6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(K_M4N7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(K_M4O1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_M4O2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_M4O3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_M4O4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_M4O5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_M4O6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_M4O7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_M4P1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_M4P2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_M4P3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_M4P4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_M4P5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_M4Q1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_M4Q2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_M4Q3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(K_M5L1_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = L1_SHELL
-                CASE (K_M5L2_AUGER)
+                CASE(K_M5L2_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = L2_SHELL
-                CASE (K_M5L3_AUGER)
+                CASE(K_M5L3_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = L3_SHELL
-                CASE (K_M5M1_AUGER)
+                CASE(K_M5M1_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M1_SHELL
-                CASE (K_M5M2_AUGER)
+                CASE(K_M5M2_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M2_SHELL
-                CASE (K_M5M3_AUGER)
+                CASE(K_M5M3_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M3_SHELL
-                CASE (K_M5M4_AUGER)
+                CASE(K_M5M4_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M4_SHELL
-                CASE (K_M5M5_AUGER)
+                CASE(K_M5M5_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L1_L2L2_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_L2L3_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_L2M1_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_L2M2_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_L2M3_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_L2M4_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_L2M5_AUGER)
-                        shell_new1 = L2_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_L3L2_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_L3L3_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_L3M1_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_L3M2_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_L3M3_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_L3M4_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_L3M5_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_M1L2_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_M1L3_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_M1M1_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_M1M2_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_M1M3_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_M1M4_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_M1M5_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_M2L2_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_M2L3_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_M2M1_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_M2M2_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_M2M3_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_M2M4_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_M2M5_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_M3L2_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_M3L3_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_M3M1_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_M3M2_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_M3M3_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_M3M4_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_M3M5_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_M4L2_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_M4L3_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_M4M1_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_M4M2_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_M4M3_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_M4M4_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_M4M5_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L1_M5L2_AUGER)
+                CASE(K_M5N1_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = L2_SHELL
-                CASE (L1_M5L3_AUGER)
+                        shell_new2 = N1_SHELL
+                CASE(K_M5N2_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L1_M5M1_AUGER)
+                        shell_new2 = N2_SHELL
+                CASE(K_M5N3_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L1_M5M2_AUGER)
+                        shell_new2 = N3_SHELL
+                CASE(K_M5N4_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L1_M5M3_AUGER)
+                        shell_new2 = N4_SHELL
+                CASE(K_M5N5_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L1_M5M4_AUGER)
+                        shell_new2 = N5_SHELL
+                CASE(K_M5N6_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L1_M5M5_AUGER)
+                        shell_new2 = N6_SHELL
+                CASE(K_M5N7_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L2_L3L3_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_L3M1_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M1_SHELL
-                CASE (L2_L3M2_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M2_SHELL
-                CASE (L2_L3M3_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (L2_L3M4_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (L2_L3M5_AUGER)
-                        shell_new1 = L3_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (L2_M1L3_AUGER)
-                        shell_new1 = M1_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_M1M1_AUGER)
+                        shell_new2 = N7_SHELL
+                CASE(K_M5O1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(K_M5O2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(K_M5O3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(K_M5O4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(K_M5O5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(K_M5O6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(K_M5O7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(K_M5P1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(K_M5P2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(K_M5P3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(K_M5P4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(K_M5P5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(K_M5Q1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(K_M5Q2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(K_M5Q3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L1_M1M1_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L2_M1M2_AUGER)
+                CASE(L1_M1M2_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L2_M1M3_AUGER)
+                CASE(L1_M1M3_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L2_M1M4_AUGER)
+                CASE(L1_M1M4_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L2_M1M5_AUGER)
+                CASE(L1_M1M5_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L2_M2L3_AUGER)
-                        shell_new1 = M2_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_M2M1_AUGER)
+                CASE(L1_M1N1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L1_M1N2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L1_M1N3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L1_M1N4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L1_M1N5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L1_M1N6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L1_M1N7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L1_M1O1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L1_M1O2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L1_M1O3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L1_M1O4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L1_M1O5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L1_M1O6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L1_M1O7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L1_M1P1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L1_M1P2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L1_M1P3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L1_M1P4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L1_M1P5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L1_M1Q1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L1_M1Q2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L1_M1Q3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L1_M2M1_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L2_M2M2_AUGER)
+                CASE(L1_M2M2_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L2_M2M3_AUGER)
+                CASE(L1_M2M3_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L2_M2M4_AUGER)
+                CASE(L1_M2M4_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L2_M2M5_AUGER)
+                CASE(L1_M2M5_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L2_M3L3_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_M3M1_AUGER)
+                CASE(L1_M2N1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L1_M2N2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L1_M2N3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L1_M2N4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L1_M2N5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L1_M2N6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L1_M2N7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L1_M2O1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L1_M2O2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L1_M2O3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L1_M2O4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L1_M2O5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L1_M2O6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L1_M2O7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L1_M2P1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L1_M2P2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L1_M2P3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L1_M2P4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L1_M2P5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L1_M2Q1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L1_M2Q2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L1_M2Q3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L1_M3M1_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L2_M3M2_AUGER)
+                CASE(L1_M3M2_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L2_M3M3_AUGER)
+                CASE(L1_M3M3_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L2_M3M4_AUGER)
+                CASE(L1_M3M4_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L2_M3M5_AUGER)
+                CASE(L1_M3M5_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L2_M4L3_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_M4M1_AUGER)
+                CASE(L1_M3N1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L1_M3N2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L1_M3N3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L1_M3N4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L1_M3N5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L1_M3N6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L1_M3N7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L1_M3O1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L1_M3O2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L1_M3O3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L1_M3O4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L1_M3O5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L1_M3O6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L1_M3O7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L1_M3P1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L1_M3P2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L1_M3P3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L1_M3P4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L1_M3P5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L1_M3Q1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L1_M3Q2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L1_M3Q3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L1_M4M1_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L2_M4M2_AUGER)
+                CASE(L1_M4M2_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L2_M4M3_AUGER)
+                CASE(L1_M4M3_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L2_M4M4_AUGER)
+                CASE(L1_M4M4_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L2_M4M5_AUGER)
+                CASE(L1_M4M5_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L2_M5L3_AUGER)
-                        shell_new1 = M5_SHELL
-                        shell_new2 = L3_SHELL
-                CASE (L2_M5M1_AUGER)
+                CASE(L1_M4N1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L1_M4N2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L1_M4N3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L1_M4N4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L1_M4N5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L1_M4N6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L1_M4N7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L1_M4O1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L1_M4O2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L1_M4O3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L1_M4O4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L1_M4O5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L1_M4O6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L1_M4O7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L1_M4P1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L1_M4P2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L1_M4P3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L1_M4P4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L1_M4P5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L1_M4Q1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L1_M4Q2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L1_M4Q3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L1_M5M1_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L2_M5M2_AUGER)
+                CASE(L1_M5M2_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L2_M5M3_AUGER)
+                CASE(L1_M5M3_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L2_M5M4_AUGER)
+                CASE(L1_M5M4_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L2_M5M5_AUGER)
+                CASE(L1_M5M5_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L3_M1M1_AUGER)
+                CASE(L1_M5N1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L1_M5N2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L1_M5N3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L1_M5N4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L1_M5N5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L1_M5N6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L1_M5N7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L1_M5O1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L1_M5O2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L1_M5O3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L1_M5O4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L1_M5O5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L1_M5O6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L1_M5O7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L1_M5P1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L1_M5P2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L1_M5P3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L1_M5P4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L1_M5P5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L1_M5Q1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L1_M5Q2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L1_M5Q3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L2_M1M1_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L3_M1M2_AUGER)
+                CASE(L2_M1M2_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L3_M1M3_AUGER)
+                CASE(L2_M1M3_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L3_M1M4_AUGER)
+                CASE(L2_M1M4_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L3_M1M5_AUGER)
+                CASE(L2_M1M5_AUGER)
                         shell_new1 = M1_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L3_M2M1_AUGER)
+                CASE(L2_M1N1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L2_M1N2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L2_M1N3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L2_M1N4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L2_M1N5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L2_M1N6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L2_M1N7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L2_M1O1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L2_M1O2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L2_M1O3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L2_M1O4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L2_M1O5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L2_M1O6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L2_M1O7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L2_M1P1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L2_M1P2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L2_M1P3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L2_M1P4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L2_M1P5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L2_M1Q1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L2_M1Q2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L2_M1Q3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L2_M2M1_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L3_M2M2_AUGER)
+                CASE(L2_M2M2_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L3_M2M3_AUGER)
+                CASE(L2_M2M3_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L3_M2M4_AUGER)
+                CASE(L2_M2M4_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L3_M2M5_AUGER)
+                CASE(L2_M2M5_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L3_M3M1_AUGER)
+                CASE(L2_M2N1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L2_M2N2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L2_M2N3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L2_M2N4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L2_M2N5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L2_M2N6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L2_M2N7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L2_M2O1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L2_M2O2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L2_M2O3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L2_M2O4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L2_M2O5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L2_M2O6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L2_M2O7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L2_M2P1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L2_M2P2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L2_M2P3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L2_M2P4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L2_M2P5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L2_M2Q1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L2_M2Q2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L2_M2Q3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L2_M3M1_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L3_M3M2_AUGER)
+                CASE(L2_M3M2_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L3_M3M3_AUGER)
+                CASE(L2_M3M3_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L3_M3M4_AUGER)
+                CASE(L2_M3M4_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L3_M3M5_AUGER)
+                CASE(L2_M3M5_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L3_M4M1_AUGER)
+                CASE(L2_M3N1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L2_M3N2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L2_M3N3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L2_M3N4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L2_M3N5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L2_M3N6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L2_M3N7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L2_M3O1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L2_M3O2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L2_M3O3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L2_M3O4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L2_M3O5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L2_M3O6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L2_M3O7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L2_M3P1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L2_M3P2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L2_M3P3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L2_M3P4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L2_M3P5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L2_M3Q1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L2_M3Q2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L2_M3Q3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L2_M4M1_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L3_M4M2_AUGER)
+                CASE(L2_M4M2_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L3_M4M3_AUGER)
+                CASE(L2_M4M3_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L3_M4M4_AUGER)
+                CASE(L2_M4M4_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L3_M4M5_AUGER)
+                CASE(L2_M4M5_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M5_SHELL
-                CASE (L3_M5M1_AUGER)
+                CASE(L2_M4N1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L2_M4N2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L2_M4N3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L2_M4N4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L2_M4N5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L2_M4N6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L2_M4N7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L2_M4O1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L2_M4O2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L2_M4O3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L2_M4O4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L2_M4O5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L2_M4O6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L2_M4O7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L2_M4P1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L2_M4P2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L2_M4P3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L2_M4P4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L2_M4P5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L2_M4Q1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L2_M4Q2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L2_M4Q3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L2_M5M1_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M1_SHELL
-                CASE (L3_M5M2_AUGER)
+                CASE(L2_M5M2_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M2_SHELL
-                CASE (L3_M5M3_AUGER)
+                CASE(L2_M5M3_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M3_SHELL
-                CASE (L3_M5M4_AUGER)
+                CASE(L2_M5M4_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M4_SHELL
-                CASE (L3_M5M5_AUGER)
+                CASE(L2_M5M5_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M5_SHELL
-                CASE (M1_M2M2_AUGER)
+                CASE(L2_M5N1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L2_M5N2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L2_M5N3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L2_M5N4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L2_M5N5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L2_M5N6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L2_M5N7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L2_M5O1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L2_M5O2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L2_M5O3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L2_M5O4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L2_M5O5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L2_M5O6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L2_M5O7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L2_M5P1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L2_M5P2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L2_M5P3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L2_M5P4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L2_M5P5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L2_M5Q1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L2_M5Q2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L2_M5Q3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L3_M1M1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = M1_SHELL
+                CASE(L3_M1M2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = M2_SHELL
+                CASE(L3_M1M3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = M3_SHELL
+                CASE(L3_M1M4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = M4_SHELL
+                CASE(L3_M1M5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = M5_SHELL
+                CASE(L3_M1N1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L3_M1N2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L3_M1N3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L3_M1N4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L3_M1N5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L3_M1N6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L3_M1N7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L3_M1O1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L3_M1O2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L3_M1O3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L3_M1O4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L3_M1O5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L3_M1O6_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L3_M1O7_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L3_M1P1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L3_M1P2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L3_M1P3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L3_M1P4_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L3_M1P5_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L3_M1Q1_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L3_M1Q2_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L3_M1Q3_AUGER)
+                        shell_new1 = M1_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L3_M2M1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = M1_SHELL
+                CASE(L3_M2M2_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M2_SHELL
-                CASE (M1_M2M3_AUGER)
+                CASE(L3_M2M3_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M3_SHELL
-                CASE (M1_M2M4_AUGER)
+                CASE(L3_M2M4_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M4_SHELL
-                CASE (M1_M2M5_AUGER)
+                CASE(L3_M2M5_AUGER)
                         shell_new1 = M2_SHELL
                         shell_new2 = M5_SHELL
-                CASE (M1_M3M2_AUGER)
+                CASE(L3_M2N1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L3_M2N2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L3_M2N3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L3_M2N4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L3_M2N5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L3_M2N6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L3_M2N7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L3_M2O1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L3_M2O2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L3_M2O3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L3_M2O4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L3_M2O5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L3_M2O6_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L3_M2O7_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L3_M2P1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L3_M2P2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L3_M2P3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L3_M2P4_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L3_M2P5_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L3_M2Q1_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L3_M2Q2_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L3_M2Q3_AUGER)
+                        shell_new1 = M2_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L3_M3M1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = M1_SHELL
+                CASE(L3_M3M2_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M2_SHELL
-                CASE (M1_M3M3_AUGER)
+                CASE(L3_M3M3_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M3_SHELL
-                CASE (M1_M3M4_AUGER)
+                CASE(L3_M3M4_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M4_SHELL
-                CASE (M1_M3M5_AUGER)
+                CASE(L3_M3M5_AUGER)
                         shell_new1 = M3_SHELL
                         shell_new2 = M5_SHELL
-                CASE (M1_M4M2_AUGER)
+                CASE(L3_M3N1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L3_M3N2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L3_M3N3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L3_M3N4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L3_M3N5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L3_M3N6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L3_M3N7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L3_M3O1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L3_M3O2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L3_M3O3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L3_M3O4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L3_M3O5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L3_M3O6_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L3_M3O7_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L3_M3P1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L3_M3P2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L3_M3P3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L3_M3P4_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L3_M3P5_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L3_M3Q1_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L3_M3Q2_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L3_M3Q3_AUGER)
+                        shell_new1 = M3_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L3_M4M1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = M1_SHELL
+                CASE(L3_M4M2_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M2_SHELL
-                CASE (M1_M4M3_AUGER)
+                CASE(L3_M4M3_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M3_SHELL
-                CASE (M1_M4M4_AUGER)
+                CASE(L3_M4M4_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M4_SHELL
-                CASE (M1_M4M5_AUGER)
+                CASE(L3_M4M5_AUGER)
                         shell_new1 = M4_SHELL
                         shell_new2 = M5_SHELL
-                CASE (M1_M5M2_AUGER)
+                CASE(L3_M4N1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N1_SHELL
+                CASE(L3_M4N2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N2_SHELL
+                CASE(L3_M4N3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N3_SHELL
+                CASE(L3_M4N4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N4_SHELL
+                CASE(L3_M4N5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N5_SHELL
+                CASE(L3_M4N6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L3_M4N7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L3_M4O1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L3_M4O2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L3_M4O3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L3_M4O4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L3_M4O5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L3_M4O6_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L3_M4O7_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L3_M4P1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L3_M4P2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L3_M4P3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L3_M4P4_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L3_M4P5_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L3_M4Q1_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L3_M4Q2_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L3_M4Q3_AUGER)
+                        shell_new1 = M4_SHELL
+                        shell_new2 = Q3_SHELL
+                CASE(L3_M5M1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = M1_SHELL
+                CASE(L3_M5M2_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M2_SHELL
-                CASE (M1_M5M3_AUGER)
+                CASE(L3_M5M3_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M3_SHELL
-                CASE (M1_M5M4_AUGER)
+                CASE(L3_M5M4_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M4_SHELL
-                CASE (M1_M5M5_AUGER)
+                CASE(L3_M5M5_AUGER)
                         shell_new1 = M5_SHELL
                         shell_new2 = M5_SHELL
-                CASE (M2_M3M3_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (M2_M3M4_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (M2_M3M5_AUGER)
-                        shell_new1 = M3_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (M2_M4M3_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (M2_M4M4_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (M2_M4M5_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (M2_M5M3_AUGER)
+                CASE(L3_M5N1_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M3_SHELL
-                CASE (M2_M5M4_AUGER)
+                        shell_new2 = N1_SHELL
+                CASE(L3_M5N2_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (M2_M5M5_AUGER)
+                        shell_new2 = N2_SHELL
+                CASE(L3_M5N3_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (M3_M4M4_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (M3_M4M5_AUGER)
-                        shell_new1 = M4_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (M3_M5M4_AUGER)
+                        shell_new2 = N3_SHELL
+                CASE(L3_M5N4_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M4_SHELL
-                CASE (M3_M5M5_AUGER)
+                        shell_new2 = N4_SHELL
+                CASE(L3_M5N5_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M5_SHELL
-                CASE (M4_M5M5_AUGER)
+                        shell_new2 = N5_SHELL
+                CASE(L3_M5N6_AUGER)
                         shell_new1 = M5_SHELL
-                        shell_new2 = M5_SHELL
+                        shell_new2 = N6_SHELL
+                CASE(L3_M5N7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = N7_SHELL
+                CASE(L3_M5O1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O1_SHELL
+                CASE(L3_M5O2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O2_SHELL
+                CASE(L3_M5O3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O3_SHELL
+                CASE(L3_M5O4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O4_SHELL
+                CASE(L3_M5O5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O5_SHELL
+                CASE(L3_M5O6_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O6_SHELL
+                CASE(L3_M5O7_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = O7_SHELL
+                CASE(L3_M5P1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P1_SHELL
+                CASE(L3_M5P2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P2_SHELL
+                CASE(L3_M5P3_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P3_SHELL
+                CASE(L3_M5P4_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P4_SHELL
+                CASE(L3_M5P5_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = P5_SHELL
+                CASE(L3_M5Q1_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q1_SHELL
+                CASE(L3_M5Q2_AUGER)
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q2_SHELL
+                CASE(L3_M5Q3_AUGER)
+			shell_new1 = M5_SHELL
+			shell_new2 = Q3_SHELL
         ENDSELECT
 
         !so now we have the shells involved...

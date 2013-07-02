@@ -329,8 +329,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 				//this creates a memory leak... but one we can live with...
 				xmi_copy_layer2(compoundData2xmi_layer (cd_sum), *layer);
 			}
-			FREE_COMPOUND_DATA(*cd_sum);
-			free(cd_sum);
+			FreeCompoundData(cd_sum);
 		}
 		g_strfreev(compoundlist);
 		g_free(compoundfractions);
