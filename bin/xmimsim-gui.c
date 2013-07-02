@@ -3960,6 +3960,19 @@ XMI_MAIN
 	//new = gtk_menu_item_new_with_label("New");
 	newW = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,accel_group);
 	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,accel_group);
+	GtkWidget *openrecentW = gtk_recent_chooser_menu_new();
+	GtkRecentFilter *filter = gtk_recent_filter_new();
+	//gtk_recent_filter_add_pattern(filter, "*.xmsi");
+	//gtk_recent_filter_add_pattern(filter, "*.xmso");
+	gtk_recent_filter_add_application(filter, g_get_application_name());
+	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentW), GTK_RECENT_SORT_MRU);
+
+	GtkWidget *openrecent_menuW = gtk_menu_item_new_with_label("Open Recent");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(openrecent_menuW), openrecentW);
+
 	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,accel_group);
 	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,accel_group);
 #ifndef MAC_INTEGRATION
@@ -3968,6 +3981,7 @@ XMI_MAIN
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file),filemenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),newW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openrecent_menuW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),saveW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
 #ifndef MAC_INTEGRATION
