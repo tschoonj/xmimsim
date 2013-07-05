@@ -404,6 +404,65 @@ void adjust_save_buttons(void) {
 
 }
 
+void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
+	gchar *fileuri = gtk_recent_chooser_get_current_uri(chooser);
+	gchar *filename = g_filename_from_uri(fileuri, NULL, NULL);
+	g_free(fileuri);
+	GtkWidget *dialog;
+	gchar *title;
+	struct xmi_input *xi;
+
+
+	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
+	
+	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
+		if (xmi_read_input_xml(filename, &xi) == 1) {
+			//success reading it in...
+			change_all_values(xi);
+			//reset redo_buffer
+			reset_undo_buffer(xi, filename);	
+			title = g_path_get_basename(filename);
+			update_xmimsim_title_xmsi(title, (GtkWidget *) data, filename);
+			g_free(title);
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+	        		GTK_MESSAGE_ERROR,
+	        		GTK_BUTTONS_CLOSE,
+	        		"Could not read file %s: model is incomplete/invalid",filename
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy (dialog);
+		}
+	}
+	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
+		if (plot_spectra_from_file(filename) == 1) {
+			gchar *temp_base = g_path_get_basename(filename);
+			update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
+			g_free(temp_base);
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+	        		GTK_MESSAGE_ERROR,
+	        		GTK_BUTTONS_CLOSE,
+	        		"Could not read file %s",filename
+	               	);
+			gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy (dialog);
+		}
+	}
+
+	g_free(filename);
+}
+
+
 #ifdef XMIMSIM_GUI_UPDATER_H
 
 static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
@@ -608,12 +667,13 @@ void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *file
 	xmimsim_title_xmsi = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
 
 #ifdef MAC_INTEGRATION
-	if (filename != NULL) {
+	if (xmimsim_filename_xmsi)
 		g_free(xmimsim_filename_xmsi);
+
+	if (filename != NULL) {
 		xmimsim_filename_xmsi = g_strdup(filename);
 	}
 	else {
-		g_free(xmimsim_filename_xmsi);
 		xmimsim_filename_xmsi = NULL;
 	}
 #endif
@@ -640,16 +700,18 @@ void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *file
 
 void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename) {
 	g_free(xmimsim_title_xmso);
+	xmimsim_title_xmso = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
 
 #ifdef MAC_INTEGRATION
+	if (xmimsim_filename_xmso)
+		g_free(xmimsim_filename_xmso);
+
 	if (filename != NULL) {
 		xmimsim_filename_xmso = g_strdup(filename);
 	}
 	else {
 		xmimsim_filename_xmso = NULL;
 	}
-#else
-	xmimsim_title_xmso = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
 #endif
 
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == results_page) {
@@ -3966,9 +4028,12 @@ XMI_MAIN
 	//gtk_recent_filter_add_pattern(filter, "*.xmso");
 	gtk_recent_filter_add_application(filter, g_get_application_name());
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
-	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
-	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	//gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	//gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), FALSE);
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), FALSE);
 	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentW), GTK_RECENT_SORT_MRU);
+	g_signal_connect(G_OBJECT(openrecentW), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
 
 	GtkWidget *openrecent_menuW = gtk_menu_item_new_with_label("Open Recent");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(openrecent_menuW), openrecentW);
