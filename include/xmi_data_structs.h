@@ -92,7 +92,6 @@ struct xmi_excitation {
 	struct xmi_energy_discrete *discrete;
 	int n_continuous;
 	struct xmi_energy_continuous *continuous;
-	double last_energy;
 };
 
 

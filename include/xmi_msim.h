@@ -40,6 +40,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 #include "xmi_hdf5.h"
 #include "xmi_ebel.h"
+#include "xmi_boone.h"
 
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"

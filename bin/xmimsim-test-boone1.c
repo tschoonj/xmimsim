@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "xmi_ebel.h"
+#include "xmi_boone.h"
 #include <stdlib.h>
 
 
@@ -9,12 +9,12 @@ int main(int argc, char *argv[]) {
 	double tube_voltage = 60.0;
 	struct xmi_layer tube_anode, tube_window, tube_filter;
 	double tube_current = 1.0;
-	double tube_angle_electron = 74.0;
-	double tube_angle_xray= 16.0;
-	double tube_delta_energy = 1.0;
+	double tube_angle_electron = 90.0;
+	double tube_angle_xray= 90.0;
+	double tube_delta_energy = 0.1;
 
 	struct xmi_excitation *excitation;
-	int tube_transmission = 1;
+	int tube_transmission = 0;
 
 	tube_anode.n_elements = 1;
 	tube_anode.Z = malloc(sizeof(int));
@@ -43,8 +43,9 @@ int main(int argc, char *argv[]) {
 
 
 
-	//xmi_tube_ebel(&tube_anode, &tube_window, &tube_filter, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, 1.0,
-	xmi_tube_ebel(&tube_anode, NULL, NULL, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy, 1.0E-5, tube_transmission, &excitation);
+	if (xmi_tube_boone_1661(NULL, NULL, 0.0, tube_voltage, tube_current, 1.0E-5, &excitation) == 0) {
+		return 1;
+	}
 
 	int i; 
 

@@ -31,6 +31,9 @@ bin_PROGRAMS =  xmimsim \
 		xmso2htm \
 		xmso2xmsi 
 
+bin_PROGRAMS += xmimsim-test-ebel \
+		xmimsim-test-boone1
+
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -187,6 +190,11 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 xmso2htm_CFLAGS = @glib2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
+xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
+xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
+
+xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
+xmimsim_test_boone1_LDADD = ../src/libxmimsim.la 
 
 
 

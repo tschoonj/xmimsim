@@ -25,7 +25,8 @@ xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_detector.h \
 			 xmi_hdf5.h \
 			 xmi_msim.h \
-			 xmi_ebel.h
+			 xmi_ebel.h \
+			 xmi_boone.h
 
 if OS_WINDOWS
 xmimsiminclude_HEADERS += xmi_registry_win.h

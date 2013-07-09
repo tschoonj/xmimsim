@@ -37,7 +37,8 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_solid_angle.c \
 			xmi_xslt.c \
 			xmi_detector.c \
-			xmi_ebel.F90
+			xmi_ebel.F90 \
+			xmi_boone_1661.c
 
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
