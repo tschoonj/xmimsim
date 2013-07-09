@@ -102,6 +102,7 @@ REAL (C_DOUBLE), POINTER, DIMENSION(:) :: disc_energy, disc_intensity, disc_pol_
 REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: &
 disc_edge_energy,disc_edge_energy_temp
 INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
+REAL (C_DOUBLE) :: my_disc_edge_energy
 
 !bremsstrahlung variables
 REAL (C_DOUBLE), POINTER, DIMENSION(:) :: cont_energy, cont_intensity, cont_pol_degree
@@ -244,6 +245,26 @@ ndisc=0
 DO i=KL1_LINE,L3Q1_LINE,-1
         IF (RadRate(tube_anodeF%Z(1),i) > 0.0 .AND.&
         LineEnergy(tube_anodeF%Z(1),i) > TUBE_MINIMUM_ENERGY) THEN
+                SELECT CASE (i)
+                CASE (KP5_LINE:KL1_LINE)
+                        my_disc_edge_energy = REAL(EdgeEnergy(tube_anodeF%Z(1),K_SHELL),C_DOUBLE)
+                CASE (L1P5_LINE:L1L2_LINE)
+                        my_disc_edge_energy = REAL(EdgeEnergy(tube_anodeF%Z(1),L1_SHELL),C_DOUBLE)
+                CASE (L2Q1_LINE:L2L3_LINE)
+                        my_disc_edge_energy = REAL(EdgeEnergy(tube_anodeF%Z(1),L2_SHELL),C_DOUBLE)
+                CASE (L3Q1_LINE:L3M1_LINE)
+                        my_disc_edge_energy = REAL(EdgeEnergy(tube_anodeF%Z(1),L3_SHELL),C_DOUBLE)
+                CASE default
+                        WRITE (error_unit,*) &
+                        'Unknown line encountered in xmi_tube_ebel: check your xraylib version'
+                        xmi_tube_ebel = 0
+                        RETURN 
+                ENDSELECT
+                !next if edge energy is non-existent
+                !can only happen for low Z elements
+                IF (my_disc_edge_energy .EQ. 0.0_C_DOUBLE) CYCLE
+                !next if tube voltage is too low to excite the shell
+                IF (my_disc_edge_energy .GT. tube_voltage) CYCLE
                 ndisc = ndisc + 1
                 IF (ndisc .EQ. 1) THEN 
                         ALLOCATE(disc_lines(1))
@@ -264,25 +285,11 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                         MOVE_ALLOC(ebel_spectrum_disc_temp,ebel_spectrum_disc)
                 ENDIF
                 disc_lines(ndisc) = i
+                disc_edge_energy(ndisc) = my_disc_edge_energy 
                 
                 ebel_spectrum_disc(ndisc)%energy = REAL(LineEnergy(tube_anodeF%Z(1),i),C_DOUBLE)
 
 
-                SELECT CASE (i)
-                CASE (KP5_LINE:KL1_LINE)
-                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),K_SHELL),C_DOUBLE)
-                CASE (L1P5_LINE:L1L2_LINE)
-                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L1_SHELL),C_DOUBLE)
-                CASE (L2Q1_LINE:L2L3_LINE)
-                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L2_SHELL),C_DOUBLE)
-                CASE (L3Q1_LINE:L3M1_LINE)
-                        disc_edge_energy(ndisc) = REAL(EdgeEnergy(tube_anodeF%Z(1),L3_SHELL),C_DOUBLE)
-                CASE default
-                        WRITE (error_unit,*) &
-                        'Unknown line encountered in xmi_tube_ebel: check your xraylib version'
-                        xmi_tube_ebel = 0
-                        RETURN 
-                ENDSELECT
         ENDIF
 ENDDO
 
