@@ -20,8 +20,22 @@ int xmi_tube_boone_1661(struct xmi_layer *tube_window, struct xmi_layer *tube_fi
 		  );
 
 
+/*
+ * Based on J. M. Boone, T. R. Fewell, and R. J. Jennings. Molybdenum, rhodium, and tungsten anode spectral models using interpolating polynomials with application to mammography. Medical physics, 24:1863, 1997.
+ * Original code downloaded from http://ftp.aip.org/epaps/medical_phys/E-MPHYA-24-1863
+ */
 
 
+enum {
+	XMI_TUBE_BOONE_MOLYBDENUM,
+	XMI_TUBE_BOONE_RHODIUM,
+	XMI_TUBE_BOONE_TUNGSTEN,
+};
 
+int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
+		struct xmi_layer *tube_filter, double tube_voltage,
+		  double tube_current, double tube_solid_angle, 
+		  struct xmi_excitation **boone_spectrum
+		);
 
 #endif
