@@ -32,7 +32,8 @@ bin_PROGRAMS =  xmimsim \
 		xmso2xmsi 
 
 bin_PROGRAMS += xmimsim-test-ebel \
-		xmimsim-test-boone1
+		xmimsim-test-boone1 \
+		xmimsim-test-boone2
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -196,6 +197,8 @@ xmimsim_test_ebel_LDADD = ../src/libxmimsim.la
 xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
 xmimsim_test_boone1_LDADD = ../src/libxmimsim.la 
 
+xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
+xmimsim_test_boone2_LDADD = ../src/libxmimsim.la 
 
 
 if OS_WINDOWS

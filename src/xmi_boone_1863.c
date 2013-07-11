@@ -623,7 +623,7 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	into working arrays
 ---------------------------------------------------- */
 	if( itube==XMI_TUBE_BOONE_MOLYBDENUM ) { 
-		for( i=0; i<100; ++i ) {
+		for( i=0; i<90; ++i ) {
 			en[i] = menergy[i];
 			aa[i] = maa[i];
 		}
@@ -634,7 +634,7 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	into working arrays
 ---------------------------------------------------- */
 	else if( itube==XMI_TUBE_BOONE_RHODIUM ) { 
-		for( i=0; i<100; ++i ) {
+		for( i=0; i<90; ++i ) {
 			en[i] = renergy[i];
 			aa[i] = raa[i];
 		}
@@ -645,7 +645,7 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	into working arrays
 ---------------------------------------------------- */
 	else if( itube==XMI_TUBE_BOONE_TUNGSTEN ) { 
-		for( i=0; i<100; ++i ) {
+		for( i=0; i<90; ++i ) {
 			en[i] = tenergy[i];
 			aa[i] = taa[i];
 		}
@@ -682,11 +682,15 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		  struct xmi_excitation **boone_spectrum
 		) {
 		
-	double spec[100], en[100];
+	double *spec, *en;
 	struct xmi_excitation *boone_spectrum_local = NULL;
 	int i;
 	const double mm_square_to_sterad = 4.0 * atan(1.0/2000.0/sqrt(4.0*1000.0*1000.0 + 1.0 + 1.0));
-		
+	double intensity;
+
+	spec = malloc(sizeof(double)*90);
+	en = malloc(sizeof(double)*90);
+
 	if (mamspec(tube_type, tube_voltage, en, spec) == 0)
 		return 0;
 		
@@ -698,8 +702,8 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 	boone_spectrum_local->n_continuous= 0;
 	boone_spectrum_local->continuous = NULL;
 
-	for (i = 0 ; i < 100 ; i++) {
-		double intensity = spec[i];
+	for (i = 0 ; i < 90 ; i++) {
+		intensity = spec[i];
 		if (intensity == 0.0)
 			continue;
 
@@ -726,6 +730,9 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y = 
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_yp = 0.0;
 	}
+
+	free(en);
+	free(spec);
 
 	*boone_spectrum = boone_spectrum_local;
 	return 1;

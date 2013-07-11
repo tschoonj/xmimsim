@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]) {
 
 
-	double tube_voltage = 60.0;
+	double tube_voltage = 40.0;
 	struct xmi_layer tube_anode, tube_window, tube_filter;
 	double tube_current = 1.0;
 	double tube_angle_electron = 90.0;
