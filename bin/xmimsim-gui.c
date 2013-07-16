@@ -429,8 +429,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		return FALSE;
 
 
-	//gtk_widget_set_sensitive(updatesW,FALSE);
-	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
+	gtk_widget_set_sensitive(updatesW,FALSE);
 	rv = check_for_updates(&max_version);
 	if (rv == XMIMSIM_UPDATES_ERROR) {
 		//do nothing
@@ -450,8 +449,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 	else if (rv == XMIMSIM_UPDATES_NONE) {
 		//do nothing
 	}
-	//gtk_widget_set_sensitive(updatesW,TRUE);
-	//gtk_osxapplication_sync_menubar(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL));
+	gtk_widget_set_sensitive(updatesW,TRUE);
 
 
 
@@ -464,7 +462,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 
 	int rv;
 	
-	//gtk_widget_set_sensitive(updatesW,FALSE);
+	gtk_widget_set_sensitive(updatesW,FALSE);
 	rv = check_for_updates(&max_version);
 
 	if (rv == XMIMSIM_UPDATES_ERROR) {
@@ -493,7 +491,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 	}
 
 
-	//gtk_widget_set_sensitive(updatesW,TRUE);
+	gtk_widget_set_sensitive(updatesW,TRUE);
 
 
 	return;
