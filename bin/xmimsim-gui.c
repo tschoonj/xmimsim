@@ -4211,7 +4211,15 @@ XMI_MAIN
 	//toolbar
 	toolbar = gtk_toolbar_new();
 	newT = gtk_tool_button_new_from_stock(GTK_STOCK_NEW);
-	openT = gtk_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	openT = gtk_menu_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	GtkWidget *openrecentT = gtk_recent_chooser_menu_new();
+	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentT), filter);
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), FALSE);
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentT), TRUE);
+	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentT), GTK_RECENT_SORT_MRU);
+	g_signal_connect(G_OBJECT(openrecentT), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
+	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(openT), openrecentT); 
+
 	saveasT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
