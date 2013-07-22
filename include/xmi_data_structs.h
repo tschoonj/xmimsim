@@ -67,6 +67,14 @@ struct xmi_geometry {
 	double slit_size_y;
 };
 
+enum {
+	XMI_DISCRETE_MONOCHROMATIC,
+	XMI_DISCRETE_GAUSSIAN,
+	XMI_DISCRETE_LORENTZIAN,
+};
+
+
+
 struct xmi_energy_discrete {
 	double energy;
 	double horizontal_intensity;
@@ -75,6 +83,8 @@ struct xmi_energy_discrete {
 	double sigma_xp;
 	double sigma_y;
 	double sigma_yp;
+	int distribution_type;
+	double scale_parameter;
 };
 
 struct xmi_energy_continuous {

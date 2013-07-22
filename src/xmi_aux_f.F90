@@ -156,6 +156,8 @@ TYPE, BIND(C) :: xmi_energy_discrete
         REAL (C_DOUBLE) :: sigma_xp
         REAL (C_DOUBLE) :: sigma_y
         REAL (C_DOUBLE) :: sigma_yp
+        INTEGER (C_INT) :: distribution_type
+        REAL (C_DOUBLE) :: scale_parameter
 ENDTYPE
 
 !  xmi_energy_continuous
