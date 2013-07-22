@@ -439,7 +439,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	
 #ifdef MAC_INTEGRATION
-	gtk_osxapplication_attention_request(g_object_new(GTK_TYPE_OSX_APPLICATION, NULL), CRITICAL_REQUEST);
+	gtkosx_application_attention_request(g_object_new(GTKOSX_TYPE_APPLICATION, NULL), CRITICAL_REQUEST);
 #endif
 	g_free(cd->outputfile);
 	g_free(cd);

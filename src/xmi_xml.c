@@ -102,7 +102,7 @@ int xmi_xmlLoadCatalog() {
 int xmi_xmlLoadCatalog() {
 	int rv;
 	gchar *resource_path;
-	resource_path = quartz_application_get_resource_path();
+	resource_path = gtkosx_application_get_resource_path();
 	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
 	strcat(resource_path,"/");
 

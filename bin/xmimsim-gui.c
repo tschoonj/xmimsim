@@ -334,8 +334,8 @@ void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
-void quit_program_cb(GtkOSXApplication *app, gpointer data);
-gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data);
+void quit_program_cb(GtkosxApplication *app, gpointer data);
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
@@ -419,7 +419,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 #ifdef MAC_INTEGRATION
-		GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+		GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 		quit_program_cb(app, window);
 #else
 		quit_program_cb(window, window);
@@ -439,7 +439,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
-			GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 			quit_program_cb(app, window);
 #else
 			quit_program_cb(window, window);
@@ -476,7 +476,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
-			GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
+			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 			quit_program_cb(app, window);
 #else
 			quit_program_cb(window, window);
@@ -2995,7 +2995,7 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 #ifdef MAC_INTEGRATION
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 		return TRUE;
-	quit_program_cb((GtkOSXApplication*) data, widget);
+	quit_program_cb((GtkosxApplication*) data, widget);
 #else
 	quit_program_cb(widget, widget);
 #endif
@@ -3091,7 +3091,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 }
 
 
-static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpointer data) {
+static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpointer data) {
 	struct osx_load_data *old = (struct osx_load_data *) malloc(sizeof(struct osx_load_data));
 
 	old->window = (GtkWidget *) data;
@@ -3745,7 +3745,7 @@ XMI_MAIN
 		{NULL}
 	};
 #ifdef MAC_INTEGRATION
-	GtkOSXApplication *theApp;
+	GtkosxApplication *theApp;
 #endif
 
 /*
@@ -3877,8 +3877,8 @@ XMI_MAIN
 	gtk_init(&argc, &argv);
 
 #ifdef MAC_INTEGRATION
-	theApp = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
-	gtk_osxapplication_set_use_quartz_accelerators(theApp, TRUE);
+	theApp = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
 #endif
 
 	g_set_application_name("XMI-MSIM");
@@ -4076,22 +4076,22 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
-	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
+	gtkosx_application_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
-	gtk_osxapplication_insert_app_menu_item(theApp, aboutW, 0);
+	gtkosx_application_insert_app_menu_item(theApp, aboutW, 0);
   #ifdef XMIMSIM_GUI_UPDATER_H
 	updatesW = gtk_menu_item_new_with_label("Check for updates...");
 	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
-	gtk_osxapplication_insert_app_menu_item(theApp, updatesW, 1);
-	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
-	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 3);
+	gtkosx_application_insert_app_menu_item(theApp, updatesW, 1);
+	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
+	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 3);
   #else
-	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
-	gtk_osxapplication_insert_app_menu_item(theApp, preferencesW, 2);
+	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
+	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 2);
   #endif
-	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
-	gtk_osxapplication_set_window_menu(theApp, NULL);
+	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(help));
+	gtkosx_application_set_window_menu(theApp, NULL);
 #else
 	helpmenu = gtk_menu_new();
 	help = gtk_menu_item_new_with_label("Help");
@@ -4739,7 +4739,7 @@ XMI_MAIN
 
 
 #ifdef MAC_INTEGRATION
-	gtk_osxapplication_ready(theApp);
+	gtkosx_application_ready(theApp);
 #endif
 
 	gchar *filename = g_strdup(argv[1]);
@@ -5150,7 +5150,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 }
 
 #ifdef MAC_INTEGRATION
-gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data){
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
 
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 		return TRUE;
@@ -5158,7 +5158,7 @@ gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data){
 
 }
 
-void quit_program_cb(GtkOSXApplication *app, gpointer data) {
+void quit_program_cb(GtkosxApplication *app, gpointer data) {
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data) {
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)

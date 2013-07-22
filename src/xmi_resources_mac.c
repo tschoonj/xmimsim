@@ -29,7 +29,7 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	const gchar *resource_path;
 	gchar *temp;
 
-	resource_path = quartz_application_get_resource_path();
+	resource_path = gtkosx_application_get_resource_path();
 
 
 	switch (kind) {
