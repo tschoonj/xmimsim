@@ -1081,7 +1081,9 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-																
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_entry_set_text(GTK_ENTRY(executableW),filename);
@@ -1130,7 +1132,8 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	);
 	if (filter)
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog),filter);
-
+	
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));

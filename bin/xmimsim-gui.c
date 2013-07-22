@@ -822,6 +822,8 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -5231,7 +5233,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
-																
+	 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
 	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
 		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter1);
@@ -5426,7 +5430,9 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		NULL);
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-																
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {

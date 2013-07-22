@@ -183,6 +183,8 @@ static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 
 	filter = gtk_file_filter_new();
@@ -263,6 +265,7 @@ static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
 }
 static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Export spectrum as ASCII file",GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	GtkWidget *label = gtk_label_new("First the continuous intervals will be printed, marked by their start energy and intensity. This will be followed by a list of discrete lines, each defined by their energy and intensity.");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
@@ -659,6 +662,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
                  GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                  GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
                  NULL);	
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	//add widget
 	GtkWidget *start_at_begin;
