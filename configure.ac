@@ -160,6 +160,7 @@ if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 		
 	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
 			GTK_MAC_INTEGRATION_FOUND=yes
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration >= 2.0.1")
 			],[GTK_MAC_INTEGRATION_FOUND=no])
 	fi
 
