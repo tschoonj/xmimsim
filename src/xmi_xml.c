@@ -642,6 +642,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
+	xmlAttrPtr attr;
 	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
@@ -651,6 +652,8 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	double sigma_yp;
 	struct xmi_energy_discrete xed;
 	struct xmi_energy_continuous xec;
+	int distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+	double scale_parameter = 0.0;
 	
 	*excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
 
@@ -722,6 +725,43 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 					}
 					xmlFree(txt);
 				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "scale_parameter")) {
+					//get distribution type
+					attr=subsubnode->properties;
+					while (attr != NULL) {
+						if (!xmlStrcmp(attr->name,(const xmlChar *) "distribution_type")) {
+							txt = xmlNodeListGetString(doc,attr->children,1);
+							if (strcmp(txt, "monochromatic") == 0) {
+								distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+								xmlFree(txt);
+							}
+							else if (strcmp(txt, "gaussian") == 0) {
+								distribution_type = XMI_DISCRETE_GAUSSIAN;
+								xmlFree(txt);
+								//read scale_parameter value
+								txt = xmlNodeListGetString(doc,subsubnode->children,1);
+								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+									fprintf(stderr,"error reading in scale_parameter of xml file\n");
+									return 0;
+								}
+								xmlFree(txt);
+							}
+							else if (strcmp(txt, "lorentzian") == 0) {
+								distribution_type = XMI_DISCRETE_LORENTZIAN;
+								xmlFree(txt);
+								//read scale_parameter value
+								txt = xmlNodeListGetString(doc,subsubnode->children,1);
+								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+									fprintf(stderr,"error reading in scale_parameter of xml file\n");
+									return 0;
+								}
+								xmlFree(txt);
+							}
+						}
+						attr=attr->next;
+					}
+
+				}
 				subsubnode = subsubnode->next;
 			}
 			xed.energy = energy;
@@ -752,6 +792,8 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_xp = sigma_xp;
 				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_y = sigma_y;
 				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp = sigma_yp;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].scale_parameter = scale_parameter;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].distribution_type = distribution_type;
 			}
 			else {
 				fprintf(stderr,"Error: Invalid discrete energy detected\n");
@@ -2201,6 +2243,35 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->discrete[i].sigma_yp) < 0) {
 				fprintf(stderr,"Error writing sigma_yp\n");
 				return 0;
+			}
+			//only write scale_parameter if distribution type is not monochromatic
+			//this is done to keep the file backwards compatible
+			if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+				if (xmlTextWriterStartElement(writer, BAD_CAST "scale_parameter") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+					return 0;
+				}
+				if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "gaussian") <0) {
+						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
+						return 0;
+					}
+				}
+				else if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_LORENTZIAN) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "lorentzian") <0) {
+						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
+						return 0;
+					}
+				}
+				if (xmlTextWriterWriteFormatString(writer, "%lf", input->excitation->discrete[i].scale_parameter) < 0) {
+					fprintf(stderr,"Error at xmlTextWriterWriteFormatString\n");
+					return 0;
+				
+				}	
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error calling xmlTextWriterEndElement for scale_parameter\n");
+					return 0;
+				}
 			}
 			if (xmlTextWriterEndElement(writer) < 0) {
 				fprintf(stderr,"Error calling xmlTextWriterEndElement for discrete\n");

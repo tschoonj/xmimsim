@@ -568,8 +568,11 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 ENDDO
 
                 !Calculate initial mu's
-                initial_mus = xmi_mu_calc(inputF%composition,&
-                exc%discrete(i)%energy)
+                IF (exc%discrete(i)%distribution_type .EQ.&
+                XMI_DISCRETE_MONOCHROMATIC) THEN
+                        initial_mus = xmi_mu_calc(inputF%composition,&
+                        exc%discrete(i)%energy)
+                ENDIF
 
                 weight = (total_intensity)*exc_corr/inputF%general%n_photons_line
 
@@ -593,10 +596,30 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
-                        !Calculate energy with rng
-                        photon%energy = exc%discrete(i)%energy 
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
+                        IF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_GAUSSIAN) THEN
+                                !gaussian distribution
+                                photon%energy = fgsl_ran_gaussian_ziggurat(rng,&
+                                exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
+                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                photons 
+                                initial_mus = xmi_mu_calc(inputF%composition,&
+                                photon%energy)
+                        ELSEIF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_LORENTZIAN) THEN
+                                !lorentzian distribution
+                                photon%energy = fgsl_ran_cauchy(rng,&
+                                exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
+                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                photons 
+                                initial_mus = xmi_mu_calc(inputF%composition,&
+                                photon%energy)
+                        ELSE
+                                !monochromatic case
+                                photon%energy = exc%discrete(i)%energy 
+                        ENDIF
                         photon%mus = initial_mus
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.

@@ -107,7 +107,7 @@ INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
 REAL (C_DOUBLE), POINTER, DIMENSION(:) :: cont_energy, cont_intensity, cont_pol_degree
 
 !
-INTEGER (C_INT) :: i, ndisc, ncont
+INTEGER (C_INT) :: i, ndisc, ncont, shell1, shell2
 REAL (C_DOUBLE) :: sinalphae, sinalphax,sinfactor
 !const2 is mentioned only in the conclusion of the article and appears to be an
 !average of the const values for both K and L lines...
@@ -342,20 +342,187 @@ ELSE
 ENDIF
 
 DO i=1,ndisc
+        ebel_spectrum_disc(i)%distribution_type = XMI_DISCRETE_LORENTZIAN
         SELECT CASE(disc_lines(i))
-        CASE (KP5_LINE:KL1_LINE)
-        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
-        CASE (L1P5_LINE:L1L2_LINE)
-        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L1_SHELL)
-        CASE (L2Q1_LINE:L2L3_LINE)
-        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L2_SHELL)
-        CASE (L3Q1_LINE:L3M1_LINE)
-        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L3_SHELL)
+                CASE (KP5_LINE:KL1_LINE)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
+                CASE (L1P5_LINE:L1L2_LINE)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L1_SHELL)
+                CASE (L2Q1_LINE:L2L3_LINE)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L2_SHELL)
+                CASE (L3Q1_LINE:L3M1_LINE)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L3_SHELL)
         ENDSELECT
+        SELECT CASE(disc_lines(i))
+                CASE (KL1_LINE)
+                        shell1 = K_SHELL
+                        shell2 = L1_SHELL
+                CASE (KL2_LINE)
+                        shell1 = K_SHELL
+                        shell2 = L2_SHELL
+                CASE (KL3_LINE)
+                        shell1 = K_SHELL
+                        shell2 = L3_SHELL
+                CASE (KM1_LINE)
+                        shell1 = K_SHELL
+                        shell2 = M1_SHELL
+                CASE (KM2_LINE)
+                        shell1 = K_SHELL
+                        shell2 = M2_SHELL
+                CASE (KM3_LINE)
+                        shell1 = K_SHELL
+                        shell2 = M3_SHELL
+                CASE (KM4_LINE)
+                        shell1 = K_SHELL
+                        shell2 = M4_SHELL
+                CASE (KM5_LINE)
+                        shell1 = K_SHELL
+                        shell2 = M5_SHELL
+                CASE (KN1_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N1_SHELL
+                CASE (KN2_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N2_SHELL
+                CASE (KN3_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N3_SHELL
+                CASE (KN4_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N4_SHELL
+                CASE (KN5_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N5_SHELL
+                CASE (KN6_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N6_SHELL
+                CASE (KN7_LINE)
+                        shell1 = K_SHELL
+                        shell2 = N7_SHELL
+                CASE (L1M1_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = M1_SHELL
+                CASE (L1M2_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = M2_SHELL
+                CASE (L1M3_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = M3_SHELL
+                CASE (L1M4_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = M4_SHELL
+                CASE (L1M5_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = M5_SHELL
+                CASE (L1N1_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N1_SHELL
+                CASE (L1N2_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N2_SHELL
+                CASE (L1N3_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N3_SHELL
+                CASE (L1N4_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N4_SHELL
+                CASE (L1N5_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N5_SHELL
+                CASE (L1N6_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N6_SHELL
+                CASE (L1N7_LINE)
+                        shell1 = L1_SHELL
+                        shell2 = N7_SHELL
+                CASE (L2M1_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = M1_SHELL
+                CASE (L2M2_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = M2_SHELL
+                CASE (L2M3_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = M3_SHELL
+                CASE (L2M4_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = M4_SHELL
+                CASE (L2M5_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = M5_SHELL
+                CASE (L2N1_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N1_SHELL
+                CASE (L2N2_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N2_SHELL
+                CASE (L2N3_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N3_SHELL
+                CASE (L2N4_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N4_SHELL
+                CASE (L2N5_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N5_SHELL
+                CASE (L2N6_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N6_SHELL
+                CASE (L2N7_LINE)
+                        shell1 = L2_SHELL
+                        shell2 = N7_SHELL
+                CASE (L3M1_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = M1_SHELL
+                CASE (L3M2_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = M2_SHELL
+                CASE (L3M3_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = M3_SHELL
+                CASE (L3M4_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = M4_SHELL
+                CASE (L3M5_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = M5_SHELL
+                CASE (L3N1_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N1_SHELL
+                CASE (L3N2_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N2_SHELL
+                CASE (L3N3_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N3_SHELL
+                CASE (L3N4_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N4_SHELL
+                CASE (L3N5_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N5_SHELL
+                CASE (L3N6_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N6_SHELL
+                CASE (L3N7_LINE)
+                        shell1 = L3_SHELL
+                        shell2 = N7_SHELL
+                CASE DEFAULT
+                        ebel_spectrum_disc(i)%scale_parameter = 0.0_C_DOUBLE
+                        ebel_spectrum_disc(i)%distribution_type = &
+                        XMI_DISCRETE_MONOCHROMATIC
+        ENDSELECT
+        IF (ebel_spectrum_disc(i)%distribution_type .EQ. &
+        XMI_DISCRETE_LORENTZIAN) THEN
+                ebel_spectrum_disc(i)%scale_parameter = 0.5_C_DOUBLE*(&
+                AtomicLevelWidth(tube_anodeF%Z(1),shell1)+&
+                AtomicLevelWidth(tube_anodeF%Z(1),shell2))
+        ENDIF
+
 ENDDO
 !take window in account
 IF (ALLOCATED(tube_windowF)) THEN
