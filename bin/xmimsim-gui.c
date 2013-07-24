@@ -1972,6 +1972,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			break;
@@ -2007,6 +2009,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			gtk_list_store_clear(contWidget->store);
@@ -2464,6 +2468,8 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			break;
@@ -2499,6 +2505,8 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			gtk_list_store_clear(contWidget->store);
@@ -4980,6 +4988,8 @@ void change_all_values(struct xmi_input *new_input) {
 			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
 			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
 			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,(new_input)->excitation->discrete[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,(new_input)->excitation->discrete[i].scale_parameter,
 			-1);
 	}
 	gtk_list_store_clear(contWidget->store);

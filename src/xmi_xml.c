@@ -668,6 +668,8 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar*) "discrete")) {
 			subsubnode = subnode->children;
+			distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+			scale_parameter = 0.0;
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);

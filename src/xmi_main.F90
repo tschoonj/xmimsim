@@ -576,9 +576,17 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                 weight = (total_intensity)*exc_corr/inputF%general%n_photons_line
 
-#if DEBUG == 1
+#if DEBUG == 0
 !$omp critical
-                WRITE (output_unit, '(A,ES12.6)') 'weight float: ',weight
+                IF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_GAUSSIAN) THEN
+                WRITE (output_unit, '(A)') 'gaussian'
+                ELSEIF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_LORENTZIAN) THEN
+                WRITE (output_unit, '(A)') 'lorentzian'
+                ELSE
+                WRITE (output_unit, '(A)') 'monochromatic'
+                ENDIF
 !$omp end critical
 #endif
 
@@ -605,7 +613,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold) CYCLE &
                                 photons 
-                                initial_mus = xmi_mu_calc(inputF%composition,&
+                                photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
                         ELSEIF (exc%discrete(i)%distribution_type .EQ.&
                         XMI_DISCRETE_LORENTZIAN) THEN
@@ -614,13 +622,19 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold) CYCLE &
                                 photons 
-                                initial_mus = xmi_mu_calc(inputF%composition,&
+                                photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
                         ELSE
                                 !monochromatic case
                                 photon%energy = exc%discrete(i)%energy 
+                                photon%mus = initial_mus
                         ENDIF
-                        photon%mus = initial_mus
+#if DEBUG == 1
+!$omp critical
+                        WRITE (output_unit, '(A,ES12.6)') 'energy:',&
+                        photon%energy
+!$omp end critical
+#endif
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options

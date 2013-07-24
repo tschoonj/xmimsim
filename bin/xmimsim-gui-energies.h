@@ -46,8 +46,9 @@ enum {
 	SIGMA_XP_COLUMN,
 	SIGMA_Y_COLUMN,
 	SIGMA_YP_COLUMN,
+	DISTRIBUTION_TYPE_COLUMN,
+	SCALE_PARAMETER_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
-
 void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
 #endif

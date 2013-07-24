@@ -45,6 +45,8 @@ struct energyDialog {
 	GtkWidget *sigma_yEntry;
 	GtkWidget *sigma_xpEntry;
 	GtkWidget *sigma_ypEntry;
+	GtkWidget *distribution_typeCombo;
+	GtkWidget *scale_parameterEntry;
 	GtkWidget *window;
 	gulong energyGulong;
 	gulong hor_intensityGulong;
@@ -53,6 +55,8 @@ struct energyDialog {
 	gulong sigma_yGulong;
 	gulong sigma_xpGulong;
 	gulong sigma_ypGulong;
+	gulong distribution_typeGulong;
+	gulong scale_parameterGulong;
 };
 
 struct xmi_energy_discrete *energy_disc;
@@ -312,6 +316,8 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
 		SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
 		SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+		DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
+		SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
 		-1);
 	}
 	gtk_list_store_clear(contWidget->store);
@@ -597,6 +603,52 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 }
 
 
+static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+	gint type;
+	gchar *text;
+
+	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
+	
+	if (type == XMI_DISCRETE_MONOCHROMATIC) {
+		text = g_strdup("Monochromatic");
+	}
+	else if (type == XMI_DISCRETE_GAUSSIAN) {
+		text = g_strdup("Gaussian");
+	}
+	else if (type == XMI_DISCRETE_LORENTZIAN) {
+		text = g_strdup("Lorentzian");
+	}
+
+	g_object_set(G_OBJECT(renderer), "text", text, NULL);
+
+	g_free(text);
+
+	return;
+}
+
+static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
+	gint type;
+	gdouble scale_parameter;
+	gchar *text;
+
+
+	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
+
+	if (type == XMI_DISCRETE_MONOCHROMATIC) {
+		text = g_strdup("n/a");
+	}
+	else if (type == XMI_DISCRETE_GAUSSIAN || type == XMI_DISCRETE_LORENTZIAN) {
+		gtk_tree_model_get(tree_model,iter, SCALE_PARAMETER_COLUMN, &scale_parameter,-1);
+		text = g_strdup_printf("%lg", scale_parameter);
+	}
+
+	g_object_set(G_OBJECT(renderer), "text", text, NULL);
+
+	g_free(text);
+
+	return;
+}
+
 static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gdouble value;
 	gchar *double_text;
@@ -812,6 +864,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 					SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 				}
 			}
@@ -954,14 +1008,14 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	return;
 }
 
-void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
+static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 	struct energyDialog *ew =  (struct energyDialog *) data;
-	char *textPtr1, *textPtr2, *textPtr3, *textPtr4, *textPtr5, *textPtr6, *textPtr7;
-	char *endPtr1, *endPtr2, *endPtr3, *endPtr4, *endPtr5, *endPtr6, *endPtr7;
-	char *lastPtr1, *lastPtr2, *lastPtr3, *lastPtr4, *lastPtr5, *lastPtr6, *lastPtr7;
+	char *textPtr1, *textPtr2, *textPtr3, *textPtr4, *textPtr5, *textPtr6, *textPtr7, *textPtr8;
+	char *endPtr1, *endPtr2, *endPtr3, *endPtr4, *endPtr5, *endPtr6, *endPtr7, *endPtr8;
+	char *lastPtr1, *lastPtr2, *lastPtr3, *lastPtr4, *lastPtr5, *lastPtr6, *lastPtr7, *lastPtr8;
 
-	int ok1, ok2, ok3, ok4, ok5, ok6, ok7;
-	double value1, value2, value3, value4, value5, value6, value7;
+	int ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8;
+	double value1, value2, value3, value4, value5, value6, value7, value8;
 
 	
 	
@@ -976,9 +1030,14 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 	textPtr6 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->sigma_xpEntry));
 	textPtr7 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->sigma_ypEntry));
 
+	if(discOrCont == DISCRETE && gtk_combo_box_get_active(GTK_COMBO_BOX(ew->distribution_typeCombo)) != XMI_DISCRETE_MONOCHROMATIC) {
+		textPtr8 = (char *) gtk_entry_get_text(GTK_ENTRY(ew->scale_parameterEntry));
+	}
+
+
 #define energy_short1(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
 	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
-	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0) \
+	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0 && value ## n > 0.0) \
 		ok ## n = 1;\
 	else\
 		ok ## n = 0;\
@@ -1005,7 +1064,7 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
 		}\
 	}
-	energy_short2(1, ew->energyEntry)
+	energy_short1(1, ew->energyEntry)
 	//energy_short1(2, ew->hor_intensityEntry)
 	//energy_short1(3, ew->ver_intensityEntry)
 	energy_short2(4, ew->sigma_xEntry)
@@ -1013,6 +1072,12 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 	energy_short2(6, ew->sigma_xpEntry)
 	energy_short2(7, ew->sigma_ypEntry)
 
+	if(discOrCont == DISCRETE && gtk_combo_box_get_active(GTK_COMBO_BOX(ew->distribution_typeCombo)) != XMI_DISCRETE_MONOCHROMATIC) {
+		energy_short1(8, ew->scale_parameterEntry)
+	}
+	else {
+		ok8 = 1;	
+	}
 
 	value2 = strtod(textPtr2, &endPtr2);
 	value3 = strtod(textPtr3, &endPtr3);
@@ -1061,7 +1126,7 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
 	}
 
-	if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7) {
+	if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8) {
 		gtk_widget_set_sensitive(ew->okButton, TRUE);
 		if (discOrCont == DISCRETE) {
 			energy_disc->energy = value1;
@@ -1071,6 +1136,13 @@ void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			energy_disc->sigma_y = value5;
 			energy_disc->sigma_xp = value6;
 			energy_disc->sigma_yp = value7;
+			energy_disc->distribution_type = gtk_combo_box_get_active(GTK_COMBO_BOX(ew->distribution_typeCombo));
+			if(energy_disc->distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+				energy_disc->scale_parameter = value8;
+			}
+			else {
+				energy_disc->scale_parameter = 0.0;
+			}
 		}
 		else if (discOrCont == CONTINUOUS) {
 			energy_cont->energy = value1;
@@ -1213,7 +1285,10 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	mainbox = gtk_hbox_new(FALSE, 5);
 
-	store = gtk_list_store_new(NCOLUMNS_ENERGIES, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+	if (kind == DISCRETE)
+		store = gtk_list_store_new(NCOLUMNS_ENERGIES, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_INT, G_TYPE_DOUBLE);
+	else 
+		store = gtk_list_store_new(NCOLUMNS_ENERGIES-2, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
 	if (kind == DISCRETE) {
 		for (i = 0 ; i < n_energies ; i++) {
@@ -1226,6 +1301,8 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 			SIGMA_XP_COLUMN,energies_d[i].sigma_xp,
 			SIGMA_Y_COLUMN,energies_d[i].sigma_y,
 			SIGMA_YP_COLUMN,energies_d[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,energies_d[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,energies_d[i].scale_parameter,
 			-1
 			);
 		}
@@ -1331,6 +1408,30 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_YP_COLUMN),NULL);
+
+	if (kind == DISCRETE) {
+		renderer = gtk_cell_renderer_text_new();
+		my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		column = gtk_tree_view_column_new();
+		gtk_tree_view_column_set_title(column, "Distribution type");
+		gtk_tree_view_column_set_resizable(column,TRUE);
+		gtk_tree_view_column_set_alignment(column, 0.5);
+		gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+		gtk_tree_view_column_pack_start(column, renderer, TRUE);
+		gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_distribution_type,NULL ,NULL);
+
+		renderer = gtk_cell_renderer_text_new();
+		my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		column = gtk_tree_view_column_new();
+		gtk_tree_view_column_set_title(column, "Scale parameter (keV)");
+		gtk_tree_view_column_set_resizable(column,TRUE);
+		gtk_tree_view_column_set_alignment(column, 0.5);
+		gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+		gtk_tree_view_column_pack_start(column, renderer, TRUE);
+		gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_scale_parameter,NULL ,NULL);
+
+
+	}
 
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -1480,6 +1581,8 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 				SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
 				SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
 				SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+				DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
+				SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
 				-1);
 		}
 	}
@@ -1516,7 +1619,10 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	g_signal_handler_block(G_OBJECT(ew->sigma_yEntry),ew->sigma_yGulong);
 	g_signal_handler_block(G_OBJECT(ew->sigma_xpEntry),ew->sigma_xpGulong);
 	g_signal_handler_block(G_OBJECT(ew->sigma_ypEntry),ew->sigma_ypGulong);
-
+	if (discOrCont == DISCRETE) {
+		g_signal_handler_block(G_OBJECT(ew->scale_parameterEntry),ew->scale_parameterGulong);
+		g_signal_handler_block(G_OBJECT(ew->distribution_typeCombo),ew->distribution_typeGulong);
+	}
 
 
 	
@@ -1531,6 +1637,11 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_yEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),"");
+		if (discOrCont == DISCRETE) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), XMI_DISCRETE_MONOCHROMATIC);
+			gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),"");
+			gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
+		}
 		gtk_widget_modify_base(ew->energyEntry,GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(ew->hor_intensityEntry,GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(ew->ver_intensityEntry,GTK_STATE_NORMAL,&white);
@@ -1538,6 +1649,9 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		gtk_widget_modify_base(ew->sigma_yEntry,GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(ew->sigma_xpEntry,GTK_STATE_NORMAL,&white);
 		gtk_widget_modify_base(ew->sigma_ypEntry,GTK_STATE_NORMAL,&white);
+		if (discOrCont == DISCRETE) {
+			gtk_widget_modify_base(ew->scale_parameterEntry,GTK_STATE_NORMAL,&white);
+		}
 	}
 	else if (addOrEdit == ENERGY_EDIT){
 		//edit mode
@@ -1558,6 +1672,16 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),buffer);
 			sprintf(buffer,"%lg",energy_disc->sigma_yp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), energy_disc->distribution_type);
+			if (energy_disc->distribution_type == XMI_DISCRETE_MONOCHROMATIC) {
+				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry), "");
+				gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
+			}
+			else {
+				sprintf(buffer,"%lg",energy_disc->scale_parameter);
+				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
+				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
+			}
 		}
 		else if (discOrCont == CONTINUOUS) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
@@ -1585,10 +1709,36 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	g_signal_handler_unblock(G_OBJECT(ew->sigma_yEntry),ew->sigma_yGulong);
 	g_signal_handler_unblock(G_OBJECT(ew->sigma_xpEntry),ew->sigma_xpGulong);
 	g_signal_handler_unblock(G_OBJECT(ew->sigma_ypEntry),ew->sigma_ypGulong);
+	if (discOrCont == DISCRETE) {
+		g_signal_handler_unblock(G_OBJECT(ew->scale_parameterEntry),ew->scale_parameterGulong);
+		g_signal_handler_unblock(G_OBJECT(ew->distribution_typeCombo),ew->distribution_typeGulong);
+	}
 
 	gtk_widget_grab_default(ew->okButton);
 
 	return;	
+}
+
+static void distribution_type_changed_cb(GtkComboBox *combobox, struct energyDialog *ed) {
+	gint active = gtk_combo_box_get_active(combobox);
+
+	g_signal_handler_block(G_OBJECT(ed->scale_parameterEntry),ed->scale_parameterGulong);
+	gtk_widget_modify_base(ed->scale_parameterEntry,GTK_STATE_NORMAL,&white);
+	gtk_entry_set_text(GTK_ENTRY(ed->scale_parameterEntry),"");
+	g_signal_handler_unblock(G_OBJECT(ed->scale_parameterEntry),ed->scale_parameterGulong);
+
+	if (active == XMI_DISCRETE_MONOCHROMATIC) {
+		//monochromatic
+		gtk_widget_set_sensitive(ed->scale_parameterEntry, FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(ed->scale_parameterEntry, TRUE);
+	
+	}
+
+	energy_window_changed_cb(NULL, ed);
+
+	return;
 }
 
 static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int kind) {
@@ -1703,6 +1853,37 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 	rv->sigma_ypEntry = entry;	
 
+	if (kind == DISCRETE) {
+		//distribution type
+		HBox = gtk_hbox_new(FALSE,2);
+		label = gtk_label_new("Energy distribution type");
+#if GTK_CHECK_VERSION(2,24,0)
+		rv->distribution_typeCombo = gtk_combo_box_text_new();
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(rv->distribution_typeCombo), "Monochromatic");
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(rv->distribution_typeCombo), "Gaussian");
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(rv->distribution_typeCombo), "Lorentzian");
+#else
+		rv->distribution_typeCombo = gtk_combo_box_new_text();
+		gtk_combo_box_append_text(GTK_COMBO_BOX(rv->distribution_typeCombo), "Monochromatic");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(rv->distribution_typeCombo), "Gaussian");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(rv->distribution_typeCombo), "Lorentzian");
+#endif
+		rv->distribution_typeGulong = g_signal_connect(G_OBJECT(rv->distribution_typeCombo), "changed", G_CALLBACK(distribution_type_changed_cb), (gpointer) rv);
+		gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);	
+		gtk_box_pack_end(GTK_BOX(HBox), rv->distribution_typeCombo, FALSE, FALSE, 2);	
+		gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
+
+		//scale parameter
+		HBox = gtk_hbox_new(FALSE,2);
+		label = gtk_label_new("Scale parameter (keV)");
+		entry = gtk_entry_new();
+		gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
+		rv->scale_parameterGulong = g_signal_connect(G_OBJECT(entry),"changed",G_CALLBACK(energy_window_changed_cb), (gpointer) rv);
+		gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
+		gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
+		gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
+		rv->scale_parameterEntry = entry;	
+	}
 	//separator
 	separator = gtk_hseparator_new();
 	gtk_box_pack_start(GTK_BOX(mainVBox), separator, FALSE, FALSE, 3);
@@ -1802,6 +1983,8 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		temp.sigma_y = 0.0;
 		temp.sigma_xp = 0.0;
 		temp.sigma_yp = 0.0;
+		temp.distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		temp.scale_parameter = 0.0;
 
 		switch (values) {
 			case 7:
