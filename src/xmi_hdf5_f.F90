@@ -213,7 +213,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 RETURN
         ENDIF
 
-        WRITE (output_unit, '(A, F6.1)') 'version: ', version
+        !WRITE (output_unit, '(A, F6.1)') 'version: ', version
 
         !close version attribute
         CALL h5aclose_f(attr_id, error)

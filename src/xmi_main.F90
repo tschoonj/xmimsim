@@ -576,7 +576,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                 weight = (total_intensity)*exc_corr/inputF%general%n_photons_line
 
-#if DEBUG == 0
+#if DEBUG == 1
 !$omp critical
                 IF (exc%discrete(i)%distribution_type .EQ.&
                         XMI_DISCRETE_GAUSSIAN) THEN
