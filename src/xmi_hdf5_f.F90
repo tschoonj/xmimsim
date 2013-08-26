@@ -207,7 +207,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
       
         IF (version .LT. MIN_VERSION) THEN
-                WRITE (error_unit,'(A,A,A)') 'XMI-MSIM datafile ',xmi_hdf5_fileFF,' is outdated '
+                WRITE (error_unit,'(A,A,A)') 'XMI-MSIM datafile ',TRIM(xmi_hdf5_fileFF),' is outdated '
                 WRITE (error_unit,'(A)') 'Generate a new file with xmimsim-db'
                 rv = 0
                 RETURN
