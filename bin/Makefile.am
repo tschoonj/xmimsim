@@ -199,6 +199,8 @@ xmimsim-icon.o: xmimsim-icon.rc
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 
 
+xmimsim-gui.c: xmimsim-gui-icons.h
+
 xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
 	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
