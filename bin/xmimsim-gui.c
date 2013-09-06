@@ -2311,9 +2311,8 @@ static void about_click(GtkWidget *widget, gpointer data) {
 	GdkPixbuf *logo = NULL;
 	gchar *logo_file = NULL;
 
-#if defined(G_OS_WIN32)
+#ifdef G_OS_WIN32
 	xmi_registry_win_query(XMI_REGISTRY_WIN_LOGO,&logo_file);
-#endif
 
 	GError *error = NULL;
 	if (logo_file) {
@@ -2324,6 +2323,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 
 		g_free(logo_file);
 	}
+#endif
 
 	gtk_show_about_dialog(GTK_WINDOW(data),
 		"program-name", "XMI-MSIM",
@@ -2331,8 +2331,11 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		"comments", comments,
 		"copyright", copyright,
 		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011 ) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011 ) in your manuscripts.", 
+#ifdef G_OS_WIN32
 		"logo", logo,
+#else
 		"logo-icon-name", XMI_STOCK_LOGO,
+#endif
 		"artists", artists,
 		"version", VERSION,
 		"website", "https://github.com/tschoonj/xmimsim",
