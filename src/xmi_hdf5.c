@@ -46,6 +46,7 @@ struct interaction_prob {
 
 //fortran call
 void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *doppler_pz, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int maxz, int nintervals_e_ip);
+void xmi_db_Z_independent(double *rayleigh_phi, double *compton_phi, double *thetas, double *rs, double *energies, int nintervals_theta2, int nintervals_e, int nintervals_r);
 
 
 int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
@@ -110,10 +111,8 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 }
 
 int xmi_db2(char *filename) {
-	const int nintervals_r = 2000, nintervals_e = 200, maxz = 20,
-	nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000,
-	nintervals_e_ip = 10000, nintervals_pz=1000000;
-	const double  maxe = 100.0, lowe = 0.1, maxpz = 100.0;
+	const int nintervals_r = 2000, nintervals_e = 200, maxz = 94,
+	nintervals_theta2=200, nintervals_e_ip = 10000;
 
 	hid_t file_id;
 	hid_t dset_id;
@@ -123,16 +122,16 @@ int xmi_db2(char *filename) {
 	hid_t root_group_id;
 	hid_t dataspace_id;
 
-	float version = (float) g_ascii_strtod(VERSION, NULL);
+	double version = g_ascii_strtod(VERSION, NULL);
 	//may have to invert dims 
 	hsize_t dims[2] = {nintervals_r, nintervals_e};
-	hsize_t dims2[2] = {nintervals_theta2, nintervals_r};
-	hsize_t dims3[3] = {nintervals_theta2, nintervals_e,nintervals_r};
-	hsize_t dims4[2];
+	hsize_t dims2[2] = {nintervals_r, nintervals_theta2};
+	hsize_t dims3[3] = {nintervals_r, nintervals_e, nintervals_theta2};
 	hsize_t dims_corr[1] = {9};
 	hsize_t dims_ip[2];
 	char elements[3];
 	double *rayleigh_theta, *compton_theta, *energies, *rs, *doppler_pz, *fluor_yield_corr;
+	double *rayleigh_phi, * compton_phi, *thetas;
 	struct interaction_prob* ip;
 
 	int i,j,k;
@@ -147,22 +146,21 @@ int xmi_db2(char *filename) {
 
 	/* create version attribute */
 	dataspace_id = H5Screate(H5S_SCALAR);
-	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &version);
 
 	
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
 	H5Gclose(root_group_id);
 
-	/* write element specific information */
 	//rayleigh_theta
-	//compton_theta
 	rayleigh_theta = (double *) malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
 	if (rayleigh_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for rayleigh_theta. Aborting\n");
 		return 0;
 	}
+	//compton_theta
 	compton_theta = (double *) malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
 	if (compton_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for compton_theta. Aborting\n");
@@ -287,8 +285,6 @@ int xmi_db2(char *filename) {
 	//free memory
 	free(rayleigh_theta);
 	free(compton_theta);
-	free(energies);
-	free(rs);
 	free(doppler_pz);
 	free(fluor_yield_corr);
 	for (i=0 ; i < maxz ; i++) {
@@ -301,6 +297,84 @@ int xmi_db2(char *filename) {
 	free(doppler_pz_slice);
 	free(fluor_yield_corr_slice);
 
+	//Z independent part
+	//rayleigh_phi
+	rayleigh_phi = (double *) malloc(sizeof(double)*nintervals_theta2*nintervals_r);
+	if (rayleigh_phi == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for rayleigh_phi. Aborting\n");
+		return 0;
+	}
+	//compton_phi
+	compton_phi = (double *) malloc(sizeof(double)*nintervals_e*nintervals_r*nintervals_theta2);
+	if (compton_phi == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for compton_phi. Aborting\n");
+		return 0;
+	}
+	//thetas
+	thetas = (double *) malloc(sizeof(double)*nintervals_theta2);
+	if (compton_phi == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for thetas. Aborting\n");
+		return 0;
+	}
+
+	xmi_db_Z_independent(rayleigh_phi, compton_phi, thetas, rs, energies, nintervals_theta2, nintervals_e, nintervals_r);
+
+	//write to hdf5 file
+	group_id = H5Gcreate(file_id, "RayleighPhi", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+	dspace_id = H5Screate_simple(2, dims2, dims2);
+	dset_id = H5Dcreate(group_id, "RayleighPhi_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rayleigh_phi);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	dspace_id = H5Screate_simple(1, dims2+1, dims2+1);
+	dset_id = H5Dcreate(group_id, "Thetas",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, thetas);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	dspace_id = H5Screate_simple(1, dims2, dims2);
+	dset_id = H5Dcreate(group_id, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	H5Gclose(group_id);
+
+	group_id = H5Gcreate(file_id, "ComptonPhi", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+	dspace_id = H5Screate_simple(3, dims3, dims3);
+	dset_id = H5Dcreate(group_id, "ComptonPhi_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, compton_phi);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	dspace_id = H5Screate_simple(1, dims3+2, dims3+2);
+	dset_id = H5Dcreate(group_id, "Thetas",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, thetas);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	dspace_id = H5Screate_simple(1, dims3+1, dims3+1);
+	dset_id = H5Dcreate(group_id, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, energies);
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	dspace_id = H5Screate_simple(1, dims3, dims3);
+	dset_id = H5Dcreate(group_id, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);	
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+
+	H5Gclose(group_id);
+
+	free(energies);
+	free(rs);
+	free(rayleigh_phi);
+	free(compton_phi);
+	free(thetas);
 	//close file
 	H5Fclose(file_id);
 
