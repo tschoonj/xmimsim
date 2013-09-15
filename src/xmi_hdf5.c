@@ -16,13 +16,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
+#include <stdlib.h>
 #include "xmi_hdf5.h"
+#include "xmi_aux.h"
+#include "xmi_main.h"
 #include <glib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
+#include <math.h>
+#include <hdf5.h>
 
 #ifdef MAC_INTEGRATION
   #import <Foundation/Foundation.h>
@@ -32,6 +37,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef G_OS_WIN32
   #include "xmi_registry_win.h"
 #endif
+
+struct interaction_prob {
+	int len;
+	double *energies;
+	double *Rayl_and_Compt;
+};
+
+//fortran call
+void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *doppler_pz, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int maxz, int nintervals_e_ip);
 
 
 int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
@@ -93,4 +107,202 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 	return 1;
 
 
+}
+
+int xmi_db2(char *filename) {
+	const int nintervals_r = 2000, nintervals_e = 200, maxz = 20,
+	nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000,
+	nintervals_e_ip = 10000, nintervals_pz=1000000;
+	const double  maxe = 100.0, lowe = 0.1, maxpz = 100.0;
+
+	hid_t file_id;
+	hid_t dset_id;
+	hid_t dspace_id;
+	hid_t group_id, group_id2;
+	hid_t attribute_id;
+	hid_t root_group_id;
+	hid_t dataspace_id;
+
+	float version = (float) g_ascii_strtod(VERSION, NULL);
+	//may have to invert dims 
+	hsize_t dims[2] = {nintervals_r, nintervals_e};
+	hsize_t dims2[2] = {nintervals_theta2, nintervals_r};
+	hsize_t dims3[3] = {nintervals_theta2, nintervals_e,nintervals_r};
+	hsize_t dims4[2];
+	hsize_t dims_corr[1] = {9};
+	hsize_t dims_ip[2];
+	char elements[3];
+	double *rayleigh_theta, *compton_theta, *energies, *rs, *doppler_pz, *fluor_yield_corr;
+	struct interaction_prob* ip;
+
+	int i,j,k;
+
+	/* Create a new file using default properties. */
+	file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	if (file_id < 0) {
+		fprintf(stderr,"Could not create HDF5 XMI-MSIM data file %s\n",filename);
+		return 0;
+	}
+	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+
+	/* create version attribute */
+	dataspace_id = H5Screate(H5S_SCALAR);
+	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+
+	
+	H5Aclose(attribute_id);
+	H5Sclose(dataspace_id);
+	H5Gclose(root_group_id);
+
+	/* write element specific information */
+	//rayleigh_theta
+	//compton_theta
+	rayleigh_theta = (double *) malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	if (rayleigh_theta == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for rayleigh_theta. Aborting\n");
+		return 0;
+	}
+	compton_theta = (double *) malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	if (compton_theta == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for compton_theta. Aborting\n");
+		return 0;
+	}
+	energies = (double *) malloc(sizeof(double)*nintervals_e);
+	if (energies == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for energies. Aborting\n");
+		return 0;
+	}
+	rs = (double *) malloc(sizeof(double)*nintervals_r);
+	if (rs == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for rs. Aborting\n");
+		return 0;
+	}
+	doppler_pz = (double *) malloc(sizeof(double)*maxz*nintervals_r);
+	if (doppler_pz == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for doppler_pz. Aborting\n");
+		return 0;
+	}
+	fluor_yield_corr = (double *) malloc(sizeof(double)*maxz*9);
+	if (fluor_yield_corr == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for fluor_yield_corr. Aborting\n");
+		return 0;
+	}
+	ip = (struct interaction_prob*) malloc(sizeof(struct interaction_prob)*maxz);
+	if (ip == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for ip. Aborting\n");
+		return 0;
+	}
+
+
+	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, doppler_pz, fluor_yield_corr, ip, nintervals_r, nintervals_e, maxz, nintervals_e_ip);
+
+	double *rayleigh_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
+	double *compton_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
+	double *doppler_pz_slice = (double*) malloc(sizeof(double)*nintervals_r);
+	double *fluor_yield_corr_slice = (double*) malloc(sizeof(double)*9);
+	
+	for (i = 1 ; i <= maxz ; i++) {
+		//these two nested for loops ensure that I extract the data correctly from these fortran column major ordered arrays
+		//AND that they are written to the HDF5 file using column major...
+		for (j = 0 ; j < nintervals_r ; j++) {
+			for (k = 0 ; k < nintervals_e ; k++) {
+				rayleigh_theta_slice[j+k*nintervals_r] = rayleigh_theta[i-1+maxz*j+nintervals_r*maxz*k];
+				compton_theta_slice[j+k*nintervals_r] = compton_theta[i-1+maxz*j+nintervals_r*maxz*k];
+			}
+			doppler_pz_slice[j] = doppler_pz[i-1+maxz*j];
+		}
+		for (j=0 ; j < 9 ; j++) 
+			fluor_yield_corr_slice[j] = fluor_yield_corr[i-1+maxz*j];
+	
+
+		//create group for the element
+		sprintf(elements,"%2i", i);
+		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		group_id2 = H5Gcreate(group_id, "Theta_ICDF", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+		//create rayleigh theta dataset
+		dspace_id = H5Screate_simple(2, dims, dims);
+		dset_id = H5Dcreate(group_id2, "RayleighTheta_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rayleigh_theta_slice);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		//create energies dataset
+		dspace_id = H5Screate_simple(1, dims+1, dims+1);
+		dset_id = H5Dcreate(group_id2, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, energies);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		//create random numbers dataset
+		dspace_id = H5Screate_simple(1, dims, dims);
+		dset_id = H5Dcreate(group_id2, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		//create compton theta dataset
+		dspace_id = H5Screate_simple(2, dims, dims);
+		dset_id = H5Dcreate(group_id2, "ComptonTheta_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, compton_theta_slice);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		//create doppler dataset
+		dspace_id = H5Screate_simple(1, dims, dims);
+		dset_id = H5Dcreate(group_id2, "Doppler_pz_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, doppler_pz_slice);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		//create corrected fluorescence yields dataset
+		dspace_id = H5Screate_simple(1, dims_corr, dims_corr);
+		dset_id = H5Dcreate(group_id2, "Corrected fluorescence yields",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, fluor_yield_corr_slice);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+        	//group close -> theta_icdf
+		H5Gclose(group_id2);
+		
+		group_id2 = H5Gcreate(group_id, "Interaction probabilities", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+		dims_ip[0] = 2;
+		dims_ip[1] = ip[i-1].len;
+		dspace_id = H5Screate_simple(1, dims_ip+1, dims_ip+1);
+		dset_id = H5Dcreate(group_id2, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].energies);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+		dspace_id = H5Screate_simple(2, dims_ip, dims_ip);
+		dset_id = H5Dcreate(group_id2, "Rayleigh and Compton probabilities", H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].Rayl_and_Compt);	
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		H5Gclose(group_id2);
+		H5Gclose(group_id);
+	}
+	//free memory
+	free(rayleigh_theta);
+	free(compton_theta);
+	free(energies);
+	free(rs);
+	free(doppler_pz);
+	free(fluor_yield_corr);
+	for (i=0 ; i < maxz ; i++) {
+		xmi_deallocate(ip[i].energies);
+		xmi_deallocate(ip[i].Rayl_and_Compt);
+	}		
+	free(ip);
+	free(rayleigh_theta_slice);
+	free(compton_theta_slice);
+	free(doppler_pz_slice);
+	free(fluor_yield_corr_slice);
+
+	//close file
+	H5Fclose(file_id);
+
+	return 1;
 }

@@ -25,5 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //hdf5_filePtr must be a pointer to char *, which may be equal to NULL, in which case the function try to allocate a string containing the path to hDF5 data file of XMI-MSIM
 int xmi_get_hdf5_data_file(char **hdf5_filePtr);
 
+int xmi_db2(char *filename);
+
 
 #endif

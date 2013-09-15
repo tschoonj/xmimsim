@@ -586,7 +586,6 @@ CHARACTER (len=10) :: version_string = VERSION
 INTEGER(HSIZE_T),DIMENSION(2) :: dims = [nintervals_e, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(2) :: dims2 = [nintervals_theta2, nintervals_r]
 INTEGER(HSIZE_T),DIMENSION(3) :: dims3 = [nintervals_theta2, nintervals_e,nintervals_r]
-INTEGER(HSIZE_T),DIMENSION(2) :: dims4 
 
 INTEGER :: h5error
 CHARACTER(len=2) :: element
@@ -1227,7 +1226,320 @@ CALL h5close_f(h5error)
 
 ENDSUBROUTINE xmi_db
 
+SUBROUTINE xmi_db_Z_specific(rayleigh_thetaPtr, compton_thetaPtr, energiesPtr, rsPtr,&
+doppler_pzPtr, fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip) &
+BIND(C,NAME='xmi_db_Z_specific')
+
+IMPLICIT NONE
+
+TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_thetaPtr, compton_thetaPtr, &
+energiesPtr, rsPtr, doppler_pzPtr, fluor_yield_corrPtr, ipPtr
+INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_r, nintervals_e, maxz, &
+nintervals_e_ip
+
+REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER::&
+rayleigh_theta, compton_theta
+REAL (C_DOUBLE), DIMENSION(:), POINTER :: energies,rs
+REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: doppler_pz
+REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: fluor_yield_corr
+TYPE (interaction_probC), DIMENSION(:), POINTER :: ip
+TYPE (interaction_prob) :: ip_temp
+
+INTEGER (8), PARAMETER :: nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
+nintervals_pz=1000000
+REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
+        PI = 3.14159265359,maxpz = 100.0
+
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis,trapez2
+REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
+temp_array
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
+
+INTEGER :: stat,i,j,k,l,m,n
+REAL (KIND=C_DOUBLE) :: temp_sum,K0K
+REAL (KIND=C_FLOAT) :: temp_energy,temp_total_cs
 
 
+CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
+nintervals_r])
+CALL C_F_POINTER(compton_thetaPtr,compton_theta,[maxz, nintervals_e,&
+nintervals_r])
+CALL C_F_POINTER(energiesPtr,energies,[nintervals_e])
+CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
+CALL C_F_POINTER(doppler_pzPtr,doppler_pz,[maxz,nintervals_r])
+CALL C_F_POINTER(fluor_yield_corrPtr,fluor_yield_corr,[maxz,M5_SHELL+1])
+CALL C_F_POINTER(ipPtr, ip,[maxz])
 
+
+CALL SetErrorMessages(0)
+
+ALLOCATE(thetas(nintervals_theta), pzs(nintervals_pz))
+
+!Fill up the energies and rs arrays...
+
+DO i=1,nintervals_e
+        energies(i) = lowe + (maxe-lowe)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_e-1.0)
+ENDDO
+
+DO i=1,nintervals_pz
+        pzs(i) = 0.0_C_DOUBLE + maxpz*(REAL(i,C_DOUBLE)-1.0)/(nintervals_pz-1.0)
+ENDDO
+
+DO i=1,nintervals_r
+        rs(i) = (REAL(i,C_DOUBLE)-1.0)/(nintervals_r-1.0)
+ENDDO
+
+DO i=1,nintervals_theta
+        thetas(i) = 0.0_C_DOUBLE+(PI)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta-1.0)
+ENDDO
+
+!$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,&
+!$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs)
+
+ALLOCATE(trapez(nintervals_theta-1))
+ALLOCATE(trapez2(nintervals_pz-1))
+ALLOCATE(sumz(nintervals_theta-1))
+!$OMP DO
+
+Zloop:DO i=1,maxz 
+        Eloop:DO j=1,nintervals_e
+
+                !
+                !Rayleigh
+                !
+
+                thetaloop: DO k=1,nintervals_theta-1
+                        trapez(k) = &
+(DCS_Rayl(i,REAL(energies(j),KIND=C_FLOAT),&
+REAL(thetas(k),KIND=C_FLOAT))*SIN(thetas(k))+&
+DCS_Rayl(i,REAL(energies(j),KIND=C_FLOAT),&
+REAL(thetas(k+1),KIND=C_FLOAT))*SIN(thetas(k+1)))&
+*(thetas(k+1)-thetas(k))/2.0
+                ENDDO thetaloop
+                !to avoid database conflicts -> calculate CS_Rayl yourself...
+                !trapez = trapez*2.0*PI/CS_Rayl(i,REAL(energies(j),KIND=C_FLOAT))
+                trapez = trapez/SUM(trapez)
+#if DEBUG == 2
+                IF (i == 26) THEN
+                        sumz(1)=trapez(1)
+                        DO l=2,nintervals_theta-1 
+                                sumz(l)=sumz(l-1)+trapez(l)
+                        ENDDO
+                        WRITE (100,*) sumz
+                ENDIF
+#endif
+
+
+                temp_sum=0.0_C_DOUBLE
+                l=1
+                m=1
+                DO 
+                        temp_sum = trapez(l)+temp_sum
+                        IF (temp_sum >= rs(m)) THEN
+                                rayleigh_theta(i,j,m) = thetas(l)
+                                IF (m == nintervals_r) EXIT
+                                m = m+1
+                        ENDIF
+
+                        IF (l == nintervals_theta-1) EXIT
+                        l=l+1
+                ENDDO
+                rayleigh_theta(i,j,nintervals_r) = PI
+                rayleigh_theta(i,j,1) = 0.0
+                !
+                !Compton
+                !
+
+                thetaloop2: DO k=1,nintervals_theta-1
+                        trapez(k) = &
+(DCS_Compt(i,REAL(energies(j),KIND=C_FLOAT),&
+REAL(thetas(k),KIND=C_FLOAT))*SIN(thetas(k))+&
+DCS_Compt(i,REAL(energies(j),KIND=C_FLOAT),&
+REAL(thetas(k+1),KIND=C_FLOAT))&
+*SIN(thetas(k+1)))*(thetas(k+1)-thetas(k))/2.0
+                ENDDO thetaloop2
+                !trapez = trapez*2.0*PI/CS_Compt(i,REAL(energies(j),KIND=C_FLOAT))
+                trapez = trapez/SUM(trapez)
+                temp_sum=0.0_C_DOUBLE
+                l=1
+                m=1
+                DO 
+                        temp_sum = trapez(l)+temp_sum
+                        IF (temp_sum >= rs(m)) THEN
+                                compton_theta(i,j,m) = thetas(l)
+                                IF (m == nintervals_r) EXIT
+                                m = m+1
+                        ENDIF
+
+                        IF (l == nintervals_theta-1) EXIT
+                        l=l+1
+                ENDDO
+                compton_theta(i,j,nintervals_r) = PI
+                compton_theta(i,j,1) = 0.0
+        ENDDO Eloop
+#if DEBUG == 2
+IF (i == 26) THEN
+        CLOSE(unit=100)
+ENDIF
+#endif
+        !automatic allocation -> could be a problem for some
+        !compilers... yes I'm talking about you Intel!!! (requires -assume lhs_alloc)
+        !Gfortran 4.5 also doesn't appear to support automatic allocation when
+        !initializing with REAL... sorry Intel!
+        ALLOCATE(energies_flt(nintervals_e_ip))
+        DO j=1,nintervals_e_ip
+                energies_flt(j) = REAL(lowe + (maxe-lowe)*(REAL(j,C_DOUBLE)-1.0)&
+                /(nintervals_e_ip-1.0),KIND=C_DOUBLE)
+        ENDDO
+
+        !add edge energies
+        DO k=K_SHELL,M5_SHELL
+                temp_energy = EdgeEnergy(i,k)
+                IF (temp_energy < lowe) CYCLE
+                IF (temp_energy > 0.0_C_FLOAT) THEN
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy+0.00001_C_FLOAT]
+                        !energies_flt = [energies_flt,&
+                        ! temp_energy-0.00001_C_FLOAT]
+                        ALLOCATE(temp_array(SIZE(energies_flt)+2))
+                        temp_array(1:SIZE(energies_flt)) = energies_flt
+                        CALL MOVE_ALLOC(temp_array, energies_flt)
+                        energies_flt(SIZE(energies_flt)-1)=temp_energy+0.00001_C_FLOAT
+                        energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_FLOAT
+                ENDIF
+        ENDDO
+        
+
+        !SORT them
+        CALL qsort(C_LOC(energies_flt),SIZE(energies_flt,KIND=C_SIZE_T),&
+        INT(KIND(energies_flt),KIND=C_SIZE_T),C_FUNLOC(C_FLOAT_CMP))
+
+
+        ip_temp = energies_flt
+        !ALLOCATE(ip_temp%energies(SIZE(energies_flt)),ip_temp%Rayl_and_Compt(SIZE(energies_flt),2))
+        !DO k=1,SIZE(energies_flt)
+        !        ip_temp%energies(i)=REAL(energies_flt(i),KIND=C_DOUBLE)
+        !ENDDO
+
+        
+
+        DO k=1,SIZE(energies_flt)
+                temp_total_cs = CS_Total_Kissel(i,energies_flt(k))
+                ip_temp%Rayl_and_Compt(k,1) = CS_Rayl(i,energies_flt(k))/temp_total_cs
+                ip_temp%Rayl_and_Compt(k,2) = CS_Compt(i,energies_flt(k))/temp_total_cs+&
+                  ip_temp%Rayl_and_Compt(k,1)
+        ENDDO
+        ip(i)%len = SIZE(energies_flt)
+        ip(i)%energies = C_LOC(ip_temp%energies(1))
+        ip(i)%Rayl_and_Compt = C_LOC(ip_temp%Rayl_and_Compt(1,1))
+
+        DEALLOCATE(energies_flt)
+
+        !
+        !
+        !       Doppler broadening
+        !
+        !
+        DO j=1,nintervals_pz-1
+                trapez2(j) = &
+                (ComptonProfile(i, REAL(pzs(j),KIND=C_FLOAT))+&
+                ComptonProfile(i, REAL(pzs(j+1),KIND=C_FLOAT)))*&
+                (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(i,KIND=C_DOUBLE)
+                !divide by atomic number because we want an average value per
+                !electron
+        ENDDO
+        trapez2 = trapez2/SUM(trapez2)
+
+        temp_sum = 0.0_C_DOUBLE
+        l=1
+        m=1
+        DO
+                temp_sum = trapez2(l)+temp_sum
+                IF (temp_sum >= rs(m)) THEN
+                       doppler_pz(i,m) = pzs(l)
+                        IF (m == nintervals_r) EXIT
+                        m = m+1
+                ENDIF
+                IF (l == nintervals_pz-1) EXIT
+                l = l+1
+        ENDDO
+        doppler_pz(i,nintervals_r) = maxpz
+        doppler_pz(i,1) = 0.0_C_DOUBLE
+
+        !
+        !
+        !       Corrected fluorescence yields (in terms of the primary vacancy
+        !       distributions)
+        !
+        !
+#define CKTB CosKronTransProb
+        fluor_yield_corr(i,K_SHELL+1) = FluorYield(i,K_SHELL) 
+        fluor_yield_corr(i,L1_SHELL+1) = FluorYield(i,L1_SHELL)+&
+                        (CKTB(i,FL12_TRANS)*FluorYield(i,L2_SHELL))+&
+                        (CKTB(i,FL13_TRANS)+CKTB(i,FL12_TRANS)*CKTB(i,FL23_TRANS))*&
+                        FluorYield(i,L3_SHELL)
+        fluor_yield_corr(i,L2_SHELL+1) = FluorYield(i,L2_SHELL)+&
+                        (CKTB(i,FL23_TRANS)*FluorYield(i,L3_SHELL))
+        fluor_yield_corr(i,L3_SHELL+1) = FluorYield(i,L3_SHELL)
+        fluor_yield_corr(i,M1_SHELL+1) = &
+                        !M1_SHELL
+                        FluorYield(i,M1_SHELL)+&
+                        !M2_SHELL
+                        CKTB(i,FM12_TRANS)*FluorYield(i,M2_SHELL)+&
+                        !M3_SHELL
+                        (CKTB(i,FM13_TRANS)+CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS))*&
+                        FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        (CKTB(i,FM14_TRANS)+CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM15_TRANS)+&
+                        CKTB(i,FM14_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM13_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM25_TRANS)+&
+                        CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*&
+                        CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M2_SHELL+1) = &
+                        !M2_SHELL
+                        FluorYield(i,M2_SHELL)+&
+                        !M3_SHELL
+                        CKTB(i,FM23_TRANS)*FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        (CKTB(i,FM24_TRANS)+CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM25_TRANS)+CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
+                        CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
+                        CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M3_SHELL+1) = &
+                        !M3_SHELL
+                        FluorYield(i,M3_SHELL)+&
+                        !M4_SHELL
+                        CKTB(i,FM34_TRANS)*FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        (CKTB(i,FM35_TRANS)+CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
+                        FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M4_SHELL+1) = &
+                        !M4_SHELL
+                        FluorYield(i,M4_SHELL)+&
+                        !M5_SHELL
+                        CKTB(i,FM45_TRANS)*FluorYield(i,M5_SHELL)
+        fluor_yield_corr(i,M5_SHELL+1) = &
+                        !M5_SHELL
+                        FluorYield(i,M5_SHELL)
+#undef CKTB
+
+ENDDO Zloop
+!$OMP END DO
+!$OMP END PARALLEL
+
+ENDSUBROUTINE xmi_db_Z_specific
 ENDMODULE xmimsim_hdf5

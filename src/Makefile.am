@@ -14,7 +14,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimincludedir = ${includedir}/xmimsim
-xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
+nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include

@@ -28,22 +28,27 @@ IMPLICIT NONE
 !
 !
 TYPE :: interaction_prob
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: Rayl_and_Compt
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: energies
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Rayl_and_Compt
 ENDTYPE
 
+TYPE, BIND(C) :: interaction_probC
+        INTEGER (KIND=C_INT) :: len
+        TYPE (C_PTR) :: energies
+        TYPE (C_PTR) :: Rayl_and_Compt
+ENDTYPE
 !
 !
 ! HDF5 data structures
 !
 !
 TYPE :: xmi_hdf5_Z
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: ComptonTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: DopplerPz_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: FluorYieldsCorr
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: ComptonTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: DopplerPz_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Energies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
         INTEGER (C_INT) :: Z
@@ -53,14 +58,14 @@ ENDTYPE
 
 
 TYPE :: xmi_hdf5
-        TYPE (xmi_hdf5_Z), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Zs
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighRandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: ComptonPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonEnergies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonRandomNumbers
+        TYPE (xmi_hdf5_Z), POINTER, DIMENSION(:) :: xmi_hdf5_Zs
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighRandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: ComptonPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonEnergies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonRandomNumbers
 ENDTYPE
 
 TYPE :: xmi_hdf5_ZPtr

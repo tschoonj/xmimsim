@@ -29,7 +29,8 @@ bin_PROGRAMS =  xmimsim \
 		xmso2spe \
 		xmso2csv \
 		xmso2htm \
-		xmso2xmsi 
+		xmso2xmsi \
+		xmimsim-db2
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -187,7 +188,13 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 xmso2htm_CFLAGS = @glib2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
-
+xmimsim_db2_SOURCES = xmimsim-db2.c
+xmimsim_db2_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmimsim_db2_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
+		
 
 
 if OS_WINDOWS
