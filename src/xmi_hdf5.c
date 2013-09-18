@@ -119,7 +119,7 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 
 }
 
-int xmi_db2(char *filename) {
+int xmi_db(char *filename) {
 	const int nintervals_r = 2000, nintervals_e = 200, maxz = 94,
 	nintervals_theta2=200, nintervals_e_ip = 10000;
 

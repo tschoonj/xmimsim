@@ -26,7 +26,7 @@ typedef void* xmi_hdf5FPtr;
 //hdf5_filePtr must be a pointer to char *, which may be equal to NULL, in which case the function try to allocate a string containing the path to hDF5 data file of XMI-MSIM
 int xmi_get_hdf5_data_file(char **hdf5_filePtr);
 
-int xmi_db2(char *filename);
+int xmi_db(char *filename);
 
 //Fortran function that reads in from the HDF5 data file what it needs... return 1 on success, 0 otherwise
 int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *hdf5FPtr, struct xmi_main_options options);
