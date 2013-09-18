@@ -177,9 +177,8 @@ DetailPrint "Installing GNU Scientific Library (GSL)"
 DetailPrint "Installing GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib\libfgsl-0.dll" "$INSTDIR"
 
-DetailPrint "Installing HDF5 (with Fortran bindings)"
+DetailPrint "Installing HDF5"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib\libhdf5-6.dll" "$INSTDIR"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib\libhdf5_fortran-6.dll" "$INSTDIR"
 
 DetailPrint "Installing libxml2"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib\libxml2-2.dll" "$INSTDIR"
@@ -382,9 +381,8 @@ DetailPrint "Uninstalling GNU Scientific Library (GSL)"
 DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
 
-DetailPrint "Uninstalling HDF5 (with Fortran bindings)"
+DetailPrint "Uninstalling HDF5"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
 
 DetailPrint "Uninstalling libxml2"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
