@@ -286,7 +286,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Reading HDF5 datafile\n");
 	
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr,options) == 0) {
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_solid_angle.h"
 #include "xmi_detector.h"
+#include "xmi_hdf5.h"
 
 #ifdef __cplusplus
 extern "C" {

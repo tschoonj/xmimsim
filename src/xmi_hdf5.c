@@ -38,10 +38,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_registry_win.h"
 #endif
 
+#define MIN_VERSION 2.1
+
 struct interaction_prob {
 	int len;
 	double *energies;
 	double *Rayl_and_Compt;
+};
+
+struct hdf5_vars {
+	hid_t file_id;
+	hid_t group_id;
+	hid_t dset_id;
+	hid_t dspace_id;
 };
 
 //fortran call
@@ -380,3 +389,109 @@ int xmi_db2(char *filename) {
 
 	return 1;
 }
+
+struct hdf5_vars *xmi_db_open(char *filename) {
+
+	struct hdf5_vars *rv = malloc(sizeof(struct hdf5_vars));
+	hid_t attribute_id;
+
+	rv->file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+
+	if (rv->file_id < 0) {
+		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 data file %s for reading\n", filename);
+		free(rv);
+		return NULL;
+	}
+
+	attribute_id = H5Aopen(rv->file_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the version tag\n", filename);
+		
+		H5Fclose(rv->file_id);
+		free(rv);
+		return NULL;
+	}
+	//attribute exists -> let's read it
+	double version;
+	if (H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version) < 0) {
+	
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s version tag could not be read\n", filename);
+		
+		H5Aclose(attribute_id);
+		H5Fclose(rv->file_id);
+		free(rv);
+		return NULL;
+	}
+	H5Aclose(attribute_id);
+	if (version < MIN_VERSION) {
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s version is too old\nGenerate a new file with xmimsim-db\n", filename);
+		H5Fclose(rv->file_id);
+		free(rv);
+		return NULL;
+	}
+	return rv;
+}
+
+int xmi_db_open_group(struct hdf5_vars *hv, char *group_name) {
+	hv->group_id = H5Gopen(hv->file_id, group_name, H5P_DEFAULT);
+	if (hv->group_id < 0) {
+		g_fprintf(stderr,"Could not open group %s for reading\n", group_name);
+		return 0;
+	}
+
+	return 1;
+}
+
+int xmi_db_close_group(struct hdf5_vars *hv) {
+	if (H5Gclose(hv->group_id) < 0) {
+		g_fprintf(stderr,"Could not close group\n");
+		return 0;
+	}
+
+	return 1;
+}
+
+int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, int **dims) {
+	hsize_t ndims5, *dims5;
+	int i;
+
+	hv->dset_id = H5Dopen(hv->group_id, dataset_name, H5P_DEFAULT);
+	if (hv->dset_id < 0) {
+		g_fprintf(stderr,"Could not open dataset %s\n", dataset_name);
+		return 0;
+	}
+	hv->dspace_id = H5Dget_space(hv->dset_id);
+	if (hv->dspace_id < 0) {
+		g_fprintf(stderr,"Could not get dataspace\n");
+		return 0;
+	}
+
+	ndims5 = H5Sget_simple_extent_ndims(hv->dspace_id);
+	dims5 = malloc(sizeof(hsize_t)*ndims5);
+
+	H5Sget_simple_extent_dims(hv->dspace_id, dims5, NULL);
+	*ndims = (int) ndims5;
+	*dims = malloc(sizeof(int)**ndims);
+	//reverse array dimensions!
+	for (i=0 ; i < *ndims ; i++)
+		(*dims)[i] = (int) dims5[*ndims-1-i]; 
+	free(dims5);
+	return 1;
+}
+
+int xmi_db_read_dataset(struct hdf5_vars *hv, void *data) {
+	
+	H5Dread(hv->dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+	H5Sclose(hv->dspace_id);
+	H5Dclose(hv->dset_id);
+
+	return 1;
+}
+
+int xmi_db_close(struct hdf5_vars *hv) {
+	H5Fclose(hv->file_id);
+
+	return 1;
+}
+

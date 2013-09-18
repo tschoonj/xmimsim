@@ -174,7 +174,6 @@ struct xmi_main_options {
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
 typedef void* xmi_inputFPtr;  
-typedef void* xmi_hdf5FPtr;
 
 #define XMI_CONFLICT_GENERAL 1
 #define XMI_CONFLICT_COMPOSITION 2
@@ -221,13 +220,6 @@ void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );
 //Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
 void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
 
-//Fortran function that reads in from the HDF5 data file what it needs... return 1 on success, 0 otherwise
-int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *hdf5FPtr );
-
-//Fortran function that frees a Fortran xmi_hdf5 TYPE variable. The value of the pointer shall be set to NULL afterwards.
-void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
-
-int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
 
 //Fortran function that further initializes the input
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
