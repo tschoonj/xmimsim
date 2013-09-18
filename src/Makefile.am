@@ -14,7 +14,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimincludedir = ${includedir}/xmimsim
-xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
+nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
@@ -53,7 +53,7 @@ libxmimsim_la_SOURCES += xmi_resources_mac.c
 endif
 
 
-libxmimsim_la_CFLAGS =  @H5FC_INCLUDE@ \
+libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			@PTHREAD_CFLAGS@ \
 			@xslt_CFLAGS@ \
 			@gsl_CFLAGS@ \
@@ -70,17 +70,16 @@ libxmimsim_la_CFLAGS =  @H5FC_INCLUDE@ \
 			-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
 			-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
 			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
-libxmimsim_la_FCFLAGS = @H5FC_INCLUDE@ \
-			@OPENMP_FCFLAGS@ \
+libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			@fgsl_CFLAGS@ \
 			@xraylib_f2003_CFLAGS@ \
 			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
-libxmimsim_la_LIBADD = 	@H5FC_LINKER@ \
+libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@PTHREAD_LIBS@ \
 			@xslt_LIBS@ \
 			@xraylib_f2003_LIBS@ \
-			@H5FC_STATIC@ \
+			@H5CC_STATIC@ \
 			@fgsl_LIBS@ \
 			@glib2_LIBS@ \
 			@GTK_MAC_LIBS@
