@@ -2315,9 +2315,8 @@ static void about_click(GtkWidget *widget, gpointer data) {
 	GdkPixbuf *logo = NULL;
 	gchar *logo_file = NULL;
 
-#if defined(G_OS_WIN32)
+#ifdef G_OS_WIN32
 	xmi_registry_win_query(XMI_REGISTRY_WIN_LOGO,&logo_file);
-#endif
 
 	GError *error = NULL;
 	if (logo_file) {
@@ -2328,6 +2327,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 
 		g_free(logo_file);
 	}
+#endif
 
 	gtk_show_about_dialog(GTK_WINDOW(data),
 		"program-name", "XMI-MSIM",
@@ -2335,8 +2335,11 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		"comments", comments,
 		"copyright", copyright,
 		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011 ) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011 ) in your manuscripts.", 
+#ifdef G_OS_WIN32
 		"logo", logo,
+#else
 		"logo-icon-name", XMI_STOCK_LOGO,
+#endif
 		"artists", artists,
 		"version", VERSION,
 		"website", "https://github.com/tschoonj/xmimsim",
@@ -4036,10 +4039,12 @@ XMI_MAIN
 	//gtk_recent_filter_add_pattern(filter, "*.xmso");
 	gtk_recent_filter_add_application(filter, g_get_application_name());
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
-	//gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
-	//gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
-	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), FALSE);
+#if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)
 	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), FALSE);
+#else
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+#endif
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
 	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentW), GTK_RECENT_SORT_MRU);
 	g_signal_connect(G_OBJECT(openrecentW), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
 
@@ -4222,8 +4227,12 @@ XMI_MAIN
 	openT = gtk_menu_tool_button_new_from_stock(GTK_STOCK_OPEN);
 	GtkWidget *openrecentT = gtk_recent_chooser_menu_new();
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentT), filter);
-	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), FALSE);
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), TRUE);
+#ifdef G_OS_WIN32
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentT), FALSE);
+#else
 	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentT), TRUE);
+#endif
 	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentT), GTK_RECENT_SORT_MRU);
 	g_signal_connect(G_OBJECT(openrecentT), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
 	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(openT), openrecentT); 
