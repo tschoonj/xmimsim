@@ -2014,7 +2014,7 @@ SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac)
                         shell_new = N7_SHELL
                 CASE DEFAULT
                         energy = LineEnergy(element,line)
-                        dirac = .TRUE.
+                        IF (PRESENT(dirac)) dirac = .TRUE.
                         RETURN
         ENDSELECT
 
@@ -2026,7 +2026,7 @@ SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac)
                 !gets triggered when one or both atomic level widths are
                 !unavailable in the database
                 energy = LineEnergy(element,line)
-                dirac = .TRUE.
+                IF (PRESENT(dirac)) dirac = .TRUE.
                 RETURN
         ENDIF
 
