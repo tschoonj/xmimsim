@@ -55,6 +55,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_FLOAT) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight, det_corr
+        LOGICAL :: dirac
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -556,13 +557,15 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         !layer%weight(i)*CS_FluorLine_Kissel_cascade&
                         !(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
                         !photon%mus(photon%current_layer)
+                        
+                        dirac = .TRUE.
 
                         SELECT CASE(line_new)
                                 CASE(KP5_LINE:KL1_LINE)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        K_SHELL,line_new,energy_fluo)
+                                        K_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -575,7 +578,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL1 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L1_SHELL,line_new,energy_fluo)
+                                        L1_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -588,7 +591,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL2 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L2_SHELL,line_new,energy_fluo)
+                                        L2_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -601,7 +604,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL3 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L3_SHELL,line_new,energy_fluo)
+                                        L3_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -614,7 +617,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM1 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M1_SHELL,line_new,energy_fluo)
+                                        M1_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -627,7 +630,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM2 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M2_SHELL,line_new,energy_fluo)
+                                        M2_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -640,7 +643,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM3 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M3_SHELL,line_new,energy_fluo)
+                                        M3_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -653,7 +656,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM4 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M4_SHELL,line_new,energy_fluo)
+                                        M4_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -666,7 +669,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM5 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M5_SHELL,line_new,energy_fluo)
+                                        M5_SHELL,line_new,energy_fluo,dirac)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
@@ -706,8 +709,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
                         IF (temp_weight .EQ. 0.0_C_DOUBLE) CYCLE
 
-                        IF (photon%options%use_self_enhancement .EQ. 0_C_INT) THEN
+                        IF (photon%options%use_self_enhancement .EQ. 0_C_INT &
+                                .OR. dirac .EQV. .TRUE.) THEN
                                 !default mode: use precalculated BLB terms
+                                !also used when lorentzian sampling failed
                                 photon%var_red_history(layer%Z(i),&
                                 ABS(line_new),n_ia) =&
                                 photon%var_red_history(layer%Z(i),&

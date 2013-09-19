@@ -1827,14 +1827,17 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_ran_trap
 
-SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy) 
+SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac) 
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN) :: element, shell, line
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         TYPE (fgsl_rng), INTENT(IN) :: rng
+        LOGICAL, INTENT(OUT), OPTIONAL :: dirac
         INTEGER (C_INT) :: shell_new
         REAL (C_DOUBLE) :: hwhm, alw1, alw2
 
+        !dirac being .TRUE. means that no lorentzian sampling was done
+        IF(PRESENT(dirac)) dirac = .FALSE.
 
         SELECT CASE (line)
                 CASE (KL1_LINE)
@@ -2011,18 +2014,28 @@ SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy)
                         shell_new = N7_SHELL
                 CASE DEFAULT
                         energy = LineEnergy(element,line)
+                        dirac = .TRUE.
                         RETURN
         ENDSELECT
 
+        !from xraylib
         alw1 = AtomicLevelWidth(element,shell)
         alw2 = AtomicLevelWidth(element,shell_new)
+
         IF (alw1 .EQ. 0.0_C_DOUBLE .OR. alw2 .EQ. 0.0_C_DOUBLE) THEN
-                energy = 0.0_C_DOUBLE
+                !gets triggered when one or both atomic level widths are
+                !unavailable in the database
+                energy = LineEnergy(element,line)
+                dirac = .TRUE.
                 RETURN
         ENDIF
+
+        !calculate the half width at half maximum, the scale parameter of the
+        !lorentzian (cauchy) distribution
         hwhm = 0.5_C_DOUBLE*(alw1+alw2)
         energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
 
+        !if the energy looks fishy -> just return 0.0
         IF (energy .LT. energy_threshold .OR. energy .GT. 99.0_C_DOUBLE) energy = 0.0_C_DOUBLE
 
         RETURN
