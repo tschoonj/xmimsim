@@ -54,7 +54,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
         REAL (C_FLOAT) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
-        REAL (C_DOUBLE) :: temp_weight
+        REAL (C_DOUBLE) :: temp_weight, det_corr
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -560,94 +560,184 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         SELECT CASE(line_new)
                                 CASE(KP5_LINE:KL1_LINE)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        K_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PK*FluorYield&
                                 (layer%Z(i),K_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L1P5_LINE:L1M1_LINE)
                                 IF (PL1 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        L1_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL1*FluorYield&
                                 (layer%Z(i),L1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L2Q1_LINE:L2M1_LINE)
                                 IF (PL2 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        L2_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL2*FluorYield&
                                 (layer%Z(i),L2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L3Q1_LINE:L3M1_LINE)
                                 IF (PL3 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        L3_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL3*FluorYield&
                                 (layer%Z(i),L3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M1P5_LINE:M1N1_LINE)
                                 IF (PM1 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        M1_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM1*FluorYield&
                                 (layer%Z(i),M1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M2P5_LINE:M2N1_LINE)
                                 IF (PM2 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        M2_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM2*FluorYield&
                                 (layer%Z(i),M2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M3Q1_LINE:M3N1_LINE)
                                 IF (PM3 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        M3_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM3*FluorYield&
                                 (layer%Z(i),M3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M4P5_LINE:M4N1_LINE)
                                 IF (PM4 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        M4_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM4*FluorYield&
                                 (layer%Z(i),M4_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M5P5_LINE:M5N1_LINE)
                                 IF (PM5 .EQ. 0.0_C_DOUBLE) CYCLE
+                                IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                        CALL xmi_self_enhancement(rng,layer%Z(i),&
+                                        M5_SHELL,line_new,energy_fluo)
+                                        IF (energy_fluo .LT. energy_threshold) CYCLE
+                                ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM5*FluorYield&
                                 (layer%Z(i),M5_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE DEFAULT
                                 !other lines -> just cycle
                                 CYCLE
                         ENDSELECT
 
-                        !mus=xmi_mu_calc(inputF%composition,&
-                        !energy_fluo)
-
                         temp_murhod = 0.0_C_DOUBLE
-                        DO j=photon%current_layer,step_do_max,step_do_dir
-                                temp_murhod = temp_murhod +&
-                                photon%precalc_mu_cs(j)%mu(layer%Z(i),ABS(line_new))*&
-                                inputF%composition%layers(j)%density*distances(j)
-                        ENDDO
+                        IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
+                                !this will slow the code down tremendously
+                                mus=xmi_mu_calc(inputF%composition,&
+                                energy_fluo)
+                                DO j=photon%current_layer,step_do_max,step_do_dir
+                                  temp_murhod = temp_murhod +&
+                                  mus(j)*inputF%composition%layers(j)%density*distances(j)
+                                ENDDO
+                        ELSE
+                                DO j=photon%current_layer,step_do_max,step_do_dir
+                                  temp_murhod = temp_murhod +&
+                                  photon%precalc_mu_cs(j)%mu(layer%Z(i),ABS(line_new))*&
+                                  inputF%composition%layers(j)%density*distances(j)
+                                ENDDO
+                        ENDIF
+
                         Pesc = EXP(-temp_murhod) 
                         !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
                         != Pconv*Pdir_fluo*Pesc*photon%weight
                         !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
                         != energy_fluo
                         temp_weight=Pconv*Pdir_fluo*Pesc*photon%weight
+
                         IF (temp_weight .EQ. 0.0_C_DOUBLE) CYCLE
-                        photon%var_red_history(layer%Z(i),&
-                        ABS(line_new),n_ia) =&
-                        photon%var_red_history(layer%Z(i),&
-                        ABS(line_new),n_ia)+temp_weight*&
-                        photon%det_corr_all(layer%Z(i),&
-                        ABS(line_new))
+
+                        IF (photon%options%use_self_enhancement .EQ. 0_C_INT) THEN
+                                !default mode: use precalculated BLB terms
+                                photon%var_red_history(layer%Z(i),&
+                                ABS(line_new),n_ia) =&
+                                photon%var_red_history(layer%Z(i),&
+                                ABS(line_new),n_ia)+temp_weight*&
+                                photon%det_corr_all(layer%Z(i),&
+                                ABS(line_new))
+                        ELSE
+                                !self enhancement mode: calculate BLB terms on the fly
+                                det_corr = 1.0_C_DOUBLE
+                                DO j=1,inputF%absorbers%n_det_layers
+                                  det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                                  inputF%absorbers%det_layers(j)%density*&
+                                  inputF%absorbers%det_layers(j)%thickness*&
+                                  xmi_mu_calc(inputF%absorbers%det_layers(j),&
+                                  energy_fluo)) 
+                                ENDDO
+                                DO j=1,inputF%detector%n_crystal_layers
+                                  det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+                                  inputF%detector%crystal_layers(j)%density*&
+                                  inputF%detector%crystal_layers(j)%thickness*&
+                                  xmi_mu_calc(inputF%detector%crystal_layers(j),&
+                                  energy_fluo)))
+                                ENDDO
+                                photon%var_red_history(layer%Z(i),&
+                                ABS(line_new),n_ia) =&
+                                photon%var_red_history(layer%Z(i),&
+                                ABS(line_new),n_ia)+temp_weight*&
+                                det_corr 
+
+                        ENDIF
 
                         IF (energy_fluo .GE. energy_threshold) THEN
                                 channel = INT((energy_fluo - &

@@ -1827,4 +1827,205 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_ran_trap
 
+SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy) 
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN) :: element, shell, line
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        INTEGER (C_INT) :: shell_new
+        REAL (C_DOUBLE) :: hwhm, alw1, alw2
+
+
+        SELECT CASE (line)
+                CASE (KL1_LINE)
+                        shell_new = L1_SHELL
+                CASE (KL2_LINE)
+                        shell_new = L2_SHELL
+                CASE (KL3_LINE)
+                        shell_new = L3_SHELL
+                CASE (KM1_LINE)
+                        shell_new = M1_SHELL
+                CASE (KM2_LINE)
+                        shell_new = M2_SHELL
+                CASE (KM3_LINE)
+                        shell_new = M3_SHELL
+                CASE (KM4_LINE)
+                        shell_new = M4_SHELL
+                CASE (KM5_LINE)
+                        shell_new = M5_SHELL
+                CASE (KN1_LINE)
+                        shell_new = N1_SHELL
+                CASE (KN2_LINE)
+                        shell_new = N2_SHELL
+                CASE (KN3_LINE)
+                        shell_new = N3_SHELL
+                CASE (KN4_LINE)
+                        shell_new = N4_SHELL
+                CASE (KN5_LINE)
+                        shell_new = N5_SHELL
+                CASE (KN6_LINE)
+                        shell_new = N6_SHELL
+                CASE (KN7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L1M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L1M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L1M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L1M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L1M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L1N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L1N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L1N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L1N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L1N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L1N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L1N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L2M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L2M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L2M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L2M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L2M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L2N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L2N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L2N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L2N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L2N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L2N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L2N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (L3M1_LINE)
+                        shell_new = M1_SHELL
+                CASE (L3M2_LINE)
+                        shell_new = M2_SHELL
+                CASE (L3M3_LINE)
+                        shell_new = M3_SHELL
+                CASE (L3M4_LINE)
+                        shell_new = M4_SHELL
+                CASE (L3M5_LINE)
+                        shell_new = M5_SHELL
+                CASE (L3N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (L3N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (L3N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (L3N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (L3N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (L3N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (L3N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (M1N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (M1N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (M1N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (M1N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (M1N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (M1N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (M1N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (M2N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (M2N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (M2N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (M2N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (M2N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (M2N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (M2N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (M3N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (M3N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (M3N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (M3N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (M3N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (M3N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (M3N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (M4N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (M4N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (M4N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (M4N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (M4N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (M4N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (M4N7_LINE)
+                        shell_new = N7_SHELL
+                CASE (M5N1_LINE)
+                        shell_new = N1_SHELL
+                CASE (M5N2_LINE)
+                        shell_new = N2_SHELL
+                CASE (M5N3_LINE)
+                        shell_new = N3_SHELL
+                CASE (M5N4_LINE)
+                        shell_new = N4_SHELL
+                CASE (M5N5_LINE)
+                        shell_new = N5_SHELL
+                CASE (M5N6_LINE)
+                        shell_new = N6_SHELL
+                CASE (M5N7_LINE)
+                        shell_new = N7_SHELL
+                CASE DEFAULT
+                        energy = LineEnergy(element,line)
+                        RETURN
+        ENDSELECT
+
+        alw1 = AtomicLevelWidth(element,shell)
+        alw2 = AtomicLevelWidth(element,shell_new)
+        IF (alw1 .EQ. 0.0_C_DOUBLE .OR. alw2 .EQ. 0.0_C_DOUBLE) THEN
+                energy = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+        hwhm = 0.5_C_DOUBLE*(alw1+alw2)
+        energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
+
+        IF (energy .LT. energy_threshold .OR. energy .GT. 99.0_C_DOUBLE) energy = 0.0_C_DOUBLE
+
+        RETURN
+ENDSUBROUTINE xmi_self_enhancement
+
 ENDMODULE 
