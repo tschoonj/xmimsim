@@ -1401,8 +1401,28 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
-			if (mb->matrixKind == COMPOSITION)
+			if (mb->matrixKind == COMPOSITION) {
+				//reference layer may have to be updated
+				if (nindices > 1) {
+					if (composition->reference_layer == index+1) {
+						//reference_layer was deleted -> only a problem if selected layer is the last one
+						if (index == nindices -1) {
+							composition->reference_layer--;
+							//get iter to last element
+							gchar *path_string = g_strdup_printf("%i",nindices-2);
+							gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(mb->store), &iter, path_string);
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+							g_free(path_string);
+						}
+						else {
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+						}
+					}
+					else if (composition->reference_layer > index+1)
+						composition->reference_layer--;
+				}
 				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			}
 			else if (mb->matrixKind == EXC_COMPOSITION)
 				update_undo_buffer(EXC_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
