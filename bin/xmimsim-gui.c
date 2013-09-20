@@ -1438,6 +1438,16 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+static gboolean layers_backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		layers_button_clicked_cb(widget,data);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
+
+
 struct reference_toggle {
 	GtkListStore *store;
 	GtkTreeModel *model;
@@ -1770,6 +1780,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(deleteButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(layers_backspace_key_clicked), (gpointer) mb);
 
 	//ADD
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));

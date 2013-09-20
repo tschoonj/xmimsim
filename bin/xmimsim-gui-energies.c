@@ -1191,6 +1191,14 @@ void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+static gboolean energy_backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		energy_delete_button_clicked_cb(widget,data);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
 void energy_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
 
@@ -1455,6 +1463,8 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	g_signal_connect(G_OBJECT(deleteButton), "clicked", G_CALLBACK(energy_delete_button_clicked_cb) , GINT_TO_POINTER(kind));
 
 	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(energy_row_activated_cb), GINT_TO_POINTER(kind));
+	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(energy_backspace_key_clicked), GINT_TO_POINTER(kind));
+
 
 	eb->editButton = editButton;
 	eb->deleteButton = deleteButton;
