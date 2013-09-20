@@ -461,6 +461,8 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 	gtk_widget_destroy(dialog);
 }
+
+
 void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 	GtkTreeIter iter,temp_iter;
@@ -506,6 +508,15 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}*/
 
 }
+
+static gboolean backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		remove_button_clicked_cb(widget,data);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
 
 void dialog_hide_cb(GtkWidget *widget, gpointer data) {
 	struct compoundWidget * cw = (struct compoundWidget *) data;
@@ -969,6 +980,9 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	ad->sumEntry = sumEntry;
 	ad->select = select;
 	ad->tree = tree;
+
+
+	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(backspace_key_clicked), (gpointer) ad);
 
 	return rv;
 }
