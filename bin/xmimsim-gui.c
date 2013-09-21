@@ -332,6 +332,7 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
+gboolean save_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkosxApplication *app, gpointer data);
@@ -625,29 +626,8 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
 			//update file
-		//get text from comments...
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: not writeable?",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
+			if(save_function(dialog, (gpointer) dialog) == FALSE) {
+				gtk_widget_destroy(dialog);
 				return FALSE;
 			}
 
@@ -5474,6 +5454,13 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 }
 
 void save_cb(GtkWidget *widget, gpointer data) {
+
+	save_function(widget, data);
+
+	return;
+}
+
+gboolean save_function(GtkWidget *widget, gpointer data) {
 	int check_status;
 	GtkWidget *dialog;
 	struct undo_single *check_rv; 
@@ -5486,6 +5473,17 @@ void save_cb(GtkWidget *widget, gpointer data) {
 #endif
 	//check if it was saved before... otherwise call saveas
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		        	GTK_MESSAGE_ERROR,
+		        	GTK_BUTTONS_CLOSE,
+		        	"Could not write to file: model is incomplete/invalid"
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+	     		gtk_widget_destroy (dialog);
+	     		return FALSE;
+		}
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
@@ -5505,7 +5503,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
-			return;
+			return FALSE;
 
 		}
 		else {
@@ -5524,7 +5522,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
 		check_status == CHECK_CHANGES_NEW) {
 		//never saved -> call saveas
-		saveas_function(widget, data);
+		return saveas_function(widget, data);
 
 	}
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
@@ -5533,7 +5531,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 
 
 
-	return;
+	return TRUE;
 
 
 }
