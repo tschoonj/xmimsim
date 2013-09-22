@@ -63,6 +63,8 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
@@ -89,6 +91,8 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -161,6 +165,8 @@ static void xmsi_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -193,6 +199,8 @@ static void xmso_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
@@ -228,6 +236,8 @@ static void csv_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -261,6 +271,8 @@ static void html_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
@@ -296,6 +308,8 @@ static void svg_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -330,6 +344,8 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {

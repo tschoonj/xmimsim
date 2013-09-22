@@ -28,22 +28,27 @@ IMPLICIT NONE
 !
 !
 TYPE :: interaction_prob
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: Rayl_and_Compt
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: energies
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Rayl_and_Compt
 ENDTYPE
 
+TYPE, BIND(C) :: interaction_probC
+        INTEGER (KIND=C_INT) :: len
+        TYPE (C_PTR) :: energies
+        TYPE (C_PTR) :: Rayl_and_Compt
+ENDTYPE
 !
 !
 ! HDF5 data structures
 !
 !
 TYPE :: xmi_hdf5_Z
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: ComptonTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: DopplerPz_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: FluorYieldsCorr
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: ComptonTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: DopplerPz_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Energies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
         INTEGER (C_INT) :: Z
@@ -53,14 +58,14 @@ ENDTYPE
 
 
 TYPE :: xmi_hdf5
-        TYPE (xmi_hdf5_Z), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Zs
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighRandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: ComptonPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonEnergies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonRandomNumbers
+        TYPE (xmi_hdf5_Z), POINTER, DIMENSION(:) :: xmi_hdf5_Zs
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighRandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: ComptonPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonEnergies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonRandomNumbers
 ENDTYPE
 
 TYPE :: xmi_hdf5_ZPtr
@@ -156,6 +161,8 @@ TYPE, BIND(C) :: xmi_energy_discrete
         REAL (C_DOUBLE) :: sigma_xp
         REAL (C_DOUBLE) :: sigma_y
         REAL (C_DOUBLE) :: sigma_yp
+        INTEGER (C_INT) :: distribution_type
+        REAL (C_DOUBLE) :: scale_parameter
 ENDTYPE
 
 !  xmi_energy_continuous
@@ -559,6 +566,12 @@ BIND(C,NAME='xmi_xmlfile_to_string') RESULT(rv)
         INTEGER (C_INT) :: rv
 ENDFUNCTION xmi_xmlfile_to_string
 
+SUBROUTINE xmi_free(ptr) BIND(C,NAME='xmi_free')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: ptr
+ENDSUBROUTINE xmi_free
+
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)
@@ -570,7 +583,7 @@ INTERFACE xmi_mu_calc
         xmi_mu_calc_xmi_composition_single_energy
 ENDINTERFACE
 
-CHARACTER (LEN=2), DIMENSION(99) :: elements = &
+CHARACTER (LEN=2,KIND=C_CHAR), DIMENSION(99) :: elements = &
        [' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9', '10',&
         '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',&
         '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',&
@@ -587,18 +600,24 @@ INTEGER (C_INT), PARAMETER ::  NO_INTERACTION = 0
 INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
 INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
 INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
+
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SILI = 0
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_GE = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SI_SDD = 2
+
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_FULL = 1 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_RADIATIVE = 2 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONRADIATIVE = 3 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONE = 4 
+
 INTEGER (C_INT), PARAMETER ::  XMI_NO_INTERSECTION = 0 
 INTEGER (C_INT), PARAMETER ::  XMI_COLLIMATOR_INTERSECTION = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_INTERSECTION = 2
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_BAD_INTERSECTION = 3
 
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_MONOCHROMATIC = 0
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_GAUSSIAN = 1 
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_LORENTZIAN = 2 
 
 !threshold is 1 keV
 REAL (C_DOUBLE), PARAMETER :: energy_threshold = 1.0_C_DOUBLE
@@ -1203,12 +1222,11 @@ FUNCTION findpos_fast(array,searchvalue)
                 RETURN
         ENDIF
 
-        guess = INT((searchvalue-0.1_C_DOUBLE)/(0.10999100-0.1) +&
-1.0_C_DOUBLE,KIND=C_INT)-1
+        guess = INT((searchvalue-0.1_C_DOUBLE)*(10000.0_C_DOUBLE-1.0_C_DOUBLE)/&
+                (100.0_C_DOUBLE-0.1_C_DOUBLE)+1.0_C_DOUBLE,KIND=C_INT) 
 
 
-
-        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
+        DO i=guess, UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos_fast = i-1
                         RETURN
@@ -1273,6 +1291,10 @@ RESULT(rv)
         .OR. SIZE(array2D,DIM=2) .NE. SIZE(array1D_2)) THEN
                 WRITE (error_unit,'(A)') &
                 'Array dimensions mismatch in bilinear interpolation'
+                WRITE (error_unit,'(A,I5)') 'SIZE(array2D,DIM=1)',SIZE(array2D,DIM=1)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array1D_1)',SIZE(array1D_1)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array2D,DIM=2)',SIZE(array2D,DIM=2)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array1D_2)',SIZE(array1D_2)
                 CALL EXIT(1)
         ENDIF
 

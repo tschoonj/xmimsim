@@ -101,11 +101,10 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
         INTEGER, PARAMETER :: maxz = 94
-        INTEGER (C_LONG) :: n_photons_tot, n_photons_sim
+        INTEGER (C_INT64_T) :: n_photons_tot, n_photons_sim
 
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
-        INTEGER (OMP_LOCK_KIND) :: omp_lock
         INTEGER (4) :: time_before, time_after
         REAL (C_DOUBLE) :: weight
 
@@ -238,8 +237,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         n_photons_sim = 0_C_LONG
         n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line +&
                         inputF%excitation%n_continuous*inputF%general%n_photons_interval
-        CALL omp_init_lock(omp_lock)
-
+        n_photons_tot = n_photons_tot/options%omp_num_threads
 
         !time_before = TIME()
 
@@ -527,27 +525,20 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                         ENDDO photon_eval_cont
 
-                        CALL omp_set_lock(omp_lock)
-                        n_photons_sim = n_photons_sim+1                  
-                        IF(n_photons_sim*100/n_photons_tot == &
-                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
-                        options%verbose == 1_C_INT)&
+                        IF (omp_get_thread_num() == 0) THEN
+                          n_photons_sim = n_photons_sim+1_C_INT64_T
+                          IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
+                          REAL(n_photons_sim*100_C_INT64_T)/REAL(n_photons_tot).AND.&
+                          options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                        INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+                          CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                          INT(n_photons_sim*100_C_INT_64_T/n_photons_tot,KIND=C_INT))
 #else
-                        WRITE(output_unit,'(A,I3,A)')&
-                        'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
+                          WRITE(output_unit,'(A,I3,A)')&
+                          'Simulating interactions at ',n_photons_sim*100_C_INT64_T&
+                          /n_photons_tot,' %'
 #endif
-                        CALL omp_unset_lock(omp_lock)
-
-
-
-
-
-
-
-
+                        ENDIF
                 ENDDO photons_cont
         ENDDO cont
 
@@ -568,14 +559,25 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                 ENDDO
 
                 !Calculate initial mu's
-                initial_mus = xmi_mu_calc(inputF%composition,&
-                exc%discrete(i)%energy)
+                IF (exc%discrete(i)%distribution_type .EQ.&
+                XMI_DISCRETE_MONOCHROMATIC) THEN
+                        initial_mus = xmi_mu_calc(inputF%composition,&
+                        exc%discrete(i)%energy)
+                ENDIF
 
                 weight = (total_intensity)*exc_corr/inputF%general%n_photons_line
 
 #if DEBUG == 1
 !$omp critical
-                WRITE (output_unit, '(A,ES12.6)') 'weight float: ',weight
+                IF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_GAUSSIAN) THEN
+                WRITE (output_unit, '(A)') 'gaussian'
+                ELSEIF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_LORENTZIAN) THEN
+                WRITE (output_unit, '(A)') 'lorentzian'
+                ELSE
+                WRITE (output_unit, '(A)') 'monochromatic'
+                ENDIF
 !$omp end critical
 #endif
 
@@ -593,11 +595,37 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
-                        !Calculate energy with rng
-                        photon%energy = exc%discrete(i)%energy 
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
-                        photon%mus = initial_mus
+                        IF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_GAUSSIAN) THEN
+                                !gaussian distribution
+                                photon%energy = fgsl_ran_gaussian_ziggurat(rng,&
+                                exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
+                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                photons 
+                                photon%mus = xmi_mu_calc(inputF%composition,&
+                                photon%energy)
+                        ELSEIF (exc%discrete(i)%distribution_type .EQ.&
+                        XMI_DISCRETE_LORENTZIAN) THEN
+                                !lorentzian distribution
+                                photon%energy = fgsl_ran_cauchy(rng,&
+                                exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
+                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                photons 
+                                photon%mus = xmi_mu_calc(inputF%composition,&
+                                photon%energy)
+                        ELSE
+                                !monochromatic case
+                                photon%energy = exc%discrete(i)%energy 
+                                photon%mus = initial_mus
+                        ENDIF
+#if DEBUG == 1
+!$omp critical
+                        WRITE (output_unit, '(A,ES12.6)') 'energy:',&
+                        photon%energy
+!$omp end critical
+#endif
                         photon%detector_hit = .FALSE.
                         photon%detector_hit2 = .FALSE.
                         photon%options = options
@@ -784,20 +812,20 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
                         ENDDO photon_eval_disc
 
-                        CALL omp_set_lock(omp_lock)
-                        n_photons_sim = n_photons_sim+1                  
-                        IF(n_photons_sim*100/n_photons_tot == &
-                        REAL(n_photons_sim*100)/REAL(n_photons_tot).AND.&
-                        options%verbose == 1_C_INT)&
+                        IF (omp_get_thread_num() == 0) THEN
+                          n_photons_sim = n_photons_sim+1_C_INT64_T
+                          IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
+                          REAL(n_photons_sim*100_C_INT64_T)/REAL(n_photons_tot).AND.&
+                          options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                        INT(n_photons_sim*100/n_photons_tot,KIND=C_INT))
+                          CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                          INT(n_photons_sim*100_C_INT_64_T/n_photons_tot,KIND=C_INT))
 #else
-                        WRITE(output_unit,'(A,I3,A)')&
-                        'Simulating interactions at ',n_photons_sim*100/n_photons_tot,' %'
+                          WRITE(output_unit,'(A,I3,A)')&
+                          'Simulating interactions at ',n_photons_sim*100_C_INT64_T&
+                          /n_photons_tot,' %'
 #endif
-                        CALL omp_unset_lock(omp_lock)
-
+                        ENDIF
                 ENDDO photons
         ENDDO disc 
 
@@ -816,7 +844,6 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         !WRITE (output_unit, '(A,I8, A)') 'Time elapsed: ',&
         !time_after - time_before, ' sec'
 
-        CALL omp_destroy_lock(omp_lock)
 #if DEBUG == 1
         WRITE (*,'(A,I10)') 'Photons simulated: ',photons_simulated
         WRITE (*,'(A,I10)') 'Photons hitting the detector...: ',detector_hits

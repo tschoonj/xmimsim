@@ -19,6 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmimsim-gui-controls.h"
 
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
+#endif
+
 
 #ifndef XMIMSIM_GUI_H
 #define XMIMSIM_GUI_H
@@ -171,5 +175,14 @@ void adjust_save_buttons(void);
 
 #define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
 #define XMI_STOCK_LOGO "Logo_xmi_msim"
+
+
+#ifdef MAC_INTEGRATION
+void quit_program_cb(GtkosxApplication *app, gpointer data);
+#else
+void quit_program_cb(GtkWidget *widget, gpointer data); 
+#endif
+
+
 
 #endif

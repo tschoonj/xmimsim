@@ -24,8 +24,8 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "2.16.0"
-!define XRAYLIB_VERSION_MIN "2.15.0"
+!define XRAYLIB_VERSION "2.17.0"
+!define XRAYLIB_VERSION_MIN "2.17.0"
 
 
 ;!define WITH_XRAYLIB
@@ -102,8 +102,11 @@ DetailPrint "Checking xraylib presence..."
 ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "DisplayVersion"
 
 ${If} $R0 == ""
-	MessageBox MB_OK "xraylib was not found on the system. It will now be downloaded and installed."
-	Goto xraylib
+	ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_is1" "DisplayVersion"
+	${If} $R0 == ""
+		MessageBox MB_OK "xraylib was not found on the system. It will now be downloaded and installed."
+		Goto xraylib
+	${Endif}
 ${Endif}
 
 ${VersionCompare} $R0 ${XRAYLIB_VERSION_MIN} $R1
@@ -116,6 +119,13 @@ ${ElseIf} $R1 == 2
 	MessageBox MB_OK "The version of xraylib that was found on this system is incompatible with this release of XMI-MSIM. The correct version of xraylib will now be downloaded and installed."
 	;quiet uninstall first
 	ReadRegStr $R2 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "QuietUninstallString"
+	${If} $R2 == ""
+		ReadRegStr $R2 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_is1" "QuietUninstallString"
+		${If} $R2 == ""
+			MessageBox MB_OK "Could not find xraylib QuietUninstallString in registry. Aborting"
+			Abort "Registry error"
+		${Endif}
+	${Endif}
 	ExecWait '$R2'	
 	Goto xraylib
 ${Else}
@@ -167,9 +177,8 @@ DetailPrint "Installing GNU Scientific Library (GSL)"
 DetailPrint "Installing GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib\libfgsl-0.dll" "$INSTDIR"
 
-DetailPrint "Installing HDF5 (with Fortran bindings)"
+DetailPrint "Installing HDF5"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib\libhdf5-6.dll" "$INSTDIR"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib\libhdf5_fortran-6.dll" "$INSTDIR"
 
 DetailPrint "Installing libxml2"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib\libxml2-2.dll" "$INSTDIR"
@@ -178,7 +187,7 @@ DetailPrint "Installing libxslt"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib\libxslt-1.dll" "$INSTDIR"
 
 DetailPrint "Installing xraylib Fortran bindings"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib\libxrlf03-3.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-7.dll" "$INSTDIR\Lib\libxrlf03-7.dll" "$INSTDIR"
 
 DetailPrint "Installing gfortran runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib\libgfortran-3.dll" "$INSTDIR"
@@ -372,9 +381,8 @@ DetailPrint "Uninstalling GNU Scientific Library (GSL)"
 DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
 
-DetailPrint "Uninstalling HDF5 (with Fortran bindings)"
+DetailPrint "Uninstalling HDF5"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
 
 DetailPrint "Uninstalling libxml2"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
@@ -383,7 +391,7 @@ DetailPrint "Uninstalling libxslt"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
 
 DetailPrint "Uninstalling xraylib Fortran bindings"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-7.dll" 
 
 DetailPrint "Uninstalling gfortran runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 

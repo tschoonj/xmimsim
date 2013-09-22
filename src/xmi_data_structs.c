@@ -314,6 +314,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_xp)
 				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_y)
 				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_yp)
+				if (A->excitation->discrete[i].distribution_type != B->excitation->discrete[i].distribution_type) {
+					rv |= XMI_CONFLICT_EXCITATION;
+					break;
+				}
+				else if (A->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+					XMI_IF_COMPARE_EXCITATION_DISCRETE(scale_parameter)
+				}
 			}
 		}
 	}	
@@ -569,6 +576,8 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->excitation->discrete[0].sigma_xp= 0.0;
 	rv->excitation->discrete[0].sigma_y= 0.0;
 	rv->excitation->discrete[0].sigma_yp= 0.0;
+	rv->excitation->discrete[0].scale_parameter = 0.0;
+	rv->excitation->discrete[0].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 
 	//absorbers
 	rv->absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
@@ -786,6 +795,14 @@ after_geometry:
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
+		else if (a->excitation->discrete[i].distribution_type < XMI_DISCRETE_MONOCHROMATIC || a->excitation->discrete[i].distribution_type > XMI_DISCRETE_LORENTZIAN) {
+			rv |= XMI_CONFLICT_EXCITATION;
+			goto after_excitation;
+		}
+		else if (a->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC && a->excitation->discrete[i].scale_parameter <= 0.0) {
+			rv |= XMI_CONFLICT_EXCITATION;
+			goto after_excitation;
+		}
 	}
 	for (i = 0 ; i < a->excitation->n_continuous ; i++) {
 		if (a->excitation->continuous[i].energy < 0.0) {
@@ -952,6 +969,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 		fprintf(fPtr, "sigma_xp: %lf\n",input->excitation->discrete[i].sigma_xp);
 		fprintf(fPtr, "sigma_y: %lf\n",input->excitation->discrete[i].sigma_y);
 		fprintf(fPtr, "sigma_yp: %lf\n",input->excitation->discrete[i].sigma_yp);
+		fprintf(fPtr, "distribution_type: %i\n",input->excitation->discrete[i].distribution_type);
+		fprintf(fPtr, "scale_parameter: %lf\n",input->excitation->discrete[i].scale_parameter);
 	}
 
 	fprintf(fPtr, "continuous\n");

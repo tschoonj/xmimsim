@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-updater.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui.h"
 #include "xmi_aux.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
@@ -131,7 +132,7 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
   	LSOpenCFURLRef(url,NULL);
   	CFRelease(url);
 
-	quit_program_cb(g_object_new(GTK_TYPE_OSX_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));	
+	quit_program_cb(g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));	
 #elif defined(G_OS_WIN32)
 	ShellExecute(NULL, "runas", dv->download_location, NULL, NULL, SW_SHOWNORMAL);
 #endif

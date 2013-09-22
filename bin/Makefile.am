@@ -29,7 +29,7 @@ bin_PROGRAMS =  xmimsim \
 		xmso2spe \
 		xmso2csv \
 		xmso2htm \
-		xmso2xmsi 
+		xmso2xmsi
 
 bin_PROGRAMS += xmimsim-test-ebel \
 		xmimsim-test-boone1 \
@@ -45,15 +45,6 @@ endif
 
 
 xmimsim_hdf5dir = $(datadir)/xmimsim
-
-
-xmimsim_db_SOURCES = xmimsim-db.F90
-xmimsim_db_FCFLAGS = @fgsl_CFLAGS@ \
-		     @xraylib_f2003_CFLAGS@ \
-		     @H5FC_INCLUDE@ \
-		     @OPENMP_FCFLAGS@
-xmimsim_db_LDADD = ../src/libxmimsim.la 
-xmimsim_db_LDFLAGS = 
 
 xmimsim_harvester_SOURCES = xmimsim-harvester.c
 xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
@@ -127,8 +118,7 @@ endif
 #xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
-xmimsim_CFLAGS = @H5FC_INCLUDE@  \
-		 @OPENMPI_CFLAGS@ \
+xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @gsl_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
@@ -191,6 +181,13 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 xmso2htm_CFLAGS = @glib2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
+xmimsim_db_SOURCES = xmimsim-db.c
+xmimsim_db_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
+		
 xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
 xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
 
@@ -209,6 +206,8 @@ xmimsim-icon.o: xmimsim-icon.rc
 	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 
+
+xmimsim-gui.c: xmimsim-gui-icons.h
 
 xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \

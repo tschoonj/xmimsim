@@ -160,18 +160,8 @@ if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 		
 	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
 			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, [gtk-mac-integration])
-			AC_DEFINE([HAVE_GTK_MAC_INTEGRATION_2],[],gtk-mac-integration-2.0 present)
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration >= 2.0.1")
 			],[GTK_MAC_INTEGRATION_FOUND=no])
-	
-		if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
-	   		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 1.0.1,[
-				GTK_MAC_INTEGRATION_FOUND=yes
-			],[GTK_MAC_INTEGRATION_FOUND=no])
-		fi
-	   	#AC_SUBST(GTK_MAC_LIBS)
-	   	#AC_SUBST(GTK_MAC_CFLAGS)
-	   
 	fi
 
 fi
@@ -264,17 +254,17 @@ fi
 
 
 #search for HDF5...
-AC_CHECK_PROGS([H5FC],[h5fc-64 h5fc],["fail"])
-if test x$H5FC = xfail ; then
-	AC_MSG_ERROR([A complete installation of HDF5 is required, including the Fortran 2003 bindings])
+AC_CHECK_PROGS([H5CC],[h5cc-64 h5cc],["fail"])
+if test x$H5CC = xfail ; then
+	AC_MSG_ERROR([An installation of HDF5 is required, including the headers])
 fi
 
-H5FC_FC=
-H5FC_INCLUDE=
-H5FC_LINKER=
-H5FC_STATIC=
+H5CC_CC=
+H5CC_INCLUDE=
+H5CC_LINKER=
+H5CC_STATIC=
 
-H5FC_PARSED=$($H5FC -show -shlib)
+H5CC_PARSED=$($H5CC -show -shlib)
 
 
 COUNTER="0"
@@ -285,35 +275,30 @@ if test x"$BASENAME" = xfail ; then
 	AC_MSG_ERROR([basename shell command not found])
 fi
 
-for i in $H5FC_PARSED
+for i in $H5CC_PARSED
 do
 	if test x$COUNTER = "x0" ; then
-		H5FC_FC=$($BASENAME $i)
+		H5CC_CC=$($BASENAME $i)
 		COUNTER="1"
 	elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
-		H5FC_LINKER+="$i "
+		H5CC_LINKER+="$i "
 	elif test x${i:0:2} = "x-I" ; then
-		H5FC_INCLUDE+="$i "
+		H5CC_INCLUDE+="$i "
 	elif test x${i:0:1} = "x/" && test x${i:${#i}-2:2} = "x.a" ; then
-		H5FC_STATIC+="$i "
+		H5CC_STATIC+="$i "
 #	else 
 #		AC_MSG_ERROR([Unrecognized output from $H5FC: $i])
 	fi
 done
 
-FC=$H5FC_FC
 
-AC_SUBST(H5FC_LINKER)
-AC_SUBST(H5FC_INCLUDE)
-AC_SUBST(H5FC_STATIC)
+AC_SUBST(H5CC_LINKER)
+AC_SUBST(H5CC_INCLUDE)
+AC_SUBST(H5CC_STATIC)
 
-#echo "H5FC_FC: $H5FC_FC" 
-#echo "H5FC_INCLUDE: $H5FC_INCLUDE" 
-#echo "H5FC_LINKER: $H5FC_LINKER" 
-#echo "H5FC_STATIC: $H5FC_STATIC" 
 
 #search for a fortran compiler (do not check explicitly for the 2003 features yet)
-AC_PROG_FC([$FC])
+AC_PROG_FC
 if test -z $FC ; then
 	AC_MSG_ERROR([Fortran 2003 compiler was not found])
 fi

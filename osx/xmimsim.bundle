@@ -28,7 +28,7 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
-<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-2.1.tar.gz</data>
+<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-2.3.tar.gz</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/nsis/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
@@ -41,6 +41,7 @@
 
 <data>${prefix:macports}/share/themes</data>
 <data>${prefix:install}/share/icons/hicolor</data>
+<data dest="${bundle}/Contents/Resources/share/mime/packages/applications-x-xmimsim.xml">${prefix:source}/icons/applications-x-xmimsim.xml</data>
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>
 

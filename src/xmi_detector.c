@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_hdf5.h"
 #include <xraylib.h>
 #include <sys/stat.h>
 #ifdef MAC_INTEGRATION
@@ -105,7 +106,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	}
 	
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
 	}	
