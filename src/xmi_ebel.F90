@@ -394,7 +394,7 @@ DO i=1,ndisc
                         0.71E13*oneovers(i)*r(i)*RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
                 CASE (L2Q1_LINE:L2L3_LINE)
                         ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*fcorr(tube_anodeF%Z(1))*&
-                        2.70E13**oneovers(i)*r(i)*RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
+                        2.70E13*oneovers(i)*r(i)*RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
                 CASE (L3Q1_LINE:L3M1_LINE)
                         ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*4.94E13*oneovers(i)*r(i)*&
                         RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
