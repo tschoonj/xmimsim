@@ -42,7 +42,7 @@ OUTPUTS:
      Data for creating XASMIP spectra
      This file for creating MOLYBDENUM spectra
 --------------------------------------------- */ 
-int mnn[150]={
+static int mnn[150]={
 0,0,0,0,0,0,0,2,2,4,4,4,4,4,4,
 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
 4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,
@@ -54,7 +54,7 @@ int mnn[150]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-double menergy[150]={
+static double menergy[150]={
  0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 4.50, 5.00,
  5.50, 6.00, 6.50, 7.00, 7.50, 8.00, 8.50, 9.00, 9.50,10.00,
 10.50,11.00,11.50,12.00,12.50,13.00,13.50,14.00,14.50,15.00,
@@ -71,7 +71,7 @@ double menergy[150]={
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
 
-double maa[151][4]={
+static double maa[151][4]={
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
@@ -231,7 +231,7 @@ double maa[151][4]={
      Data for creating XASMIP spectra
      This file for creating RHODIUM spectra
 --------------------------------------------- */ 
-int rnn[150]={
+static int rnn[150]={
 0,0,0,0,0,0,0,0,3,3,3,4,4,4,4,
 4,4,4,4,3,4,4,4,4,4,3,4,3,4,3,
 4,4,4,4,4,4,4,3,4,3,4,4,4,4,3,
@@ -243,7 +243,7 @@ int rnn[150]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-double renergy[150]={
+static double renergy[150]={
  0.20, 0.70, 1.20, 1.70, 2.20, 2.70, 3.20, 3.70, 4.20, 4.70,
  5.20, 5.70, 6.20, 6.70, 7.20, 7.70, 8.20, 8.70, 9.20, 9.70,
 10.20,10.70,11.20,11.70,12.20,12.70,13.20,13.70,14.20,14.70,
@@ -260,7 +260,7 @@ double renergy[150]={
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
 
-double raa[151][4]={
+static double raa[151][4]={
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
@@ -420,7 +420,7 @@ double raa[151][4]={
      Data for creating XASMIP spectra
      This file for creating TUNGSTEN spectra
 --------------------------------------------- */ 
-int tnn[150]={
+static int tnn[150]={
 0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,
 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
@@ -432,7 +432,7 @@ int tnn[150]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-double tenergy[150]={
+static double tenergy[150]={
  0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 4.50, 5.00,
  5.50, 6.00, 6.50, 7.00, 7.50, 8.00, 8.50, 9.00, 9.50,10.00,
 10.50,11.00,11.50,12.00,12.50,13.00,13.50,14.00,14.50,15.00,
@@ -449,7 +449,7 @@ double tenergy[150]={
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
 
-double taa[151][4]={
+static double taa[151][4]={
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
 {+0.000000e+000,+0.000000e+000,+0.000000e+000,+0.000000e+000},
@@ -708,8 +708,19 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 			continue;
 
 		intensity /= mm_square_to_sterad;
+		intensity /= 4.0;
 		intensity *= tube_solid_angle;
 		intensity *= tube_current;
+		if( tube_type==XMI_TUBE_BOONE_MOLYBDENUM) { 
+			intensity /= 26;
+		}
+		else if( tube_type==XMI_TUBE_BOONE_RHODIUM) { 
+			intensity /= 24;
+		}
+		else if( tube_type==XMI_TUBE_BOONE_TUNGSTEN) { 
+			intensity /= 37;
+		}
+
 		if (tube_window) {
 			intensity *= exp(-1.0 * tube_window->density * CS_Total_Kissel(tube_window->Z[0], (float) en[i]) * tube_window->thickness);
 		}
@@ -729,6 +740,7 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_xp = 
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y = 
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_yp = 0.0;
+
 	}
 
 	free(en);

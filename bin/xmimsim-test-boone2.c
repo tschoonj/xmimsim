@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	}
 	*/
 
-	if (xmi_tube_boone_1863(XMI_TUBE_BOONE_TUNGSTEN, NULL, NULL, tube_voltage, tube_current, 1.0E-5, &excitation ) == 0) {
+	if (xmi_tube_boone_1863(XMI_TUBE_BOONE_RHODIUM, NULL, NULL, tube_voltage, tube_current, 1.0E-5, &excitation ) == 0) {
 		return 1;
 	}
 

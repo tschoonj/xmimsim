@@ -9,19 +9,19 @@ int main(int argc, char *argv[]) {
 	double tube_voltage = 40.0;
 	struct xmi_layer tube_anode, tube_window, tube_filter;
 	double tube_current = 1.0;
-	double tube_angle_electron = 74.0;
-	double tube_angle_xray= 16.0;
-	double tube_delta_energy = 1.0;
+	double tube_angle_electron = 45.0;
+	double tube_angle_xray= 45.0;
+	double tube_delta_energy = 0.2;
 
 	struct xmi_excitation *excitation;
-	int tube_transmission = 1;
+	int tube_transmission = 0;
 
 	tube_anode.n_elements = 1;
 	tube_anode.Z = malloc(sizeof(int));
 	tube_anode.weight = malloc(sizeof(double));
-	tube_anode.Z[0] = 74;
+	tube_anode.Z[0] = 45;
 	tube_anode.weight[0] = 1.0;
-	tube_anode.density = 10.500000;
+	tube_anode.density = 12.410000;
 	tube_anode.thickness= 0.000200;
 
 	tube_window.n_elements = 1;
@@ -35,10 +35,10 @@ int main(int argc, char *argv[]) {
 	tube_filter.n_elements = 1;
 	tube_filter.Z = malloc(sizeof(int));
 	tube_filter.weight = malloc(sizeof(double));
-	tube_filter.Z[0] = 10;
+	tube_filter.Z[0] = 13;
 	tube_filter.weight[0] = 1.0;
-	tube_filter.thickness = 2.00000;
-	tube_filter.density = 0.0009;
+	tube_filter.thickness = 0.0870;
+	tube_filter.density = 2.7;
 
 
 
