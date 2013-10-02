@@ -341,6 +341,7 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 void new_cb(GtkWidget *widget, gpointer data);
+gboolean process_pre_file_operation (GtkWidget *window);
 
 #ifdef G_OS_UNIX
 void signal_handler(int sig) {
@@ -4855,6 +4856,9 @@ XMI_MAIN
 
 #ifdef MAC_INTEGRATION
 	gtkosx_application_ready(theApp);
+	//only works in Lion and newer
+	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
+	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 #endif
 
 	gchar *filename = g_strdup(argv[1]);
