@@ -47,6 +47,8 @@ struct energyDialog {
 	GtkWidget *sigma_ypEntry;
 	GtkWidget *distribution_typeCombo;
 	GtkWidget *scale_parameterEntry;
+	GtkWidget *scale_parameterLabel;
+	GtkWidget *scale_parameterBox;
 	GtkWidget *window;
 	gulong energyGulong;
 	gulong hor_intensityGulong;
@@ -1649,6 +1651,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),"");
 		if (discOrCont == DISCRETE) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), XMI_DISCRETE_MONOCHROMATIC);
+			gtk_widget_hide(ew->scale_parameterBox);
 			gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),"");
 			gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 		}
@@ -1684,13 +1687,23 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), energy_disc->distribution_type);
 			if (energy_disc->distribution_type == XMI_DISCRETE_MONOCHROMATIC) {
-				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry), "");
-				gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
+				gtk_widget_hide(ew->scale_parameterBox);
+				//gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry), "");
+				//gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 			}
-			else {
+			else if (energy_disc->distribution_type == XMI_DISCRETE_GAUSSIAN){
 				sprintf(buffer,"%lg",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
+				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Standard deviation (keV)");
+				gtk_widget_show_all(ew->scale_parameterBox);
+			}
+			else if (energy_disc->distribution_type == XMI_DISCRETE_LORENTZIAN){
+				sprintf(buffer,"%lg",energy_disc->scale_parameter);
+				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
+				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
+				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Scale parameter (keV)");
+				gtk_widget_show_all(ew->scale_parameterBox);
 			}
 		}
 		else if (discOrCont == CONTINUOUS) {
@@ -1739,11 +1752,17 @@ static void distribution_type_changed_cb(GtkComboBox *combobox, struct energyDia
 
 	if (active == XMI_DISCRETE_MONOCHROMATIC) {
 		//monochromatic
-		gtk_widget_set_sensitive(ed->scale_parameterEntry, FALSE);
+		gtk_widget_hide(ed->scale_parameterBox);
 	}
-	else {
+	else if (active == XMI_DISCRETE_GAUSSIAN){
 		gtk_widget_set_sensitive(ed->scale_parameterEntry, TRUE);
-	
+		gtk_label_set_text(GTK_LABEL(ed->scale_parameterLabel),"Standard deviation (keV)");
+		gtk_widget_show_all(ed->scale_parameterBox);
+	}
+	else if (active == XMI_DISCRETE_LORENTZIAN){
+		gtk_widget_set_sensitive(ed->scale_parameterEntry, TRUE);
+		gtk_label_set_text(GTK_LABEL(ed->scale_parameterLabel),"Scale parameter (keV)");
+		gtk_widget_show_all(ed->scale_parameterBox);
 	}
 
 	energy_window_changed_cb(NULL, ed);
@@ -1766,6 +1785,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 	rv->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Modify energy");
 	gtk_window_set_default_size(GTK_WINDOW(window),420,300);
@@ -1893,6 +1913,8 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 		gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 		gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 		rv->scale_parameterEntry = entry;	
+		rv->scale_parameterLabel = label;
+		rv->scale_parameterBox = HBox;
 	}
 	//separator
 	separator = gtk_hseparator_new();
