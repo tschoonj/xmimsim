@@ -272,7 +272,6 @@ ENDTYPE
 
 TYPE, BIND(C) :: xmi_main_options 
         INTEGER (C_INT) :: use_M_lines
-        INTEGER (C_INT) :: use_self_enhancement
         INTEGER (C_INT) :: use_cascade_auger
         INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction

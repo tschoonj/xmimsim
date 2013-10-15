@@ -2278,7 +2278,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
-        photon%energy, line, photon%options%use_self_enhancement) .EQ. 0_C_INT) THEN
+        photon%energy, line) .EQ. 0_C_INT) THEN
                 rv = 1
                 RETURN
         ENDIF
@@ -2287,14 +2287,10 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A)') 'after fluor line check'
 #endif
         photon%energy_changed = .FALSE.
-        IF (photon%options%use_self_enhancement .EQ. 1) THEN
-                photon%mus = xmi_mu_calc(inputF%composition, photon%energy)
-        ELSE
-                DO i=1,inputF%composition%n_layers
+        DO i=1,inputF%composition%n_layers
                 photon%mus(i) = &
                 photon%precalc_mu_cs(i)%mu(photon%current_element,ABS(line)) 
-                ENDDO
-        ENDIF
+        ENDDO
 
         !calculate theta and phi
         theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
@@ -4393,7 +4389,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                 !so now that we determined the shell to be used, see if we get
                 !fluorescence...
                 IF (xmi_fluorescence_line_check(rng, shell_new1, photon%current_element,&
-                photon%energy,line_new,photon%options%use_self_enhancement) .EQ. 0_C_INT) photon%energy = 0.0_C_DOUBLE
+                photon%energy,line_new) .EQ. 0_C_INT) photon%energy = 0.0_C_DOUBLE
 
                 !leave if energy is too low
                 IF (photon%energy .LE. energy_threshold) THEN
@@ -4453,7 +4449,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                 !so now that we determined the shell to be used, see if we get
                 !fluorescence...
                 IF (xmi_fluorescence_line_check(rng, shell_new2, photon%offspring%current_element,&
-                photon%offspring%energy,line_new,photon%offspring%options%use_self_enhancement) .EQ. 0_C_INT)&
+                photon%offspring%energy,line_new) .EQ. 0_C_INT)&
                 photon%offspring%energy = 0.0_C_DOUBLE
 
                 !leave if energy is too low
@@ -4640,7 +4636,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
         IF (xmi_fluorescence_line_check(rng, shell_new, photon%current_element,&
-        energy,line_new,photon%options%use_self_enhancement) .EQ. 0_C_INT) RETURN
+        energy,line_new) .EQ. 0_C_INT) RETURN
 
         !leave if energy is too low
         IF (energy .LE. energy_threshold) RETURN
@@ -5075,14 +5071,13 @@ FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_fluorescence_yield_check
 
-FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
-        self_enhancement) RESULT(rv)
+FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv&
+        ) RESULT(rv)
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN) :: shell, element
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         INTEGER (C_INT), INTENT(INOUT) :: line_rv
-        INTEGER (C_INT), INTENT(IN) :: self_enhancement
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: r, sumz
         LOGICAL :: line_found
@@ -5134,11 +5129,7 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
         ENDDO
 
         IF (line_found) THEN
-                IF (self_enhancement .EQ. 1_C_INT) THEN
-                        CALL xmi_self_enhancement(rng, element, shell, line, energy)
-                ELSE
-                        energy = LineEnergy(element, line)
-                ENDIF
+                energy = LineEnergy(element, line)
         ELSE
                 !this should not happen since the radiative rates within one
                 !linegroup must add up to 1.0
@@ -5156,129 +5147,6 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
 
         RETURN
 ENDFUNCTION xmi_fluorescence_line_check
-
-SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy) 
-        IMPLICIT NONE
-        INTEGER (C_INT), INTENT(IN) :: element, shell, line
-        REAL (C_DOUBLE), INTENT(INOUT) :: energy
-        TYPE (fgsl_rng), INTENT(IN) :: rng
-        INTEGER (C_INT) :: shell_new
-        REAL (C_DOUBLE) :: hwhm
-
-
-        SELECT CASE (line)
-                CASE (KL1_LINE)
-                        shell_new = L1_SHELL
-                CASE (KL2_LINE)
-                        shell_new = L2_SHELL
-                CASE (KL3_LINE)
-                        shell_new = L3_SHELL
-                CASE (KM1_LINE)
-                        shell_new = M1_SHELL
-                CASE (KM2_LINE)
-                        shell_new = M2_SHELL
-                CASE (KM3_LINE)
-                        shell_new = M3_SHELL
-                CASE (KM4_LINE)
-                        shell_new = M4_SHELL
-                CASE (KM5_LINE)
-                        shell_new = M5_SHELL
-                CASE (KN1_LINE)
-                        shell_new = N1_SHELL
-                CASE (KN2_LINE)
-                        shell_new = N2_SHELL
-                CASE (KN3_LINE)
-                        shell_new = N3_SHELL
-                CASE (KN4_LINE)
-                        shell_new = N4_SHELL
-                CASE (KN5_LINE)
-                        shell_new = N5_SHELL
-                CASE (KN6_LINE)
-                        shell_new = N6_SHELL
-                CASE (KN7_LINE)
-                        shell_new = N7_SHELL
-                CASE (L1M1_LINE)
-                        shell_new = M1_SHELL
-                CASE (L1M2_LINE)
-                        shell_new = M2_SHELL
-                CASE (L1M3_LINE)
-                        shell_new = M3_SHELL
-                CASE (L1M4_LINE)
-                        shell_new = M4_SHELL
-                CASE (L1M5_LINE)
-                        shell_new = M5_SHELL
-                CASE (L1N1_LINE)
-                        shell_new = N1_SHELL
-                CASE (L1N2_LINE)
-                        shell_new = N2_SHELL
-                CASE (L1N3_LINE)
-                        shell_new = N3_SHELL
-                CASE (L1N4_LINE)
-                        shell_new = N4_SHELL
-                CASE (L1N5_LINE)
-                        shell_new = N5_SHELL
-                CASE (L1N6_LINE)
-                        shell_new = N6_SHELL
-                CASE (L1N7_LINE)
-                        shell_new = N7_SHELL
-                CASE (L2M1_LINE)
-                        shell_new = M1_SHELL
-                CASE (L2M2_LINE)
-                        shell_new = M2_SHELL
-                CASE (L2M3_LINE)
-                        shell_new = M3_SHELL
-                CASE (L2M4_LINE)
-                        shell_new = M4_SHELL
-                CASE (L2M5_LINE)
-                        shell_new = M5_SHELL
-                CASE (L2N1_LINE)
-                        shell_new = N1_SHELL
-                CASE (L2N2_LINE)
-                        shell_new = N2_SHELL
-                CASE (L2N3_LINE)
-                        shell_new = N3_SHELL
-                CASE (L2N4_LINE)
-                        shell_new = N4_SHELL
-                CASE (L2N5_LINE)
-                        shell_new = N5_SHELL
-                CASE (L2N6_LINE)
-                        shell_new = N6_SHELL
-                CASE (L2N7_LINE)
-                        shell_new = N7_SHELL
-                CASE (L3M1_LINE)
-                        shell_new = M1_SHELL
-                CASE (L3M2_LINE)
-                        shell_new = M2_SHELL
-                CASE (L3M3_LINE)
-                        shell_new = M3_SHELL
-                CASE (L3M4_LINE)
-                        shell_new = M4_SHELL
-                CASE (L3M5_LINE)
-                        shell_new = M5_SHELL
-                CASE (L3N1_LINE)
-                        shell_new = N1_SHELL
-                CASE (L3N2_LINE)
-                        shell_new = N2_SHELL
-                CASE (L3N3_LINE)
-                        shell_new = N3_SHELL
-                CASE (L3N4_LINE)
-                        shell_new = N4_SHELL
-                CASE (L3N5_LINE)
-                        shell_new = N5_SHELL
-                CASE (L3N6_LINE)
-                        shell_new = N6_SHELL
-                CASE (L3N7_LINE)
-                        shell_new = N7_SHELL
-        ENDSELECT
-
-        hwhm = 0.5_C_DOUBLE*(AtomicLevelWidth(element,shell)+&
-                    AtomicLevelWidth(element,shell_new))
-        energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
-
-        IF (energy .LT. energy_threshold .OR. energy .GT. 99.0_C_DOUBLE) energy = 0.0_C_DOUBLE
-
-        RETURN
-ENDSUBROUTINE xmi_self_enhancement
 
 SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
         IMPLICIT NONE
@@ -5392,7 +5260,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         !set options
         options%use_M_lines = 0
-        options%use_self_enhancement = 0
         options%use_cascade_auger = 0
         options%use_cascade_radiative = 0
         options%use_variance_reduction = 0

@@ -132,7 +132,6 @@ XMI_MAIN
 
 
 	options.use_M_lines = 1;
-	options.use_self_enhancement = 0;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
