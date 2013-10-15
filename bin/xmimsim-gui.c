@@ -332,6 +332,7 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
+gboolean save_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkosxApplication *app, gpointer data);
@@ -625,29 +626,8 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
 			//update file
-		//get text from comments...
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: not writeable?",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
+			if(save_function(dialog, (gpointer) dialog) == FALSE) {
+				gtk_widget_destroy(dialog);
 				return FALSE;
 			}
 
@@ -1401,8 +1381,28 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
-			if (mb->matrixKind == COMPOSITION)
+			if (mb->matrixKind == COMPOSITION) {
+				//reference layer may have to be updated
+				if (nindices > 1) {
+					if (composition->reference_layer == index+1) {
+						//reference_layer was deleted -> only a problem if selected layer is the last one
+						if (index == nindices -1) {
+							composition->reference_layer--;
+							//get iter to last element
+							gchar *path_string = g_strdup_printf("%i",nindices-2);
+							gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(mb->store), &iter, path_string);
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+							g_free(path_string);
+						}
+						else {
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+						}
+					}
+					else if (composition->reference_layer > index+1)
+						composition->reference_layer--;
+				}
 				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			}
 			else if (mb->matrixKind == EXC_COMPOSITION)
 				update_undo_buffer(EXC_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
@@ -1437,6 +1437,16 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	return;
 }
+
+static gboolean layers_backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		layers_button_clicked_cb(widget,data);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
+
 
 struct reference_toggle {
 	GtkListStore *store;
@@ -1770,6 +1780,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(deleteButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(layers_backspace_key_clicked), (gpointer) mb);
 
 	//ADD
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
@@ -5443,6 +5454,13 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 }
 
 void save_cb(GtkWidget *widget, gpointer data) {
+
+	save_function(widget, data);
+
+	return;
+}
+
+gboolean save_function(GtkWidget *widget, gpointer data) {
 	int check_status;
 	GtkWidget *dialog;
 	struct undo_single *check_rv; 
@@ -5455,6 +5473,17 @@ void save_cb(GtkWidget *widget, gpointer data) {
 #endif
 	//check if it was saved before... otherwise call saveas
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		        	GTK_MESSAGE_ERROR,
+		        	GTK_BUTTONS_CLOSE,
+		        	"Could not write to file: model is incomplete/invalid"
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+	     		gtk_widget_destroy (dialog);
+	     		return FALSE;
+		}
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
@@ -5474,7 +5503,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
-			return;
+			return FALSE;
 
 		}
 		else {
@@ -5493,7 +5522,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
 		check_status == CHECK_CHANGES_NEW) {
 		//never saved -> call saveas
-		saveas_function(widget, data);
+		return saveas_function(widget, data);
 
 	}
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
@@ -5502,7 +5531,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 
 
 
-	return;
+	return TRUE;
 
 
 }

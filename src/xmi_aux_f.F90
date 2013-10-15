@@ -1222,12 +1222,11 @@ FUNCTION findpos_fast(array,searchvalue)
                 RETURN
         ENDIF
 
-        guess = INT((searchvalue-0.1_C_DOUBLE)/(0.10999100-0.1) +&
-1.0_C_DOUBLE,KIND=C_INT)-1
+        guess = INT((searchvalue-0.1_C_DOUBLE)*(10000.0_C_DOUBLE-1.0_C_DOUBLE)/&
+                (100.0_C_DOUBLE-0.1_C_DOUBLE)+1.0_C_DOUBLE,KIND=C_INT) 
 
 
-
-        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
+        DO i=guess, UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos_fast = i-1
                         RETURN

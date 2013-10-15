@@ -23,7 +23,25 @@ USE :: xmimsim_aux
 USE :: omp_lib
 USE :: fgsl
 
-REAL (C_DOUBLE),PARAMETER :: DEG2RAD=0.01745329
+REAL (C_DOUBLE), PARAMETER :: DEG2RAD=0.01745329
+
+!Table 8 from Hubbell 1994, necessary for the L intensities
+!These are probably not the exact same values that Ebel was using, seeing as I
+!am using the values recommended in the 2004 erratum, which was published after
+!Ebel's paper was published
+REAL (C_DOUBLE), PARAMETER, DIMENSION(100) :: omegaL = [&
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,&
+2.17E-4, 3.04E-4, 4.15E-4, 5.53E-4, 7.24E-4, 9.30E-4, 0.00118, 0.00147, 0.00181, 0.00221,&
+0.00268, 0.00321, 0.00381, 0.00450, 0.00527, 0.00614, 0.00711, 0.00819, 0.00939, 0.0107,&
+0.122, 0.0138, 0.0155, 0.0174, 0.0195, 0.0218, 0.0242, 0.0263, 0.0285, 0.0309,&
+0.0335, 0.0363, 0.0393, 0.0425, 0.0459, 0.0495, 0.0534, 0.0575, 0.0618, 0.0655,&
+0.0714, 0.0765, 0.0820, 0.0877, 0.0938, 0.100, 0.107, 0.114, 0.121, 0.129,&
+0.137, 0.145, 0.153, 0.163, 0.172, 0.182, 0.192, 0.202, 0.212, 0.223,&
+0.234, 0.245, 0.257, 0.269, 0.281, 0.293, 0.305, 0.318, 0.331, 0.343,&
+0.356, 0.369, 0.382, 0.395, 0.409, 0.422, 0.435, 0.448, 0.461, 0.474,&
+0.486, 0.499, 0.511, 0.524, 0.536, 0.548, 0.560, 0.572, 0.583, 0.595&
+] 
+
 
 
 INTERFACE
@@ -48,6 +66,7 @@ RESULT(rv)
 ENDFUNCTION xmi_cmp_struct_xmi_energy_continuous
 ENDINTERFACE
 
+
 CONTAINS
 
 
@@ -56,6 +75,22 @@ CONTAINS
 !xray tube related functions
 !
 !
+
+REAL (C_DOUBLE) FUNCTION fcorr(Z)
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN) :: Z
+
+        IF (Z .GE. 80_C_INT) THEN
+                fcorr = 1.0_C_DOUBLE
+                RETURN
+        ENDIF
+
+        fcorr = -0.4814_C_DOUBLE + 0.03781_C_DOUBLE*Z - 2.413E-4_C_DOUBLE*(Z**2)
+
+        RETURN
+ENDFUNCTION fcorr
+
+
 INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
 tube_filter,tube_voltage, tube_current, tube_angle_electron, &
 tube_angle_xray, tube_delta_energy, tube_solid_angle, &
@@ -111,7 +146,7 @@ INTEGER (C_INT) :: i, ndisc, ncont, shell1, shell2
 REAL (C_DOUBLE) :: sinalphae, sinalphax,sinfactor
 !const2 is mentioned only in the conclusion of the article and appears to be an
 !average of the const values for both K and L lines...
-REAL (C_DOUBLE), PARAMETER :: const1 = 1.35E+09, const2 = 6.0E+13,zk=2.0,zl=8.0,bk=0.35,bl=0.25
+REAL (C_DOUBLE), PARAMETER :: const1 = 1.35E+09, const2_K = 5.0E+13,zk=2.0,zl=8.0,bk=0.35,bl=0.25
 REAL (C_DOUBLE) :: x, m, logz, eta, p3, rhozmax
 REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: u0,logu0,tau,p1,p2,rhoz,rhelp
 REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: oneovers, r
@@ -345,17 +380,17 @@ DO i=1,ndisc
         ebel_spectrum_disc(i)%distribution_type = XMI_DISCRETE_LORENTZIAN
         SELECT CASE(disc_lines(i))
                 CASE (KP5_LINE:KL1_LINE)
-                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2_K*oneovers(i)*r(i)*&
                         RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),K_SHELL)
                 CASE (L1P5_LINE:L1L2_LINE)
-                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L1_SHELL)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*fcorr(tube_anodeF%Z(1))*&
+                        0.71E13*oneovers(i)*r(i)*RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
                 CASE (L2Q1_LINE:L2L3_LINE)
-                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L2_SHELL)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*fcorr(tube_anodeF%Z(1))*&
+                        2.70E13**oneovers(i)*r(i)*RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
                 CASE (L3Q1_LINE:L3M1_LINE)
-                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2*oneovers(i)*r(i)*&
-                        RadRate(tube_anodeF%Z(1),disc_lines(i))*FluorYield(tube_anodeF%Z(1),L3_SHELL)
+                        ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*4.94E13*oneovers(i)*r(i)*&
+                        RadRate(tube_anodeF%Z(1),disc_lines(i))*omegaL(tube_anodeF%Z(1))
         ENDSELECT
         SELECT CASE(disc_lines(i))
                 CASE (KL1_LINE)
