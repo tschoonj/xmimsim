@@ -56,6 +56,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight, det_corr
         LOGICAL :: dirac
+        REAL (C_DOUBLE) :: selfenh_weight
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -69,7 +70,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         WRITE (*,'(A)') 'Entering variance reduction'
         WRITE (*,'(A,F12.4)') 'photon%energy: ',photon%energy
 #endif
-
+        selfenh_weight = 1.0_C_DOUBLE
 
         !ignore negative energies
         IF (photon%energy .LE. energy_threshold) RETURN
@@ -565,12 +566,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        K_SHELL,line_new,energy_fluo,dirac)
+                                        K_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PK*FluorYield&
                                 (layer%Z(i),K_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -578,12 +581,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL1 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L1_SHELL,line_new,energy_fluo,dirac)
+                                        L1_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL1*FluorYield&
                                 (layer%Z(i),L1_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -591,12 +596,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL2 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L2_SHELL,line_new,energy_fluo,dirac)
+                                        L2_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL2*FluorYield&
                                 (layer%Z(i),L2_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -604,12 +611,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PL3 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        L3_SHELL,line_new,energy_fluo,dirac)
+                                        L3_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PL3*FluorYield&
                                 (layer%Z(i),L3_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -617,12 +626,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM1 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M1_SHELL,line_new,energy_fluo,dirac)
+                                        M1_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM1*FluorYield&
                                 (layer%Z(i),M1_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -630,12 +641,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM2 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M2_SHELL,line_new,energy_fluo,dirac)
+                                        M2_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM2*FluorYield&
                                 (layer%Z(i),M2_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -643,12 +656,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM3 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M3_SHELL,line_new,energy_fluo,dirac)
+                                        M3_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM3*FluorYield&
                                 (layer%Z(i),M3_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -656,12 +671,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM4 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M4_SHELL,line_new,energy_fluo,dirac)
+                                        M4_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM4*FluorYield&
                                 (layer%Z(i),M4_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 
@@ -669,12 +686,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PM5 .EQ. 0.0_C_DOUBLE) CYCLE
                                 IF (photon%options%use_self_enhancement .EQ. 1_C_INT) THEN
                                         CALL xmi_self_enhancement(rng,layer%Z(i),&
-                                        M5_SHELL,line_new,energy_fluo,dirac)
+                                        M5_SHELL,line_new,energy_fluo,DIRAC=dirac,&
+                                        WEIGHT=selfenh_weight)
                                         IF (energy_fluo .LT. energy_threshold) CYCLE
                                 ENDIF
                                 Pconv = &
                                 layer%weight(i)*PM5*FluorYield&
                                 (layer%Z(i),M5_SHELL)*&
+                                selfenh_weight*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
 

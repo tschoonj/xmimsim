@@ -2181,6 +2181,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         INTEGER (C_INT) :: shell,line_first, line_last, line
         REAL (C_DOUBLE) :: r
         REAL (C_DOUBLE) :: theta_i, phi_i
+        REAL (C_DOUBLE) :: selfenh_weight
 
         LOGICAL :: shell_found, line_found
         INTEGER (C_INT) :: max_shell
@@ -2277,10 +2278,20 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
-        IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
+        IF (photon%options%use_variance_reduction .EQ. 1_C_INT) THEN
+                selfenh_weight = 1.0_C_DOUBLE
+                IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
+        photon%energy, line, photon%options%use_self_enhancement, selfenh_weight) .EQ. 0_C_INT) THEN
+                        rv = 1
+                        RETURN
+                ENDIF
+                photon%weight=photon%weight*selfenh_weight
+        ELSE
+                IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
         photon%energy, line, photon%options%use_self_enhancement) .EQ. 0_C_INT) THEN
-                rv = 1
-                RETURN
+                        rv = 1
+                        RETURN
+                ENDIF
         ENDIF
 
 #if DEBUG == 1
@@ -5076,13 +5087,14 @@ FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
 ENDFUNCTION xmi_fluorescence_yield_check
 
 FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
-        self_enhancement) RESULT(rv)
+        self_enhancement, selfenh_weight) RESULT(rv)
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN) :: shell, element
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         INTEGER (C_INT), INTENT(INOUT) :: line_rv
         INTEGER (C_INT), INTENT(IN) :: self_enhancement
+        REAL (C_DOUBLE), INTENT(INOUT), OPTIONAL :: selfenh_weight
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: r, sumz
         LOGICAL :: line_found
@@ -5135,7 +5147,12 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv,&
 
         IF (line_found) THEN
                 IF (self_enhancement .EQ. 1_C_INT) THEN
-                        CALL xmi_self_enhancement(rng, element, shell, line, energy)
+                        IF (PRESENT(selfenh_weight)) THEN
+                                CALL xmi_self_enhancement(rng, element, shell, line, energy,&
+                                WEIGHT=selfenh_weight)
+                        ELSE
+                                CALL xmi_self_enhancement(rng, element, shell, line, energy)
+                        ENDIF
                 ELSE
                         energy = LineEnergy(element, line)
                 ENDIF

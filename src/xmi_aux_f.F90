@@ -1826,17 +1826,19 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_ran_trap
 
-SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac) 
+SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac, weight) 
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN) :: element, shell, line
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         TYPE (fgsl_rng), INTENT(IN) :: rng
         LOGICAL, INTENT(OUT), OPTIONAL :: dirac
+        REAL (C_DOUBLE), INTENT(OUT), OPTIONAL :: weight 
         INTEGER (C_INT) :: shell_new
-        REAL (C_DOUBLE) :: hwhm, alw1, alw2
+        REAL (C_DOUBLE) :: hwhm, alw1, alw2, P, R
 
         !dirac being .TRUE. means that no lorentzian sampling was done
         IF(PRESENT(dirac)) dirac = .FALSE.
+        IF(PRESENT(weight)) weight = 1.0_C_DOUBLE
 
         SELECT CASE (line)
                 CASE (KL1_LINE)
@@ -2021,7 +2023,7 @@ SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac)
         alw1 = AtomicLevelWidth(element,shell)
         alw2 = AtomicLevelWidth(element,shell_new)
 
-        IF (alw1 .EQ. 0.0_C_DOUBLE .OR. alw2 .EQ. 0.0_C_DOUBLE) THEN
+        IF (alw1 .EQ. 0.0_C_DOUBLE .AND. alw2 .EQ. 0.0_C_DOUBLE) THEN
                 !gets triggered when one or both atomic level widths are
                 !unavailable in the database
                 energy = LineEnergy(element,line)
@@ -2032,7 +2034,26 @@ SUBROUTINE xmi_self_enhancement(rng, element, shell, line, energy, dirac)
         !calculate the half width at half maximum, the scale parameter of the
         !lorentzian (cauchy) distribution
         hwhm = 0.5_C_DOUBLE*(alw1+alw2)
-        energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
+
+        IF (PRESENT(weight)) THEN
+                P = fgsl_cdf_cauchy_P(REAL(EdgeEnergy(element,shell)-&
+                  LineEnergy(element,line),KIND=C_DOUBLE),hwhm)
+
+
+                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) THEN
+                        !below edge energy
+                        weight = P/0.5_C_DOUBLE
+                        R = fgsl_rng_uniform(rng)*P
+                ELSE
+                        !above edge energy
+                        weight = (1.0_C_DOUBLE-P)/0.5_C_DOUBLE
+                        R = fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-P)+P
+                ENDIF
+                energy = fgsl_cdf_cauchy_Pinv(R,hwhm)+&
+                  LineEnergy(element,line)
+        ELSE
+                energy = fgsl_ran_cauchy(rng,hwhm)+LineEnergy(element,line) 
+        ENDIF
 
         !if the energy looks fishy -> just return 0.0
         IF (energy .LT. energy_threshold .OR. energy .GT. 99.0_C_DOUBLE) energy = 0.0_C_DOUBLE
