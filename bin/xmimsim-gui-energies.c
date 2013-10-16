@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
+#include <gsl/gsl_spline.h>
 
 
 struct energyDialog {
@@ -139,6 +140,8 @@ struct generate {
 	GtkWidget *tubeCurrentW;
 	GtkWidget *tubeSolidAngleW;
 	GtkWidget *canvas;
+	GtkWidget *transmissionEffW;
+	GtkWidget *transmissionEffFileW;
 };
 
 static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
@@ -169,6 +172,16 @@ static void transmission_clicked_cb(GtkToggleButton *button, struct transmission
 	return;
 }
 
+static void transmissioneff_clicked_cb(GtkToggleButton *button, GtkWidget *filechooser) {
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(filechooser, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(filechooser, FALSE);
+	}
+
+	return;
+}
 static void generate_spectrum(struct generate *gen);
 
 static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -498,6 +511,63 @@ static void generate_spectrum(struct generate *gen) {
 		return;
 	}
 
+
+	//read transmission efficiency file if appropriate
+	double *eff_x = NULL;
+	double *eff_y = NULL;
+	size_t n_eff = 0;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionEffW)) == TRUE) {
+		g_fprintf(stdout,"Found transmission efficiency file\n");
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gen->transmissionEffFileW));
+		if (strlen(filename) == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		FILE *fp;
+		if ((fp = fopen(filename, "r")) == NULL) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for reading.", filename);		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+			
+		}
+		char *line;
+		double energy, efficiency;
+		ssize_t linelen;
+		size_t linecap = 0;
+		int values;
+		while ((linelen = getline(&line, &linecap, fp)) > -1) {
+			if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+				continue;
+			}
+			values = sscanf(line,"%lf %lf", &energy, &efficiency);
+			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy < 1.0)) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+				
+			} 
+			n_eff++;
+			eff_x = g_realloc(eff_x, sizeof(double)*n_eff);
+			eff_y = g_realloc(eff_y, sizeof(double)*n_eff);
+			eff_x[n_eff-1] = energy;
+			eff_y[n_eff-1] = efficiency;
+			g_fprintf(stdout,"Efficiency: %lf -> %lf\n",energy,efficiency);
+		}
+		fclose(fp);
+		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
+		if (n_eff < 10 || gen->excitation->continuous[gen->excitation->n_continuous-1].energy > eff_x[n_eff-1]) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+	}
+
+
 	
 	GtkPlotCanvasChild *child;
 
@@ -512,6 +582,33 @@ static void generate_spectrum(struct generate *gen) {
 	//ebel main function
 	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation);
 	
+	//apply transmission efficiencies if required
+	int i,j;
+	if (n_eff > 0) {
+		//use some gsl tricks
+		gsl_interp_accel *acc = gsl_interp_accel_alloc();
+		gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, n_eff);
+		gsl_spline_init(spline, eff_x, eff_y, n_eff);
+		
+		for (i = 0 ; i < gen->excitation->n_continuous ; i++) {
+			gen->excitation->continuous[i].horizontal_intensity = 
+			gen->excitation->continuous[i].vertical_intensity = 
+			gen->excitation->continuous[i].horizontal_intensity * 
+			gsl_spline_eval(spline, gen->excitation->continuous[i].energy, acc);
+		}
+
+		for (i = 0 ; i < gen->excitation->n_discrete ; i++) {
+			gen->excitation->discrete[i].horizontal_intensity = 
+			gen->excitation->discrete[i].vertical_intensity = 
+			gen->excitation->discrete[i].horizontal_intensity * 
+			gsl_spline_eval(spline, gen->excitation->discrete[i].energy, acc);
+		}
+		g_free(eff_x);
+		g_free(eff_y);
+		gsl_spline_free (spline);
+		gsl_interp_accel_free (acc);
+	}
+
 
 	//add box with default settings
 	GtkWidget *plot_window;
@@ -520,7 +617,6 @@ static void generate_spectrum(struct generate *gen) {
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
 	double *bins = (double *) malloc(sizeof(double) * gen->excitation->n_continuous);
-	int i,j;
 
 	for (i = 0 ; i < gen->excitation->n_continuous ; i++)
 		bins[i] = gen->excitation->continuous[i].horizontal_intensity*2.0*tube_deltaE;
@@ -2338,7 +2434,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *alphaElectronW = gtk_spin_button_new(GTK_ADJUSTMENT(adj2), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaElectronW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
-	label = gtk_label_new("\316\261 electron (degrees)");
+	label = gtk_label_new("Electron incidence angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
@@ -2347,7 +2443,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *alphaXrayW = gtk_spin_button_new(GTK_ADJUSTMENT(adj3), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaXrayW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
-	label = gtk_label_new("\316\261 X-ray (degrees)");
+	label = gtk_label_new("X-ray take-off angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
@@ -2370,6 +2466,17 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	g_signal_connect(G_OBJECT(transmissionW), "clicked", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
 	td->anodeDensityW = anodeDensityW;
 	td->anodeThicknessW = anodeThicknessW;
+
+	GtkWidget *transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionEffW), FALSE);
+	hbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffW, FALSE, FALSE, 0);
+	GtkWidget *transmissionEffFileW = gtk_file_chooser_button_new("Select a transmission efficiency file", GTK_FILE_CHOOSER_ACTION_OPEN);
+	gtk_widget_set_sensitive(transmissionEffFileW, FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
+	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	g_signal_connect(G_OBJECT(transmissionEffW), "clicked", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+
 
 	//buttons	
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
@@ -2418,6 +2525,8 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gen->tubeVoltageW = tubeVoltageW;
 	gen->transmissionW = transmissionW;
+	gen->transmissionEffW = transmissionEffW;
+	gen->transmissionEffFileW = transmissionEffFileW;
 	gen->anodeMaterialW = anodeMaterialW;
 	gen->anodeThicknessW = anodeThicknessW;
 	gen->anodeDensityW = anodeDensityW;
