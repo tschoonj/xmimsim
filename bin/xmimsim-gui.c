@@ -4046,9 +4046,9 @@ XMI_MAIN
 	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,accel_group);
 	GtkWidget *openrecentW = gtk_recent_chooser_menu_new();
 	GtkRecentFilter *filter = gtk_recent_filter_new();
-	//gtk_recent_filter_add_pattern(filter, "*.xmsi");
-	//gtk_recent_filter_add_pattern(filter, "*.xmso");
-	gtk_recent_filter_add_application(filter, g_get_application_name());
+	gtk_recent_filter_add_pattern(filter, "*.xmsi");
+	gtk_recent_filter_add_pattern(filter, "*.xmso");
+	//gtk_recent_filter_add_application(filter, g_get_application_name());
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
 #if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)
 	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), FALSE);
