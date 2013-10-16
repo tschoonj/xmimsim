@@ -85,6 +85,8 @@ static GtkWidget *newW;
 static GtkWidget *openW;
 static GtkWidget *preferencesW;
 static GtkWidget *tube_ebelW;
+static GtkWidget *batchmodeW;
+
 
 GtkWidget *saveW;
 GtkWidget *save_asW;
@@ -99,6 +101,7 @@ static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 static GtkToolItem *preferencesT;
 static GtkToolItem *tube_ebelT;
+static GtkToolItem *batchmodeT;
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
@@ -4100,11 +4103,15 @@ XMI_MAIN
 	tools = gtk_menu_item_new_with_label("Tools");
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
 	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
+	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
+	//g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
 
 	convertmenu = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
@@ -4254,6 +4261,8 @@ XMI_MAIN
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
 	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
 	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	batchmodeT = gtk_tool_button_new_from_stock(GTK_STOCK_DND_MULTIPLE);
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(batchmodeT), "Batch mode");
 	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
@@ -4262,6 +4271,7 @@ XMI_MAIN
 	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(tube_ebelT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(batchmodeT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
@@ -4272,8 +4282,9 @@ XMI_MAIN
 	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
 	gtk_tool_item_set_expand(separatorT, TRUE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 7);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 8);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), batchmodeT,(gint) 7);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 8);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 9);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -4286,6 +4297,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
+	//g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
