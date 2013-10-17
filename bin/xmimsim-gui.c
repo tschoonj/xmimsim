@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
+#include "xmimsim-gui-batch.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -4104,7 +4105,7 @@ XMI_MAIN
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
 	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
-	//g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
@@ -4297,7 +4298,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
-	//g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
@@ -5575,8 +5576,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 		NULL);
-		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 

@@ -168,6 +168,7 @@ struct xmi_main_options {
 	int use_poisson;
 	int omp_num_threads;
 	int extra_verbose;
+	int nchannels;
 };
 
 //typedefs are clearer then using void *...

@@ -261,7 +261,9 @@ XMI_MAIN
 		if (options.verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
-		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+		options.nchannels = xp->nchannels;
+
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
@@ -489,6 +491,8 @@ XMI_MAIN
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
+	options.nchannels = xp->nchannels;
+
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
 		xmi_deallocate(channels);
 		xmi_deallocate(brute_history);
@@ -509,7 +513,7 @@ XMI_MAIN
 		if (options.verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
-		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
@@ -670,7 +674,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, xp->nchannels, options, escape_ratios_def);
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -717,6 +721,7 @@ XMI_MAIN
 
 
 	}
+	
 
 single_run:
 
@@ -729,7 +734,7 @@ single_run:
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options,escape_ratios_def);
+		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, options,escape_ratios_def);
 		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 	}
 

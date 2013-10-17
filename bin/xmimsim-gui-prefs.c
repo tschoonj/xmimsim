@@ -586,7 +586,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
 
-	label = gtk_label_new("Simulation defaults");
+	label = gtk_label_new("Simulation default options");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation defaults</span>");
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);

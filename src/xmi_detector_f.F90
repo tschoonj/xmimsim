@@ -179,10 +179,9 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 ENDSUBROUTINE xmi_detector_sum_peaks
 
 SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
-channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolute')
+channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
-        INTEGER (C_INT), VALUE, INTENT(IN) :: nchannels
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
@@ -206,7 +205,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
-        CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
+        CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[options%nchannels])
         !pointer remapping doesnt work with gfortran 4.4
         !channels_noconv(0:nchannels-1) => channels_noconv
 
@@ -237,11 +236,11 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
         !allocate memory for results
-        ALLOCATE(channels_temp(0:nchannels-1))
-        ALLOCATE(channels_conv(0:nchannels-1))
+        ALLOCATE(channels_temp(0:options%nchannels-1))
+        ALLOCATE(channels_conv(0:options%nchannels-1))
         !
         nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
-        IF (nlim .GE. nchannels) nlim = nchannels-1
+        IF (nlim .GE. options%nchannels) nlim = options%nchannels-1
 
 
         a = inputF%detector%noise**2
@@ -253,7 +252,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
 
-        channels_temp(0:nchannels-1) = channels_noconv(1:nchannels)
+        channels_temp(0:options%nchannels-1) = channels_noconv(1:options%nchannels)
         channels_conv = 0.0_C_DOUBLE
 
 #if DEBUG == 1
@@ -332,7 +331,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                           7.793_C_DOUBLE*EXP(-3.81_C_DOUBLE*(E0**(-0.0716_C_DOUBLE)))
                 my_sum = 0.0_C_DOUBLE
                 DO I=0,I0+100
-                        IF (I .GE. nchannels) THEN
+                        IF (I .GE. options%nchannels) THEN
                                 EXIT
                         ENDIF
                         E = inputF%detector%zero + inputF%detector%gain*I
@@ -356,7 +355,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                 ENDDO
                 !my_sum = SUM(R)
                 DO I=0,I0+100
-                        IF (I .GE. nchannels) THEN
+                        IF (I .GE. options%nchannels) THEN
                                 EXIT
                         ENDIF
                         channels_conv(I)=channels_conv(I)+R(I)*channels_temp(I0)/my_sum

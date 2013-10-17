@@ -61,7 +61,9 @@ xmimsim_gui_SOURCES = xmimsim-gui.c \
 		      xmimsim-gui-prefs.h \
 		      xmimsim-gui-prefs.c \
 		      xmimsim-gui-tools.c \
-		      xmimsim-gui-tools.h
+		      xmimsim-gui-tools.h \
+		      xmimsim-gui-batch.h \
+		      xmimsim-gui-batch.c
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif

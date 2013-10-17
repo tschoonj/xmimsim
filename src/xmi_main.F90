@@ -49,12 +49,12 @@ CONTAINS
 
 
 FUNCTION xmi_main_msim(inputFPtr, hdf5FPtr, n_mpi_hosts, channelsPtr,&
-nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
+options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xmi_main_msim') RESULT(rv)
 
 
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
-        INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts, nchannels
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts
         INTEGER (C_INT) :: rv 
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         TYPE (C_PTR), INTENT(INOUT) :: brute_historyPtr, channelsPtr,&
@@ -196,7 +196,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         brute_history = 0.0_C_DOUBLE
         last_shell = 0_C_INT
 
-        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:nchannels-1))
+        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:options%nchannels-1))
         channels = 0.0_C_DOUBLE
 
         ALLOCATE(det_corr_all(100,383+2))
@@ -433,7 +433,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                 channel = -1
                                         ENDIF
 
-                                        IF (channel .GE. 0 .AND. channel .LT. nchannels) THEN
+                                        IF (channel .GE. 0 .AND. channel .LT. options%nchannels) THEN
 #if DEBUG == 1
 !$omp critical                        
                                         WRITE (*,'(A,I)') 'channel:'&
@@ -720,7 +720,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                                                 channel = -1
                                         ENDIF
 
-                                        IF (channel .GE. 0 .AND. channel .LT. nchannels) THEN
+                                        IF (channel .GE. 0 .AND. channel .LT. options%nchannels) THEN
 #if DEBUG == 1
 !$omp critical                        
                                         WRITE (*,'(A,I)') 'channel:'&
@@ -874,7 +874,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         DEALLOCATE(precalc_mu_cs)
 
         !multiply with detector absorbers and detector crystal
-        DO i=0,nchannels-1
+        DO i=0,options%nchannels-1
                 det_corr = 1.0_C_DOUBLE
                 DO j=1,inputF%absorbers%n_det_layers
                         det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
@@ -939,8 +939,8 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
 
 
 
-        ALLOCATE(channelsF(0:nchannels-1,0:inputF%general%n_interactions_trajectory))
-        channelsF = RESHAPE(channels, [nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
+        ALLOCATE(channelsF(0:options%nchannels-1,0:inputF%general%n_interactions_trajectory))
+        channelsF = RESHAPE(channels, [options%nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
         !multiply with live time
         channelsF = channelsF*inputF%detector%live_time
 
