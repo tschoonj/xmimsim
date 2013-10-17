@@ -228,12 +228,20 @@ XMI_MAIN
 		options.omp_num_threads = omp_get_max_threads();
 	}
 
-	if (options.extra_verbose)
+	if (options.extra_verbose) {
 		options.verbose = 1;
+		//print all selected options
+		g_fprintf(stdout,"Option M-lines: %i\n", options.use_M_lines);
+		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options.use_cascade_auger);
+		g_fprintf(stdout,"Option radiative cascade: %i\n", options.use_cascade_radiative);
+		g_fprintf(stdout,"Option variance reduction: %i\n", options.use_variance_reduction);
+		g_fprintf(stdout,"Option pile-up: %i\n", options.use_sum_peaks);
+		g_fprintf(stdout,"Option Poisson noise: %i\n", options.use_poisson);
+		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
+		g_fprintf(stdout,"Option number of channels: %i\n", options.nchannels);
+	}
 
-	//omp_set_num_threads(omp_num_threads);
-	//omp_set_dynamic(0);
-	
+		
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
