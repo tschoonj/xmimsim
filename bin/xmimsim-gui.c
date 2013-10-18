@@ -4716,10 +4716,17 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Detector type");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+#if GTK_CHECK_VERSION(2,24,0)
+	detector_typeW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Si(Li)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Ge");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"SDD");
+#else
 	detector_typeW = gtk_combo_box_new_text();
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Si(Li)");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Ge");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"SDD");
+#endif
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),current->xi->detector->detector_type);
 	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);

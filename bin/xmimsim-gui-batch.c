@@ -16,6 +16,36 @@ struct options_widget {
 	GtkWidget *superframe;
 };
 
+enum xmi_msim_batch_options{
+	XMI_MSIM_BATCH_MULTIPLE_OPTIONS,
+	XMI_MSIM_BATCH_ONE_OPTION
+};
+
+struct batch_window_data {
+	int *rv;
+	GtkWidget *batch_window;
+	GtkWidget *playButton;
+	GtkWidget *stopButton;
+#ifndef G_OS_WIN32
+	GtkWidget *pauseButton;
+#endif
+	GtkWidget *nthreadsW;
+	GtkWidget *progressbarW;
+	GtkWidget *controlsLogW;
+	GtkTextBuffer *controlsLogB;
+	GtkWidget *saveButton;
+	GtkWidget *controlsLogFileW;
+	GtkWidget *verboseW;
+	GtkWidget *continueErrorW;
+	GtkWidget *exitButton;
+	struct xmi_main_options *options;
+	GSList *filenames;
+	enum xmi_msim_batch_options batch_options;
+};
+
+
+static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options);
+
 
 static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	union xmimsim_prefs_val xpv;
@@ -160,10 +190,18 @@ static gboolean wizard_delete_event(GtkWidget *wizard, GdkEvent *event, struct w
 	return FALSE;
 }
 
-static void wizard_destroy(GtkWidget *wizard, gpointer data) {
-	gtk_main_quit();
+static void batch_window_exit(GtkButton *button, struct batch_window_data *bwd) {
+	//should check if a simulation is still running
+	*(bwd->rv) = 1;
+	gtk_widget_destroy(GTK_WIDGET(bwd->batch_window));
 	return;
 }
+
+static gboolean batch_window_delete_event(GtkWidget *batch_window, GdkEvent *event, struct batch_window_data *bwd) {
+	*(bwd->rv) = 0;
+	return FALSE;
+}
+
 static int specific_options(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames) {
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
@@ -209,7 +247,7 @@ static int specific_options(GtkWidget *main_window, struct xmi_main_options *opt
 	g_signal_connect(G_OBJECT(wizard), "cancel", G_CALLBACK(wizard_cancel), (gpointer) wcd);
 	g_signal_connect(G_OBJECT(wizard), "close", G_CALLBACK(wizard_close), (gpointer) wcd);
 	g_signal_connect(G_OBJECT(wizard), "delete-event", G_CALLBACK(wizard_delete_event), (gpointer) wcd);
-	g_signal_connect(G_OBJECT(wizard), "destroy", G_CALLBACK(wizard_destroy), (gpointer) wcd);
+	g_signal_connect(G_OBJECT(wizard), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	gtk_widget_show_all(wizard);
 	gtk_main();
 	return rv;
@@ -336,6 +374,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		//3) launch execution window
+		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION);
 		//4) display message with result
 	}
 	else {
@@ -352,4 +391,133 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 
 	return;
+}
+
+static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options) {
+	int rv;
+	GtkWidget *batch_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_transient_for(GTK_WINDOW(batch_window), GTK_WINDOW(main_window));
+	gtk_window_set_modal(GTK_WINDOW(batch_window), TRUE);
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(batch_window), TRUE);
+	gtk_window_set_position (GTK_WINDOW(batch_window), GTK_WIN_POS_CENTER);
+	gtk_window_set_title(GTK_WINDOW(batch_window), "Batch simulation controls");
+	gtk_window_set_default_size(GTK_WINDOW(batch_window),500,500);
+
+	struct batch_window_data *bwd = g_malloc(sizeof(struct batch_window_data));
+	bwd->batch_window = batch_window;
+
+	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
+	gtk_container_add(GTK_CONTAINER(batch_window), main_vbox);
+	gtk_container_set_border_width(GTK_CONTAINER(batch_window),3);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 2);
+
+	GtkWidget *playButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
+	bwd->playButton = playButton;
+	gtk_box_pack_start(GTK_BOX(hbox), playButton, FALSE, FALSE, 2);
+
+#ifndef G_OS_WIN32
+	GtkWidget *pauseButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
+	bwd->pauseButton = pauseButton;
+	gtk_box_pack_start(GTK_BOX(hbox), pauseButton, FALSE, FALSE, 2);
+	gtk_widget_set_sensitive(pauseButton, FALSE);
+#endif
+
+	GtkWidget *stopButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
+	bwd->stopButton = stopButton;
+	gtk_box_pack_start(GTK_BOX(hbox), stopButton, FALSE, FALSE, 2);
+	gtk_widget_set_sensitive(stopButton, FALSE);
+
+	GtkWidget *nthreadsW = NULL;
+	if (omp_get_max_threads() > 1) {
+		GtkWidget *cpuLabel = gtk_label_new("CPUs");
+		gtk_box_pack_start(GTK_BOX(hbox), cpuLabel, FALSE, FALSE, 2);
+		GtkObject *nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
+		nthreadsW = gtk_hscale_new(GTK_ADJUSTMENT(nthreadsA));	
+		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
+		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
+		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_TOP);
+		gtk_widget_set_size_request(nthreadsW,30,-1);
+		gtk_box_pack_start(GTK_BOX(hbox), nthreadsW, TRUE, TRUE, 2);
+	}
+	bwd->nthreadsW = nthreadsW;
+
+	//add progressbar
+	GtkWidget *progressbarW = gtk_progress_bar_new();
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbarW), GTK_PROGRESS_LEFT_TO_RIGHT);
+	//gtk_widget_set_size_request(progressbarW,-1,10);
+	GtkWidget *pvbox = gtk_vbox_new(TRUE,1);
+	gtk_box_pack_start(GTK_BOX(pvbox), progressbarW, FALSE, FALSE, 0);
+	gtk_box_pack_end(GTK_BOX(hbox), pvbox, TRUE, TRUE, 2);
+	gtk_widget_set_size_request(progressbarW,-1,30);
+	bwd->progressbarW = progressbarW;
+	
+	gtk_box_pack_start(GTK_BOX(main_vbox), hbox, FALSE, FALSE, 0);
+
+	//output log
+	GtkWidget *controlsLogW = gtk_text_view_new();
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(controlsLogW),GTK_WRAP_WORD);
+	gtk_text_view_set_left_margin(GTK_TEXT_VIEW(controlsLogW),3);
+	GtkTextBuffer *controlsLogB = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controlsLogW));
+	gtk_container_set_border_width(GTK_CONTAINER(controlsLogW),2);
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(controlsLogW),FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(controlsLogW),FALSE);
+	gtk_text_buffer_create_tag(controlsLogB, "error","foreground","red",NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "success","foreground","green",NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "pause-continue-stopped","foreground","orange",NULL);
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), controlsLogW);
+	gtk_container_set_border_width(GTK_CONTAINER(scrolled_window), 2);
+	gtk_box_pack_start(GTK_BOX(main_vbox), scrolled_window, TRUE, TRUE, 3);
+	bwd->controlsLogW = controlsLogW;
+	bwd->controlsLogB = controlsLogB;
+
+	//bottom widget
+	hbox = gtk_hbox_new(FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox), 2);
+	GtkWidget *saveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	bwd->saveButton = saveButton;
+	gtk_box_pack_start(GTK_BOX(hbox), saveButton, FALSE, FALSE, 2);
+	GtkWidget *controlsLogFileW = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(controlsLogFileW), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), controlsLogFileW, TRUE, TRUE, 2);
+	bwd->controlsLogFileW = controlsLogFileW;
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *verboseW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(verboseW),"Verbose");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(verboseW),"Very verbose");
+#else
+	GtkWidget *verboseW = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(verboseW),"Verbose");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(verboseW),"Very verbose");
+#endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(verboseW),0);
+	bwd->verboseW = verboseW;
+	gtk_box_pack_start(GTK_BOX(hbox), verboseW, FALSE, FALSE, 2);
+	GtkWidget *continueErrorW = gtk_check_button_new_with_label("Continue on error");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(continueErrorW), FALSE);
+	bwd->continueErrorW = continueErrorW;
+	gtk_box_pack_start(GTK_BOX(hbox), continueErrorW, FALSE, FALSE, 2);
+	GtkWidget *exitButton = gtk_button_new_from_stock(GTK_STOCK_QUIT);
+	bwd->exitButton = exitButton;
+	gtk_box_pack_end(GTK_BOX(hbox), exitButton, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(main_vbox), hbox, FALSE, FALSE, 0);
+
+	bwd->options = options;
+	bwd->filenames = filenames;
+	bwd->batch_options = batch_options;
+	bwd->rv = &rv;
+
+
+	g_signal_connect(G_OBJECT(batch_window), "delete-event", G_CALLBACK(batch_window_delete_event), (gpointer) bwd);
+	g_signal_connect(G_OBJECT(batch_window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(G_OBJECT(exitButton), "clicked", G_CALLBACK(batch_window_exit), (gpointer) bwd);
+	gtk_widget_show_all(batch_window);
+	
+	gtk_main();
+
+	return rv;
 }
