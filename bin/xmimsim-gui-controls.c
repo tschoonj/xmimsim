@@ -94,7 +94,7 @@ GIOChannel *xmimsim_stderr;
 
 GPid xmimsim_pid = GPID_INACTIVE;
 
-gboolean xmimsim_paused;
+static gboolean xmimsim_paused = FALSE;
 
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 void reset_controls(void);

@@ -1,5 +1,6 @@
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-controls.h"
 #include "xmi_main.h"
 #include <stdio.h>
 #include <glib.h>
@@ -26,7 +27,7 @@ struct batch_window_data {
 	GtkWidget *batch_window;
 	GtkWidget *playButton;
 	GtkWidget *stopButton;
-#ifndef G_OS_WIN32
+#ifdef G_OS_UNIX
 	GtkWidget *pauseButton;
 #endif
 	GtkWidget *nthreadsW;
@@ -41,11 +42,57 @@ struct batch_window_data {
 	struct xmi_main_options *options;
 	GSList *filenames;
 	enum xmi_msim_batch_options batch_options;
+	gboolean paused;
+	GTimer *timer;
 };
 
 
 static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options);
 
+static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd) {
+	GtkWidget *dialog;
+	gchar *filename;
+
+	dialog = gtk_file_chooser_dialog_new("Select a filename for the logfile", GTK_WINDOW(bwd->batch_window), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(GTK_ENTRY(bwd->controlsLogFileW), filename);
+		g_free (filename);							
+	}
+	gtk_widget_destroy(dialog);
+	return;
+}
+
+static void play_button_clicked(GtkButton *playButton, struct batch_window_data *bwd) {
+
+	//first deal with the pause case
+#ifdef G_OS_UNIX
+	if (bwd->paused) {
+		gtk_widget_set_sensitive(bwd->playButton, FALSE);
+		//send SIGCONT	
+		int kill_rv;
+		char buffer[512];
+		g_timer_continue(timer);
+
+		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
+	}
+
+
+
+}
+
+static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data *bwd) {
+
+}
+
+#ifdef G_OS_UNIX
+static void pause_button_clicked(GtkButton *pauseButton, struct batch_window_data *bwd) {
+
+}
+#endif
 
 static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	union xmimsim_prefs_val xpv;
@@ -416,7 +463,7 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	bwd->playButton = playButton;
 	gtk_box_pack_start(GTK_BOX(hbox), playButton, FALSE, FALSE, 2);
 
-#ifndef G_OS_WIN32
+#ifdef G_OS_UNIX
 	GtkWidget *pauseButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
 	bwd->pauseButton = pauseButton;
@@ -437,7 +484,6 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 		GtkObject *nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
 		nthreadsW = gtk_hscale_new(GTK_ADJUSTMENT(nthreadsA));	
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
-		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
 		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_TOP);
 		gtk_widget_set_size_request(nthreadsW,30,-1);
 		gtk_box_pack_start(GTK_BOX(hbox), nthreadsW, TRUE, TRUE, 2);
@@ -485,6 +531,9 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	gtk_editable_set_editable(GTK_EDITABLE(controlsLogFileW), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), controlsLogFileW, TRUE, TRUE, 2);
 	bwd->controlsLogFileW = controlsLogFileW;
+
+	g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(choose_logfile), (gpointer) bwd);
+
 #if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *verboseW = gtk_combo_box_text_new();
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(verboseW),"Verbose");
@@ -515,6 +564,12 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	g_signal_connect(G_OBJECT(batch_window), "delete-event", G_CALLBACK(batch_window_delete_event), (gpointer) bwd);
 	g_signal_connect(G_OBJECT(batch_window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(G_OBJECT(exitButton), "clicked", G_CALLBACK(batch_window_exit), (gpointer) bwd);
+	g_signal_connect(G_OBJECT(playButton), "clicked", G_CALLBACK(play_button_clicked), (gpointer) bwd);
+	g_signal_connect(G_OBJECT(stopButton), "clicked", G_CALLBACK(stop_button_clicked), (gpointer) bwd);
+#ifdef G_OS_UNIX
+	g_signal_connect(G_OBJECT(pauseButton), "clicked", G_CALLBACK(pause_button_clicked), (gpointer) bwd);
+#endif
+	bwd->paused = FALSE;
 	gtk_widget_show_all(batch_window);
 	
 	gtk_main();
