@@ -1559,7 +1559,7 @@ void reset_controls(void) {
 	gtk_text_buffer_get_end_iter (controlsLogB,&end); 
 	gtk_text_buffer_delete (controlsLogB,&start,&end); 
 
-
+	xmimsim_paused = FALSE;
 }
 
 

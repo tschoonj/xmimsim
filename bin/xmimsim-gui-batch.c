@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <string.h>
 
 struct options_widget {
 	GtkWidget *Mlines_prefsW;
@@ -32,6 +33,7 @@ struct batch_window_data {
 #endif
 	GtkWidget *nthreadsW;
 	GtkWidget *progressbarW;
+	GtkWidget *imageW;
 	GtkWidget *controlsLogW;
 	GtkTextBuffer *controlsLogB;
 	GtkWidget *saveButton;
@@ -44,10 +46,32 @@ struct batch_window_data {
 	enum xmi_msim_batch_options batch_options;
 	gboolean paused;
 	GTimer *timer;
+	FILE *logFile;
+	int i;
 };
 
 
 static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options);
+
+static void batch_reset_controls(struct batch_window_data *bwd) {
+	char buffer[512];
+	GtkTextIter start, end;
+
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(bwd->progressbarW), "Start simulation");
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(bwd->progressbarW), 0.0);
+
+	gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(bwd->imageW)));
+	gtk_container_add(GTK_CONTAINER(bwd->imageW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
+	gtk_widget_show_all(bwd->imageW);
+
+	//clear textbuffer
+	gtk_text_buffer_get_start_iter (bwd->controlsLogB,&start); 
+	gtk_text_buffer_get_end_iter (bwd->controlsLogB,&end); 
+	gtk_text_buffer_delete (bwd->controlsLogB,&start,&end); 
+
+	bwd->paused = FALSE;
+}
+
 
 static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd) {
 	GtkWidget *dialog;
@@ -67,6 +91,7 @@ static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd)
 }
 
 static void play_button_clicked(GtkButton *playButton, struct batch_window_data *bwd) {
+	char buffer[512];
 
 	//first deal with the pause case
 #ifdef G_OS_UNIX
@@ -75,13 +100,229 @@ static void play_button_clicked(GtkButton *playButton, struct batch_window_data 
 		//send SIGCONT	
 		int kill_rv;
 		char buffer[512];
-		g_timer_continue(timer);
+		gboolean spinning;
+		g_timer_continue(bwd->timer);
 
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
+		if (kill_rv == 0) {
+			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
+			my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
+			if (bwd->logFile) {
+				g_fprintf(bwd->logFile,"%s",buffer);
+			}
+			gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
+			bwd->paused = FALSE;
+#if GTK_CHECK_VERSION(2,20,0)
+			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(bwd->imageW)))) {
+				g_object_get(gtk_bin_get_child(GTK_BIN(bwd->imageW)),"active",&spinning,NULL);
+				if (spinning == FALSE) {
+					gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(bwd->imageW))));
+				}
+			}
+#endif
+		}
+		else {
+			sprintf(buffer, "Process %i could not be resumed\n",(int) xmimsim_pid);
+			my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+			if (bwd->logFile) {
+				g_fprintf(bwd->logFile,"%s",buffer);
+			}
+			gtk_widget_set_sensitive(bwd->playButton,TRUE);
+			*(bwd->rv) = 0;
+			//should end batch operation!
+		}
+		return;
+	}
+#endif
+	bwd->paused = FALSE;
+
+	//start_job
+	gtk_widget_set_sensitive(bwd->playButton,FALSE);
+	gtk_widget_set_sensitive(bwd->saveButton, FALSE);
+	gtk_widget_set_sensitive(bwd->controlsLogFileW, FALSE);
+	gtk_widget_set_sensitive(bwd->verboseW, FALSE);
+	if (bwd->nthreadsW != NULL)
+		gtk_widget_set_sensitive(bwd->nthreadsW,FALSE);
+	
+	batch_reset_controls(bwd);
+	bwd->timer = g_timer_new();
+
+	int i;
+	gchar **argv = NULL;
+	gchar *xmimsim_executable;
+
+#ifdef MAC_INTEGRATION
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
+		xmimsim_executable = NULL;
+	}	
+#else
+	xmimsim_executable = g_find_program_in_path("xmimsim");
+#endif
+
+	//open logFile if necessary
+	gchar *logFileName = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(bwd->controlsLogFileW))));
+	if (strlen(logFileName) > 0) {
+		if ((bwd->logFile = fopen(logFileName, "w")) == NULL) {
+			//could not write to logfile
+			return;
+		}
 	}
 
 
+	for (i = 0 ; i < g_slist_length(bwd->filenames) ; i++) {
+		int arg_counter = 9;
+		if (bwd->batch_options == XMI_MSIM_BATCH_MULTIPLE_OPTIONS || (bwd->batch_options == XMI_MSIM_BATCH_ONE_OPTION && i == 0)) {
+			if (i > 0 )
+				g_strfreev(argv);
+			argv = (gchar **) g_malloc(sizeof(gchar *)*10);
+			argv[0] = g_strdup(xmimsim_executable);	
+			if (bwd->options[i].use_M_lines) {
+				argv[1] = g_strdup("--enable-M-lines");
+			}
+			else
+				argv[1] = g_strdup("--disable-M-lines");
+	
+			if (bwd->options[i].use_cascade_radiative) {
+				argv[2] = g_strdup("--enable-radiative-cascade");
+			}
+			else
+				argv[2] = g_strdup("--disable-radiative-cascade");
+	
+			if (bwd->options[i].use_cascade_auger) {
+				argv[3] = g_strdup("--enable-auger-cascade");
+			}
+			else
+				argv[3] = g_strdup("--disable-auger-cascade");
+	
+			if (bwd->options[i].use_variance_reduction) {
+				argv[4] = g_strdup("--enable-variance-reduction");
+			}
+			else
+				argv[4] = g_strdup("--disable-variance-reduction");
+		
+			if (bwd->options[i].use_sum_peaks) {
+				argv[5] = g_strdup("--enable-pile-up");
+			}
+			else
+				argv[5] = g_strdup("--disable-pile-up");
+		
+			if (bwd->options[i].use_poisson) {
+				argv[6] = g_strdup("--enable-poisson");
+			}
+			else
+				argv[6] = g_strdup("--disable-poisson");
+	
+			argv[7]	= g_strdup_printf("--set-channels=%i", bwd->options[i].nchannels); 
+	
+			if (gtk_combo_box_get_active(GTK_COMBO_BOX(bwd->verboseW)) == 0) {
+				argv[8] = g_strdup("--verbose");
+			}
+			else {
+				argv[8] = g_strdup("--very-verbose");
+			} 
+#ifdef G_OS_WIN32
+			//set solid angles and escape ratios files ourself!
+			char *xmimsim_hdf5_solid_angles = NULL;
+			char *xmimsim_hdf5_escape_ratios = NULL;
+		
+			if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
+				sprintf(buffer,"Could not determine solid angles HDF5 file\n");
+				my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+				if (bwd->logFile) {
+					g_fprintf(bwd->logFile,"%s",buffer);
+				}
+				gtk_widget_set_sensitive(playButton,TRUE);
+				return;	
+			}
+			argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+			argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
+			arg_counter++;
+	
+			if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
+				sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
+				my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+				if (bwd->logFile) {
+					g_fprintf(bwd->logFile,"%s",buffer);
+				}
+				gtk_widget_set_sensitive(playButton,TRUE);
+				return;	
+			}
+			argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+			argv[arg_counter] = g_strdup_printf("--with-escape-ratios-data=%s",xmimsim_hdf5_escape_ratios);
+			arg_counter++;
+#endif
+	
+			//number of threads
+			if (bwd->nthreadsW != NULL) {
+				argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+				argv[arg_counter++] = g_strdup_printf("--set-threads=%i",(int) gtk_range_get_value(GTK_RANGE(bwd->nthreadsW)));
+			}
+		}
+		argv[arg_counter++] = g_strdup((char *) g_slist_nth_data(bwd->filenames,i));
+		argv[arg_counter++] = NULL;
 
+		gchar *wd = g_path_get_dirname((char *) g_slist_nth_data(bwd->filenames,i));
+		gboolean spawn_rv;
+		gint out_fh, err_fh;
+		GError *spawn_error = NULL;
+
+		//spawn
+		spawn_rv = g_spawn_async_with_pipes(wd, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
+
+		if (spawn_rv == FALSE) {
+			//couldn't spawn
+			//print messag_ to textbox in red...
+			sprintf(buffer,"%s\n",spawn_error->message);
+			my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+			if (bwd->logFile) {
+				g_fprintf(bwd->logFile,"%s",buffer);
+			}
+			g_error_free(spawn_error);
+			gtk_widget_set_sensitive(bwd->playButton,TRUE);
+			xmimsim_pid = (GPid) -1;
+			return;
+		}
+		sprintf(buffer,"%s was started with process id %i\n",argv[0],(int)xmimsim_pid);
+		my_gtk_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogB, buffer,-1,NULL);
+		g_free(wd);
+
+		bwd->paused=FALSE;
+#ifdef G_OS_UNIX
+		gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
+#endif
+		gtk_widget_set_sensitive(bwd->stopButton,TRUE);
+
+		GIOChannel *xmimsim_stdout;
+		GIOChannel *xmimsim_stderr;
+#ifdef G_OS_WIN32
+		xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
+		xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
+#else
+		xmimsim_stderr= g_io_channel_unix_new(err_fh);
+		xmimsim_stdout = g_io_channel_unix_new(out_fh);
+#endif
+		bwd->i = i;
+		g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) bwd);
+	
+
+		g_get_charset(&encoding);
+
+		g_io_channel_set_encoding(xmimsim_stdout, encoding, NULL);
+		g_io_channel_set_close_on_unref(xmimsim_stdout,TRUE);
+		g_io_add_watch(xmimsim_stdout, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, xmimsim_stdout_watcher, argv[0]);
+		g_io_channel_unref(xmimsim_stdout);
+
+		g_io_channel_set_encoding(xmimsim_stderr, encoding, NULL);
+		g_io_channel_set_close_on_unref(xmimsim_stderr,TRUE);
+		g_io_add_watch(xmimsim_stderr, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, xmimsim_stderr_watcher, argv[0]);
+		g_io_channel_unref(xmimsim_stderr);
+	}
+
+	if (bwd->logFile) {
+		g_fclose(bwd->logFile);
+	}
+
+	return;
 }
 
 static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data *bwd) {
@@ -491,6 +732,10 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	bwd->nthreadsW = nthreadsW;
 
 	//add progressbar
+	GtkWidget *imageW = gtk_alignment_new(0.5, 0.5, 0, 0);	
+	bwd->imageW = imageW;
+	gtk_container_add(GTK_CONTAINER(imageW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
+	gtk_box_pack_end(GTK_BOX(hbox), imageW, FALSE, FALSE, 2);
 	GtkWidget *progressbarW = gtk_progress_bar_new();
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbarW), GTK_PROGRESS_LEFT_TO_RIGHT);
 	//gtk_widget_set_size_request(progressbarW,-1,10);
@@ -570,6 +815,7 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	g_signal_connect(G_OBJECT(pauseButton), "clicked", G_CALLBACK(pause_button_clicked), (gpointer) bwd);
 #endif
 	bwd->paused = FALSE;
+	bwd->logFile = NULL;
 	gtk_widget_show_all(batch_window);
 	
 	gtk_main();
