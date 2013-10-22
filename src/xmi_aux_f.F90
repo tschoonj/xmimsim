@@ -1389,6 +1389,22 @@ FUNCTION xmi_sum_double(array, n_elements) BIND(C,NAME='xmi_sum_double')
         RETURN
 ENDFUNCTION xmi_sum_double
 
+FUNCTION xmi_sum_int(array, n_elements) BIND(C,NAME='xmi_sum_int')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        INTEGER (C_INT) :: xmi_sum_int
+        INTEGER (C_INT), DIMENSION(:), POINTER :: arrayF
+
+        xmi_sum_int = 0_C_INT
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+
+
+        xmi_sum_int = SUM(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_sum_int
+
 SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_scale_double')
         IMPLICIT NONE
         INTEGER (C_INT), INTENT(IN),VALUE :: n_elements

@@ -45,6 +45,7 @@ void xmi_inverse_matrix(double x[3], double y[3], double z[3], double **inverse)
 
 //calculates the sum of array containing n elements
 double xmi_sum_double(double *array, int n); 
+int xmi_sum_int(int *array, int n); 
 
 //multiplies each element of array with scale_factor
 void xmi_scale_double(double *array, int n, double scale_factor);

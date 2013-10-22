@@ -1269,6 +1269,13 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 		subroot = subroot->next;
 	}
 
+	if (xmi_validate_input(*input) != 0) {
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
+		fprintf(stderr, "Error validating input data\n");
+		return 0;
+	} 
+
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
 	return 1;
@@ -3057,6 +3064,12 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_input **input, struct xmi_flu
 
 				subsubroot = subsubroot->next;
 			}
+			if (xmi_validate_input(*input) != 0) {
+				xmlFreeParserCtxt(ctx);
+				xmlFreeDoc(doc);
+				fprintf(stderr, "Error validating input data\n");
+				return 0;
+			} 
 		}
 		subroot=subroot->next;
 	}

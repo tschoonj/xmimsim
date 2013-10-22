@@ -361,19 +361,7 @@ void signal_handler(int sig) {
 		fprintf(stdout,"SIGHUP caught\n");
 	}
 
-	if (xmimsim_pid != GPID_INACTIVE) {
-		int kill_rv;
-	
-		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
-		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-		wait(NULL);
-		if (kill_rv == 0) {
-			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
-		}
-		else {
-			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
-		}
-	}
+	kill_current_job();
 	_exit(0);
 }
 
@@ -5286,24 +5274,8 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
-#ifdef MAC_INTEGRATION
-gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
 
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return TRUE;
-	return FALSE;
-
-}
-
-void quit_program_cb(GtkosxApplication *app, gpointer data) {
-#else
-void quit_program_cb(GtkWidget *widget, gpointer data) {
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return;
-#endif
-
-
-
+int kill_current_job(void) {
 	if (xmimsim_pid != GPID_INACTIVE) {
 		//if UNIX -> send sigterm
 		//if WIN32 -> call TerminateProcess 
@@ -5313,7 +5285,13 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 	
 		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
 		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-		wait(NULL);
+#if !GLIB_CHECK_VERSION (2, 35, 0)
+		//starting with 2.36.0 (and some unstable versions before),
+		//waitpid is called from within the main loop
+		//causing all kinds of trouble if I would call wait here
+		//wait(NULL);
+		waitpid(xmimsim_pid, NULL, WNOHANG);
+#endif
 		if (kill_rv == 0) {
 			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
 		}
@@ -5334,8 +5312,30 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 #endif
 		g_spawn_close_pid(xmimsim_pid);
 		xmimsim_pid = GPID_INACTIVE;
-
+		return 1;
 	}
+	return 0;
+}
+#ifdef MAC_INTEGRATION
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return TRUE;
+	return FALSE;
+
+}
+
+
+
+void quit_program_cb(GtkosxApplication *app, gpointer data) {
+#else
+void quit_program_cb(GtkWidget *widget, gpointer data) {
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
+#endif
+
+	kill_current_job();
+
 
 	fprintf(stdout,"quitting\n");
 
