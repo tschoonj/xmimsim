@@ -22,5 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window);
 
+enum {
+	INPUT_PARAMETER_COLUMN,
+	INPUT_VALUE_COLUMN,
+	INPUT_SELECTABLE_COLUMN,
+	INPUT_N_COLUMNS
+};
+
+GtkWidget *get_inputfile_treeview(struct xmi_input *input);
+
 
 #endif

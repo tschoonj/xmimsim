@@ -1,11 +1,30 @@
+/*
+Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-controls.h"
+#include "xmimsim-gui-layer.h"
 #include "xmi_main.h"
 #include <stdio.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <string.h>
+#include <xraylib.h>
 
 struct options_widget {
 	GtkWidget *Mlines_prefsW;
@@ -52,6 +71,67 @@ struct batch_window_data {
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
+
+
+static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidget *okButton) {
+	GtkTreeIter iter,temp_iter;
+	GtkTreeModel *model;
+	gboolean selectable;
+
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
+		if (selectable)
+			gtk_widget_set_sensitive(okButton, TRUE);
+		else
+			gtk_widget_set_sensitive(okButton, FALSE);
+
+
+	}
+	else {
+		gtk_widget_set_sensitive(okButton, FALSE);
+	}
+}
+
+static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **path) {
+	int rv = 0;
+	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select the variable parameter", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	GtkWidget *scrolled_window = get_inputfile_treeview(input);
+
+
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	gtk_container_add(GTK_CONTAINER(content_area), scrolled_window);
+	gtk_widget_show_all(scrolled_window);
+	gtk_container_set_border_width(GTK_CONTAINER(dialog), 3);
+	gtk_window_set_default_size(GTK_WINDOW(dialog),500,500);
+	GtkWidget *treeview = gtk_bin_get_child(GTK_BIN(scrolled_window));
+	GtkWidget *okButton = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+
+	gtk_widget_set_sensitive(okButton, FALSE);
+	GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
+	g_signal_connect(G_OBJECT(select), "changed",
+			G_CALLBACK(parameter_selection_changed_cb),
+			(gpointer) okButton
+		);
+
+
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		rv = 1;
+		GtkTreeIter iter;
+		GtkTreeModel *model;
+		gtk_tree_selection_get_selected(select, &model, &iter);
+
+		GtkTreePath *treepath = gtk_tree_model_get_path(model, &iter);
+		*path = gtk_tree_path_to_string(treepath);
+		gtk_tree_path_free(treepath);
+	}
+	gtk_widget_destroy(dialog);
+
+	return rv;
+}
+
+
 
 static void my_gtk_text_buffer_insert_at_cursor_with_tags2(struct batch_window_data *bwd, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
 	GtkTextIter iter, start;
@@ -1027,6 +1107,20 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		if (rv == 0) {
 			return;
 		}
+		gchar *path;
+		struct xmi_input *input;
+		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input) == 0) {
+			//error reading inputfile
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading put-file %s. Aborting batch mode", (gchar *) g_slist_nth_data(filenames, 0));
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+
+		rv = select_parameter(window, input, &path);
+		g_fprintf(stdout,"select_parameter rv: %i\n", rv);
+		if (rv == 1)
+			g_fprintf(stdout, "path: %s\n", path);
 	}
 
 
@@ -1167,3 +1261,756 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 
 	return rv;
 }
+
+GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
+	//assume that the input has been validated
+	GtkTreeStore *model = gtk_tree_store_new(INPUT_N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);	
+	GtkWidget *treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
+	int i,j,k;
+
+	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, "cell-background-set", INPUT_SELECTABLE_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+	g_object_set(renderer,
+               "cell-background", "Chartreuse",
+               NULL);
+
+	renderer = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, "cell-background-set", INPUT_SELECTABLE_COLUMN, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+	g_object_set(renderer,
+               "cell-background", "Chartreuse",
+               NULL);
+
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), treeview);
+
+	GtkTreeIter iter1, iter2, iter3;
+
+
+	//general
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1, 
+		INPUT_PARAMETER_COLUMN, "general",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "outputfile",
+		INPUT_VALUE_COLUMN, input->general->outputfile,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	gchar *buffer;
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%li", input->general->n_photons_interval);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_photons_interval",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%li", input->general->n_photons_line);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_photons_line",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%i", input->general->n_interactions_trajectory);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_interactions_trajectory",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	g_free(buffer);
+
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "comments",
+		INPUT_VALUE_COLUMN, input->general->comments,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+
+	//composition
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1, 
+		INPUT_PARAMETER_COLUMN, "composition",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+
+	for (i = 0 ; i < input->composition->n_layers ; i++) {
+		buffer = g_strdup_printf("Layer %i", i+1);
+		gtk_tree_store_append(model, &iter2, &iter1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = malloc(sizeof(gchar)* (input->composition->layers[i].n_elements*5));
+		buffer[0] = '\0';
+		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			strcat(buffer ,AtomicNumberToSymbol(input->composition->layers[i].Z[j]));
+			if (j != input->composition->layers[i].n_elements-1) {
+				strcat(buffer ,", ");
+			}
+		}
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "elements",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->composition->layers[i].density);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "density",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->composition->layers[i].thickness);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "thickness",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+	}
+	buffer = g_strdup_printf("%i", input->composition->reference_layer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "reference_layer",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	g_free(buffer);
+
+	//geometry
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1,
+		INPUT_PARAMETER_COLUMN, "geometry",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+
+	buffer = g_strdup_printf("%lg", input->geometry->d_sample_source);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "d_sample_source",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	g_free(buffer);
+
+	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[0]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_sample_orientation_x",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[1]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_sample_orientation_y",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[2]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_sample_orientation_z",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+
+	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[0]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "p_detector_window_x",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[1]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "p_detector_window_y",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[2]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "p_detector_window_z",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+
+	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[0]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_detector_orientation_x",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[1]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_detector_orientation_y",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[2]);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "n_detector_orientation_z",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->area_detector);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "area_detector",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->collimator_height);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "collimator_height",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->collimator_diameter);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "collimator_diameter",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->d_source_slit);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "d_source_slit",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->slit_size_x);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "slit_size_x",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	buffer = g_strdup_printf("%lg", input->geometry->slit_size_y);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "slit_size_y",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+
+	//excitation
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1,
+		INPUT_PARAMETER_COLUMN, "excitation",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	for (i = 0 ; i < input->excitation->n_discrete ; i++) {
+		gtk_tree_store_append(model, &iter2, &iter1);
+		buffer = g_strdup_printf("discrete %i", i+1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, "discrete",
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].energy);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "energy",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, input->excitation->n_discrete == 1 ? TRUE : FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].horizontal_intensity);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].vertical_intensity);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "vertical_intensity",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_x);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_x",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_y);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_y",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_xp);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_xp",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_yp);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_yp",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "distribution_type",
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		switch (input->excitation->discrete[i].distribution_type) {
+			case XMI_DISCRETE_MONOCHROMATIC:
+				gtk_tree_store_set(model, &iter3,
+					INPUT_VALUE_COLUMN, "monochromatic",
+					-1
+				);
+				break;
+			case XMI_DISCRETE_GAUSSIAN:
+				gtk_tree_store_set(model, &iter3,
+					INPUT_VALUE_COLUMN, "gaussian",
+					-1);
+				gtk_tree_store_append(model, &iter3, &iter2);
+				buffer = g_strdup_printf("%g", input->excitation->discrete[i].scale_parameter);
+				gtk_tree_store_set(model, &iter3,
+					INPUT_PARAMETER_COLUMN, "standard_deviation",
+					INPUT_SELECTABLE_COLUMN, TRUE,
+					INPUT_VALUE_COLUMN, buffer,
+					-1
+				);
+				g_free(buffer);
+				break;
+			case XMI_DISCRETE_LORENTZIAN:
+				gtk_tree_store_set(model, &iter3,
+					INPUT_VALUE_COLUMN, "lorentzian",
+					-1
+				);
+				gtk_tree_store_append(model, &iter3, &iter2);
+				buffer = g_strdup_printf("%g", input->excitation->discrete[i].scale_parameter);
+				gtk_tree_store_set(model, &iter3,
+					INPUT_PARAMETER_COLUMN, "scale_parameter",
+					INPUT_SELECTABLE_COLUMN, TRUE,
+					INPUT_VALUE_COLUMN, buffer,
+					-1
+				);
+				g_free(buffer);
+				break;
+		}
+	}
+	for (i = 0 ; i < input->excitation->n_continuous ; i++) {
+		gtk_tree_store_append(model, &iter2, &iter1);
+		buffer = g_strdup_printf("continuous %i", i+1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, "continuous",
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].energy);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "energy",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].horizontal_intensity);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].vertical_intensity);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "vertical_intensity",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_x);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_x",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_y);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_y",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_xp);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_xp",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_yp);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "sigma_yp",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+	}
+
+	//absorbers
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1,
+		INPUT_PARAMETER_COLUMN, "absorbers",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
+		buffer = g_strdup_printf("Excitation Layer %i", i+1);
+		gtk_tree_store_append(model, &iter2, &iter1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = malloc(sizeof(gchar)* (input->absorbers->exc_layers[i].n_elements*5));
+		buffer[0] = '\0';
+		for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
+			strcat(buffer,AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j]));
+			if (j != input->absorbers->exc_layers[i].n_elements-1) {
+				strcat(buffer ,", ");
+			}
+		}
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "elements",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].density);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "density",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].thickness);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "thickness",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+	}
+	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
+		buffer = g_strdup_printf("Detector Layer %i", i+1);
+		gtk_tree_store_append(model, &iter2, &iter1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = malloc(sizeof(gchar)* (input->absorbers->det_layers[i].n_elements*5));
+		buffer[0] = '\0';
+		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
+			strcat(buffer,AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j]));
+			if (j != input->absorbers->det_layers[i].n_elements-1) {
+				strcat(buffer ,", ");
+			}
+		}
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "elements",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].density);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "density",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].thickness);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "thickness",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+	}
+
+	//detector
+	gtk_tree_store_append(model, &iter1, NULL);
+	gtk_tree_store_set(model, &iter1,
+		INPUT_PARAMETER_COLUMN, "detector",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "detector_type",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	switch (input->detector->detector_type) {
+		case XMI_DETECTOR_SILI:
+			gtk_tree_store_set(model, &iter2,
+				INPUT_VALUE_COLUMN, "SiLi",
+				-1
+			);
+			break;
+		case XMI_DETECTOR_GE:
+			gtk_tree_store_set(model, &iter2,
+				INPUT_VALUE_COLUMN, "Ge",
+				-1
+			);
+			break;
+		case XMI_DETECTOR_SI_SDD:
+			gtk_tree_store_set(model, &iter2,
+				INPUT_VALUE_COLUMN, "Si Drift Detector",
+				-1
+			);
+			break;
+	}
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->live_time);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "live_time",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->pulse_width);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "pulse_width",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->gain);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "gain",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->zero);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "zero",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->fano);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "fano",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->noise);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "noise",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, TRUE,
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%lg", input->detector->max_convolution_energy);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "max_convolution_energy",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		-1
+	);
+	g_free(buffer);
+	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
+		buffer = g_strdup_printf("Layer %i", i+1);
+		gtk_tree_store_append(model, &iter2, &iter1);
+		gtk_tree_store_set(model, &iter2,
+			INPUT_PARAMETER_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = malloc(sizeof(gchar)* (input->detector->crystal_layers[i].n_elements*5));
+		buffer[0] = '\0';
+		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
+			strcat(buffer,AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j]));
+			if (j != input->detector->crystal_layers[i].n_elements-1) {
+				strcat(buffer ,", ");
+			}
+		}
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "elements",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, FALSE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].density);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "density",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+
+		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].thickness);
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
+			INPUT_PARAMETER_COLUMN, "thickness",
+			INPUT_VALUE_COLUMN, buffer,
+			INPUT_SELECTABLE_COLUMN, TRUE,
+			-1
+		);
+		g_free(buffer);
+	}
+	return scrolled_window;
+}
+
+
+
