@@ -26,10 +26,20 @@ enum {
 	INPUT_PARAMETER_COLUMN,
 	INPUT_VALUE_COLUMN,
 	INPUT_SELECTABLE_COLUMN,
+	INPUT_XPATH_COLUMN,
+	INPUT_ALLOWED_COLUMN,
 	INPUT_N_COLUMNS
 };
 
-GtkWidget *get_inputfile_treeview(struct xmi_input *input);
+GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors);
+
+enum {
+	PARAMETER_DOUBLE = 1,
+	PARAMETER_INT = 2,
+	PARAMETER_LONG = 4,
+	PARAMETER_STRICT_POSITIVE = 8,
+	PARAMETER_POSITIVE = 16,
+};
 
 
 #endif

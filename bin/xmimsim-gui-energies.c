@@ -2463,7 +2463,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
 	struct transmission_data *td = (struct transmission_data *) malloc(sizeof(struct transmission_data));
-	g_signal_connect(G_OBJECT(transmissionW), "clicked", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
+	g_signal_connect(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
 	td->anodeDensityW = anodeDensityW;
 	td->anodeThicknessW = anodeThicknessW;
 
@@ -2475,7 +2475,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_widget_set_sensitive(transmissionEffFileW, FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	g_signal_connect(G_OBJECT(transmissionEffW), "clicked", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
 
 
 	//buttons	

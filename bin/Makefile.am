@@ -73,6 +73,7 @@ xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
 		     @OPENMP_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
+		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\"
 if ENABLE_UPDATER
 xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \

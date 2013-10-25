@@ -25,6 +25,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gprintf.h>
 #include <string.h>
 #include <xraylib.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+#include <libxml/catalog.h>
+#include "xmi_lines.h"
 
 struct options_widget {
 	GtkWidget *Mlines_prefsW;
@@ -68,9 +73,576 @@ struct batch_window_data {
 	gchar *argv0;
 };
 
+struct archive_options_data {
+	double start_value;
+	double end_value;
+	int nfiles;
+	gchar *xmso_output_dir;
+	gchar *xmso_prefix;
+	gboolean with_xmsa;
+	gchar *xmsa_output_file;
+	int n_lines;
+	int *elements;
+	int *lines;
+};
+
+struct saveButton_clicked_data {
+	GtkWidget *entry;
+	gchar *title;
+	GtkWidget *wizard;
+};
+
+
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
+
+
+struct wizard_range_data {
+	GtkWidget *wizard;
+	GtkWidget *inputdirEntry;
+	GtkWidget *inputprefixEntry;
+	GtkWidget *outputdirEntry;
+	GtkWidget *outputprefixEntry;
+	GtkWidget *startEntry;
+	GtkWidget *endEntry;
+	GtkWidget *nfilesEntry;
+	int allowed;
+};
+
+struct wizard_plot_data {
+	GtkWidget *elementW;
+	GtkWidget *lineW;
+	GtkWidget *labelx;
+	GtkWidget *labely;
+	GtkWidget *archive_plotW;
+	GtkWidget *archive_modeW;
+	GtkWidget *labela;
+	GtkWidget *archiveEntry;
+	GtkWidget *archivesaveButton;
+};
+
+struct wizard_archive_close_data {
+	struct wizard_range_data *wrd;
+	struct wizard_plot_data *wpd;
+	struct options_widget *ow;
+	struct archive_options_data *aod;
+	struct xmi_main_options *xmo;
+	int *rv;
+};
+
+static void wizard_archive_cancel(GtkAssistant *wizard, struct wizard_archive_close_data *wacd) {
+	*(wacd->rv) = 0;
+	gtk_widget_destroy(GTK_WIDGET(wizard));
+	return;
+}
+
+static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_close_data *wacd) {
+
+	//first read the general options
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->Mlines_prefsW)))
+		wacd->xmo->use_M_lines = 1;
+	else
+		wacd->xmo->use_M_lines = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->rad_cascade_prefsW)))
+		wacd->xmo->use_cascade_radiative = 1;
+	else
+		wacd->xmo->use_cascade_radiative = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->nonrad_cascade_prefsW)))
+		wacd->xmo->use_cascade_auger = 1;
+	else
+		wacd->xmo->use_cascade_auger = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->variance_reduction_prefsW)))
+		wacd->xmo->use_variance_reduction = 1;
+	else
+		wacd->xmo->use_variance_reduction = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->pile_up_prefsW)))
+		wacd->xmo->use_sum_peaks = 1;
+	else
+		wacd->xmo->use_sum_peaks = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->poisson_prefsW)))
+		wacd->xmo->use_poisson = 1;
+	else
+		wacd->xmo->use_poisson = 0;
+
+	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ows->nchannels_prefsW));
+
+	//range parameters
+	CONTINUE HERE
+	
+}
+
+static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiveEntry) {
+	GtkWidget *dialog  = gtk_file_chooser_dialog_new("", GTK_WINDOW(gtk_widget_get_toplevel(saveButton)), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(archiveEntry, filename);
+		g_free (filename);							
+	}
+	gtk_widget_destroy(dialog);
+	return;
+}
+
+
+static void saveButton_clicked_cb(GtkButton *saveButton, struct saveButton_clicked_data *scd) {
+	GtkWidget *dialog  = gtk_file_chooser_dialog_new(scd->title, GTK_WINDOW(scd->wizard), GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(GTK_ENTRY(scd->entry), filename);
+		g_free (filename);							
+	}
+	gtk_widget_destroy(dialog);
+	return;
+}
+
+static void wizard_archive_mode_changed_cb(GtkToggleButton *button, struct wizard_plot_data *wpd) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
+		gtk_widget_set_sensitive(wpd->labelx, TRUE);
+		gtk_widget_set_sensitive(wpd->labely, TRUE);
+		gtk_widget_set_sensitive(wpd->lineW, TRUE);
+		gtk_widget_set_sensitive(wpd->elementW, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(wpd->labelx, FALSE);
+		gtk_widget_set_sensitive(wpd->labely, FALSE);
+		gtk_widget_set_sensitive(wpd->lineW, FALSE);
+		gtk_widget_set_sensitive(wpd->elementW, FALSE);
+	}
+	return;
+}
+
+static void wizard_archive_mode_changed_cb(GtkToggleButton *button, struct wizard_plot_data *wpd) {
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(wpd->labela, TRUE);
+		gtk_widget_set_sensitive(wpd->archiveEntry, TRUE);
+		gtk_widget_set_sensitive(wpd->archivesaveButton, TRUE);
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wpd->archive_plotW))) {
+			gtk_widget_set_sensitive(wpd->archive_plotW, TRUE);
+			gtk_widget_set_sensitive(wpd->labelx, TRUE);
+			gtk_widget_set_sensitive(wpd->labely, TRUE);
+			gtk_widget_set_sensitive(wpd->lineW, TRUE);
+			gtk_widget_set_sensitive(wpd->elementW, TRUE);
+		}
+	}
+	else {
+		gtk_widget_set_sensitive(wpd->labela, FALSE);
+		gtk_widget_set_sensitive(wpd->archiveEntry, FALSE);
+		gtk_widget_set_sensitive(wpd->archivesaveButton, FALSE);
+		gtk_widget_set_sensitive(wpd->archive_plotW, FALSE);
+		gtk_widget_set_sensitive(wpd->labelx, FALSE);
+		gtk_widget_set_sensitive(wpd->labely, FALSE);
+		gtk_widget_set_sensitive(wpd->lineW, FALSE);
+		gtk_widget_set_sensitive(wpd->elementW, FALSE);
+	}
+	return;
+}
+
+static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_data *wrd) {
+	GtkWidget *vbox = gtk_assistant_get_nth_page(GTK_ASSISTANT(wrd->wizard), gtk_assistant_get_current_page(GTK_ASSISTANT(wrd->wizard)));
+	int inputprefix = 0;
+	int outputprefix = 0;
+	int start_end = 0;
+	int nfiles = 0;
+
+	//assuming the dirEntry will always work out
+	if (entry == GTK_EDITABLE(wrd->inputprefixEntry) && strlen(gtk_entry_get_text(GTK_ENTRY(wrd->inputprefixEntry))) == 0) {
+		gtk_widget_modify_base(wrd->inputprefixEntry,GTK_STATE_NORMAL,&red);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+		return;
+	}
+	else if (strlen(gtk_entry_get_text(GTK_ENTRY(wrd->inputprefixEntry))) > 0) {
+		gtk_widget_modify_base(wrd->inputprefixEntry,GTK_STATE_NORMAL,&white);
+		inputprefix = 1;
+	}
+	if (entry == GTK_EDITABLE(wrd->outputprefixEntry) && strlen(gtk_entry_get_text(GTK_ENTRY(wrd->outputprefixEntry))) == 0) {
+		gtk_widget_modify_base(wrd->outputprefixEntry,GTK_STATE_NORMAL,&red);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+		return;
+	}
+	else if (strlen(gtk_entry_get_text(GTK_ENTRY(wrd->outputprefixEntry))) > 0) {
+		gtk_widget_modify_base(wrd->outputprefixEntry,GTK_STATE_NORMAL,&white);
+		outputprefix = 1;
+	}
+	
+	char *textPtr,*endPtr,*lastPtr;
+	double start, end;
+	if (entry == GTK_EDITABLE(wrd->startEntry)) {
+		double value;
+
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
+		value=strtod(textPtr, &endPtr);
+		lastPtr = textPtr + strlen(textPtr);
+		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
+			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0)
+			) {
+			gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
+			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+			return;
+		}
+		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&white);
+	}
+	else if (entry == GTK_EDITABLE(wrd->endEntry)) {
+		double value;
+
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->endEntry));
+		value=strtod(textPtr, &endPtr);
+		lastPtr = textPtr + strlen(textPtr);
+		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
+			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0)
+			) {
+			gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
+			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+			return;
+		}
+		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&white);
+	}
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nfilesEntry));
+	nfiles=strtol(textPtr, &endPtr, 10);
+	lastPtr = textPtr + strlen(textPtr);
+	if (entry == GTK_EDITABLE(wrd->nfilesEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nfiles < 2)) {
+		gtk_widget_modify_base(wrd->nfilesEntry,GTK_STATE_NORMAL,&red);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+		return;
+	}
+	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nfiles >= 2) {
+		gtk_widget_modify_base(wrd->nfilesEntry,GTK_STATE_NORMAL,&white);
+	}
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
+	start = strtod(textPtr, &endPtr);
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->endEntry));
+	end = strtod(textPtr, &endPtr);
+
+	if (end > start) {
+		start_end = 1;
+		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&white);
+	}
+	else {
+		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
+		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&red);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+		return;
+	}
+
+	if (inputprefix*outputprefix*start_end*nfiles > 0) {
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, TRUE);
+	}
+	else {
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+	}
+	return;
+}
+
+static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath, int allowed, , struct archive_options_data *aod) {
+	int rv = 0;
+	GtkWidget *wizard = gtk_assistant_new();
+	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
+	gtk_window_set_modal(GTK_WINDOW(wizard), TRUE);
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(wizard), TRUE);
+	gtk_window_set_position (GTK_WINDOW(wizard), GTK_WIN_POS_CENTER);
+
+	gtk_window_set_title(GTK_WINDOW(wizard), "Simulation options");
+	//add intro page
+	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter will take on. Optionally, you can choose to save the different generated XMSO files into one XMSA file that will be used to produce a graph showing the variation of the intensity of a particular XRF line with respect to the variable parameter.");	
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), introLabel);
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), introLabel, TRUE);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), introLabel, GTK_ASSISTANT_PAGE_INTRO);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), introLabel, "Introduction");
+
+	//general options
+	struct options_widget *ow = create_options_frame(main_window);
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), ow->superframe);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ow->superframe, GTK_ASSISTANT_PAGE_CONTENT);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ow->superframe, "General options");
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), ow->superframe, TRUE);
+
+	//set range
+	struct wizard_range_data *wrd = g_malloc(sizeof(struct wizard_range_data));
+	GtkWidget *vbox = gtk_vbox_new(FALSE, 2);
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), vbox);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), vbox, GTK_ASSISTANT_PAGE_CONTENT);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), vbox, "Parameter range and file names");
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
+	GtkWidget *hbox, *label;
+
+	gchar *buffer = g_strdup_printf("<b>XPath parameter: %s</b>", xpath);
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), buffer);
+	g_free(buffer);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, FALSE, 2);
+
+	hbox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Start")
+	GtkWidget *startEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(startEntry), TRUE);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), startEntry, TRUE, TRUE, 1);
+	label = gtk_label_new("End")
+	GtkWidget *endEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(endEntry), TRUE);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), endEntry, TRUE, TRUE, 1);
+	label = gtk_label_new("#Steps")
+	GtkWidget *nfilesEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(nfilesEntry), TRUE);
+	gtk_entry_set_text(GTK_ENTRY(nfilesEntry), "10");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), nfilesEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
+	
+	xmlDocPtr doc;
+	if ((doc = xmlReadFile(filename,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		g_fprintf(stderr,"xmlReadFile error for %s\n", filename);
+		return 0;
+	}
+	xmlXPathContextPtr context;
+	xmlXPathObjectPtr result;
+
+	context = xmlXPathNewContext(doc);
+	if (context == NULL) {
+		g_fprintf(stderr, "Error in xmlXPathNewContext\n");
+		return 0;
+	}
+	result = xmlXPathEvalExpression(xpath, context);
+	xmlXPathFreeContext(context);
+	if (result == NULL) {
+		g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+		return 0;
+	}
+	if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
+		xmlXPathFreeObject(result);
+                g_fprintf(stderr, "No result\n");
+		return 0;
+	}
+	xmlNodeSetPtr nodeset = result->nodesetval;
+	if (nodeset->nodeNr != 1) {
+		g_fprintf(stderr,"More than one result found for xpath expression\n");
+		return 0;
+
+	}
+	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[i]->xmlChildrenNode, 1);
+	xmlXPathFreeObject (result);
+	xmlFreeDoc(doc);
+	double valued;
+	int valuei;
+	long int valuel;
+	if (allowed & PARAMETER_DOUBLE) {
+		valued = strtod(keyword, NULL) + 1.0;
+	}
+	else {
+		g_fprintf(stderr, "only PARAMETER_DOUBLE is allowed for now\n");
+		return 0;
+	}
+	gtk_entry_set_text(GTK_ENTRY(startEntry), keyword);
+	gtk_entry_set_text(GTK_ENTRY(endEntry), valued);
+	xmlFree(keyword);
+	
+
+	hbox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Input files directory");
+	GtkWidget *inputdirEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(inputdirEntry), FALSE);
+	GtkWidget *inputsaveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), inputdirEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), inputsaveButton, FALSE, FALSE, 1);
+	gtk_entry_set_text(GTK_ENTRY(inputdirEntry), g_path_get_dirname(filename));
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
+
+	hbox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Input file prefix");
+	GtkWidget *inputprefixEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(inputprefixEntry), TRUE);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), inputprefixEntry, TRUE, TRUE, 1);
+	gchar *inputprefix = g_path_get_basename(filename);
+	strcpy(strrchr(inputprefix, '.'),"_");
+	gtk_entry_set_text(GTK_ENTRY(inputprefixEntry), inputprefix);
+	g_free(inputprefix);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
+
+	hbox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Output files directory");
+	GtkWidget *outputdirEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(outputdirEntry), FALSE);
+	GtkWidget *outputsaveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), outputdirEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), outputsaveButton, FALSE, FALSE, 1);
+	gtk_entry_set_text(GTK_ENTRY(outputdirEntry), g_path_get_dirname(input->general->outputfile));
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
+
+	hbox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Output file prefix");
+	GtkWidget *outputprefixEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(outputprefixEntry), TRUE);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), outputprefixEntry, TRUE, TRUE, 1);
+	gchar *outputprefix = g_path_get_basename(input->general->outputfile);
+	strcpy(strrchr(outputprefix, '.'),"_");
+	gtk_entry_set_text(GTK_ENTRY(outputprefixEntry), outputprefix);
+	g_free(outputprefix);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
+
+	wrd->wizard = wizard;
+	wrd->inputdirEntry = inputdirEntry;
+	wrd->inputprefixEntry = inputprefixEntry;
+	wrd->outputdirEntry = outputdirEntry;
+	wrd->outputprefixEntry = outputprefixEntry;
+	wrd->startEntry = startEntry;
+	wrd->endEntry = endEntry;
+	wrd->nfilesEntry = nfilesEntry;
+	wrd->allowed = allowed;
+
+	struct saveButton_clicked_data *scdi = g_malloc(sizeof(struct saveButton_clicked_data));
+	scdi->entry = inputdirEntry;
+	scdi->title = g_strdup("Select the directory where the input files will be stored");
+	scdi->wizard = wizard;
+	struct saveButton_clicked_data *scdo = g_malloc(sizeof(struct saveButton_clicked_data));
+	scdo->entry = outputdirEntry;
+	scdo->title = g_strdup("Select the directory where the output files will be stored");
+	scdo->wizard = wizard;
+	g_signal_connect(G_OBJECT(inputsaveButton), "clicked", G_CALLBACK(saveButton_clicked_cb), (gpointer) scdi);
+	g_signal_connect(G_OBJECT(outputsaveButton), "clicked", G_CALLBACK(saveButton_clicked_cb), (gpointer) scdo);
+
+	g_signal_connect(G_OBJECT(inputdirEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(inputprefixEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(outputdirEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(outputprefixEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(startEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(endEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(nfilesEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	//page with archive file and 
+	vbox = gtk_vbox_new(FALSE, 2);
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), vbox);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), vbox, GTK_ASSISTANT_PAGE_CONTENT);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), vbox, "Save as archive file and set the plot options");
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
+	GtkWidget *archive_modeW = gtk_check_button_new_with_label("Create archive file");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(archive_modeW), TRUE);
+	gtk_box_pack_start(GTK_BOX(vbox), archive_modeW, FALSE, FALSE, 1);
+	hbox = gtk_hbox_new(FALSE,2);
+	GtkWidget *labela = gtk_label_new("XMSA file");
+	gtk_box_pack_start(GTK_BOX(hbox), labela, FALSE, FALSE, 2);
+	GtkWidget *archiveEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(archiveEntry), FALSE);
+	gchar *xmsafile = g_strdup(input->general->outputfile);
+	xmsafile[strlen(xmsafile)-1] = 'a';
+	gtk_entry_set_text(GTK_ENTRY(archiveEntry), xmsafile);
+	g_free(xmsafile);
+	gtk_box_pack_start(GTK_BOX(hbox), archiveEntry, TRUE, TRUE, 2);
+	GtkWidget *archivesaveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	g_signal_connect(G_OBJECT(archivesaveButton), "clicked", G_CALLBACK(archivesaveButton_clicked_cb), (gpointer) archiveEntry);
+	gtk_box_pack_start(GTK_BOX(hbox), archivesaveButton, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 1);
+	GtkWidget *archive_plotW = gtk_check_button_new_with_label("Plot after simulations");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(archive_plotW), TRUE);
+	gtk_box_pack_start(GTK_BOX(vbox), archive_plotW, FALSE, FALSE, 1);
+	buffer = g_strdup_printf("<b>X-axis: %s</b>", xpath);
+	GtkWidget *labelx = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(labelx), buffer);
+	g_free(buffer);
+	gtk_box_pack_start(GTK_BOX(vbox), labelx, FALSE, FALSE, 2);
+	GtkWidget *labely = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(labely), "<b>Y-axis:</b>");
+	hbox = gtk_hbox_new(FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(hbox), labely, FALSE, FALSE, 2);
+
+	//get elements that are mentioned in the composition
+	int *uniqZ = NULL;
+	int nuniqZ = 1;
+	int found;
+	uniqZ = (int *) g_realloc(uniqZ, sizeof(int));
+	uniqZ[0] = input->composition->layers[0].Z[0];
+	for (i = 0 ; i < input->composition->n_layers ; i++) {
+		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			found = 0;
+			for (k = 0 ; k < nuniqZ ; k++) {
+				if (uniqZ[k] == input->composition->layers[i].Z[j]) {
+					found = 1;
+					break;
+				}
+			}
+			if (found == 0) {
+				//enlarge uniqZ
+				uniqZ = (int *) g_realloc(uniqZ, sizeof(int)*++nuniqZ);
+				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j]; 
+			}
+		}
+	}
+	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
+
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *elementW = gtk_combo_box_text_new();
+	for (i = 0 ; i < nuniqZ ; i++) 
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(elementW), AtomicNumberToSymbol(uniqZ[i]));
+#else
+	GtkWidget *elementW = gtk_combo_box_new_text();
+	for (i = 0 ; i < nuniqZ ; i++) 
+		gtk_combo_box_append_text(GTK_COMBO_BOX(elementW), AtomicNumberToSymbol(uniqZ[i]));
+#endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(elementW), nuniqZ/2);
+	g_free(uniqZ);
+	gtk_box_pack_start(GTK_BOX(hbox), elementW, FALSE, FALSE, 2);
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *lineW = gtk_combo_box_text_new();
+	for (i = 1 ; i <= 383 ; i++) 
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lineW), xmi_lines[i]);
+#else
+	GtkWidget *lineW = gtk_combo_box_new_text();
+	for (i = 1 ; i <= 383 ; i++) 
+		gtk_combo_box_append_text(GTK_COMBO_BOX(lineW), xmi_lines[i]);
+#endif
+	gtk_box_pack_start(GTK_BOX(hbox), lineW, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
+
+	struct wizard_plot_data *wpd = g_malloc(sizeof(struct wizard_plot_data))
+	wpd->elementW = elementW;
+	wpd->lineW = lineW;
+	wpd->labelx = labelx;
+	wpd->labely = labely;
+	wpd->labela = labela;
+	wpd->archive_plotW = archive_plotW;
+	wpd->archive_modeW = archive_modeW;
+	wpd->archiveEntry = archiveEntry;
+	wpd->archivesaveButton = archivesaveButton;
+
+	g_signal_connect(G_OBJECT(archive_modeW), "toggled", G_CALLBACK(wizard_archive_mode_changed_cb), (gpointer) wpd);
+	g_signal_connect(G_OBJECT(archive_plotW), "toggled", G_CALLBACK(wizard_archive_plot_changed_cb), (gpointer) wpd);
+
+	//add confirmation page
+	GtkWidget *confirmationLabel = gtk_label_new("Confirm the options selected on the previous pages and continue with the simulation?");
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), confirmationLabel);
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), confirmationLabel, TRUE);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), confirmationLabel, GTK_ASSISTANT_PAGE_CONFIRM);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), confirmationLabel, "Confirmation");
+	
+	struct wizard_archive_close_data *wacd = g_malloc(sizeof(struct wizard_archive_close_data));
+	wacd->wrd = wrd;
+	wacd->wpd = wpd;
+	wacd->aod = aod;
+	wacd->ow = ow;
+	wacd->xmo = xmo;
+	wacd->rv = &rv;
+
+	g_signal_connect(G_OBJECT(wizard), "cancel", G_CALLBACK(wizard_archive_cancel), (gpointer) wacd);
+	g_signal_connect(G_OBJECT(wizard), "close", G_CALLBACK(wizard_archive_close), (gpointer) wacd);
+	g_signal_connect(G_OBJECT(wizard), "delete-event", G_CALLBACK(wizard_archive_delete_event), (gpointer) wacd);
+	g_signal_connect(G_OBJECT(wizard), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	
+	gtk_widget_show_all(wizard);
+	gtk_main();
+	return rv;
+}
 
 
 static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidget *okButton) {
@@ -92,10 +664,10 @@ static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidg
 	}
 }
 
-static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **path) {
+static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath, int *allowed) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select the variable parameter", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
-	GtkWidget *scrolled_window = get_inputfile_treeview(input);
+	GtkWidget *scrolled_window = get_inputfile_treeview(input, 1);
 
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -121,10 +693,8 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 		GtkTreeIter iter;
 		GtkTreeModel *model;
 		gtk_tree_selection_get_selected(select, &model, &iter);
-
-		GtkTreePath *treepath = gtk_tree_model_get_path(model, &iter);
-		*path = gtk_tree_path_to_string(treepath);
-		gtk_tree_path_free(treepath);
+		//extract xpath expression
+		gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath, INPUT_ALLOWED_COLUMN, allowed, -1);
 	}
 	gtk_widget_destroy(dialog);
 
@@ -1102,12 +1672,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//one file selected
 		//options apply to all
 		g_fprintf(stdout, "no clicked\n");
-		options = malloc(sizeof(struct xmi_main_options));
-		int rv = general_options(window, options);
-		if (rv == 0) {
-			return;
-		}
-		gchar *path;
+		gchar *xpath;
 		struct xmi_input *input;
 		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input) == 0) {
 			//error reading inputfile
@@ -1117,10 +1682,25 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 
-		rv = select_parameter(window, input, &path);
+		int allowed;
+		rv = select_parameter(window, input, &xpath, &allowed);
 		g_fprintf(stdout,"select_parameter rv: %i\n", rv);
-		if (rv == 1)
-			g_fprintf(stdout, "path: %s\n", path);
+		if (rv == 1) {
+			g_fprintf(stdout, "xpath: %s\n", xpath);
+			g_fprintf(stdout, "allowed: %i\n", allowed);
+		}
+		else
+			return;
+		//generate wizard
+		//1) options
+		//2) range of parameter
+		//3) plot afterwards? Requires saving to XMSA file as well as selecting a particular line
+		options = g_malloc(sizeof(struct xmi_main_options));
+		aod = g_malloc(sizeof(struct archive_options_data));
+		int rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath, allowed, aod);
+		if (rv == 0) {
+			return;
+		}
 	}
 
 
@@ -1262,9 +1842,9 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	return rv;
 }
 
-GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
+GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	//assume that the input has been validated
-	GtkTreeStore *model = gtk_tree_store_new(INPUT_N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);	
+	GtkTreeStore *model = gtk_tree_store_new(INPUT_N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_INT);	
 	GtkWidget *treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
@@ -1272,25 +1852,27 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, "cell-background-set", INPUT_SELECTABLE_COLUMN, NULL);
+	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, NULL);
+	if (with_colors) {
+		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
+		g_object_set(renderer, "cell-background", "Chartreuse", NULL);
+	}
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-	g_object_set(renderer,
-               "cell-background", "Chartreuse",
-               NULL);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, "cell-background-set", INPUT_SELECTABLE_COLUMN, NULL);
+	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, NULL);
+	if (with_colors) {
+		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
+		g_object_set(renderer, "cell-background", "Chartreuse", NULL);
+	}
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-	g_object_set(renderer,
-               "cell-background", "Chartreuse",
-               NULL);
 
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), treeview);
 
-	GtkTreeIter iter1, iter2, iter3;
+	GtkTreeIter iter1, iter2, iter3, iter4;
 
 
 	//general
@@ -1298,6 +1880,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter1, 
 		INPUT_PARAMETER_COLUMN, "general",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general",
 		-1
 	);
 	gtk_tree_store_append(model, &iter2, &iter1);
@@ -1305,15 +1888,18 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "outputfile",
 		INPUT_VALUE_COLUMN, input->general->outputfile,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general/outputfile",
 		-1
 	);
-	gchar *buffer;
+	gchar *buffer, *buffer2;
 	gtk_tree_store_append(model, &iter2, &iter1);
 	buffer = g_strdup_printf("%li", input->general->n_photons_interval);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_photons_interval",
 		INPUT_VALUE_COLUMN, buffer,
-		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general/n_photons_interval",
+		INPUT_ALLOWED_COLUMN, PARAMETER_LONG | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1323,7 +1909,9 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_photons_line",
 		INPUT_VALUE_COLUMN, buffer,
-		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general/n_photons_line",
+		INPUT_ALLOWED_COLUMN, PARAMETER_LONG | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1334,6 +1922,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_interactions_trajectory",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general/n_interactions_trajectory",
+		INPUT_ALLOWED_COLUMN, PARAMETER_INT | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1343,6 +1933,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "comments",
 		INPUT_VALUE_COLUMN, input->general->comments,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/general/n_interactions_comments",
 		-1
 	);
 
@@ -1351,71 +1942,106 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter1, 
 		INPUT_PARAMETER_COLUMN, "composition",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/composition",
 		-1
 	);
 
 	for (i = 0 ; i < input->composition->n_layers ; i++) {
 		buffer = g_strdup_printf("Layer %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]", i+1);
 		gtk_tree_store_append(model, &iter2, &iter1);
 		gtk_tree_store_set(model, &iter2,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
-		buffer = malloc(sizeof(gchar)* (input->composition->layers[i].n_elements*5));
-		buffer[0] = '\0';
 		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
-			strcat(buffer ,AtomicNumberToSymbol(input->composition->layers[i].Z[j]));
-			if (j != input->composition->layers[i].n_elements-1) {
-				strcat(buffer ,", ");
-			}
+			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]", i+1, j+1);
+			gtk_tree_store_append(model, &iter3, &iter2);
+			gtk_tree_store_set(model, &iter3,
+				INPUT_PARAMETER_COLUMN, "element",
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer2);
+			buffer = AtomicNumberToSymbol(input->composition->layers[i].Z[j]);
+			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]/atomic_number", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "atomic_number",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			xrlFree(buffer);
+			g_free(buffer2);
+			buffer = g_strdup_printf("%lg", input->composition->layers[i].weight[j]*100.0);
+			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "weight_fraction",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer);
+			g_free(buffer2);
 		}
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
-			INPUT_PARAMETER_COLUMN, "elements",
-			INPUT_VALUE_COLUMN, buffer,
-			INPUT_SELECTABLE_COLUMN, FALSE,
-			-1
-		);
-		g_free(buffer);
 
 		buffer = g_strdup_printf("%lg", input->composition->layers[i].density);
+		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
 		buffer = g_strdup_printf("%lg", input->composition->layers[i].thickness);
+		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 	}
 	buffer = g_strdup_printf("%i", input->composition->reference_layer);
+	buffer2 = g_strdup_printf("/xmimsim/composition/reference_layer");
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "reference_layer",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, buffer2,
 		-1
 	);
 	g_free(buffer);
+	g_free(buffer2);
 
 	//geometry
 	gtk_tree_store_append(model, &iter1, NULL);
 	gtk_tree_store_set(model, &iter1,
 		INPUT_PARAMETER_COLUMN, "geometry",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry",
 		-1
 	);
 
@@ -1425,6 +2051,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "d_sample_source",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/d_sample_source",
 		-1
 	);
 	g_free(buffer);
@@ -1435,6 +2062,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_x",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/x",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1444,6 +2073,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_y",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/y",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1453,6 +2084,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_z",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/z",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1463,6 +2096,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "p_detector_window_x",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/x",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1472,6 +2107,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "p_detector_window_y",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/y",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1481,6 +2118,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "p_detector_window_z",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/z",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1491,6 +2130,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_x",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/x",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1500,6 +2141,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_y",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/y",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1509,6 +2152,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_z",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/z",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1518,6 +2163,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "area_detector",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/area_detector",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1527,6 +2174,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "collimator_height",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/collimator_height",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1536,6 +2185,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "collimator_diameter",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/collimator_diameter",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1545,6 +2196,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "d_source_slit",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/d_source_slit",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1554,6 +2207,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "slit_size_x",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size_x",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1563,6 +2218,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "slit_size_y",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size_y",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1572,86 +2229,117 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter1,
 		INPUT_PARAMETER_COLUMN, "excitation",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/excitation",
 		-1
 	);
 	for (i = 0 ; i < input->excitation->n_discrete ; i++) {
 		gtk_tree_store_append(model, &iter2, &iter1);
 		buffer = g_strdup_printf("discrete %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]", i+1);
 		gtk_tree_store_set(model, &iter2,
-			INPUT_PARAMETER_COLUMN, "discrete",
+			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].energy);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/energy", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "energy",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, input->excitation->n_discrete == 1 ? TRUE : FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].horizontal_intensity);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/horizontal_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].vertical_intensity);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/vertical_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "vertical_intensity",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_x);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_x", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_x",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_y);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_y", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_y",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_xp);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_xp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_xp",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_yp);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_yp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_yp",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/distribution_type", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "distribution_type",
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
+		g_free(buffer2);
 		switch (input->excitation->discrete[i].distribution_type) {
 			case XMI_DISCRETE_MONOCHROMATIC:
 				gtk_tree_store_set(model, &iter3,
@@ -1665,13 +2353,17 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 					-1);
 				gtk_tree_store_append(model, &iter3, &iter2);
 				buffer = g_strdup_printf("%g", input->excitation->discrete[i].scale_parameter);
+				buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/scale_parameter", i+1);
 				gtk_tree_store_set(model, &iter3,
 					INPUT_PARAMETER_COLUMN, "standard_deviation",
 					INPUT_SELECTABLE_COLUMN, TRUE,
 					INPUT_VALUE_COLUMN, buffer,
+					INPUT_XPATH_COLUMN, buffer2,
+					INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 					-1
 				);
 				g_free(buffer);
+				g_free(buffer2);
 				break;
 			case XMI_DISCRETE_LORENTZIAN:
 				gtk_tree_store_set(model, &iter3,
@@ -1680,88 +2372,118 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 				);
 				gtk_tree_store_append(model, &iter3, &iter2);
 				buffer = g_strdup_printf("%g", input->excitation->discrete[i].scale_parameter);
+				buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/scale_parameter", i+1);
 				gtk_tree_store_set(model, &iter3,
 					INPUT_PARAMETER_COLUMN, "scale_parameter",
 					INPUT_SELECTABLE_COLUMN, TRUE,
 					INPUT_VALUE_COLUMN, buffer,
+					INPUT_XPATH_COLUMN, buffer2,
+					INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 					-1
 				);
 				g_free(buffer);
+				g_free(buffer2);
 				break;
 		}
 	}
 	for (i = 0 ; i < input->excitation->n_continuous ; i++) {
 		gtk_tree_store_append(model, &iter2, &iter1);
 		buffer = g_strdup_printf("continuous %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]", i+1);
 		gtk_tree_store_set(model, &iter2,
 			INPUT_PARAMETER_COLUMN, "continuous",
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].energy);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/energy", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "energy",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].horizontal_intensity);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/horizontal_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].vertical_intensity);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/vertical_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "vertical_intensity",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_x);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_x", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_x",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_y);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_y", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_y",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_xp);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_xp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_xp",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_yp);
+		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_yp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_yp",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 	}
 
 	//absorbers
@@ -1769,101 +2491,162 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter1,
 		INPUT_PARAMETER_COLUMN, "absorbers",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/absorbers",
 		-1
 	);
 	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
 		buffer = g_strdup_printf("Excitation Layer %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]", i+1);
 		gtk_tree_store_append(model, &iter2, &iter1);
 		gtk_tree_store_set(model, &iter2,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
-		buffer = malloc(sizeof(gchar)* (input->absorbers->exc_layers[i].n_elements*5));
-		buffer[0] = '\0';
 		for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
-			strcat(buffer,AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j]));
-			if (j != input->absorbers->exc_layers[i].n_elements-1) {
-				strcat(buffer ,", ");
-			}
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]", i+1, j+1);
+			gtk_tree_store_append(model, &iter3, &iter2);
+			gtk_tree_store_set(model, &iter3,
+				INPUT_PARAMETER_COLUMN, "element",
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer2);
+			buffer = AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j]);
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "atomic_number",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			xrlFree(buffer);
+			g_free(buffer2);
+			buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].weight[j]*100.0);
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "weight_fraction",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer);
+			g_free(buffer2);
 		}
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
-			INPUT_PARAMETER_COLUMN, "elements",
-			INPUT_VALUE_COLUMN, buffer,
-			INPUT_SELECTABLE_COLUMN, FALSE,
-			-1
-		);
-		g_free(buffer);
 
 		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].density);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
 		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].thickness);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 	}
 	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
 		buffer = g_strdup_printf("Detector Layer %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]", i+1);
 		gtk_tree_store_append(model, &iter2, &iter1);
 		gtk_tree_store_set(model, &iter2,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
-		buffer = malloc(sizeof(gchar)* (input->absorbers->det_layers[i].n_elements*5));
-		buffer[0] = '\0';
 		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
-			strcat(buffer,AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j]));
-			if (j != input->absorbers->det_layers[i].n_elements-1) {
-				strcat(buffer ,", ");
-			}
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]", i+1, j+1);
+			gtk_tree_store_append(model, &iter3, &iter2);
+			gtk_tree_store_set(model, &iter3,
+				INPUT_PARAMETER_COLUMN, "element",
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer2);
+			buffer = AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j]);
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "atomic_number",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			xrlFree(buffer);
+			g_free(buffer2);
+			buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].weight[j]*100.0);
+			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "weight_fraction",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer);
+			g_free(buffer2);
 		}
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
-			INPUT_PARAMETER_COLUMN, "elements",
-			INPUT_VALUE_COLUMN, buffer,
-			INPUT_SELECTABLE_COLUMN, FALSE,
-			-1
-		);
-		g_free(buffer);
 
 		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].density);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
 		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].thickness);
+		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 	}
 
 	//detector
@@ -1871,12 +2654,14 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 	gtk_tree_store_set(model, &iter1,
 		INPUT_PARAMETER_COLUMN, "detector",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector",
 		-1
 	);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "detector_type",
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/detector_type",
 		-1
 	);
 	switch (input->detector->detector_type) {
@@ -1905,6 +2690,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "live_time",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/live_time",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1914,6 +2701,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "pulse_width",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/pulse_width",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1923,6 +2712,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "gain",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/gain",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1932,6 +2723,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "zero",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/zero",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1941,6 +2734,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "fano",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/fano",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1950,6 +2745,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "noise",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/noise",
+		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1959,55 +2756,86 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input) {
 		INPUT_PARAMETER_COLUMN, "max_convolution_energy",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/max_convolution_energy",
 		-1
 	);
 	g_free(buffer);
 	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
-		buffer = g_strdup_printf("Layer %i", i+1);
+		buffer = g_strdup_printf("Crystal Layer %i", i+1);
+		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]", i+1);
 		gtk_tree_store_append(model, &iter2, &iter1);
 		gtk_tree_store_set(model, &iter2,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
+			INPUT_XPATH_COLUMN, buffer2,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
-		buffer = malloc(sizeof(gchar)* (input->detector->crystal_layers[i].n_elements*5));
-		buffer[0] = '\0';
 		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
-			strcat(buffer,AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j]));
-			if (j != input->detector->crystal_layers[i].n_elements-1) {
-				strcat(buffer ,", ");
-			}
+			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]", i+1, j+1);
+			gtk_tree_store_append(model, &iter3, &iter2);
+			gtk_tree_store_set(model, &iter3,
+				INPUT_PARAMETER_COLUMN, "element",
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer2);
+			buffer = AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j]);
+			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/atomic_number", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "atomic_number",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			xrlFree(buffer);
+			g_free(buffer2);
+			buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].weight[j]*100.0);
+			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, "weight_fraction",
+				INPUT_VALUE_COLUMN, buffer,
+				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_XPATH_COLUMN, buffer2,
+				-1
+			);
+			g_free(buffer);
+			g_free(buffer2);
 		}
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
-			INPUT_PARAMETER_COLUMN, "elements",
-			INPUT_VALUE_COLUMN, buffer,
-			INPUT_SELECTABLE_COLUMN, FALSE,
-			-1
-		);
-		g_free(buffer);
 
 		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].density);
+		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 
 		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].thickness);
+		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
+			INPUT_XPATH_COLUMN, buffer2,
+			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
+		g_free(buffer2);
 	}
 	return scrolled_window;
 }
