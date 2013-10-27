@@ -703,7 +703,7 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 
 static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
-	gchar *text;
+	gchar *text = NULL;
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
 	
@@ -727,7 +727,7 @@ static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRen
 static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
 	gdouble scale_parameter;
-	gchar *text;
+	gchar *text = NULL;
 
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
@@ -2241,7 +2241,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %i lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %zu lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
 				return -3;
 		};
 

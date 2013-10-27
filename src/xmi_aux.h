@@ -112,4 +112,6 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b);
 
 gchar *xmi_version_string();
 
+int xmi_omp_get_max_threads();
+
 #endif

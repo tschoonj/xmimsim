@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <omp.h>
 #ifdef G_OS_UNIX
   #include <sys/types.h>
   #include <sys/wait.h>
@@ -1214,10 +1213,10 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	hbox_controls = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 5);
 
-	if (omp_get_max_threads() > 1) {
+	if (xmi_omp_get_max_threads() > 1) {
 		cpuBox = gtk_vbox_new(FALSE,1);
 		cpuLabel = gtk_label_new("CPUs");
-		nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
+		nthreadsA = gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0);
 		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));	
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
 		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);

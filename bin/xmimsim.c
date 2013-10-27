@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include <mpi.h>
 #endif
 
-//#include <omp.h>
 
 #include "xmi_main.h"
 #include "xmi_data_structs.h"
@@ -37,7 +36,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale.h>
 #include <xraylib.h>
 #include <stdlib.h>
-#include <omp.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -198,7 +196,7 @@ XMI_MAIN
 	options.use_poisson = 0;
 	options.verbose = 0;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.nchannels = 2048;
 
 
@@ -223,9 +221,9 @@ XMI_MAIN
 	}
 
 	
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
 	if (options.extra_verbose) {

@@ -19,6 +19,7 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
 USE :: fgsl
+USE :: omp_lib
 
 IMPLICIT NONE
 
@@ -1808,6 +1809,7 @@ FUNCTION xmi_ran_trap_workspace_init(x1, x2, y1, y2, workspace)&
 ENDFUNCTION xmi_ran_trap_workspace_init
 
 FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
+        IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_ran_trap_workspace) :: workspace
         REAL (C_DOUBLE) :: rv
@@ -1841,5 +1843,13 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
 
         RETURN
 ENDFUNCTION xmi_ran_trap
+
+FUNCTION xmi_omp_get_max_threads() RESULT(rv)&
+BIND(C,NAME='xmi_omp_get_max_threads')
+        IMPLICIT NONE
+        INTEGER (C_INT) :: rv
+
+        rv = INT(omp_get_max_threads(), KIND=C_INT)
+ENDFUNCTION xmi_omp_get_max_threads
 
 ENDMODULE 

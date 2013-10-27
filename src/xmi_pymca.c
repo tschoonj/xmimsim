@@ -1608,7 +1608,7 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	int maxloc;
 	double maxval;
 	double max_net_intensity;
-	double reference_weight;
+	double reference_weight = 0.0;
 
 	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));

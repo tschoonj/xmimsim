@@ -345,6 +345,7 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 void new_cb(GtkWidget *widget, gpointer data);
+gboolean process_pre_file_operation (GtkWidget *window);
 
 #ifdef G_OS_UNIX
 void signal_handler(int sig) {
@@ -1509,6 +1510,7 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 	fprintf(stdout,"depth: %i\n",depth);
 	fprintf(stdout,"indices: %i\n",indices[0]);
 #endif
+	composition = NULL;
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
 	else if (mb->matrixKind == EXC_COMPOSITION)
@@ -3526,8 +3528,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
-			 n = last->xi->excitation->n_continuous;
-			j;
+			n = last->xi->excitation->n_continuous;
 			if (n != delete_current_nindices) {
 				for (i = n-1 ; i >= 0 ; i--) {
 					if (i == delete_current_indices[delete_current_nindices-1]) {
@@ -4040,6 +4041,7 @@ XMI_MAIN
 	GtkRecentFilter *filter = gtk_recent_filter_new();
 	//gtk_recent_filter_add_pattern(filter, "*.xmsi");
 	//gtk_recent_filter_add_pattern(filter, "*.xmso");
+	gtk_recent_filter_add_pattern(filter, "*.xmsa");
 	gtk_recent_filter_add_application(filter, g_get_application_name());
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
 #if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)

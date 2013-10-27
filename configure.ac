@@ -308,17 +308,7 @@ AC_FC_SRCEXT(f90)
 #search for openmp
 AC_LANG_PUSH(Fortran)
 AC_OPENMP
-#AX_OPENMP([
-#	AC_DEFINE(HAVE_OPENMP,1,[OpenMP support detected])
-#],)
 AC_LANG_POP(Fortran)
-#AC_SUBST(HAVE_OPENMP)
-#OPENMP_FFLAGS=$ax_cv_fc_openmp
-#AC_SUBST(OPENMP_FFLAGS)
-
-AC_LANG_PUSH(C)
-AC_OPENMP
-AC_LANG_POP(C)
 
 XLINKER=""
 #when we have Intel Fortran on Mac OS X, add the openmp static link option

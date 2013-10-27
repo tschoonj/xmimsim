@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/xpathInternals.h>
 #include <libxml/catalog.h>
 #include "xmi_lines.h"
+#include "xmi_aux.h"
+#include "xmi_xml.h"
 
 struct options_widget {
 	GtkWidget *Mlines_prefsW;
@@ -79,11 +81,13 @@ struct archive_options_data {
 	int nfiles;
 	gchar *xmso_output_dir;
 	gchar *xmso_prefix;
+	gchar *xmsi_input_dir;
+	gchar *xmsi_prefix;
+	gchar *xmsa_file;
 	gboolean with_xmsa;
-	gchar *xmsa_output_file;
-	int n_lines;
-	int *elements;
-	int *lines;
+	gboolean with_plot;
+	gboolean keep_xmsi;
+	gboolean keep_xmso;
 };
 
 struct saveButton_clicked_data {
@@ -96,6 +100,7 @@ struct saveButton_clicked_data {
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
+static struct options_widget *create_options_frame(GtkWidget *main_window);
 
 
 struct wizard_range_data {
@@ -111,15 +116,13 @@ struct wizard_range_data {
 };
 
 struct wizard_plot_data {
-	GtkWidget *elementW;
-	GtkWidget *lineW;
-	GtkWidget *labelx;
-	GtkWidget *labely;
 	GtkWidget *archive_plotW;
 	GtkWidget *archive_modeW;
 	GtkWidget *labela;
 	GtkWidget *archiveEntry;
 	GtkWidget *archivesaveButton;
+	GtkWidget *keep_xmsiW;
+	GtkWidget *keep_xmsoW;
 };
 
 struct wizard_archive_close_data {
@@ -140,45 +143,100 @@ static void wizard_archive_cancel(GtkAssistant *wizard, struct wizard_archive_cl
 static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_close_data *wacd) {
 
 	//first read the general options
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->Mlines_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->Mlines_prefsW)))
 		wacd->xmo->use_M_lines = 1;
 	else
 		wacd->xmo->use_M_lines = 0;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->rad_cascade_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->rad_cascade_prefsW)))
 		wacd->xmo->use_cascade_radiative = 1;
 	else
 		wacd->xmo->use_cascade_radiative = 0;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->nonrad_cascade_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->nonrad_cascade_prefsW)))
 		wacd->xmo->use_cascade_auger = 1;
 	else
 		wacd->xmo->use_cascade_auger = 0;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->variance_reduction_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->variance_reduction_prefsW)))
 		wacd->xmo->use_variance_reduction = 1;
 	else
 		wacd->xmo->use_variance_reduction = 0;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->pile_up_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->pile_up_prefsW)))
 		wacd->xmo->use_sum_peaks = 1;
 	else
 		wacd->xmo->use_sum_peaks = 0;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ows->poisson_prefsW)))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->poisson_prefsW)))
 		wacd->xmo->use_poisson = 1;
 	else
 		wacd->xmo->use_poisson = 0;
 
-	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ows->nchannels_prefsW));
+	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ow->nchannels_prefsW));
 
 	//range parameters
-	CONTINUE HERE
-	
+	gchar *buffer = (gchar *) gtk_entry_get_text(GTK_ENTRY(wacd->wrd->inputdirEntry));
+	wacd->aod->xmsi_input_dir = g_strdup(buffer);
+	buffer = (gchar *) gtk_entry_get_text(GTK_ENTRY(wacd->wrd->outputdirEntry));
+	wacd->aod->xmso_output_dir = g_strdup(buffer);
+	buffer = (gchar *) gtk_entry_get_text(GTK_ENTRY(wacd->wrd->inputprefixEntry));
+	wacd->aod->xmsi_prefix = g_strdup(buffer);
+	buffer = (gchar *) gtk_entry_get_text(GTK_ENTRY(wacd->wrd->outputprefixEntry));
+	wacd->aod->xmso_prefix = g_strdup(buffer);
+	wacd->aod->start_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->startEntry)), NULL);
+	wacd->aod->end_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->endEntry)), NULL);
+	wacd->aod->nfiles = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nfilesEntry)), NULL, 10);
+
+	//plot parameters
+	//wacd->wpd	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->wpd->archive_modeW))) {
+		wacd->aod->with_xmsa = TRUE;
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->wpd->archive_plotW))) {
+			wacd->aod->with_plot = TRUE;
+		}
+		else {
+			wacd->aod->with_plot = FALSE;
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->wpd->keep_xmsiW))) {
+			wacd->aod->keep_xmsi = TRUE;
+		}
+		else {
+			wacd->aod->keep_xmsi = FALSE;
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->wpd->keep_xmsoW))) {
+			wacd->aod->keep_xmso = TRUE;
+		}
+		else {
+			wacd->aod->keep_xmso = FALSE;
+		}
+	}
+	else {
+		wacd->aod->with_xmsa = FALSE;
+		wacd->aod->with_plot = FALSE;
+		wacd->aod->keep_xmsi = TRUE;
+		wacd->aod->keep_xmso = TRUE;
+	}
+
+	*(wacd->rv) = 1;
+	gtk_widget_destroy(GTK_WIDGET(wizard));
+	return;
+}
+
+static gboolean wizard_archive_delete_event(GtkWidget *wizard, GdkEvent *event, struct wizard_archive_close_data *wacd) {
+	*(wacd->rv) = 0;
+	return FALSE;
 }
 
 static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiveEntry) {
-	GtkWidget *dialog  = gtk_file_chooser_dialog_new("", GTK_WINDOW(gtk_widget_get_toplevel(saveButton)), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	GtkWidget *dialog  = gtk_file_chooser_dialog_new("Select the filename of the XMSO file", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(saveButton))), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.xmsa");
+	gtk_file_filter_set_name(filter,"XMI-MSIM archive files");
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gchar *filename;
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -192,6 +250,9 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 
 static void saveButton_clicked_cb(GtkButton *saveButton, struct saveButton_clicked_data *scd) {
 	GtkWidget *dialog  = gtk_file_chooser_dialog_new(scd->title, GTK_WINDOW(scd->wizard), GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gchar *filename;
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -202,44 +263,23 @@ static void saveButton_clicked_cb(GtkButton *saveButton, struct saveButton_click
 	return;
 }
 
-static void wizard_archive_mode_changed_cb(GtkToggleButton *button, struct wizard_plot_data *wpd) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
-		gtk_widget_set_sensitive(wpd->labelx, TRUE);
-		gtk_widget_set_sensitive(wpd->labely, TRUE);
-		gtk_widget_set_sensitive(wpd->lineW, TRUE);
-		gtk_widget_set_sensitive(wpd->elementW, TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(wpd->labelx, FALSE);
-		gtk_widget_set_sensitive(wpd->labely, FALSE);
-		gtk_widget_set_sensitive(wpd->lineW, FALSE);
-		gtk_widget_set_sensitive(wpd->elementW, FALSE);
-	}
-	return;
-}
 
 static void wizard_archive_mode_changed_cb(GtkToggleButton *button, struct wizard_plot_data *wpd) {
 	if (gtk_toggle_button_get_active(button)) {
 		gtk_widget_set_sensitive(wpd->labela, TRUE);
 		gtk_widget_set_sensitive(wpd->archiveEntry, TRUE);
 		gtk_widget_set_sensitive(wpd->archivesaveButton, TRUE);
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wpd->archive_plotW))) {
-			gtk_widget_set_sensitive(wpd->archive_plotW, TRUE);
-			gtk_widget_set_sensitive(wpd->labelx, TRUE);
-			gtk_widget_set_sensitive(wpd->labely, TRUE);
-			gtk_widget_set_sensitive(wpd->lineW, TRUE);
-			gtk_widget_set_sensitive(wpd->elementW, TRUE);
-		}
+		gtk_widget_set_sensitive(wpd->archive_plotW, TRUE);
+		gtk_widget_set_sensitive(wpd->keep_xmsiW, TRUE);
+		gtk_widget_set_sensitive(wpd->keep_xmsoW, TRUE);
 	}
 	else {
 		gtk_widget_set_sensitive(wpd->labela, FALSE);
 		gtk_widget_set_sensitive(wpd->archiveEntry, FALSE);
 		gtk_widget_set_sensitive(wpd->archivesaveButton, FALSE);
 		gtk_widget_set_sensitive(wpd->archive_plotW, FALSE);
-		gtk_widget_set_sensitive(wpd->labelx, FALSE);
-		gtk_widget_set_sensitive(wpd->labely, FALSE);
-		gtk_widget_set_sensitive(wpd->lineW, FALSE);
-		gtk_widget_set_sensitive(wpd->elementW, FALSE);
+		gtk_widget_set_sensitive(wpd->keep_xmsiW, FALSE);
+		gtk_widget_set_sensitive(wpd->keep_xmsoW, FALSE);
 	}
 	return;
 }
@@ -299,7 +339,7 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
 			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0)
 			) {
-			gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
+			gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 			return;
 		}
@@ -342,7 +382,7 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 	return;
 }
 
-static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath, int allowed, , struct archive_options_data *aod) {
+static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath, int allowed, struct archive_options_data *aod) {
 	int rv = 0;
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
@@ -353,6 +393,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_window_set_title(GTK_WINDOW(wizard), "Simulation options");
 	//add intro page
 	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter will take on. Optionally, you can choose to save the different generated XMSO files into one XMSA file that will be used to produce a graph showing the variation of the intensity of a particular XRF line with respect to the variable parameter.");	
+	gtk_label_set_line_wrap(GTK_LABEL(introLabel), TRUE);
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), introLabel);
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), introLabel, TRUE);
 	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), introLabel, GTK_ASSISTANT_PAGE_INTRO);
@@ -379,19 +420,20 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_label_set_markup(GTK_LABEL(label), buffer);
 	g_free(buffer);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
 
 	hbox = gtk_hbox_new(FALSE, 2);
-	label = gtk_label_new("Start")
+	label = gtk_label_new("Start");
 	GtkWidget *startEntry = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(startEntry), TRUE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), startEntry, TRUE, TRUE, 1);
-	label = gtk_label_new("End")
+	label = gtk_label_new("End");
 	GtkWidget *endEntry = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(endEntry), TRUE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), endEntry, TRUE, TRUE, 1);
-	label = gtk_label_new("#Steps")
+	label = gtk_label_new("#Steps");
 	GtkWidget *nfilesEntry = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(nfilesEntry), TRUE);
 	gtk_entry_set_text(GTK_ENTRY(nfilesEntry), "10");
@@ -412,7 +454,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		g_fprintf(stderr, "Error in xmlXPathNewContext\n");
 		return 0;
 	}
-	result = xmlXPathEvalExpression(xpath, context);
+	result = xmlXPathEvalExpression(BAD_CAST xpath, context);
 	xmlXPathFreeContext(context);
 	if (result == NULL) {
 		g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
@@ -429,21 +471,26 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		return 0;
 
 	}
-	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[i]->xmlChildrenNode, 1);
+	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
 	xmlXPathFreeObject (result);
 	xmlFreeDoc(doc);
 	double valued;
 	int valuei;
 	long int valuel;
 	if (allowed & PARAMETER_DOUBLE) {
-		valued = strtod(keyword, NULL) + 1.0;
+		//valued = strtod(keyword, NULL) + 1.0;
+		valued = strtod(keyword, NULL);
+		buffer = g_strdup_printf("%lg", valued);
+		gtk_entry_set_text(GTK_ENTRY(startEntry), buffer);
+		g_free(buffer);
+		buffer = g_strdup_printf("%lg", valued+1.0);
+		gtk_entry_set_text(GTK_ENTRY(endEntry), buffer);
+		g_free(buffer);
 	}
 	else {
 		g_fprintf(stderr, "only PARAMETER_DOUBLE is allowed for now\n");
 		return 0;
 	}
-	gtk_entry_set_text(GTK_ENTRY(startEntry), keyword);
-	gtk_entry_set_text(GTK_ENTRY(endEntry), valued);
 	xmlFree(keyword);
 	
 
@@ -529,7 +576,8 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
 	GtkWidget *archive_modeW = gtk_check_button_new_with_label("Create archive file");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(archive_modeW), TRUE);
-	gtk_box_pack_start(GTK_BOX(vbox), archive_modeW, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(vbox), archive_modeW, TRUE, FALSE, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
 	hbox = gtk_hbox_new(FALSE,2);
 	GtkWidget *labela = gtk_label_new("XMSA file");
 	gtk_box_pack_start(GTK_BOX(hbox), labela, FALSE, FALSE, 2);
@@ -544,80 +592,27 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	g_signal_connect(G_OBJECT(archivesaveButton), "clicked", G_CALLBACK(archivesaveButton_clicked_cb), (gpointer) archiveEntry);
 	gtk_box_pack_start(GTK_BOX(hbox), archivesaveButton, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 1);
+	GtkWidget *keep_xmsiW = gtk_check_button_new_with_label("Keep input files after batch simulation");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(keep_xmsiW), FALSE);
+	gtk_box_pack_start(GTK_BOX(vbox), keep_xmsiW, TRUE, FALSE, 1);
+	GtkWidget *keep_xmsoW = gtk_check_button_new_with_label("Keep output files after batch simulation");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(keep_xmsoW), FALSE);
+	gtk_box_pack_start(GTK_BOX(vbox), keep_xmsoW, TRUE, FALSE, 1);
 	GtkWidget *archive_plotW = gtk_check_button_new_with_label("Plot after simulations");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(archive_plotW), TRUE);
-	gtk_box_pack_start(GTK_BOX(vbox), archive_plotW, FALSE, FALSE, 1);
-	buffer = g_strdup_printf("<b>X-axis: %s</b>", xpath);
-	GtkWidget *labelx = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(labelx), buffer);
-	g_free(buffer);
-	gtk_box_pack_start(GTK_BOX(vbox), labelx, FALSE, FALSE, 2);
-	GtkWidget *labely = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(labely), "<b>Y-axis:</b>");
-	hbox = gtk_hbox_new(FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(hbox), labely, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), archive_plotW, TRUE, FALSE, 1);
 
-	//get elements that are mentioned in the composition
-	int *uniqZ = NULL;
-	int nuniqZ = 1;
-	int found;
-	uniqZ = (int *) g_realloc(uniqZ, sizeof(int));
-	uniqZ[0] = input->composition->layers[0].Z[0];
-	for (i = 0 ; i < input->composition->n_layers ; i++) {
-		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
-			found = 0;
-			for (k = 0 ; k < nuniqZ ; k++) {
-				if (uniqZ[k] == input->composition->layers[i].Z[j]) {
-					found = 1;
-					break;
-				}
-			}
-			if (found == 0) {
-				//enlarge uniqZ
-				uniqZ = (int *) g_realloc(uniqZ, sizeof(int)*++nuniqZ);
-				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j]; 
-			}
-		}
-	}
-	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
 
-#if GTK_CHECK_VERSION(2,24,0)
-	GtkWidget *elementW = gtk_combo_box_text_new();
-	for (i = 0 ; i < nuniqZ ; i++) 
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(elementW), AtomicNumberToSymbol(uniqZ[i]));
-#else
-	GtkWidget *elementW = gtk_combo_box_new_text();
-	for (i = 0 ; i < nuniqZ ; i++) 
-		gtk_combo_box_append_text(GTK_COMBO_BOX(elementW), AtomicNumberToSymbol(uniqZ[i]));
-#endif
-	gtk_combo_box_set_active(GTK_COMBO_BOX(elementW), nuniqZ/2);
-	g_free(uniqZ);
-	gtk_box_pack_start(GTK_BOX(hbox), elementW, FALSE, FALSE, 2);
-#if GTK_CHECK_VERSION(2,24,0)
-	GtkWidget *lineW = gtk_combo_box_text_new();
-	for (i = 1 ; i <= 383 ; i++) 
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lineW), xmi_lines[i]);
-#else
-	GtkWidget *lineW = gtk_combo_box_new_text();
-	for (i = 1 ; i <= 383 ; i++) 
-		gtk_combo_box_append_text(GTK_COMBO_BOX(lineW), xmi_lines[i]);
-#endif
-	gtk_box_pack_start(GTK_BOX(hbox), lineW, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
-
-	struct wizard_plot_data *wpd = g_malloc(sizeof(struct wizard_plot_data))
-	wpd->elementW = elementW;
-	wpd->lineW = lineW;
-	wpd->labelx = labelx;
-	wpd->labely = labely;
+	struct wizard_plot_data *wpd = g_malloc(sizeof(struct wizard_plot_data));
 	wpd->labela = labela;
 	wpd->archive_plotW = archive_plotW;
 	wpd->archive_modeW = archive_modeW;
 	wpd->archiveEntry = archiveEntry;
 	wpd->archivesaveButton = archivesaveButton;
+	wpd->keep_xmsiW = keep_xmsiW;
+	wpd->keep_xmsoW = keep_xmsoW;
 
 	g_signal_connect(G_OBJECT(archive_modeW), "toggled", G_CALLBACK(wizard_archive_mode_changed_cb), (gpointer) wpd);
-	g_signal_connect(G_OBJECT(archive_plotW), "toggled", G_CALLBACK(wizard_archive_plot_changed_cb), (gpointer) wpd);
 
 	//add confirmation page
 	GtkWidget *confirmationLabel = gtk_label_new("Confirm the options selected on the previous pages and continue with the simulation?");
@@ -848,7 +843,6 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
 		}
-		gtk_widget_set_sensitive(playButton,TRUE);
 		return;	
 	}
 	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -861,7 +855,6 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
 		}
-		gtk_widget_set_sensitive(playButton,TRUE);
 		return;	
 	}
 	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -920,12 +913,10 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 	bwd->paused=FALSE;
 
-	if (i == 0) {
 #ifdef G_OS_UNIX
-		gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
+	gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
 #endif
-		gtk_widget_set_sensitive(bwd->stopButton,TRUE);
-	}
+	gtk_widget_set_sensitive(bwd->stopButton,TRUE);
 
 	GIOChannel *xmimsim_stdout;
 	GIOChannel *xmimsim_stderr;
@@ -1683,7 +1674,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 
 		int allowed;
-		rv = select_parameter(window, input, &xpath, &allowed);
+		int rv = select_parameter(window, input, &xpath, &allowed);
 		g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
 			g_fprintf(stdout, "xpath: %s\n", xpath);
@@ -1696,11 +1687,88 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//2) range of parameter
 		//3) plot afterwards? Requires saving to XMSA file as well as selecting a particular line
 		options = g_malloc(sizeof(struct xmi_main_options));
-		aod = g_malloc(sizeof(struct archive_options_data));
-		int rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath, allowed, aod);
+		struct archive_options_data *aod = g_malloc(sizeof(struct archive_options_data));
+		rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath, allowed, aod);
+		g_fprintf(stdout, "archive_options rv: %i\n", rv);
 		if (rv == 0) {
 			return;
 		}
+		//4) generate the new XMSI files
+		GSList *filenames_xmsiGSL = NULL;
+		gchar **filenames_xmsi = g_malloc(sizeof(gchar *)*(aod->nfiles+2));
+		gchar **filenames_xmso = g_malloc(sizeof(gchar *)*(aod->nfiles+2));
+		filenames_xmsi[aod->nfiles+1] = NULL;
+		filenames_xmso[aod->nfiles+1] = NULL;
+		gchar *filename = (gchar *) g_slist_nth_data(filenames, 0);
+		gchar *buffer;
+		//open inputfile
+		xmlDocPtr doc;
+		if ((doc = xmlReadFile(filename,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+			g_fprintf(stderr,"xmlReadFile error for %s\n", filename);
+			return;
+		}
+		xmlXPathContextPtr context;
+		xmlXPathObjectPtr result, result2;
+
+		context = xmlXPathNewContext(doc);
+		if (context == NULL) {
+			g_fprintf(stderr, "Error in xmlXPathNewContext\n");
+			return;
+		}
+		result = xmlXPathEvalExpression(BAD_CAST xpath, context);
+		if (result == NULL) {
+			g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+			return;
+		}
+		if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
+			xmlXPathFreeObject(result);
+               		g_fprintf(stderr, "No result\n");
+			return;
+		}
+		xmlNodeSetPtr nodeset = result->nodesetval;
+		if (nodeset->nodeNr != 1) {
+			g_fprintf(stderr,"More than one result found for xpath expression\n");
+			return;
+		}
+		result2 = xmlXPathEvalExpression(BAD_CAST "/xmimsim/general/outputfile", context);
+		xmlXPathFreeContext(context);
+		if (result2 == NULL) {
+			g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+			return;
+		}
+		if(xmlXPathNodeSetIsEmpty(result2->nodesetval)){
+			xmlXPathFreeObject(result2);
+               		g_fprintf(stderr, "No result\n");
+			return;
+		}
+		xmlNodeSetPtr nodeset2 = result2->nodesetval;
+		if (nodeset2->nodeNr != 1) {
+			g_fprintf(stderr,"More than one result found for xpath expression\n");
+			return;
+		}
+
+
+		for (i = 0 ; i <= aod->nfiles ; i++) {
+			buffer = g_strdup_printf("%s%s%s%04i.xmsi", aod->xmsi_input_dir, G_DIR_SEPARATOR_S, aod->xmsi_prefix, i);
+			filenames_xmsiGSL = g_slist_append(filenames_xmsiGSL, (gpointer) buffer);
+			filenames_xmsi[i] = buffer;
+			buffer = g_strdup_printf("%s%s%s%04i.xmso", aod->xmso_output_dir, G_DIR_SEPARATOR_S, aod->xmso_prefix, i);
+			filenames_xmso[i] = buffer;
+			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nfiles-1);
+			buffer = g_strdup_printf("%lf", value);
+			xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
+			g_free(buffer);
+			xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i]);
+			if (xmlSaveFileEnc(filenames_xmsi[i],doc,NULL) == -1) {
+				fprintf(stderr,"Could not write to %s\n", filenames_xmsi[i]);
+				return;
+			}
+		}
+		xmlXPathFreeObject (result);
+		xmlXPathFreeObject (result2);
+		xmlFreeDoc(doc);
+		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION);
+
 	}
 
 
@@ -1746,10 +1814,10 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	gtk_widget_set_sensitive(stopButton, FALSE);
 
 	GtkWidget *nthreadsW = NULL;
-	if (omp_get_max_threads() > 1) {
+	if (xmi_omp_get_max_threads() > 1) {
 		GtkWidget *cpuLabel = gtk_label_new("CPUs");
 		gtk_box_pack_start(GTK_BOX(hbox), cpuLabel, FALSE, FALSE, 2);
-		GtkObject *nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
+		GtkObject *nthreadsA = gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0);
 		nthreadsW = gtk_hscale_new(GTK_ADJUSTMENT(nthreadsA));	
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
 		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_TOP);

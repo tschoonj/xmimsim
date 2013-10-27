@@ -30,7 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xmi_random.h"
 #include "xmi_detector.h"
-#include <omp.h>
 #include <math.h>
 
 #ifdef _WIN32
@@ -140,7 +139,7 @@ XMI_MAIN
 	options.use_poisson = 0;
 	options.verbose = 0;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
 
 
 	//parse options
@@ -163,9 +162,9 @@ XMI_MAIN
 	}
 	
 
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
 	//omp_set_num_threads(omp_num_threads);

@@ -44,8 +44,8 @@ static void update_xpath_nodes(xmlNodeSetPtr nodes, const xmlChar* value) {
 	for(i = size - 1; i >= 0; i--) {
 		xmlNodeSetContent(nodes->nodeTab[i], value);
 
-		if (nodes->nodeTab[i]->type != XML_NAMESPACE_DECL)
-	    		nodes->nodeTab[i] = NULL;
+		/*if (nodes->nodeTab[i]->type != XML_NAMESPACE_DECL)
+	    		nodes->nodeTab[i] = NULL;*/
 	}
 }		
 

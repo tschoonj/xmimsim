@@ -71,7 +71,6 @@ endif
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
 		     @gtk2_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
-		     @OPENMP_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
 		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\"
@@ -121,7 +120,6 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @gsl_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
-		 @OPENMP_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la \
@@ -140,7 +138,6 @@ xmimsim_pymca_LDADD = ../src/libxmimsim.la \
 		      @glib2_LIBS@
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
-		       @OPENMP_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 

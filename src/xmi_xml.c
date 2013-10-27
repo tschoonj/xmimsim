@@ -188,7 +188,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, double ***chan
 			while (countsPtr != NULL) {
 				if (!xmlStrcmp(countsPtr->name,(const xmlChar *) "counts")) {
 					txt = xmlNodeListGetString(doc,countsPtr->children,1);	
-					if (sscanf((const char*) txt, "%lf", &(channels_loc[channel_loc][interaction_loc])) !=1) {
+					if (sscanf((const char*) txt, "%lg", &(channels_loc[channel_loc][interaction_loc])) !=1) {
 						fprintf(stderr,"readSpectrumXML: could not read counts\n");
 						return 0;
 					}
@@ -264,7 +264,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 			}
 			else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 				txt =xmlNodeListGetString(doc,attr->children,1);
-				if(sscanf((const char *)txt,"%lf",&(history_loc[counter].total_counts)) != 1) {
+				if(sscanf((const char *)txt,"%lg",&(history_loc[counter].total_counts)) != 1) {
 					fprintf(stderr,"readHistoryXML: error reading in total_counts\n");
 					return 0;
 				}
@@ -294,7 +294,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
-					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].energy)) != 1) {
 						fprintf(stderr,"readHistoryXML: error reading in energy\n");
 						return 0;
 					}
@@ -302,7 +302,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
-					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
 						fprintf(stderr,"readHistoryXML: error reading in total_counts lvl2\n");
 						return 0;
 					}
@@ -331,7 +331,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 					attr = attr->next;
 				}
 				txt = xmlNodeListGetString(doc,subcountsPtr->children,1);	
-				if (sscanf((const char*) txt, "%lf",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
+				if (sscanf((const char*) txt, "%lg",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
 					fprintf(stderr,"readHistoryXML: could not read counts\n");
 					return 0;
 				}
@@ -483,7 +483,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_sample_source")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_sample_source)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_sample_source)) != 1) {
 				fprintf(stderr,"error reading in d_sample_source of xml file\n");
 				return 0;
 			}
@@ -494,7 +494,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation x of xml file\n");
 						return 0;
 					}
@@ -502,7 +502,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
 						return 0;
 					}
@@ -510,7 +510,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
 						return 0;
 					}
@@ -525,7 +525,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[0])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window x of xml file\n");
 						return 0;
 					}
@@ -533,7 +533,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[1])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
 						return 0;
 					}
@@ -541,7 +541,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[2])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window z of xml file\n");
 						return 0;
 					}
@@ -555,7 +555,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation x of xml file\n");
 						return 0;
 					}
@@ -563,7 +563,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
 						return 0;
 					}
@@ -571,7 +571,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation z of xml file\n");
 						return 0;
 					}
@@ -582,7 +582,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "area_detector")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->area_detector)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->area_detector)) != 1) {
 				fprintf(stderr,"error reading in area_detector of xml file\n");
 				return 0;
 			}
@@ -590,7 +590,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_height")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_height)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_height)) != 1) {
 				fprintf(stderr,"error reading in collimator_height of xml file\n");
 				return 0;
 			}
@@ -598,7 +598,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_diameter")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_diameter)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_diameter)) != 1) {
 				fprintf(stderr,"error reading in collimator_diameter of xml file\n");
 				return 0;
 			}
@@ -606,7 +606,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_source_slit")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_source_slit)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_source_slit)) != 1) {
 				fprintf(stderr,"error reading in d_source_slit of xml file\n");
 				return 0;
 			}
@@ -617,7 +617,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_x)) != 1) {
 						fprintf(stderr,"error reading in slit_size_x of xml file\n");
 						return 0;
 					}
@@ -625,7 +625,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_y)) != 1) {
 						fprintf(stderr,"error reading in slit_size_y of xml file\n");
 						return 0;
 					}
@@ -673,7 +673,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in discrete energy of xml file\n");
 						return 0;
 					}
@@ -681,7 +681,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -689,7 +689,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -697,7 +697,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -705,7 +705,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -713,7 +713,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -721,7 +721,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
@@ -742,7 +742,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeListGetString(doc,subsubnode->children,1);
-								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
 								}
@@ -753,7 +753,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeListGetString(doc,subsubnode->children,1);
-								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
 								}
@@ -807,7 +807,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in continuous energy of xml file\n");
 						return 0;
 					}
@@ -815,7 +815,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -823,7 +823,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -831,7 +831,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -839,7 +839,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -847,7 +847,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -855,7 +855,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
@@ -1008,7 +1008,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "live_time")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->live_time)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->live_time)) != 1) {
 				fprintf(stderr,"error reading in live_time of xml file\n");
 				return 0;
 			}
@@ -1016,7 +1016,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "pulse_width")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->pulse_width)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->pulse_width)) != 1) {
 				fprintf(stderr,"error reading in pulse_width of xml file\n");
 				return 0;
 			}
@@ -1024,7 +1024,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "gain")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->gain)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->gain)) != 1) {
 				fprintf(stderr,"error reading in gain of xml file\n");
 				return 0;
 			}
@@ -1032,7 +1032,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "zero")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->zero)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->zero)) != 1) {
 				fprintf(stderr,"error reading in zero of xml file\n");
 				return 0;
 			}
@@ -1040,7 +1040,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "fano")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->fano)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->fano)) != 1) {
 				fprintf(stderr,"error reading in fano of xml file\n");
 				return 0;
 			}
@@ -1048,7 +1048,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "noise")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->noise)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->noise)) != 1) {
 				fprintf(stderr,"error reading in noise of xml file\n");
 				return 0;
 			}
@@ -1056,7 +1056,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "max_convolution_energy")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->max_convolution_energy)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->max_convolution_energy)) != 1) {
 				fprintf(stderr,"error reading in max_convolution_energy of xml file\n");
 				return 0;
 			}
@@ -1123,7 +1123,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "weight_fraction")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",weight+n_elements-1) != 1) {
+					if(sscanf((const char *)txt,"%lg",weight+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in weight_fraction of xml file\n");
 						return 0;
 					}
@@ -1137,7 +1137,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "density")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&(layer->density)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&(layer->density)) != 1) {
 				fprintf(stderr,"error reading in density of xml file\n");
 				return 0;
 			}
@@ -1145,7 +1145,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "thickness")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&(layer->thickness)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&(layer->thickness)) != 1) {
 				fprintf(stderr,"error reading in thickness of xml file\n");
 				return 0;
 			}
@@ -1599,11 +1599,11 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*j+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lg",input->detector->gain*j+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lf",channels_conv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lg",channels_conv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
 		}*/
@@ -1618,7 +1618,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing interaction_number attribute\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatString(writer,"%lf",channels_conv[i][j]) < 0) {
+			if (xmlTextWriterWriteFormatString(writer,"%lg",channels_conv[i][j]) < 0) {
 				fprintf(stderr,"Error writing counts\n");
 				return 0;
 			}
@@ -1655,11 +1655,11 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*j+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lg",input->detector->gain*j+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
-/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lf",channels_unconv[i]) < 0) {
+/*		if (xmlTextWriterWriteFormatElement(writer, "counts","%lg",channels_unconv[i]) < 0) {
 			fprintf(stderr,"Error writing counts\n");
 			return 0;
 		}*/
@@ -1672,7 +1672,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing interaction_number attribute\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatString(writer,"%lf",ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels)) < 0) {
+			if (xmlTextWriterWriteFormatString(writer,"%lg",ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels)) < 0) {
 				fprintf(stderr,"Error writing counts\n");
 				return 0;
 			}
@@ -1749,7 +1749,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing type\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lg",LineEnergy(uniqZ[i],-1*j)) < 0) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
@@ -1853,7 +1853,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 				fprintf(stderr,"Error writing type\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lf",LineEnergy(uniqZ[i],-1*j)) < 0) {
+			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%lg",LineEnergy(uniqZ[i],-1*j)) < 0) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
@@ -2112,7 +2112,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_sample_source","%lf",input->geometry->d_sample_source) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_sample_source","%lg",input->geometry->d_sample_source) < 0) {
 		fprintf(stderr,"Error writing d_sample_source\n");
 		return 0;
 	}
@@ -2120,15 +2120,15 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->n_sample_orientation[0]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lg",input->geometry->n_sample_orientation[0]) < 0) {
 		fprintf(stderr,"Error writing n_sample_orientation[0]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->n_sample_orientation[1]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lg",input->geometry->n_sample_orientation[1]) < 0) {
 		fprintf(stderr,"Error writing n_sample_orientation[1]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->n_sample_orientation[2]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lg",input->geometry->n_sample_orientation[2]) < 0) {
 		fprintf(stderr,"Error writing n_sample_orientation[2]\n");
 		return 0;
 	}
@@ -2140,15 +2140,15 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->p_detector_window[0]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lg",input->geometry->p_detector_window[0]) < 0) {
 		fprintf(stderr,"Error writing p_detector_window[0]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->p_detector_window[1]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lg",input->geometry->p_detector_window[1]) < 0) {
 		fprintf(stderr,"Error writing p_detector_window[1]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->p_detector_window[2]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lg",input->geometry->p_detector_window[2]) < 0) {
 		fprintf(stderr,"Error writing p_detector_window[2]\n");
 		return 0;
 	}
@@ -2160,15 +2160,15 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lf",input->geometry->n_detector_orientation[0]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%lg",input->geometry->n_detector_orientation[0]) < 0) {
 		fprintf(stderr,"Error writing n_detector_orientation[0]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lf",input->geometry->n_detector_orientation[1]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%lg",input->geometry->n_detector_orientation[1]) < 0) {
 		fprintf(stderr,"Error writing n_detector_orientation[1]\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lf",input->geometry->n_detector_orientation[2]) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%lg",input->geometry->n_detector_orientation[2]) < 0) {
 		fprintf(stderr,"Error writing n_detector_orientation[2]\n");
 		return 0;
 	}
@@ -2176,19 +2176,19 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error calling xmlTextWriterEndElement for n_detector_orientation\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "area_detector","%lf",input->geometry->area_detector) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "area_detector","%lg",input->geometry->area_detector) < 0) {
 		fprintf(stderr,"Error writing area_detector\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_height","%lf",input->geometry->collimator_height) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_height","%lg",input->geometry->collimator_height) < 0) {
 		fprintf(stderr,"Error writing collimator_height\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_diameter","%lf",input->geometry->collimator_diameter) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_diameter","%lg",input->geometry->collimator_diameter) < 0) {
 		fprintf(stderr,"Error writing collimator_diameter\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%lf",input->geometry->d_source_slit) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%lg",input->geometry->d_source_slit) < 0) {
 		fprintf(stderr,"Error writing d_source_slit\n");
 		return 0;
 	}
@@ -2196,11 +2196,11 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_x","%lf",input->geometry->slit_size_x) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_x","%lg",input->geometry->slit_size_x) < 0) {
 		fprintf(stderr,"Error writing slit_size_x\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_y","%lf",input->geometry->slit_size_y) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_y","%lg",input->geometry->slit_size_y) < 0) {
 		fprintf(stderr,"Error writing slit_size_y\n");
 		return 0;
 	}
@@ -2225,7 +2225,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->discrete[i].energy) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lg",input->excitation->discrete[i].energy) < 0) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
@@ -2237,19 +2237,19 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error writing vertical_intensity\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->excitation->discrete[i].sigma_x) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lg",input->excitation->discrete[i].sigma_x) < 0) {
 				fprintf(stderr,"Error writing sigma_x\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->excitation->discrete[i].sigma_xp) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lg",input->excitation->discrete[i].sigma_xp) < 0) {
 				fprintf(stderr,"Error writing sigma_xp\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->excitation->discrete[i].sigma_y) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lg",input->excitation->discrete[i].sigma_y) < 0) {
 				fprintf(stderr,"Error writing sigma_y\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->discrete[i].sigma_yp) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lg",input->excitation->discrete[i].sigma_yp) < 0) {
 				fprintf(stderr,"Error writing sigma_yp\n");
 				return 0;
 			}
@@ -2272,7 +2272,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 						return 0;
 					}
 				}
-				if (xmlTextWriterWriteFormatString(writer, "%lf", input->excitation->discrete[i].scale_parameter) < 0) {
+				if (xmlTextWriterWriteFormatString(writer, "%lg", input->excitation->discrete[i].scale_parameter) < 0) {
 					fprintf(stderr,"Error at xmlTextWriterWriteFormatString\n");
 					return 0;
 				
@@ -2294,7 +2294,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->excitation->continuous[i].energy) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lg",input->excitation->continuous[i].energy) < 0) {
 				fprintf(stderr,"Error writing energy\n");
 				return 0;
 			}
@@ -2306,19 +2306,19 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 				fprintf(stderr,"Error writing vertical_intensity\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lf",input->excitation->continuous[i].sigma_x) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%lg",input->excitation->continuous[i].sigma_x) < 0) {
 				fprintf(stderr,"Error writing sigma_x\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lf",input->excitation->continuous[i].sigma_xp) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%lg",input->excitation->continuous[i].sigma_xp) < 0) {
 				fprintf(stderr,"Error writing sigma_xp\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lf",input->excitation->continuous[i].sigma_y) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%lg",input->excitation->continuous[i].sigma_y) < 0) {
 				fprintf(stderr,"Error writing sigma_y\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->continuous[i].sigma_yp) < 0) {
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lg",input->excitation->continuous[i].sigma_yp) < 0) {
 				fprintf(stderr,"Error writing sigma_yp\n");
 				return 0;
 			}
@@ -2460,7 +2460,7 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error writing detector_type\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "live_time","%lf",input->detector->live_time) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "live_time","%lg",input->detector->live_time) < 0) {
 		fprintf(stderr,"Error writing live_time\n");
 		return 0;
 	}
