@@ -34,8 +34,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-extern int xmlLoadExtDtdDefaultValue;
-
 static void update_xpath_nodes(xmlNodeSetPtr nodes, const xmlChar* value) {
 	int size;
 	int i;
@@ -54,6 +52,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
 	const char *params[1] = {NULL};
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
@@ -74,9 +73,6 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 
 	xsltInit();
 
-	xmlSubstituteEntitiesDefault(1);
-	xmlLoadExtDtdDefaultValue = 1;
-
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
@@ -84,10 +80,23 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	free(xsltfile);
 #endif
 
-	doc = xmlParseFile(xmsofile);
-	if (doc == NULL)
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
+	}
 
+	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsofile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL)
@@ -128,6 +137,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
 	const char *params[3];
 	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
@@ -166,9 +176,6 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
 
-	xmlSubstituteEntitiesDefault(1);
-	xmlLoadExtDtdDefaultValue = 1;
-
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
@@ -178,9 +185,23 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 #endif
 
 
-	doc = xmlParseFile(xmsofile);
-	if (doc == NULL)
-		return 0;       
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsofile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL)
@@ -202,6 +223,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
 	const char *params[5];
 	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
@@ -245,9 +267,6 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
 
-	xmlSubstituteEntitiesDefault(1);
-	xmlLoadExtDtdDefaultValue = 1;
-
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
@@ -257,9 +276,23 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 #endif
 
 
-	doc = xmlParseFile(xmsofile);
-	if (doc == NULL)
-		return 0;       
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsofile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL)
@@ -282,6 +315,7 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
 	const char *params[3];
 	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
@@ -320,9 +354,6 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
 
-	xmlSubstituteEntitiesDefault(1);
-	xmlLoadExtDtdDefaultValue = 1;
-
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
@@ -332,9 +363,23 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 #endif
 
 
-	doc = xmlParseFile(xmsofile);
-	if (doc == NULL)
-		return 0;       
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsofile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL)
@@ -356,6 +401,7 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
 	const char *params[3];
 	char catalog[] = XMI_CATALOG;
 	xmlXPathContextPtr xpathCtx; 
@@ -394,9 +440,6 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
 
-	xmlSubstituteEntitiesDefault(1);
-	xmlLoadExtDtdDefaultValue = 1;
-
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL)
 		return 0;
@@ -406,9 +449,23 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 #endif
 
 
-	doc = xmlParseFile(xmsofile);
-	if (doc == NULL)
-		return 0;       
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsofile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL)
