@@ -1184,5 +1184,79 @@ void xmi_free_output(struct xmi_output *output) {
 	xmi_free_fluorescence_line_counts(output->var_red_history, output->nvar_red_history);
 
 	xmi_free_input(output->input);
+
+	return;
 }
 
+void xmi_free_archive(struct xmi_archive *archive) {
+	free(archive->xpath);
+	free(archive->input);
+	free(archive->inputfiles);
+	free(archive->outputfiles);
+	int i;
+	for (i = 0 ; i <= archive->nsteps ; i++)
+		xmi_free_output(archive->output[i]);
+
+	return;
+}
+
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output **output, double start_value, double end_value, int nsteps, char *xpath) {
+	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));	
+	archive->start_value = start_value;
+	archive->end_value = end_value;
+	archive->nsteps = nsteps;
+	archive->xpath = strdup(xpath);
+	archive->output = malloc(sizeof(struct xmi_output *)*(nsteps+1));
+	archive->input = malloc(sizeof(struct xmi_input *)*(nsteps+1));
+	archive->inputfiles = malloc(sizeof(char *)*(nsteps+1));
+	archive->outputfiles = malloc(sizeof(char *)*(nsteps+1));
+	
+	int i;
+	for (i = 0 ; i <= nsteps ; i++) {
+		xmi_copy_output(archive->output[i], &archive->output[i]);
+		archive->input[i] = archive->output[i]->input;
+		archive->inputfiles[i] = archive->output[i]->inputfile;
+		archive->outputfiles[i] = archive->input[i]->general->outputfile;
+	}
+
+	return archive;
+}
+
+void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
+	struct xmi_output *C = malloc(sizeof(struct xmi_output));
+	C->inputfile = strdup(A->inputfile);
+	xmi_copy_input(A->input, &C->input);
+	C->nbrute_force_history = A->nbrute_force_history;
+	C->nvar_red_history = A->nvar_red_history;
+	C->nchannels = A->nchannels;
+	C->ninteractions = A->ninteractions;
+	C->use_zero_interactions = A->use_zero_interactions;
+	int i, j;
+	C->channels_conv = malloc(sizeof(double *) * (C->ninteractions+1));
+	C->channels_unconv = malloc(sizeof(double *) * (C->ninteractions+1));
+	for (i = 0 ; i <= C->ninteractions ; i++) {
+		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->nchannels);
+		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->nchannels);
+	}
+
+	C->brute_force_history = xmi_memdup(A->brute_force_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nbrute_force_history);
+
+	for (i = 0 ; i < C->nbrute_force_history ; i++) {
+		C->brute_force_history[i].lines = xmi_memdup(A->brute_force_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->brute_force_history[i].n_lines);
+		for (j = 0 ; j < C->brute_force_history[i].n_lines ; j++)
+			C->brute_force_history[i].lines[j].interactions = xmi_memdup(C->brute_force_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->brute_force_history[i].lines[j].n_interactions);
+	}
+
+	C->var_red_history = xmi_memdup(A->var_red_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nvar_red_history);
+
+	for (i = 0 ; i < C->nvar_red_history ; i++) {
+		C->var_red_history[i].lines = xmi_memdup(A->var_red_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->var_red_history[i].n_lines);
+		for (j = 0 ; j < C->var_red_history[i].n_lines ; j++)
+			C->var_red_history[i].lines[j].interactions = xmi_memdup(C->var_red_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->var_red_history[i].lines[j].n_interactions);
+	}
+
+
+
+	*B = C;
+	return;
+}

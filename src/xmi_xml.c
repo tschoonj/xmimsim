@@ -374,7 +374,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 				(*general)->outputfile = strdup("");
 			}
 			else {
-				(*general)->outputfile = (char *) xmlStrdup(txt); 
+				(*general)->outputfile = (char *) strdup(txt); 
 			}
 			xmlFree(txt);
 		}
@@ -409,7 +409,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 				(*general)->comments = strdup("");
 			}
 			else {
-				(*general)->comments = (char *) xmlStrdup(txt); 
+				(*general)->comments = (char *) strdup(txt); 
 			}
 			xmlFree(txt);
 		}
@@ -1196,8 +1196,8 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 		return 0;
 	}
 
-	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim")) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim\n",xmlfile);
+	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim") != 0 || xmlStrcmp(root->name,(const xmlChar*) "xmimsim-input") != 0) {
+		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-input\n",xmlfile);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		return 0;
@@ -1248,7 +1248,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
 		return 0;
 	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-input", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
 		fprintf(stderr,"Error starting DTD\n");
 		return 0;
 	}
@@ -1258,8 +1258,8 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 		return 0;
 	}
 
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
-		fprintf(stderr,"Error writing xmimsim tag\n");
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
+		fprintf(stderr,"Error writing xmimsim-input tag\n");
 		return 0;
 	}
 
@@ -1269,7 +1269,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 	
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim\n");
+		fprintf(stderr,"Error ending xmimsim-input\n");
 		return 0;
 	}
 
@@ -1308,7 +1308,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
 		return 0;
 	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-input", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
 		fprintf(stderr,"Error starting DTD\n");
 		return 0;
 	}
@@ -1322,8 +1322,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
-		fprintf(stderr,"Error writing xmimsim tag\n");
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
+		fprintf(stderr,"Error writing xmimsim-input tag\n");
 		return 0;
 	}
 
@@ -1333,7 +1333,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim\n");
+		fprintf(stderr,"Error ending xmimsim-input\n");
 		return 0;
 	}
 
@@ -1418,7 +1418,7 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 				fprintf(stderr,"Error writing interaction_number attribute\n");
 				return 0;
 			}
-			if (xmlTextWriterWriteFormatString(writer,"%lg",output->channels_conv[i][j]) < 0) {
+			if (xmlTextWriterWriteFormatString(writer,"%lf",output->channels_conv[i][j]) < 0) {
 				fprintf(stderr,"Error writing counts\n");
 				return 0;
 			}
@@ -2736,7 +2736,7 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output) {
 		return 0;
 	}
 
-	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-results")) {
+	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-results") != 0) {
 		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
 		xmlFreeDoc(doc);
 		return 0;
@@ -2864,10 +2864,15 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 	}
 	xpathObj = xmlXPathNodeEval(root, "xmimsim-input", xpathCtx);
 	if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
-		fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
-		xmlXPathFreeContext(xpathCtx); 
-		xmlFreeDoc(doc); 
-		return 0;
+		if (xpathObj)
+			xmlXPathFreeObject(xpathObj);
+		xpathObj = xmlXPathNodeEval(root, "xmimsim", xpathCtx);
+		if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
+			fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
+			xmlXPathFreeContext(xpathCtx); 
+			xmlFreeDoc(doc); 
+			return 0;
+		}
 	}
 
 	op->input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
@@ -2891,7 +2896,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "inputfile")) {
 			//inputfile
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			op->inputfile = (char *) xmlStrdup(txt);
+			op->inputfile = (char *) strdup(txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
@@ -2934,3 +2939,193 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 	return 1;
 }
 
+int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
+
+	xmlDocPtr doc;
+	xmlNodePtr root;
+	xmlParserCtxtPtr ctx;
+	struct xmi_archive *ar = malloc(sizeof(struct xmi_archive));
+
+	LIBXML_TEST_VERSION
+
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsafile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsafile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsafile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
+
+	if ((root = xmlDocGetRootElement(doc)) == NULL) {
+		fprintf(stderr,"Error getting root element in file %s\n",xmsafile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-archive") != 0) {
+		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-archive\n",xmsafile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	xmlNodePtr subroot, subsubroot;
+	xmlChar *txt;
+
+	subroot = root->children;
+
+	ar->input = NULL;
+	ar->output = NULL;
+	ar->inputfiles = NULL;
+	ar->outputfiles = NULL;
+	int nfiles = 0;
+
+	while (subroot != NULL) {
+		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			if (sscanf((const char*) txt, "%lg", &ar->start_value) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read start_value\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			if (sscanf((const char*) txt, "%lg", &ar->end_value) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read end_value\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			if (sscanf((const char*) txt, "%i", &ar->nsteps) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			ar->xpath = strdup(txt);
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
+			ar->output = realloc(ar->output, sizeof(struct xmi_output*)*++nfiles);	
+			if (xmi_read_output_xml_body(doc, subroot, ar->output[nfiles-1]) == 0) {
+				return 0;
+			}
+			//fix links
+			ar->input = realloc(ar->input, sizeof(struct xmi_input *)*nfiles);
+			ar->input[nfiles-1] = ar->output[nfiles-1]->input;
+			ar->inputfiles = realloc(ar->inputfiles, sizeof(char *)*nfiles);
+			ar->inputfiles[nfiles-1] = ar->output[nfiles-1]->inputfile;
+			ar->outputfiles = realloc(ar->outputfiles, sizeof(char *)*nfiles);
+			ar->outputfiles[nfiles-1] = ar->input[nfiles-1]->general->outputfile;
+		}
+		subroot=subroot->next;
+	}
+
+	xmlFreeDoc(doc);
+
+	if (nfiles != ar->nsteps+1) {
+		fprintf(stderr,"xmi_read_archive_xml: nfiles/nsteps mismatch\n");
+		return 0;
+	}
+
+
+	*archive = ar;
+
+	return 1;
+}
+
+int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
+	xmlDocPtr doc;
+	xmlTextWriterPtr writer;
+
+
+	LIBXML_TEST_VERSION
+
+	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+		return 0;
+	}
+	xmlTextWriterSetIndent(writer,2);
+	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
+		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
+		return 0;
+	}
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+		fprintf(stderr,"Error starting DTD\n");
+		return 0;
+	}
+
+	if (xmlTextWriterEndDTD(writer) < 0) {
+		fprintf(stderr,"Error ending DTD\n");
+		return 0;
+	}
+	
+	if (xmi_write_default_comments(writer) == 0) {
+		return 0;
+	}
+
+	//body
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-archive") < 0) {
+		fprintf(stderr,"Error writing xmimsim-archive tag\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value","%lg", archive->start_value) < 0) {
+		fprintf(stderr,"Error writing start_value\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value","%lg", archive->end_value) < 0) {
+		fprintf(stderr,"Error writing end_value\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps","%i", archive->nsteps) < 0) {
+		fprintf(stderr,"Error writing nsteps\n");
+		return 0;
+	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps","%s", archive->xpath) < 0) {
+		fprintf(stderr,"Error writing xpath\n");
+		return 0;
+	}
+	int i;
+
+	for (i = 0 ; i <= archive->nsteps ; i++) {
+		if (xmi_write_output_xml_body(writer, archive->output[i]) == 0) {
+			return 0;
+		}
+	}
+
+
+	if (xmlTextWriterEndElement(writer) < 0) {
+		fprintf(stderr,"Error ending xmimsim-archive\n");
+		return 0;
+	}
+	//endbody
+
+	if (xmlTextWriterEndDocument(writer) < 0) {
+		fprintf(stderr,"Error ending document\n");
+		return 0;
+	}
+
+	xmlFreeTextWriter(writer);
+
+	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
+		fprintf(stderr,"Could not write to %s\n",xmlfile);
+		return 0;
+	}
+	xmlFreeDoc(doc);
+
+	return 1;
+}

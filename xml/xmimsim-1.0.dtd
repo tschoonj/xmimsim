@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/.
 -->
-<!ELEMENT xmimsim (general, composition , geometry, excitation, absorbers, detector)>
+<!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory, comments)>
 <!ATTLIST general version CDATA #REQUIRED>
@@ -102,7 +102,6 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST fluorescence_line energy CDATA #REQUIRED>
 <!ATTLIST fluorescence_line total_counts CDATA #REQUIRED>
 
-<!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->
 <!ELEMENT svg_graphs (graphic*)>
@@ -125,4 +124,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT value (#PCDATA)>
 <!ELEMENT color (#PCDATA)>
 
-
+<!-- archive -->
+<!ELEMENT xmimsim-archive (start_value, end_value, nsteps, xpath, xmimsim-results+)>
+<!ELEMENT start_value (#PCDATA)>
+<!ELEMENT end_value (#PCDATA)>
+<!ELEMENT nsteps (#PCDATA)>
+<!ELEMENT xpath (#PCDATA)>

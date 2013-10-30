@@ -78,7 +78,7 @@ struct batch_window_data {
 struct archive_options_data {
 	double start_value;
 	double end_value;
-	int nfiles;
+	int nsteps;
 	gchar *xmso_output_dir;
 	gchar *xmso_prefix;
 	gchar *xmsi_input_dir;
@@ -111,7 +111,7 @@ struct wizard_range_data {
 	GtkWidget *outputprefixEntry;
 	GtkWidget *startEntry;
 	GtkWidget *endEntry;
-	GtkWidget *nfilesEntry;
+	GtkWidget *nstepsEntry;
 	int allowed;
 };
 
@@ -186,7 +186,7 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 	wacd->aod->xmso_prefix = g_strdup(buffer);
 	wacd->aod->start_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->startEntry)), NULL);
 	wacd->aod->end_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->endEntry)), NULL);
-	wacd->aod->nfiles = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nfilesEntry)), NULL, 10);
+	wacd->aod->nsteps = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nstepsEntry)), NULL, 10);
 
 	//plot parameters
 	//wacd->wpd	
@@ -289,7 +289,7 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 	int inputprefix = 0;
 	int outputprefix = 0;
 	int start_end = 0;
-	int nfiles = 0;
+	int nsteps = 0;
 
 	//assuming the dirEntry will always work out
 	if (entry == GTK_EDITABLE(wrd->inputprefixEntry) && strlen(gtk_entry_get_text(GTK_ENTRY(wrd->inputprefixEntry))) == 0) {
@@ -345,16 +345,16 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 		}
 		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&white);
 	}
-	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nfilesEntry));
-	nfiles=strtol(textPtr, &endPtr, 10);
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nstepsEntry));
+	nsteps=strtol(textPtr, &endPtr, 10);
 	lastPtr = textPtr + strlen(textPtr);
-	if (entry == GTK_EDITABLE(wrd->nfilesEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nfiles < 2)) {
-		gtk_widget_modify_base(wrd->nfilesEntry,GTK_STATE_NORMAL,&red);
+	if (entry == GTK_EDITABLE(wrd->nstepsEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps < 2)) {
+		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&red);
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 		return;
 	}
-	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nfiles >= 2) {
-		gtk_widget_modify_base(wrd->nfilesEntry,GTK_STATE_NORMAL,&white);
+	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps >= 2) {
+		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&white);
 	}
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
 	start = strtod(textPtr, &endPtr);
@@ -373,7 +373,7 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 		return;
 	}
 
-	if (inputprefix*outputprefix*start_end*nfiles > 0) {
+	if (inputprefix*outputprefix*start_end*nsteps > 0) {
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, TRUE);
 	}
 	else {
@@ -434,11 +434,11 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), endEntry, TRUE, TRUE, 1);
 	label = gtk_label_new("#Steps");
-	GtkWidget *nfilesEntry = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(nfilesEntry), TRUE);
-	gtk_entry_set_text(GTK_ENTRY(nfilesEntry), "10");
+	GtkWidget *nstepsEntry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(nstepsEntry), TRUE);
+	gtk_entry_set_text(GTK_ENTRY(nstepsEntry), "10");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
-	gtk_box_pack_start(GTK_BOX(hbox), nfilesEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), nstepsEntry, TRUE, TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 2);
 	
 	xmlDocPtr doc;
@@ -547,7 +547,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	wrd->outputprefixEntry = outputprefixEntry;
 	wrd->startEntry = startEntry;
 	wrd->endEntry = endEntry;
-	wrd->nfilesEntry = nfilesEntry;
+	wrd->nstepsEntry = nstepsEntry;
 	wrd->allowed = allowed;
 
 	struct saveButton_clicked_data *scdi = g_malloc(sizeof(struct saveButton_clicked_data));
@@ -567,7 +567,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	g_signal_connect(G_OBJECT(outputprefixEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	g_signal_connect(G_OBJECT(startEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	g_signal_connect(G_OBJECT(endEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
-	g_signal_connect(G_OBJECT(nfilesEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(nstepsEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	//page with archive file and 
 	vbox = gtk_vbox_new(FALSE, 2);
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), vbox);
@@ -1695,10 +1695,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 		//4) generate the new XMSI files
 		GSList *filenames_xmsiGSL = NULL;
-		gchar **filenames_xmsi = g_malloc(sizeof(gchar *)*(aod->nfiles+2));
-		gchar **filenames_xmso = g_malloc(sizeof(gchar *)*(aod->nfiles+2));
-		filenames_xmsi[aod->nfiles+1] = NULL;
-		filenames_xmso[aod->nfiles+1] = NULL;
+		gchar **filenames_xmsi = g_malloc(sizeof(gchar *)*(aod->nsteps+2));
+		gchar **filenames_xmso = g_malloc(sizeof(gchar *)*(aod->nsteps+2));
+		filenames_xmsi[aod->nsteps+1] = NULL;
+		filenames_xmso[aod->nsteps+1] = NULL;
 		gchar *filename = (gchar *) g_slist_nth_data(filenames, 0);
 		gchar *buffer;
 		//open inputfile
@@ -1748,13 +1748,13 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 
 
-		for (i = 0 ; i <= aod->nfiles ; i++) {
+		for (i = 0 ; i <= aod->nsteps ; i++) {
 			buffer = g_strdup_printf("%s%s%s%04i.xmsi", aod->xmsi_input_dir, G_DIR_SEPARATOR_S, aod->xmsi_prefix, i);
 			filenames_xmsiGSL = g_slist_append(filenames_xmsiGSL, (gpointer) buffer);
 			filenames_xmsi[i] = buffer;
 			buffer = g_strdup_printf("%s%s%s%04i.xmso", aod->xmso_output_dir, G_DIR_SEPARATOR_S, aod->xmso_prefix, i);
 			filenames_xmso[i] = buffer;
-			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nfiles);
+			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nsteps);
 			buffer = g_strdup_printf("%lf", value);
 			xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
 			g_free(buffer);

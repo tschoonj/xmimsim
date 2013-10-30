@@ -176,7 +176,18 @@ struct xmi_output {
 	int use_zero_interactions;
 };
 
-
+struct xmi_archive {
+	double start_value;
+	double end_value;
+	int nsteps;
+	char *xpath;
+	//input are just pointers to the input structs with output!
+	struct xmi_input **input;
+	struct xmi_output **output;
+	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
+	char **inputfiles;
+	char **outputfiles;
+};
 
 struct xmi_main_options {
 	int use_M_lines;
@@ -256,6 +267,12 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
 
 void xmi_free_output(struct xmi_output *);
+
+void xmi_free_archive(struct xmi_archive *archive);
+
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output **output, double start_value, double end_value, int nsteps, char *xpath);
+
+void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
 
 #ifdef __cplusplus
 }
