@@ -128,18 +128,15 @@ TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc_temp
 
 
 !fortran aux variables
-TYPE (xmi_layer), ALLOCATABLE :: tube_anodeF, tube_windowF, tube_filterF
+TYPE (xmi_layer), POINTER :: tube_anodeF, tube_windowF => NULL(), tube_filterF => NULL()
 INTEGER (C_INT), POINTER, DIMENSION(:) :: Z
 REAL (C_DOUBLE), POINTER, DIMENSION(:) :: weight
 
 !characteristic line variables
-REAL (C_DOUBLE), POINTER, DIMENSION(:) :: disc_energy, disc_intensity, disc_pol_degree
 REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: &
 disc_edge_energy,disc_edge_energy_temp
 INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
 
-!bremsstrahlung variables
-REAL (C_DOUBLE), POINTER, DIMENSION(:) :: cont_energy, cont_intensity, cont_pol_degree
 
 !
 INTEGER (C_INT) :: i, ndisc, ncont, shell1, shell2
@@ -560,7 +557,7 @@ DO i=1,ndisc
 
 ENDDO
 !take window in account
-IF (ALLOCATED(tube_windowF)) THEN
+IF (ASSOCIATED(tube_windowF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
@@ -574,7 +571,7 @@ DO i=1,ncont
 ENDDO
 ENDIF
 !and if there's a filter, use that one too
-IF (ALLOCATED(tube_filterF)) THEN
+IF (ASSOCIATED(tube_filterF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
@@ -626,6 +623,10 @@ ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
 ebel_excitation = C_LOC(ebel_excitation_rv)
 
 xmi_tube_ebel=1
+
+DEALLOCATE(tube_anodeF)
+IF (ASSOCIATED(tube_windowF)) DEALLOCATE(tube_windowF)
+IF (ASSOCIATED(tube_filterF)) DEALLOCATE(tube_filterF)
 
 ENDFUNCTION xmi_tube_ebel
 

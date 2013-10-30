@@ -34,17 +34,8 @@ GdkColor purple_plot;
 GdkColor yellow_plot;
 GdkColor pink_plot;
 
-struct xmi_input *results_input;
-struct xmi_fluorescence_line_counts *results_brute_force_history;
-int results_nbrute_force_history;
-struct xmi_fluorescence_line_counts *results_var_red_history;
-int results_nvar_red_history;
-double **results_channels_conv;
-double **results_channels_unconv;
-int results_ninteractions;
-int results_nchannels;
-char *results_inputfile;
-int results_use_zero_interactions;
+
+struct xmi_output *results;
 
 double plot_xmin, plot_xmax, plot_ymin, plot_ymax;
 
@@ -456,7 +447,7 @@ static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event
 	buffer = g_strdup_printf("%lg",px);
 	gtk_entry_set_text(GTK_ENTRY(cd->xCoordW), buffer);
 	g_free(buffer);
-	buffer = g_strdup_printf("%i",(int) ((px-results_input->detector->zero)/results_input->detector->gain));
+	buffer = g_strdup_printf("%i",(int) ((px-results->input->detector->zero)/results->input->detector->gain));
 	gtk_entry_set_text(GTK_ENTRY(cd->channelCoordW), buffer);
 	g_free(buffer);
 	buffer = g_strdup_printf("%lg",py);
@@ -574,7 +565,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),g_path_get_dirname(results_input->general->outputfile));
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),g_path_get_dirname(results->input->general->outputfile));
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.eps");
 	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
@@ -921,17 +912,8 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_widget_set_size_request(frame,-1, (gint) (GTK_PLOT_A4_W*0.25));
 	gtk_paned_pack1(GTK_PANED(paned), frame, TRUE, FALSE);
 
-	//set current results variables to NULL
-	results_input = NULL;
-	results_brute_force_history = NULL;
-	results_nbrute_force_history = 0;
-	results_var_red_history = NULL;
-	results_nvar_red_history = 0;
-	results_channels_conv = NULL;
-	results_channels_unconv = NULL;
-	results_nchannels = 0;
-	results_inputfile = NULL;
-	results_use_zero_interactions = 0;
+	//set current result variable to NULL
+	results = NULL;
 
 	plot_window = NULL;
 
@@ -1050,42 +1032,12 @@ int plot_spectra_from_file(char *xmsofile) {
 
 
 	//free memory if necessary
-	if (results_input != NULL)
-		xmi_free_input(results_input);
-	if (results_brute_force_history != NULL)
-		xmi_free_fluorescence_line_counts(results_brute_force_history, results_nbrute_force_history);
-	if (results_var_red_history != NULL)
-		xmi_free_fluorescence_line_counts(results_var_red_history, results_nvar_red_history);
-	if (results_channels_conv != NULL)
-		free(results_channels_conv);
-	if (results_channels_unconv != NULL)
-		free(results_channels_unconv);
-	if (results_inputfile != NULL)
-		free(results_inputfile);
+	if (results != NULL)
+		xmi_free_output(results);
 
 
-
-	if (xmi_read_output_xml(xmsofile,
-		&results_input,
-		&results_brute_force_history,
-		&results_nbrute_force_history,
-		&results_var_red_history,
-		&results_nvar_red_history,
-		&results_channels_conv,
-		&results_channels_unconv,
-		&results_nchannels,
-		&results_ninteractions,
-		&results_inputfile,
-		&results_use_zero_interactions
-		) == 0) {
+	if (xmi_read_output_xml(xmsofile, &results) == 0) {
 		fprintf(stderr,"%s could not be read\n", xmsofile);
-		/*
-		 *
-		 * launch dialog in case of error
-		 *
-		 */
-
-
 		return 0;
 	}
 
@@ -1118,16 +1070,16 @@ int plot_spectra_from_file(char *xmsofile) {
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
 	//calculate maximum x and y value
-	temp_channels = (double *) malloc(sizeof(double) * results_nchannels);
-	for (i=0 ; i < results_nchannels ; i++) {
-		temp_channels[i] = results_channels_conv[i][results_ninteractions-1];
+	temp_channels = (double *) malloc(sizeof(double) * results->nchannels);
+	for (i=0 ; i < results->nchannels ; i++) {
+		temp_channels[i] = results->channels_conv[results->ninteractions][i];
 	}
-	plot_ymax = xmi_maxval_double(temp_channels,results_nchannels)*1.2;
+	plot_ymax = xmi_maxval_double(temp_channels,results->nchannels)*1.2;
 	free(temp_channels);
 	plot_ymin = 1.0;
 	plot_xmin = 0.0;
-	plot_xmax = results_nchannels * results_input->detector->gain + results_input->detector->zero;
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,1.0,5);
+	plot_xmax = results->nchannels * results->input->detector->gain + results->input->detector->zero;
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,5.0,5);
 	gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
 	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
@@ -1136,25 +1088,38 @@ int plot_spectra_from_file(char *xmsofile) {
 	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity (counts/channel)");
 	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Energy (keV)");
 	//font will be a problem. Helvetica should be ok for Mac OS X, Arial for Windows, but Linux... pfft
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
-        gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,0);
         gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,0);
-        gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,0);
+	if (plot_ymax < 100000.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,0);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,0);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
         gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
 	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
         gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(canvas), child, .15,.05,.90,.85);
         gtk_widget_show(plot_window);
 	GTK_PLOT_CANVAS_SET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT );
 
-	temp_energies = (double *) malloc(sizeof(double)*results_nchannels);
-	for (i = 0 ; i < results_nchannels ; i++) {
-		temp_energies[i] = results_input->detector->gain * i + results_input->detector->zero;
+	temp_energies = (double *) malloc(sizeof(double)*results->nchannels);
+	for (i = 0 ; i < results->nchannels ; i++) {
+		temp_energies[i] = results->input->detector->gain * i + results->input->detector->zero;
 	}
 
 	//fill it up again
-	for (i = 0 ; i < results_ninteractions ; i++) {
+	for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
 		
 		checkButton = gtk_check_button_new();	
 		button = gtk_button_new_from_stock(GTK_STOCK_PROPERTIES);
@@ -1164,11 +1129,11 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
 		dataset = GTK_PLOT_DATA(gtk_plot_data_new());
 		gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-		gtk_plot_data_set_numpoints(dataset, results_nchannels);
+		gtk_plot_data_set_numpoints(dataset, results->nchannels);
 		gtk_plot_data_set_x(dataset,temp_energies);
-		temp_channels = (double *) malloc(sizeof(double)*results_nchannels);
-		for (j = 0 ; j < results_nchannels ; j++)
-			temp_channels[j]=results_channels_conv[j][i];
+		temp_channels = (double *) malloc(sizeof(double)*results->nchannels);
+		for (j = 0 ; j < results->nchannels ; j++)
+			temp_channels[j]=results->channels_conv[i][j];
 
 		gtk_plot_data_set_y(dataset,temp_channels);
 		gtk_widget_show(GTK_WIDGET(dataset));
@@ -1177,10 +1142,10 @@ int plot_spectra_from_file(char *xmsofile) {
 		sd->checkButton = checkButton;
 		sd->button = button;
 		sd->dataSet = dataset;
-		switch (i) {
+		switch (i-(results->use_zero_interactions ? 0 : 1)) {
 			case 0: 
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",0);
 				}
 				else {
@@ -1189,7 +1154,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			case 1:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&red_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",1);
 				}
 				else {
@@ -1198,7 +1163,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			case 2:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&green_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",2);
 				}
 				else {
@@ -1207,7 +1172,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			case 3:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&purple_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",3);
 				}
 				else {
@@ -1216,7 +1181,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			case 4:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&yellow_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",4);
 				}
 				else {
@@ -1225,7 +1190,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			case 5:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&pink_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",5);
 				}
 				else {
@@ -1234,7 +1199,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				break;
 			default:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
-				if (results_use_zero_interactions == 1) {
+				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",i);
 				}
 				else {
@@ -1265,30 +1230,30 @@ int plot_spectra_from_file(char *xmsofile) {
 
 
 	//treestore stuff
-	if (results_brute_force_history != NULL) {
+	if (results->brute_force_history != NULL) {
 		//brute force mode	
-		for (i = 0 ; i < results_nbrute_force_history ; i++) {
+		for (i = 0 ; i < results->nbrute_force_history ; i++) {
 			//iterating over atomic numbers -> highest level
 			gtk_tree_store_append(countsTS, &iter1, NULL);
-			symbol = AtomicNumberToSymbol(results_brute_force_history[i].atomic_number);
+			symbol = AtomicNumberToSymbol(results->brute_force_history[i].atomic_number);
 			gtk_tree_store_set(countsTS, &iter1, 
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",
 				SHOW_LINE_COLUMN, FALSE,
 				CONSISTENT_COLUMN, TRUE,
 				INTERACTION_COLUMN, "all",
-				COUNTS_COLUMN, results_brute_force_history[i].total_counts,
+				COUNTS_COLUMN, results->brute_force_history[i].total_counts,
 				-1);
 			xrlFree(symbol);
-			for (j = 0 ; j < results_brute_force_history[i].n_lines ; j++) {
+			for (j = 0 ; j < results->brute_force_history[i].n_lines ; j++) {
 				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
 				plot_data_x = malloc(sizeof(gdouble)*2);
 				plot_data_y = malloc(sizeof(gdouble)*2);
 				gtk_plot_data_set_numpoints(plot_data,2);
 				gtk_plot_data_set_x(plot_data,plot_data_x);
 				gtk_plot_data_set_y(plot_data,plot_data_y);
-				plot_data_x[0] = results_brute_force_history[i].lines[j].energy;
-				plot_data_x[1] = results_brute_force_history[i].lines[j].energy;
+				plot_data_x[0] = results->brute_force_history[i].lines[j].energy;
+				plot_data_x[1] = results->brute_force_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
 				plot_data_y[1] = plot_ymax;
 				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
@@ -1299,53 +1264,53 @@ int plot_spectra_from_file(char *xmsofile) {
 
 				gtk_tree_store_append(countsTS, &iter2, &iter1);
 				gtk_tree_store_set(countsTS, &iter2,
-					LINE_COLUMN, results_brute_force_history[i].lines[j].line_type,
-					ENERGY_COLUMN, results_brute_force_history[i].lines[j].energy,
+					LINE_COLUMN, results->brute_force_history[i].lines[j].line_type,
+					ENERGY_COLUMN, results->brute_force_history[i].lines[j].energy,
 					SHOW_LINE_COLUMN, FALSE,
 					CONSISTENT_COLUMN, TRUE,
 					INTERACTION_COLUMN, "all",
 					CHILD_COLUMN, plot_data,	
-					COUNTS_COLUMN, results_brute_force_history[i].lines[j].total_counts,
+					COUNTS_COLUMN, results->brute_force_history[i].lines[j].total_counts,
 					-1);
-				for (k = 0 ; k < results_brute_force_history[i].lines[j].n_interactions ; k++) {
+				for (k = 0 ; k < results->brute_force_history[i].lines[j].n_interactions ; k++) {
 					gtk_tree_store_append(countsTS, &iter3, &iter2);
-					txt = g_strdup_printf("%i",results_brute_force_history[i].lines[j].interactions[k].interaction_number);
+					txt = g_strdup_printf("%i",results->brute_force_history[i].lines[j].interactions[k].interaction_number);
 					gtk_tree_store_set(countsTS, &iter3,
 						INTERACTION_COLUMN,txt,
-						COUNTS_COLUMN, results_brute_force_history[i].lines[j].interactions[k].counts,
+						COUNTS_COLUMN, results->brute_force_history[i].lines[j].interactions[k].counts,
 						-1);
 					g_free(txt);
 				}
 			}
 		}
 	}
-	else if (results_var_red_history != NULL) {
-		fprintf(stdout,"adding variance reduction history: %i\n",results_nvar_red_history);
+	else if (results->var_red_history != NULL) {
+		fprintf(stdout,"adding variance reduction history: %i\n",results->nvar_red_history);
 
 		//variance reduction mode
 		
-		for (i = 0 ; i < results_nvar_red_history ; i++) {
+		for (i = 0 ; i < results->nvar_red_history ; i++) {
 			//iterating over atomic numbers -> highest level
 			gtk_tree_store_append(countsTS, &iter1, NULL);
-			symbol = AtomicNumberToSymbol(results_var_red_history[i].atomic_number);
+			symbol = AtomicNumberToSymbol(results->var_red_history[i].atomic_number);
 			gtk_tree_store_set(countsTS, &iter1, 
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",
 				SHOW_LINE_COLUMN, FALSE,
 				CONSISTENT_COLUMN, TRUE,
 				INTERACTION_COLUMN, "all",
-				COUNTS_COLUMN, results_var_red_history[i].total_counts,
+				COUNTS_COLUMN, results->var_red_history[i].total_counts,
 				-1);
 			xrlFree(symbol);
-			for (j = 0 ; j < results_var_red_history[i].n_lines ; j++) {
+			for (j = 0 ; j < results->var_red_history[i].n_lines ; j++) {
 				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
 				plot_data_x = malloc(sizeof(gdouble)*2);
 				plot_data_y = malloc(sizeof(gdouble)*2);
 				gtk_plot_data_set_numpoints(plot_data,2);
 				gtk_plot_data_set_x(plot_data,plot_data_x);
 				gtk_plot_data_set_y(plot_data,plot_data_y);
-				plot_data_x[0] = results_var_red_history[i].lines[j].energy;
-				plot_data_x[1] = results_var_red_history[i].lines[j].energy;
+				plot_data_x[0] = results->var_red_history[i].lines[j].energy;
+				plot_data_x[1] = results->var_red_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
 				plot_data_y[1] = plot_ymax;
 				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
@@ -1356,20 +1321,20 @@ int plot_spectra_from_file(char *xmsofile) {
 
 				gtk_tree_store_append(countsTS, &iter2, &iter1);
 				gtk_tree_store_set(countsTS, &iter2,
-					LINE_COLUMN, results_var_red_history[i].lines[j].line_type,
-					ENERGY_COLUMN, results_var_red_history[i].lines[j].energy,
+					LINE_COLUMN, results->var_red_history[i].lines[j].line_type,
+					ENERGY_COLUMN, results->var_red_history[i].lines[j].energy,
 					SHOW_LINE_COLUMN, FALSE,
 					CONSISTENT_COLUMN, TRUE,
 					INTERACTION_COLUMN, "all",
 					CHILD_COLUMN, plot_data,	
-					COUNTS_COLUMN, results_var_red_history[i].lines[j].total_counts,
+					COUNTS_COLUMN, results->var_red_history[i].lines[j].total_counts,
 					-1);
-				for (k = 0 ; k < results_var_red_history[i].lines[j].n_interactions ; k++) {
+				for (k = 0 ; k < results->var_red_history[i].lines[j].n_interactions ; k++) {
 					gtk_tree_store_append(countsTS, &iter3, &iter2);
-					txt = g_strdup_printf("%i",results_var_red_history[i].lines[j].interactions[k].interaction_number);
+					txt = g_strdup_printf("%i",results->var_red_history[i].lines[j].interactions[k].interaction_number);
 					gtk_tree_store_set(countsTS, &iter3,
 						INTERACTION_COLUMN,txt,
-						COUNTS_COLUMN, results_var_red_history[i].lines[j].interactions[k].counts,
+						COUNTS_COLUMN, results->var_red_history[i].lines[j].interactions[k].counts,
 						-1);
 					g_free(txt);
 				}

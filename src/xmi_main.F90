@@ -532,7 +532,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                           options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                           CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                          INT(n_photons_sim*100_C_INT_64_T/n_photons_tot,KIND=C_INT))
+                          INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
 #else
                           WRITE(output_unit,'(A,I3,A)')&
                           'Simulating interactions at ',n_photons_sim*100_C_INT64_T&
@@ -819,7 +819,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                           options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                           CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                          INT(n_photons_sim*100_C_INT_64_T/n_photons_tot,KIND=C_INT))
+                          INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
 #else
                           WRITE(output_unit,'(A,I3,A)')&
                           'Simulating interactions at ',n_photons_sim*100_C_INT64_T&

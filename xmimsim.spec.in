@@ -27,12 +27,12 @@ XMI-MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 
 %build
 
-#%if 0%{?fedora} == 15
-##problem with gcc 4.6 when using -O2 or -O3
-#export RPM_OPT_FLAGS="-O1"
-#export CFLAGS=$RPM_OPT_FLAGS
-#export FCFLAGS=$RPM_OPT_FLAGS
-#%endif
+%if 0%{?rhel} == 6
+##problem with gfortran 4.4 when using optimization 
+export RPM_OPT_FLAGS="-O0"
+export CFLAGS=$RPM_OPT_FLAGS
+export FCFLAGS=$RPM_OPT_FLAGS
+%endif
 
 %configure --enable-gui --disable-mpi --disable-updater CPPFLAGS="-DRPM_BUILD"
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool

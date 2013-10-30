@@ -742,11 +742,13 @@ single_run:
 	}
 
 	//write to xml outputfile
-	if (xmi_write_output_xml(argv[2], xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+	if (xmi_write_output_xml(argv[2], output) == 0) {
 		return 1;
 	}
 	else if (options.verbose)
 		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
+	xmi_free_output(output);	
 
 	//write to CSV and SPE if necessary...
 #ifndef G_OS_WIN32

@@ -614,13 +614,14 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		if (xmi_write_output_xml(input->general->outputfile, input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, options.nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		struct xmi_output *output = xmi_output_raw2struct(input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, options.nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+		if (xmi_write_output_xml(input->general->outputfile, output) == 0) {
 			return 1;
 		}
 		else if (options.verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
-	
+		xmi_free_output(output);	
 #ifdef G_OS_WIN32
 	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
 

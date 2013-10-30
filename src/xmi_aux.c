@@ -298,7 +298,7 @@ gchar *xmi_version_string() {
 	strcat(string,temp);
 	g_free(temp);
 	//GSL
-	temp = g_strdup_printf("gsl %i.%i, ", GSL_MAJOR_VERSION, GSL_MINOR_VERSION);
+	temp = g_strdup_printf("gsl %s, ", GSL_VERSION);
 	strcat(string,temp);
 	g_free(temp);
 	//hdf5

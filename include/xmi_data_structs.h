@@ -142,15 +142,37 @@ struct xmi_input {
 	struct xmi_detector *detector;
 };
 
-//one day I'll actually use this structure...
+struct xmi_counts {
+	double counts;
+	int interaction_number;
+};
+
+struct xmi_fluorescence_line {
+	char line_type[10];
+	double energy;
+	double total_counts;
+	int n_interactions;
+	struct xmi_counts *interactions;
+};
+
+struct xmi_fluorescence_line_counts {
+	int atomic_number;
+	double total_counts;
+	int n_lines;
+	struct xmi_fluorescence_line *lines;
+};
+
 struct xmi_output {
-	struct xmi_input *input;
-	long int *brute_history;
-	double *var_red_history;
-	double **channels_conv;
-	double *channels_unconv;
-	int nchannels;
 	char *inputfile;
+	struct xmi_input *input;
+	struct xmi_fluorescence_line_counts *brute_force_history;
+	struct xmi_fluorescence_line_counts *var_red_history;
+	int nbrute_force_history;
+	int nvar_red_history;
+	double **channels_conv;
+	double **channels_unconv;
+	int nchannels;
+	int ninteractions;
 	int use_zero_interactions;
 };
 
@@ -228,6 +250,12 @@ int xmi_init_input(xmi_inputFPtr *inputFPtr);
 void xmi_print_input(FILE *fPtr, struct xmi_input *input);
 
 void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
+
+struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
+
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
+
+void xmi_free_output(struct xmi_output *);
 
 #ifdef __cplusplus
 }

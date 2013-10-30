@@ -1754,7 +1754,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			filenames_xmsi[i] = buffer;
 			buffer = g_strdup_printf("%s%s%s%04i.xmso", aod->xmso_output_dir, G_DIR_SEPARATOR_S, aod->xmso_prefix, i);
 			filenames_xmso[i] = buffer;
-			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nfiles-1);
+			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nfiles);
 			buffer = g_strdup_printf("%lf", value);
 			xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
 			g_free(buffer);
