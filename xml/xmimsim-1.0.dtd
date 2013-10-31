@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
+<!-- Next line is for backwards compatibility only -->
+<!ELEMENT xmimsim (general, composition , geometry, excitation, absorbers, detector)>
 
 <!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory, comments)>
 <!ATTLIST general version CDATA #REQUIRED>

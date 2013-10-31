@@ -97,10 +97,28 @@ struct saveButton_clicked_data {
 };
 
 
+struct fluor_data {
+	int atomic_number;
+	int n_lines;
+	gchar **line_types;
+};
+
+static int compare_fluor_data(const void *f1, const void *f2) {
+	struct fluor_data *ff1 = (struct fluor_data *) f1;
+	struct fluor_data *ff2 = (struct fluor_data *) f2;
+
+	return ff1->atomic_number-ff2->atomic_number;
+}
+static int compare_string(const void *a, const void *b)
+{
+   return strcmp(*(char **)a, *(char **)b);
+}
+
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static struct options_widget *create_options_frame(GtkWidget *main_window);
+static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo, int *nfdo);
 
 
 struct wizard_range_data {
@@ -210,6 +228,7 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 		else {
 			wacd->aod->keep_xmso = FALSE;
 		}
+		wacd->aod->xmsa_file = g_strdup(gtk_entry_get_text(GTK_ENTRY(wacd->wpd->archiveEntry)));
 	}
 	else {
 		wacd->aod->with_xmsa = FALSE;
@@ -348,12 +367,12 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nstepsEntry));
 	nsteps=strtol(textPtr, &endPtr, 10);
 	lastPtr = textPtr + strlen(textPtr);
-	if (entry == GTK_EDITABLE(wrd->nstepsEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps < 2)) {
+	if (entry == GTK_EDITABLE(wrd->nstepsEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps < 1)) {
 		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&red);
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 		return;
 	}
-	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps >= 2) {
+	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps >= 1) {
 		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&white);
 	}
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
@@ -659,6 +678,22 @@ static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidg
 	}
 }
 
+static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, GtkButton *okButton) {
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+	GtkTreeIter iter;
+	gtk_tree_model_get_iter(model, &iter, path);
+	gboolean selectable;
+
+	gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
+	if (selectable)
+		gtk_button_clicked(okButton);
+	else {
+		gtk_tree_view_expand_row(tree_view, path, FALSE);
+	}
+
+	return;
+}
+
 static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath, int *allowed) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select the variable parameter", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
@@ -680,6 +715,7 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 			G_CALLBACK(parameter_selection_changed_cb),
 			(gpointer) okButton
 		);
+	g_signal_connect(G_OBJECT(treeview), "row-activated", G_CALLBACK(parameter_row_activated_cb), (gpointer) okButton);
 
 
 
@@ -1589,7 +1625,7 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options *opti
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
-	g_fprintf(stdout,"Entering batchnode_button_clicked_cb...\n"); 
+	//g_fprintf(stdout,"Entering batchnode_button_clicked_cb...\n"); 
 	//open dialog
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Select one or more files", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
@@ -1611,9 +1647,9 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	//extract all selected filenames
 	GSList *filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
 	int i;
-	for (i = 0 ; i < g_slist_length(filenames) ; i++) {
-		g_fprintf(stdout,"filename: %s\n", (char *) g_slist_nth_data(filenames,i));
-	}
+	//for (i = 0 ; i < g_slist_length(filenames) ; i++) {
+	//	g_fprintf(stdout,"filename: %s\n", (char *) g_slist_nth_data(filenames,i));
+	//}
 
    	gtk_widget_destroy (dialog);
 	struct xmi_main_options *options;
@@ -1626,23 +1662,23 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		if (response == GTK_RESPONSE_YES) {
    			gtk_widget_destroy (dialog);
 			//file specific options
-			g_fprintf(stdout, "yes clicked\n");
+			//g_fprintf(stdout, "yes clicked\n");
 			options = malloc(sizeof(struct xmi_main_options)*g_slist_length(filenames));
 			int rv = specific_options(window, options, filenames); 
 			if (rv == 1) {
 				//wizard completed 
-				g_fprintf(stdout,"wizard completed\n");
+				//g_fprintf(stdout,"wizard completed\n");
 			}
 			else if (rv == 0) {
 				//wizard aborted 
-				g_fprintf(stdout,"wizard aborted\n");
+				//g_fprintf(stdout,"wizard aborted\n");
 				return;
 			}
 		}
 		else if (response == GTK_RESPONSE_NO) {
 			//options apply to all
    			gtk_widget_destroy (dialog);
-			g_fprintf(stdout, "no clicked\n");
+			//g_fprintf(stdout, "no clicked\n");
 			options = malloc(sizeof(struct xmi_main_options));
 			int rv = general_options(window, options);
 			if (rv == 0) {
@@ -1657,17 +1693,17 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//3) launch execution window
 		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION);
 		//4) display message with result
-		g_fprintf(stdout,"exec_rv: %i\n", exec_rv);
+		//g_fprintf(stdout,"exec_rv: %i\n", exec_rv);
 	}
 	else {
 		//one file selected
 		//options apply to all
-		g_fprintf(stdout, "no clicked\n");
+		//g_fprintf(stdout, "no clicked\n");
 		gchar *xpath;
 		struct xmi_input *input;
 		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input) == 0) {
 			//error reading inputfile
-			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading put-file %s. Aborting batch mode", (gchar *) g_slist_nth_data(filenames, 0));
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading input-file %s. Aborting batch mode", (gchar *) g_slist_nth_data(filenames, 0));
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
@@ -1675,10 +1711,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 		int allowed;
 		int rv = select_parameter(window, input, &xpath, &allowed);
-		g_fprintf(stdout,"select_parameter rv: %i\n", rv);
+		//g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
-			g_fprintf(stdout, "xpath: %s\n", xpath);
-			g_fprintf(stdout, "allowed: %i\n", allowed);
+			//g_fprintf(stdout, "xpath: %s\n", xpath);
+			//g_fprintf(stdout, "allowed: %i\n", allowed);
 		}
 		else
 			return;
@@ -1689,7 +1725,6 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		options = g_malloc(sizeof(struct xmi_main_options));
 		struct archive_options_data *aod = g_malloc(sizeof(struct archive_options_data));
 		rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath, allowed, aod);
-		g_fprintf(stdout, "archive_options rv: %i\n", rv);
 		if (rv == 0) {
 			return;
 		}
@@ -1705,6 +1740,9 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlDocPtr doc;
 		if ((doc = xmlReadFile(filename,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 			g_fprintf(stderr,"xmlReadFile error for %s\n", filename);
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not read file %s. Aborting batch mode", filename);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		xmlXPathContextPtr context;
@@ -1712,38 +1750,52 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 		context = xmlXPathNewContext(doc);
 		if (context == NULL) {
-			g_fprintf(stderr, "Error in xmlXPathNewContext\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		result = xmlXPathEvalExpression(BAD_CAST xpath, context);
 		if (result == NULL) {
-			g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
 			xmlXPathFreeObject(result);
-               		g_fprintf(stderr, "No result\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		xmlNodeSetPtr nodeset = result->nodesetval;
 		if (nodeset->nodeNr != 1) {
-			g_fprintf(stderr,"More than one result found for xpath expression\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		result2 = xmlXPathEvalExpression(BAD_CAST "/xmimsim/general/outputfile", context);
 		xmlXPathFreeContext(context);
 		if (result2 == NULL) {
-			g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		if(xmlXPathNodeSetIsEmpty(result2->nodesetval)){
 			xmlXPathFreeObject(result2);
-               		g_fprintf(stderr, "No result\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 		xmlNodeSetPtr nodeset2 = result2->nodesetval;
 		if (nodeset2->nodeNr != 1) {
-			g_fprintf(stderr,"More than one result found for xpath expression\n");
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
 			return;
 		}
 
@@ -1760,7 +1812,9 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			g_free(buffer);
 			xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i]);
 			if (xmlSaveFileEnc(filenames_xmsi[i],doc,NULL) == -1) {
-				fprintf(stderr,"Could not write to %s\n", filenames_xmsi[i]);
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s. Aborting batch mode", filenames_xmsi[i]);
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
 				return;
 			}
 		}
@@ -1768,6 +1822,70 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlXPathFreeObject (result2);
 		xmlFreeDoc(doc);
 		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION);
+		if (exec_rv == 0 || aod->with_xmsa == FALSE) {
+			return;
+		}
+		//read all xmso files that were just created
+		struct xmi_output **output = g_malloc(sizeof(struct xmi_output *)*(aod->nsteps+1));
+		for (i = 0 ; i <= aod->nsteps ; i++) {
+			//g_fprintf(stdout, "Reading %s\n", filenames_xmso[i]);
+			if (xmi_read_output_xml(filenames_xmso[i], &output[i]) == 0) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", filenames_xmso[i]);
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}	
+		}
+		//convert to an archive struct
+		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value, aod->end_value, aod->nsteps, xpath);
+		//save to XMSA file
+		//g_fprintf(stdout, "Writing %s\n", aod->xmsa_file);
+		if (xmi_write_archive_xml(aod->xmsa_file, archive) == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error writing to archive-file %s. Aborting batch mode", aod->xmsa_file);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		//g_fprintf(stdout, "Freeing output\n");
+		for (i = 0 ; i <= aod->nsteps ; i++)
+			xmi_free_output(output[i]);
+		g_free(output);
+
+		//deleting files if required
+		if (!aod->keep_xmsi) {
+			for (i = 0 ; i <= aod->nsteps ; i++)
+				g_unlink(filenames_xmsi[i]);
+		}
+		if (!aod->keep_xmso) {
+			for (i = 0 ; i <= aod->nsteps ; i++)
+				g_unlink(filenames_xmso[i]);
+		}
+		g_strfreev(filenames_xmsi);
+		g_strfreev(filenames_xmso);
+		g_slist_free(filenames_xmsiGSL);
+
+		//test
+		/*g_fprintf(stdout, "Freeing archive\n");
+		xmi_free_archive(archive);
+		g_fprintf(stdout, "Reading archive %s\n", aod->xmsa_file);
+		if (xmi_read_archive_xml(aod->xmsa_file, &archive) == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading from archive-file %s. Aborting batch mode", aod->xmsa_file);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}*/
+		//find all unique elements and lines
+		struct fluor_data *fd = NULL;
+		int nfd = 0;
+		get_fluor_data(archive, &fd, &nfd);
+		int j;
+		/*for (i = 0 ; i < nfd ; i++) {
+			g_fprintf(stdout, "Element: %i\n", fd[i].atomic_number);
+			for (j = 0 ; j < fd[i].n_lines ; j++) {
+				g_fprintf(stdout, "\tLine: %s\n", fd[i].line_types[j]);
+			}
+		}*/
+		
 
 	}
 
@@ -2908,5 +3026,98 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	return scrolled_window;
 }
 
+static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo, int *nfdo) {
 
+	gboolean found;
+	int loc = 0;
+	int i,j,k,l;
+	struct fluor_data *fd = NULL;
+	int nfd = 0;
+
+	for (i = 0 ; i <= archive->nsteps ; i++) {
+		for (j = 0 ; j < archive->output[i]->nvar_red_history ; j++) {
+			found = FALSE;
+			for (k = 0 ; k < nfd ; k++) {
+				if (archive->output[i]->var_red_history[j].atomic_number == fd[k].atomic_number) {
+					found = TRUE;
+					loc = k;
+					break;
+				}
+			}
+			if (!found) {
+				//add new element to array
+				fd = g_realloc(fd, sizeof(struct fluor_data)*++nfd);
+				fd[nfd-1].atomic_number = archive->output[i]->var_red_history[j].atomic_number;
+				fd[nfd-1].n_lines = archive->output[i]->var_red_history[j].n_lines;
+				fd[nfd-1].line_types = g_malloc(sizeof(gchar *)*fd[nfd-1].n_lines);
+				for (k = 0 ; k < fd[nfd-1].n_lines ; k++) {
+					fd[nfd-1].line_types[k]= g_strdup(archive->output[i]->var_red_history[j].lines[k].line_type);
+				}
+			}
+			else {
+				//element found -> check for new lines
+				for (k = 0 ; k < archive->output[i]->var_red_history[j].n_lines ; k++) {
+					found = FALSE;
+					for (l = 0 ; l < fd[loc].n_lines ; l++) {
+						if (strcmp(archive->output[i]->var_red_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
+							found = TRUE;
+							break;
+						}		
+					}
+					if (!found) {
+						//extend array
+						fd[loc].line_types = g_realloc(fd[loc].line_types, sizeof(gchar *)*++fd[loc].n_lines);
+						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i]->var_red_history[j].lines[k].line_type);
+					}
+				}
+			}
+		}
+		for (j = 0 ; j < archive->output[i]->nbrute_force_history ; j++) {
+			found = FALSE;
+			for (k = 0 ; k < nfd ; k++) {
+				if (archive->output[i]->brute_force_history[j].atomic_number == fd[k].atomic_number) {
+					found = TRUE;
+					loc = k;
+					break;
+				}
+			}
+			if (!found) {
+				//add new element to array
+				fd = g_realloc(fd, sizeof(struct fluor_data)*++nfd);
+				fd[nfd-1].atomic_number = archive->output[i]->brute_force_history[j].atomic_number;
+				fd[nfd-1].n_lines = archive->output[i]->brute_force_history[j].n_lines;
+				fd[nfd-1].line_types = g_malloc(sizeof(gchar *)*fd[nfd-1].n_lines);
+				for (k = 0 ; k < fd[nfd-1].n_lines ; k++) {
+					fd[nfd-1].line_types[k]= g_strdup(archive->output[i]->brute_force_history[j].lines[k].line_type);
+				}
+			}
+			else {
+				//element found -> check for new lines
+				for (k = 0 ; k < archive->output[i]->brute_force_history[j].n_lines ; k++) {
+					found = FALSE;
+					for (l = 0 ; l < fd[loc].n_lines ; l++) {
+						if (strcmp(archive->output[i]->brute_force_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
+							found = TRUE;
+							break;
+						}		
+					}
+					if (!found) {
+						//extend array
+						fd[loc].line_types = g_realloc(fd[loc].line_types, sizeof(gchar *)*++fd[loc].n_lines);
+						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i]->brute_force_history[j].lines[k].line_type);
+					}
+				}
+			}
+		}
+	}
+	//qsort everything
+	for (i = 0 ; i < nfd ; i++) {
+		qsort(fd[i].line_types, fd[i].n_lines, sizeof(gchar *), compare_string);
+	}
+	qsort(fd, nfd, sizeof(struct fluor_data), compare_fluor_data);
+
+	*fdo = fd;
+	*nfdo = nfd;
+	return;
+}
 

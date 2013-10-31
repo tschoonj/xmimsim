@@ -166,7 +166,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 	}
 	else {
 		//debug
-		fprintf(stdout,"nchannels: %i\n", output->nchannels);
+		//fprintf(stdout,"nchannels: %i\n", output->nchannels);
 	}
 
 	channels_loc = (double **) malloc(sizeof(double *)* (output->ninteractions+1));
@@ -449,7 +449,7 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 			}
 			xmlFree(txt);
 			if ((*composition)->reference_layer < 1 || (*composition)->reference_layer > (*composition)->n_layers) {
-				fprintf(stdout,"invalid reference_layer value detected\n");
+				fprintf(stderr,"invalid reference_layer value detected\n");
 				return 0;
 			} 
 		}
@@ -764,7 +764,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			size_t n_discrete = (*excitation)->n_discrete;
 			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
 #endif
-				fprintf(stdout,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
+				fprintf(stderr,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
 				if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
 					xed_match->horizontal_intensity += horizontal_intensity;	
 					xed_match->vertical_intensity += vertical_intensity;	
@@ -1196,8 +1196,8 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 		return 0;
 	}
 
-	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim") != 0 || xmlStrcmp(root->name,(const xmlChar*) "xmimsim-input") != 0) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-input\n",xmlfile);
+	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim") != 0) {
+		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim\n",xmlfile);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		return 0;
@@ -1248,7 +1248,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
 		return 0;
 	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-input", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
 		fprintf(stderr,"Error starting DTD\n");
 		return 0;
 	}
@@ -1258,8 +1258,8 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 		return 0;
 	}
 
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
-		fprintf(stderr,"Error writing xmimsim-input tag\n");
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
+		fprintf(stderr,"Error writing xmimsimtag\n");
 		return 0;
 	}
 
@@ -1269,7 +1269,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 	
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim-input\n");
+		fprintf(stderr,"Error ending xmimsim\n");
 		return 0;
 	}
 
@@ -1308,7 +1308,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
 		return 0;
 	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-input", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
+	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
 		fprintf(stderr,"Error starting DTD\n");
 		return 0;
 	}
@@ -1322,8 +1322,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 		return 0;
 	}
 
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
-		fprintf(stderr,"Error writing xmimsim-input tag\n");
+	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
+		fprintf(stderr,"Error writing xmimsimtag\n");
 		return 0;
 	}
 
@@ -1333,7 +1333,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	
 	//end it
 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim-input\n");
+		fprintf(stderr,"Error ending xmimsim\n");
 		return 0;
 	}
 
@@ -2853,7 +2853,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 	xmlNodePtr subroot, subsubroot;
 	xmlChar *txt;
 
-	//start by reading in xmimsim-input
+	//start by reading in xmimsim
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
 	xpathCtx = xmlXPathNewContext(doc);
@@ -2864,15 +2864,10 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 	}
 	xpathObj = xmlXPathNodeEval(root, "xmimsim-input", xpathCtx);
 	if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
-		if (xpathObj)
-			xmlXPathFreeObject(xpathObj);
-		xpathObj = xmlXPathNodeEval(root, "xmimsim", xpathCtx);
-		if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
-			fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
-			xmlXPathFreeContext(xpathCtx); 
-			xmlFreeDoc(doc); 
-			return 0;
-		}
+		fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
+		xmlXPathFreeContext(xpathCtx); 
+		xmlFreeDoc(doc); 
+		return 0;
 	}
 
 	op->input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
@@ -3021,6 +3016,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
 			ar->output = realloc(ar->output, sizeof(struct xmi_output*)*++nfiles);	
+			ar->output[nfiles-1] = malloc(sizeof(struct xmi_output));
 			if (xmi_read_output_xml_body(doc, subroot, ar->output[nfiles-1]) == 0) {
 				return 0;
 			}
@@ -3095,7 +3091,7 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 		fprintf(stderr,"Error writing nsteps\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps","%s", archive->xpath) < 0) {
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath","%s", archive->xpath) < 0) {
 		fprintf(stderr,"Error writing xpath\n");
 		return 0;
 	}

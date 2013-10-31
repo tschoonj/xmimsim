@@ -1213,7 +1213,7 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output **output, double st
 	
 	int i;
 	for (i = 0 ; i <= nsteps ; i++) {
-		xmi_copy_output(archive->output[i], &archive->output[i]);
+		xmi_copy_output(output[i], &archive->output[i]);
 		archive->input[i] = archive->output[i]->input;
 		archive->inputfiles[i] = archive->output[i]->inputfile;
 		archive->outputfiles[i] = archive->input[i]->general->outputfile;
