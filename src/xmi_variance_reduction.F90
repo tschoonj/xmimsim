@@ -52,7 +52,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: phi
         REAL (C_DOUBLE), DIMENSION(3) :: new_dirv_proj, elecv_norm
         !PROCEDURE (CS_FluorLine_Kissel), POINTER :: xmi_CS_FluorLine
-        REAL (C_FLOAT) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
+        REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight
 
@@ -329,8 +329,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
-                *DCSP_Rayl(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),&
-                REAL(theta,KIND=C_FLOAT), REAL(phi,KIND=C_FLOAT))
+                *DCSP_Rayl(layer%Z(i),photon%energy,&
+                theta, phi)
 
                 !find position in history
                 !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+1)&
@@ -378,8 +378,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 Pesc_comp = EXP(-temp_murhod) 
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
-                *DCSP_Compt(layer%Z(i),REAL(photon%energy,KIND=C_FLOAT),&
-                REAL(theta,KIND=C_FLOAT),REAL(phi, KIND=C_FLOAT))
+                *DCSP_Compt(layer%Z(i),photon%energy,&
+                theta,phi)
                 !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
                 != Pconv*Pdir*Pesc_comp*photon%weight
                 !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
@@ -418,124 +418,124 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
                 IF (photon%energy .GE. EdgeEnergy(layer%Z(i),K_SHELL)) &
                         PK = CS_Photo_Partial(layer%Z(i),K_SHELL,&
-                        REAL(photon%energy,KIND=C_FLOAT))
+                        photon%energy)
 
                 !set the XRF cross sections according to the options
                 SELECT CASE (photon%xmi_cascade_type)
                         CASE(XMI_CASCADE_NONE)
                         PL1 = PL1_pure_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT))
+                        photon%energy)
                         PL2 = PL2_pure_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PL1)
+                        photon%energy,PL1)
                         PL3 = PL3_pure_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PL1,PL2)
+                        photon%energy,PL1,PL2)
                         IF (photon%options%use_M_lines .EQ. 1) THEN 
                                 PM1 = PM1_pure_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT))
+                                photon%energy)
                                 PM2 = &
                                 PM2_pure_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),PM1)
+                                photon%energy,PM1)
                                 PM3 = &
                                 PM3_pure_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),PM1,PM2)
+                                photon%energy,PM1,PM2)
                                 PM4 = &
                                 PM4_pure_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PM1,PM2,PM3)
                                 PM5 = &
                                 PM5_pure_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PM1,PM2,PM3,PM4)
 
                         ENDIF
                         CASE(XMI_CASCADE_NONRADIATIVE)
                         PL1 = PL1_auger_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK)
+                        photon%energy,PK)
                         PL2 = PL2_auger_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK,PL1)
+                        photon%energy,PK,PL1)
                         PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),&
+                        photon%energy,&
                         PK,PL1,PL2)
                         IF (photon%options%use_M_lines .EQ. 1) THEN 
                                 PM1 =&
                                 PM1_auger_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK, PL1, PL2, PL3)
                                 PM2 = &
                                 PM2_auger_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1)
                                 PM3 = &
                                 PM3_auger_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2)
                                 PM4 = &
                                 PM4_auger_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3)
                                 PM5 = &
                                 PM5_auger_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
                         ENDIF
                         CASE(XMI_CASCADE_RADIATIVE)
                         PL1 = PL1_rad_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK)
+                        photon%energy,PK)
                         PL2 = PL2_rad_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK,PL1)
+                        photon%energy,PK,PL1)
                         PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),&
+                        photon%energy,&
                         PK,PL1,PL2)
                         IF (photon%options%use_M_lines .EQ. 1) THEN 
                                 PM1 =&
                                 PM1_rad_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK, PL1, PL2, PL3)
                                 PM2 = &
                                 PM2_rad_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1)
                                 PM3 = &
                                 PM3_rad_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2)
                                 PM4 = &
                                 PM4_rad_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3)
                                 PM5 = &
                                 PM5_rad_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
                         ENDIF
                         CASE(XMI_CASCADE_FULL)
                         PL1 = PL1_full_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK)
+                        photon%energy,PK)
                         PL2 = PL2_full_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),PK,PL1)
+                        photon%energy,PK,PL1)
                         PL3 = PL3_full_cascade_kissel(layer%Z(i),&
-                        REAL(photon%energy,KIND=C_FLOAT),&
+                        photon%energy,&
                         PK,PL1,PL2)
                         IF (photon%options%use_M_lines .EQ. 1) THEN 
                                 PM1 =&
                                 PM1_full_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK, PL1, PL2, PL3)
                                 PM2 = &
                                 PM2_full_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1)
                                 PM3 = &
                                 PM3_full_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2)
                                 PM4 = &
                                 PM4_full_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3)
                                 PM5 = &
                                 PM5_full_cascade_kissel(layer%Z(i),&
-                                REAL(photon%energy,KIND=C_FLOAT),&
+                                photon%energy,&
                                 PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
                         ENDIF
 

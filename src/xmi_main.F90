@@ -93,7 +93,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
         INTEGER (C_INT) :: element
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
-        REAL (C_FLOAT), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
@@ -528,7 +528,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
                           IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                          REAL(n_photons_sim*100_C_INT64_T)/REAL(n_photons_tot).AND.&
+                          REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE).AND.&
                           options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                           CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
@@ -815,7 +815,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
                           IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                          REAL(n_photons_sim*100_C_INT64_T)/REAL(n_photons_tot).AND.&
+                          REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE).AND.&
                           options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                           CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
@@ -1519,7 +1519,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                        atomsel_threshold = atomsel_threshold + &
                        inputF%composition%layers(photon%current_layer)%weight(i)*&
                        CS_Total_Kissel(inputF%composition%layers(photon%current_layer)%Z(i),&
-                       REAL(photon%energy,C_FLOAT))/photon%mus(photon%current_layer)
+                       photon%energy)/photon%mus(photon%current_layer)
                        IF (interactionR .LT. atomsel_threshold) THEN
                                 photon%current_element = inputF%composition&
                                 %layers(photon%current_layer)%Z(i)
@@ -2176,7 +2176,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv,trans
 
-        REAL (C_FLOAT) :: photo_total, energy_flt
+        REAL (C_DOUBLE) :: photo_total, energy_flt
         REAL (C_DOUBLE) :: sumz
         INTEGER (C_INT) :: shell,line_first, line_last, line
         REAL (C_DOUBLE) :: r
@@ -2196,8 +2196,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !so we've got photo electric effect
         !first is to check which shell got lucky
-        energy_flt = REAL(photon%energy,C_FLOAT)
-        photo_total = CS_Photo_Total(photon%current_element, energy_flt)
+        photo_total = CS_Photo_Total(photon%current_element, photon%energy)
 
         sumz = 0.0_C_DOUBLE
         shell_found = .FALSE.
@@ -5088,7 +5087,7 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv&
 
         !so we have fluorescence... but which line?
         r = fgsl_rng_uniform(rng)
-        sumz = 0.0_C_FLOAT
+        sumz = 0.0_C_DOUBLE
         line_found = .FALSE.
         IF (shell .EQ. K_SHELL) THEN
                 line_first = KL1_LINE
@@ -5449,8 +5448,8 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         IF (omp_get_thread_num() == 0) THEN
                         n_photons_sim = n_photons_sim+1_C_INT64_T
                         IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                        REAL(n_photons_sim*100_C_INT64_T,KIND=C_FLOAT)&
-                        /REAL(n_photons_tot,KIND=C_FLOAT).AND.&
+                        REAL(n_photons_sim*100_C_INT64_T,KIND=C_DOUBLE)&
+                        /REAL(n_photons_tot,KIND=C_DOUBLE).AND.&
                         input_options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                         CALL xmi_print_progress('Escape peak ratios calculation at'&

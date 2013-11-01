@@ -706,14 +706,14 @@ REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
         PI = 3.14159265359,maxpz = 100.0
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis,trapez2
-REAL (KIND=C_FLOAT), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
 temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
 
 INTEGER :: stat,i,j,k,l,m,n
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
-REAL (KIND=C_FLOAT) :: temp_energy,temp_total_cs
+REAL (KIND=C_DOUBLE) :: temp_energy,temp_total_cs
 
 
 CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
@@ -766,10 +766,10 @@ Zloop:DO i=1,maxz
 
                 thetaloop: DO k=1,nintervals_theta-1
                         trapez(k) = &
-(DCS_Rayl(i,REAL(energies(j),KIND=C_FLOAT),&
-REAL(thetas(k),KIND=C_FLOAT))*SIN(thetas(k))+&
-DCS_Rayl(i,REAL(energies(j),KIND=C_FLOAT),&
-REAL(thetas(k+1),KIND=C_FLOAT))*SIN(thetas(k+1)))&
+(DCS_Rayl(i,energies(j),&
+thetas(k))*SIN(thetas(k))+&
+DCS_Rayl(i,energies(j),&
+thetas(k+1))*SIN(thetas(k+1)))&
 *(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop
                 !to avoid database conflicts -> calculate CS_Rayl yourself...
@@ -808,10 +808,10 @@ REAL(thetas(k+1),KIND=C_FLOAT))*SIN(thetas(k+1)))&
 
                 thetaloop2: DO k=1,nintervals_theta-1
                         trapez(k) = &
-(DCS_Compt(i,REAL(energies(j),KIND=C_FLOAT),&
-REAL(thetas(k),KIND=C_FLOAT))*SIN(thetas(k))+&
-DCS_Compt(i,REAL(energies(j),KIND=C_FLOAT),&
-REAL(thetas(k+1),KIND=C_FLOAT))&
+(DCS_Compt(i,energies(j),&
+thetas(k))*SIN(thetas(k))+&
+DCS_Compt(i,energies(j),&
+thetas(k+1))&
 *SIN(thetas(k+1)))*(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop2
                 !trapez = trapez*2.0*PI/CS_Compt(i,REAL(energies(j),KIND=C_FLOAT))
@@ -852,7 +852,7 @@ ENDIF
         DO k=K_SHELL,M5_SHELL
                 temp_energy = EdgeEnergy(i,k)
                 IF (temp_energy < lowe) CYCLE
-                IF (temp_energy > 0.0_C_FLOAT) THEN
+                IF (temp_energy > 0.0_C_DOUBLE) THEN
                         !energies_flt = [energies_flt,&
                         ! temp_energy+0.00001_C_FLOAT]
                         !energies_flt = [energies_flt,&
@@ -860,15 +860,15 @@ ENDIF
                         ALLOCATE(temp_array(SIZE(energies_flt)+2))
                         temp_array(1:SIZE(energies_flt)) = energies_flt
                         CALL MOVE_ALLOC(temp_array, energies_flt)
-                        energies_flt(SIZE(energies_flt)-1)=temp_energy+0.00001_C_FLOAT
-                        energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_FLOAT
+                        energies_flt(SIZE(energies_flt)-1)=temp_energy+0.00001_C_DOUBLE
+                        energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_DOUBLE
                 ENDIF
         ENDDO
         
 
         !SORT them
         CALL qsort(C_LOC(energies_flt),SIZE(energies_flt,KIND=C_SIZE_T),&
-        INT(KIND(energies_flt),KIND=C_SIZE_T),C_FUNLOC(C_FLOAT_CMP))
+        INT(KIND(energies_flt),KIND=C_SIZE_T),C_FUNLOC(C_DOUBLE_CMP))
 
 
         ip_temp = energies_flt
@@ -898,8 +898,8 @@ ENDIF
         !
         DO j=1,nintervals_pz-1
                 trapez2(j) = &
-                (ComptonProfile(i, REAL(pzs(j),KIND=C_FLOAT))+&
-                ComptonProfile(i, REAL(pzs(j+1),KIND=C_FLOAT)))*&
+                (ComptonProfile(i, pzs(j))+&
+                ComptonProfile(i, pzs(j+1)))*&
                 (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(i,KIND=C_DOUBLE)
                 !divide by atomic number because we want an average value per
                 !electron

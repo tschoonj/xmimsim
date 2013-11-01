@@ -637,13 +637,13 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
         RR_Si_Ka = RadRate(14,KA_LINE)
         RR_Si_Kb = RadRate(14,KB_LINE)
         const = omegaK*(1.0_C_DOUBLE-1.0_C_DOUBLE/JumpFactor(14,K_SHELL))
-        mu_si = CS_Total_Kissel(14,REAL(E_Si_Ka,KIND=C_FLOAT))
+        mu_si = CS_Total_Kissel(14,E_Si_Ka)
 
         DO i=0,UBOUND(channels_conv, DIM=1)
                 e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
                         inputF%detector%zero
                 IF (e .LT. E_Si_Kedge) CYCLE
-                mu_e = CS_Total_Kissel(14,REAL(e,KIND=C_FLOAT))
+                mu_e = CS_Total_Kissel(14,e)
                 esc_rat = 0.5_C_DOUBLE*(1.0_C_DOUBLE -&
                 mu_si/mu_e*LOG(1.0_C_DOUBLE + mu_e/mu_si))
                 esc_rat = const*esc_rat/(1.0_C_DOUBLE-const*esc_rat)

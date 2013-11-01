@@ -247,8 +247,8 @@ rhoz = rhozmax*(p1/p2)
 
 !photoelectric absorption of Bremsstrahlung
 DO i=1,ncont
-        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        + tube_delta_energy/2.0_C_DOUBLE,KIND=C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),ebel_spectrum_cont(i)%energy&
+        + tube_delta_energy/2.0_C_DOUBLE)
 ENDDO
 
 rhelp = tau*2.0_C_DOUBLE*rhoz*sinfactor
@@ -359,7 +359,7 @@ rhoz = rhozmax*(p1/p2)
 DEALLOCATE(tau)
 ALLOCATE(tau(ndisc))
 DO i=1,ndisc
-        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),ebel_spectrum_disc(i)%energy)
        !tau(i)=CS_Photo(Z,REAL(disc_energy(i),C_FLOAT))
 ENDDO
 
@@ -564,13 +564,13 @@ IF (ALLOCATED(tube_windowF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_windowF%Z(1),ebel_spectrum_disc(i)%energy))
 ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        +tube_delta_energy/2.0_C_DOUBLE,C_FLOAT)))
+        CS_Total_Kissel(tube_windowF%Z(1),ebel_spectrum_cont(i)%energy&
+        +tube_delta_energy/2.0_C_DOUBLE))
 ENDDO
 ENDIF
 !and if there's a filter, use that one too
@@ -578,13 +578,12 @@ IF (ALLOCATED(tube_filterF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_filterF%Z(1),ebel_spectrum_disc(i)%energy))
 ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        ,C_FLOAT)))
+        CS_Total_Kissel(tube_filterF%Z(1),ebel_spectrum_cont(i)%energy))
 ENDDO
 ENDIF
 
