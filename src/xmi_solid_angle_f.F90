@@ -119,7 +119,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 DO j = 1, inputF%composition%layers(i)%n_elements
                         mu(i) = &
                         mu(i)+CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        REAL(energy,KIND=C_FLOAT))*&
+                        energy)*&
                         inputF%composition%layers(i)%weight(j)
                 ENDDO
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
@@ -181,7 +181,7 @@ BIND(C,NAME='xmi_solid_angle_calculation')
                 DO j = 1, inputF%composition%layers(i)%n_elements
                         mu(i) = mu(i)&
                         +CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        REAL(energy,KIND=C_FLOAT))&
+                        energy)&
                         *inputF%composition%layers(i)%weight(j)
                 ENDDO
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&

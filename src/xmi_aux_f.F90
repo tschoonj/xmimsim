@@ -461,7 +461,7 @@ TYPE :: xmi_photon
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: channels
 
         !detector absorption correction
-        REAL (C_FLOAT), DIMENSION(:,:), POINTER :: det_corr_all
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: det_corr_all
 
         LOGICAL :: inside
 
@@ -693,7 +693,7 @@ ENDFUNCTION C_FLOAT_CMP
 SUBROUTINE assign_interaction_prob(outvar,invar)
         IMPLICIT NONE
         TYPE(interaction_prob), INTENT(INOUT) :: outvar
-        REAL (KIND=C_FLOAT),DIMENSION(:),INTENT(IN) :: invar
+        REAL (KIND=C_DOUBLE),DIMENSION(:),INTENT(IN) :: invar
         INTEGER :: i
 
 #if DEBUG == 1
@@ -1057,8 +1057,8 @@ FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
         rv = 0.0_C_DOUBLE
 
         DO i=1,layer%n_elements
-                rv = rv + REAL(CS_Total_Kissel(layer%Z(i),&
-                REAL(energy,KIND=C_FLOAT))*layer%weight(i),KIND=C_DOUBLE)
+                rv = rv + CS_Total_Kissel(layer%Z(i),&
+                energy)*layer%weight(i)
         ENDDO
                  
 
