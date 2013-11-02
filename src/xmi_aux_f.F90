@@ -787,6 +787,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 ALLOCATE(xmi_inputF%composition%layers(i)%weight(xmi_layer_temp(i)%n_elements))
                 xmi_inputF%composition%layers(i)%weight = &
                 weight_temp
+                xmi_inputF%composition%layers(i)%weight = xmi_inputF%composition%layers(i)%weight&
+                /SUM(xmi_inputF%composition%layers(i)%weight)
         ENDDO
 
 #if DEBUG == 1
@@ -864,6 +866,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%absorbers%exc_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%exc_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%absorbers%exc_layers(i)%weight = xmi_inputF%absorbers%exc_layers(i)%weight&
+                        /SUM(xmi_inputF%absorbers%exc_layers(i)%weight)
                 ENDDO
         ENDIF
 
@@ -889,6 +893,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%absorbers%det_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%det_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%absorbers%det_layers(i)%weight = xmi_inputF%absorbers%det_layers(i)%weight&
+                        /SUM(xmi_inputF%absorbers%det_layers(i)%weight)
                 ENDDO
         ENDIF
 
@@ -932,6 +938,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%detector%crystal_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%detector%crystal_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%detector%crystal_layers(i)%weight = xmi_inputF%detector%crystal_layers(i)%weight&
+                        /SUM(xmi_inputF%detector%crystal_layers(i)%weight)
                 ENDDO
         ENDIF
 

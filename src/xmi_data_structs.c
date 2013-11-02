@@ -693,6 +693,7 @@ void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, st
 int xmi_validate_input(struct xmi_input *a) {
 	int i,j;
 	int rv = 0;
+	double sum;
 
 
 
@@ -731,6 +732,22 @@ after_general:
 	}
 
 	for (i = 0 ; i < a->composition->n_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->composition->layers[i].n_elements ; j++) {
+			if (a->composition->layers[i].Z[j] < 1 || a->composition->layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_COMPOSITION;
+				goto after_composition;
+			}
+			else if (a->composition->layers[i].weight[j] < 0.0 || a->composition->layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_COMPOSITION;
+				goto after_composition;
+			}
+			sum += a->composition->layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_COMPOSITION;
+			goto after_composition;
+		}
 		if (a->composition->layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_COMPOSITION;
 			goto after_composition;
@@ -841,6 +858,22 @@ after_excitation:
 
 	//absorbers
 	for (i = 0 ; i < a->absorbers->n_exc_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->absorbers->exc_layers[i].n_elements ; j++) {
+			if (a->absorbers->exc_layers[i].Z[j] < 1 || a->absorbers->exc_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			else if (a->absorbers->exc_layers[i].weight[j] < 0.0 || a->absorbers->exc_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			sum += a->absorbers->exc_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_ABSORBERS;
+			goto after_absorbers;
+		}
 		if (a->absorbers->exc_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_ABSORBERS;
 			goto after_absorbers;
@@ -852,6 +885,22 @@ after_excitation:
 	}
 
 	for (i = 0 ; i < a->absorbers->n_det_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->absorbers->det_layers[i].n_elements ; j++) {
+			if (a->absorbers->det_layers[i].Z[j] < 1 || a->absorbers->det_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			else if (a->absorbers->det_layers[i].weight[j] < 0.0 || a->absorbers->det_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			sum += a->absorbers->det_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_ABSORBERS;
+			goto after_absorbers;
+		}
 		if (a->absorbers->det_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_ABSORBERS;
 			goto after_absorbers;
@@ -896,6 +945,22 @@ after_absorbers:
 	}
 
 	for (i = 0 ; i < a->detector->n_crystal_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->detector->crystal_layers[i].n_elements ; j++) {
+			if (a->detector->crystal_layers[i].Z[j] < 1 || a->detector->crystal_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_DETECTOR;
+				goto after_detector;
+			}
+			else if (a->detector->crystal_layers[i].weight[j] < 0.0 || a->detector->crystal_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_DETECTOR;
+				goto after_detector;
+			}
+			sum += a->detector->crystal_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_DETECTOR;
+			goto after_detector;
+		}
 		if (a->detector->crystal_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_DETECTOR;
 			goto after_detector;

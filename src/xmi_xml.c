@@ -64,8 +64,8 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 static int xmi_write_default_comments(xmlTextWriterPtr writer);
 static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
 static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output);
+static int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers);
 
-extern int xmlLoadExtDtdDefaultValue;
 
 static int write_start_element(xmlTextWriterPtr writer, char *element);
 static int write_end_element(xmlTextWriterPtr writer, char *element);
@@ -194,7 +194,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 				if (!xmlStrcmp(countsPtr->name,(const xmlChar *) "counts")) {
 					attr = countsPtr->properties;
 					txt =xmlNodeListGetString(doc,attr->children,1);
-					interaction_loc = (int) strtol(txt, NULL, 10);
+					interaction_loc = (int) strtol((char *) txt, NULL, 10);
 					xmlFree(txt);
 					txt = xmlNodeListGetString(doc,countsPtr->children,1);	
 					if (sscanf((const char*) txt, "%lg", &(channels_loc[interaction_loc][channel_loc])) !=1) {
@@ -374,7 +374,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 				(*general)->outputfile = strdup("");
 			}
 			else {
-				(*general)->outputfile = (char *) strdup(txt); 
+				(*general)->outputfile = (char *) strdup((char *) txt); 
 			}
 			xmlFree(txt);
 		}
@@ -409,7 +409,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 				(*general)->comments = strdup("");
 			}
 			else {
-				(*general)->comments = (char *) strdup(txt); 
+				(*general)->comments = (char *) strdup((char *) txt); 
 			}
 			xmlFree(txt);
 		}
@@ -722,11 +722,11 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 					while (attr != NULL) {
 						if (!xmlStrcmp(attr->name,(const xmlChar *) "distribution_type")) {
 							txt = xmlNodeListGetString(doc,attr->children,1);
-							if (strcmp(txt, "monochromatic") == 0) {
+							if (strcmp((char *) txt, "monochromatic") == 0) {
 								distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 								xmlFree(txt);
 							}
-							else if (strcmp(txt, "gaussian") == 0) {
+							else if (strcmp((char *) txt, "gaussian") == 0) {
 								distribution_type = XMI_DISCRETE_GAUSSIAN;
 								xmlFree(txt);
 								//read scale_parameter value
@@ -737,7 +737,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 								}
 								xmlFree(txt);
 							}
-							else if (strcmp(txt, "lorentzian") == 0) {
+							else if (strcmp((char *) txt, "lorentzian") == 0) {
 								distribution_type = XMI_DISCRETE_LORENTZIAN;
 								xmlFree(txt);
 								//read scale_parameter value
@@ -759,11 +759,12 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			struct xmi_energy_discrete *xed_match;
 #ifdef G_OS_WIN32
 			unsigned int n_discrete = (*excitation)->n_discrete;
-			if ((xed_match = _lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
+			if ((xed_match = _lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) 
 #else
 			size_t n_discrete = (*excitation)->n_discrete;
-			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
+			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) 
 #endif
+				{
 				fprintf(stderr,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
 				if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
 					xed_match->horizontal_intensity += horizontal_intensity;	
@@ -1116,10 +1117,18 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 						fprintf(stderr,"error reading in weight_fraction of xml file\n");
 						return 0;
 					}
+					//special case: if weight is equal to zero, skip the element
+					//negative values will get caught by xmi_validate
+					//normalization will be performed by xmi_input_C2F
+					if (fabs(weight[n_elements-1]) < 1E-20) {
+						xrlFree(txt);
+						Z = realloc(Z, sizeof(int)*--n_elements);
+						weight = realloc(weight, sizeof(double)*n_elements);
+						break;
+					}
 					//divide weight by 100 to get rid of the percentages
 					weight[n_elements-1] /= 100.0;
 					xmlFree(txt);
-					
 				}
 				subsubnode = subsubnode->next;
 			}
@@ -1835,45 +1844,9 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		return 0;
 	}
 
-	for (i = 0 ; i < input->composition->n_layers ; i++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-			return 0;
-		}
-		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->composition->layers[i].Z[j]) < 0) {
-				fprintf(stderr,"Error writing atomic_number\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->composition->layers[i].weight[j]*100.0) < 0) {
-				fprintf(stderr,"Error writing weight_number\n");
-				return 0;
-			}
-			
-		
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
-				return 0;
-			}
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->composition->layers[i].density) < 0) {
-			fprintf(stderr,"Error writing density\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->composition->layers[i].thickness) < 0) {
-			fprintf(stderr,"Error writing thickness\n");
-			return 0;
-		}
-	
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
-			return 0;
-		}
-	}
+	if (xmi_write_layer_xml_body(writer, input->composition->layers, input->composition->n_layers) == 0)
+		return 0;
+
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "reference_layer","%i",input->composition->reference_layer) < 0) {
 		fprintf(stderr,"Error writing reference_layer\n");
 		return 0;
@@ -2038,13 +2011,13 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 					return 0;
 				}
 				if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) {
-					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "gaussian") <0) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", BAD_CAST "gaussian") <0) {
 						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
 						return 0;
 					}
 				}
 				else if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_LORENTZIAN) {
-					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "lorentzian") <0) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", BAD_CAST "lorentzian") <0) {
 						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
 						return 0;
 					}
@@ -2115,49 +2088,14 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
+
 	if (input->absorbers->n_exc_layers > 0) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "excitation_path") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 			return 0;
 		}
-		for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->absorbers->exc_layers[i].Z[j]) < 0) {
-					fprintf(stderr,"Error writing atomic_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->absorbers->exc_layers[i].weight[j]*100.0) < 0) {
-					fprintf(stderr,"Error writing weight_number\n");
-					return 0;
-				}
-			
-		
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
-					return 0;
-				}
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->absorbers->exc_layers[i].density) < 0) {
-				fprintf(stderr,"Error writing density\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->absorbers->exc_layers[i].thickness) < 0) {
-				fprintf(stderr,"Error writing thickness\n");
-				return 0;
-			}
-	
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
-				return 0;
-			}
+		if (xmi_write_layer_xml_body(writer, input->absorbers->exc_layers, input->absorbers->n_exc_layers) == 0) {
+			return 0;
 		}
 		if (xmlTextWriterEndElement(writer) < 0) {
 			fprintf(stderr,"Error calling xmlTextWriterEndElement for excitation_path\n");
@@ -2170,44 +2108,8 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 			return 0;
 		}
-		for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->absorbers->det_layers[i].Z[j]) < 0) {
-					fprintf(stderr,"Error writing atomic_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->absorbers->det_layers[i].weight[j]*100.0) < 0) {
-					fprintf(stderr,"Error writing weight_number\n");
-					return 0;
-				}
-			
-		
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
-					return 0;
-				}
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->absorbers->det_layers[i].density) < 0) {
-				fprintf(stderr,"Error writing density\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->absorbers->det_layers[i].thickness) < 0) {
-				fprintf(stderr,"Error writing thickness\n");
-				return 0;
-			}
-	
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
-				return 0;
-			}
+		if (xmi_write_layer_xml_body(writer, input->absorbers->det_layers, input->absorbers->n_det_layers) == 0) {
+			return 0;
 		}
 		if (xmlTextWriterEndElement(writer) < 0) {
 			fprintf(stderr,"Error calling xmlTextWriterEndElement for detector_path\n");
@@ -2269,47 +2171,9 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
 		return 0;
 	}
-	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-			return 0;
-		}
-		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",input->detector->crystal_layers[i].Z[j]) < 0) {
-				fprintf(stderr,"Error writing atomic_number\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",input->detector->crystal_layers[i].weight[j]*100.0) < 0) {
-				fprintf(stderr,"Error writing weight_number\n");
-				return 0;
-			}
-			
-		
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
-				return 0;
-			}
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",input->detector->crystal_layers[i].density) < 0) {
-			fprintf(stderr,"Error writing density\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",input->detector->crystal_layers[i].thickness) < 0) {
-			fprintf(stderr,"Error writing thickness\n");
-			return 0;
-		}
-	
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
-			return 0;
-		}
+	if (xmi_write_layer_xml_body(writer, input->detector->crystal_layers, input->detector->n_crystal_layers) == 0) {
+		return 0;
 	}
-
-
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending crystal\n");
 		return 0;
@@ -2840,7 +2704,7 @@ static int xmi_write_default_comments(xmlTextWriterPtr writer) {
 		return 0;
 	}
 
-	if (xmlTextWriterWriteComment(writer, "DO NOT MODIFY THIS FILE UNLESS YOU KNOW WHAT YOU ARE DOING!") < 0) {
+	if (xmlTextWriterWriteComment(writer, BAD_CAST "DO NOT MODIFY THIS FILE UNLESS YOU KNOW WHAT YOU ARE DOING!") < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
@@ -2862,7 +2726,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 		xmlFreeDoc(doc); 
         	return 0;
 	}
-	xpathObj = xmlXPathNodeEval(root, "xmimsim-input", xpathCtx);
+	xpathObj = xmlXPathNodeEval(root, BAD_CAST "xmimsim-input", xpathCtx);
 	if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
 		fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
 		xmlXPathFreeContext(xpathCtx); 
@@ -2891,7 +2755,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "inputfile")) {
 			//inputfile
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			op->inputfile = (char *) strdup(txt);
+			op->inputfile = (char *) strdup((char *) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
@@ -3011,7 +2875,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			ar->xpath = strdup(txt);
+			ar->xpath = strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
@@ -3122,6 +2986,53 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 		return 0;
 	}
 	xmlFreeDoc(doc);
+
+	return 1;
+}
+
+static int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers) {
+	int i, j;
+
+	for (i = 0 ; i < n_layers ; i++) {
+		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
+			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+			return 0;
+		}
+		for (j = 0 ; j < layers[i].n_elements ; j++) {
+			//skip if weight fraction is equal to zero
+			if (fabs(layers[i].weight[j]) < 1E-20)
+				continue;
+			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
+				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",layers[i].Z[j]) < 0) {
+				fprintf(stderr,"Error writing atomic_number\n");
+				return 0;
+			}
+			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%lg",layers[i].weight[j]*100.0) < 0) {
+				fprintf(stderr,"Error writing weight_number\n");
+				return 0;
+			}
+			if (xmlTextWriterEndElement(writer) < 0) {
+				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
+				return 0;
+			}
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%lg",layers[i].density) < 0) {
+			fprintf(stderr,"Error writing density\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%lg",layers[i].thickness) < 0) {
+			fprintf(stderr,"Error writing thickness\n");
+			return 0;
+		}
+	
+		if (xmlTextWriterEndElement(writer) < 0) {
+			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
+			return 0;
+		}
+	}
 
 	return 1;
 }

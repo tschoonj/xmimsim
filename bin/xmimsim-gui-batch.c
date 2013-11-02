@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <glib/gstdio.h>
 #include <string.h>
 #include <xraylib.h>
 #include <libxml/xmlmemory.h>
@@ -340,7 +341,8 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 		lastPtr = textPtr + strlen(textPtr);
 		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
 			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
-			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0)
+			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0) ||
+			((wrd->allowed & PARAMETER_WEIGHT_FRACTION) && (value <= 0.0 || value >= 100.0))
 			) {
 			gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
@@ -356,7 +358,8 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 		lastPtr = textPtr + strlen(textPtr);
 		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
 			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
-			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0)
+			((wrd->allowed & PARAMETER_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value > 100.0))
 			) {
 			gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
@@ -490,19 +493,26 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		return 0;
 
 	}
-	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
+	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[0]->children, 1);
 	xmlXPathFreeObject (result);
 	xmlFreeDoc(doc);
 	double valued;
 	int valuei;
 	long int valuel;
+	double inc = 1.0;
+
 	if (allowed & PARAMETER_DOUBLE) {
 		//valued = strtod(keyword, NULL) + 1.0;
 		valued = strtod(keyword, NULL);
 		buffer = g_strdup_printf("%lg", valued);
 		gtk_entry_set_text(GTK_ENTRY(startEntry), buffer);
 		g_free(buffer);
-		buffer = g_strdup_printf("%lg", valued+1.0);
+		if (allowed & PARAMETER_WEIGHT_FRACTION) {
+			while (valued+inc >= 100.0) {
+				inc/=10.0;
+			}
+		}
+		buffer = g_strdup_printf("%lg", valued+inc);
 		gtk_entry_set_text(GTK_ENTRY(endEntry), buffer);
 		g_free(buffer);
 	}
@@ -1755,6 +1765,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
+		//selected xpath
 		result = xmlXPathEvalExpression(BAD_CAST xpath, context);
 		if (result == NULL) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
@@ -1776,8 +1787,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
+		//outputfile
 		result2 = xmlXPathEvalExpression(BAD_CAST "/xmimsim/general/outputfile", context);
-		xmlXPathFreeContext(context);
 		if (result2 == NULL) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
 			gtk_dialog_run(GTK_DIALOG(dialog));
@@ -1799,7 +1810,45 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 
+		double weight_sum = 0.0;
+		double *orig_weight = NULL;
+		xmlXPathObjectPtr result3;
+		xmlNodePtr grandparent;
+		xmlNodeSetPtr grandkids;
+		if (allowed & PARAMETER_WEIGHT_FRACTION) {
+			//get grandparent of xpath node
+			grandparent = nodeset->nodeTab[0]->parent->parent;
+			//get all weight_fraction grandchildren
+			result3 = xmlXPathNodeEval(grandparent, BAD_CAST "element/weight_fraction", context);
+			if (result3 == NULL) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error occurred while evaluating element/weight_fraction.\nAborting batch mode");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}
+			if(xmlXPathNodeSetIsEmpty(result3->nodesetval)){
+				xmlXPathFreeObject(result3);
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error: empty nodeset. Aborting batch mode");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}
+			grandkids = result3->nodesetval;
+			orig_weight = g_malloc(sizeof(double) * grandkids->nodeNr);
+			for (i = 0 ; i < grandkids->nodeNr ; i++) {
+				if (grandkids->nodeTab[i] == nodeset->nodeTab[0]) {
+					continue;
+				}
+				buffer = (gchar *) xmlNodeListGetString(doc, grandkids->nodeTab[i]->children, 1);	
+				orig_weight[i] = strtod(buffer, NULL);
+				weight_sum += orig_weight[i];
+				xmlFree(buffer);
+			}
 
+		}
+
+
+		int j;
 		for (i = 0 ; i <= aod->nsteps ; i++) {
 			buffer = g_strdup_printf("%s%s%s%04i.xmsi", aod->xmsi_input_dir, G_DIR_SEPARATOR_S, aod->xmsi_prefix, i);
 			filenames_xmsiGSL = g_slist_append(filenames_xmsiGSL, (gpointer) buffer);
@@ -1807,19 +1856,36 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			buffer = g_strdup_printf("%s%s%s%04i.xmso", aod->xmso_output_dir, G_DIR_SEPARATOR_S, aod->xmso_prefix, i);
 			filenames_xmso[i] = buffer;
 			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nsteps);
-			buffer = g_strdup_printf("%lf", value);
+			if (allowed & PARAMETER_WEIGHT_FRACTION) {
+				double diff = 100.0-value-weight_sum;
+				double new_weight_sum = weight_sum + diff;
+				for (j = 0 ; j < grandkids->nodeNr ; j++) {
+					if (grandkids->nodeTab[j] == nodeset->nodeTab[0]) {
+						continue;
+					}
+					double new_weight = orig_weight[j]*new_weight_sum/weight_sum;
+					buffer = g_strdup_printf("%lg", new_weight);
+					xmlNodeSetContent(grandkids->nodeTab[j], BAD_CAST buffer);
+					g_free(buffer);
+				}
+			}
+			buffer = g_strdup_printf("%lg", value);
 			xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
 			g_free(buffer);
 			xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i]);
-			if (xmlSaveFileEnc(filenames_xmsi[i],doc,NULL) == -1) {
+			xmlKeepBlanksDefault(0);
+			if (xmlSaveFormatFileEnc(filenames_xmsi[i],doc,NULL,1) == -1) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s. Aborting batch mode", filenames_xmsi[i]);
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
 				return;
 			}
 		}
-		xmlXPathFreeObject (result);
-		xmlXPathFreeObject (result2);
+		if (orig_weight)
+			g_free(orig_weight);
+		xmlXPathFreeContext(context);
+		xmlXPathFreeObject(result);
+		xmlXPathFreeObject(result2);
 		xmlFreeDoc(doc);
 		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION);
 		if (exec_rv == 0 || aod->with_xmsa == FALSE) {
@@ -1878,7 +1944,6 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		struct fluor_data *fd = NULL;
 		int nfd = 0;
 		get_fluor_data(archive, &fd, &nfd);
-		int j;
 		/*for (i = 0 ; i < nfd ; i++) {
 			g_fprintf(stdout, "Element: %i\n", fd[i].atomic_number);
 			for (j = 0 ; j < fd[i].n_lines ; j++) {
@@ -2173,8 +2238,9 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			gtk_tree_store_set(model, &iter4,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
-				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_SELECTABLE_COLUMN, input->composition->layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
+				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -2721,8 +2787,9 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			gtk_tree_store_set(model, &iter4,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
-				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_SELECTABLE_COLUMN, input->absorbers->exc_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
+				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -2798,8 +2865,9 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			gtk_tree_store_set(model, &iter4,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
-				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_SELECTABLE_COLUMN, input->absorbers->det_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
+				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -2987,8 +3055,9 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			gtk_tree_store_set(model, &iter4,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
-				INPUT_SELECTABLE_COLUMN, FALSE,
+				INPUT_SELECTABLE_COLUMN, input->detector->crystal_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
+				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -3120,4 +3189,6 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 	*nfdo = nfd;
 	return;
 }
+
+
 
