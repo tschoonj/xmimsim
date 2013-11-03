@@ -3191,4 +3191,201 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 }
 
 
+struct archive_plot_data {
+	GtkWidget *roi_radioW;
+	GtkWidget *roi_start_spinnerW;
+	GtkWidget *roi_start_labelW;
+	GtkWidget *roi_end_spinnerW;
+	GtkWidget *roi_end_labelW;
+	GtkWidget *roi_conv_radioW;
+	GtkWidget *roi_unconv_radioW;
+	GtkWidget *roi_interactions_labelW;
+	GtkWidget *roi_interactions_comboW;
+	GtkWidget *roi_cumulative_radioW;
+	GtkWidget *roi_individual_radioW;
+	GtkWidget *xrf_radioW;
+	GtkWidget *xrf_element_labelW;
+	GtkWidget *xrf_element_comboW;
+	GtkWidget *xrf_line_labelW;
+	GtkWidget *xrf_line_comboW;
+	GtkWidget *xrf_interactions_labelW;
+	GtkWidget *xrf_interactions_comboW;
+	GtkWidget *xrf_cumulative_radioW;
+	GtkWidget *xrf_individual_radioW;
+	GtkWidget *okButton;
+	GtkWidget *saveButton;
+};
 
+
+void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
+	GtkWidget *roi_radioW;
+	GtkWidget *roi_start_spinnerW;
+	GtkWidget *roi_start_labelW;
+	GtkWidget *roi_end_spinnerW;
+	GtkWidget *roi_end_labelW;
+	GtkWidget *roi_conv_radioW;
+	GtkWidget *roi_unconv_radioW;
+	GtkWidget *roi_interactions_labelW;
+	GtkWidget *roi_interactions_comboW;
+	GtkWidget *roi_cumulative_radioW;
+	GtkWidget *roi_individual_radioW;
+	GtkWidget *xrf_radioW;
+	GtkWidget *xrf_element_labelW;
+	GtkWidget *xrf_element_comboW;
+	GtkWidget *xrf_line_labelW;
+	GtkWidget *xrf_line_comboW;
+	GtkWidget *xrf_interactions_labelW;
+	GtkWidget *xrf_interactions_comboW;
+	GtkWidget *xrf_cumulative_radioW;
+	GtkWidget *xrf_individual_radioW;
+	GtkWidget *okButton;
+	GtkWidget *saveButton;
+	
+	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), "Batch mode plot");
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
+
+	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 2);
+	GtkWidget *lilVBox;
+	GtkWidget *lilHBox;
+	GtkWidget *align;
+	
+	lilVBox = gtk_vbox_new(FALSE, 2);
+	roi_radioW= gtk_radio_button_new_with_label_from_widget(NULL,"Region of interest integration");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_radioW), FALSE);
+	gtk_box_pack_start(GTK_BOX(lilVBox), roi_radioW, FALSE, FALSE, 2);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	roi_start_labelW = gtk_label_new("First channel");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_start_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_box_pack_end(GTK_BOX(lilHBox), roi_start_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	roi_end_labelW = gtk_label_new("Last channel");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_end_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0]->nchannels);
+	gtk_box_pack_end(GTK_BOX(lilHBox), roi_end_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+
+	roi_conv_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Use convoluted spectra");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_conv_radioW), TRUE);
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_conv_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+	
+	roi_unconv_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_conv_radioW), "Use unconvoluted spectra");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_unconv_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	roi_interactions_labelW = gtk_label_new("#interactions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_interactions_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+#if GTK_CHECK_VERSION(2,24,0)
+	roi_interactions_comboW = gtk_combo_box_text_new();
+#else
+	roi_interactions_comboW = gtk_combo_box_new_text();
+#endif
+	gtk_box_pack_end(GTK_BOX(lilHBox), roi_interactions_comboW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+
+	roi_cumulative_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Cumulative interaction contributions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_cumulative_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_cumulative_radioW), TRUE);
+	roi_individual_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_cumulative_radioW), "Individual interaction contributions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), roi_individual_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), lilVBox, TRUE, FALSE, 2);
+
+	lilVBox = gtk_vbox_new(FALSE, 2);
+	xrf_radioW= gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_radioW),"X-ray fluorescence lines");
+	gtk_box_pack_start(GTK_BOX(lilVBox), xrf_radioW, FALSE, FALSE, 2);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	xrf_element_labelW = gtk_label_new("Element");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), xrf_element_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+#if GTK_CHECK_VERSION(2,24,0)
+	xrf_element_comboW = gtk_combo_box_text_new();
+#else
+	xrf_element_comboW = gtk_combo_box_new_text();
+#endif
+	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_element_comboW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+	
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	xrf_line_labelW = gtk_label_new("XRF line");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), xrf_line_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+#if GTK_CHECK_VERSION(2,24,0)
+	xrf_line_comboW = gtk_combo_box_text_new();
+#else
+	xrf_line_comboW = gtk_combo_box_new_text();
+#endif
+	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_line_comboW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+	
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	xrf_interactions_labelW = gtk_label_new("#interactions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), xrf_interactions_labelW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+#if GTK_CHECK_VERSION(2,24,0)
+	xrf_interactions_comboW = gtk_combo_box_text_new();
+#else
+	xrf_interactions_comboW = gtk_combo_box_new_text();
+#endif
+	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_interactions_comboW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+
+	xrf_cumulative_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Cumulative interaction contributions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), xrf_cumulative_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(xrf_cumulative_radioW), TRUE);
+	xrf_individual_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(xrf_cumulative_radioW), "Individual interaction contributions");
+	align = gtk_alignment_new(1, 1, 1, 1);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_container_add(GTK_CONTAINER(align), xrf_individual_radioW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), lilVBox, TRUE, FALSE, 2);
+
+	lilHBox = gtk_hbox_new(TRUE, 2);
+	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
+	gtk_box_pack_start(GTK_BOX(lilHBox), okButton, FALSE, FALSE, 2);
+	saveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_box_pack_start(GTK_BOX(lilHBox), saveButton, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 4);
+}

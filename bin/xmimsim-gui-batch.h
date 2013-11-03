@@ -42,5 +42,7 @@ enum {
 	PARAMETER_WEIGHT_FRACTION = 32,
 };
 
+void launch_archive_plot(struct xmi_archive *archive, GtkWidget *window);
+
 
 #endif
