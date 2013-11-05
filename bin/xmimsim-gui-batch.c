@@ -33,6 +33,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_lines.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include <gtkextra/gtkextra.h>
+#include "xmimsim-gui-results.h"
+#include <math.h>
+
+struct canvas_data {
+	double width;
+	double height;
+};
 
 struct options_widget {
 	GtkWidget *Mlines_prefsW;
@@ -1940,18 +1948,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			gtk_widget_destroy(dialog);
 			return;
 		}*/
-		//find all unique elements and lines
-		struct fluor_data *fd = NULL;
-		int nfd = 0;
-		get_fluor_data(archive, &fd, &nfd);
-		/*for (i = 0 ; i < nfd ; i++) {
-			g_fprintf(stdout, "Element: %i\n", fd[i].atomic_number);
-			for (j = 0 ; j < fd[i].n_lines ; j++) {
-				g_fprintf(stdout, "\tLine: %s\n", fd[i].line_types[j]);
-			}
-		}*/
 		
-
+		//and plot!
+		if (aod->with_plot)
+			launch_archive_plot(archive, window);
 	}
 
 
@@ -3214,10 +3214,427 @@ struct archive_plot_data {
 	GtkWidget *xrf_individual_radioW;
 	GtkWidget *okButton;
 	GtkWidget *saveButton;
+	GtkWidget *canvas;
+	struct xmi_archive *archive;
+	struct fluor_data *fd;
+	int nfd;
 };
 
+static void plot_archive_data_cb(struct archive_plot_data *apd) {
+	//first section will deal with generating the x- and y-values
+	double *x, *y;
+	int i,j,k,l;
+	gchar *buffer;
+
+	x = g_malloc(sizeof(double)*(apd->archive->nsteps+1));
+	y = g_malloc(sizeof(double)*(apd->archive->nsteps+1));
+	
+	for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+		x[i] = apd->archive->start_value + (apd->archive->end_value - apd->archive->start_value)*i/apd->archive->nsteps;
+	}
+
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
+		//ROI mode
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
+		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
+		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
+		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+#if GTK_CHECK_VERSION(2,24,0)
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
+#else
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->roi_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+
+		for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+			double yval = 0.0;
+			if (cumulative) {
+				for (j = apd->archive->output[i]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
+					for (k = start_channel ; k <= end_channel ; k++) {
+						if (convoluted)
+							yval += apd->archive->output[i]->channels_conv[j][k];
+						else
+							yval += apd->archive->output[i]->channels_unconv[j][k];
+					}
+				}
+			}
+			else {
+				for (k = start_channel ; k <= end_channel ; k++) {
+					if (convoluted)
+						yval += apd->archive->output[i]->channels_conv[interaction][k];
+					else
+						yval += apd->archive->output[i]->channels_unconv[interaction][k];
+				}
+			}
+			y[i] = yval;	
+		}
+	}
+	else {
+		//XRF mode
+		gboolean var_red;
+		struct xmi_fluorescence_line_counts **history = NULL; 
+		int *nhistory = NULL;
+
+		if (apd->archive->output[0]->nvar_red_history > 0) {
+			var_red = TRUE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps+1));
+			for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+				history[i] = apd->archive->output[i]->var_red_history;
+				nhistory[i] = apd->archive->output[i]->nvar_red_history;
+			}
+		}
+		else if (apd->archive->output[0]->nbrute_force_history > 0) {
+			var_red = FALSE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps+1));
+			for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+				history[i] = apd->archive->output[i]->brute_force_history;
+				nhistory[i] = apd->archive->output[i]->nbrute_force_history;
+			}
+		}
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
+		gchar *line_type = NULL;
+		int atomic_number_index;
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_line_comboW)) == 0)
+			line_type = NULL;
+#if GTK_CHECK_VERSION(2,24,0)
+		else 
+			line_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_interactions_comboW));
+#else
+		else 
+			line_type = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
+
+		for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+			double yval = 0.0;
+			if (atomic_number_index == -1) {
+				//Element = All
+				//XRF line = All
+				if (cumulative) {
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						for (k = 0 ; k < history[i][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+								if (history[i][j].lines[k].interactions[l].interaction_number <= interaction)
+									yval += history[i][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+				else {
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						for (k = 0 ; k < history[i][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+								if (history[i][j].lines[k].interactions[l].interaction_number == interaction)
+									yval += history[i][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+			}
+			else {
+				//specific element selected
+				if (line_type == NULL) {
+					//XRF line = All
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][j].n_lines ; k++) {
+								for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+									if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
+										yval += history[i][j].lines[k].interactions[l].counts;
+								}
+							}
+							
+						}
+					}
+				}
+				else {
+					//XRF line = specific
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][j].n_lines ; k++) {
+								if (strcmp(history[i][j].lines[k].line_type, line_type) == 0) {
+									for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+										if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
+											yval += history[i][j].lines[k].interactions[l].counts;
+									}
+								}
+							}
+						}
+					}
+				}	
+			}
+			y[i] = yval;	
+		}
+	}
+
+	//y values have been calculated -> plot
+	GtkPlotCanvasChild *child;
+
+	GList *list;
+	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	while (list) {
+		child = GTK_PLOT_CANVAS_CHILD(list->data);
+		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
+		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	}
+	//add box with default settings
+	GtkWidget *plot_window;
+	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
+	gtk_plot_hide_legends(GTK_PLOT(plot_window));
+
+	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps+1);
+	double real_ymin = xmi_minval_double(y,apd->archive->nsteps+1);
+
+	double plot_ymax = real_ymax + (real_ymax-real_ymin)/10.0;
+	double plot_ymin = real_ymin - (real_ymax-real_ymin)/10.0;
+	double plot_xmin = x[0] - (x[apd->archive->nsteps]-x[0])/10.0;
+	double plot_xmax = x[apd->archive->nsteps] + (x[apd->archive->nsteps]-x[0])/10.0;
+
+
+	if (real_ymax == 0.0) {
+		//if y is zero everywhere
+		plot_ymax = 1.0;
+		plot_ymin = 0.0;
+	}
+
+	/* need a clever algorithm here */
+	/* number of ticks should be at least 2 and at most 5 */
+	double tickstep = 1E-10;
+	double nticks = floor((plot_ymax-plot_ymin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((plot_ymax-plot_ymin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
+
+	tickstep = 1E-10;
+	nticks = floor((plot_xmax-plot_xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((plot_xmax-plot_xmin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep,5);
+
+	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity");
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	
+	if (plot_ymax < 10000.0 && plot_ymin > 1.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+
+	if (plot_xmax < 10000.0 && plot_xmin > 1.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
+
+
+	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
+        gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
+
+	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
+        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
+        gtk_widget_show(plot_window);
+
+	GtkPlotData *dataset;
+	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
+	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
+	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps+1);
+	gtk_plot_data_set_x(dataset, x);
+	gtk_plot_data_set_y(dataset, y);
+	gtk_widget_show(GTK_WIDGET(dataset));
+	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,2,&blue_plot);
+	gtk_plot_data_set_symbol(dataset, GTK_PLOT_SYMBOL_CIRCLE, GTK_PLOT_SYMBOL_FILLED, 5, 1.0, &red_plot, &red_plot);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+
+	return;
+}
+
+static void save_archive_plot(GtkButton *saveButton, GtkWidget *canvas) {
+	export_canvas_image(canvas, "Export plot as");
+}
+
+static void roi_spin_button_changed_cb(GtkSpinButton *roi_start_spinnerW, struct archive_plot_data *apd) {
+	//warning: will have to disable temporarily the plot_archive_data_cb on roi_end_spinnerW
+	gint value_start = gtk_spin_button_get_value_as_int(roi_start_spinnerW);
+	gint value_end = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+
+	if (value_end < value_start) {
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(apd->roi_end_spinnerW), (double) value_start);
+		return;
+	}
+	plot_archive_data_cb(apd);
+	return;
+}
+
+static void xrf_element_changed_cb(GtkComboBox *xrf_element_comboW, struct archive_plot_data *apd) {
+	//clear xrf_line_comboW
+	int i;
+
+	g_signal_handlers_block_by_func(G_OBJECT(apd->xrf_line_comboW), plot_archive_data_cb, apd);
+
+	for (i = gtk_tree_model_iter_n_children(gtk_combo_box_get_model(GTK_COMBO_BOX(apd->xrf_line_comboW)),NULL)-1 ;  i > 0; i--) {
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW), i);
+#else
+		gtk_combo_box_remove_text(GTK_COMBO_BOX(apd->xrf_line_comboW), i);
+#endif
+	}
+
+	if (gtk_combo_box_get_active(xrf_element_comboW) == 0) {
+		//ALL elements selected
+		gtk_widget_set_sensitive(apd->xrf_line_comboW, FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(apd->xrf_line_comboW, TRUE);
+		int i = gtk_combo_box_get_active(GTK_COMBO_BOX(xrf_element_comboW))-1;
+		int j;
+		for (j = 0 ; j < apd->fd[i].n_lines ; j++) {
+#if GTK_CHECK_VERSION(2,24,0)
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW), apd->fd[i].line_types[j]);
+#else
+			gtk_combo_box_append_text(GTK_COMBO_BOX(apd->xrf_line_comboW), apd->fd[i].line_types[j]);
+#endif
+		}
+
+
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(apd->xrf_line_comboW), 0);
+	g_signal_handlers_unblock_by_func(G_OBJECT(apd->xrf_line_comboW), plot_archive_data_cb, apd);
+	plot_archive_data_cb(apd);
+	return;
+}
+
+static void roi_xrf_toggled_cb(GtkToggleButton *roi_radioW, struct archive_plot_data *apd) {
+	if (gtk_toggle_button_get_active(roi_radioW)) {
+		//ROI mode
+		gtk_widget_set_sensitive(apd->roi_start_spinnerW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_start_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_spinnerW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_conv_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_unconv_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_interactions_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_interactions_comboW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_cumulative_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_individual_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_element_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_element_comboW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_line_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_line_comboW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_interactions_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_interactions_comboW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_cumulative_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_individual_radioW, FALSE);
+	}
+	else {
+		//XRF mode
+		gtk_widget_set_sensitive(apd->roi_start_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_conv_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_unconv_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_interactions_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_interactions_comboW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_cumulative_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_individual_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->xrf_element_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_element_comboW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_line_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_interactions_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_interactions_comboW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_cumulative_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->xrf_individual_radioW, TRUE);
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW)) > 0)
+			gtk_widget_set_sensitive(apd->xrf_line_comboW, TRUE);
+		else
+			gtk_widget_set_sensitive(apd->xrf_line_comboW, FALSE);
+	}
+
+
+	plot_archive_data_cb(apd);
+	return;
+}
+
+static gboolean resize_canvas_cb(GtkWidget *canvas, GdkEvent *event, struct canvas_data *cd) {
+	gdouble magnifier_height;
+	gdouble magnifier_width;
+
+
+	gint height = canvas->allocation.height;
+	gint width = canvas->allocation.width;
+
+	if (width == cd->width && height == cd->height)
+		return FALSE;
+
+	magnifier_height = (gdouble) height/(gdouble) GTK_PLOT_A4_W;	
+	magnifier_width = (gdouble) width/(gdouble) GTK_PLOT_A4_H;	
+
+	gtk_plot_canvas_set_magnification(GTK_PLOT_CANVAS(canvas),MAX(magnifier_height, magnifier_width));
+
+	gtk_widget_queue_resize(GTK_WIDGET(canvas));
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+
+	cd->height = canvas->allocation.height;
+	cd->width = canvas->allocation.width;
+
+
+	return FALSE;
+
+
+}
 
 void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
+	//on quitting this window -> free archive (lot of memory)
 	GtkWidget *roi_radioW;
 	GtkWidget *roi_start_spinnerW;
 	GtkWidget *roi_start_labelW;
@@ -3241,26 +3658,47 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	GtkWidget *okButton;
 	GtkWidget *saveButton;
 	
+	//find all unique elements and lines
+	int i;
+	gchar *interaction;
+	struct fluor_data *fd = NULL;
+	int nfd = 0;
+	get_fluor_data(archive, &fd, &nfd);
+	/*for (i = 0 ; i < nfd ; i++) {
+		g_fprintf(stdout, "Element: %i\n", fd[i].atomic_number);
+		for (j = 0 ; j < fd[i].n_lines ; j++) {
+			g_fprintf(stdout, "\tLine: %s\n", fd[i].line_types[j]);
+		}
+	}*/
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Batch mode plot");
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+
+	GtkWidget *mainHBox = gtk_hbox_new(FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
+	gtk_container_add(GTK_CONTAINER(window), mainHBox);
 
 	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 1);
 	GtkWidget *lilVBox;
 	GtkWidget *lilHBox;
 	GtkWidget *align;
 	
 	lilVBox = gtk_vbox_new(FALSE, 2);
-	roi_radioW= gtk_radio_button_new_with_label_from_widget(NULL,"Region of interest integration");
+	roi_radioW= gtk_radio_button_new_from_widget(NULL);
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), "<b>Region of interest integration</b>");
+	gtk_container_add(GTK_CONTAINER(roi_radioW), label);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_radioW), FALSE);
 	gtk_box_pack_start(GTK_BOX(lilVBox), roi_radioW, FALSE, FALSE, 2);
 
 	lilHBox = gtk_hbox_new(FALSE, 2);
 	roi_start_labelW = gtk_label_new("First channel");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_start_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
@@ -3271,7 +3709,7 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	lilHBox = gtk_hbox_new(FALSE, 2);
 	roi_end_labelW = gtk_label_new("Last channel");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_end_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
@@ -3283,99 +3721,146 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	roi_conv_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Use convoluted spectra");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_conv_radioW), TRUE);
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_conv_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 	
 	roi_unconv_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_conv_radioW), "Use unconvoluted spectra");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_unconv_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 
 	lilHBox = gtk_hbox_new(FALSE, 2);
-	roi_interactions_labelW = gtk_label_new("#interactions");
+	roi_interactions_labelW = gtk_label_new("Number of interactions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_interactions_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 #if GTK_CHECK_VERSION(2,24,0)
 	roi_interactions_comboW = gtk_combo_box_text_new();
+	if (archive->output[0]->use_zero_interactions)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(roi_interactions_comboW), "0");
+	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+		interaction = g_strdup_printf("%i", i);
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(roi_interactions_comboW), interaction);
+		g_free(interaction);
+	}
 #else
 	roi_interactions_comboW = gtk_combo_box_new_text();
+	if (archive->output[0]->use_zero_interactions)
+		gtk_combo_box_append_text(GTK_COMBO_BOX(roi_interactions_comboW), "0");
+	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+		interaction = g_strdup_printf("%i", i);
+		gtk_combo_box_append_text(GTK_COMBO_BOX(roi_interactions_comboW), interaction);
+		g_free(interaction);
+	}
 #endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(roi_interactions_comboW), gtk_tree_model_iter_n_children(gtk_combo_box_get_model(GTK_COMBO_BOX(roi_interactions_comboW)),NULL)-1);
 	gtk_box_pack_end(GTK_BOX(lilHBox), roi_interactions_comboW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 
 	roi_cumulative_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Cumulative interaction contributions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_cumulative_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_cumulative_radioW), TRUE);
 	roi_individual_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_cumulative_radioW), "Individual interaction contributions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_individual_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), lilVBox, TRUE, FALSE, 2);
 
 	lilVBox = gtk_vbox_new(FALSE, 2);
-	xrf_radioW= gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_radioW),"X-ray fluorescence lines");
+	xrf_radioW= gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(roi_radioW));
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), "<b>X-ray fluorescence lines</b>");
+	gtk_container_add(GTK_CONTAINER(xrf_radioW), label);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(xrf_radioW), TRUE);
 	gtk_box_pack_start(GTK_BOX(lilVBox), xrf_radioW, FALSE, FALSE, 2);
 
 	lilHBox = gtk_hbox_new(FALSE, 2);
 	xrf_element_labelW = gtk_label_new("Element");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), xrf_element_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
+	gchar *element;
 #if GTK_CHECK_VERSION(2,24,0)
 	xrf_element_comboW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(xrf_element_comboW), "All");
+	for (i = 0 ; i < nfd ; i++) {
+		element = AtomicNumberToSymbol(fd[i].atomic_number);
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(xrf_element_comboW), element);
+		xrlFree(element);
+	}
 #else
 	xrf_element_comboW = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(xrf_element_comboW), "All");
+	for (i = 0 ; i < nfd ; i++) {
+		element = AtomicNumberToSymbol(fd[i].atomic_number);
+		gtk_combo_box_append_text(GTK_COMBO_BOX(xrf_element_comboW), element);
+		xrlFree(element);
+	}
 #endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(xrf_element_comboW), 0);
 	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_element_comboW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 	
 	lilHBox = gtk_hbox_new(FALSE, 2);
 	xrf_line_labelW = gtk_label_new("XRF line");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), xrf_line_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 #if GTK_CHECK_VERSION(2,24,0)
 	xrf_line_comboW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(xrf_line_comboW), "All");
 #else
 	xrf_line_comboW = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(xrf_line_comboW), "All");
 #endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(xrf_line_comboW), 0);
 	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_line_comboW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 	
 	lilHBox = gtk_hbox_new(FALSE, 2);
-	xrf_interactions_labelW = gtk_label_new("#interactions");
+	xrf_interactions_labelW = gtk_label_new("Number of interactions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), xrf_interactions_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 #if GTK_CHECK_VERSION(2,24,0)
 	xrf_interactions_comboW = gtk_combo_box_text_new();
+	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+		interaction = g_strdup_printf("%i", i);
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(xrf_interactions_comboW), interaction);
+		g_free(interaction);
+	}
 #else
 	xrf_interactions_comboW = gtk_combo_box_new_text();
+	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+		interaction = g_strdup_printf("%i", i);
+		gtk_combo_box_append_text(GTK_COMBO_BOX(xrf_interactions_comboW), interaction);
+		g_free(interaction);
+	}
 #endif
+	gtk_combo_box_set_active(GTK_COMBO_BOX(xrf_interactions_comboW), gtk_tree_model_iter_n_children(gtk_combo_box_get_model(GTK_COMBO_BOX(xrf_interactions_comboW)),NULL)-1);
 	gtk_box_pack_end(GTK_BOX(lilHBox), xrf_interactions_comboW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 
 	xrf_cumulative_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Cumulative interaction contributions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), xrf_cumulative_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(xrf_cumulative_radioW), TRUE);
 	xrf_individual_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(xrf_cumulative_radioW), "Individual interaction contributions");
 	align = gtk_alignment_new(1, 1, 1, 1);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 10, 0);
+	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), xrf_individual_radioW);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 2);
 
@@ -3388,4 +3873,81 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(lilHBox), saveButton, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 4);
+
+
+	//canvas
+	GtkWidget *canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 1.0);
+	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
+	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
+	gtk_box_pack_start(GTK_BOX(mainHBox),canvas,FALSE,FALSE,2);
+	
+
+	
+
+	//default sensitivities
+	gtk_widget_set_sensitive(xrf_line_comboW, FALSE);
+	gtk_widget_set_sensitive(roi_start_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_start_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_end_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_end_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_conv_radioW, FALSE);
+	gtk_widget_set_sensitive(roi_unconv_radioW, FALSE);
+	gtk_widget_set_sensitive(roi_interactions_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_interactions_comboW, FALSE);
+	gtk_widget_set_sensitive(roi_cumulative_radioW, FALSE);
+	gtk_widget_set_sensitive(roi_individual_radioW, FALSE);
+
+
+	struct archive_plot_data *apd = g_malloc(sizeof(struct archive_plot_data));
+	apd->roi_radioW = roi_radioW;
+	apd->roi_start_spinnerW = roi_start_spinnerW;
+	apd->roi_start_labelW = roi_start_labelW;
+	apd->roi_end_spinnerW = roi_end_spinnerW;
+	apd->roi_end_labelW = roi_end_labelW;
+	apd->roi_conv_radioW = roi_conv_radioW;
+	apd->roi_unconv_radioW = roi_unconv_radioW;
+	apd->roi_interactions_labelW = roi_interactions_labelW;
+	apd->roi_interactions_comboW = roi_interactions_comboW;
+	apd->roi_cumulative_radioW = roi_cumulative_radioW;
+	apd->roi_individual_radioW = roi_individual_radioW;
+	apd->xrf_radioW = xrf_radioW;
+	apd->xrf_element_labelW = xrf_element_labelW;
+	apd->xrf_element_comboW = xrf_element_comboW;
+	apd->xrf_line_labelW = xrf_line_labelW;
+	apd->xrf_line_comboW = xrf_line_comboW;
+	apd->xrf_interactions_labelW = xrf_interactions_labelW;
+	apd->xrf_interactions_comboW = xrf_interactions_comboW;
+	apd->xrf_cumulative_radioW = xrf_cumulative_radioW;
+	apd->xrf_individual_radioW = xrf_individual_radioW;
+	apd->okButton = okButton;
+	apd->saveButton = saveButton;
+	apd->canvas = canvas;
+	apd->archive = archive;
+	apd->nfd = nfd;
+	apd->fd = fd;
+
+	//callbacks registration
+	g_signal_connect(G_OBJECT(roi_radioW), "toggled", G_CALLBACK(roi_xrf_toggled_cb), apd);
+	g_signal_connect(G_OBJECT(xrf_element_comboW), "changed", G_CALLBACK(xrf_element_changed_cb), apd);
+	g_signal_connect(G_OBJECT(roi_start_spinnerW), "value-changed", G_CALLBACK(roi_spin_button_changed_cb), apd);
+
+	g_signal_connect_swapped(G_OBJECT(roi_end_spinnerW), "value-changed", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(roi_conv_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(roi_interactions_comboW), "changed", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(roi_cumulative_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(xrf_line_comboW), "changed", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(xrf_interactions_comboW), "changed", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(xrf_cumulative_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
+
+	g_signal_connect_swapped(G_OBJECT(okButton), "clicked", G_CALLBACK(gtk_widget_destroy), window);
+	g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(xmi_free_archive), apd->archive);
+
+	g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(save_archive_plot), canvas);
+	/*struct canvas_data *cd = g_malloc(sizeof(struct canvas_data));
+	cd->width = 0.0;
+	cd->height = 0.0;
+	g_signal_connect(G_OBJECT(canvas),"expose-event", G_CALLBACK(resize_canvas_cb), cd);
+	*/
+	gtk_widget_show_all(window);
+	plot_archive_data_cb(apd);
 }

@@ -97,7 +97,7 @@ void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
 
 
-gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
+static gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	GtkWidget *paned = (GtkWidget *) data;
 	gdouble magnifier;
 

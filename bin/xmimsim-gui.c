@@ -4920,6 +4920,25 @@ XMI_MAIN
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 		}
+		else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+			update_xmimsim_title_xmsi("New file", window, NULL);
+			update_xmimsim_title_xmso("No simulation data available", window, NULL);
+			struct xmi_archive *archive;
+			if (xmi_read_archive_xml(filename, &archive) == 0) {
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+			       		GTK_MESSAGE_ERROR,
+			       		GTK_BUTTONS_CLOSE,
+			       		"Could not read file %s",filename
+	               		);
+	     			//gtk_dialog_run (GTK_DIALOG (dialog));
+				//gtk_widget_destroy (dialog);
+				g_idle_add(dialog_helper_cb,(gpointer) dialog);
+			}
+			else {
+				launch_archive_plot(archive, window);
+			}
+		}
 		else {
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
@@ -5348,7 +5367,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog = NULL;
-	GtkFileFilter *filter1, *filter2;
+	GtkFileFilter *filter1, *filter2, *filter3;
 	gchar *filename;
 	struct xmi_input *xi;
 	gchar *title;
@@ -5364,6 +5383,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	filter2 = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter2,"*.xmso");
 	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
+	filter3 = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter2,"*.xmsa");
+	gtk_file_filter_set_name(filter2,"XMI-MSIM archives");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -5372,6 +5394,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter3);
 	 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
@@ -5396,6 +5419,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				title = g_path_get_basename(filename);
 				update_xmimsim_title_xmsi(title, data, filename);
 				g_free(title);
+				adjust_save_buttons();
 				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
 			else {
@@ -5428,11 +5452,28 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	     			gtk_dialog_run (GTK_DIALOG (dialog));
 			}
 		}
+		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter3) {
+			struct xmi_archive *archive;
+			if (xmi_read_archive_xml(filename, &archive) == 0) {
+				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+			       		GTK_MESSAGE_ERROR,
+			       		GTK_BUTTONS_CLOSE,
+			       		"Could not read file %s",filename
+	               		);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+			}
+			else {
+				gtk_widget_destroy (dialog);
+				g_free (filename);
+				launch_archive_plot(archive, (GtkWidget *)data);
+				return;
+			}
+		}
 		g_free (filename);							
 	}
 
 	gtk_widget_destroy (dialog);
-	adjust_save_buttons();
 }
 
 int check_changeables(void) {
