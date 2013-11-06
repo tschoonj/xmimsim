@@ -5384,8 +5384,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	gtk_file_filter_add_pattern(filter2,"*.xmso");
 	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
 	filter3 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter2,"*.xmsa");
-	gtk_file_filter_set_name(filter2,"XMI-MSIM archives");
+	gtk_file_filter_add_pattern(filter3,"*.xmsa");
+	gtk_file_filter_set_name(filter3,"XMI-MSIM archives");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
