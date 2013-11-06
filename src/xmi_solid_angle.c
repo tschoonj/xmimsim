@@ -63,6 +63,9 @@ struct xmi_solid_angles_data{
   #elif defined(HAVE_CL_CL_H)
 	#include <CL/cl.h>
   #endif
+  #ifdef MAC_INTEGRATION
+	#include "xmi_resources_mac.h"
+  #endif
 
 
   #define RANGE_DIVIDER 8
