@@ -4298,6 +4298,7 @@ XMI_MAIN
 	notebookG = g_signal_connect(G_OBJECT(notebook), "switch-page",G_CALLBACK(notebook_page_changed_cb),window);
 	g_signal_handler_block(G_OBJECT(notebook), notebookG);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
+	gtk_notebook_set_homogeneous_tabs(GTK_NOTEBOOK(notebook), TRUE);
 	gtk_widget_show(notebook);
 
 	frame = gtk_frame_new("General");
@@ -4402,6 +4403,7 @@ XMI_MAIN
 	label = gtk_label_new("Input parameters");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Input parameters</span>");
 	input_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), scrolled_window, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 	gtk_widget_show_all(notebook);
@@ -4832,6 +4834,7 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation controls</span>");
 	controlsPageW = init_simulation_controls(window);
 	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), controlsPageW, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), controlsPageW, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	gtk_widget_show_all(controlsPageW);
 
 	//third notebook page: Results
@@ -4839,6 +4842,7 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
 	resultsPageW = init_results(window);
 	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), resultsPageW, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	gtk_widget_show_all(resultsPageW);
 	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), results_page);
 	//fprintf(stdout,"going to input_page\n");
