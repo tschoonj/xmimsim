@@ -19,6 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmimsim-gui-controls.h"
 
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
+#endif
+
 
 #ifndef XMIMSIM_GUI_H
 #define XMIMSIM_GUI_H
@@ -84,9 +88,16 @@ enum {
 	DISCRETE_ENERGY_ADD,
 	DISCRETE_ENERGY_EDIT,
 	DISCRETE_ENERGY_DELETE,
+	DISCRETE_ENERGY_CLEAR,
+	DISCRETE_ENERGY_IMPORT_ADD,
+	DISCRETE_ENERGY_IMPORT_REPLACE,
 	CONTINUOUS_ENERGY_ADD,
 	CONTINUOUS_ENERGY_EDIT,
 	CONTINUOUS_ENERGY_DELETE,
+	CONTINUOUS_ENERGY_CLEAR,
+	CONTINUOUS_ENERGY_IMPORT_ADD,
+	CONTINUOUS_ENERGY_IMPORT_REPLACE,
+	EBEL_SPECTRUM_REPLACE,
 	EXC_COMPOSITION,
 	EXC_COMPOSITION_ORDER,
 	EXC_COMPOSITION_DELETE,
@@ -157,5 +168,21 @@ enum {
 
 void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename);
 void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename);
+
+void xmi_open_url(char *url);
+void xmi_open_email(char *address);
+void adjust_save_buttons(void);
+
+#define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
+#define XMI_STOCK_LOGO "Logo_xmi_msim"
+
+
+#ifdef MAC_INTEGRATION
+void quit_program_cb(GtkosxApplication *app, gpointer data);
+#else
+void quit_program_cb(GtkWidget *widget, gpointer data); 
+#endif
+
+
 
 #endif

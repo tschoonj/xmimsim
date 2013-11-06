@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+#include "xmi_msim.h"
 #include "xmi_aux.h"
 #include "xmi_data_structs.h"
 #include <stdio.h>
@@ -23,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_linalg.h>
-#include <xraylib-parser.h>
 
 
 
@@ -192,6 +193,17 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 	return rv;
 }
 
+struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
+	struct xmi_layer *rv;
+
+	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+
+		rv->n_elements = cd->nElements;
+		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
+		rv->weight = (double *) xmi_memdup(cd->massFractions, sizeof(double)*cd->nElements);
+		rv->density = cd->density;
+	return rv;
+}
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
 	struct xmi_layer *rv;
 
@@ -230,8 +242,291 @@ void xmi_print_progress(char *string, int progress) {
 	}
 }
 
+int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy_discrete *)a)->energy - ((struct xmi_energy_discrete *)b)->energy;
+	
+	if (diff > 0.000000001)
+		return 1;
+	else if (diff < -0.000000001)
+		return -1;
+	return 0;
+}
+
+int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy_continuous *)a)->energy - ((struct xmi_energy_continuous *)b)->energy;
+	
+	if (diff > 0.000000001)
+		return 1;
+	else if (diff < -0.000000001)
+		return -1;
+	return 0;
+}
+#include <xraylib.h>
+#include <gtk/gtk.h>
+#include <gsl/gsl_version.h>
+#include <hdf5.h>
+#include <libxml/xmlversion.h>
+#include <libxslt/xsltconfig.h>
+#include <gtkextra/gtkextra.h>
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#include <curl/curl.h>
+#include <json-glib/json-glib.h>
+#endif
+
+gchar *xmi_version_string() {
+	gchar *string = g_malloc(sizeof(gchar)*5*1024);
+	gchar *temp;
+
+	temp = g_strdup_printf("XMI-MSIM %i.%i\n\n", XMI_MSIM_VERSION_MAJOR, XMI_MSIM_VERSION_MINOR);
+	strcat(string,temp);
+	g_free(temp);
+	strcat(string,"Compiled with ");
+	//xraylib
+	temp = g_strdup_printf("xraylib %i.%i, ", XRAYLIB_MAJOR, XRAYLIB_MINOR);
+	strcat(string,temp);
+	g_free(temp);
+	//glib
+	temp = g_strdup_printf("glib %i.%i.%i, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//gtk2
+	temp = g_strdup_printf("gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//GSL
+	temp = g_strdup_printf("gsl %i.%i, ", GSL_MAJOR_VERSION, GSL_MINOR_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//hdf5
+	temp = g_strdup_printf("HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
+	strcat(string,temp);
+	g_free(temp);
+	//libxml2
+	temp = g_strdup_printf("libxml2 %s,\n", LIBXML_DOTTED_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//libxslt
+	temp = g_strdup_printf("libxslt %s, ", LIBXSLT_DOTTED_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+	//fgsl
+	temp = g_strdup_printf("fgsl 0.9.4, ");
+	strcat(string,temp);
+	g_free(temp);
+	//gtkextra
+	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+	temp = g_strdup_printf(", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+	strcat(string,temp);
+	g_free(temp);
+	temp = g_strdup_printf(", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+#endif
+	strcat(string,"\n\n");
+	strcat(string,
+"Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze\n"
+"\n"
+"This program is free software: you can redistribute it and/or modify\n"
+"it under the terms of the GNU General Public License as published by\n"
+"the Free Software Foundation, either version 3 of the License, or\n"
+"(at your option) any later version.\n"
+"\n"
+"This program is distributed in the hope that it will be useful,\n"
+"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+"GNU General Public License for more details.\n"
+"\n"
+"You should have received a copy of the GNU General Public License\n"
+"along with this program.  If not, see <http://www.gnu.org/licenses/>.\n"
+);
+
+	return string;
+}
 
 
 
+/* getdelim.c --- Implementation of replacement getdelim function.
+   Copyright (C) 1994, 1996-1998, 2001, 2003, 2005-2013 Free Software
+   Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+
+/* Ported from glibc by Simon Josefsson. */
+
+/* Don't use __attribute__ __nonnull__ in this compilation unit.  Otherwise gcc
+   optimizes away the lineptr == NULL || n == NULL || fp == NULL tests below.  */
+#define _GL_ARG_NONNULL(params)
+
+#include <stdio.h>
+
+#include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
+
+#ifndef HAVE_GETDELIM
+
+#ifndef SSIZE_MAX
+# define SSIZE_MAX ((ssize_t) (SIZE_MAX / 2))
+#endif
+
+#if USE_UNLOCKED_IO
+# include "unlocked-io.h"
+# define getc_maybe_unlocked(fp)        getc(fp)
+#elif !HAVE_FLOCKFILE || !HAVE_FUNLOCKFILE || !HAVE_DECL_GETC_UNLOCKED
+# undef flockfile
+# undef funlockfile
+# define flockfile(x) ((void) 0)
+# define funlockfile(x) ((void) 0)
+# define getc_maybe_unlocked(fp)        getc(fp)
+#else
+# define getc_maybe_unlocked(fp)        getc_unlocked(fp)
+#endif
+
+/* Read up to (and including) a DELIMITER from FP into *LINEPTR (and
+   NUL-terminate it).  *LINEPTR is a pointer returned from malloc (or
+   NULL), pointing to *N characters of space.  It is realloc'ed as
+   necessary.  Returns the number of characters read (not including
+   the null terminator), or -1 on error or EOF.  */
+
+/* Ugly hack to get around MinGW not defining EOVERFLOW 
+ * Should be future proof though
+ */
+
+#ifndef EOVERFLOW 
+# define EOVERFLOW 132
+#endif
+
+ssize_t
+getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
+{
+  ssize_t result;
+  size_t cur_len = 0;
+
+  if (lineptr == NULL || n == NULL || fp == NULL)
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  flockfile (fp);
+
+  if (*lineptr == NULL || *n == 0)
+    {
+      char *new_lineptr;
+      *n = 120;
+      new_lineptr = (char *) realloc (*lineptr, *n);
+      if (new_lineptr == NULL)
+        {
+          result = -1;
+          goto unlock_return;
+        }
+      *lineptr = new_lineptr;
+    }
+
+  for (;;)
+    {
+      int i;
+
+      i = getc_maybe_unlocked (fp);
+      if (i == EOF)
+        {
+          result = -1;
+          break;
+        }
+
+      /* Make enough space for len+1 (for final NUL) bytes.  */
+      if (cur_len + 1 >= *n)
+        {
+          size_t needed_max =
+            SSIZE_MAX < SIZE_MAX ? (size_t) SSIZE_MAX + 1 : SIZE_MAX;
+          size_t needed = 2 * *n + 1;   /* Be generous. */
+          char *new_lineptr;
+
+          if (needed_max < needed)
+            needed = needed_max;
+          if (cur_len + 1 >= needed)
+            {
+              result = -1;
+              errno = EOVERFLOW;
+              goto unlock_return;
+            }
+
+          new_lineptr = (char *) realloc (*lineptr, needed);
+          if (new_lineptr == NULL)
+            {
+              result = -1;
+              goto unlock_return;
+            }
+
+          *lineptr = new_lineptr;
+          *n = needed;
+        }
+
+      (*lineptr)[cur_len] = i;
+      cur_len++;
+
+      if (i == delimiter)
+        break;
+    }
+  (*lineptr)[cur_len] = '\0';
+  result = cur_len ? cur_len : result;
+
+ unlock_return:
+  funlockfile (fp); /* doesn't set errno */
+
+  return result;
+}
+#endif
+
+/* getline.c --- Implementation of replacement getline function.
+   Copyright (C) 2005-2007, 2009-2013 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+
+/* Written by Simon Josefsson. */
+
+#ifndef HAVE_GETLINE
+ssize_t
+getline (char **lineptr, size_t *n, FILE *stream)
+{
+  return getdelim (lineptr, n, '\n', stream);
+}
+#endif
+
+
+void xmi_free(void *ptr) {
+	free(ptr);
+}
 
 

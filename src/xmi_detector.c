@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_hdf5.h"
 #include <xraylib.h>
 #include <sys/stat.h>
 #ifdef MAC_INTEGRATION
@@ -105,7 +106,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	}
 	
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
 	}	
@@ -255,6 +256,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 struct xmi_escape_ratios_data{
 	struct xmi_escape_ratios **escape_ratios;
 	struct xmi_input *input;
+	struct xmi_main_options options;
 };
 
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
@@ -267,6 +269,10 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	struct xmi_input *temp_input;
 	struct xmi_escape_ratios *escape_ratios;
 	
+
+	if (data->options.extra_verbose) {
+		fprintf(stdout,"Checking escape ratios group with name %s\n", name);
+	} 
 
 	//open group
 	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
@@ -374,19 +380,23 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"Match in escape ratios\n");
 	}
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		free(xmi_input_string);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"No match in escape ratios\n");
 		return 0;
 	}
 
 	return 1;
 }
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv) {
+int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options) {
 
 	//let's take this one on a bit more elegant than xmi_find_solid_angle_match...
 	//open the hdf5 file and iterate through all the groups
@@ -405,6 +415,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 
 	data.escape_ratios = rv;
 	data.input = A;
+	data.options = options;
 
 	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_escape_ratios,(void *) &data);
 
@@ -429,7 +440,7 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 	free(escape_ratios->xmi_input_string);
 }
 
-int xmi_get_escape_ratios_file(char **filePtr) {
+int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 	//behavior is very much platform dependent
 	//general rule
 	//Linux: use g_get_user_data_dir
@@ -461,7 +472,7 @@ int xmi_get_escape_ratios_file(char **filePtr) {
 	}
 
 	//check if file exists
-	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR) && create_file) {
 		//create underlying directory if necessary
 		dir = g_path_get_dirname(file);
 		if (g_mkdir_with_parents(dir,S_IRUSR | S_IWUSR | S_IXUSR) == -1) {

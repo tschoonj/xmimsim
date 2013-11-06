@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #error _WIN32 macro is not defined in xmi_registry_win.c
 #endif
 
+#include "config.h"
 #include "xmi_registry_win.h"
 #include <windows.h>
 #include <stdio.h>

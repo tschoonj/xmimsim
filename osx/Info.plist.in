@@ -18,6 +18,8 @@
 	<string>6.0</string>
 	<key>CFBundleVersion</key>
 	<string>@VERSION@</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@VERSION@</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>NSHumanReadableCopyright</key>
@@ -31,7 +33,7 @@
 	<!--<key>LSEnvironment</key>
 		<key>LANG</key>-->
 	<key>LSMinimumSystemVersion</key>
-	<string>10.7.0</string>
+	<string>10.6.8</string>
 
 	<key>CFBundleDocumentTypes</key>
 	<array>
@@ -64,6 +66,8 @@
 			<string>Owner</string>
 		</dict>
 	</array>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 
 </dict>
 </plist>

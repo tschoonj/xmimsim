@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-prefs.h"
+#include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
 #include <glib.h>
@@ -51,6 +53,8 @@ GtkWidget *rad_cascadeW;
 GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
+GtkWidget *poissonW;
+GtkWidget *nchannelsW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
@@ -83,6 +87,8 @@ GtkWidget *nthreadsW;
 GtkObject *nthreadsA;
 GTimer *timer;
 
+GIOChannel *xmimsim_stdout;
+GIOChannel *xmimsim_stderr;
 
 
 
@@ -107,6 +113,15 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
 		gtk_widget_show_all(image_solidW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid loaded from file");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
+	else if(strncmp(string, "Operating in brute-force mode: solid angle grid is redundant", strlen("Operating in brute-force mode: solid angle grid is redundant")) == 0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid redundant");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
@@ -324,7 +339,11 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gchar *data = cd->argv[0];
 
 
-	fprintf(stdout,"xmimsim_child_watcher_cb called\n");
+	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
+	gtk_widget_set_sensitive(stopButton,FALSE);
+#ifdef G_OS_UNIX
+	gtk_widget_set_sensitive(pauseButton,FALSE);
+#endif
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
@@ -367,15 +386,11 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #endif
 
 	g_spawn_close_pid(xmimsim_pid);
-	xmimsim_pid = (GPid) -1;
+	xmimsim_pid = GPID_INACTIVE;
 
 	//g_strfreev(argv);
 
 	gtk_widget_set_sensitive(playButton,TRUE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
-	gtk_widget_set_sensitive(stopButton,FALSE);
 	//make sensitive again
 	gtk_widget_set_sensitive(executableW,TRUE);	
 	gtk_widget_set_sensitive(executableB,TRUE);	
@@ -384,6 +399,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
+	gtk_widget_set_sensitive(poissonW,TRUE);	
+	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -394,6 +411,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(html_convB,TRUE);	
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
+
+	g_timer_stop(timer);
+	g_timer_destroy(timer);
 
 	if (!success)
 		return; 
@@ -419,7 +439,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	
 #ifdef MAC_INTEGRATION
-	gtk_osxapplication_attention_request(g_object_new(GTK_TYPE_OSX_APPLICATION, NULL), CRITICAL_REQUEST);
+	gtkosx_application_attention_request(g_object_new(GTKOSX_TYPE_APPLICATION, NULL), CRITICAL_REQUEST);
 #endif
 	g_free(cd->outputfile);
 	g_free(cd);
@@ -445,7 +465,7 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 	glong seconds = time_elapsed % 60;
 
 
-	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",hours, minutes, seconds,text);
+	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",(int) hours, (int) minutes, (int) seconds,text);
 
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 
@@ -499,8 +519,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	GError *spawn_error = NULL;
 	char buffer[512];
 	const gchar *encoding = NULL;
-	GIOChannel *xmimsim_stdout;
-	GIOChannel *xmimsim_stderr;
 	gint i;
 	gboolean omp_found=FALSE;
 	struct child_data *cd;
@@ -518,6 +536,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(nonrad_cascadeW,FALSE);	
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
+	gtk_widget_set_sensitive(poissonW,FALSE);	
+	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
 	gtk_widget_set_sensitive(svg_convW,FALSE);	
@@ -532,7 +552,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	reset_controls();
 	timer = g_timer_new();
 
-	argv = (gchar **) g_malloc(sizeof(gchar *)*9);
+	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
 	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[1] = g_strdup("--enable-M-lines");
@@ -564,10 +584,17 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	else
 		argv[5] = g_strdup("--disable-pile-up");
 
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
+		argv[6] = g_strdup("--enable-poisson");
+	}
+	else
+		argv[6] = g_strdup("--disable-poisson");
 
-	argv[6] = g_strdup("--verbose");
+	argv[7]	= g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
 
-	arg_counter = 7;
+	argv[8] = g_strdup("--verbose");
+
+	arg_counter = 9;
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -605,7 +632,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	char *xmimsim_hdf5_solid_angles = NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	
-	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0) {
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
@@ -615,7 +642,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
 	arg_counter++;
 
-	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0) {
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
 		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
@@ -668,8 +695,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	cd->argv = argv;
 	cd->window = window;
 
-	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
-	
 #ifdef G_OS_WIN32
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
 	xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
@@ -677,6 +702,9 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	xmimsim_stderr= g_io_channel_unix_new(err_fh);
 	xmimsim_stdout = g_io_channel_unix_new(out_fh);
 #endif
+
+	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
+	
 
 	g_get_charset(&encoding);
 
@@ -756,22 +784,29 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	char buffer[512];
 	gboolean spinning;
 
-	//g_io_channel_unref(xmimsim_stdout);
-	//g_io_channel_unref(xmimsim_stderr);
-
-	//set buttons back in order
-	gtk_widget_set_sensitive(playButton,TRUE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
 #ifdef G_OS_UNIX
 	gtk_widget_set_sensitive(pauseButton,FALSE);
 #endif
+	//g_io_channel_shutdown(xmimsim_stdout, FALSE, NULL);
+	//g_io_channel_shutdown(xmimsim_stderr, FALSE, NULL);
+	//g_io_channel_unref(xmimsim_stdout);
+	//g_io_channel_unref(xmimsim_stderr);
+
+	//set buttons back in order
 	xmimsim_paused = FALSE;
 #ifdef G_OS_UNIX
 	int kill_rv;
 	
 	fprintf(stdout,"stop_button_clicked_cb entered\n");
 	kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-	wait(NULL);
+#if !GLIB_CHECK_VERSION (2, 35, 0)
+	//starting with 2.36.0 (and some unstable versions before),
+	//waitpid is called from within the main loop
+	//causing all kinds of trouble if I would call wait here
+	//wait(NULL);
+	waitpid(xmimsim_pid, NULL, WNOHANG);
+#endif
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
@@ -800,31 +835,22 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//check spinners
 #if GTK_CHECK_VERSION(2,20,0)
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
-			gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_solidW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_solidW);
 	}
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_mainW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
-			gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_mainW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_mainW);
 	}
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
-		g_object_get(gtk_bin_get_child(GTK_BIN(image_escapeW)),"active",&spinning,NULL);
-		if (spinning == TRUE) {
-			gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
-			gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
-			gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-			gtk_widget_show_all(image_escapeW);
-		}
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_escapeW);
 	}
 #else
 		//should query status of progressbar
@@ -845,29 +871,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
-	xmimsim_pid = GPID_INACTIVE;
 
-	g_timer_stop(timer);
-	g_timer_destroy(timer);
-
-	//make sensitive again
-	gtk_widget_set_sensitive(executableW,TRUE);	
-	gtk_widget_set_sensitive(executableB,TRUE);	
-	gtk_widget_set_sensitive(MlinesW,TRUE);	
-	gtk_widget_set_sensitive(rad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
-	gtk_widget_set_sensitive(pile_upW,TRUE);	
-	gtk_widget_set_sensitive(spe_convW,TRUE);	
-	gtk_widget_set_sensitive(csv_convW,TRUE);	
-	gtk_widget_set_sensitive(svg_convW,TRUE);	
-	gtk_widget_set_sensitive(html_convW,TRUE);	
-	gtk_widget_set_sensitive(spe_convB,TRUE);	
-	gtk_widget_set_sensitive(csv_convB,TRUE);	
-	gtk_widget_set_sensitive(svg_convB,TRUE);	
-	gtk_widget_set_sensitive(html_convB,TRUE);	
-	if (nthreadsW != NULL)
-		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
 
 	fprintf(stdout,"stop_button_clicked_cb exited\n");
@@ -935,6 +939,19 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	xmimsim_paused = FALSE;
 
+	if (check_changeables() == 0) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Cannot start simulation. The input parameters page contains invalid values."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	     	return;
+	
+	}
+
 	check_rv = check_changes_saved(&check_status);
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
 		//saved before: give option to continue or to SAVE
@@ -992,6 +1009,8 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					last_saved->filename = strdup(filename);
 					free(filename);
 					gtk_widget_destroy (dialog);
+					gtk_widget_set_sensitive(saveW,FALSE);
+					gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 					start_job(last_saved, (GtkWidget *) data);
 					break;
 				}
@@ -1062,7 +1081,9 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-																
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_entry_set_text(GTK_ENTRY(executableW),filename);
@@ -1111,7 +1132,8 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	);
 	if (filter)
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog),filter);
-
+	
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -1306,6 +1328,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 
 	//options
+	union xmimsim_prefs_val xpv;
 	frame = gtk_frame_new("Options");
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
@@ -1316,28 +1339,79 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
 	MlinesW = gtk_check_button_new_with_label("Simulate M-lines");
 	gtk_widget_set_tooltip_text(MlinesW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),MlinesW, TRUE, FALSE, 3);
 
 	rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascadeW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),rad_cascadeW, TRUE, FALSE, 3);
 
 	nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascadeW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),nonrad_cascadeW, TRUE, FALSE, 3);
 
 	variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW),TRUE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),variance_reductionW, TRUE, FALSE, 3);
 
 	pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),FALSE);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
+
+	poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
+	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
+
+	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
+	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
+	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannelsW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannelsW), TRUE);
+	gtk_entry_set_max_length(GTK_ENTRY(nchannelsW), 7);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannelsW), (gdouble) xpv.i);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
+	label = gtk_label_new("Number of spectrum channels");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, FALSE, FALSE, 3);
+
+
+
+
+
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);

@@ -18,6 +18,8 @@ MODULE xmimsim_aux
 USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
+USE :: fgsl
+
 IMPLICIT NONE
 
 !
@@ -26,22 +28,27 @@ IMPLICIT NONE
 !
 !
 TYPE :: interaction_prob
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies
-        REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: Rayl_and_Compt
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: energies
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Rayl_and_Compt
 ENDTYPE
 
+TYPE, BIND(C) :: interaction_probC
+        INTEGER (KIND=C_INT) :: len
+        TYPE (C_PTR) :: energies
+        TYPE (C_PTR) :: Rayl_and_Compt
+ENDTYPE
 !
 !
 ! HDF5 data structures
 !
 !
 TYPE :: xmi_hdf5_Z
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: ComptonTheta_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: DopplerPz_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: Energies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: FluorYieldsCorr
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: ComptonTheta_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: DopplerPz_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Energies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
         INTEGER (C_INT) :: Z
@@ -51,14 +58,14 @@ ENDTYPE
 
 
 TYPE :: xmi_hdf5
-        TYPE (xmi_hdf5_Z), ALLOCATABLE, DIMENSION(:) :: xmi_hdf5_Zs
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:) :: RayleighPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: RayleighRandomNumbers
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:,:,:) :: ComptonPhi_ICDF
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonThetas
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonEnergies
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:)   :: ComptonRandomNumbers
+        TYPE (xmi_hdf5_Z), POINTER, DIMENSION(:) :: xmi_hdf5_Zs
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighRandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: ComptonPhi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonThetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonEnergies
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonRandomNumbers
 ENDTYPE
 
 TYPE :: xmi_hdf5_ZPtr
@@ -144,9 +151,23 @@ TYPE, BIND(C) :: xmi_geometry
         REAL (C_DOUBLE) :: slit_size_y
 ENDTYPE
 
-!  xmi_energy
+!  xmi_energy_discrete
 
-TYPE, BIND(C) :: xmi_energy
+TYPE, BIND(C) :: xmi_energy_discrete
+        REAL (C_DOUBLE) :: energy
+        REAL (C_DOUBLE) :: horizontal_intensity
+        REAL (C_DOUBLE) :: vertical_intensity
+        REAL (C_DOUBLE) :: sigma_x
+        REAL (C_DOUBLE) :: sigma_xp
+        REAL (C_DOUBLE) :: sigma_y
+        REAL (C_DOUBLE) :: sigma_yp
+        INTEGER (C_INT) :: distribution_type
+        REAL (C_DOUBLE) :: scale_parameter
+ENDTYPE
+
+!  xmi_energy_continuous
+
+TYPE, BIND(C) :: xmi_energy_continuous
         REAL (C_DOUBLE) :: energy
         REAL (C_DOUBLE) :: horizontal_intensity
         REAL (C_DOUBLE) :: vertical_intensity
@@ -167,9 +188,9 @@ ENDTYPE
 
 TYPE :: xmi_excitation
         INTEGER (C_INT) :: n_discrete
-        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: discrete
+        TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: discrete
         INTEGER (C_INT) :: n_continuous
-        TYPE (xmi_energy), ALLOCATABLE, DIMENSION(:) :: continuous
+        TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: continuous
 ENDTYPE
 
 !   xmi_absorbers
@@ -251,7 +272,6 @@ ENDTYPE
 
 TYPE, BIND(C) :: xmi_main_options 
         INTEGER (C_INT) :: use_M_lines
-        INTEGER (C_INT) :: use_self_enhancement
         INTEGER (C_INT) :: use_cascade_auger
         INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction
@@ -261,6 +281,8 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: verbose 
         INTEGER (C_INT) :: use_poisson
         INTEGER (C_INT) :: use_opencl
+        INTEGER (C_INT) :: omp_num_threads
+        INTEGER (C_INT) :: extra_verbose
 ENDTYPE xmi_main_options
 !
 !
@@ -386,8 +408,6 @@ TYPE :: xmi_photon
         !weight of the photon
         REAL (C_DOUBLE) :: weight
 
-        INTEGER (C_LONG) :: weight_long
-
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 
@@ -440,7 +460,7 @@ TYPE :: xmi_photon
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: channels
 
         !detector absorption correction
-        REAL (C_FLOAT), DIMENSION(:,:), POINTER :: det_corr_all
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: det_corr_all
 
         LOGICAL :: inside
 
@@ -466,6 +486,23 @@ TYPE :: xmi_plane
         REAL (C_DOUBLE), DIMENSION(3) :: point
         REAL (C_DOUBLE), DIMENSION(3) :: normv 
 ENDTYPE
+
+!
+!
+!       datatype for the trapezoidal distribution
+!
+!
+TYPE, PUBLIC :: xmi_ran_trap_workspace
+        PRIVATE
+        REAL (C_DOUBLE) :: denom
+        REAL (C_DOUBLE) :: m
+        REAL (C_DOUBLE) :: x1
+        REAL (C_DOUBLE) :: x2
+        REAL (C_DOUBLE) :: y1
+        REAL (C_DOUBLE) :: y2
+ENDTYPE
+
+
 
 INTERFACE
 !interface for the libc qsort function
@@ -529,6 +566,12 @@ BIND(C,NAME='xmi_xmlfile_to_string') RESULT(rv)
         INTEGER (C_INT) :: rv
 ENDFUNCTION xmi_xmlfile_to_string
 
+SUBROUTINE xmi_free(ptr) BIND(C,NAME='xmi_free')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        TYPE (C_PTR), VALUE, INTENT(IN) :: ptr
+ENDSUBROUTINE xmi_free
+
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)
@@ -540,7 +583,7 @@ INTERFACE xmi_mu_calc
         xmi_mu_calc_xmi_composition_single_energy
 ENDINTERFACE
 
-CHARACTER (LEN=2), DIMENSION(99) :: elements = &
+CHARACTER (LEN=2,KIND=C_CHAR), DIMENSION(99) :: elements = &
        [' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9', '10',&
         '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',&
         '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',&
@@ -557,21 +600,27 @@ INTEGER (C_INT), PARAMETER ::  NO_INTERACTION = 0
 INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1
 INTEGER (C_INT), PARAMETER ::  COMPTON_INTERACTION = 2
 INTEGER (C_INT), PARAMETER ::  PHOTOELECTRIC_INTERACTION = 3
+
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SILI = 0
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_GE = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_SI_SDD = 2
+
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_FULL = 1 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_RADIATIVE = 2 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONRADIATIVE = 3 
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONE = 4 
+
 INTEGER (C_INT), PARAMETER ::  XMI_NO_INTERSECTION = 0 
 INTEGER (C_INT), PARAMETER ::  XMI_COLLIMATOR_INTERSECTION = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_INTERSECTION = 2
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_BAD_INTERSECTION = 3
 
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_MONOCHROMATIC = 0
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_GAUSSIAN = 1 
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_LORENTZIAN = 2 
 
 !threshold is 1 keV
-REAL (C_DOUBLE) :: energy_threshold = 1.0_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: energy_threshold = 1.0_C_DOUBLE
 
 CONTAINS
 
@@ -643,7 +692,7 @@ ENDFUNCTION C_FLOAT_CMP
 SUBROUTINE assign_interaction_prob(outvar,invar)
         IMPLICIT NONE
         TYPE(interaction_prob), INTENT(INOUT) :: outvar
-        REAL (KIND=C_FLOAT),DIMENSION(:),INTENT(IN) :: invar
+        REAL (KIND=C_DOUBLE),DIMENSION(:),INTENT(IN) :: invar
         INTEGER :: i
 
 #if DEBUG == 1
@@ -677,7 +726,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         TYPE (xmi_absorbersC),POINTER :: xmi_absorbers_temp
         TYPE (xmi_detectorC),POINTER :: xmi_detector_temp
         TYPE (xmi_layerC),POINTER, DIMENSION(:) :: xmi_layer_temp
-        TYPE (xmi_energy),POINTER, DIMENSION(:) :: xmi_energy_temp
+        TYPE (xmi_energy_discrete),POINTER, DIMENSION(:) :: xmi_energy_temp_disc
+        TYPE (xmi_energy_continuous),POINTER, DIMENSION(:) :: xmi_energy_temp_cont
         INTEGER (C_INT), POINTER,DIMENSION(:) :: Z_temp
         REAL (C_DOUBLE), POINTER,DIMENSION(:) :: weight_temp
 
@@ -762,18 +812,18 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
 
         IF (xmi_inputF%excitation%n_discrete .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%discrete,&
-                xmi_energy_temp,&
+                xmi_energy_temp_disc,&
                 [xmi_inputF%excitation%n_discrete]) 
                 ALLOCATE(xmi_inputF%excitation%discrete(xmi_inputF%excitation%n_discrete))
-                xmi_inputF%excitation%discrete = xmi_energy_temp
+                xmi_inputF%excitation%discrete = xmi_energy_temp_disc
         ENDIF
 
         IF (xmi_inputF%excitation%n_continuous .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%continuous,&
-                xmi_energy_temp,&
+                xmi_energy_temp_cont,&
                 [xmi_inputF%excitation%n_continuous]) 
                 ALLOCATE(xmi_inputF%excitation%continuous(xmi_inputF%excitation%n_continuous))
-                xmi_inputF%excitation%continuous = xmi_energy_temp
+                xmi_inputF%excitation%continuous = xmi_energy_temp_cont
         ENDIF
 
 #if DEBUG == 1
@@ -1006,8 +1056,8 @@ FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
         rv = 0.0_C_DOUBLE
 
         DO i=1,layer%n_elements
-                rv = rv + REAL(CS_Total_Kissel(layer%Z(i),&
-                REAL(energy,KIND=C_FLOAT))*layer%weight(i),KIND=C_DOUBLE)
+                rv = rv + CS_Total_Kissel(layer%Z(i),&
+                energy)*layer%weight(i)
         ENDDO
                  
 
@@ -1167,17 +1217,16 @@ FUNCTION findpos_fast(array,searchvalue)
 
         findpos_fast = -1
 
-        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+        IF (ABS(searchvalue-array(LBOUND(array, DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos_fast = 1
                 RETURN
         ENDIF
 
-        guess = INT((searchvalue-0.1_C_DOUBLE)/(0.10999100-0.1) +&
-1.0_C_DOUBLE,KIND=C_INT)
+        guess = INT((searchvalue-0.1_C_DOUBLE)*(10000.0_C_DOUBLE-1.0_C_DOUBLE)/&
+                (100.0_C_DOUBLE-0.1_C_DOUBLE)+1.0_C_DOUBLE,KIND=C_INT) 
 
 
-
-        DO i=guess, SIZE(array)
+        DO i=guess, UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos_fast = i-1
                         RETURN
@@ -1197,13 +1246,13 @@ FUNCTION findpos(array, searchvalue)
 
         !this would appear to be necessary... the rng generates exactly 0.0
         !sometimes...
-        IF (ABS(searchvalue-array(1)) .LT. 1E-10_C_DOUBLE) THEN
+        IF (ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos = 1
                 RETURN
         ENDIF
 
 
-        DO i=1, SIZE(array)
+        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
                         RETURN
@@ -1242,6 +1291,10 @@ RESULT(rv)
         .OR. SIZE(array2D,DIM=2) .NE. SIZE(array1D_2)) THEN
                 WRITE (error_unit,'(A)') &
                 'Array dimensions mismatch in bilinear interpolation'
+                WRITE (error_unit,'(A,I5)') 'SIZE(array2D,DIM=1)',SIZE(array2D,DIM=1)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array1D_1)',SIZE(array1D_1)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array2D,DIM=2)',SIZE(array2D,DIM=2)
+                WRITE (error_unit,'(A,I5)') 'SIZE(array1D_2)',SIZE(array1D_2)
                 CALL EXIT(1)
         ENDIF
 
@@ -1692,10 +1745,85 @@ SUBROUTINE xmi_deallocate(ptr) BIND(C,NAME='xmi_deallocate')
         TYPE (C_PTR), VALUE :: ptr
         REAL(C_DOUBLE), DIMENSION(:), POINTER :: array
 
+        IF (.NOT. C_ASSOCIATED(ptr)) RETURN
+
         CALL C_F_POINTER(ptr, array, [1])
 
         DEALLOCATE(array)
 
+        RETURN
 ENDSUBROUTINE xmi_deallocate
+
+!
+!
+!       initialize xmi_trap_dist_workspace
+!
+!
+
+FUNCTION xmi_ran_trap_workspace_init(x1, x2, y1, y2, workspace)&
+        RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: x1, x2, y1, y2
+        TYPE (xmi_ran_trap_workspace), INTENT(OUT) :: workspace
+        INTEGER (C_INT) :: rv
+
+        IF (x1 .GE. x2) THEN
+                WRITE (error_unit, '(A)') &
+                'Error in xmi_trap_dist_workspace_init: x1 >= x2'
+                rv = 0_C_INT
+                RETURN
+        ELSEIF (x1 .EQ. 0.0_C_DOUBLE .AND. x2 .EQ. 0.0_C_DOUBLE) THEN
+                WRITE (error_unit, '(A)') &
+                'Error in xmi_trap_dist_workspace_init: x1 == x2 == 0'
+                rv = 0_C_INT
+                RETURN
+        ENDIF
+
+        workspace%x1 = x1
+        workspace%x2 = x2
+        workspace%y1 = y1
+        workspace%y2 = y2
+        workspace%m = (y2-y1)/(x2-x1)
+        workspace%denom = (x2-x1)*(y1-x1*workspace%m) + &
+        workspace%m*(x2**2-x1**2)/2.0
+
+        rv = 1_C_INT
+        RETURN
+ENDFUNCTION xmi_ran_trap_workspace_init
+
+FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_ran_trap_workspace) :: workspace
+        REAL (C_DOUBLE) :: rv
+        REAL (C_DOUBLE) :: rv1, rv2
+        REAL (C_DOUBLE) :: a, b, c
+
+        a = workspace%m/2.0_C_DOUBLE
+        b = workspace%y1-workspace%x1*workspace%m
+        c = -workspace%x1*workspace%y1+workspace%m*workspace%x1**2/2.0_C_DOUBLE&
+            -workspace%denom*fgsl_rng_uniform(rng)
+
+        IF (fgsl_poly_solve_quadratic(a, &
+            b, &
+            c, &
+            rv1, &
+            rv2) == 0_C_INT) THEN
+                WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
+                WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                CALL EXIT(1)
+        ENDIF
+
+        IF (workspace%x1 .LE. rv1 .AND. rv1 .LE. workspace%x2) THEN
+                rv = rv1
+        ELSEIF (workspace%x1 .LE. rv2 .AND. rv2 .LE. workspace%x2) THEN
+                rv = rv2
+        ELSE
+                WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
+                WRITE (error_unit, '(A)') 'roots are not within interval'
+                CALL EXIT(1)
+        ENDIF
+
+        RETURN
+ENDFUNCTION xmi_ran_trap
 
 ENDMODULE 

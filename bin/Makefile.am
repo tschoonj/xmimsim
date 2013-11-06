@@ -17,16 +17,19 @@
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin
+if ENABLE_MAC_APP
+AM_LDFLAGS = -headerpad_max_install_names
+endif
 
-bin_PROGRAMS = xmimsim \
-	xmimsim-db \
-	xmimsim-pymca \
-	xmso2svg \
-	xmso2xmsi \
-	xmso2spe \
-	xmso2csv \
-	xmso2htm \
-	xmso2xmsi
+bin_PROGRAMS =  xmimsim \
+		xmimsim-db \
+		xmimsim-pymca \
+		xmso2svg \
+		xmso2xmsi \
+		xmso2spe \
+		xmso2csv \
+		xmso2htm \
+		xmso2xmsi
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -39,26 +42,56 @@ endif
 
 xmimsim_hdf5dir = $(datadir)/xmimsim
 
-
-xmimsim_db_SOURCES = xmimsim-db.F90
-xmimsim_db_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
-#xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
-xmimsim_db_LDADD = ../src/libxmimsim.la 
-xmimsim_db_LDFLAGS = 
-
 xmimsim_harvester_SOURCES = xmimsim-harvester.c
 xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
-xmimsim_harvester_LDADD = ../src/libxmimsim.la
+xmimsim_harvester_LDADD = ../src/libxmimsim.la \
+			  @glib2_LIBS@
 
 
-xmimsim_gui_SOURCES = xmimsim-gui.c xmimsim-gui-layer.c xmimsim-gui-layer.h xmimsim-gui-energies.c xmimsim-gui-energies.h xmimsim-gui.h xmimsim-gui-controls.c xmimsim-gui-controls.h xmimsim-gui-results.c xmimsim-gui-results.h
-xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ @gtk2extra_CFLAGS@ @gtk2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
--DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" 
-xmimsim_gui_LDADD = ../src/libxmimsim.la @gtk3extra_LIBS@ @gtk2extra_LIBS@ @gtk2_LIBS@ @GTK_MAC_LIBS@
+xmimsim_gui_SOURCES = xmimsim-gui.c \
+		      xmimsim-gui-layer.c \
+		      xmimsim-gui-layer.h \
+		      xmimsim-gui-energies.c \
+		      xmimsim-gui-energies.h \
+		      xmimsim-gui.h \
+		      xmimsim-gui-controls.c \
+		      xmimsim-gui-controls.h \
+		      xmimsim-gui-results.c \
+		      xmimsim-gui-results.h \
+		      xmimsim-gui-prefs.h \
+		      xmimsim-gui-prefs.c \
+		      xmimsim-gui-tools.c \
+		      xmimsim-gui-tools.h
+if ENABLE_UPDATER
+xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
+endif
+
+xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
+		     @gtk2_CFLAGS@ \
+		     @xraylib_CFLAGS@ \
+		     @OPENMP_CFLAGS@ \
+		     @GTK_MAC_CFLAGS@ \
+		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\"
+if ENABLE_UPDATER
+xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
+		      @libcurl_CFLAGS@
+endif
+
+xmimsim_gui_LDADD = ../src/libxmimsim.la \
+		    @gtk3extra_LIBS@ \
+		    @gtk2_LIBS@ \
+		    @GTK_MAC_LIBS@ \
+		    @xraylib_LIBS@
+if ENABLE_UPDATER
+xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
+		     @libcurl_LIBS@
+endif
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
-xmimsim_gui_SOURCES += xmimsim-icon.rc
+xmimsim_gui_SOURCES += xmimsim-icon.rc 
 xmimsim_gui_LDADD += xmimsim-icon.o
+nodist_xmimsim_gui_SOURCES = xmimsim-gui-icons.h
+xmimsim_gui_CFLAGS += -I$(builddir)
 endif
 
 if ENABLE_MAC_APP
@@ -81,47 +114,76 @@ endif
 #xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
-xmimsim_CFLAGS = @H5FC_INCLUDE@  @OPENMPI_CFLAGS@ @gsl_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
-xmimsim_LDADD = ../src/libxmimsim.la @OPENMPI_LIBADD@ @glib2_LIBS@ @GTK_MAC_LIBS@
+xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
+		 @gsl_CFLAGS@ \
+		 @glib2_CFLAGS@ \
+		 @xraylib_CFLAGS@ \
+		 @OPENMP_CFLAGS@ \
+		 @GTK_MAC_CFLAGS@ \
+		-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+xmimsim_LDADD = ../src/libxmimsim.la \
+		@OPENMPI_LIBADD@ \
+		@glib2_LIBS@ \
+		@GTK_MAC_LIBS@
 xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 if OS_WINDOWS
 xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif
 
-#xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
-#xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
-##xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
-#xmimsim_test_alloc_LDADD = ../src/libxmimsim.la 
-
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
-xmimsim_pymca_LDADD = ../src/libxmimsim.la @GTK_MAC_LIBS@
-xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ @xraylib_CFLAGS@ @OPENMP_CFLAGS@ @GTK_MAC_CFLAGS@ \
--DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+xmimsim_pymca_LDADD = ../src/libxmimsim.la \
+		      @GTK_MAC_LIBS@ \
+		      @xraylib_LIBS@ \
+		      @glib2_LIBS@
+xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
+		       @xraylib_CFLAGS@ \
+		       @OPENMP_CFLAGS@ \
+		       @GTK_MAC_CFLAGS@ \
+		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
-xmso2xmsi_LDADD = ../src/libxmimsim.la
-xmso2xmsi_CFLAGS = @glib2_CFLAGS@
+xmso2xmsi_LDADD = ../src/libxmimsim.la \
+		  @GTK_MAC_LIBS@ \
+		  @glib2_LIBS@
+xmso2xmsi_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2svg_SOURCES = xmso2svg.c
-xmso2svg_LDADD = ../src/libxmimsim.la
-xmso2svg_CFLAGS = @glib2_CFLAGS@
+xmso2svg_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmso2svg_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2spe_SOURCES = xmso2spe.c
-xmso2spe_LDADD = ../src/libxmimsim.la
-xmso2spe_CFLAGS = @glib2_CFLAGS@
+xmso2spe_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmso2spe_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2csv_SOURCES = xmso2csv.c
-xmso2csv_LDADD = ../src/libxmimsim.la
-xmso2csv_CFLAGS = @glib2_CFLAGS@
+xmso2csv_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmso2csv_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
 xmso2htm_SOURCES = xmso2htm.c
-xmso2htm_LDADD = ../src/libxmimsim.la
-xmso2htm_CFLAGS = @glib2_CFLAGS@
+xmso2htm_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmso2htm_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
 
-
-
+xmimsim_db_SOURCES = xmimsim-db.c
+xmimsim_db_LDADD = ../src/libxmimsim.la \
+		 @GTK_MAC_LIBS@ \
+		 @glib2_LIBS@
+xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
+		  @xraylib_CFLAGS@ 
+		
 
 
 if OS_WINDOWS
@@ -131,9 +193,20 @@ xmimsim-icon.o: xmimsim-icon.rc
 	-DXMIMSIM_WIN_ICO_XMSI=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSI.ico\" \
 	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
+
+
+xmimsim-gui.c: xmimsim-gui-icons.h
+
+xmimsim-gui-icons.h:
+	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
+	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
+	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
+	> xmimsim-gui-icons.h
 endif
 
 
+clean-local:
+	rm -rf xmimsim-gui-icons.h
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

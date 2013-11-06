@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-tools.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -40,10 +41,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
+#include <gdk-pixbuf/gdk-pixdata.h>
+#include "xmimsim-gui-icons.h"
 #endif
 
 #ifdef MAC_INTEGRATION
 #import <Foundation/Foundation.h>
+#include <CoreFoundation/CFBundle.h>
+#include <ApplicationServices/ApplicationServices.h>
 #include <gtkosxapplication.h>
 #include <gdk/gdkquartz.h>
 #include "xmi_resources_mac.h"
@@ -52,6 +57,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+	#include "xmimsim-gui-updater.h"
+#endif
+
+#include "xmimsim-gui-prefs.h"
 
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
@@ -73,6 +83,9 @@ static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
+static GtkWidget *preferencesW;
+static GtkWidget *tube_ebelW;
+
 GtkWidget *saveW;
 GtkWidget *save_asW;
 #ifndef MAC_INTEGRATION
@@ -84,7 +97,12 @@ GtkToolItem *saveasT;
 GtkToolItem *saveT;
 static GtkToolItem *undoT;
 static GtkToolItem *redoT;
+static GtkToolItem *preferencesT;
+static GtkToolItem *tube_ebelT;
 
+#ifdef XMIMSIM_GUI_UPDATER_H
+static GtkWidget *updatesW;
+#endif
 
 //composition 
 struct layerWidget *layerW;
@@ -169,6 +187,7 @@ static gulong detector_zeroG;
 static gulong detector_fanoG;
 static gulong detector_noiseG;
 static gulong detector_max_convolution_energyG;
+
 
 //notebook
 gulong notebookG;
@@ -313,10 +332,11 @@ void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
+gboolean save_function(GtkWidget *widget, gpointer data);
 void save_cb(GtkWidget *widget, gpointer data);
 #ifdef MAC_INTEGRATION
-void quit_program_cb(GtkOSXApplication *app, gpointer data);
-gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data);
+void quit_program_cb(GtkosxApplication *app, gpointer data);
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
@@ -385,7 +405,158 @@ void adjust_save_buttons(void) {
 
 }
 
+void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
+	gchar *fileuri = gtk_recent_chooser_get_current_uri(chooser);
+	gchar *filename = g_filename_from_uri(fileuri, NULL, NULL);
+	g_free(fileuri);
+	GtkWidget *dialog;
+	gchar *title;
+	struct xmi_input *xi;
 
+
+	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
+	
+	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
+		if (xmi_read_input_xml(filename, &xi) == 1) {
+			//success reading it in...
+			change_all_values(xi);
+			//reset redo_buffer
+			reset_undo_buffer(xi, filename);	
+			title = g_path_get_basename(filename);
+			update_xmimsim_title_xmsi(title, (GtkWidget *) data, filename);
+			g_free(title);
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+	        		GTK_MESSAGE_ERROR,
+	        		GTK_BUTTONS_CLOSE,
+	        		"Could not read file %s: model is incomplete/invalid",filename
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy (dialog);
+		}
+	}
+	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
+		if (plot_spectra_from_file(filename) == 1) {
+			gchar *temp_base = g_path_get_basename(filename);
+			update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
+			g_free(temp_base);
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+	        		GTK_MESSAGE_ERROR,
+	        		GTK_BUTTONS_CLOSE,
+	        		"Could not read file %s",filename
+	               	);
+			gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy (dialog);
+		}
+	}
+
+	g_free(filename);
+}
+
+
+#ifdef XMIMSIM_GUI_UPDATER_H
+
+static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
+	char *max_version;
+
+	int rv;
+
+	//do this only if it is allowed by the preferences
+	union xmimsim_prefs_val prefs;
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+	        gtk_widget_destroy(dialog);
+#ifdef MAC_INTEGRATION
+		GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+		quit_program_cb(app, window);
+#else
+		quit_program_cb(window, window);
+#endif
+	}
+	if (prefs.b == FALSE)
+		return FALSE;
+
+
+	gtk_widget_set_sensitive(updatesW,FALSE);
+	rv = check_for_updates(&max_version);
+	if (rv == XMIMSIM_UPDATES_ERROR) {
+		//do nothing
+	}
+	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
+		rv = download_updates(window, max_version);
+		if (rv == 1) {
+			//exit XMI-MSIM
+#ifdef MAC_INTEGRATION
+			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+			quit_program_cb(app, window);
+#else
+			quit_program_cb(window, window);
+#endif
+		}
+	}
+	else if (rv == XMIMSIM_UPDATES_NONE) {
+		//do nothing
+	}
+	gtk_widget_set_sensitive(updatesW,TRUE);
+
+
+
+
+	return FALSE;
+}
+
+static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) {
+	char *max_version;
+
+	int rv;
+	
+	gtk_widget_set_sensitive(updatesW,FALSE);
+	rv = check_for_updates(&max_version);
+
+	if (rv == XMIMSIM_UPDATES_ERROR) {
+		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "An error occurred while checking for updates.\nCheck your internet connection\nor try again later.");
+		gtk_dialog_run(GTK_DIALOG(update_dialog));
+		gtk_widget_destroy(update_dialog);
+	}
+	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
+		rv = download_updates(window, max_version);
+		if (rv == 1) {
+			//exit XMI-MSIM
+#ifdef MAC_INTEGRATION
+			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+			quit_program_cb(app, window);
+#else
+			quit_program_cb(window, window);
+#endif
+		}
+	}
+	else if (rv == XMIMSIM_UPDATES_NONE) {
+		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GTK_DIALOG_MODAL, GTK_MESSAGE_INFO , GTK_BUTTONS_CLOSE, "No updates are available at this time.\nPlease check again later.");
+		gtk_dialog_run(GTK_DIALOG(update_dialog));
+		gtk_widget_destroy(update_dialog);
+	}
+
+
+	gtk_widget_set_sensitive(updatesW,TRUE);
+
+
+	return;
+}
+#endif
 
 
 
@@ -455,29 +626,8 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 		}
 		else if (dialog_rv == GTK_RESPONSE_SAVE) {
 			//update file
-		//get text from comments...
-			gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
-			if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup("");
-			}
-			else {
-				free(current->xi->general->comments);
-				current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
-			}
-			if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
-
-			}
-			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-		        		GTK_MESSAGE_ERROR,
-		        		GTK_BUTTONS_CLOSE,
-		        		"Could not write to file %s: not writeable?",check_rv->filename
-	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
+			if(save_function(dialog, (gpointer) dialog) == FALSE) {
+				gtk_widget_destroy(dialog);
 				return FALSE;
 			}
 
@@ -495,12 +645,13 @@ void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *file
 	xmimsim_title_xmsi = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
 
 #ifdef MAC_INTEGRATION
-	if (filename != NULL) {
+	if (xmimsim_filename_xmsi)
 		g_free(xmimsim_filename_xmsi);
+
+	if (filename != NULL) {
 		xmimsim_filename_xmsi = g_strdup(filename);
 	}
 	else {
-		g_free(xmimsim_filename_xmsi);
 		xmimsim_filename_xmsi = NULL;
 	}
 #endif
@@ -530,12 +681,13 @@ void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *file
 	xmimsim_title_xmso = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s",new_title);
 
 #ifdef MAC_INTEGRATION
-	if (filename != NULL) {
+	if (xmimsim_filename_xmso)
 		g_free(xmimsim_filename_xmso);
+
+	if (filename != NULL) {
 		xmimsim_filename_xmso = g_strdup(filename);
 	}
 	else {
-		g_free(xmimsim_filename_xmso);
 		xmimsim_filename_xmso = NULL;
 	}
 #endif
@@ -711,6 +863,8 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
 	);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
@@ -1227,8 +1381,28 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
-			if (mb->matrixKind == COMPOSITION)
+			if (mb->matrixKind == COMPOSITION) {
+				//reference layer may have to be updated
+				if (nindices > 1) {
+					if (composition->reference_layer == index+1) {
+						//reference_layer was deleted -> only a problem if selected layer is the last one
+						if (index == nindices -1) {
+							composition->reference_layer--;
+							//get iter to last element
+							gchar *path_string = g_strdup_printf("%i",nindices-2);
+							gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(mb->store), &iter, path_string);
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+							g_free(path_string);
+						}
+						else {
+							gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+						}
+					}
+					else if (composition->reference_layer > index+1)
+						composition->reference_layer--;
+				}
 				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			}
 			else if (mb->matrixKind == EXC_COMPOSITION)
 				update_undo_buffer(EXC_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
@@ -1263,6 +1437,16 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	return;
 }
+
+static gboolean layers_backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		layers_button_clicked_cb(widget,data);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
+
 
 struct reference_toggle {
 	GtkListStore *store;
@@ -1360,6 +1544,8 @@ static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rende
 
 	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
 
+	g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
+	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	double_text = g_strdup_printf("%lg",value);
 	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
 
@@ -1449,15 +1635,18 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Number of elements", renderer,"text",N_ELEMENTS_COLUMN,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_set_expand(column, FALSE);
 
 	renderer = gtk_cell_renderer_text_new();
 	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Elements", renderer,"text",ELEMENTS_COLUMN,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
+	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_column_set_expand(column, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
@@ -1466,8 +1655,13 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//column = gtk_tree_view_column_new_with_attributes("Density (g/cm3)", renderer,"text",DENSITY_COLUMN,NULL);
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_title(column, "Density (g/cm3)");
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.5, 0.2);
+	//gtk_label_set_text(GTK_LABEL(label), "Density(g/cm3)");
+	gtk_widget_show(label);
+	gtk_tree_view_column_set_widget(column, label);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
@@ -1481,10 +1675,10 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Thickness (cm)");
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column,FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_set_cell_data_func(column, renderer, layer_print_double, GINT_TO_POINTER(THICKNESS_COLUMN),NULL);
 
 	
@@ -1498,16 +1692,17 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 		my_gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
 		g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(reference_layer_toggled_cb), rt);
 		column = gtk_tree_view_column_new_with_attributes("Reference layer?", renderer,"active",REFERENCE_COLUMN,NULL);
-		gtk_tree_view_column_set_resizable(column,TRUE);
+		gtk_tree_view_column_set_resizable(column,FALSE);
 		gtk_tree_view_column_set_alignment(column, 0.5);
 		gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+		gtk_tree_view_column_set_expand(column, FALSE);
 	}
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
-	gtk_widget_set_size_request(scrolledWindow, 550,100);
+	//gtk_widget_set_size_request(scrolledWindow, 550,100);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
-	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, FALSE, FALSE,3 );
+	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
 	
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
@@ -1585,6 +1780,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(deleteButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
+	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(layers_backspace_key_clicked), (gpointer) mb);
 
 	//ADD
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
@@ -1833,6 +2029,9 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_yG);
 			break;
 		case DISCRETE_ENERGY_ADD:
+		case DISCRETE_ENERGY_IMPORT_ADD:
+		case DISCRETE_ENERGY_IMPORT_REPLACE:
+		case DISCRETE_ENERGY_CLEAR:
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 			gtk_list_store_clear(discWidget->store);
@@ -1846,12 +2045,47 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			break;
+		case EBEL_SPECTRUM_REPLACE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
+					-1);
+			}
 			gtk_list_store_clear(contWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
@@ -2049,6 +2283,22 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 }
 
+static void about_activate_link(GtkAboutDialog *about, const gchar *link, gpointer data) {
+	xmi_open_url((char *) link);
+	return;
+}
+static void about_activate_email(GtkAboutDialog *about, const gchar *address, gpointer data) {
+	xmi_open_email((char *) address);
+	return;
+}
+
+static void url_click(GtkWidget *widget, char *url) {
+	xmi_open_url(url);
+}
+
+static void email_click(GtkWidget *widget, char *url) {
+	xmi_open_email(url);
+}
 
 
 static void about_click(GtkWidget *widget, gpointer data) {
@@ -2069,20 +2319,15 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		NULL
 	};
 
-	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2012 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2013 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
 
-	static const gchar comments[] = "XMI-MSIM is a tool for the Monte Carlo simulation of ED-XRF spectrometers\n\n\nPlease read carefully the License section and the links therein.";
+	static const gchar comments[] = "A tool for the Monte Carlo simulation of ED-XRF spectrometers\n\n\nPlease read carefully the License section and the links therein.";
 
 	GdkPixbuf *logo = NULL;
 	gchar *logo_file = NULL;
 
-#if defined(MAC_INTEGRATION)
-	xmi_resources_mac_query(XMI_RESOURCES_MAC_LOGO,&logo_file);
-#elif defined(G_OS_WIN32)
+#ifdef G_OS_WIN32
 	xmi_registry_win_query(XMI_REGISTRY_WIN_LOGO,&logo_file);
-#else
-	logo_file = g_strdup(XMIMSIM_ICON_DEFAULT);
-#endif
 
 	GError *error = NULL;
 	if (logo_file) {
@@ -2093,18 +2338,23 @@ static void about_click(GtkWidget *widget, gpointer data) {
 
 		g_free(logo_file);
 	}
+#endif
 
 	gtk_show_about_dialog(GTK_WINDOW(data),
 		"program-name", "XMI-MSIM",
 		"authors", authors,
 		"comments", comments,
 		"copyright", copyright,
-		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011) in your manuscripts when using this tool.", 
+		"license","This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011 ) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011 ) in your manuscripts.", 
+#ifdef G_OS_WIN32
 		"logo", logo,
+#else
+		"logo-icon-name", XMI_STOCK_LOGO,
+#endif
 		"artists", artists,
 		"version", VERSION,
-		"website", "http://github.com/tschoonj/xmimsim",
-		"website-label", "github.com/tschoonj/xmimsim",
+		"website", "https://github.com/tschoonj/xmimsim",
+		"website-label", "https://github.com/tschoonj/xmimsim",
 		"wrap-license",TRUE,
 		NULL
 	);
@@ -2278,6 +2528,9 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_yG);
 			break;
 		case DISCRETE_ENERGY_ADD:
+		case DISCRETE_ENERGY_IMPORT_ADD:
+		case DISCRETE_ENERGY_IMPORT_REPLACE:
+		case DISCRETE_ENERGY_CLEAR:
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 			gtk_list_store_clear(discWidget->store);
@@ -2291,12 +2544,47 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
 					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
 					-1);
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
+					-1);
+			}
+			break;
+		case EBEL_SPECTRUM_REPLACE:
+			gtk_list_store_clear(discWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
+				gtk_list_store_append(discWidget->store, &iter);
+				gtk_list_store_set(discWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->discrete[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->discrete[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
+					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
+					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
+					-1);
+			}
 			gtk_list_store_clear(contWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
@@ -2486,18 +2774,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	adjust_save_buttons();
 }
 
-static void file_menu_click(GtkWidget *widget, gpointer data) {
-
-#if DEBUG == 1
-	g_print("%s\n",(char *) data);
-#endif
-
-	if (strcmp((char *)data, "quit") == 0)
-		gtk_main_quit();
-
-
-}
-
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 
 	//should always work out
@@ -2611,7 +2887,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			if (lastPtr == endPtr && value > 0.0) {
+			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2643,7 +2919,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_PULSE_WIDTH:
 		case COLLIMATOR_HEIGHT:
 		case COLLIMATOR_DIAMETER:
-			if (lastPtr == endPtr && value >= 0.0) {
+			if (lastPtr == endPtr && value >= 0.0 && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2683,7 +2959,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case N_DETECTOR_ORIENTATION_Y:
 		case N_DETECTOR_ORIENTATION_Z:
 		case DETECTOR_ZERO:
-			if (lastPtr == endPtr) {
+			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				//ok
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
 				*check = 1;
@@ -2801,7 +3077,9 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) 
 	//should check if the user maybe would like to save his stuff...
 	
 #ifdef MAC_INTEGRATION
-	quit_program_cb((GtkOSXApplication*) data, widget);
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return TRUE;
+	quit_program_cb((GtkosxApplication*) data, widget);
 #else
 	quit_program_cb(widget, widget);
 #endif
@@ -2897,7 +3175,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 }
 
 
-static gboolean load_from_file_osx_cb(GtkOSXApplication *app, gchar *path, gpointer data) {
+static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpointer data) {
 	struct osx_load_data *old = (struct osx_load_data *) malloc(sizeof(struct osx_load_data));
 
 	old->window = (GtkWidget *) data;
@@ -2930,7 +3208,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	last = redo_buffer;
 	redo_buffer->filename = strdup(filename);
 	redo_buffer->xi = xi_new;
-	if (filename != NULL) {
+	if (filename != NULL && strcmp(filename,UNLIKELY_FILENAME) != 0) {
 		if (last_saved != NULL) {
 			free(last_saved->filename);
 			xmi_free_input(last_saved->xi);
@@ -2939,6 +3217,9 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
 		last_saved->filename = strdup(filename);
+	}
+	else {
+		last_saved = NULL;
 	}
 	//clear undo/redo messages
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
@@ -2994,43 +3275,38 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	last = current+1;
 	last->filename=strdup(UNLIKELY_FILENAME);
 	xmi_copy_input(current->xi, &(last->xi));
+	last->kind = kind;
 	switch (kind) {
 		case OUTPUTFILE:
 			strcpy(last->message,"selection of outputfile");
 			free(last->xi->general->outputfile);
 			last->xi->general->outputfile=strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_PHOTONS_INTERVAL:
 			strcpy(last->message,"change of number of photons per interval");
 			last->xi->general->n_photons_interval = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_PHOTONS_LINE:
 			strcpy(last->message,"change of number of photons per line");
 			last->xi->general->n_photons_line = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
 			strcpy(last->message,"change of number of interactions per trajectory");
 			last->xi->general->n_interactions_trajectory = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_REFERENCE:
 			strcpy(last->message, "change of reference layer");
 			last->xi->composition->reference_layer = compositionS->reference_layer;
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_ORDER:
 			strcpy(last->message,"change of composition ordering");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
-			last->kind = kind;
 			last->widget = widget;
 #if DEBUG == 1
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
@@ -3040,139 +3316,166 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			strcpy(last->message,"removal of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_ADD:
 			strcpy(last->message,"addition of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COMPOSITION_EDIT:
 			strcpy(last->message,"editing of layer");
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case D_SAMPLE_SOURCE:
 			strcpy(last->message,"change of sample-source distance");
 			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_X:
 			strcpy(last->message,"change of sample orientation vector x");
 			last->xi->geometry->n_sample_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
 			strcpy(last->message,"change of sample orientation vector y");
 			last->xi->geometry->n_sample_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
 			strcpy(last->message,"change of sample orientation vector z");
 			last->xi->geometry->n_sample_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_X:
 			strcpy(last->message,"change of detector window position x");
 			last->xi->geometry->p_detector_window[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_Y:
 			strcpy(last->message,"change of detector window position y");
 			last->xi->geometry->p_detector_window[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case P_DETECTOR_WINDOW_Z:
 			strcpy(last->message,"change of detector window position z");
 			last->xi->geometry->p_detector_window[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_X:
 			strcpy(last->message,"change of detector orientation x");
 			last->xi->geometry->n_detector_orientation[0] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
 			strcpy(last->message,"change of detector orientation y");
 			last->xi->geometry->n_detector_orientation[1] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
 			strcpy(last->message,"change of detector orientation z");
 			last->xi->geometry->n_detector_orientation[2] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case AREA_DETECTOR:
 			strcpy(last->message,"change of active detector area");
 			last->xi->geometry->area_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COLLIMATOR_HEIGHT:
 			strcpy(last->message,"change of collimator height");
 			last->xi->geometry->collimator_height = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case COLLIMATOR_DIAMETER:
 			strcpy(last->message,"change of collimator opening diameter");
 			last->xi->geometry->collimator_diameter = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case D_SOURCE_SLIT:
 			strcpy(last->message,"change of source-slits distance");
 			last->xi->geometry->d_source_slit = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case SLIT_SIZE_X:
 			strcpy(last->message,"change of slit size x");
 			last->xi->geometry->slit_size_x = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case SLIT_SIZE_Y:
 			strcpy(last->message,"change of slit size y");
 			last->xi->geometry->slit_size_y = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DISCRETE_ENERGY_ADD:
 			strcpy(last->message,"addition of discrete energy");
-			last->kind = kind;
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy)*++last->xi->excitation->n_discrete);
-			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy;
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy_disc;
+			free(energy_disc);
+			energy_disc = NULL;
+			//sort
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			break;
+		case DISCRETE_ENERGY_IMPORT_ADD:
+			strcpy(last->message,"addition of imported discrete energies");
+			int n_discrete_old = last->xi->excitation->n_discrete;
+			last->xi->excitation->n_discrete += GPOINTER_TO_INT(widget);
+			//realloc discrete energies
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			for (i = n_discrete_old ; i < last->xi->excitation->n_discrete ; i++) {
+				last->xi->excitation->discrete[i] = energy_disc[i-n_discrete_old];
+			}
+			free(energy_disc);
+			energy_disc = NULL;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			break;
+		case DISCRETE_ENERGY_IMPORT_REPLACE:
+			strcpy(last->message,"replacing energies with imported discrete energies");
+			last->xi->excitation->n_discrete = GPOINTER_TO_INT(widget);
+			free(last->xi->excitation->discrete);
+			last->xi->excitation->discrete = xmi_memdup(energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			free(energy_disc);
+			energy_disc = NULL;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			break;
+		case DISCRETE_ENERGY_CLEAR:
+			strcpy(last->message,"clearing of all discrete energies");
+			free(last->xi->excitation->discrete);
+			last->xi->excitation->discrete = NULL;
+			last->xi->excitation->n_discrete = 0;
+
 			break;
 		case DISCRETE_ENERGY_EDIT:
 			strcpy(last->message,"editing of discrete energy");
-			last->kind = kind;
-			last->xi->excitation->discrete[current_index] = *energy;
+			last->xi->excitation->discrete[current_index] = *energy_disc;
+			if (last->xi->excitation->n_discrete > 1)
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			free(energy_disc);
+			energy_disc = NULL;
 			break;
 		case DISCRETE_ENERGY_DELETE:
 			strcpy(last->message,"deletion of discrete energy");
-			last->kind = kind;
-			if (current_nindices > 1) {
-				for (i = current_index ; i < current_nindices-1 ; i++) {
-					last->xi->excitation->discrete[i] = last->xi->excitation->discrete[i+1];	
+			int n = last->xi->excitation->n_discrete;
+			int j;
+			if (n != delete_current_nindices) {
+				for (i = n-1 ; i >= 0 ; i--) {
+					if (i == delete_current_indices[delete_current_nindices-1]) {
+						delete_current_nindices--;
+						//delete this energy
+						for (j = i ; j < last->xi->excitation->n_discrete-1 ; j++)
+							last->xi->excitation->discrete[j] = last->xi->excitation->discrete[j+1];	
+						last->xi->excitation->n_discrete--;
+					}	
 				}
-				last->xi->excitation->discrete = (struct xmi_energy *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy)*--last->xi->excitation->n_discrete);
+			
+				last->xi->excitation->discrete = (struct xmi_energy_discrete *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			}
 			else {
 				free(last->xi->excitation->discrete);
@@ -3182,30 +3485,85 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_ADD:
 			strcpy(last->message,"addition of continuous energy");
-			last->kind = kind;
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy)*++last->xi->excitation->n_continuous);
-			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy;
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy_cont;
+			free(energy_cont);
+			energy_cont = NULL;
+			//sort
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			break;
+		case CONTINUOUS_ENERGY_IMPORT_ADD:
+			strcpy(last->message,"addition of imported continuous energies");
+			int n_continuous_old = last->xi->excitation->n_continuous;
+			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
+			//realloc continuous energies
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			for (i = n_continuous_old ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i] = energy_cont[i-n_continuous_old];
+			}
+			free(energy_cont);
+			energy_cont = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			break;
+		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
+			strcpy(last->message,"replacing energies with imported continuous energies");
+			last->xi->excitation->n_continuous = GPOINTER_TO_INT(widget);
+			free(last->xi->excitation->continuous);
+			last->xi->excitation->continuous = xmi_memdup(energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			free(energy_cont);
+			energy_cont = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			break;
+		case CONTINUOUS_ENERGY_CLEAR:
+			strcpy(last->message,"clearing of all continuous energies");
+			free(last->xi->excitation->continuous);
+			last->xi->excitation->continuous = NULL;
+			last->xi->excitation->n_continuous = 0;
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			strcpy(last->message,"editing of continuous energy");
-			last->kind = kind;
-			last->xi->excitation->continuous[current_index] = *energy;
+			last->xi->excitation->continuous[current_index] = *energy_cont;
+			free(energy_cont);
+			energy_cont = NULL;
+			if (last->xi->excitation->n_continuous > 1)
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
-			last->kind = kind;
-			if (current_nindices > 1) {
-				for (i = current_index ; i < current_nindices-1 ; i++) {
-					last->xi->excitation->continuous[i] = last->xi->excitation->continuous[i+1];	
+			 n = last->xi->excitation->n_continuous;
+			j;
+			if (n != delete_current_nindices) {
+				for (i = n-1 ; i >= 0 ; i--) {
+					if (i == delete_current_indices[delete_current_nindices-1]) {
+						delete_current_nindices--;
+						//delete this energy
+						for (j = i ; j < last->xi->excitation->n_continuous-1 ; j++)
+							last->xi->excitation->continuous[j] = last->xi->excitation->continuous[j+1];	
+						last->xi->excitation->n_continuous--;
+					}	
 				}
-				last->xi->excitation->continuous = (struct xmi_energy *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy)*--last->xi->excitation->n_continuous);
+			
+				last->xi->excitation->continuous = (struct xmi_energy_continuous *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			}
 			else {
 				free(last->xi->excitation->continuous);
 				last->xi->excitation->continuous = NULL;
 				last->xi->excitation->n_continuous = 0;
 			}
+			break;
+		case EBEL_SPECTRUM_REPLACE:
+			strcpy(last->message,"importing of Ebel X-ray tube spectrum");
+			if (last->xi->excitation->n_continuous > 0)
+				free(last->xi->excitation->continuous);
+			if (last->xi->excitation->n_discrete > 0)
+				free(last->xi->excitation->discrete);
+			free(last->xi->excitation);
+			struct xmi_excitation *temp_exc = (struct xmi_excitation*) widget;
+			last->xi->excitation = temp_exc;
 			break;
 		case EXC_COMPOSITION_ORDER:
 			strcpy(last->message,"change of excitation absorber ordering");
@@ -3215,7 +3573,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->exc_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
-			last->kind = kind;
 			last->widget = widget;
 #if DEBUG == 1
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
@@ -3229,7 +3586,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->exc_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case EXC_COMPOSITION_ADD:
@@ -3240,7 +3596,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->exc_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case EXC_COMPOSITION_EDIT:
@@ -3251,7 +3606,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->exc_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_ORDER:
@@ -3262,7 +3616,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->det_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
-			last->kind = kind;
 			last->widget = widget;
 #if DEBUG == 1
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
@@ -3276,7 +3629,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->det_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_ADD:
@@ -3287,7 +3639,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->det_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DET_COMPOSITION_EDIT:
@@ -3298,7 +3649,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->absorbers->det_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_ORDER:
@@ -3309,7 +3659,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->detector->crystal_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
-			last->kind = kind;
 			last->widget = widget;
 #if DEBUG == 1
 			fprintf(stdout,"store pointer during update: %p\n",last->widget);
@@ -3323,7 +3672,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->detector->crystal_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_ADD:
@@ -3334,7 +3682,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->detector->crystal_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case CRYSTAL_COMPOSITION_EDIT:
@@ -3345,55 +3692,46 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				free(last->xi->detector->crystal_layers);	
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_TYPE:
 			strcpy(last->message,"change of detector type");
 			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_GAIN: 
 			strcpy(last->message,"change of detector gain");
 			last->xi->detector->gain = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_LIVE_TIME: 
 			strcpy(last->message,"change of live time");
 			last->xi->detector->live_time = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_PULSE_WIDTH: 
 			strcpy(last->message,"change of detector pulse width");
 			last->xi->detector->pulse_width= strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_ZERO: 
 			strcpy(last->message,"change of detector zero");
 			last->xi->detector->zero = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_NOISE: 
 			strcpy(last->message,"change of detector noise");
 			last->xi->detector->noise = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_FANO: 
 			strcpy(last->message,"change of detector Fano factor");
 			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 		case DETECTOR_MAX_CONVOLUTION_ENERGY: 
 			strcpy(last->message,"change of maximum convolution energy");
 			last->xi->detector->max_convolution_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->kind = kind;
 			last->widget = widget;
 			break;
 	} 
@@ -3446,6 +3784,16 @@ XMI_MAIN
 	GtkWidget *file;
 	GtkWidget *editmenu;
 	GtkWidget *edit;
+	GtkWidget *toolsmenu;
+	GtkWidget *tools;
+	GtkWidget *convertW;
+	GtkWidget *convertmenu;
+	GtkWidget *xmso2xmsiW;
+	GtkWidget *xmso2csvW;
+	GtkWidget *xmso2htmlW;
+	GtkWidget *xmso2svgW;
+	GtkWidget *xmso2speW;
+
 	GtkWidget *frame;
 	GtkWidget *superframe;
 	GtkWidget *label;
@@ -3468,8 +3816,20 @@ XMI_MAIN
 	GtkWidget *resultsPageW, *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
 	GtkWidget *aboutW;
+	GtkWidget *userguideW;
+	GtkWidget *github_rootW;
+	GtkWidget *github_wikiW;
+	GtkWidget *report_bugW;
+	GtkWidget *request_featureW;
+	GOptionContext *context;
+	GError *error = NULL;
+	static int version = 0;
+	static GOptionEntry entries[] = {
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{NULL}
+	};
 #ifdef MAC_INTEGRATION
-	GtkOSXApplication *theApp;
+	GtkosxApplication *theApp;
 #endif
 
 /*
@@ -3481,6 +3841,21 @@ XMI_MAIN
  *
  *
  */
+
+	context = g_option_context_new ("XMSI_or_XMSO_file");
+	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_set_summary(context, "xmimsim-gui: a graphical user interface for generating and running XMSI files and visualizing XMSO files\n");
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_print ("option parsing failed: %s\n", error->message);
+		return 1;
+	}
+
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
+	}
+	
+
 
 	//signal handlers
 #ifdef G_OS_UNIX
@@ -3509,13 +3884,20 @@ XMI_MAIN
 	setbuf(stdout,NULL);
 	//let's use the default C locale
 	//g_type_init
+#if !GLIB_CHECK_VERSION (2, 35, 3)
 	g_type_init();
+#endif
 
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
+
+
+	//about dialog hooks
+	gtk_about_dialog_set_url_hook(about_activate_link, NULL, NULL);
+	gtk_about_dialog_set_email_hook(about_activate_email, NULL, NULL);
 
 
 	//initialize undo system
@@ -3576,17 +3958,64 @@ XMI_MAIN
 	pos_int = g_regex_new("^[1-9][0-9]*$", G_REGEX_EXTENDED,0, NULL);
 
 
-
-
-
 	gtk_init(&argc, &argv);
 
 #ifdef MAC_INTEGRATION
-	theApp = g_object_new(GTK_TYPE_OSX_APPLICATION,NULL);
-	gtk_osxapplication_set_use_quartz_accelerators(theApp, TRUE);
+	theApp = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
 #endif
 
 	g_set_application_name("XMI-MSIM");
+
+	//iconfactory stuff
+	//based on http://www.gtkforums.com/viewtopic.php?t=7654
+	static GtkStockItem stock_items[] = {
+		{XMI_STOCK_RADIATION_WARNING, "X-ray tube", 0, 0, NULL},
+		{XMI_STOCK_LOGO, "XMI-MSIM", 0, 0, NULL}
+	};
+	gtk_stock_add_static (stock_items, G_N_ELEMENTS (stock_items));
+
+	GtkIconFactory *factory = gtk_icon_factory_new();
+	gtk_icon_factory_add_default (factory);
+	GtkIconSet *iconset;
+	GtkIconSource *source;
+
+#ifdef G_OS_WIN32
+	GdkPixbuf *pixbuf;
+	pixbuf = gdk_pixbuf_from_pixdata(&Radiation_warning_symbol_pixbuf, TRUE, NULL);
+	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
+	g_object_unref(pixbuf);
+	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
+	gtk_icon_set_unref (iconset);
+
+	pixbuf = gdk_pixbuf_from_pixdata(&Logo_xmi_msim_pixbuf, TRUE, NULL);
+	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
+	g_object_unref(pixbuf);
+	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
+	gtk_icon_set_unref (iconset);
+
+#else
+	source = gtk_icon_source_new ();
+	gtk_icon_source_set_icon_name (source, XMI_STOCK_RADIATION_WARNING);
+
+	iconset = gtk_icon_set_new ();
+	gtk_icon_set_add_source (iconset, source);
+	gtk_icon_source_free (source);
+
+	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
+	gtk_icon_set_unref (iconset);
+
+	source = gtk_icon_source_new ();
+	gtk_icon_source_set_icon_name (source, XMI_STOCK_LOGO);
+
+	iconset = gtk_icon_set_new ();
+	gtk_icon_set_add_source (iconset, source);
+	gtk_icon_source_free (source);
+
+	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
+	gtk_icon_set_unref (iconset);
+#endif
+
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	accel_group = gtk_accel_group_new();
@@ -3615,6 +4044,24 @@ XMI_MAIN
 	//new = gtk_menu_item_new_with_label("New");
 	newW = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW,accel_group);
 	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,accel_group);
+	GtkWidget *openrecentW = gtk_recent_chooser_menu_new();
+	GtkRecentFilter *filter = gtk_recent_filter_new();
+	gtk_recent_filter_add_pattern(filter, "*.xmsi");
+	gtk_recent_filter_add_pattern(filter, "*.xmso");
+	//gtk_recent_filter_add_application(filter, g_get_application_name());
+	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
+#if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), FALSE);
+#else
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+#endif
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentW), TRUE);
+	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentW), GTK_RECENT_SORT_MRU);
+	g_signal_connect(G_OBJECT(openrecentW), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
+
+	GtkWidget *openrecent_menuW = gtk_menu_item_new_with_label("Open Recent");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(openrecent_menuW), openrecentW);
+
 	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,accel_group);
 	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,accel_group);
 #ifndef MAC_INTEGRATION
@@ -3623,6 +4070,7 @@ XMI_MAIN
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file),filemenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),newW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openrecent_menuW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),saveW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
 #ifndef MAC_INTEGRATION
@@ -3646,10 +4094,52 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
+
+	//Tools
+	toolsmenu = gtk_menu_new();
+	tools = gtk_menu_item_new_with_label("Tools");
+	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
+	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
+	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
+
+	convertmenu = gtk_menu_new();
+	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
+	xmso2csvW = gtk_menu_item_new_with_label("CSV");
+	xmso2svgW = gtk_menu_item_new_with_label("SVG");
+	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
+	xmso2speW = gtk_menu_item_new_with_label("SPE");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2xmsiW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2csvW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2svgW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2htmlW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2speW);
+	g_signal_connect(G_OBJECT(xmso2xmsiW), "activate", G_CALLBACK(xmimsim_gui_xmso2xmsi), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2csvW), "activate", G_CALLBACK(xmimsim_gui_xmso2csv), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2svgW), "activate", G_CALLBACK(xmimsim_gui_xmso2svg), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2htmlW), "activate", G_CALLBACK(xmimsim_gui_xmso2html), (gpointer) window);
+	g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
+
+
+
+	preferencesW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PREFERENCES,accel_group);
+	struct xmi_preferences_data xpd;
+	xpd.window = window;
+	xpd.page = 0;
+	g_signal_connect(G_OBJECT(preferencesW),"activate",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),tools);
+#ifndef MAC_INTEGRATION
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),g_object_ref(gtk_separator_menu_item_new()));
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),preferencesW);
+#endif
 	//both should be greyed out in the beginning
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
@@ -3664,30 +4154,78 @@ XMI_MAIN
 	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
 
+	GtkWidget *helpmenu, *help;
 #ifdef MAC_INTEGRATION
-	GtkWidget *help = gtk_menu_item_new_with_label("Help");
+	helpmenu = gtk_menu_new();
+	help = gtk_menu_item_new_with_label("Help");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), gtk_menu_new());
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
+	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
+	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
+	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_rootW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_wikiW);
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
+	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/");
+	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/Home");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+	report_bugW= gtk_menu_item_new_with_label("Report a Bug");
+	request_featureW= gtk_menu_item_new_with_label("Request a feature");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),report_bugW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
+	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
+	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
-	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
+	gtkosx_application_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
-	gtk_osxapplication_insert_app_menu_item(theApp, aboutW, 0);
-	gtk_osxapplication_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
-	gtk_osxapplication_set_help_menu(theApp, GTK_MENU_ITEM(help));
-	gtk_osxapplication_set_window_menu(theApp, NULL);
+	gtkosx_application_insert_app_menu_item(theApp, aboutW, 0);
+  #ifdef XMIMSIM_GUI_UPDATER_H
+	updatesW = gtk_menu_item_new_with_label("Check for updates...");
+	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
+	gtkosx_application_insert_app_menu_item(theApp, updatesW, 1);
+	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
+	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 3);
+  #else
+	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
+	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 2);
+  #endif
+	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(help));
+	gtkosx_application_set_window_menu(theApp, NULL);
 #else
-	GtkWidget *helpmenu, *help;
 	helpmenu = gtk_menu_new();
 	help = gtk_menu_item_new_with_label("Help");
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	
+	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
+	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
+	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_rootW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_wikiW);
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
+	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/");
+	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/Home");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+	report_bugW= gtk_menu_item_new_with_label("Report a Bug");
+	request_featureW= gtk_menu_item_new_with_label("Request a feature");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),report_bugW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
+	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
+	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+  #ifdef XMIMSIM_GUI_UPDATER_H	
+	updatesW = gtk_menu_item_new_with_label("Check for updates...");
+	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),updatesW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+  #endif
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 
 	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
@@ -3697,17 +4235,45 @@ XMI_MAIN
 	//toolbar
 	toolbar = gtk_toolbar_new();
 	newT = gtk_tool_button_new_from_stock(GTK_STOCK_NEW);
-	openT = gtk_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	openT = gtk_menu_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	GtkWidget *openrecentT = gtk_recent_chooser_menu_new();
+	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentT), filter);
+	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), TRUE);
+#ifdef G_OS_WIN32
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentT), FALSE);
+#else
+	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentT), TRUE);
+#endif
+	gtk_recent_chooser_set_sort_type(GTK_RECENT_CHOOSER(openrecentT), GTK_RECENT_SORT_MRU);
+	g_signal_connect(G_OBJECT(openrecentT), "item-activated", G_CALLBACK(chooser_activated_cb), (gpointer) window);
+	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(openT), openrecentT); 
+
 	saveasT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
+	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
+	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(saveT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(undoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(tube_ebelT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveT,(gint) 3);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) 4);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) 5);
+	GtkToolItem *separatorT = gtk_separator_tool_item_new();
+	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
+	gtk_tool_item_set_expand(separatorT, TRUE);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 7);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 8);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -3718,17 +4284,14 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
+	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
 
 
-	//g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(quit_program_cb),(gpointer) window);
-#ifdef MAC_INTEGRATION
-	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),theApp);
-#else
 	g_signal_connect(window,"delete-event",G_CALLBACK(delete_event),window);
-#endif
 
 	//notebook
 	notebook = gtk_notebook_new();
@@ -3763,7 +4326,7 @@ XMI_MAIN
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
 	//n_photons_interval
 	hbox_text_label = gtk_hbox_new(FALSE,5);
-	//gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Number of photons per interval");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
@@ -3842,12 +4405,15 @@ XMI_MAIN
 	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 	gtk_widget_show_all(notebook);
+	gtk_widget_grab_focus(label);
+	
 
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 	//initialize layer widget
-	layerW = initialize_layer_widget(&layer);
+	layerW = initialize_layer_widget(&layer, window);
 	g_signal_connect(G_OBJECT(layerW->window),"hide",G_CALLBACK(layer_widget_hide_cb), (gpointer) layerW);
 
 
@@ -4092,7 +4658,7 @@ XMI_MAIN
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Excitation</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
-	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation));
+	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation, window));
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
 
 
@@ -4100,6 +4666,7 @@ XMI_MAIN
 	//convert to composition struct
 	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->exc_layers, current->xi->absorbers->n_exc_layers   ,&temp_composition)	;
 	tempW = initialize_matrix(temp_composition  , EXC_COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 
 	frame = gtk_frame_new("Beam absorbers");
@@ -4114,6 +4681,7 @@ XMI_MAIN
 	xmi_free_composition(temp_composition);
 	xmi_copy_abs_or_crystal2composition(current->xi->absorbers->det_layers, current->xi->absorbers->n_det_layers   ,&temp_composition);	
 	tempW = initialize_matrix(temp_composition  , DET_COMPOSITION); 
+	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
 
 
 	frame = gtk_frame_new("Detection absorbers");
@@ -4286,7 +4854,7 @@ XMI_MAIN
 
 
 #ifdef MAC_INTEGRATION
-	gtk_osxapplication_ready(theApp);
+	gtkosx_application_ready(theApp);
 #endif
 
 	gchar *filename = g_strdup(argv[1]);
@@ -4318,9 +4886,11 @@ XMI_MAIN
 				//gtk_widget_destroy(dialog);
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
+			adjust_save_buttons();
 		}
 		else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
 			update_xmimsim_title_xmsi("New file", window, NULL);
+			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSO file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
@@ -4329,7 +4899,6 @@ XMI_MAIN
 				g_free(temp_base);
 			}
 			else {
-				update_xmimsim_title_xmso("No simulation data available", window, NULL);
 				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 			       		GTK_MESSAGE_ERROR,
@@ -4359,9 +4928,11 @@ XMI_MAIN
 	}
 
 
-
-
-
+#ifdef XMIMSIM_GUI_UPDATER_H
+	g_idle_add((GSourceFunc) check_for_updates_on_init_cb, window);	
+	
+#endif
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	gtk_main();
 
 #ifdef MAC_INTEGRATION
@@ -4524,6 +5095,8 @@ void change_all_values(struct xmi_input *new_input) {
 			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
 			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
 			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,(new_input)->excitation->discrete[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,(new_input)->excitation->discrete[i].scale_parameter,
 			-1);
 	}
 	gtk_list_store_clear(contWidget->store);
@@ -4694,7 +5267,7 @@ void new_cb(GtkWidget *widget, gpointer data) {
 }
 
 #ifdef MAC_INTEGRATION
-gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data){
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
 
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 		return TRUE;
@@ -4702,7 +5275,7 @@ gboolean quit_blocker_mac_cb(GtkOSXApplication *app, gpointer data){
 
 }
 
-void quit_program_cb(GtkOSXApplication *app, gpointer data) {
+void quit_program_cb(GtkosxApplication *app, gpointer data) {
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data) {
 	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
@@ -4777,7 +5350,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
-																
+	 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
 	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
 		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter1);
@@ -4879,6 +5454,13 @@ void saveas_cb(GtkWidget *widget, gpointer data) {
 }
 
 void save_cb(GtkWidget *widget, gpointer data) {
+
+	save_function(widget, data);
+
+	return;
+}
+
+gboolean save_function(GtkWidget *widget, gpointer data) {
 	int check_status;
 	GtkWidget *dialog;
 	struct undo_single *check_rv; 
@@ -4891,6 +5473,17 @@ void save_cb(GtkWidget *widget, gpointer data) {
 #endif
 	//check if it was saved before... otherwise call saveas
 	if (check_status == CHECK_CHANGES_SAVED_BEFORE) {
+		if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		        	GTK_MESSAGE_ERROR,
+		        	GTK_BUTTONS_CLOSE,
+		        	"Could not write to file: model is incomplete/invalid"
+	                	);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+	     		gtk_widget_destroy (dialog);
+	     		return FALSE;
+		}
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
@@ -4910,7 +5503,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	               	);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
-			return;
+			return FALSE;
 
 		}
 		else {
@@ -4929,7 +5522,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 	else if (check_status == CHECK_CHANGES_NEVER_SAVED ||
 		check_status == CHECK_CHANGES_NEW) {
 		//never saved -> call saveas
-		saveas_function(widget, data);
+		return saveas_function(widget, data);
 
 	}
 	else if (check_status == CHECK_CHANGES_JUST_SAVED) {
@@ -4938,7 +5531,7 @@ void save_cb(GtkWidget *widget, gpointer data) {
 
 
 
-	return;
+	return TRUE;
 
 
 }
@@ -4972,7 +5565,9 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		NULL);
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-																
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
@@ -5031,4 +5626,63 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	return TRUE;
 
 
+}
+
+void xmi_open_email(char *address) {
+	char *link;
+
+	link = g_strdup_printf("mailto:%s",address);
+
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link, 
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char *argv[3];
+	argv[0] = "xdg-email";
+	argv[1] = link;
+	argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp("xdg-email", argv);
+#endif
+	g_free(link);
+	return;
+
+}
+void xmi_open_url(char *link) {
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link, 
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char *argv[3];
+	argv[0] = "xdg-open";
+	argv[1] = link;
+	argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp("xdg-open", argv);
+#endif
+	return;
 }

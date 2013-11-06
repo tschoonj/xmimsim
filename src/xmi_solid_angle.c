@@ -17,34 +17,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include "xmi_solid_angle.h"
+#include "xmi_data_structs.h"
 #include <glib.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+#include <glib/gstdio.h>
 #include <gmodule.h>
-#endif
+
+#define MIN_VERSION 2.0
+
 
 struct xmi_solid_angles_data{
 	struct xmi_solid_angle **solid_angles;
 	struct xmi_input *input;
+	struct xmi_main_options options;
 };
 
 #ifndef XMIMSIM_CL
-#include <hdf5.h>
-#include "xmi_aux.h"
-#include "xmi_xml.h"
-#include <sys/stat.h>
+  #include <hdf5.h>
+  #include "xmi_aux.h"
+  #include "xmi_xml.h"
+  #include <sys/stat.h>
+  #include <xraylib.h>
   #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
+	#include "xmi_resources_mac.h"
   #endif
 
-static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
+  #ifdef _WIN32
+    	#include "xmi_registry_win.h"
+  #endif
 
-extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+
+  static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
+
+  extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 //static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 
-typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+  typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 #else
 
   #ifdef HAVE_OPENCL_CL_H
@@ -53,23 +64,16 @@ typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_sol
 	#include <CL/cl.h>
   #endif
 
-#define RANGE_DIVIDER 8
-#define XMI_OPENCL_MAJOR 1
-#define XMI_OPENCL_MINOR 1
 
-extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
+  #define RANGE_DIVIDER 8
+  #define XMI_OPENCL_MAJOR 1
+  #define XMI_OPENCL_MINOR 1
 
-extern long hits_per_single;
+  extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
+
+  extern long hits_per_single;
 #endif
 
-
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
-#ifdef _WIN32
-  #include "xmi_registry_win.h"
-#endif
 
 #ifndef XMIMSIM_CL
 void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
@@ -278,7 +282,9 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 	fprintf(stdout,"Group name: %s\n",name);
 #endif
 
-
+	if (data->options.extra_verbose) {
+		fprintf(stdout,"Checking solid angle grid group with name %s\n", name);
+	} 
 
 
 	//open group
@@ -350,34 +356,289 @@ static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"Match in solid angle grid\n");
 	}
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		free(xmi_input_string);
+		if (data->options.extra_verbose)
+			fprintf(stdout,"No match in solid angle grid\n");
 		return 0;
 	}
 	
 	return 1;
 }
-
+//A -> from HDF5 file (existing - old)
+//B -> from XMSI file (new)
 int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	int i;
+	double *thickness_along_Z_a, *thickness_along_Z_b;
+	double *Z_coord_begin_a, *Z_coord_begin_b;
+	double *Z_coord_end_a, *Z_coord_end_b;
 
 	//composition
-	if (A->composition->n_layers != B->composition->n_layers) {
-		return 0;
-	}
-	if (A->composition->reference_layer != B->composition->reference_layer) {
-		return 0;
-	}
+	//new approach: compare extremes of the layer system
+	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
+	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
+	thickness_along_Z_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_begin_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_end_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
+	thickness_along_Z_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_begin_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_end_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+
+
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
-		if (fabsl(A->composition->layers[i].thickness- B->composition->layers[i].thickness)/A->composition->layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-			return 0;
-		}
+		thickness_along_Z_a[i] = fabs(A->composition->layers[i].thickness/A->geometry->n_sample_orientation[2]);
 	}
-	//
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		thickness_along_Z_b[i] = fabs(B->composition->layers[i].thickness/B->geometry->n_sample_orientation[2]);
+	}
+
+	Z_coord_begin_a[A->composition->reference_layer-1] = 0.0;
+	Z_coord_end_a[A->composition->reference_layer-1] = thickness_along_Z_a[A->composition->reference_layer-1];
+
+	for (i = A->composition->reference_layer-1+1 ; i < A->composition->n_layers ; i++) {
+		Z_coord_begin_a[i] = Z_coord_end_a[i-1];
+		Z_coord_end_a[i] = Z_coord_begin_a[i]+thickness_along_Z_a[i];
+	}
+
+	for (i = A->composition->reference_layer-1-1 ; i == 0 ; i--) {
+		Z_coord_end_a[i] = Z_coord_begin_a[i+1];
+		Z_coord_begin_a[i] = Z_coord_end_a[i]-thickness_along_Z_a[i];
+	}
+
+	Z_coord_begin_b[B->composition->reference_layer-1] = 0.0;
+	Z_coord_end_b[B->composition->reference_layer-1] = thickness_along_Z_b[B->composition->reference_layer-1];
+
+	for (i = B->composition->reference_layer-1+1 ; i < B->composition->n_layers ; i++) {
+		Z_coord_begin_b[i] = Z_coord_end_b[i-1];
+		Z_coord_end_b[i] = Z_coord_begin_b[i]+thickness_along_Z_b[i];
+	}
+
+	for (i = B->composition->reference_layer-1-1 ; i == 0 ; i--) {
+		Z_coord_end_b[i] = Z_coord_begin_b[i+1];
+		Z_coord_begin_b[i] = Z_coord_end_b[i]-thickness_along_Z_b[i];
+	}
+
+
+
+	//calculate absorption coefficients
+	double *mu_a;
+	double *mu_b;
+
+	double Pabs_a, Pabs_b;
+	double S1_a, S1_b, S2_a, S2_b;
+	double sum;
+	double R1 = 0.00001;
+	double R2 = 0.99999;
+	double myln;
+	int m;
+	int j;
+
+#if DEBUG == 1
+	g_fprintf(stdout, "energy A: %lf\n",A->excitation->discrete[0].energy);
+	g_fprintf(stdout, "energy B: %lf\n",B->excitation->discrete[0].energy);
+	g_fprintf(stdout, "thickness 0 A:%lf\n",thickness_along_Z_a[0]);
+	g_fprintf(stdout, "thickness 0 b:%lf\n",thickness_along_Z_b[0]);
+#endif
+	
+	double energy;
+
+	//S1
+	//low energy limit
+	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	sum = 0.0;
+	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
+		energy = MIN(A->excitation->continuous[0].energy, A->excitation->discrete[0].energy);
+	}
+	else if (A->excitation->n_continuous > 1)
+		energy = A->excitation->continuous[0].energy;
+	else
+		energy = A->excitation->discrete[0].energy;
+
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		mu_a[i] = 0.0;
+		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) energy)*A->composition->layers[i].weight[j];
+		}
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+	}
+	Pabs_a = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R1*Pabs_a);
+
+	sum=0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_a[i]*A->composition->layers[i].density)/(mu_a[m]*A->composition->layers[m].density))*thickness_along_Z_a[i];
+
+	S1_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0]; 
+
+	//S2
+	//high energy limit
+	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	sum = 0.0;
+	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
+		energy = MAX(A->excitation->continuous[A->excitation->n_continuous-1].energy, A->excitation->discrete[A->excitation->n_discrete-1].energy);
+	}
+	else if (A->excitation->n_continuous > 1)
+		energy = A->excitation->continuous[A->excitation->n_continuous-1].energy;
+	else
+		energy = A->excitation->discrete[A->excitation->n_discrete-1].energy;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		mu_a[i] = 0.0;
+		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], (float) energy)*A->composition->layers[i].weight[j];
+		}
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+	}
+	Pabs_a = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R2*Pabs_a);
+
+	sum=0.0;
+	for (i = 0 ; i < A->composition->n_layers ; i++) {
+		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_a[i]*A->composition->layers[i].density)/(mu_a[m]*A->composition->layers[m].density))*thickness_along_Z_a[i];
+
+	S2_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0]; 
+
+	free(mu_a);
+
+
+	//S1
+	//low energy limit
+	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	sum = 0.0;
+	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
+		energy = MIN(B->excitation->continuous[0].energy, B->excitation->discrete[0].energy);
+	}
+	else if (B->excitation->n_continuous > 0)
+		energy = B->excitation->continuous[0].energy;
+	else
+		energy = B->excitation->discrete[0].energy;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		mu_b[i] = 0.0;
+		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+		}
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+	}
+	Pabs_b = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R1*Pabs_b);
+
+#if DEBUG == 1
+	g_fprintf(stdout,"S1 Pabs_b: %lf\n", Pabs_b);
+	g_fprintf(stdout,"S1 myln: %lf\n", myln);
+#endif
+
+	sum=0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_b[i]*B->composition->layers[i].density)/(mu_b[m]*B->composition->layers[m].density))*thickness_along_Z_b[i];
+
+#if DEBUG == 1
+	g_fprintf(stdout,"S1 my_sum: %lf\n", sum);
+	g_fprintf(stdout,"S1 my_sum plus: %lf\n", sum+ myln/(mu_b[m]*B->composition->layers[m].density));
+	g_fprintf(stdout,"S1 Z_coord_begin: %lf\n",Z_coord_begin_b[0]);
+#endif
+	S1_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0];; 
+
+	//S2
+	//high energy limit
+	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	sum = 0.0;
+	if (B->excitation->n_continuous > 1 && B->excitation->n_discrete > 0) {
+		energy = MAX(B->excitation->continuous[B->excitation->n_continuous-1].energy, B->excitation->discrete[B->excitation->n_discrete-1].energy);
+	}
+	else if (B->excitation->n_continuous > 1)
+		energy = B->excitation->continuous[B->excitation->n_continuous-1].energy;
+	else
+		energy = B->excitation->discrete[B->excitation->n_discrete-1].energy;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		mu_b[i] = 0.0;
+		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+		}
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+	}
+	Pabs_b = 1.0 - exp(-1.0*sum);
+	myln = -1.0*log(1.0-R2*Pabs_b);
+#if DEBUG == 1
+	g_fprintf(stdout,"S2 Pabs_b: %lf\n", Pabs_b);
+	g_fprintf(stdout,"S2 myln: %lf\n", myln);
+#endif
+
+	sum=0.0;
+	for (i = 0 ; i < B->composition->n_layers ; i++) {
+		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
+		if (sum > myln)
+			break;
+	}
+	m = i;
+
+	sum=0.0;
+	for (i = 0; i < m ; i++)
+		sum += (1.0 - (mu_b[i]*B->composition->layers[i].density)/(mu_b[m]*B->composition->layers[m].density))*thickness_along_Z_b[i];
+
+	S2_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0]; 
+
+	free(mu_b);
+
+#if DEBUG == 1
+	fprintf(stdout, "S2_b: %lg\n", S2_b);
+	fprintf(stderr, "Z_coord_end_b: %lg\n", Z_coord_end_b[B->composition->n_layers-1]);
+	fprintf(stdout, "S2_a: %lg\n", S2_a);
+	fprintf(stderr, "Z_coord_end_a: %lg\n", Z_coord_end_a[A->composition->n_layers-1]);
+	fprintf(stdout, "S1_b: %lg\n", S1_b);
+	fprintf(stderr, "Z_coord_begin_b: %lg\n", Z_coord_begin_b[0]);
+	fprintf(stdout, "S1_a: %lg\n", S1_a);
+	fprintf(stderr, "Z_coord_begin_a: %lg\n", Z_coord_begin_a[0]);
+#endif
+
+
+	//if (Z_coord_end_a[A->composition->n_layers-1] - Z_coord_end_b[B->composition->n_layers-1] < -0.0001 || Z_coord_begin_a[0] - Z_coord_begin_b[0] > 0.0001) {
+	if (S2_a - S2_b < -0.0001 || S1_a - S1_b > 0.0001) {
+		free(thickness_along_Z_a);
+		free(thickness_along_Z_b);
+		free(Z_coord_begin_a);
+		free(Z_coord_end_a);
+		free(Z_coord_begin_b);
+		free(Z_coord_end_b);
+		return 0;
+	}
+
+	free(thickness_along_Z_a);
+	free(thickness_along_Z_b);
+	free(Z_coord_begin_a);
+	free(Z_coord_end_a);
+	free(Z_coord_begin_b);
+	free(Z_coord_end_b);
+
+
 	//geometry
 #define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/A->geometry->a > XMI_COMPARE_THRESHOLD){\
 	return 0;\
@@ -387,11 +648,9 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	}	
 
 	//should compare normalized orientations...
-	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
-	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
-	XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[0])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
+	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
 	if (fabsl((A->geometry->p_detector_window[2]-A->geometry->d_sample_source)-(B->geometry->p_detector_window[2]-B->geometry->d_sample_source)) > XMI_COMPARE_THRESHOLD)
@@ -410,7 +669,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	return 1;
 }
 
-int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv) {
+int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv, struct xmi_main_options options) {
 
 	hid_t file_id;
 	struct xmi_solid_angles_data data;
@@ -423,8 +682,55 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 		return 0;
 	}
 
+	//version check!
+	hid_t root_group_id;
+	hid_t attribute_id;
+
+	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "Solid angles file %s does not contain the version tag\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+		
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_solid_angle_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+	//attribute exists -> let's read it
+	float version;
+	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+	H5Aclose(attribute_id);
+	H5Gclose(root_group_id);
+
+	if (version < MIN_VERSION) {
+		//too old -> delete file
+		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_solid_angle_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+
 	data.solid_angles = rv;
 	data.input = A;
+	data.options = options;
 
 	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) &data);
 
@@ -435,7 +741,14 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	}
 	
 
-	H5Fclose(file_id);
+	if (H5Fclose(file_id) < 0) {
+		g_fprintf(stderr, "Error closing %s... Fatal error\n", hdf5_file);
+		return 0;
+	}
+#if DEBUG == 1
+	else
+		g_fprintf(stderr,"HDF5 closed succesfully\n");
+#endif
 	return 1;
 }
 
@@ -448,7 +761,7 @@ void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
 	free(solid_angle->xmi_input_string);
 }
 
-int xmi_get_solid_angle_file(char **filePtr) {
+int xmi_get_solid_angle_file(char **filePtr, int create_file) {
 	//behavior is very much platform dependent
 	//general rule
 	//Linux: use g_get_user_data_dir
@@ -483,7 +796,7 @@ int xmi_get_solid_angle_file(char **filePtr) {
 	}
 
 	//check if file exists
-	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+	if (!g_file_test(file, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR) && create_file) {
 		//create underlying directory if necessary
 		dir = g_path_get_dirname(file);
 		if (g_mkdir_with_parents(dir,S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
@@ -502,7 +815,6 @@ int xmi_get_solid_angle_file(char **filePtr) {
 
 
 #else
-//#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 
 #define OPENCL_ERROR(name) if (status != CL_SUCCESS) { \
 	fprintf(stderr,"OpenCL error for function %s on line %i\n",#name,__LINE__);\

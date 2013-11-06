@@ -20,6 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct xmi_general {
 	float version;
 	char *outputfile;
@@ -62,7 +67,27 @@ struct xmi_geometry {
 	double slit_size_y;
 };
 
-struct xmi_energy {
+enum {
+	XMI_DISCRETE_MONOCHROMATIC,
+	XMI_DISCRETE_GAUSSIAN,
+	XMI_DISCRETE_LORENTZIAN,
+};
+
+
+
+struct xmi_energy_discrete {
+	double energy;
+	double horizontal_intensity;
+	double vertical_intensity;
+	double sigma_x;
+	double sigma_xp;
+	double sigma_y;
+	double sigma_yp;
+	int distribution_type;
+	double scale_parameter;
+};
+
+struct xmi_energy_continuous {
 	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
@@ -74,9 +99,10 @@ struct xmi_energy {
 
 struct xmi_excitation {
 	int n_discrete;
-	struct xmi_energy *discrete;
+	struct xmi_energy_discrete *discrete;
 	int n_continuous;
-	struct xmi_energy *continuous;
+	struct xmi_energy_continuous *continuous;
+	double last_energy;
 };
 
 
@@ -132,7 +158,6 @@ struct xmi_output {
 
 struct xmi_main_options {
 	int use_M_lines;
-	int use_self_enhancement;
 	int use_cascade_auger;
 	int use_cascade_radiative;
 	int use_variance_reduction;
@@ -142,28 +167,29 @@ struct xmi_main_options {
 	int verbose;
 	int use_poisson;
 	int use_opencl;
+	int omp_num_threads;
+	int extra_verbose;
 };
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
 typedef void* xmi_inputFPtr;  
-typedef void* xmi_hdf5FPtr;
 
-#define XMI_COMPARE_GENERAL 1
-#define XMI_COMPARE_COMPOSITION 2
-#define XMI_COMPARE_GEOMETRY 4
-#define XMI_COMPARE_EXCITATION 8
-#define XMI_COMPARE_ABSORBERS 16
-#define XMI_COMPARE_DETECTOR 32
+#define XMI_CONFLICT_GENERAL 1
+#define XMI_CONFLICT_COMPOSITION 2
+#define XMI_CONFLICT_GEOMETRY 4
+#define XMI_CONFLICT_EXCITATION 8
+#define XMI_CONFLICT_ABSORBERS 16
+#define XMI_CONFLICT_DETECTOR 32
 
 #define XMI_COMPARE_THRESHOLD 0.000001
 
 void xmi_free_input(struct xmi_input *);
 
-//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_COMPARE_* macros if not identical
+//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
-//returns 0 when ok
+//returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
 int xmi_validate_input(struct xmi_input *);
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
@@ -194,13 +220,6 @@ void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );
 //Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
 void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
 
-//Fortran function that reads in from the HDF5 data file what it needs... return 1 on success, 0 otherwise
-int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *hdf5FPtr );
-
-//Fortran function that frees a Fortran xmi_hdf5 TYPE variable. The value of the pointer shall be set to NULL afterwards.
-void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
-
-int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
 
 //Fortran function that further initializes the input
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
@@ -210,5 +229,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input);
 
 void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

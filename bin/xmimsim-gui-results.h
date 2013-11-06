@@ -49,4 +49,14 @@ int plot_spectra_from_file(char *xmsofile);
 
 
 
+extern GdkColor white_plot;
+extern GdkColor blue_plot;
+extern GdkColor red_plot;
+extern GdkColor green_plot;
+extern GdkColor black_plot;
+extern GdkColor purple_plot;
+extern GdkColor yellow_plot;
+extern GdkColor pink_plot;
+
+
 #endif

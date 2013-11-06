@@ -19,7 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #error xmi_resources_mac.c should not be compiled without defining MAC_INTEGRATION
 #endif
 
+#include "config.h"
 #include "xmi_resources_mac.h"
+#include "xmi_aux.h"
 #include <gtkosxapplication.h>
 #include <glib.h>
 
@@ -27,7 +29,7 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	const gchar *resource_path;
 	gchar *temp;
 
-	resource_path = quartz_application_get_resource_path();
+	resource_path = gtkosx_application_get_resource_path();
 
 
 	switch (kind) {

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include "xmi_aux.h"
 
@@ -26,19 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 XMI_MAIN
 	static gchar *outputfile=NULL;
 	GError *error = NULL;
-
+	static int version = 0;
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
 		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"XMSI outputfile",NULL},
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
-
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
-
 
 	//parse options
 	context = g_option_context_new ("XMSO_file XMSI_file");
@@ -49,6 +45,10 @@ XMI_MAIN
 		return 1;
 	}
 
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
+	}
 
 	if (argc != 3) {
 		fprintf(stderr,"Two arguments are required\n");
@@ -56,10 +56,14 @@ XMI_MAIN
 		return 1;
 	}
 
-	if (xmi_xmso_to_xmsi_xslt(argv[1], argv[2], outputfile) == 0) {
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
 
+	if (xmi_xmso_to_xmsi_xslt(argv[1], argv[2], outputfile) == 0) {
+		return 1;
+	}
 
 	return 0;
 }

@@ -21,11 +21,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_ENERGIES_H
 #define XMIMSIM_GUI_ENERGIES_H
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation); 
+GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window); 
 
-extern struct xmi_energy *energy;
+extern struct xmi_energy_discrete *energy_disc;
+extern struct xmi_energy_continuous *energy_cont;
 extern int current_index;
 extern int current_nindices;
+extern int *delete_current_indices;
+extern int delete_current_nindices;
 
 struct energiesWidget {
 	GtkListStore *store;
@@ -43,7 +46,9 @@ enum {
 	SIGMA_XP_COLUMN,
 	SIGMA_Y_COLUMN,
 	SIGMA_YP_COLUMN,
+	DISTRIBUTION_TYPE_COLUMN,
+	SCALE_PARAMETER_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
-
+void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
 #endif

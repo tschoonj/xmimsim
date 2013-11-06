@@ -1,0 +1,296 @@
+Fixes xmimsim-2.0 problems on squeeze
+Some will be fixed upstream, others not
+--- a/bin/xmimsim-gui-prefs.c
++++ b/bin/xmimsim-gui-prefs.c
+@@ -682,6 +682,12 @@
+ 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+ 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
+ 
++#elif defined(DEB_BUILD)
++	label = gtk_label_new("XMI-MSIM was built with Debian Package Manager. All updates should be installed with apt-get or aptitude.");
++	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
++	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
++	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
++	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
+ #elif defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+ 
+ 	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
+--- a/configure.ac
++++ b/configure.ac
+@@ -15,6 +15,7 @@
+ 
+ AC_INIT([xmimsim],[2.0],[Tom.Schoonjans@me.com])
+ AC_PREREQ([2.60])
++AC_CONFIG_SRCDIR([bin/xmimsim.c])
+ AC_CONFIG_AUX_DIR([build-aux])
+ 
+ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+@@ -61,7 +62,7 @@
+ AC_CONFIG_MACRO_DIR([m4])
+ 
+ AC_USE_SYSTEM_EXTENSIONS
+-AM_PROG_AR
++m4_ifdef([AM_PROG_AR],[AM_PROG_AR])
+ 
+ #libtool
+ LT_PREREQ([2.0.0])
+--- a/src/xmi_detector.c
++++ b/src/xmi_detector.c
+@@ -51,10 +51,10 @@
+ 		fprintf(stderr,"Could not create escape ratios HDF5 file %s\n",hdf5_file);
+ 		return 0;
+ 	}
+-	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
++	root_group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
+ 
+ 	dataspace_id = H5Screate(H5S_SCALAR);
+-	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
++	attribute_id = H5Acreate2(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+ 
+ 	
+@@ -179,13 +179,13 @@
+ 	g_free(timestring);
+ 
+ 	//create group
+-	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	group_id = H5Gcreate2(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 
+ 
+ 	//write Z
+ 	dims1[0]=escape_ratios->n_elements;
+ 	dspace_id = H5Screate_simple(1, dims1, dims1);
+-	dset_id = H5Dcreate(group_id,"elements",H5T_NATIVE_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"elements",H5T_NATIVE_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->Z);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+@@ -196,14 +196,14 @@
+ 	dims3[1] = abs(L3P3_LINE);
+ 	dims3[0] = escape_ratios->n_fluo_input_energies;
+ 	dspace_id = H5Screate_simple(3, dims3, dims3);
+-	dset_id = H5Dcreate(group_id,"fluo escape ratios",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"fluo escape ratios",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->fluo_escape_ratios);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	//write fluo_escape_input_energies
+ 	dspace_id = H5Screate_simple(1, &dims3[0], &dims3[0]);
+-	dset_id = H5Dcreate(group_id,"fluo escape input energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"fluo escape input energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->fluo_escape_input_energies);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+@@ -212,21 +212,21 @@
+ 	dims2[0] = escape_ratios->n_compton_output_energies;
+ 	dims2[1] = escape_ratios->n_compton_input_energies;
+ 	dspace_id = H5Screate_simple(2, dims2, dims2);
+-	dset_id = H5Dcreate(group_id,"compton escape ratios",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"compton escape ratios",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->compton_escape_ratios);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	//write compton input energies
+ 	dspace_id = H5Screate_simple(1, &dims2[1], &dims2[1]);
+-	dset_id = H5Dcreate(group_id,"compton escape input energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"compton escape input energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->compton_escape_input_energies);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	//write compton output energies
+ 	dspace_id = H5Screate_simple(1, &dims2[0], &dims2[0]);
+-	dset_id = H5Dcreate(group_id,"compton escape output energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	dset_id = H5Dcreate2(group_id,"compton escape output energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,H5S_ALL, H5P_DEFAULT, escape_ratios->compton_escape_output_energies);
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+@@ -234,7 +234,7 @@
+ 	//write xmi_input_string
+ 	xmi_input_strlen = strlen(escape_ratios->xmi_input_string)+1;
+ 	dspace_id = H5Screate_simple(1, &xmi_input_strlen, &xmi_input_strlen);
+-	dset_id = H5Dcreate(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
++	dset_id = H5Dcreate2(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
+ 	H5Dwrite(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL,H5P_DEFAULT, escape_ratios->xmi_input_string);	
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+@@ -269,14 +269,14 @@
+ 	
+ 
+ 	//open group
+-	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
++	group_id = H5Gopen2(g_id,name, H5P_DEFAULT);
+ 	if (group_id < 0) {
+ 		fprintf(stderr,"Error opening group %s\n",name);
+ 		return -1;
+ 	}
+ 
+ 	//open xmi_input_string
+-	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
++	dset_id = H5Dopen2(group_id, "xmi_input_string", H5P_DEFAULT);
+ 	dspace_id = H5Dget_space(dset_id);
+ 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
+ 	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+@@ -295,7 +295,7 @@
+ 		escape_ratios = *(data->escape_ratios);
+ 		escape_ratios->xmi_input_string  = xmi_input_string;
+ 		//read elements
+-		dset_id = H5Dopen(group_id, "elements", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "elements", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
+ 			fprintf(stderr,"Number of dimensions of elements must be equal to 1\n");
+@@ -309,7 +309,7 @@
+ 		H5Dclose(dset_id);
+ 
+ 		//read fluo escape ratios
+-		dset_id = H5Dopen(group_id, "fluo escape ratios", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "fluo escape ratios", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 3) {
+ 			fprintf(stderr,"Number of dimensions of fluo escape ratios must be equal to 3\n");
+@@ -324,7 +324,7 @@
+ 		H5Dclose(dset_id);
+ 
+ 		//read fluo escape input energies
+-		dset_id = H5Dopen(group_id, "fluo escape input energies", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "fluo escape input energies", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
+ 			fprintf(stderr,"Number of dimensions of fluo escape input energies must be equal to 1\n");
+@@ -335,7 +335,7 @@
+ 		H5Dclose(dset_id);
+ 
+ 		//read compton escape ratios
+-		dset_id = H5Dopen(group_id, "compton escape ratios", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "compton escape ratios", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 2) {
+ 			fprintf(stderr,"Number of dimensions of compton escape ratios must be equal to 2\n");
+@@ -352,7 +352,7 @@
+ 		H5Dclose(dset_id);
+ 
+ 		//read compton escape input energies 
+-		dset_id = H5Dopen(group_id, "compton escape input energies", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "compton escape input energies", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
+ 			fprintf(stderr,"Number of dimensions of compton escape input energies must be equal to 1\n");
+@@ -363,7 +363,7 @@
+ 		H5Dclose(dset_id);
+ 		
+ 		//read compton escape output energies 
+-		dset_id = H5Dopen(group_id, "compton escape output energies", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "compton escape output energies", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
+ 			fprintf(stderr,"Number of dimensions of compton escape output energies must be equal to 1\n");
+--- a/src/xmi_solid_angle.c
++++ b/src/xmi_solid_angle.c
+@@ -58,10 +58,10 @@
+ 		fprintf(stderr,"Could not create solid angle HDF5 file %s\n",hdf5_file);
+ 		return 0;
+ 	}
+-	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
++	root_group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
+ 
+ 	dataspace_id = H5Screate(H5S_SCALAR);
+-	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
++	attribute_id = H5Acreate2(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+ 	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+ 
+ 	
+@@ -107,7 +107,7 @@
+ 	g_free(timestring);
+ 
+ 	//create group
+-	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
++	group_id = H5Gcreate2(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 
+ 	//add solid_angles dataset
+ 	dims[1] = solid_angle->grid_dims_r_n;
+@@ -124,26 +124,26 @@
+ 		fprintf(stdout,"%lf\n",solid_angle->grid_dims_theta_vals[i]);
+ #endif
+ 	dspace_id = H5Screate_simple(2, dims, dims);
+-	dset_id = H5Dcreate(group_id, "solid_angles",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
++	dset_id = H5Dcreate2(group_id, "solid_angles",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, solid_angle->solid_angles );	
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	dspace_id = H5Screate_simple(1, &dims[1], &dims[1]);
+-	dset_id = H5Dcreate(group_id, "grid_dims_r_vals",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
++	dset_id = H5Dcreate2(group_id, "grid_dims_r_vals",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, solid_angle->grid_dims_r_vals );	
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	dspace_id = H5Screate_simple(1, &dims[0], &dims[0]);
+-	dset_id = H5Dcreate(group_id, "grid_dims_theta_vals",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
++	dset_id = H5Dcreate2(group_id, "grid_dims_theta_vals",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
+ 	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, solid_angle->grid_dims_theta_vals );	
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+ 
+ 	xmi_input_strlen = strlen(solid_angle->xmi_input_string)+1;
+ 	dspace_id = H5Screate_simple(1, &xmi_input_strlen, &xmi_input_strlen);
+-	dset_id = H5Dcreate(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
++	dset_id = H5Dcreate2(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
+ 	H5Dwrite(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL,H5P_DEFAULT, solid_angle->xmi_input_string);	
+ 	H5Sclose(dspace_id);
+ 	H5Dclose(dset_id);
+@@ -191,14 +191,14 @@
+ 
+ 
+ 	//open group
+-	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
++	group_id = H5Gopen2(g_id,name, H5P_DEFAULT);
+ 	if (group_id < 0) {
+ 		fprintf(stderr,"Error opening group %s\n",name);
+ 		return -1;
+ 	}
+ 
+ 	//open xmi_input_string
+-	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
++	dset_id = H5Dopen2(group_id, "xmi_input_string", H5P_DEFAULT);
+ 	dspace_id = H5Dget_space(dset_id);
+ 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
+ 	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+@@ -220,7 +220,7 @@
+ 
+ 
+ 		//open dataset solid_angles
+-		dset_id = H5Dopen(group_id, "solid_angles", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "solid_angles", H5P_DEFAULT);
+ 	
+ 		//get dimensions of solid_angles dataset
+ 		dspace_id = H5Dget_space(dset_id);
+@@ -244,14 +244,14 @@
+ #endif
+ 
+ 
+-		dset_id = H5Dopen(group_id, "grid_dims_r_vals", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "grid_dims_r_vals", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		solid_angles->grid_dims_r_vals = (double *) malloc(sizeof(double)*dims[1]);
+ 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_r_vals );
+ 		H5Sclose(dspace_id);
+ 		H5Dclose(dset_id);
+ 
+-		dset_id = H5Dopen(group_id, "grid_dims_theta_vals", H5P_DEFAULT);
++		dset_id = H5Dopen2(group_id, "grid_dims_theta_vals", H5P_DEFAULT);
+ 		dspace_id = H5Dget_space(dset_id);
+ 		solid_angles->grid_dims_theta_vals = (double *) malloc(sizeof(double)*dims[0]);
+ 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_theta_vals );
+@@ -556,7 +556,7 @@
+ 	hid_t root_group_id;
+ 	hid_t attribute_id;
+ 
+-	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
++	root_group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
+ 	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
+ 	if (attribute_id < 0) {
+ 		//attribute does not exist

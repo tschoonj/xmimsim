@@ -24,16 +24,22 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "2.15.0"
+!define XRAYLIB_VERSION "2.17.0"
+!define XRAYLIB_VERSION_MIN "2.17.0"
+
+
+;!define WITH_XRAYLIB
+
 
 SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 !include "Library.nsh"
 !include "LogicLib.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
-!include "${MY_HOME}github\xmimsim\nsis\EnumUsersReg.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\EnvVarUpdate.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\FileAssociation.nsh"
+;!include "${MY_HOME}github\xmimsim\nsis\EnumUsersReg.nsh"
 !include "Sections.nsh"
+!include "WordFunc.nsh"
 
 Name ${PRODUCT_NAME}
 OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
@@ -91,34 +97,68 @@ SetAutoClose false
 SetShellVarContext all
 SetOutPath "$INSTDIR"
 ;check for presence of xraylib and whether it has the right version
+!ifndef WITH_XRAYLIB
 DetailPrint "Checking xraylib presence..."
 ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "DisplayVersion"
 
 ${If} $R0 == ""
-	MessageBox MB_OK "xraylib was not found on the system. It will now be downloaded and installed."
-	Goto xraylib
-${ElseIf} $R0 == ${XRAYLIB_VERSION}
+	ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_is1" "DisplayVersion"
+	${If} $R0 == ""
+		MessageBox MB_OK "xraylib was not found on the system. It will now be downloaded and installed."
+		Goto xraylib
+	${Endif}
+${Endif}
+
+${VersionCompare} $R0 ${XRAYLIB_VERSION_MIN} $R1
+
+${If} $R1 == 0
 	Goto gtk2install
-${Else}
+${ElseIf} $R1 == 1
+	Goto gtk2install
+${ElseIf} $R1 == 2
 	MessageBox MB_OK "The version of xraylib that was found on this system is incompatible with this release of XMI-MSIM. The correct version of xraylib will now be downloaded and installed."
 	;quiet uninstall first
-	ReadRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "QuietUninstallString"
-	ExecWait '$R1'	
+	ReadRegStr $R2 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib" "QuietUninstallString"
+	${If} $R2 == ""
+		ReadRegStr $R2 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_is1" "QuietUninstallString"
+		${If} $R2 == ""
+			MessageBox MB_OK "Could not find xraylib QuietUninstallString in registry. Aborting"
+			Abort "Registry error"
+		${Endif}
+	${Endif}
+	ExecWait '$R2'	
 	Goto xraylib
+${Else}
+	MessageBox MB_OK "Invalid value in VersionCompare. Aborting"
+	Abort "VersionCompare error"
 ${Endif}
 
 xraylib:
 #NSISdl::download /TIMEOUT=30000 https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe xraylib-${XRAYLIB_VERSION}-win32.exe
-inetc::get /NOCANCEL "https://github.com/downloads/tschoonj/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+inetc::get /NOCANCEL "http://lvserver.ugent.be/xraylib/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
 Pop $0
 ${If} $0 == "OK"
-	DetailPrint "xraylib download has succeeded. Installing..."
-	ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
-	Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
+	Goto xraylib_install
 ${Else}
-	MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
-	Abort "xraylib download failed: $0"
+	#try to get it from S3
+	inetc::get /NOCANCEL "http://xraylib.s3.amazonaws.com/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
+	Pop $0
+	${If} $0 == "OK"
+		Goto xraylib_install
+	${Else}
+		MessageBox MB_OK "Error when downloading xraylib: $0. Aborting"
+		Abort "xraylib download failed: $0"
+	${Endif}
 ${Endif}
+
+xraylib_install:
+DetailPrint "xraylib download has succeeded. Installing..."
+ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
+Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
+
+
+!endif
+
 gtk2install:
 DetailPrint "Installing GTK2 runtime"
 File "${MY_HOME}\github\xmimsim\nsis\${GTK_INSTALLER_EXE}"
@@ -137,9 +177,8 @@ DetailPrint "Installing GNU Scientific Library (GSL)"
 DetailPrint "Installing GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libfgsl-0.dll" "$INSTDIR\Lib\libfgsl-0.dll" "$INSTDIR"
 
-DetailPrint "Installing HDF5 (with Fortran bindings)"
+DetailPrint "Installing HDF5"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5-6.dll" "$INSTDIR\Lib\libhdf5-6.dll" "$INSTDIR"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libhdf5_fortran-6.dll" "$INSTDIR\Lib\libhdf5_fortran-6.dll" "$INSTDIR"
 
 DetailPrint "Installing libxml2"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxml2-2.dll" "$INSTDIR\Lib\libxml2-2.dll" "$INSTDIR"
@@ -148,7 +187,7 @@ DetailPrint "Installing libxslt"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxslt-1.dll" "$INSTDIR\Lib\libxslt-1.dll" "$INSTDIR"
 
 DetailPrint "Installing xraylib Fortran bindings"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-3.dll" "$INSTDIR\Lib\libxrlf03-3.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrlf03-7.dll" "$INSTDIR\Lib\libxrlf03-7.dll" "$INSTDIR"
 
 DetailPrint "Installing gfortran runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib\libgfortran-3.dll" "$INSTDIR"
@@ -161,8 +200,20 @@ DetailPrint "Installing OpenMP runtime libraries"
 DetailPrint "Installing POSIX threads runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib\pthreadGC2.dll" "$INSTDIR"
 
-;DetailPrint "Installing GTK-EXTRA runtime libraries"
-;!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" "$INSTDIR"
+DetailPrint "Installing libcurl"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libcurl-4.dll" "$INSTDIR\Lib\libcurl-4.dll" "$INSTDIR"
+;
+DetailPrint "Installing Json-Glib"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libjson-glib-1.0-0.dll" "$INSTDIR\Lib\libjson-glib-1.0-0.dll" "$INSTDIR"
+
+!ifdef WITH_XRAYLIB
+DetailPrint "Installing xraylib"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib\libxrl-3.dll" "$INSTDIR"
+!endif
+
+
+DetailPrint "Installing GTK-EXTRA runtime libraries"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0-5.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" "$INSTDIR"
 
 ;my own stuff
 DetailPrint "Installing XMI-MSIM runtime library"
@@ -171,14 +222,40 @@ DetailPrint "Installing XMI-MSIM runtime library"
 DetailPrint "Installing XMI-MSIM executables"
 SetOutPath "$INSTDIR\Bin"
 File "${MY_HOME}bin\xmimsim.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "" "$INSTDIR\Bin\xmimsim.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-db.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "" "$INSTDIR\Bin\xmimsim-db.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-gui.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "" "$INSTDIR\Bin\xmimsim-gui.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmimsim-pymca.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "" "$INSTDIR\Bin\xmimsim-pymca.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2xmsi.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "" "$INSTDIR\Bin\xmso2xmsi.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2svg.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "" "$INSTDIR\Bin\xmso2svg.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2spe.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "" "$INSTDIR\Bin\xmso2spe.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2csv.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "" "$INSTDIR\Bin\xmso2csv.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
+
 File "${MY_HOME}bin\xmso2htm.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "" "$INSTDIR\Bin\xmso2htm.exe"
+WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 SetOutPath "$INSTDIR\Share"
 DetailPrint "Installing XMI-MSIM HDF5 database"
@@ -201,7 +278,7 @@ File "${MY_HOME}github\xmimsim\src\threefry.h"
 File "${MY_HOME}github\xmimsim\src\xmi_kernels.cl"
 File "${MY_HOME}lib\xmimsim\xmimsim-cl.dll"
 
-DetailPrint "Installing logo"
+DetailPrint "Installing logos"
 File "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.png"
 
 
@@ -233,9 +310,9 @@ SetOutPath "$INSTDIR\Sources"
 File "${MY_HOME}github\xmimsim\build\xmimsim-${VERSION}.tar.gz"
 
 ;path modification
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Lib"
-${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\GTK2"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Lib"
+;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\GTK2"
 
 ;registry modifications
 WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory" "$INSTDIR"
@@ -302,6 +379,12 @@ DetailPrint "Uninstalling GTK2 runtime"
 ExecWait "$INSTDIR\GTK2\gtk2_runtime_uninst.exe /remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S"
 RMDir /R "$INSTDIR\GTK2"
 
+!ifdef WITH_XRAYLIB
+DetailPrint "Uninstalling xraylib"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll"
+!endif
+
+
 DetailPrint "Uninstalling GNU Scientific Library (GSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgsl-0.dll"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgslcblas-0.dll"
@@ -309,9 +392,8 @@ DetailPrint "Uninstalling GNU Scientific Library (GSL)"
 DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
 
-DetailPrint "Uninstalling HDF5 (with Fortran bindings)"
+DetailPrint "Uninstalling HDF5"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5_fortran-6.dll"
 
 DetailPrint "Uninstalling libxml2"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
@@ -320,7 +402,7 @@ DetailPrint "Uninstalling libxslt"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxslt-1.dll" 
 
 DetailPrint "Uninstalling xraylib Fortran bindings"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-3.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrlf03-7.dll" 
 
 DetailPrint "Uninstalling gfortran runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 
@@ -333,8 +415,14 @@ DetailPrint "Uninstalling OpenMP runtime libraries"
 DetailPrint "Uninstalling POSIX threads runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
 
-;DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
-;!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0.dll" 
+DetailPrint "Uninstalling libcurl"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libcurl-4.dll" 
+
+DetailPrint "Uninstalling Json-Glib"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libjson-glib-1.0-0.dll" 
+
+DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" 
 
 DetailPrint "Uninstalling XMI-MSIM runtime library"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 
@@ -367,7 +455,7 @@ Delete "$INSTDIR\Share\xmimsim-1.0.dtd"
 ;Delete "$APPDATA\xmimsim\xmimsim-escape-ratios.h5"
 Delete "$INSTDIR\Share\Logo_xmi_msim.png"
 
-DetailPrint "Unnstalling XMI-MSIM OpenCL files"
+DetailPrint "Uninstalling XMI-MSIM OpenCL files"
 Delete "$INSTDIR\Share\array.h"
 Delete "$INSTDIR\Share\compilerfeatures.h"
 Delete "$INSTDIR\Share\openclfeatures.h"
@@ -381,8 +469,8 @@ Delete "$INSTDIR\Share\xmimsim-cl.dll"
 ;RMDir "$APPDATA\xmimsim"
 RMDir "$INSTDIR\Share"
 
-DetailPrint "Removing user specific files"
-${un.EnumUsersReg} un.EraseAppDataCB temp.key
+;DetailPrint "Removing user specific files"
+;${un.EnumUsersReg} un.EraseAppDataCB temp.key
 
 DetailPrint "Deleting Sources"
 Delete "$INSTDIR\Sources\xmimsim-${VERSION}.tar.gz"
@@ -391,10 +479,11 @@ RMDir "$INSTDIR\Sources"
 Delete "$INSTDIR\Uninstall.exe"
 RMDir "$INSTDIR"
 
-DetailPrint "Cleaning registry"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Lib"
-${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
+;DetailPrint "Cleaning registry"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Bin"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\Lib"
+;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
+
 ;clean registry
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\data"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\catalog"
@@ -408,16 +497,29 @@ DeleteRegKey HKLM "Software\${PRODUCT_NAME}\opencllib"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-db.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-pymca.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2xmsi.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2svg.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2spe.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2csv.exe"
+DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe"
+
+
 delete "$SMPROGRAMS\XMI-MSIM\XMI-MSIM.lnk"
 delete "$SMPROGRAMS\XMI-MSIM\Uninstall XMI-MSIM.lnk"
 RmDir "$SMPROGRAMS\XMI-MSIM" 
 
 DetailPrint "Unregistering xmsi extension"
-${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+;${unregisterExtension} ".xmsi" "XMI-MSIM inputfile"
+DeleteRegKey HKCR ".xmsi"
 DeleteRegKey HKCR "XMI-MSIM inputfile" 
 
 DetailPrint "Unregistering xmso extension"
-${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
+;${unregisterExtension} ".xmso" "XMI-MSIM outputfile"
+DeleteRegKey HKCR ".xmso"
 DeleteRegKey HKCR "XMI-MSIM outputfile" 
 
 SectionEnd

@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_lines.h"
@@ -31,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/xsltutils.h>
 #include <stdlib.h>
 #include <xraylib.h>
+#include <search.h>
 
 
 #define SVG_DEFAULT_WIDTH 540
@@ -56,7 +58,6 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, double ***channels
 static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
 
-static int xmi_cmp_struct_xmi_energy(const void *a, const void *b);
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
@@ -101,7 +102,7 @@ int xmi_xmlLoadCatalog() {
 int xmi_xmlLoadCatalog() {
 	int rv;
 	gchar *resource_path;
-	resource_path = quartz_application_get_resource_path();
+	resource_path = gtkosx_application_get_resource_path();
 	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
 	strcat(resource_path,"/");
 
@@ -641,6 +642,18 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
+	xmlAttrPtr attr;
+	double energy;
+	double horizontal_intensity;
+	double vertical_intensity;
+	double sigma_x;
+	double sigma_xp;
+	double sigma_y;
+	double sigma_yp;
+	struct xmi_energy_discrete xed;
+	struct xmi_energy_continuous xec;
+	int distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+	double scale_parameter = 0.0;
 	
 	*excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
 
@@ -654,12 +667,13 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar*) "discrete")) {
-			(*excitation)->discrete = (struct xmi_energy *) realloc((*excitation)->discrete,++((*excitation)->n_discrete)*sizeof(struct xmi_energy));
 			subsubnode = subnode->children;
+			distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+			scale_parameter = 0.0;
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].energy)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
 						fprintf(stderr,"error reading in discrete energy of xml file\n");
 						return 0;
 					}
@@ -667,7 +681,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -675,7 +689,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -683,7 +697,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -691,7 +705,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -699,7 +713,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -707,22 +721,93 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
 					xmlFree(txt);
 				}
+				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "scale_parameter")) {
+					//get distribution type
+					attr=subsubnode->properties;
+					while (attr != NULL) {
+						if (!xmlStrcmp(attr->name,(const xmlChar *) "distribution_type")) {
+							txt = xmlNodeListGetString(doc,attr->children,1);
+							if (strcmp(txt, "monochromatic") == 0) {
+								distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+								xmlFree(txt);
+							}
+							else if (strcmp(txt, "gaussian") == 0) {
+								distribution_type = XMI_DISCRETE_GAUSSIAN;
+								xmlFree(txt);
+								//read scale_parameter value
+								txt = xmlNodeListGetString(doc,subsubnode->children,1);
+								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+									fprintf(stderr,"error reading in scale_parameter of xml file\n");
+									return 0;
+								}
+								xmlFree(txt);
+							}
+							else if (strcmp(txt, "lorentzian") == 0) {
+								distribution_type = XMI_DISCRETE_LORENTZIAN;
+								xmlFree(txt);
+								//read scale_parameter value
+								txt = xmlNodeListGetString(doc,subsubnode->children,1);
+								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+									fprintf(stderr,"error reading in scale_parameter of xml file\n");
+									return 0;
+								}
+								xmlFree(txt);
+							}
+						}
+						attr=attr->next;
+					}
+
+				}
 				subsubnode = subsubnode->next;
+			}
+			xed.energy = energy;
+			struct xmi_energy_discrete *xed_match;
+#ifdef G_OS_WIN32
+			unsigned int n_discrete = (*excitation)->n_discrete;
+			if ((xed_match = _lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
+#else
+			size_t n_discrete = (*excitation)->n_discrete;
+			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL) {
+#endif
+				fprintf(stdout,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
+				if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
+					xed_match->horizontal_intensity += horizontal_intensity;	
+					xed_match->vertical_intensity += vertical_intensity;	
+				}
+				else {
+					fprintf(stderr,"Error: Invalid discrete energy detected\n");
+					return 0;
+				}
+			}
+			else if (energy > 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
+				(*excitation)->discrete = (struct xmi_energy_discrete *) realloc((*excitation)->discrete,++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
+				(*excitation)->discrete[(*excitation)->n_discrete-1].energy= energy ;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].horizontal_intensity = horizontal_intensity;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].vertical_intensity = vertical_intensity;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_x = sigma_x;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_xp = sigma_xp;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_y = sigma_y;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp = sigma_yp;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].scale_parameter = scale_parameter;
+				(*excitation)->discrete[(*excitation)->n_discrete-1].distribution_type = distribution_type;
+			}
+			else {
+				fprintf(stderr,"Error: Invalid discrete energy detected\n");
+				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "continuous")) {
-			(*excitation)->continuous = (struct xmi_energy *) realloc((*excitation)->continuous,++((*excitation)->n_continuous)*sizeof(struct xmi_energy));
 			subsubnode = subnode->children;
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].energy)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
 						fprintf(stderr,"error reading in continuous energy of xml file\n");
 						return 0;
 					}
@@ -730,7 +815,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -738,7 +823,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -746,7 +831,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -754,7 +839,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -762,7 +847,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -770,7 +855,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*excitation)->continuous[(*excitation)->n_continuous-1].sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
@@ -778,23 +863,64 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				subsubnode = subsubnode->next;
 			}
+			xec.energy = energy;
+#ifdef G_OS_WIN32
+			unsigned int n_continuous = (*excitation)->n_continuous;
+			if (_lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+#else
+			size_t n_continuous = (*excitation)->n_continuous;
+			if (lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+#endif
+				fprintf(stderr,"Error: Duplicate continuous energy interval energy detected\n");
+				return 0;
+			}
+			else if (energy >= 0.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) >= 0.0) {
+				(*excitation)->continuous = (struct xmi_energy_continuous *) realloc((*excitation)->continuous,++((*excitation)->n_continuous)*sizeof(struct xmi_energy_continuous));
+				(*excitation)->continuous[(*excitation)->n_continuous-1].energy= energy ;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].horizontal_intensity = horizontal_intensity;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity = vertical_intensity;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_x = sigma_x;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_xp = sigma_xp;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_y = sigma_y;
+				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_yp = sigma_yp;
+			}
+			else {
+				fprintf(stderr,"Error: Invalid continuous interval detected\n");
+				return 0;
+			}
 		}
 		subnode = subnode->next;
 	}
 
-	if ((*excitation)->n_continuous == 0 && (*excitation)->n_discrete == 0) {
-		fprintf(stderr,"Found no discrete or continuous energies in xml file\n");
+	if ((*excitation)->n_continuous < 2 && (*excitation)->n_discrete == 0) {
+		fprintf(stderr,"Error: Found no valid discrete or continuous energies in xml file\n");
+		return 0;
+	}
+	else if ((*excitation)->n_continuous == 1) {
+		fprintf(stderr,"Error: Found only one continuous interval in xml file\nMust be either none or at least two\n");
 		return 0;
 	}
 
-	//sort!
-	if ((*excitation)->n_continuous != 0) {
-		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
-	}
-	if ((*excitation)->n_discrete != 0) {
-		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy),xmi_cmp_struct_xmi_energy);
+	//make sure that two consecutive intervals do not have zero intensity
+	if ((*excitation)->n_continuous > 2) {
+		int i;
+		for (i = 0 ; i < (*excitation)->n_continuous-1 ; i++) {
+			if ((*excitation)->continuous[i].horizontal_intensity + (*excitation)->continuous[i].vertical_intensity + 
+			(*excitation)->continuous[i+1].horizontal_intensity + (*excitation)->continuous[i+1].vertical_intensity == 0.0
+			) {
+				fprintf(stderr, "Error: Two consecutive continuous intervals cannot both have a total intensity of zero\n");
+				return 0;
+			}
+		}
 	}
 
+	//sort!
+	if ((*excitation)->n_continuous > 1) {
+		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy_continuous),xmi_cmp_struct_xmi_energy_continuous);
+	}
+	if ((*excitation)->n_discrete > 1) {
+		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
+	}
 
 	return 1;
 }
@@ -1310,18 +1436,6 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 	return 1;
 
 }
-static int xmi_cmp_struct_xmi_energy(const void *a, const void *b) {
-	double diff;
-
-	diff = ((struct xmi_energy *)a)->energy - ((struct xmi_energy *)b)->energy;
-	
-	if (diff > 0.0)
-		return 1;
-	else if (diff < 0.0)
-		return -1;
-	return 0;
-
-}
 
 
 static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
@@ -1468,17 +1582,17 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
-#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 	for (j = 0 ; j < nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j+1) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j) < 0) {
 			fprintf(stderr,"Error writing channelnr\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*(j+1)+input->detector->zero) < 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%lf",input->detector->gain*j+input->detector->zero) < 0) {
 			fprintf(stderr,"Error writing energy\n");
 			return 0;
 		}
@@ -1525,7 +1639,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 		return 0;
 	}
 
-	for (j = 1 ; j <= nchannels ; j++) {
+	for (j = 0 ; j < nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
@@ -1574,7 +1688,7 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	}
 
 	//brute_history.. only print the relevant elements...
-#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
 
 	if (xmlTextWriterStartElement(writer, BAD_CAST "brute_force_history") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement brute_force_history\n");
@@ -1681,7 +1795,10 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
 		fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
 		return 0;
-	}
+		}
+
+	if (var_red_history == NULL)
+		goto after_var_red_history;
 
 	//Z loop
 	for (i = 0 ; i < nuniqZ ; i++) {
@@ -1773,12 +1890,13 @@ static int xmi_write_output_doc(xmlDocPtr *doc, struct xmi_input *input, double 
 	
 	}//Z loop
 
+after_var_red_history:
+	
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending variance_reduction_history\n");
 		return 0;
 	}
 
-	
 	//write inputfile
 	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
 		fprintf(stderr,"Error writing xmimsim tag\n");
@@ -2127,6 +2245,35 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%lf",input->excitation->discrete[i].sigma_yp) < 0) {
 				fprintf(stderr,"Error writing sigma_yp\n");
 				return 0;
+			}
+			//only write scale_parameter if distribution type is not monochromatic
+			//this is done to keep the file backwards compatible
+			if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+				if (xmlTextWriterStartElement(writer, BAD_CAST "scale_parameter") < 0) {
+					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+					return 0;
+				}
+				if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "gaussian") <0) {
+						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
+						return 0;
+					}
+				}
+				else if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_LORENTZIAN) {
+					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", "lorentzian") <0) {
+						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
+						return 0;
+					}
+				}
+				if (xmlTextWriterWriteFormatString(writer, "%lf", input->excitation->discrete[i].scale_parameter) < 0) {
+					fprintf(stderr,"Error at xmlTextWriterWriteFormatString\n");
+					return 0;
+				
+				}	
+				if (xmlTextWriterEndElement(writer) < 0) {
+					fprintf(stderr,"Error calling xmlTextWriterEndElement for scale_parameter\n");
+					return 0;
+				}
 			}
 			if (xmlTextWriterEndElement(writer) < 0) {
 				fprintf(stderr,"Error calling xmlTextWriterEndElement for discrete\n");
@@ -2574,7 +2721,7 @@ double *channels, int nchannels, double maximum2 ) {
 
 
 	energies = xmi_dindgen(nchannels);
-	xmi_add_val_to_array_double(energies, nchannels, 1.0);
+	//xmi_add_val_to_array_double(energies, nchannels, 1.0);
 	xmi_scale_double(energies, nchannels, input->detector->gain);
 	xmi_add_val_to_array_double(energies, nchannels, input->detector->zero);
 

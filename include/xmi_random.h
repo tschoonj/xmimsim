@@ -18,6 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_RANDOM_H
 #define XMI_RANDOM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 //all functions return 1 on success, 0 on error
 
 int xmi_start_random_acquisition(void);
@@ -26,5 +31,8 @@ int xmi_end_random_acquisition(void);
 
 int xmi_get_random_numbers(unsigned long int *numbers,long int n);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,4 +1,4 @@
-!Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+!Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 !This program is free software: you can redistribute it and/or modify
 !it under the terms of the GNU General Public License as published by
@@ -158,25 +158,158 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
 #endif
-        REAL (C_DOUBLE) :: temp
-        !write message 
-        !WRITE (6,'(A)') 'Precalculating solid angle grid'
-        !WRITE (6,'(A)') 'This could take a long time...'
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: mu
+        REAL (C_DOUBLE) :: Pabs, S1, S2
+        REAL (C_DOUBLE) :: my_sum, myln
+        REAL (C_DOUBLE), PARAMETER :: R1 = 0.00001, R2 = 0.99999
+        INTEGER (C_INT) :: m
+        REAL (C_DOUBLE) :: energy
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
 
 
         !first step: determine grid dimensions
-        !calculate distance from detector center to beginning of first line and
-        !end of last line
-        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(1)%Z_coord_begin],&
+        !calculate distance from detector center to S1 and
+        !S2
+
+        !S1
+        ALLOCATE(mu(inputF%composition%n_layers))
+        my_sum = 0.0_C_DOUBLE
+
+        IF (inputF%excitation%n_continuous > 1 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy = MIN(inputF%excitation%continuous(1)%energy,&
+                inputF%excitation%discrete(1)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(1)%energy
+        ELSE
+                energy = inputF%excitation%discrete(1)%energy
+        ENDIF
+
+        DO i = 1, inputF%composition%n_layers
+                mu(i) = 0.0_C_DOUBLE
+                DO j = 1, inputF%composition%layers(i)%n_elements
+                        mu(i) = &
+                        mu(i)+CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
+                        energy)*&
+                        inputF%composition%layers(i)%weight(j)
+                ENDDO
+                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R1*Pabs)
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S1 Pabs: ',Pabs
+        WRITE (6, '(A, ES14.5)') 'S1 myln: ',myln
+#endif
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i=1, inputF%composition%n_layers
+                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+                IF (my_sum .GT. myln) THEN
+                        m = i-1
+                        EXIT
+                ENDIF
+        ENDDO
+
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i = 1, m
+                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
+                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
+                density))*inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S1 my_sum: ',my_sum
+        WRITE (6, '(A, ES14.5)') 'S1 my_sum plus: ',my_sum+&
+        myln/(mu(m+1)*inputF%composition%layers(m+1)%density)
+        WRITE (6, '(A, ES14.5)') 'S1 Z_coord_begin',inputF%composition%layers(1)%Z_coord_begin
+#endif
+        S1 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
+                inputF%composition%layers(1)%Z_coord_begin
+
+
+        !S2
+        my_sum = 0.0_C_DOUBLE
+        IF (inputF%excitation%n_continuous > 1 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy =&
+                MAX(inputF%excitation%continuous(inputF%excitation%n_continuous)%energy,&
+                inputF%excitation%discrete(inputF%excitation%n_discrete)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(inputF%excitation%n_continuous)%energy
+        ELSE
+                energy = inputF%excitation%discrete(inputF%excitation%n_discrete)%energy
+        ENDIF
+
+        DO i = 1, inputF%composition%n_layers
+                mu(i) = 0.0_C_DOUBLE
+                DO j = 1, inputF%composition%layers(i)%n_elements
+                        mu(i) = mu(i)&
+                        +CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
+                        energy)&
+                        *inputF%composition%layers(i)%weight(j)
+                ENDDO
+                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R2*Pabs)
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S2 Pabs: ',Pabs
+        WRITE (6, '(A, ES14.5)') 'S2 myln: ',myln
+#endif
+        my_sum = 0.0_C_DOUBLE
+        DO i=1, inputF%composition%n_layers
+                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+                IF (my_sum .GT. myln) THEN
+                        m = i-1
+                        EXIT
+                ENDIF
+        ENDDO
+
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i = 1, m
+                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
+                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
+                density))*inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+
+        S2 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
+                inputF%composition%layers(1)%Z_coord_begin
+
+#if DEBUG == 1
+        WRITE (6, '(A,ES14.5)') 'S1 Fortran: ',&
+        S1!-inputF%geometry%d_sample_source
+        WRITE (6, '(A,ES14.5)') 'S2 Fortran: ',&
+        S2!-inputF%geometry%d_sample_source
+        WRITE (6, '(A,ES14.5)') 'old S1 Fortran: ',&
+        inputF%composition%layers(1)%Z_coord_begin
+        WRITE (6, '(A,ES14.5)') 'old S2 Fortran: ',&
+        inputF%composition%layers(inputF%composition%n_layers)&
+        %Z_coord_end
+        !CALL EXIT(1)
+#endif
+
+        
+
+
+        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,S1],&
                                         inputF%geometry%p_detector_window),&
-                                        xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(inputF%composition%n_layers)&
-                                        %Z_coord_end],&
-                                        inputF%geometry%p_detector_window))*2.0_C_DOUBLE
+                                        xmi_distance_two_points([0.0_C_DOUBLE,&
+                                        0.0_C_DOUBLE,S2],&
+                                        inputF%geometry%p_detector_window))*1.25_C_DOUBLE
         grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
 
 #if DEBUG == 1
@@ -218,7 +351,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         
 
         !second step: for every grid point calculate the solid angle
-        max_threads = omp_get_max_threads()
+        max_threads = options%omp_num_threads
 
         ALLOCATE(seeds(max_threads))
 
@@ -235,12 +368,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         grid_done=0
         CALL omp_init_lock(omp_lock)
 
-        !temp= xmi_single_solid_angle_calculation(inputF,&
-        !        grid_dims_r_vals(200), grid_dims_theta_vals(200), rng)
-
-        !WRITE (6,'(A)') 'after single solid angle calc'
-
-!$omp parallel default(shared) private(j,rng, thread_num)
+!$omp parallel default(shared) private(j,rng, thread_num)&
+!$omp num_threads(max_threads)
         thread_num = omp_get_thread_num()
 
         rng = fgsl_rng_alloc(rng_type)

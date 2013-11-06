@@ -20,6 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct xmi_counts {
 	double counts;
@@ -76,5 +79,8 @@ int xmi_read_output_xml(	char *xmsofile,
 
 void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_random.h"
 #include "xmi_xslt.h"
 #include "xmi_detector.h"
+#include "xmi_hdf5.h"
 #include <unistd.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -96,7 +97,6 @@ XMI_MAIN
 	GOptionContext *context;
 	static struct xmi_main_options options;
 	int use_M_lines;
-	int use_self_enhancement;
 	int use_cascade;
 	int use_variance_reduction;
 	double *brute_history;
@@ -113,20 +113,17 @@ XMI_MAIN
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
 	static int nchannels=2048;
-	static int omp_num_threads;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
+	static int version = 0;
 
-	omp_num_threads = omp_get_max_threads();
 
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
 		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-		{ "enable-lorentzian-broadening", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable Lorentzian line broadening", NULL },
-		{ "disable-lorentzian-broadening", 0, G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable Lorentzian line broadening (default)", NULL },
 		{ "enable-auger-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Enable Auger (non radiative) cascade effects (default)", NULL },
 		{ "disable-auger-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Disable Auger cascade effects", NULL },
 		{ "enable-radiative-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Enable radiative cascade effects (default)", NULL },
@@ -151,30 +148,16 @@ XMI_MAIN
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
-		{"set-threads",0,0,G_OPTION_ARG_INT,&omp_num_threads,"Set the number of threads (default=max)",NULL},
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
 		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
 #endif
+		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{ "very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{ NULL }
 	};
-
-
-#ifdef _WIN32
-#define TOTALBYTES    8192
-#define BYTEINCREMENT 4096
-	LONG RegRV;
-	DWORD QueryRV;
-	LPTSTR subKey;
-	HKEY key;
-    	DWORD BufferSize = TOTALBYTES;
-        DWORD cbdata;
-	PPERF_DATA_BLOCK PerfData;
-
-#endif
-
-
 
 
 
@@ -209,12 +192,10 @@ XMI_MAIN
 	//
 	//options...
 	//1) use M-lines
-	//2) use self-enhancement -> see paper of Fernandez/Scot
 	//3) use cascade effect
 	//4) use variance reduction
 
 	options.use_M_lines = 1;
-	options.use_self_enhancement = 0;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
@@ -223,6 +204,8 @@ XMI_MAIN
 	options.use_poisson = 0;
 	options.verbose = 0;
 	options.use_opencl = 1;
+	options.extra_verbose = 0;
+	options.omp_num_threads = omp_get_max_threads();
 
 
 
@@ -235,17 +218,28 @@ XMI_MAIN
 		return 1;
 	}
 
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
+	}
+
 	if (argc != 2) {
 		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
-	if (omp_num_threads > omp_get_max_threads() ||
-			omp_num_threads < 1) {
-		omp_num_threads = omp_get_max_threads();
+	
+	if (options.omp_num_threads > omp_get_max_threads() ||
+			options.omp_num_threads < 1) {
+		options.omp_num_threads = omp_get_max_threads();
 	}
-	g_setenv("OMP_NUM_THREADS",g_strdup_printf("%i",omp_num_threads),TRUE);
 
+	if (options.extra_verbose)
+		options.verbose = 1;
+
+	//omp_set_num_threads(omp_num_threads);
+	//omp_set_dynamic(0);
+	
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -255,43 +249,9 @@ XMI_MAIN
 		g_fprintf(stdout,"XML catalog loaded\n");
 
 
-	if (hdf5_file == NULL) {
-		//no option detected
-		//first look at default file
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_DATA,&hdf5_file) == 0)
-			return 1;
-
-
-		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
-			//do nothing
-		}
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_DATA,&hdf5_file) == 0)
-			return 1;
-
-
-		if (g_access(hdf5_file, F_OK | R_OK) == 0) {
-			//do nothing
-		}
-		else if (g_access(hdf5_file, F_OK | R_OK) != 0) {
-			fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
-			return 1;
-		}
-#else
-		//UNIX mode...
-		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
-			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-#endif
-		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
-			//look in current folder
-			hdf5_file = strdup("xmimsimdata.h5");
-		}
-		else {
-			//if not found abort...	
-			g_fprintf(stderr,"Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
-			exit(1);
-		}
+	//get the name of the HDF5 data file
+	if (xmi_get_hdf5_data_file(&hdf5_file) == 0) {
+		return 1;
 	}
 
 
@@ -305,12 +265,15 @@ XMI_MAIN
 	//read in the inputfile
 	rv = xmi_read_input_xml(argv[1],&input);
 
+
 	if (rv != 1) {
 		return 1;
 	}
 	else if (options.verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
+	if (options.extra_verbose)
+		xmi_print_input(stdout,input);
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
@@ -324,7 +287,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Reading HDF5 datafile\n");
 	
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr,options) == 0) {
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}	
@@ -340,13 +303,13 @@ XMI_MAIN
 	if (rank == 0) {
 #endif
 	if (options.use_variance_reduction == 1) {
-		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles) == 0)
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
 		//check if solid angles are already precalculated
 		if (options.verbose)
 			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options.verbose)
@@ -453,9 +416,9 @@ XMI_MAIN
 #endif
 
 
-#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[Nj*Nk*(i-1)+Nk*(j-1)+(k-1)])
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
 //watch out, I'm doing something naughty here :-)
-#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[Nj*(i)+(j-1)])
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
 
 
@@ -493,14 +456,14 @@ XMI_MAIN
 #endif
 
 		//read escape ratios
-		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios) == 0)
+		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 			return 1;
 
 		if (options.verbose)
 			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 		//check if escape ratios are already precalculated
-		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def) == 0)
+		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def, options) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
 			if (options.verbose)
@@ -538,6 +501,8 @@ XMI_MAIN
 		fprintf(stdout,"After detector convolution\n");
 #endif
 
+#ifndef G_OS_WIN32
+
 		csv_convPtr = csv_noconvPtr = NULL;
 
 		if (csv_file_noconv != NULL) {
@@ -570,9 +535,11 @@ XMI_MAIN
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
+				fprintf(outPtr,"$MCA_CAL:\n2\n");
+				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"1\t%i\n",nchannels);
-				for (j=1 ; j <= nchannels ; j++) {
+				fprintf(outPtr,"0\t%i\n",nchannels-1);
+				for (j=0 ; j < nchannels ; j++) {
 					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
@@ -593,8 +560,10 @@ XMI_MAIN
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
+				fprintf(outPtr,"$MCA_CAL:\n2\n");
+				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"1\t%i\n",nchannels);
+				fprintf(outPtr,"0\t%i\n",nchannels-1);
 				for (j=0 ; j < nchannels ; j++) {
 					fprintf(outPtr,"%lg",channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
@@ -611,7 +580,7 @@ XMI_MAIN
 
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
-			for (j=1 ; j <= nchannels ; j++) {
+			for (j=0 ; j < nchannels ; j++) {
 				fprintf(csv_noconvPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
@@ -625,7 +594,7 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%lf",j+1,(j+1)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_convPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
 					fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
@@ -636,7 +605,7 @@ XMI_MAIN
 		}
 
 
-
+#endif
 
 
 
@@ -651,10 +620,58 @@ XMI_MAIN
 		else if (options.verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
+	
+#ifdef G_OS_WIN32
+	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
+
+		if (csv_file_conv != NULL) {
+			// 1 = convoluted
+			if (xmi_xmso_to_csv_xslt(input->general->outputfile, csv_file_conv, 1) == 0) {
+				return 1;
+			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
+			
+		}
+		if (csv_file_noconv != NULL) {
+			// 0 = unconvoluted
+			if (xmi_xmso_to_csv_xslt(input->general->outputfile, csv_file_noconv, 0) == 0) {
+				return 1;
+			}
+			else if (options.verbose)
+				g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
+			
+		}
+
+		if (spe_file_conv != NULL) {
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+				sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+				if (xmi_xmso_to_spe_xslt(input->general->outputfile, filename, 1, i) == 0) {
+					return 1;
+				}
+				else if (options.verbose)
+					g_fprintf(stdout,"Output written to SPE file %s\n", filename);
 		
+			}
+		}
+
+		if (spe_file_noconv != NULL) {
+			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+				sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+				if (xmi_xmso_to_spe_xslt(input->general->outputfile, filename, 0, i) == 0) {
+					return 1;
+				}
+				else if (options.verbose)
+					g_fprintf(stdout,"Output written to SPE file %s\n", filename);
+		
+			}
+		}
+
+
+#endif
 		if (svg_file_conv != NULL) {
-			// 0 = convoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 0) == 0) {
+			// 1 = convoluted
+			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
 				return 1;
 			}
 			else if (options.verbose)
@@ -662,8 +679,8 @@ XMI_MAIN
 		}
 
 		if (svg_file_noconv != NULL) {
-                        // 1 = unconvoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 1) == 0) {
+                        // 0 = unconvoluted
+			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 0) == 0) {
 				return 1;
 			}
 			else if (options.verbose)
@@ -672,8 +689,8 @@ XMI_MAIN
 
 
 		if (htm_file_conv != NULL) {
-			// 0 = convoluted
-			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_conv, 0) == 0) {
+			// 1 = convoluted
+			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_conv, 1) == 0) {
 				return 1;
 			}
 			else if (options.verbose)
@@ -681,8 +698,8 @@ XMI_MAIN
 		}
 
 		if (htm_file_noconv != NULL) {
-                        // 1 = unconvoluted
-			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_noconv, 1) == 0) {
+                        // 0 = unconvoluted
+			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_noconv, 0) == 0) {
 				return 1;
 			}
 			else if (options.verbose)

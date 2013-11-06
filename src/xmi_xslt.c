@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include <libxslt/xslt.h>
@@ -156,9 +157,9 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	params[0] = parm_name;
         if ( convoluted )
-         params[1] = s_unconvoluted;
-        else
          params[1] = s_convoluted;
+        else
+         params[1] = s_unconvoluted;
         params[2] = NULL;
 
        	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
@@ -232,9 +233,9 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 
 	params[0] = parm_name1;
         if ( convoluted )
-         params[1] = s_unconvoluted;
-        else
          params[1] = s_convoluted;
+        else
+         params[1] = s_unconvoluted;
 	params[2] = parm_name2;
 	sprintf(interaction,"'%i'",interaction_number);
 	params[3] = interaction;
@@ -310,9 +311,9 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 
 	params[0] = parm_name;
         if ( convoluted )
-         params[1] = s_unconvoluted;
-        else
          params[1] = s_convoluted;
+        else
+         params[1] = s_unconvoluted;
         params[2] = NULL;
 
        	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
@@ -384,9 +385,9 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	params[0] = parm_name;
         if ( convoluted )
-         params[1] = s_unconvoluted;
-        else
          params[1] = s_convoluted;
+        else
+         params[1] = s_unconvoluted;
         params[2] = NULL;
 
        	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 

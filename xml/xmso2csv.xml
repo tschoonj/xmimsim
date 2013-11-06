@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:choose>
   <xsl:when test="$type_val = 'spectrum_conv'">
     <xsl:for-each select="xmimsim-results/spectrum_conv/channel">
+      <xsl:value-of select="channelnr"/>
+      <xsl:text>,</xsl:text>
       <xsl:value-of select="energy"/>
       <xsl:text>,</xsl:text>
       <xsl:for-each select="counts">
@@ -43,6 +45,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   </xsl:when>
   <xsl:when test="$type_val = 'spectrum_unconv'">
     <xsl:for-each select="xmimsim-results/spectrum_unconv/channel">
+      <xsl:value-of select="channelnr"/>
+      <xsl:text>,</xsl:text>
       <xsl:value-of select="energy"/>
       <xsl:text>,</xsl:text>
       <xsl:for-each select="counts">

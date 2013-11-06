@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include "xmi_aux.h"
 
@@ -25,21 +26,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 XMI_MAIN
 	GError *error = NULL;
-        unsigned type=0;
+        unsigned type=1;
 	static int use_unconvoluted=0;
+	static int version = 0;
 
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
            	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &(use_unconvoluted), "Create unconvoluted graphs", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
 
 
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		return 1;
-	}
 	//parse options
 	context = g_option_context_new ("XMSO_file HTML_file");
 	g_option_context_add_main_entries (context, entries, NULL);
@@ -47,6 +46,11 @@ XMI_MAIN
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
+	}
+
+	if (version) {
+		g_fprintf(stdout,"%s",xmi_version_string());	
+		return 0;
 	}
 
 
@@ -57,10 +61,14 @@ XMI_MAIN
 	}
 
 
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
 
  	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
         
-        if(use_unconvoluted == 1) type = 1;
+        if(use_unconvoluted == 1) type = 0;
 
         // type = 0 is convoluted, type = 1 is unconvoluted
 	if (xmi_xmso_to_htm_xslt(argv[1], argv[2], type) == 0) {

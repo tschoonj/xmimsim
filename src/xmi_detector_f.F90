@@ -116,6 +116,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                         CALL EXIT(1)
                 ENDIF
 
+                !+1 because channels start counting at 1 here (0 elsewhere)
                 pulses(npulses) = fgsl_ran_discrete(rng, preproc)+1
 
                 !check deltaT
@@ -197,7 +198,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         REAL (C_DOUBLE) :: a,b
         REAL (C_DOUBLE), PARAMETER :: c =&
         SQRT(2.0_C_DOUBLE)/(2.0_C_DOUBLE*SQRT(2.0_C_DOUBLE*LOG(2.0_C_DOUBLE)))
-        REAL (C_DOUBLE), DIMENSION(4096) :: R 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R 
         INTEGER (C_INT) :: I0, I
         REAL (C_DOUBLE) :: E0, E, B0, FWHM, A0, A3, A4, ALFA, X, G, F, my_sum,&
         CBG
@@ -206,6 +207,8 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(channels_noconvPtr, channels_noconv,[nchannels])
+        !pointer remapping doesnt work with gfortran 4.4
+        !channels_noconv(0:nchannels-1) => channels_noconv
 
         !escape_ratios
         escape_ratios%n_elements = escape_ratiosCPtr%n_elements
@@ -234,18 +237,29 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
 #endif
 
         !allocate memory for results
-        ALLOCATE(channels_temp(nchannels))
-        ALLOCATE(channels_conv(nchannels))
+        ALLOCATE(channels_temp(0:nchannels-1))
+        ALLOCATE(channels_conv(0:nchannels-1))
         !
         nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
-        IF (nlim .GT. nchannels) nlim = nchannels
+        IF (nlim .GE. nchannels) nlim = nchannels-1
 
 
         a = inputF%detector%noise**2
         b = (2.3548)**2 * 3.85 *inputF%detector%fano/1000.0
 
-        channels_temp = channels_noconv
+#if DEBUG == 1
+        WRITE (*, '(A,I7)') 'LBOUND',LBOUND(channels_noconv,DIM=1)
+        WRITE (*, '(A,I7)') 'UBOUND',UBOUND(channels_noconv,DIM=1)
+#endif
+
+
+        channels_temp(0:nchannels-1) = channels_noconv(1:nchannels)
         channels_conv = 0.0_C_DOUBLE
+
+#if DEBUG == 1
+        WRITE (*, '(A,I7)') 'LBOUND',LBOUND(channels_temp,DIM=1)
+        WRITE (*, '(A,I7)') 'UBOUND',UBOUND(channels_temp,DIM=1)
+#endif
 
 #if DEBUG == 1
         WRITE (*,'(A,ES14.6)') 'channels_noconv max: ',MAXVAL(channels_noconv)
@@ -284,6 +298,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                 CALL xmi_detector_sum_peaks(inputF, channels_temp)
         ENDIF
 
+        ALLOCATE(R(0:nlim+100))
         R = 0.0_C_DOUBLE
 
         IF (options%verbose == 1_C_INT)&
@@ -294,7 +309,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                 WRITE(output_unit,'(A)') 'Applying Gaussian convolution'
 #endif
 
-        DO I0=1,nlim
+        DO I0=0,nlim
                 E0 = inputF%detector%zero + inputF%detector%gain*I0
                 IF (E0 .LT. 1.0_C_DOUBLE) CYCLE
                 FWHM = SQRT(a+b*E0)
@@ -316,8 +331,8 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                         ALFA=1.179_C_DOUBLE*EXP(8.6E-4_C_DOUBLE*(E0**1.877_C_DOUBLE))-&
                           7.793_C_DOUBLE*EXP(-3.81_C_DOUBLE*(E0**(-0.0716_C_DOUBLE)))
                 my_sum = 0.0_C_DOUBLE
-                DO I=1,I0+100
-                        IF (I .GT. nchannels) THEN
+                DO I=0,I0+100
+                        IF (I .GE. nchannels) THEN
                                 EXIT
                         ENDIF
                         E = inputF%detector%zero + inputF%detector%gain*I
@@ -340,8 +355,8 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
                         my_sum = my_sum + R(I)
                 ENDDO
                 !my_sum = SUM(R)
-                DO I=1,I0+200
-                        IF (I .GT. nchannels) THEN
+                DO I=0,I0+100
+                        IF (I .GE. nchannels) THEN
                                 EXIT
                         ENDIF
                         channels_conv(I)=channels_conv(I)+R(I)*channels_temp(I0)/my_sum
@@ -367,7 +382,7 @@ channels_convPtr,nchannels, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detecto
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
         DEALLOCATE(channels_temp)
-        channels_convPtr = C_LOC(channels_conv(1))
+        channels_convPtr = C_LOC(channels_conv(0))
 
         RETURN
 ENDSUBROUTINE xmi_detector_convolute
@@ -376,7 +391,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
         IMPLICIT NONE
         TYPE (xmi_escape_ratios), INTENT(IN) :: escape_ratios 
         TYPE (xmi_input), INTENT(IN) :: inputF
-        REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:) :: channels_conv
+        REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:), POINTER :: channels_conv
 
         INTEGER (C_INT) :: i,j,k
         REAL (C_DOUBLE) :: ratio,sum_ratio
@@ -386,18 +401,23 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
         REAL (C_DOUBLE), DIMENSION(2) :: fluo_a,fluo_b
         INTEGER (C_INT) :: pos,pos_1,pos_2
 
-        channel_1e=(1.5_C_DOUBLE)*inputF%detector%gain+&
+        channel_1e=(0.5_C_DOUBLE)*inputF%detector%gain+&
         inputF%detector%zero
         compton_out_diff = escape_ratios%compton_escape_output_energies(2)-&
         escape_ratios%compton_escape_output_energies(1)
 
+#if DEBUG == 1
+        WRITE (*, '(A,I7)') 'LBOUND',LBOUND(channels_conv,DIM=1)
+        WRITE (*, '(A,I7)') 'UBOUND',UBOUND(channels_conv,DIM=1)
+#endif
 
-        DO i=1,SIZE(channels_conv)
+
+        channels_loop:DO i=LBOUND(channels_conv,DIM=1),UBOUND(channels_conv,DIM=1)
                 channel_e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
                         inputF%detector%zero
                 !fluo escape peaks first...
                 sum_ratio = 0.0_C_DOUBLE
-                DO j=1,escape_ratios%n_elements
+                fluo:DO j=1,escape_ratios%n_elements
                         IF (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),K_SHELL)) THEN
                         DO k=KL1_LINE,KP5_LINE,-1
                                 line_e=LineEnergy(escape_ratios%Z(j),k)
@@ -430,8 +450,8 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 sum_ratio = sum_ratio+ratio
                                 escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
                                 inputF%detector%gain)
-                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
-                                SIZE(channels_conv)) THEN
+                                IF (escape_i .GE. 0 .AND. escape_i .LT.&
+                                UBOUND(channels_conv, DIM=1)) THEN
                                 channels_conv(escape_i)=&
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
@@ -470,8 +490,8 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 sum_ratio = sum_ratio+ratio
                                 escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
                                 inputF%detector%gain)
-                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
-                                SIZE(channels_conv)) THEN
+                                IF (escape_i .GE. 0 .AND. escape_i .LE.&
+                                UBOUND(channels_conv, DIM=1)) THEN
                                 channels_conv(escape_i)=&
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
@@ -511,8 +531,8 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 sum_ratio = sum_ratio+ratio
                                 escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
                                 inputF%detector%gain)
-                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
-                                SIZE(channels_conv)) THEN
+                                IF (escape_i .GE. 0 .AND. escape_i .LE.&
+                                UBOUND(channels_conv,DIM=1)) THEN
                                 channels_conv(escape_i)=&
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
@@ -552,8 +572,8 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 sum_ratio = sum_ratio+ratio
                                 escape_i=INT((channel_e-line_e-inputF%detector%zero)/&
                                 inputF%detector%gain)
-                                IF (escape_i .GE. 1 .AND. escape_i .LE.&
-                                SIZE(channels_conv)) THEN
+                                IF (escape_i .GE. 0 .AND. escape_i .LE.&
+                                UBOUND(channels_conv, DIM=1)) THEN
                                 channels_conv(escape_i)=&
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
@@ -562,11 +582,11 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                         ENDDO
                         ENDIF
 
-                ENDDO
+                ENDDO fluo
                 !compton escape next
                 !applied to every channel lower than the current one
                 !take into account ratio of gain to output_energies_width
-                DO j=1,i-1
+                compton:DO j=0,i-1
                         channel_c = (REAL(j)+0.5_C_DOUBLE)*inputF%detector%gain+&
                         inputF%detector%zero
                         compton_diff=channel_e-channel_c
@@ -594,9 +614,9 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
 
 
                         ENDIF
-                ENDDO
+                ENDDO compton
                 channels_conv(i)=channels_conv(i)*(1.0_C_DOUBLE-sum_ratio)
-        ENDDO
+        ENDDO channels_loop
 
 ENDSUBROUTINE xmi_detector_escape
 
@@ -617,13 +637,13 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
         RR_Si_Ka = RadRate(14,KA_LINE)
         RR_Si_Kb = RadRate(14,KB_LINE)
         const = omegaK*(1.0_C_DOUBLE-1.0_C_DOUBLE/JumpFactor(14,K_SHELL))
-        mu_si = CS_Total_Kissel(14,REAL(E_Si_Ka,KIND=C_FLOAT))
+        mu_si = CS_Total_Kissel(14,E_Si_Ka)
 
-        DO i=1,SIZE(channels_conv)
+        DO i=0,UBOUND(channels_conv, DIM=1)
                 e = (REAL(i)+0.5_C_DOUBLE)*inputF%detector%gain+&
                         inputF%detector%zero
                 IF (e .LT. E_Si_Kedge) CYCLE
-                mu_e = CS_Total_Kissel(14,REAL(e,KIND=C_FLOAT))
+                mu_e = CS_Total_Kissel(14,e)
                 esc_rat = 0.5_C_DOUBLE*(1.0_C_DOUBLE -&
                 mu_si/mu_e*LOG(1.0_C_DOUBLE + mu_e/mu_si))
                 esc_rat = const*esc_rat/(1.0_C_DOUBLE-const*esc_rat)
@@ -654,20 +674,33 @@ ENDSUBROUTINE xmi_detector_escape_SiLi
 SUBROUTINE xmi_detector_poisson(channels)
         IMPLICIT NONE
 
-        REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT) :: channels
+        REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT), POINTER :: channels
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
         INTEGER (C_LONG), TARGET :: seed
         INTEGER :: i
-
+        REAL (C_DOUBLE), PARAMETER :: poisson_limit = 2.0_C_DOUBLE**32 -&
+        1.0_C_DOUBLE
 
         rng_type = fgsl_rng_mt19937
         IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) RETURN
 
         rng = fgsl_rng_alloc(rng_type)
         CALL fgsl_rng_set(rng,seed)
-        DO i=1,SIZE(channels)
-                IF (channels(i) > 0.0) channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+#if DEBUG == 1
+        WRITE (6,'(A, I6)') 'lbound: ',lbound(channels,DIM=1)
+        WRITE (6,'(A, I6)') 'ubound: ',ubound(channels,DIM=1)
+#endif
+
+        DO i=LBOUND(channels,DIM=1),UBOUND(channels, DIM=1)
+#if DEBUG == 1
+                WRITE (6, '(I4,ES15.6)') i, channels(i)
+#endif
+                IF (channels(i) > poisson_limit) THEN
+                        WRITE (error_unit, '(A)') 'Channel intensity too high for poisson distribution, ignoring...'
+                ELSEIF (channels(i) > 1.0) THEN
+                        channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+                ENDIF
         ENDDO
 
         CALL fgsl_rng_free(rng) 

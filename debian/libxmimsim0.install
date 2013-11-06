@@ -1,0 +1,5 @@
+usr/lib/libxmimsim.so.*
+usr/share/xmimsim/xmimsimdata.h5
+usr/share/xmimsim/*xml
+usr/share/xmimsim/*dtd
+usr/share/xmimsim/*png

@@ -55,11 +55,14 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT slit_size_y (#PCDATA)>
 
 <!ELEMENT excitation (discrete*,continuous*)>
-<!ELEMENT discrete (energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
+<!ELEMENT discrete (energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp, scale_parameter?)>
 <!ELEMENT continuous (energy, horizontal_intensity,vertical_intensity,sigma_x,sigma_xp,sigma_y, sigma_yp)>
 <!ELEMENT energy (#PCDATA)>
 <!ELEMENT horizontal_intensity (#PCDATA)>
 <!ELEMENT vertical_intensity (#PCDATA)>
+<!ELEMENT scale_parameter (#PCDATA)>
+<!ATTLIST scale_parameter distribution_type (monochromatic|gaussian|lorentzian) #IMPLIED>
+
 
 <!ELEMENT absorbers (excitation_path?,detector_path?)>
 <!ELEMENT excitation_path (layer+)>

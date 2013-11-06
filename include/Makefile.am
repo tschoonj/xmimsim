@@ -15,8 +15,17 @@
 
 xmimsimincludedir = ${includedir}/xmimsim
 
-xmimsiminclude_HEADERS = xmi_random.h xmi_data_structs.h xmi_xml.h xmi_main.h xmi_pymca.h \
-	xmi_solid_angle.h xmi_xslt.h xmi_detector.h
+xmimsiminclude_HEADERS = xmi_random.h \
+			 xmi_data_structs.h \
+			 xmi_xml.h \
+			 xmi_main.h \
+			 xmi_pymca.h \
+			 xmi_solid_angle.h \
+			 xmi_xslt.h \
+			 xmi_detector.h \
+			 xmi_hdf5.h \
+			 xmi_msim.h \
+			 xmi_ebel.h
 
 if OS_WINDOWS
 xmimsiminclude_HEADERS += xmi_registry_win.h

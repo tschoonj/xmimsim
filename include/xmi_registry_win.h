@@ -19,6 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _XMI_REGISTRY_WIN_H
 #define _XMI_REGISTRY_WIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <glib.h>
+
+#ifdef G_OS_WIN32
+
 enum xmi_registry_win {
 	XMI_REGISTRY_WIN_DATA,
 	XMI_REGISTRY_WIN_CATALOG,
@@ -45,6 +53,11 @@ enum xmi_registry_win {
 
 int xmi_registry_win_query(int kind, char **regcontents);
 
+#endif
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

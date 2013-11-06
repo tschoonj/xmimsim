@@ -1,0 +1,43 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+#
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+#
+# Modified to make a template file for a multi-binary package with separated
+# build-arch and build-indep targets  by Bill Allombert 2001
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+override_dh_auto_configure:
+	dh_auto_configure -- --disable-updater CPPFLAGS="-DDEB_BUILD"
+
+override_dh_auto_install:
+	dh_auto_install
+	#LD_LIBRARY_PATH=./debian/tmp/usr/lib ./debian/tmp/usr/bin/xmimsim-db
+	#touch xmimsimdata.h5
+	cp ~/xmimsimdata.h5 ./debian/tmp/usr/share/xmimsim/
+	desktop-file-install --dir=`pwd`/debian/tmp/usr/share/applications \
+		--delete-original \
+		--mode 644 \
+		./debian/tmp/usr/share/applications/xmimsim.desktop
+	mkdir -p ./debian/tmp/usr/share/mime/packages
+	install -p -m 644 icons/applications-x-xmimsim.xml ./debian/tmp/usr/share/mime/packages
+
+override_dh_strip:
+	dh_strip -a --dbg-package=libxmimsim0-dbg
+
+#override_dh_auto_clean:
+#	dh_clean
+#	dh_autoreconf_clean
+
+%:
+	dh --with autoreconf $@ 
+

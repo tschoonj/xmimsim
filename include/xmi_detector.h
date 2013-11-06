@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_data_structs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct xmi_escape_ratios {
         int  n_elements;
         int  n_fluo_input_energies;
@@ -34,7 +38,7 @@ struct xmi_escape_ratios {
 	char *xmi_input_string;
 };
 
-int xmi_get_escape_ratios_file(char **file);
+int xmi_get_escape_ratios_file(char **file, int create_file);
 
 void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options);
 
@@ -46,10 +50,14 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 //return 1 on success, 0 on no match
 int xmi_check_escape_ratios_match(struct xmi_input *input_in, struct xmi_input *input_h5);
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv);
+int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options);
 
 void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios);
 
 int xmi_init_input_escape_ratios(xmi_inputFPtr *inputFPtr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
