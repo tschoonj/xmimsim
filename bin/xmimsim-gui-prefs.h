@@ -42,6 +42,10 @@ enum {
 	XMIMSIM_GUI_PREFS_POISSON,
 	//int
 	XMIMSIM_GUI_PREFS_NCHANNELS,
+	//gboolean
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	XMIMSIM_GUI_PREFS_OPENCL,
+#endif
 };
 
 union xmimsim_prefs_val{

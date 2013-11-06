@@ -64,6 +64,12 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
         INTEGER (C_INT) :: i,j
 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: mu
+        REAL (C_DOUBLE) :: Pabs, S1, S2
+        REAL (C_DOUBLE) :: my_sum, myln
+        REAL (C_DOUBLE), PARAMETER :: R1 = 0.00001, R2 = 0.99999
+        INTEGER (C_INT) :: m
+        REAL (C_DOUBLE) :: energy
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -78,14 +84,147 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         collimator_radius = REAL(inputF%detector%collimator_radius, C_FLOAT)
         collimator_height = REAL(inputF%geometry%collimator_height, C_FLOAT)
 
+        !first step: determine grid dimensions
+        !calculate distance from detector center to S1 and
+        !S2
 
-        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(1)%Z_coord_begin],&
+        !S1
+        ALLOCATE(mu(inputF%composition%n_layers))
+        my_sum = 0.0_C_DOUBLE
+
+        IF (inputF%excitation%n_continuous > 1 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy = MIN(inputF%excitation%continuous(1)%energy,&
+                inputF%excitation%discrete(1)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(1)%energy
+        ELSE
+                energy = inputF%excitation%discrete(1)%energy
+        ENDIF
+
+        DO i = 1, inputF%composition%n_layers
+                mu(i) = 0.0_C_DOUBLE
+                DO j = 1, inputF%composition%layers(i)%n_elements
+                        mu(i) = &
+                        mu(i)+CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
+                        energy)*&
+                        inputF%composition%layers(i)%weight(j)
+                ENDDO
+                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R1*Pabs)
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S1 Pabs: ',Pabs
+        WRITE (6, '(A, ES14.5)') 'S1 myln: ',myln
+#endif
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i=1, inputF%composition%n_layers
+                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+                IF (my_sum .GT. myln) THEN
+                        m = i-1
+                        EXIT
+                ENDIF
+        ENDDO
+
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i = 1, m
+                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
+                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
+                density))*inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S1 my_sum: ',my_sum
+        WRITE (6, '(A, ES14.5)') 'S1 my_sum plus: ',my_sum+&
+        myln/(mu(m+1)*inputF%composition%layers(m+1)%density)
+        WRITE (6, '(A, ES14.5)') 'S1 Z_coord_begin',inputF%composition%layers(1)%Z_coord_begin
+#endif
+        S1 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
+                inputF%composition%layers(1)%Z_coord_begin
+
+
+        !S2
+        my_sum = 0.0_C_DOUBLE
+        IF (inputF%excitation%n_continuous > 1 .AND. &
+        inputF%excitation%n_discrete > 0) THEN
+                energy =&
+                MAX(inputF%excitation%continuous(inputF%excitation%n_continuous)%energy,&
+                inputF%excitation%discrete(inputF%excitation%n_discrete)%energy)
+        ELSEIF (inputF%excitation%n_continuous > 1) THEN
+                energy = inputF%excitation%continuous(inputF%excitation%n_continuous)%energy
+        ELSE
+                energy = inputF%excitation%discrete(inputF%excitation%n_discrete)%energy
+        ENDIF
+
+        DO i = 1, inputF%composition%n_layers
+                mu(i) = 0.0_C_DOUBLE
+                DO j = 1, inputF%composition%layers(i)%n_elements
+                        mu(i) = mu(i)&
+                        +CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
+                        energy)&
+                        *inputF%composition%layers(i)%weight(j)
+                ENDDO
+                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R2*Pabs)
+
+#if DEBUG == 1
+        WRITE (6, '(A, ES14.5)') 'S2 Pabs: ',Pabs
+        WRITE (6, '(A, ES14.5)') 'S2 myln: ',myln
+#endif
+        my_sum = 0.0_C_DOUBLE
+        DO i=1, inputF%composition%n_layers
+                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
+                inputF%composition%layers(i)%thickness_along_Z
+                IF (my_sum .GT. myln) THEN
+                        m = i-1
+                        EXIT
+                ENDIF
+        ENDDO
+
+
+        my_sum = 0.0_C_DOUBLE
+
+        DO i = 1, m
+                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
+                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
+                density))*inputF%composition%layers(i)%thickness_along_Z
+        ENDDO
+
+        S2 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
+                inputF%composition%layers(1)%Z_coord_begin
+
+#if DEBUG == 1
+        WRITE (6, '(A,ES14.5)') 'S1 Fortran: ',&
+        S1!-inputF%geometry%d_sample_source
+        WRITE (6, '(A,ES14.5)') 'S2 Fortran: ',&
+        S2!-inputF%geometry%d_sample_source
+        WRITE (6, '(A,ES14.5)') 'old S1 Fortran: ',&
+        inputF%composition%layers(1)%Z_coord_begin
+        WRITE (6, '(A,ES14.5)') 'old S2 Fortran: ',&
+        inputF%composition%layers(inputF%composition%n_layers)&
+        %Z_coord_end
+        !CALL EXIT(1)
+#endif
+
+        
+
+
+        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,S1],&
                                         inputF%geometry%p_detector_window),&
-                                        xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(inputF%composition%n_layers)&
-                                        %Z_coord_end],&
-                                        inputF%geometry%p_detector_window))*2.0_C_DOUBLE
+                                        xmi_distance_two_points([0.0_C_DOUBLE,&
+                                        0.0_C_DOUBLE,S2],&
+                                        inputF%geometry%p_detector_window))*1.25_C_DOUBLE
         grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
 
         !calculate useful theta range
@@ -105,6 +244,7 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
                 (grid_dims_theta(2)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
                 /REAL(grid_dims_theta_n-1,C_DOUBLE)
         ENDDO
+
 
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 

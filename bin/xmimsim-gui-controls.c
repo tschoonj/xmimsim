@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
@@ -54,6 +55,9 @@ GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *poissonW;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+GtkWidget *openclW;
+#endif
 GtkWidget *nchannelsW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
@@ -400,6 +404,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	gtk_widget_set_sensitive(openclW,TRUE);	
+#endif
 	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
@@ -537,6 +544,9 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
 	gtk_widget_set_sensitive(poissonW,FALSE);	
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	gtk_widget_set_sensitive(openclW,FALSE);
+#endif
 	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
@@ -552,49 +562,67 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	reset_controls();
 	timer = g_timer_new();
 
-	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
+	arg_counter = 0;
+	argv = g_malloc(sizeof(gchar *)*++arg_counter);
 	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
+	
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[1] = g_strdup("--enable-M-lines");
 	}
 	else
 		argv[1] = g_strdup("--disable-M-lines");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascadeW)) == TRUE) {
 		argv[2] = g_strdup("--enable-radiative-cascade");
 	}
 	else
 		argv[2] = g_strdup("--disable-radiative-cascade");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW)) == TRUE) {
 		argv[3] = g_strdup("--enable-auger-cascade");
 	}
 	else
 		argv[3] = g_strdup("--disable-auger-cascade");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reductionW)) == TRUE) {
 		argv[4] = g_strdup("--enable-variance-reduction");
 	}
 	else
 		argv[4] = g_strdup("--disable-variance-reduction");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_upW)) == TRUE) {
 		argv[5] = g_strdup("--enable-pile-up");
 	}
 	else
 		argv[5] = g_strdup("--disable-pile-up");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
 		argv[6] = g_strdup("--enable-poisson");
 	}
 	else
 		argv[6] = g_strdup("--disable-poisson");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[7]	= g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[8] = g_strdup("--verbose");
 
-	arg_counter = 9;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(openclW)) == TRUE) {
+		argv[9] = g_strdup("--enable-opencl");
+	}
+	else
+		argv[9] = g_strdup("--disable-opencl");
+#endif
+
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -1390,6 +1418,17 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	openclW = gtk_check_button_new_with_label("Enable OpenCL");
+	gtk_widget_set_tooltip_text(openclW,"");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(openclW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook),openclW, TRUE, FALSE, 3);
+#endif
 
 	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
 	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
