@@ -37,6 +37,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-results.h"
 #include <math.h>
 
+#ifdef MAC_INTEGRATION
+	#include "xmi_resources_mac.h"
+#elif defined(G_OS_WIN32)
+	#include "xmi_registry_win.h"
+#endif
+
+
 struct canvas_data {
 	double width;
 	double height;
