@@ -73,6 +73,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !ignore negative energies
         IF (photon%energy .LE. energy_threshold) RETURN
 
+#if DEBUG == 1
+        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
+                WRITE (output_unit, '(A,ES12.6)') 'var energy:',&
+                photon%energy
+        ENDIF
+#endif
+
+
 
         !select random coordinate on detector surface
         radius = SQRT(fgsl_rng_uniform(rng))*inputF%detector%detector_radius

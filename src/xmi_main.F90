@@ -622,6 +622,7 @@ nchannels, options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND
                         ENDIF
 #if DEBUG == 1
 !$omp critical
+                        IF (photon%energy .GT. exc%discrete(i)%energy) &
                         WRITE (output_unit, '(A,ES12.6)') 'energy:',&
                         photon%energy
 !$omp end critical
@@ -2059,6 +2060,12 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
         rv = 1
 
+#if DEBUG == 1
+        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
+                WRITE (output_unit, '(A,ES12.6)') 'rayl energy:',&
+                photon%energy
+        ENDIF
+#endif
         RETURN
 ENDFUNCTION xmi_simulate_photon_rayleigh
 
@@ -2164,6 +2171,12 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 #undef hdf5_Z
         rv = 1
 
+#if DEBUG == 1
+        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
+                WRITE (output_unit, '(A,ES12.6)') 'compt energy:',&
+                photon%energy
+        ENDIF
+#endif
         RETURN
 
 ENDFUNCTION xmi_simulate_photon_compton
@@ -2176,7 +2189,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv,trans
 
-        REAL (C_DOUBLE) :: photo_total, energy_flt
+        REAL (C_DOUBLE) :: photo_total 
         REAL (C_DOUBLE) :: sumz
         INTEGER (C_INT) :: shell,line_first, line_last, line
         REAL (C_DOUBLE) :: r
@@ -2191,9 +2204,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A,I2)') 'element: ',photon%current_element
 #endif
 
-
         rv = 0
-
         !so we've got photo electric effect
         !first is to check which shell got lucky
         photo_total = CS_Photo_Total(photon%current_element, photon%energy)
@@ -2212,7 +2223,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         DO shell=K_SHELL,max_shell
                 sumz = sumz + CS_Photo_Partial(photon%current_element, shell,&
-                energy_flt)/photo_total
+                photon%energy)/photo_total
                 IF (r .LT. sumz) THEN
                         shell_found = .TRUE.
                         EXIT
@@ -2339,6 +2350,12 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                 ,rng,inputF,hdf5F)
         ENDIF
 
+#if DEBUG == 1
+        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
+                WRITE (output_unit, '(A,ES12.6)') 'xrf energy:',&
+                photon%energy
+        ENDIF
+#endif
 
         rv = 1
 
