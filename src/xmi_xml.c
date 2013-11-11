@@ -60,10 +60,10 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output);
+static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2);
 static int xmi_write_default_comments(xmlTextWriterPtr writer);
 static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
-static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output);
+static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int *step1, int *step2);
 static int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers);
 
 
@@ -1363,9 +1363,8 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 }
 
 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output) {
+static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2) {
 
-	char version[100];
 	char detector_type[20];
 	int i,j,k;
 	char buffer[1024];
@@ -1387,11 +1386,22 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 		return 0;
 	}
 
-	sprintf(version,"%.1f",output->input->general->version);
 	if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "version","%.1f",output->input->general->version) < 0) {
 		fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
 		return 0;
 	}
+
+	if (step1 != -1 && step2 != -1) {
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "step1","%i", step1) < 0) {
+			fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "step2","%i", step2) < 0) {
+			fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
+			return 0;
+		}
+	}
+
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "inputfile","%s",output->inputfile) < 0) {
 		fprintf(stderr,"Error writing inputfile\n");
 		return 0;
@@ -1770,7 +1780,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_output *output) {
 		return 0;
 	}
 
-	if(xmi_write_output_xml_body(writer, output) == 0){
+	if(xmi_write_output_xml_body(writer, output, -1, -1) == 0){
 		return 0;
 	}
 
@@ -2606,7 +2616,7 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output) {
 		return 0;
 	}
 
-	if (xmi_read_output_xml_body(doc, root, op) == 0)
+	if (xmi_read_output_xml_body(doc, root, op, NULL, NULL) == 0)
 		return 0;
 
 
@@ -2713,11 +2723,36 @@ static int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	return 1;
 }
 	
-static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op) {
+static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2) {
 	xmlNodePtr subroot, subsubroot;
 	xmlChar *txt;
 
-	//start by reading in xmimsim
+	//read step1 and step2 if necessary
+	if (step1 != NULL || step2 != NULL) {
+		xmlAttrPtr attr = root->properties;
+		while (attr != NULL) {
+			if (xmlStrcmp(attr->name, BAD_CAST "step1") == 0) {
+				txt = xmlNodeListGetString(doc, attr->children, 1);
+				if(sscanf((const char *)txt,"%i",step1) != 1) {
+					fprintf(stderr,"error reading in step1 attribute of xml file\n");
+					return 0;
+				}
+				xmlFree(txt);
+			}
+			else if (xmlStrcmp(attr->name, BAD_CAST "step2") == 0 && step2 != NULL) {
+				txt = xmlNodeListGetString(doc, attr->children, 1);
+				if(sscanf((const char *)txt,"%i",step2) != 1) {
+					fprintf(stderr,"error reading in step2 attribute of xml file\n");
+					return 0;
+				}
+				xmlFree(txt);
+			}
+			attr = attr->next;
+		}
+	}
+
+
+	//read in xmimsim
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj;
 	xpathCtx = xmlXPathNewContext(doc);
@@ -2804,6 +2839,8 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
 	struct xmi_archive *ar = malloc(sizeof(struct xmi_archive));
+	int step1, step2;
+	int files_read = 0;
 
 	LIBXML_TEST_VERSION
 
@@ -2846,58 +2883,98 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 	ar->output = NULL;
 	ar->inputfiles = NULL;
 	ar->outputfiles = NULL;
-	int nfiles = 0;
+	ar->nsteps2 = 0;
+	ar->xpath2 = NULL;
 
 	while (subroot != NULL) {
-		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value")) {
+		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value1")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lg", &ar->start_value) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read start_value\n");
+			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
 				return 0;
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value1")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lg", &ar->end_value) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read end_value\n");
+			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
 				return 0;
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps1")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%i", &ar->nsteps) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps\n");
+			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps1\n");
+				return 0;
+			}
+			xmlFree(txt);
+			//allocate memory
+			ar->output = malloc(sizeof(struct xmi_output**)*(ar->nsteps1+1));	
+			ar->input = malloc(sizeof(struct xmi_input**)*(ar->nsteps1+1));	
+			ar->inputfiles = malloc(sizeof(char**)*(ar->nsteps1+1));	
+			ar->outputfiles = malloc(sizeof(char**)*(ar->nsteps1+1));	
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			ar->xpath1 = strdup((char*) txt);
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
 				return 0;
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath")) {
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value2")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			ar->xpath = strdup((char*) txt);
+			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps2")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
+				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps2\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath2")) {
+			txt = xmlNodeListGetString(doc,subroot->children,1);	
+			ar->xpath2 = strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
-			ar->output = realloc(ar->output, sizeof(struct xmi_output*)*++nfiles);	
-			ar->output[nfiles-1] = malloc(sizeof(struct xmi_output));
-			if (xmi_read_output_xml_body(doc, subroot, ar->output[nfiles-1]) == 0) {
+			struct xmi_output *output = malloc(sizeof(struct xmi_output));
+			step1 = step2 = 0;
+			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2) == 0) {
 				return 0;
 			}
+			if (step2 == 0) {
+				ar->output[step1] = malloc(sizeof(struct xmi_output*)*(ar->nsteps2+1));
+				ar->input[step1] = malloc(sizeof(struct xmi_input*)*(ar->nsteps2+1));
+				ar->inputfiles[step1] = malloc(sizeof(char*)*(ar->nsteps2+1));
+				ar->outputfiles[step1] = malloc(sizeof(char*)*(ar->nsteps2+1));
+			}
+			ar->output[step1][step2] = output;
 			//fix links
-			ar->input = realloc(ar->input, sizeof(struct xmi_input *)*nfiles);
-			ar->input[nfiles-1] = ar->output[nfiles-1]->input;
-			ar->inputfiles = realloc(ar->inputfiles, sizeof(char *)*nfiles);
-			ar->inputfiles[nfiles-1] = ar->output[nfiles-1]->inputfile;
-			ar->outputfiles = realloc(ar->outputfiles, sizeof(char *)*nfiles);
-			ar->outputfiles[nfiles-1] = ar->input[nfiles-1]->general->outputfile;
+			ar->input[step1][step2] = ar->output[step1][step2]->input;
+			ar->inputfiles[step1][step2] = ar->output[step1][step2]->inputfile;
+			ar->outputfiles[step1][step2] = ar->input[step1][step2]->general->outputfile;
+			files_read++;
 		}
 		subroot=subroot->next;
 	}
 
 	xmlFreeDoc(doc);
 
-	if (nfiles != ar->nsteps+1) {
+	if (files_read != (ar->nsteps1+1)*(ar->nsteps2+1)) {
 		fprintf(stderr,"xmi_read_archive_xml: nfiles/nsteps mismatch\n");
 		return 0;
 	}
@@ -2943,27 +3020,47 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 		fprintf(stderr,"Error writing xmimsim-archive tag\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value","%lg", archive->start_value) < 0) {
-		fprintf(stderr,"Error writing start_value\n");
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value1","%lg", archive->start_value1) < 0) {
+		fprintf(stderr,"Error writing start_value1\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value","%lg", archive->end_value) < 0) {
-		fprintf(stderr,"Error writing end_value\n");
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value1","%lg", archive->end_value1) < 0) {
+		fprintf(stderr,"Error writing end_value1\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps","%i", archive->nsteps) < 0) {
-		fprintf(stderr,"Error writing nsteps\n");
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps1","%i", archive->nsteps1) < 0) {
+		fprintf(stderr,"Error writing nsteps1\n");
 		return 0;
 	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath","%s", archive->xpath) < 0) {
-		fprintf(stderr,"Error writing xpath\n");
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath1","%s", archive->xpath1) < 0) {
+		fprintf(stderr,"Error writing xpath1\n");
 		return 0;
 	}
-	int i;
-
-	for (i = 0 ; i <= archive->nsteps ; i++) {
-		if (xmi_write_output_xml_body(writer, archive->output[i]) == 0) {
+	if (archive->nsteps2 > 0) {
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value2","%lg", archive->start_value2) < 0) {
+			fprintf(stderr,"Error writing start_value2\n");
 			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value2","%lg", archive->end_value2) < 0) {
+			fprintf(stderr,"Error writing end_value2\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps2","%i", archive->nsteps2) < 0) {
+				fprintf(stderr,"Error writing nsteps2\n");
+			return 0;
+		}
+		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath2","%s", archive->xpath2) < 0) {
+			fprintf(stderr,"Error writing xpath2\n");
+			return 0;
+		}
+	}
+	int i,j;
+
+	for (i = 0 ; i <= archive->nsteps1 ; i++) {
+		for (j = 0 ; j <= archive->nsteps2 ; j++) {
+			if (xmi_write_output_xml_body(writer, archive->output[i][j], i, j) == 0) {
+				return 0;
+			}
 		}
 	}
 

@@ -1254,34 +1254,60 @@ void xmi_free_output(struct xmi_output *output) {
 }
 
 void xmi_free_archive(struct xmi_archive *archive) {
-	free(archive->xpath);
+	free(archive->xpath1);
+	if (archive->xpath2 != NULL)
+		free(archive->xpath2);
+	int i,j;
+	for (i = 0 ; i <= archive->nsteps1 ; i++) {
+		for (j = 0 ; j <= archive->nsteps2 ; j++) {
+			xmi_free_output(archive->output[i][j]);
+		}
+		free(archive->input[i]);
+		free(archive->output[i]);
+		free(archive->inputfiles[i]);
+		free(archive->outputfiles[i]);
+	}
 	free(archive->input);
+	free(archive->output);
 	free(archive->inputfiles);
 	free(archive->outputfiles);
-	int i;
-	for (i = 0 ; i <= archive->nsteps ; i++)
-		xmi_free_output(archive->output[i]);
 
 	return;
 }
 
-struct xmi_archive* xmi_archive_raw2struct(struct xmi_output **output, double start_value, double end_value, int nsteps, char *xpath) {
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
 	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));	
-	archive->start_value = start_value;
-	archive->end_value = end_value;
-	archive->nsteps = nsteps;
-	archive->xpath = strdup(xpath);
-	archive->output = malloc(sizeof(struct xmi_output *)*(nsteps+1));
-	archive->input = malloc(sizeof(struct xmi_input *)*(nsteps+1));
-	archive->inputfiles = malloc(sizeof(char *)*(nsteps+1));
-	archive->outputfiles = malloc(sizeof(char *)*(nsteps+1));
-	
+	archive->start_value1 = start_value1;
+	archive->end_value1 = end_value1;
+	archive->nsteps1 = nsteps1;
+	archive->xpath1 = strdup(xpath1);
+	archive->start_value2 = start_value2;
+	archive->end_value2= end_value2;
+	archive->nsteps2 = nsteps2;
+	if (archive->xpath2)
+		archive->xpath2 = strdup(xpath2);
+	else
+		archive->xpath2 = NULL;
+	archive->output = malloc(sizeof(struct xmi_output **)*(nsteps1+1));
+	archive->input = malloc(sizeof(struct xmi_input **)*(nsteps1+1));
+	archive->inputfiles = malloc(sizeof(char **)*(nsteps1+1));
+	archive->outputfiles = malloc(sizeof(char **)*(nsteps1+1));
 	int i;
-	for (i = 0 ; i <= nsteps ; i++) {
-		xmi_copy_output(output[i], &archive->output[i]);
-		archive->input[i] = archive->output[i]->input;
-		archive->inputfiles[i] = archive->output[i]->inputfile;
-		archive->outputfiles[i] = archive->input[i]->general->outputfile;
+	for (i = 0 ; i <= nsteps1 ; i++) {
+		archive->output[i] = malloc(sizeof(struct xmi_output *)*(nsteps2+1));
+		archive->input[i] = malloc(sizeof(struct xmi_input *)*(nsteps2+1));
+		archive->inputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
+		archive->outputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
+	}
+
+	int j;
+	for (i = 0 ; i <= nsteps1 ; i++) {
+		for (j = 0 ; j <= nsteps2 ; j++) {
+			xmi_copy_output(output[i][j], &archive->output[i][j]);
+			archive->input[i][j] = archive->output[i][j]->input;
+			archive->inputfiles[i][j] = archive->output[i][j]->inputfile;
+			archive->outputfiles[i][j] = archive->input[i][j]->general->outputfile;
+		}
 	}
 
 	return archive;

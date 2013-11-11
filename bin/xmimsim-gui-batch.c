@@ -90,14 +90,18 @@ struct batch_window_data {
 	FILE *logFile;
 	int i;
 	gchar *argv0;
-	struct xmi_output **output;
+	struct xmi_output ***output;
 	gchar **filenames_xmso;
+	int nsteps2;
 };
 
 struct archive_options_data {
-	double start_value;
-	double end_value;
-	int nsteps;
+	double start_value1;
+	double end_value1;
+	int nsteps1;
+	double start_value2;
+	double end_value2;
+	int nsteps2;
 	gchar *xmsa_file;
 };
 
@@ -127,10 +131,14 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 
 struct wizard_range_data {
 	GtkWidget *wizard;
-	GtkWidget *startEntry;
-	GtkWidget *endEntry;
-	GtkWidget *nstepsEntry;
-	int allowed;
+	GtkWidget *start1Entry;
+	GtkWidget *end1Entry;
+	GtkWidget *nsteps1Entry;
+	GtkWidget *start2Entry;
+	GtkWidget *end2Entry;
+	GtkWidget *nsteps2Entry;
+	int allowed1;
+	int allowed2;
 	GtkWidget *labela;
 	GtkWidget *archiveEntry;
 	GtkWidget *archivesaveButton;
@@ -187,9 +195,19 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ow->nchannels_prefsW));
 
 	//range parameters
-	wacd->aod->start_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->startEntry)), NULL);
-	wacd->aod->end_value = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->endEntry)), NULL);
-	wacd->aod->nsteps = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nstepsEntry)), NULL, 10);
+	wacd->aod->start_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->start1Entry)), NULL);
+	wacd->aod->end_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->end1Entry)), NULL);
+	wacd->aod->nsteps1 = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nsteps1Entry)), NULL, 10);
+	if (wacd->wrd->start2Entry) {
+		wacd->aod->start_value2 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->start2Entry)), NULL);
+		wacd->aod->end_value2 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->end2Entry)), NULL);
+		wacd->aod->nsteps2 = (int) strtol(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->nsteps2Entry)), NULL, 10);
+	}
+	else {
+		wacd->aod->start_value2 = 0.0;
+		wacd->aod->end_value2 = 0.0;
+		wacd->aod->nsteps2 = 0;
+	}
 	wacd->aod->xmsa_file = g_strdup(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->archiveEntry)));
 
 
@@ -222,77 +240,77 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 	return;
 }
 
-static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_data *wrd) {
+static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data *wrd) {
 	GtkWidget *vbox = gtk_assistant_get_nth_page(GTK_ASSISTANT(wrd->wizard), gtk_assistant_get_current_page(GTK_ASSISTANT(wrd->wizard)));
-	int start_end = 0;
-	int nsteps = 0;
+	int start_end1 = 0;
+	int nsteps1 = 0;
 
 	
 	char *textPtr,*endPtr,*lastPtr;
 	double start, end;
-	if (entry == GTK_EDITABLE(wrd->startEntry)) {
+	if (entry == GTK_EDITABLE(wrd->start1Entry)) {
 		double value;
 
-		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start1Entry));
 		value=strtod(textPtr, &endPtr);
 		lastPtr = textPtr + strlen(textPtr);
 		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
-			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
-			((wrd->allowed & PARAMETER_POSITIVE) && value < 0.0) ||
-			((wrd->allowed & PARAMETER_WEIGHT_FRACTION) && (value <= 0.0 || value >= 100.0))
+			((wrd->allowed1 & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed1 & PARAMETER_POSITIVE) && value < 0.0) ||
+			((wrd->allowed1 & PARAMETER_WEIGHT_FRACTION) && (value <= 0.0 || value >= 100.0))
 			) {
-			gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
+			gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 			return;
 		}
-		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
 	}
-	else if (entry == GTK_EDITABLE(wrd->endEntry)) {
+	else if (entry == GTK_EDITABLE(wrd->end1Entry)) {
 		double value;
 
-		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->endEntry));
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->end1Entry));
 		value=strtod(textPtr, &endPtr);
 		lastPtr = textPtr + strlen(textPtr);
 		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
-			((wrd->allowed & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
-			((wrd->allowed & PARAMETER_POSITIVE) && value <= 0.0) ||
-			((wrd->allowed & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value > 100.0))
+			((wrd->allowed1 & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed1 & PARAMETER_POSITIVE) && value <= 0.0) ||
+			((wrd->allowed1 & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value > 100.0))
 			) {
-			gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&red);
+			gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 			return;
 		}
-		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
 	}
-	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nstepsEntry));
-	nsteps=strtol(textPtr, &endPtr, 10);
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nsteps1Entry));
+	nsteps1=strtol(textPtr, &endPtr, 10);
 	lastPtr = textPtr + strlen(textPtr);
-	if (entry == GTK_EDITABLE(wrd->nstepsEntry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps < 1)) {
-		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&red);
+	if (entry == GTK_EDITABLE(wrd->nsteps1Entry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps1 < 1)) {
+		gtk_widget_modify_base(wrd->nsteps1Entry,GTK_STATE_NORMAL,&red);
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 		return;
 	}
-	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps >= 1) {
-		gtk_widget_modify_base(wrd->nstepsEntry,GTK_STATE_NORMAL,&white);
+	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps1 >= 1) {
+		gtk_widget_modify_base(wrd->nsteps1Entry,GTK_STATE_NORMAL,&white);
 	}
-	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->startEntry));
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start1Entry));
 	start = strtod(textPtr, &endPtr);
-	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->endEntry));
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->end1Entry));
 	end = strtod(textPtr, &endPtr);
 
 	if (end > start) {
-		start_end = 1;
-		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&white);
+		start_end1 = 1;
+		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
 	}
 	else {
-		gtk_widget_modify_base(wrd->startEntry,GTK_STATE_NORMAL,&red);
-		gtk_widget_modify_base(wrd->endEntry,GTK_STATE_NORMAL,&red);
+		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&red);
+		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&red);
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 		return;
 	}
 
-	if (start_end*nsteps > 0) {
+	if (start_end1*nsteps1 > 0) {
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, TRUE);
 	}
 	else {
@@ -301,7 +319,7 @@ static void wizard_range_changed_cb (GtkEditable *entry, struct wizard_range_dat
 	return;
 }
 
-static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath, int allowed, struct archive_options_data *aod) {
+static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath1, gchar *xpath2, int allowed1, int allowed2, struct archive_options_data *aod) {
 	int rv = 0;
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
@@ -334,7 +352,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
 	GtkWidget *hbox, *label;
 
-	gchar *buffer = g_strdup_printf("<b>XPath parameter: %s</b>", xpath);
+	gchar *buffer = g_strdup_printf("<b>XPath parameter: %s</b>", xpath1);
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label), buffer);
 	g_free(buffer);
@@ -345,23 +363,29 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 
 	hbox = gtk_hbox_new(FALSE, 2);
 	label = gtk_label_new("Start");
-	GtkWidget *startEntry = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(startEntry), TRUE);
+	GtkWidget *start1Entry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(start1Entry), TRUE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
-	gtk_box_pack_start(GTK_BOX(hbox), startEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), start1Entry, TRUE, TRUE, 1);
 	label = gtk_label_new("End");
-	GtkWidget *endEntry = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(endEntry), TRUE);
+	GtkWidget *end1Entry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(end1Entry), TRUE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
-	gtk_box_pack_start(GTK_BOX(hbox), endEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), end1Entry, TRUE, TRUE, 1);
 	label = gtk_label_new("#Steps");
-	GtkWidget *nstepsEntry = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(nstepsEntry), TRUE);
-	gtk_entry_set_text(GTK_ENTRY(nstepsEntry), "10");
+	GtkWidget *nsteps1Entry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(nsteps1Entry), TRUE);
+	gtk_entry_set_text(GTK_ENTRY(nsteps1Entry), "10");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
-	gtk_box_pack_start(GTK_BOX(hbox), nstepsEntry, TRUE, TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(hbox), nsteps1Entry, TRUE, TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
-	
+
+	GtkWidget *start2Entry = NULL;
+	GtkWidget *end2Entry = NULL;
+	GtkWidget *nsteps2Entry = NULL;
+
+
+
 	hbox = gtk_hbox_new(FALSE,2);
 	GtkWidget *labela = gtk_label_new("XMSA file");
 	gtk_box_pack_start(GTK_BOX(hbox), labela, FALSE, FALSE, 2);
@@ -389,7 +413,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		g_fprintf(stderr, "Error in xmlXPathNewContext\n");
 		return 0;
 	}
-	result = xmlXPathEvalExpression(BAD_CAST xpath, context);
+	result = xmlXPathEvalExpression(BAD_CAST xpath1, context);
 	xmlXPathFreeContext(context);
 	if (result == NULL) {
 		g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
@@ -414,19 +438,19 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	long int valuel;
 	double inc = 1.0;
 
-	if (allowed & PARAMETER_DOUBLE) {
+	if (allowed1 & PARAMETER_DOUBLE) {
 		//valued = strtod(keyword, NULL) + 1.0;
 		valued = strtod(keyword, NULL);
 		buffer = g_strdup_printf("%lg", valued);
-		gtk_entry_set_text(GTK_ENTRY(startEntry), buffer);
+		gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
 		g_free(buffer);
-		if (allowed & PARAMETER_WEIGHT_FRACTION) {
+		if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
 			while (valued+inc >= 100.0) {
 				inc/=10.0;
 			}
 		}
 		buffer = g_strdup_printf("%lg", valued+inc);
-		gtk_entry_set_text(GTK_ENTRY(endEntry), buffer);
+		gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
 		g_free(buffer);
 	}
 	else {
@@ -437,15 +461,19 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	
 
 	wrd->wizard = wizard;
-	wrd->startEntry = startEntry;
-	wrd->endEntry = endEntry;
-	wrd->nstepsEntry = nstepsEntry;
-	wrd->allowed = allowed;
+	wrd->start1Entry = start1Entry;
+	wrd->end1Entry = end1Entry;
+	wrd->nsteps1Entry = nsteps1Entry;
+	wrd->start2Entry = start2Entry;
+	wrd->end2Entry = end2Entry;
+	wrd->nsteps2Entry = nsteps2Entry;
+	wrd->allowed1 = allowed1;
+	wrd->allowed2 = allowed2;
 	wrd->archiveEntry = archiveEntry;
 
-	g_signal_connect(G_OBJECT(startEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
-	g_signal_connect(G_OBJECT(endEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
-	g_signal_connect(G_OBJECT(nstepsEntry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(start1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(end1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	g_signal_connect(G_OBJECT(nsteps1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	
 	//add confirmation page
 	GtkWidget *confirmationLabel = gtk_label_new("Confirm the options selected on the previous pages and continue with the simulation?");
@@ -507,7 +535,7 @@ static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path
 	return;
 }
 
-static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath, int *allowed) {
+static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select the variable parameter", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *scrolled_window = get_inputfile_treeview(input, 1);
@@ -538,7 +566,7 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 		GtkTreeModel *model;
 		gtk_tree_selection_get_selected(select, &model, &iter);
 		//extract xpath expression
-		gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath, INPUT_ALLOWED_COLUMN, allowed, -1);
+		gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath1, INPUT_ALLOWED_COLUMN, allowed1, -1);
 	}
 	gtk_widget_destroy(dialog);
 
@@ -878,7 +906,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	return TRUE;
 }
 
-static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output **output, gchar **filenames_xmso);
+static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2);
 
 static void batch_reset_controls(struct batch_window_data *bwd) {
 	char buffer[512];
@@ -1063,7 +1091,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 	else if (bwd->i == g_slist_length(bwd->filenames)) {
 		GtkWidget *dialog;
 		if (bwd->filenames_xmso != NULL) {
-			if (xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[bwd->i-1]) == 0) {
+			int step1 = (bwd->i-1) / (bwd->nsteps2+1);
+			int step2 = (bwd->i-1) % (bwd->nsteps2+1);
+			if (xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[step1][step2]) == 0) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", bwd->filenames_xmso[bwd->i-1]);
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
@@ -1095,7 +1125,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 	else {
 		
 		if (bwd->filenames_xmso != NULL) {
-			if (xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[bwd->i-1]) == 0) {
+			int step1 = (bwd->i-1) / (bwd->nsteps2+1);
+			int step2 = (bwd->i-1) % (bwd->nsteps2+1);
+			if (xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[step1][step2]) == 0) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", bwd->filenames_xmso[bwd->i-1]);
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
@@ -1523,7 +1555,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		//3) launch execution window
-		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION, NULL, NULL);
+		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION, NULL, NULL, 0);
 		//4) display message with result
 		//g_fprintf(stdout,"exec_rv: %i\n", exec_rv);
 	}
@@ -1531,7 +1563,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//one file selected
 		//options apply to all
 		//g_fprintf(stdout, "no clicked\n");
-		gchar *xpath;
+		gchar *xpath1, *xpath2;
 		struct xmi_input *input;
 		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input) == 0) {
 			//error reading inputfile
@@ -1541,8 +1573,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 
-		int allowed;
-		int rv = select_parameter(window, input, &xpath, &allowed);
+		int allowed1, allowed2;
+		int rv = select_parameter(window, input, &xpath1, &xpath2, &allowed1, &allowed2);
 		//g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
 			//g_fprintf(stdout, "xpath: %s\n", xpath);
@@ -1556,16 +1588,16 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//3) plot afterwards? Requires saving to XMSA file as well as selecting a particular line
 		options = g_malloc(sizeof(struct xmi_main_options));
 		struct archive_options_data *aod = g_malloc(sizeof(struct archive_options_data));
-		rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath, allowed, aod);
+		rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath1, xpath2, allowed1, allowed2, aod);
 		if (rv == 0) {
 			return;
 		}
 		//4) generate the new XMSI files
 		GSList *filenames_xmsiGSL = NULL;
-		gchar **filenames_xmsi = g_malloc(sizeof(gchar *)*(aod->nsteps+2));
-		gchar **filenames_xmso = g_malloc(sizeof(gchar *)*(aod->nsteps+2));
-		filenames_xmsi[aod->nsteps+1] = NULL;
-		filenames_xmso[aod->nsteps+1] = NULL;
+		gchar **filenames_xmsi = g_malloc(sizeof(gchar *)*((aod->nsteps1+1)*(aod->nsteps2+1)+1));
+		gchar **filenames_xmso = g_malloc(sizeof(gchar *)*((aod->nsteps1+1)*(aod->nsteps2+1)+1));
+		filenames_xmsi[(aod->nsteps1+1)*(aod->nsteps2+1)] = NULL;
+		filenames_xmso[(aod->nsteps1+1)*(aod->nsteps2+1)] = NULL;
 		gchar *filename = (gchar *) g_slist_nth_data(filenames, 0);
 		gchar *buffer;
 		//open inputfile
@@ -1588,7 +1620,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		//selected xpath
-		result = xmlXPathEvalExpression(BAD_CAST xpath, context);
+		result = xmlXPathEvalExpression(BAD_CAST xpath1, context);
 		if (result == NULL) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
 			gtk_dialog_run(GTK_DIALOG(dialog));
@@ -1637,7 +1669,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlXPathObjectPtr result3;
 		xmlNodePtr grandparent;
 		xmlNodeSetPtr grandkids;
-		if (allowed & PARAMETER_WEIGHT_FRACTION) {
+		if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
 			//get grandparent of xpath node
 			grandparent = nodeset->nodeTab[0]->parent->parent;
 			//get all weight_fraction grandchildren
@@ -1670,37 +1702,39 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 
 
-		int j;
-		for (i = 0 ; i <= aod->nsteps ; i++) {
-			buffer = g_strdup_printf("%s%sxmi_%i_%i.xmsi", g_get_tmp_dir(), G_DIR_SEPARATOR_S, (int) getpid(), i);
-			filenames_xmsiGSL = g_slist_append(filenames_xmsiGSL, (gpointer) buffer);
-			filenames_xmsi[i] = buffer;
-			buffer = g_strdup_printf("%s%sxmi_%i_%i.xmso", g_get_tmp_dir(), G_DIR_SEPARATOR_S, (int) getpid(), i);
-			filenames_xmso[i] = buffer;
-			double value = aod->start_value + i*(aod->end_value-aod->start_value)/(aod->nsteps);
-			if (allowed & PARAMETER_WEIGHT_FRACTION) {
-				double diff = 100.0-value-weight_sum;
-				double new_weight_sum = weight_sum + diff;
-				for (j = 0 ; j < grandkids->nodeNr ; j++) {
-					if (grandkids->nodeTab[j] == nodeset->nodeTab[0]) {
-						continue;
+		int j,k;
+		for (i = 0 ; i <= aod->nsteps1 ; i++) {
+			for (j = 0 ; j <= aod->nsteps2 ; j++) {
+				buffer = g_strdup_printf("%s%sxmi_%i_%i_%i.xmsi", g_get_tmp_dir(), G_DIR_SEPARATOR_S, (int) getpid(), i, j);
+				filenames_xmsiGSL = g_slist_append(filenames_xmsiGSL, (gpointer) buffer);
+				filenames_xmsi[i*(aod->nsteps2+1)+j] = buffer;
+				buffer = g_strdup_printf("%s%sxmi_%i_%i_%i.xmso", g_get_tmp_dir(), G_DIR_SEPARATOR_S, (int) getpid(), i, j);
+				filenames_xmso[i*(aod->nsteps2+1)+j] = buffer;
+				double value1 = aod->start_value1 + i*(aod->end_value1-aod->start_value1)/(aod->nsteps1);
+				if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
+					double diff = 100.0-value1-weight_sum;
+					double new_weight_sum = weight_sum + diff;
+					for (k = 0 ; k < grandkids->nodeNr ; k++) {
+						if (grandkids->nodeTab[k] == nodeset->nodeTab[0]) {
+							continue;
+						}
+						double new_weight = orig_weight[k]*new_weight_sum/weight_sum;
+						buffer = g_strdup_printf("%lg", new_weight);
+						xmlNodeSetContent(grandkids->nodeTab[k], BAD_CAST buffer);
+						g_free(buffer);
 					}
-					double new_weight = orig_weight[j]*new_weight_sum/weight_sum;
-					buffer = g_strdup_printf("%lg", new_weight);
-					xmlNodeSetContent(grandkids->nodeTab[j], BAD_CAST buffer);
-					g_free(buffer);
 				}
-			}
-			buffer = g_strdup_printf("%lg", value);
-			xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
-			g_free(buffer);
-			xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i]);
-			xmlKeepBlanksDefault(0);
-			if (xmlSaveFormatFileEnc(filenames_xmsi[i],doc,NULL,1) == -1) {
-				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s. Aborting batch mode", filenames_xmsi[i]);
-				gtk_dialog_run(GTK_DIALOG(dialog));
-				gtk_widget_destroy(dialog);
-				return;
+				buffer = g_strdup_printf("%lg", value1);
+				xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
+				g_free(buffer);
+				xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i*(aod->nsteps2+1)+j]);
+				xmlKeepBlanksDefault(0);
+				if (xmlSaveFormatFileEnc(filenames_xmsi[i*(aod->nsteps2+1)+j],doc,NULL,1) == -1) {
+					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s. Aborting batch mode", filenames_xmsi[i*(aod->nsteps2+1)+j]);
+					gtk_dialog_run(GTK_DIALOG(dialog));
+					gtk_widget_destroy(dialog);
+					return;
+				}
 			}
 		}
 		if (orig_weight)
@@ -1709,8 +1743,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlXPathFreeObject(result);
 		xmlXPathFreeObject(result2);
 		xmlFreeDoc(doc);
-		struct xmi_output **output = g_malloc(sizeof(struct xmi_output *)*(aod->nsteps+1));
-		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso);
+		struct xmi_output ***output = g_malloc(sizeof(struct xmi_output **)*(aod->nsteps1+1));
+		for (i = 0 ; i <= aod->nsteps1 ; i++)
+			output[i] = g_malloc(sizeof(struct xmi_output *)*(aod->nsteps2+1));
+		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso, aod->nsteps2);
 		if (exec_rv == 0) {
 			return;
 		}
@@ -1726,7 +1762,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 		*/
 		//convert to an archive struct
-		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value, aod->end_value, aod->nsteps, xpath);
+		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value1, aod->end_value1, aod->nsteps1, xpath1, aod->start_value2, aod->end_value2, aod->nsteps2, xpath2);
 		//save to XMSA file
 		//g_fprintf(stdout, "Writing %s\n", aod->xmsa_file);
 		if (xmi_write_archive_xml(aod->xmsa_file, archive) == 0) {
@@ -1736,14 +1772,14 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		//g_fprintf(stdout, "Freeing output\n");
-		for (i = 0 ; i <= aod->nsteps ; i++)
-			xmi_free_output(output[i]);
+		for (i = 0 ; i <= aod->nsteps1 ; i++) {
+			for (j = 0 ; j <= aod->nsteps2 ; j++) {
+				xmi_free_output(output[i][j]);
+			g_free(output[i]);
+			}
+		}
 		g_free(output);
 
-		for (i = 0 ; i <= aod->nsteps ; i++) {
-			g_unlink(filenames_xmsi[i]);
-			g_unlink(filenames_xmso[i]);
-		}
 		g_strfreev(filenames_xmsi);
 		g_strfreev(filenames_xmso);
 		g_slist_free(filenames_xmsiGSL);
@@ -1768,7 +1804,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	return;
 }
 
-static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output **output, gchar **filenames_xmso) {
+static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2) {
 	int rv = 0;
 	GtkWidget *batch_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_transient_for(GTK_WINDOW(batch_window), GTK_WINDOW(main_window));
@@ -1885,6 +1921,7 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	bwd->rv = &rv;
 	bwd->output = output;
 	bwd->filenames_xmso = filenames_xmso;
+	bwd->nsteps2 = nsteps2;
 
 
 	g_signal_connect(G_OBJECT(batch_window), "delete-event", G_CALLBACK(batch_window_delete_event), (gpointer) bwd);
@@ -2910,15 +2947,16 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 
 	gboolean found;
 	int loc = 0;
-	int i,j,k,l;
+	int i,i2,j,k,l;
 	struct fluor_data *fd = NULL;
 	int nfd = 0;
 
-	for (i = 0 ; i <= archive->nsteps ; i++) {
-		for (j = 0 ; j < archive->output[i]->nvar_red_history ; j++) {
+	for (i = 0 ; i <= archive->nsteps1 ; i++) {
+	for (i2 = 0 ; i2 <= archive->nsteps2 ; i2++) {
+		for (j = 0 ; j < archive->output[i][i2]->nvar_red_history ; j++) {
 			found = FALSE;
 			for (k = 0 ; k < nfd ; k++) {
-				if (archive->output[i]->var_red_history[j].atomic_number == fd[k].atomic_number) {
+				if (archive->output[i][i2]->var_red_history[j].atomic_number == fd[k].atomic_number) {
 					found = TRUE;
 					loc = k;
 					break;
@@ -2927,19 +2965,19 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 			if (!found) {
 				//add new element to array
 				fd = g_realloc(fd, sizeof(struct fluor_data)*++nfd);
-				fd[nfd-1].atomic_number = archive->output[i]->var_red_history[j].atomic_number;
-				fd[nfd-1].n_lines = archive->output[i]->var_red_history[j].n_lines;
+				fd[nfd-1].atomic_number = archive->output[i][i2]->var_red_history[j].atomic_number;
+				fd[nfd-1].n_lines = archive->output[i][i2]->var_red_history[j].n_lines;
 				fd[nfd-1].line_types = g_malloc(sizeof(gchar *)*fd[nfd-1].n_lines);
 				for (k = 0 ; k < fd[nfd-1].n_lines ; k++) {
-					fd[nfd-1].line_types[k]= g_strdup(archive->output[i]->var_red_history[j].lines[k].line_type);
+					fd[nfd-1].line_types[k]= g_strdup(archive->output[i][i2]->var_red_history[j].lines[k].line_type);
 				}
 			}
 			else {
 				//element found -> check for new lines
-				for (k = 0 ; k < archive->output[i]->var_red_history[j].n_lines ; k++) {
+				for (k = 0 ; k < archive->output[i][i2]->var_red_history[j].n_lines ; k++) {
 					found = FALSE;
 					for (l = 0 ; l < fd[loc].n_lines ; l++) {
-						if (strcmp(archive->output[i]->var_red_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
+						if (strcmp(archive->output[i][i2]->var_red_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
 							found = TRUE;
 							break;
 						}		
@@ -2947,15 +2985,15 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 					if (!found) {
 						//extend array
 						fd[loc].line_types = g_realloc(fd[loc].line_types, sizeof(gchar *)*++fd[loc].n_lines);
-						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i]->var_red_history[j].lines[k].line_type);
+						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i][i2]->var_red_history[j].lines[k].line_type);
 					}
 				}
 			}
 		}
-		for (j = 0 ; j < archive->output[i]->nbrute_force_history ; j++) {
+		for (j = 0 ; j < archive->output[i][i2]->nbrute_force_history ; j++) {
 			found = FALSE;
 			for (k = 0 ; k < nfd ; k++) {
-				if (archive->output[i]->brute_force_history[j].atomic_number == fd[k].atomic_number) {
+				if (archive->output[i][i2]->brute_force_history[j].atomic_number == fd[k].atomic_number) {
 					found = TRUE;
 					loc = k;
 					break;
@@ -2964,19 +3002,19 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 			if (!found) {
 				//add new element to array
 				fd = g_realloc(fd, sizeof(struct fluor_data)*++nfd);
-				fd[nfd-1].atomic_number = archive->output[i]->brute_force_history[j].atomic_number;
-				fd[nfd-1].n_lines = archive->output[i]->brute_force_history[j].n_lines;
+				fd[nfd-1].atomic_number = archive->output[i][i2]->brute_force_history[j].atomic_number;
+				fd[nfd-1].n_lines = archive->output[i][i2]->brute_force_history[j].n_lines;
 				fd[nfd-1].line_types = g_malloc(sizeof(gchar *)*fd[nfd-1].n_lines);
 				for (k = 0 ; k < fd[nfd-1].n_lines ; k++) {
-					fd[nfd-1].line_types[k]= g_strdup(archive->output[i]->brute_force_history[j].lines[k].line_type);
+					fd[nfd-1].line_types[k]= g_strdup(archive->output[i][i2]->brute_force_history[j].lines[k].line_type);
 				}
 			}
 			else {
 				//element found -> check for new lines
-				for (k = 0 ; k < archive->output[i]->brute_force_history[j].n_lines ; k++) {
+				for (k = 0 ; k < archive->output[i][i2]->brute_force_history[j].n_lines ; k++) {
 					found = FALSE;
 					for (l = 0 ; l < fd[loc].n_lines ; l++) {
-						if (strcmp(archive->output[i]->brute_force_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
+						if (strcmp(archive->output[i][i2]->brute_force_history[j].lines[k].line_type, fd[loc].line_types[l]) != 0) {
 							found = TRUE;
 							break;
 						}		
@@ -2984,11 +3022,12 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 					if (!found) {
 						//extend array
 						fd[loc].line_types = g_realloc(fd[loc].line_types, sizeof(gchar *)*++fd[loc].n_lines);
-						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i]->brute_force_history[j].lines[k].line_type);
+						fd[loc].line_types[fd[loc].n_lines-1] = g_strdup(archive->output[i][i2]->brute_force_history[j].lines[k].line_type);
 					}
 				}
 			}
 		}
+	}
 	}
 	//qsort everything
 	for (i = 0 ; i < nfd ; i++) {
@@ -3034,14 +3073,14 @@ struct archive_plot_data {
 static void plot_archive_data_cb(struct archive_plot_data *apd) {
 	//first section will deal with generating the x- and y-values
 	double *x, *y;
-	int i,j,k,l;
+	int i,j,k,l,i2;
 	gchar *buffer;
 
-	x = g_malloc(sizeof(double)*(apd->archive->nsteps+1));
-	y = g_malloc(sizeof(double)*(apd->archive->nsteps+1));
+	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
 	
-	for (i = 0 ; i <= apd->archive->nsteps ; i++) {
-		x[i] = apd->archive->start_value + (apd->archive->end_value - apd->archive->start_value)*i/apd->archive->nsteps;
+	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+		x[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
 	}
 
 
@@ -3059,24 +3098,24 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 		gint interaction = strtol(buffer, NULL, 10);
 		g_free(buffer);
 
-		for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 			double yval = 0.0;
 			if (cumulative) {
-				for (j = apd->archive->output[i]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
+				for (j = apd->archive->output[i][0]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
 					for (k = start_channel ; k <= end_channel ; k++) {
 						if (convoluted)
-							yval += apd->archive->output[i]->channels_conv[j][k];
+							yval += apd->archive->output[i][0]->channels_conv[j][k];
 						else
-							yval += apd->archive->output[i]->channels_unconv[j][k];
+							yval += apd->archive->output[i][0]->channels_unconv[j][k];
 					}
 				}
 			}
 			else {
 				for (k = start_channel ; k <= end_channel ; k++) {
 					if (convoluted)
-						yval += apd->archive->output[i]->channels_conv[interaction][k];
+						yval += apd->archive->output[i][0]->channels_conv[interaction][k];
 					else
-						yval += apd->archive->output[i]->channels_unconv[interaction][k];
+						yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
 				}
 			}
 			y[i] = yval;	
@@ -3088,22 +3127,22 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 		struct xmi_fluorescence_line_counts **history = NULL; 
 		int *nhistory = NULL;
 
-		if (apd->archive->output[0]->nvar_red_history > 0) {
+		if (apd->archive->output[0][0]->nvar_red_history > 0) {
 			var_red = TRUE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps+1));
-			for (i = 0 ; i <= apd->archive->nsteps ; i++) {
-				history[i] = apd->archive->output[i]->var_red_history;
-				nhistory[i] = apd->archive->output[i]->nvar_red_history;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				history[i] = apd->archive->output[i][0]->var_red_history;
+				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
 			}
 		}
-		else if (apd->archive->output[0]->nbrute_force_history > 0) {
+		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
 			var_red = FALSE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps+1));
-			for (i = 0 ; i <= apd->archive->nsteps ; i++) {
-				history[i] = apd->archive->output[i]->brute_force_history;
-				nhistory[i] = apd->archive->output[i]->nbrute_force_history;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				history[i] = apd->archive->output[i][0]->brute_force_history;
+				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
 			}
 		}
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
@@ -3124,7 +3163,7 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 		g_free(buffer);
 		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
 
-		for (i = 0 ; i <= apd->archive->nsteps ; i++) {
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 			double yval = 0.0;
 			if (atomic_number_index == -1) {
 				//Element = All
@@ -3202,13 +3241,13 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
-	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps+1);
-	double real_ymin = xmi_minval_double(y,apd->archive->nsteps+1);
+	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps1+1);
+	double real_ymin = xmi_minval_double(y,apd->archive->nsteps1+1);
 
 	double plot_ymax = real_ymax + (real_ymax-real_ymin)/10.0;
 	double plot_ymin = real_ymin - (real_ymax-real_ymin)/10.0;
-	double plot_xmin = x[0] - (x[apd->archive->nsteps]-x[0])/10.0;
-	double plot_xmax = x[apd->archive->nsteps] + (x[apd->archive->nsteps]-x[0])/10.0;
+	double plot_xmin = x[0] - (x[apd->archive->nsteps1]-x[0])/10.0;
+	double plot_xmax = x[apd->archive->nsteps1] + (x[apd->archive->nsteps1]-x[0])/10.0;
 
 
 	if (real_ymax == 0.0) {
@@ -3252,7 +3291,7 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
 	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity");
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath);
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath1);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	
@@ -3293,7 +3332,7 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 	GtkPlotData *dataset;
 	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
 	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps+1);
+	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps1+1);
 	gtk_plot_data_set_x(dataset, x);
 	gtk_plot_data_set_y(dataset, y);
 	gtk_widget_show(GTK_WIDGET(dataset));
@@ -3512,7 +3551,7 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_start_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
+	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_box_pack_end(GTK_BOX(lilHBox), roi_start_spinnerW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
@@ -3523,9 +3562,9 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_end_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0]->nchannels, 1);
+	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0]->nchannels);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0][0]->nchannels);
 	gtk_box_pack_end(GTK_BOX(lilHBox), roi_end_spinnerW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 
@@ -3550,9 +3589,9 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 #if GTK_CHECK_VERSION(2,24,0)
 	roi_interactions_comboW = gtk_combo_box_text_new();
-	if (archive->output[0]->use_zero_interactions)
+	if (archive->output[0][0]->use_zero_interactions)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(roi_interactions_comboW), "0");
-	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+	for (i = 1 ; i <= archive->output[0][0]->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(roi_interactions_comboW), interaction);
 		g_free(interaction);
@@ -3646,14 +3685,14 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
 #if GTK_CHECK_VERSION(2,24,0)
 	xrf_interactions_comboW = gtk_combo_box_text_new();
-	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+	for (i = 1 ; i <= archive->output[0][0]->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(xrf_interactions_comboW), interaction);
 		g_free(interaction);
 	}
 #else
 	xrf_interactions_comboW = gtk_combo_box_new_text();
-	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+	for (i = 1 ; i <= archive->output[0][0]->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_append_text(GTK_COMBO_BOX(xrf_interactions_comboW), interaction);
 		g_free(interaction);

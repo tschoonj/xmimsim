@@ -177,16 +177,20 @@ struct xmi_output {
 };
 
 struct xmi_archive {
-	double start_value;
-	double end_value;
-	int nsteps;
-	char *xpath;
+	double start_value1;
+	double end_value1;
+	int nsteps1;
+	char *xpath1;
+	double start_value2;
+	double end_value2;
+	int nsteps2;
+	char *xpath2;
 	//input are just pointers to the input structs with output!
-	struct xmi_input **input;
-	struct xmi_output **output;
+	struct xmi_input ***input;
+	struct xmi_output ***output;
 	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
-	char **inputfiles;
-	char **outputfiles;
+	char ***inputfiles;
+	char ***outputfiles;
 };
 
 struct xmi_main_options {
@@ -270,7 +274,7 @@ void xmi_free_output(struct xmi_output *);
 
 void xmi_free_archive(struct xmi_archive *archive);
 
-struct xmi_archive* xmi_archive_raw2struct(struct xmi_output **output, double start_value, double end_value, int nsteps, char *xpath);
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
 
 void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
 

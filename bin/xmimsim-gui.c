@@ -5455,6 +5455,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter3) {
 			struct xmi_archive *archive;
 			if (xmi_read_archive_xml(filename, &archive) == 0) {
+				gtk_widget_destroy (dialog);
 				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 			       		GTK_MESSAGE_ERROR,
