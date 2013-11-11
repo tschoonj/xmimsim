@@ -338,7 +338,9 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label), buffer);
 	g_free(buffer);
-	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, FALSE, 2);
+	hbox = gtk_hbox_new(FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 10);
 	gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
 
 	hbox = gtk_hbox_new(FALSE, 2);
