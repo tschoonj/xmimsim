@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-batch.h"
+#include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-layer.h"
@@ -89,21 +90,15 @@ struct batch_window_data {
 	FILE *logFile;
 	int i;
 	gchar *argv0;
+	struct xmi_output **output;
+	gchar **filenames_xmso;
 };
 
 struct archive_options_data {
 	double start_value;
 	double end_value;
 	int nsteps;
-	gchar *xmso_output_dir;
-	gchar *xmso_prefix;
-	gchar *xmsi_input_dir;
-	gchar *xmsi_prefix;
 	gchar *xmsa_file;
-	gboolean with_xmsa;
-	gboolean with_plot;
-	gboolean keep_xmsi;
-	gboolean keep_xmso;
 };
 
 struct saveButton_clicked_data {
@@ -1090,7 +1085,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	return TRUE;
 }
 
-static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options);
+static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output **output, gchar **filenames_xmso);
 
 static void batch_reset_controls(struct batch_window_data *bwd) {
 	char buffer[512];
@@ -1280,6 +1275,13 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 	}
 	*/
 	else if (bwd->i == g_slist_length(bwd->filenames)) {
+		GtkWidget *dialog;
+		if (bwd->filenames_xmso != NULL && xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[bwd->i-1]) == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", bwd->filenames_xmso[bwd->i]);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}	
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(bwd->progressbarW), "Simulations completed");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(bwd->progressbarW), 1.0);
 		while(gtk_events_pending())
@@ -1288,7 +1290,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 			fclose(bwd->logFile);
 		if (bwd->logFile)
 			fclose(bwd->logFile);
-		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(bwd->batch_window),
+		dialog = gtk_message_dialog_new (GTK_WINDOW(bwd->batch_window),
 		GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
 	        GTK_MESSAGE_INFO,
 	        GTK_BUTTONS_CLOSE,
@@ -1299,6 +1301,13 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 		gtk_widget_destroy(bwd->batch_window);
 	}
 	else {
+		
+		if (bwd->filenames_xmso != NULL && xmi_read_output_xml(bwd->filenames_xmso[bwd->i-1], &bwd->output[bwd->i-1]) == 0) {
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", bwd->filenames_xmso[bwd->i]);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}	
 		//start the next job
 		batch_start_job_recursive(bwd);
 	}
@@ -1716,7 +1725,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		//3) launch execution window
-		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION);
+		int exec_rv = batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION, NULL, NULL);
 		//4) display message with result
 		//g_fprintf(stdout,"exec_rv: %i\n", exec_rv);
 	}
@@ -1902,12 +1911,11 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlXPathFreeObject(result);
 		xmlXPathFreeObject(result2);
 		xmlFreeDoc(doc);
-		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION);
+		struct xmi_output **output = g_malloc(sizeof(struct xmi_output *)*(aod->nsteps+1));
+		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso);
 		if (exec_rv == 0 || aod->with_xmsa == FALSE) {
 			return;
 		}
-		//read all xmso files that were just created
-		struct xmi_output **output = g_malloc(sizeof(struct xmi_output *)*(aod->nsteps+1));
 		for (i = 0 ; i <= aod->nsteps ; i++) {
 			//g_fprintf(stdout, "Reading %s\n", filenames_xmso[i]);
 			if (xmi_read_output_xml(filenames_xmso[i], &output[i]) == 0) {
@@ -1932,14 +1940,9 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			xmi_free_output(output[i]);
 		g_free(output);
 
-		//deleting files if required
-		if (!aod->keep_xmsi) {
-			for (i = 0 ; i <= aod->nsteps ; i++)
-				g_unlink(filenames_xmsi[i]);
-		}
-		if (!aod->keep_xmso) {
-			for (i = 0 ; i <= aod->nsteps ; i++)
-				g_unlink(filenames_xmso[i]);
+		for (i = 0 ; i <= aod->nsteps ; i++) {
+			g_unlink(filenames_xmsi[i]);
+			g_unlink(filenames_xmso[i]);
 		}
 		g_strfreev(filenames_xmsi);
 		g_strfreev(filenames_xmso);
@@ -1957,8 +1960,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}*/
 		
 		//and plot!
-		if (aod->with_plot)
-			launch_archive_plot(archive, window);
+		launch_archive_plot(archive, window);
 	}
 
 
@@ -1966,7 +1968,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	return;
 }
 
-static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options) {
+static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output **output, gchar **filenames_xmso) {
 	int rv = 0;
 	GtkWidget *batch_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_transient_for(GTK_WINDOW(batch_window), GTK_WINDOW(main_window));
@@ -2081,6 +2083,8 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	bwd->filenames = filenames;
 	bwd->batch_options = batch_options;
 	bwd->rv = &rv;
+	bwd->output = output;
+	bwd->filenames_xmso = filenames_xmso;
 
 
 	g_signal_connect(G_OBJECT(batch_window), "delete-event", G_CALLBACK(batch_window_delete_event), (gpointer) bwd);
@@ -3955,6 +3959,16 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	cd->height = 0.0;
 	g_signal_connect(G_OBJECT(canvas),"expose-event", G_CALLBACK(resize_canvas_cb), cd);
 	*/
+
+	//if there is no fluor_data, disable the XRF mode
+	if (fd == 0) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_radioW), TRUE);
+		gtk_widget_set_sensitive(xrf_radioW, FALSE);
+		gtk_widget_show_all(window);
+		return;
+	}
+
+
 	gtk_widget_show_all(window);
 	plot_archive_data_cb(apd);
 }

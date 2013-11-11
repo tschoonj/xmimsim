@@ -2915,7 +2915,7 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 
 	LIBXML_TEST_VERSION
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
+	if ((writer = xmlNewTextWriterDoc(&doc,9)) == NULL) {
 		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
 		return 0;
 	}
