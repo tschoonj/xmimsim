@@ -129,6 +129,7 @@ static struct options_widget *create_options_frame(GtkWidget *main_window);
 static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo, int *nfdo);
 
 
+
 struct wizard_range_data {
 	GtkWidget *wizard;
 	GtkWidget *start1Entry;
@@ -142,6 +143,7 @@ struct wizard_range_data {
 	GtkWidget *labela;
 	GtkWidget *archiveEntry;
 	GtkWidget *archivesaveButton;
+	gboolean same_layer;
 };
 
 
@@ -244,10 +246,17 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 	GtkWidget *vbox = gtk_assistant_get_nth_page(GTK_ASSISTANT(wrd->wizard), gtk_assistant_get_current_page(GTK_ASSISTANT(wrd->wizard)));
 	int start_end1 = 0;
 	int nsteps1 = 0;
-
+	int start_end2 = 0;
+	int nsteps2 = 0;
+	int one_and_two = 0; 
 	
+
 	char *textPtr,*endPtr,*lastPtr;
 	double start, end;
+
+	if (!wrd->same_layer)
+		one_and_two = 1;
+
 	if (entry == GTK_EDITABLE(wrd->start1Entry)) {
 		double value;
 
@@ -257,7 +266,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 		if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
 			((wrd->allowed1 & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
 			((wrd->allowed1 & PARAMETER_POSITIVE) && value < 0.0) ||
-			((wrd->allowed1 & PARAMETER_WEIGHT_FRACTION) && (value <= 0.0 || value >= 100.0))
+			((wrd->allowed1 & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value >= 100.0))
 			) {
 			gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&red);
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
@@ -310,7 +319,95 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 		return;
 	}
 
-	if (start_end1*nsteps1 > 0) {
+	if (wrd->start2Entry) {
+		if (entry == GTK_EDITABLE(wrd->start2Entry)) {
+			double value;
+	
+			textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start2Entry));
+			value=strtod(textPtr, &endPtr);
+			lastPtr = textPtr + strlen(textPtr);
+			if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
+				((wrd->allowed2 & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+				((wrd->allowed2 & PARAMETER_POSITIVE) && value < 0.0) ||
+				((wrd->allowed2 & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value >= 100.0))
+				) {
+				gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&red);
+				gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+				return;
+			}
+			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
+		}
+		else if (entry == GTK_EDITABLE(wrd->end2Entry)) {
+			double value;
+	
+			textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->end2Entry));
+			value=strtod(textPtr, &endPtr);
+			lastPtr = textPtr + strlen(textPtr);
+			if (	(strlen(textPtr) == 0 || lastPtr != endPtr) ||
+				((wrd->allowed2 & PARAMETER_STRICT_POSITIVE) && value <= 0.0) ||
+				((wrd->allowed2 & PARAMETER_POSITIVE) && value <= 0.0) ||
+				((wrd->allowed2 & PARAMETER_WEIGHT_FRACTION) && (value < 0.0 || value > 100.0))
+				) {
+				gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&red);
+				gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+				return;
+			}
+			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+		}
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nsteps2Entry));
+		nsteps2=strtol(textPtr, &endPtr, 10);
+		lastPtr = textPtr + strlen(textPtr);
+		if (entry == GTK_EDITABLE(wrd->nsteps2Entry) && (strlen(textPtr) == 0 || lastPtr != endPtr|| nsteps2 < 1)) {
+			gtk_widget_modify_base(wrd->nsteps2Entry,GTK_STATE_NORMAL,&red);
+			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+			return;
+		}
+		else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps2 >= 1) {
+			gtk_widget_modify_base(wrd->nsteps2Entry,GTK_STATE_NORMAL,&white);
+		}
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start2Entry));
+		start = strtod(textPtr, &endPtr);
+		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->end2Entry));
+		end = strtod(textPtr, &endPtr);
+
+		if (end > start) {
+			start_end2 = 1;
+			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+		}
+		else {
+			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&red);
+			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&red);
+			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+			return;
+		}
+		if (wrd->same_layer) {
+			//in this case the sum of the end values must be less than or equal to 100
+			double value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wrd->end1Entry)), NULL);
+			double value2 = strtod(gtk_entry_get_text(GTK_ENTRY(wrd->end2Entry)), NULL);
+			if (value1 + value2 > 100.0) {
+				gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&red);
+				gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&red);
+				gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&red);
+				gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&red);
+				gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
+				return;
+			}
+			else {
+				gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+				one_and_two = 1;
+			}
+		}
+	}
+	else {
+		start_end2 = 1;
+		nsteps2 = 1;
+	}
+
+	if (start_end1*nsteps1*start_end2*nsteps2*one_and_two > 0) {
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, TRUE);
 	}
 	else {
@@ -352,7 +449,12 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
 	GtkWidget *hbox, *label;
 
-	gchar *buffer = g_strdup_printf("<b>XPath parameter: %s</b>", xpath1);
+	gchar *buffer;
+	if (xpath2)
+		buffer = g_strdup_printf("<b>XPath parameter 1: %s</b>", xpath1);
+	else
+		buffer = g_strdup_printf("<b>XPath parameter: %s</b>", xpath1);
+	
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label), buffer);
 	g_free(buffer);
@@ -384,6 +486,38 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	GtkWidget *end2Entry = NULL;
 	GtkWidget *nsteps2Entry = NULL;
 
+	if (xpath2 != NULL) {
+		buffer = g_strdup_printf("<b>XPath parameter 2: %s</b>", xpath2);
+		label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label), buffer);
+		g_free(buffer);
+		hbox = gtk_hbox_new(FALSE, 2);
+		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+		gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 10);
+		gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
+	
+		hbox = gtk_hbox_new(FALSE, 2);
+		label = gtk_label_new("Start");
+		start2Entry = gtk_entry_new();
+		gtk_editable_set_editable(GTK_EDITABLE(start2Entry), TRUE);
+		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+		gtk_box_pack_start(GTK_BOX(hbox), start2Entry, TRUE, TRUE, 1);
+
+		label = gtk_label_new("End");
+		end2Entry = gtk_entry_new();
+		gtk_editable_set_editable(GTK_EDITABLE(end2Entry), TRUE);
+		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+		gtk_box_pack_start(GTK_BOX(hbox), end2Entry, TRUE, TRUE, 1);
+	
+		label = gtk_label_new("#Steps");
+		nsteps2Entry = gtk_entry_new();
+		gtk_editable_set_editable(GTK_EDITABLE(nsteps2Entry), TRUE);
+		gtk_entry_set_text(GTK_ENTRY(nsteps2Entry), "10");
+		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+		gtk_box_pack_start(GTK_BOX(hbox), nsteps2Entry, TRUE, TRUE, 1);
+		gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
+	}
+
 
 
 	hbox = gtk_hbox_new(FALSE,2);
@@ -400,13 +534,15 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	g_signal_connect(G_OBJECT(archivesaveButton), "clicked", G_CALLBACK(archivesaveButton_clicked_cb), (gpointer) archiveEntry);
 	gtk_box_pack_start(GTK_BOX(hbox), archivesaveButton, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 1);
+
 	xmlDocPtr doc;
 	if ((doc = xmlReadFile(filename,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		g_fprintf(stderr,"xmlReadFile error for %s\n", filename);
 		return 0;
 	}
 	xmlXPathContextPtr context;
-	xmlXPathObjectPtr result;
+	xmlXPathObjectPtr result, result2;
+	xmlNodeSetPtr nodeset, nodeset2;
 
 	context = xmlXPathNewContext(doc);
 	if (context == NULL) {
@@ -414,7 +550,6 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		return 0;
 	}
 	result = xmlXPathEvalExpression(BAD_CAST xpath1, context);
-	xmlXPathFreeContext(context);
 	if (result == NULL) {
 		g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
 		return 0;
@@ -424,40 +559,115 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
                 g_fprintf(stderr, "No result\n");
 		return 0;
 	}
-	xmlNodeSetPtr nodeset = result->nodesetval;
+	nodeset = result->nodesetval;
 	if (nodeset->nodeNr != 1) {
 		g_fprintf(stderr,"More than one result found for xpath expression\n");
 		return 0;
-
 	}
+
+	gboolean same_layer = FALSE;
+	if (xpath2) {
+		result2 = xmlXPathEvalExpression(BAD_CAST xpath2, context);
+		if (result2 == NULL) {
+			g_fprintf(stderr, "Error in xmlXPathEvalExpression\n");
+			return 0;
+		}
+		if(xmlXPathNodeSetIsEmpty(result2->nodesetval)){
+			xmlXPathFreeObject(result2);
+        	        g_fprintf(stderr, "No result\n");
+			return 0;
+		}
+		nodeset2 = result2->nodesetval;
+		if (nodeset2->nodeNr != 1) {
+			g_fprintf(stderr,"More than one result found for xpath expression\n");
+			return 0;
+		}
+		//check if they are weight_fractions and if they belong to the same layer
+		if ((allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION) && nodeset->nodeTab[0]->parent->parent == nodeset2->nodeTab[0]->parent->parent) {
+			same_layer = TRUE;
+		}
+	}
+
+	xmlXPathFreeContext(context);
+
 	gchar *keyword = (gchar *) xmlNodeListGetString(doc, nodeset->nodeTab[0]->children, 1);
 	xmlXPathFreeObject (result);
-	xmlFreeDoc(doc);
 	double valued;
 	int valuei;
 	long int valuel;
-	double inc = 1.0;
+	double inc;
 
-	if (allowed1 & PARAMETER_DOUBLE) {
-		//valued = strtod(keyword, NULL) + 1.0;
-		valued = strtod(keyword, NULL);
-		buffer = g_strdup_printf("%lg", valued);
-		gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
-		g_free(buffer);
-		if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
-			while (valued+inc >= 100.0) {
+	if (same_layer) {
+		if ((allowed1 & PARAMETER_DOUBLE) && (allowed2 & PARAMETER_DOUBLE)) {
+			valued = strtod(keyword, NULL);
+			buffer = g_strdup_printf("%lg", valued);
+			gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
+			g_free(buffer);
+			xmlFree(keyword);
+			keyword = (gchar *) xmlNodeListGetString(doc, nodeset2->nodeTab[0]->children, 1);
+			//valued = strtod(keyword, NULL) + 1.0;
+			double valued2 = strtod(keyword, NULL);
+			buffer = g_strdup_printf("%lg", valued2);
+			gtk_entry_set_text(GTK_ENTRY(start2Entry), buffer);
+			g_free(buffer);
+			inc = 1.0;
+			while (valued+valued2+2*inc >= 100.0) {
 				inc/=10.0;
 			}
-		}
-		buffer = g_strdup_printf("%lg", valued+inc);
-		gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
-		g_free(buffer);
+			buffer = g_strdup_printf("%lg", valued+inc);
+			gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
+			g_free(buffer);
+			buffer = g_strdup_printf("%lg", valued2+inc);
+			gtk_entry_set_text(GTK_ENTRY(end2Entry), buffer);
+			g_free(buffer);
+		}	
 	}
 	else {
-		g_fprintf(stderr, "only PARAMETER_DOUBLE is allowed for now\n");
-		return 0;
+		if (allowed1 & PARAMETER_DOUBLE) {
+			//valued = strtod(keyword, NULL) + 1.0;
+			valued = strtod(keyword, NULL);
+			buffer = g_strdup_printf("%lg", valued);
+			gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
+			g_free(buffer);
+			inc = 1.0;
+			if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
+				while (valued+inc >= 100.0) {
+				inc/=10.0;
+				}
+			}
+			buffer = g_strdup_printf("%lg", valued+inc);
+			gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
+			g_free(buffer);
+		}
+		else {
+			g_fprintf(stderr, "only PARAMETER_DOUBLE is allowed for now\n");
+			return 0;
+		}
+		if (xpath2 && (allowed2 & PARAMETER_DOUBLE)) {
+			xmlFree(keyword);
+			keyword = (gchar *) xmlNodeListGetString(doc, nodeset2->nodeTab[0]->children, 1);
+			//valued = strtod(keyword, NULL) + 1.0;
+			valued = strtod(keyword, NULL);
+			buffer = g_strdup_printf("%lg", valued);
+			gtk_entry_set_text(GTK_ENTRY(start2Entry), buffer);
+			g_free(buffer);
+			inc = 1.0;
+			if (allowed2 & PARAMETER_WEIGHT_FRACTION) {
+				while (valued+inc >= 100.0) {
+				inc/=10.0;
+				}
+			}
+			buffer = g_strdup_printf("%lg", valued+inc);
+			gtk_entry_set_text(GTK_ENTRY(end2Entry), buffer);
+			g_free(buffer);
+		}
+		else if (xpath2) {
+			g_fprintf(stderr, "only PARAMETER_DOUBLE is allowed for now\n");
+			return 0;
+		}
 	}
 	xmlFree(keyword);
+	xmlFreeDoc(doc);
 	
 
 	wrd->wizard = wizard;
@@ -470,11 +680,17 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	wrd->allowed1 = allowed1;
 	wrd->allowed2 = allowed2;
 	wrd->archiveEntry = archiveEntry;
+	wrd->same_layer = same_layer;
 
 	g_signal_connect(G_OBJECT(start1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	g_signal_connect(G_OBJECT(end1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
 	g_signal_connect(G_OBJECT(nsteps1Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
-	
+	if (xpath2) {
+		g_signal_connect(G_OBJECT(start2Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+		g_signal_connect(G_OBJECT(end2Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+		g_signal_connect(G_OBJECT(nsteps2Entry), "changed", G_CALLBACK(wizard_range_changed_cb), (gpointer) wrd);	
+	}
+
 	//add confirmation page
 	GtkWidget *confirmationLabel = gtk_label_new("Confirm the options selected on the previous pages and continue with the simulation?");
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), confirmationLabel);
@@ -503,31 +719,94 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidget *okButton) {
 	GtkTreeIter iter,temp_iter;
 	GtkTreeModel *model;
-	gboolean selectable;
+	GList *paths;
 
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	gint count = gtk_tree_selection_count_selected_rows(selection);
+
+	if (count == 1) {
+		gboolean selectable;
+		//one row selected
+		//get row
+		paths = gtk_tree_selection_get_selected_rows(selection, &model);
+		GtkTreePath *path = g_list_nth_data(paths, 0);
+		gtk_tree_model_get_iter(model, &iter, path);
+	
 		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
+		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+
 		if (selectable)
 			gtk_widget_set_sensitive(okButton, TRUE);
 		else
 			gtk_widget_set_sensitive(okButton, FALSE);
-
-
 	}
-	else {
+	else if (count == 2) {
+		gboolean selectable1, selectable2;
+		int allowed1, allowed2;
+		GtkTreePath *path1, *path2;
+		//two rows selected
+		paths = gtk_tree_selection_get_selected_rows(selection, &model);
+		path1 = g_list_nth_data(paths, 0);
+		gtk_tree_model_get_iter(model, &iter, path1);
+	
+		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable1, INPUT_ALLOWED_COLUMN, &allowed1, -1);
+		path2 = g_list_nth_data(paths, 1);
+		gtk_tree_model_get_iter(model, &iter, path2);
+	
+		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable2, INPUT_ALLOWED_COLUMN, &allowed2, -1);
+
+		if (selectable1 && selectable2 && (allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION)) {
+			//possible problem here
+			GtkTreePath *path1up, *path2up;
+			path1up = gtk_tree_path_copy(path1);
+			gtk_tree_path_up(path1up);
+			gtk_tree_path_up(path1up);
+			path2up = gtk_tree_path_copy(path2);
+			gtk_tree_path_up(path2up);
+			gtk_tree_path_up(path2up);
+			gtk_tree_model_get_iter(model, &iter, path2up);
+			if (gtk_tree_path_compare(path1up, path2up) == 0 && gtk_tree_model_iter_n_children(model, &iter) < 5) {
+				//5 because density and thickness are also children
+				//aha! not allowed...
+				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "When selecting two weight fractions within the same layer, the number of elements in that layer must be at least three.");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				gtk_widget_set_sensitive(okButton, FALSE);
+			}
+			else {
+				gtk_widget_set_sensitive(okButton, TRUE);
+			
+			}
+			gtk_tree_path_free(path1up);
+			gtk_tree_path_free(path2up);
+		}
+		else if (selectable1 && selectable2) {
+			gtk_widget_set_sensitive(okButton, TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(okButton, FALSE);
+		}
+
+		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+	}
+	else if (count == 0) {
+		//no rows selected
 		gtk_widget_set_sensitive(okButton, FALSE);
 	}
+	else {
+		//too many rows selected
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please select either one or two rows.");
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		gtk_widget_set_sensitive(okButton, FALSE);
+	}
+	return;
 }
 
 static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, GtkButton *okButton) {
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
-	GtkTreeIter iter;
-	gtk_tree_model_get_iter(model, &iter, path);
-	gboolean selectable;
 
-	gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
-	if (selectable)
-		gtk_button_clicked(okButton);
+	if (gtk_tree_view_row_expanded(tree_view, path)) {
+		gtk_tree_view_collapse_row(tree_view, path);
+	}
 	else {
 		gtk_tree_view_expand_row(tree_view, path, FALSE);
 	}
@@ -551,7 +830,7 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 
 	gtk_widget_set_sensitive(okButton, FALSE);
 	GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
+	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(G_OBJECT(select), "changed",
 			G_CALLBACK(parameter_selection_changed_cb),
 			(gpointer) okButton
@@ -564,9 +843,23 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 		rv = 1;
 		GtkTreeIter iter;
 		GtkTreeModel *model;
-		gtk_tree_selection_get_selected(select, &model, &iter);
+		//gtk_tree_selection_get_selected(select, &model, &iter);
+		GList *paths = gtk_tree_selection_get_selected_rows(select, &model);
+		GtkTreePath *path = g_list_nth_data(paths, 0);
+		gtk_tree_model_get_iter(model, &iter, path);
 		//extract xpath expression
 		gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath1, INPUT_ALLOWED_COLUMN, allowed1, -1);
+		if ((path = g_list_nth_data(paths, 1)) == NULL) {
+			g_fprintf(stdout, "One row selected after OK click\n");
+			*xpath2 = NULL;
+			*allowed2 = 0;
+		}
+		else {
+			g_fprintf(stdout, "Two rows selected after OK click\n");
+			gtk_tree_model_get_iter(model, &iter, path);
+			gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath2, INPUT_ALLOWED_COLUMN, allowed2, -1);
+		}
+		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
 	}
 	gtk_widget_destroy(dialog);
 
@@ -1577,8 +1870,12 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		int rv = select_parameter(window, input, &xpath1, &xpath2, &allowed1, &allowed2);
 		//g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
-			//g_fprintf(stdout, "xpath: %s\n", xpath);
-			//g_fprintf(stdout, "allowed: %i\n", allowed);
+			g_fprintf(stdout, "xpath1: %s\n", xpath1);
+			g_fprintf(stdout, "allowed1: %i\n", allowed1);
+			if (xpath2) {
+				g_fprintf(stdout, "xpath2: %s\n", xpath2);
+				g_fprintf(stdout, "allowed2: %i\n", allowed2);
+			}
 		}
 		else
 			return;
@@ -1610,7 +1907,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 		xmlXPathContextPtr context;
-		xmlXPathObjectPtr result, result2;
+		xmlXPathObjectPtr result, result2 = NULL, result3;
 
 		context = xmlXPathNewContext(doc);
 		if (context == NULL) {
@@ -1641,23 +1938,49 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
+		xmlNodeSetPtr nodeset2 = NULL;
+		if (xpath2) {
+			//selected xpath2
+			result2 = xmlXPathEvalExpression(BAD_CAST xpath2, context);
+			if (result2 == NULL) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}
+			if(xmlXPathNodeSetIsEmpty(result2->nodesetval)){
+				xmlXPathFreeObject(result2);
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}
+			nodeset2 = result2->nodesetval;
+			if (nodeset2->nodeNr != 1) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+			}
+		}
+
 		//outputfile
-		result2 = xmlXPathEvalExpression(BAD_CAST "/xmimsim/general/outputfile", context);
-		if (result2 == NULL) {
+		result3 = xmlXPathEvalExpression(BAD_CAST "/xmimsim/general/outputfile", context);
+		if (result3 == NULL) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
 		}
-		if(xmlXPathNodeSetIsEmpty(result2->nodesetval)){
-			xmlXPathFreeObject(result2);
+		if(xmlXPathNodeSetIsEmpty(result3->nodesetval)){
+			xmlXPathFreeObject(result3);
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
 		}
-		xmlNodeSetPtr nodeset2 = result2->nodesetval;
-		if (nodeset2->nodeNr != 1) {
+		xmlNodeSetPtr nodeset3 = result3->nodesetval;
+		if (nodeset3->nodeNr != 1) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error. Aborting batch mode");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
@@ -1665,32 +1988,35 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 
 		double weight_sum = 0.0;
+		double weight_sum2 = 0.0;
 		double *orig_weight = NULL;
-		xmlXPathObjectPtr result3;
+		double *orig_weight2 = NULL;
+		xmlXPathObjectPtr result4;
 		xmlNodePtr grandparent;
-		xmlNodeSetPtr grandkids;
-		if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
+		xmlNodeSetPtr grandkids, grandkids2;
+		if (xpath2 && (allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION) && nodeset->nodeTab[0]->parent->parent == nodeset2->nodeTab[0]->parent->parent) {
 			//get grandparent of xpath node
 			grandparent = nodeset->nodeTab[0]->parent->parent;
 			//get all weight_fraction grandchildren
-			result3 = xmlXPathNodeEval(grandparent, BAD_CAST "element/weight_fraction", context);
-			if (result3 == NULL) {
+			result4 = xmlXPathNodeEval(grandparent, BAD_CAST "element/weight_fraction", context);
+			if (result4 == NULL) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error occurred while evaluating element/weight_fraction.\nAborting batch mode");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
 				return;
 			}
-			if(xmlXPathNodeSetIsEmpty(result3->nodesetval)){
-				xmlXPathFreeObject(result3);
+			if(xmlXPathNodeSetIsEmpty(result4->nodesetval)){
+				xmlXPathFreeObject(result4);
 				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error: empty nodeset. Aborting batch mode");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
 				return;
 			}
-			grandkids = result3->nodesetval;
+			grandkids = result4->nodesetval;
 			orig_weight = g_malloc(sizeof(double) * grandkids->nodeNr);
 			for (i = 0 ; i < grandkids->nodeNr ; i++) {
-				if (grandkids->nodeTab[i] == nodeset->nodeTab[0]) {
+				if (grandkids->nodeTab[i] == nodeset->nodeTab[0] || 
+					grandkids->nodeTab[i] == nodeset2->nodeTab[0]) {
 					continue;
 				}
 				buffer = (gchar *) xmlNodeListGetString(doc, grandkids->nodeTab[i]->children, 1);	
@@ -1698,7 +2024,68 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				weight_sum += orig_weight[i];
 				xmlFree(buffer);
 			}
-
+		}
+		else {
+			if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
+				//get grandparent of xpath node
+				grandparent = nodeset->nodeTab[0]->parent->parent;
+				//get all weight_fraction grandchildren
+				result4 = xmlXPathNodeEval(grandparent, BAD_CAST "element/weight_fraction", context);
+				if (result4 == NULL) {
+					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error occurred while evaluating element/weight_fraction.\nAborting batch mode");
+					gtk_dialog_run(GTK_DIALOG(dialog));
+					gtk_widget_destroy(dialog);
+					return;
+				}
+				if(xmlXPathNodeSetIsEmpty(result4->nodesetval)){
+					xmlXPathFreeObject(result4);
+					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error: empty nodeset. Aborting batch mode");
+					gtk_dialog_run(GTK_DIALOG(dialog));
+					gtk_widget_destroy(dialog);
+					return;
+				}
+				grandkids = result4->nodesetval;
+				orig_weight = g_malloc(sizeof(double) * grandkids->nodeNr);
+				for (i = 0 ; i < grandkids->nodeNr ; i++) {
+					if (grandkids->nodeTab[i] == nodeset->nodeTab[0]) {
+						continue;
+					}
+					buffer = (gchar *) xmlNodeListGetString(doc, grandkids->nodeTab[i]->children, 1);	
+					orig_weight[i] = strtod(buffer, NULL);
+					weight_sum += orig_weight[i];
+					xmlFree(buffer);
+				}
+			}
+			if (xpath2 && (allowed2 & PARAMETER_WEIGHT_FRACTION)) {
+				//get grandparent of xpath node
+				grandparent = nodeset2->nodeTab[0]->parent->parent;
+				//get all weight_fraction grandchildren
+				result4 = xmlXPathNodeEval(grandparent, BAD_CAST "element/weight_fraction", context);
+				if (result4 == NULL) {
+					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error occurred while evaluating element/weight_fraction.\nAborting batch mode");
+					gtk_dialog_run(GTK_DIALOG(dialog));
+					gtk_widget_destroy(dialog);
+					return;
+				}
+				if(xmlXPathNodeSetIsEmpty(result4->nodesetval)){
+					xmlXPathFreeObject(result4);
+					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "XPath error: empty nodeset. Aborting batch mode");
+					gtk_dialog_run(GTK_DIALOG(dialog));
+					gtk_widget_destroy(dialog);
+					return;
+				}
+				grandkids2 = result4->nodesetval;
+				orig_weight2 = g_malloc(sizeof(double) * grandkids2->nodeNr);
+				for (i = 0 ; i < grandkids2->nodeNr ; i++) {
+					if (grandkids2->nodeTab[i] == nodeset2->nodeTab[0]) {
+						continue;
+					}
+					buffer = (gchar *) xmlNodeListGetString(doc, grandkids2->nodeTab[i]->children, 1);	
+					orig_weight2[i] = strtod(buffer, NULL);
+					weight_sum2 += orig_weight2[i];
+					xmlFree(buffer);
+				}
+			}
 		}
 
 
@@ -1711,11 +2098,15 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				buffer = g_strdup_printf("%s%sxmi_%i_%i_%i.xmso", g_get_tmp_dir(), G_DIR_SEPARATOR_S, (int) getpid(), i, j);
 				filenames_xmso[i*(aod->nsteps2+1)+j] = buffer;
 				double value1 = aod->start_value1 + i*(aod->end_value1-aod->start_value1)/(aod->nsteps1);
-				if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
-					double diff = 100.0-value1-weight_sum;
+				double value2;
+				if (xpath2)
+					value2 = aod->start_value2 + j*(aod->end_value2-aod->start_value2)/(aod->nsteps2);
+				if (xpath2 && (allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION) && nodeset->nodeTab[0]->parent->parent == nodeset2->nodeTab[0]->parent->parent) {
+					double diff = 100.0-value1-value2-weight_sum;
 					double new_weight_sum = weight_sum + diff;
 					for (k = 0 ; k < grandkids->nodeNr ; k++) {
-						if (grandkids->nodeTab[k] == nodeset->nodeTab[0]) {
+						if (grandkids->nodeTab[k] == nodeset->nodeTab[0] ||
+							grandkids->nodeTab[k] == nodeset2->nodeTab[0]) {
 							continue;
 						}
 						double new_weight = orig_weight[k]*new_weight_sum/weight_sum;
@@ -1723,11 +2114,45 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 						xmlNodeSetContent(grandkids->nodeTab[k], BAD_CAST buffer);
 						g_free(buffer);
 					}
+
+				}
+				else {
+					if (allowed1 & PARAMETER_WEIGHT_FRACTION) {
+						double diff = 100.0-value1-weight_sum;
+						double new_weight_sum = weight_sum + diff;
+						for (k = 0 ; k < grandkids->nodeNr ; k++) {
+							if (grandkids->nodeTab[k] == nodeset->nodeTab[0]) {
+								continue;
+							}
+							double new_weight = orig_weight[k]*new_weight_sum/weight_sum;
+							buffer = g_strdup_printf("%lg", new_weight);
+							xmlNodeSetContent(grandkids->nodeTab[k], BAD_CAST buffer);
+							g_free(buffer);
+						}
+					}
+					if (xpath2 && (allowed2 & PARAMETER_WEIGHT_FRACTION)) {
+						double diff = 100.0-value2-weight_sum2;
+						double new_weight_sum = weight_sum2 + diff;
+						for (k = 0 ; k < grandkids2->nodeNr ; k++) {
+							if (grandkids2->nodeTab[k] == nodeset2->nodeTab[0]) {
+								continue;
+							}
+							double new_weight = orig_weight2[k]*new_weight_sum/weight_sum2;
+							buffer = g_strdup_printf("%lg", new_weight);
+							xmlNodeSetContent(grandkids2->nodeTab[k], BAD_CAST buffer);
+							g_free(buffer);
+						}
+					}
 				}
 				buffer = g_strdup_printf("%lg", value1);
 				xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
 				g_free(buffer);
-				xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST filenames_xmso[i*(aod->nsteps2+1)+j]);
+				if (xpath2) {
+					buffer = g_strdup_printf("%lg", value2);
+					xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST buffer);
+					g_free(buffer);
+				}
+				xmlNodeSetContent(nodeset3->nodeTab[0], BAD_CAST filenames_xmso[i*(aod->nsteps2+1)+j]);
 				xmlKeepBlanksDefault(0);
 				if (xmlSaveFormatFileEnc(filenames_xmsi[i*(aod->nsteps2+1)+j],doc,NULL,1) == -1) {
 					dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s. Aborting batch mode", filenames_xmsi[i*(aod->nsteps2+1)+j]);
@@ -1739,9 +2164,11 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		}
 		if (orig_weight)
 			g_free(orig_weight);
+		if (orig_weight2)
+			g_free(orig_weight2);
 		xmlXPathFreeContext(context);
 		xmlXPathFreeObject(result);
-		xmlXPathFreeObject(result2);
+		xmlXPathFreeObject(result3);
 		xmlFreeDoc(doc);
 		struct xmi_output ***output = g_malloc(sizeof(struct xmi_output **)*(aod->nsteps1+1));
 		for (i = 0 ; i <= aod->nsteps1 ; i++)
@@ -3070,280 +3497,13 @@ struct archive_plot_data {
 	int nfd;
 };
 
+static void plot_archive_data_2D(struct archive_plot_data *apd);
+static void plot_archive_data_3D(struct archive_plot_data *apd);
 static void plot_archive_data_cb(struct archive_plot_data *apd) {
-	//first section will deal with generating the x- and y-values
-	double *x, *y;
-	int i,j,k,l,i2;
-	gchar *buffer;
-
-	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
-	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
-	
-	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-		x[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
-	}
-
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
-		//ROI mode
-		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
-		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
-		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
-		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
-#if GTK_CHECK_VERSION(2,24,0)
-		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
-#else
-		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->roi_interactions_comboW));
-#endif
-		gint interaction = strtol(buffer, NULL, 10);
-		g_free(buffer);
-
-		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-			double yval = 0.0;
-			if (cumulative) {
-				for (j = apd->archive->output[i][0]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							yval += apd->archive->output[i][0]->channels_conv[j][k];
-						else
-							yval += apd->archive->output[i][0]->channels_unconv[j][k];
-					}
-				}
-			}
-			else {
-				for (k = start_channel ; k <= end_channel ; k++) {
-					if (convoluted)
-						yval += apd->archive->output[i][0]->channels_conv[interaction][k];
-					else
-						yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
-				}
-			}
-			y[i] = yval;	
-		}
-	}
-	else {
-		//XRF mode
-		gboolean var_red;
-		struct xmi_fluorescence_line_counts **history = NULL; 
-		int *nhistory = NULL;
-
-		if (apd->archive->output[0][0]->nvar_red_history > 0) {
-			var_red = TRUE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				history[i] = apd->archive->output[i][0]->var_red_history;
-				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
-			}
-		}
-		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
-			var_red = FALSE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				history[i] = apd->archive->output[i][0]->brute_force_history;
-				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
-			}
-		}
-		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
-		gchar *line_type = NULL;
-		int atomic_number_index;
-		if (gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_line_comboW)) == 0)
-			line_type = NULL;
-#if GTK_CHECK_VERSION(2,24,0)
-		else 
-			line_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW));
-		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_interactions_comboW));
-#else
-		else 
-			line_type = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_line_comboW));
-		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_interactions_comboW));
-#endif
-		gint interaction = strtol(buffer, NULL, 10);
-		g_free(buffer);
-		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
-
-		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-			double yval = 0.0;
-			if (atomic_number_index == -1) {
-				//Element = All
-				//XRF line = All
-				if (cumulative) {
-					for (j = 0 ; j < nhistory[i] ; j++) {
-						for (k = 0 ; k < history[i][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
-								if (history[i][j].lines[k].interactions[l].interaction_number <= interaction)
-									yval += history[i][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-				else {
-					for (j = 0 ; j < nhistory[i] ; j++) {
-						for (k = 0 ; k < history[i][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
-								if (history[i][j].lines[k].interactions[l].interaction_number == interaction)
-									yval += history[i][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-			}
-			else {
-				//specific element selected
-				if (line_type == NULL) {
-					//XRF line = All
-					for (j = 0 ; j < nhistory[i] ; j++) {
-						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
-							for (k = 0 ; k < history[i][j].n_lines ; k++) {
-								for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
-									if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
-										yval += history[i][j].lines[k].interactions[l].counts;
-								}
-							}
-							
-						}
-					}
-				}
-				else {
-					//XRF line = specific
-					for (j = 0 ; j < nhistory[i] ; j++) {
-						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
-							for (k = 0 ; k < history[i][j].n_lines ; k++) {
-								if (strcmp(history[i][j].lines[k].line_type, line_type) == 0) {
-									for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
-										if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
-											yval += history[i][j].lines[k].interactions[l].counts;
-									}
-								}
-							}
-						}
-					}
-				}	
-			}
-			y[i] = yval;	
-		}
-	}
-
-	//y values have been calculated -> plot
-	GtkPlotCanvasChild *child;
-
-	GList *list;
-	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	while (list) {
-		child = GTK_PLOT_CANVAS_CHILD(list->data);
-		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
-		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	}
-	//add box with default settings
-	GtkWidget *plot_window;
-	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
-	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
-	gtk_plot_hide_legends(GTK_PLOT(plot_window));
-
-	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps1+1);
-	double real_ymin = xmi_minval_double(y,apd->archive->nsteps1+1);
-
-	double plot_ymax = real_ymax + (real_ymax-real_ymin)/10.0;
-	double plot_ymin = real_ymin - (real_ymax-real_ymin)/10.0;
-	double plot_xmin = x[0] - (x[apd->archive->nsteps1]-x[0])/10.0;
-	double plot_xmax = x[apd->archive->nsteps1] + (x[apd->archive->nsteps1]-x[0])/10.0;
-
-
-	if (real_ymax == 0.0) {
-		//if y is zero everywhere
-		plot_ymax = 1.0;
-		plot_ymin = 0.0;
-	}
-
-	/* need a clever algorithm here */
-	/* number of ticks should be at least 2 and at most 5 */
-	double tickstep = 1E-10;
-	double nticks = floor((plot_ymax-plot_ymin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = floor((plot_ymax-plot_ymin)/tickstep);
-	} 
-
-	if (nticks == 1.0) {
-		tickstep /= 5.0;
-	}
-
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
-
-	tickstep = 1E-10;
-	nticks = floor((plot_xmax-plot_xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = floor((plot_xmax-plot_xmin)/tickstep);
-	} 
-
-	if (nticks == 1.0) {
-		tickstep /= 5.0;
-	}
-
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep,5);
-
-	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity");
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath1);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	
-	if (plot_ymax < 10000.0 && plot_ymin > 1.0) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-
-	if (plot_xmax < 10000.0 && plot_xmin > 1.0) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-
-
-	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
-        gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
-
-	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
-        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
-        gtk_widget_show(plot_window);
-
-	GtkPlotData *dataset;
-	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
-	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps1+1);
-	gtk_plot_data_set_x(dataset, x);
-	gtk_plot_data_set_y(dataset, y);
-	gtk_widget_show(GTK_WIDGET(dataset));
-	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,2,&blue_plot);
-	gtk_plot_data_set_symbol(dataset, GTK_PLOT_SYMBOL_CIRCLE, GTK_PLOT_SYMBOL_FILLED, 5, 1.0, &red_plot, &red_plot);
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
-	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_plot_paint(GTK_PLOT(plot_window));
-	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-
+	if (apd->archive->xpath2)
+		plot_archive_data_3D(apd);
+	else
+		plot_archive_data_2D(apd);
 	return;
 }
 
@@ -3811,3 +3971,482 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_widget_show_all(window);
 	plot_archive_data_cb(apd);
 }
+
+static void plot_archive_data_2D(struct archive_plot_data *apd) {
+	//first section will deal with generating the x- and y-values
+	double *x, *y;
+	int i,j,k,l,i2;
+	gchar *buffer;
+
+	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+	
+	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+		x[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
+	}
+
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
+		//ROI mode
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
+		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
+		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
+		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+#if GTK_CHECK_VERSION(2,24,0)
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
+#else
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->roi_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			double yval = 0.0;
+			if (cumulative) {
+				for (j = apd->archive->output[i][0]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
+					for (k = start_channel ; k <= end_channel ; k++) {
+						if (convoluted)
+							yval += apd->archive->output[i][0]->channels_conv[j][k];
+						else
+							yval += apd->archive->output[i][0]->channels_unconv[j][k];
+					}
+				}
+			}
+			else {
+				for (k = start_channel ; k <= end_channel ; k++) {
+					if (convoluted)
+						yval += apd->archive->output[i][0]->channels_conv[interaction][k];
+					else
+						yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
+				}
+			}
+			y[i] = yval;	
+		}
+	}
+	else {
+		//XRF mode
+		gboolean var_red;
+		struct xmi_fluorescence_line_counts **history = NULL; 
+		int *nhistory = NULL;
+
+		if (apd->archive->output[0][0]->nvar_red_history > 0) {
+			var_red = TRUE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				history[i] = apd->archive->output[i][0]->var_red_history;
+				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
+			}
+		}
+		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
+			var_red = FALSE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				history[i] = apd->archive->output[i][0]->brute_force_history;
+				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
+			}
+		}
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
+		gchar *line_type = NULL;
+		int atomic_number_index;
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_line_comboW)) == 0)
+			line_type = NULL;
+#if GTK_CHECK_VERSION(2,24,0)
+		else 
+			line_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_interactions_comboW));
+#else
+		else 
+			line_type = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			double yval = 0.0;
+			if (atomic_number_index == -1) {
+				//Element = All
+				//XRF line = All
+				if (cumulative) {
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						for (k = 0 ; k < history[i][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+								if (history[i][j].lines[k].interactions[l].interaction_number <= interaction)
+									yval += history[i][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+				else {
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						for (k = 0 ; k < history[i][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+								if (history[i][j].lines[k].interactions[l].interaction_number == interaction)
+									yval += history[i][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+			}
+			else {
+				//specific element selected
+				if (line_type == NULL) {
+					//XRF line = All
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][j].n_lines ; k++) {
+								for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+									if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
+										yval += history[i][j].lines[k].interactions[l].counts;
+								}
+							}
+							
+						}
+					}
+				}
+				else {
+					//XRF line = specific
+					for (j = 0 ; j < nhistory[i] ; j++) {
+						if (history[i][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][j].n_lines ; k++) {
+								if (strcmp(history[i][j].lines[k].line_type, line_type) == 0) {
+									for (l = 0 ; l < history[i][j].lines[k].n_interactions ; l++) {
+										if ((!cumulative && history[i][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][j].lines[k].interactions[l].interaction_number <= interaction))
+											yval += history[i][j].lines[k].interactions[l].counts;
+									}
+								}
+							}
+						}
+					}
+				}	
+			}
+			y[i] = yval;	
+		}
+	}
+
+	//y values have been calculated -> plot
+	GtkPlotCanvasChild *child;
+
+	GList *list;
+	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	while (list) {
+		child = GTK_PLOT_CANVAS_CHILD(list->data);
+		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
+		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	}
+	//add box with default settings
+	GtkWidget *plot_window;
+	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
+	gtk_plot_hide_legends(GTK_PLOT(plot_window));
+
+	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps1+1);
+	double real_ymin = xmi_minval_double(y,apd->archive->nsteps1+1);
+
+	double plot_ymax = real_ymax + (real_ymax-real_ymin)/10.0;
+	double plot_ymin = real_ymin - (real_ymax-real_ymin)/10.0;
+	double plot_xmin = x[0] - (x[apd->archive->nsteps1]-x[0])/10.0;
+	double plot_xmax = x[apd->archive->nsteps1] + (x[apd->archive->nsteps1]-x[0])/10.0;
+
+
+	if (real_ymax == 0.0) {
+		//if y is zero everywhere
+		plot_ymax = 1.0;
+		plot_ymin = 0.0;
+	}
+
+	/* need a clever algorithm here */
+	/* number of ticks should be at least 2 and at most 5 */
+	double tickstep = 1E-10;
+	double nticks = floor((plot_ymax-plot_ymin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((plot_ymax-plot_ymin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
+
+	tickstep = 1E-10;
+	nticks = floor((plot_xmax-plot_xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((plot_xmax-plot_xmin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep,5);
+
+	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity");
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath1);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	
+	if (plot_ymax < 10000.0 && plot_ymin > 1.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+
+	if (plot_xmax < 10000.0 && plot_xmin > 1.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
+
+
+	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
+        gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
+
+	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
+        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
+        gtk_widget_show(plot_window);
+
+	GtkPlotData *dataset;
+	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
+	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
+	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps1+1);
+	gtk_plot_data_set_x(dataset, x);
+	gtk_plot_data_set_y(dataset, y);
+	gtk_widget_show(GTK_WIDGET(dataset));
+	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,2,&blue_plot);
+	gtk_plot_data_set_symbol(dataset, GTK_PLOT_SYMBOL_CIRCLE, GTK_PLOT_SYMBOL_FILLED, 5, 1.0, &red_plot, &red_plot);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+
+	return;
+}
+
+static void plot_archive_data_3D(struct archive_plot_data *apd) {
+	//first section will deal with generating the x-, y- and z-values
+	double *x, *y, *z;
+	int i,j,k,l,i2;
+	gchar *buffer;
+
+	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	z = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+
+	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+		for (j = 0 ; j <= apd->archive->nsteps2 ; j++) {
+			x[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
+			y[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value2 + (apd->archive->end_value2 - apd->archive->start_value2)*j/apd->archive->nsteps2;
+		}
+	}
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
+		//ROI mode
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
+		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
+		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
+		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+#if GTK_CHECK_VERSION(2,24,0)
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
+#else
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->roi_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+			double zval = 0.0;
+			if (cumulative) {
+				for (j = apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
+					for (k = start_channel ; k <= end_channel ; k++) {
+						if (convoluted)
+							zval += apd->archive->output[i][i2]->channels_conv[j][k];
+						else
+							zval += apd->archive->output[i][i2]->channels_unconv[j][k];
+					}
+				}
+			}
+			else {
+				for (k = start_channel ; k <= end_channel ; k++) {
+					if (convoluted)
+						zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
+					else
+						zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
+				}
+			}
+			z[i*(apd->archive->nsteps2+1)+j] = zval;	
+		}
+		}
+	}
+	else {
+		//XRF mode
+		gboolean var_red;
+		struct xmi_fluorescence_line_counts ***history = NULL; 
+		int **nhistory = NULL;
+
+		if (apd->archive->output[0][0]->nvar_red_history > 0) {
+			var_red = TRUE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				history[i][i2] = apd->archive->output[i][i2]->var_red_history;
+				nhistory[i][i2] = apd->archive->output[i][i2]->nvar_red_history;
+			}
+			}
+		}
+		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
+			var_red = FALSE;
+			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)); 
+			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				history[i][i2] = apd->archive->output[i][i2]->brute_force_history;
+				nhistory[i][i2] = apd->archive->output[i][i2]->nbrute_force_history;
+			}
+			}
+		}
+		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
+		gchar *line_type = NULL;
+		int atomic_number_index;
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_line_comboW)) == 0)
+			line_type = NULL;
+#if GTK_CHECK_VERSION(2,24,0)
+		else 
+			line_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->xrf_interactions_comboW));
+#else
+		else 
+			line_type = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_line_comboW));
+		buffer = gtk_combo_box_get_active_text(GTK_COMBO_BOX(apd->xrf_interactions_comboW));
+#endif
+		gint interaction = strtol(buffer, NULL, 10);
+		g_free(buffer);
+		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+			double zval = 0.0;
+			if (atomic_number_index == -1) {
+				//Element = All
+				//XRF line = All
+				if (cumulative) {
+					for (j = 0 ; j < nhistory[i][i2] ; j++) {
+						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+								if (history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction)
+									zval += history[i][i2][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+				else {
+					for (j = 0 ; j < nhistory[i][i2] ; j++) {
+						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+								if (history[i][i2][j].lines[k].interactions[l].interaction_number == interaction)
+									zval += history[i][i2][j].lines[k].interactions[l].counts;
+							}
+						}
+					}
+				}
+			}
+			else {
+				//specific element selected
+				if (line_type == NULL) {
+					//XRF line = All
+					for (j = 0 ; j < nhistory[i][i2] ; j++) {
+						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+								for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+									if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+										zval += history[i][i2][j].lines[k].interactions[l].counts;
+								}
+							}
+						}
+					}
+				}
+				else {
+					//XRF line = specific
+					for (j = 0 ; j < nhistory[i][i2] ; j++) {
+						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+								if (strcmp(history[i][i2][j].lines[k].line_type, line_type) == 0) {
+									for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+										if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+											zval += history[i][i2][j].lines[k].interactions[l].counts;
+									}
+								}
+							}
+						}
+					}
+				}	
+			}
+			z[i*(apd->archive->nsteps2+1)+j] = zval;	
+		}
+		}
+	}
+
+	//z values have been calculated -> plot
+	GtkPlotCanvasChild *child;
+
+	GList *list;
+	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	while (list) {
+		child = GTK_PLOT_CANVAS_CHILD(list->data);
+		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
+		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
+	}
+	//add box with default settings
+	GtkWidget *plot_window;
+	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
+	//gtk_plot_hide_legends(GTK_PLOT(plot_window));
+
+	GtkWidget *surface;
+	surface = gtk_plot_csurface_new();
+	gtk_plot_surface_set_points(GTK_PLOT_SURFACE(surface), x, y, z, NULL, NULL, NULL, apd->archive->nsteps1+1, apd->archive->nsteps2+1);
+	gtk_plot_surface_set_xstep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value1 - apd->archive->start_value1)/apd->archive->nsteps1);
+	gtk_plot_surface_set_ystep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value2 - apd->archive->start_value2)/apd->archive->nsteps2);
+	gtk_plot_add_data(GTK_PLOT(plot_window), GTK_PLOT_DATA(surface));
+	gtk_widget_show(surface);
+	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)),xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)), 5, 5);
+	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
+        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
+        gtk_widget_show(plot_window);
+	gtk_plot_surface_set_grid_visible(GTK_PLOT_SURFACE(surface), FALSE);
+	gtk_plot_surface_set_transparent(GTK_PLOT_SURFACE(surface), TRUE);
+	gtk_plot_csurface_set_projection(GTK_PLOT_CSURFACE(surface), GTK_PLOT_PROJECT_FULL);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+}
+

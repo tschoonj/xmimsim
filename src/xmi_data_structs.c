@@ -1351,3 +1351,4 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	*B = C;
 	return;
 }
+
