@@ -203,6 +203,7 @@ struct xmi_main_options {
 	int escape_ratios_mode;
 	int verbose;
 	int use_poisson;
+	int use_opencl;
 	int omp_num_threads;
 	int extra_verbose;
 	int nchannels;

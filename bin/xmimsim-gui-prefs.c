@@ -35,6 +35,9 @@ GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *nchannels_prefsW;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+GtkWidget *opencl_prefsW;
+#endif
 
 GtkWidget *check_updates_prefsW;
 
@@ -249,11 +252,19 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 
 	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+#endif
+
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, xpv) == 0) {
 		//abort	
 		preferences_error_handler(pa->window);
 	}
-
 	gtk_widget_destroy(pa->window);
 	return;
 }
@@ -436,6 +447,22 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->b = FALSE;
 			}
 			break;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		case XMIMSIM_GUI_PREFS_OPENCL: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"OpenCL not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = FALSE;
+			}
+			break;
+#endif
 		case XMIMSIM_GUI_PREFS_NCHANNELS: 
 			prefs->i = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
 			if (error != NULL) {
@@ -526,6 +553,11 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_NCHANNELS: 
 			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
 			break;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		case XMIMSIM_GUI_PREFS_OPENCL: 
+			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
+			break;
+#endif
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;
@@ -646,6 +678,17 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, FALSE, FALSE, 3);
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
+	gtk_widget_set_tooltip_text(opencl_prefsW,"Enabling this feature will enable support for the calculation of the solid angle grids");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(opencl_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),opencl_prefsW, FALSE, FALSE, 3);
+#endif
 
 	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
 	nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);

@@ -269,6 +269,15 @@ File "${MY_HOME}github\xmimsim\xml\xmso2csv.xml"
 File "${MY_HOME}github\xmimsim\xml\xmso2svg.xml"
 File "${MY_HOME}github\xmimsim\xml\xmso2htm.xml"
 
+DetailPrint "Installing XMI-MSIM OpenCL files"
+File "${MY_HOME}github\xmimsim\src\array.h"
+File "${MY_HOME}github\xmimsim\src\compilerfeatures.h"
+File "${MY_HOME}github\xmimsim\src\openclfeatures.h"
+File "${MY_HOME}github\xmimsim\src\sse.h"
+File "${MY_HOME}github\xmimsim\src\threefry.h"
+File "${MY_HOME}github\xmimsim\src\xmi_kernels.cl"
+File "${MY_HOME}lib\xmimsim\xmimsim-cl.dll"
+
 DetailPrint "Installing logos"
 File "${MY_HOME}github\xmimsim\icons\Logo_xmi_msim.png"
 
@@ -316,6 +325,8 @@ WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2csv" "" "$INSTDIR\Share\xmso2csv
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2xmsi" "" "$INSTDIR\Share\xmso2xmsi.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2htm" "" "$INSTDIR\Share\xmso2htm.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\icon" "" "$INSTDIR\Share\Logo_xmi_msim.png"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}\openclcode" "" "$INSTDIR\Share"
+WriteRegStr HKLM "Software\${PRODUCT_NAME}\opencllib" "" "$INSTDIR\Share"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayName" "${PRODUCT_NAME} ${VERSION}"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "DisplayVersion" "${VERSION}"
 WriteRegStr HKLM ${PRODUCT_UNINST_KEY} "Publisher" "Tom Schoonjans"
@@ -444,6 +455,17 @@ Delete "$INSTDIR\Share\xmimsim-1.0.dtd"
 ;Delete "$APPDATA\xmimsim\xmimsim-escape-ratios.h5"
 Delete "$INSTDIR\Share\Logo_xmi_msim.png"
 
+DetailPrint "Uninstalling XMI-MSIM OpenCL files"
+Delete "$INSTDIR\Share\array.h"
+Delete "$INSTDIR\Share\compilerfeatures.h"
+Delete "$INSTDIR\Share\openclfeatures.h"
+Delete "$INSTDIR\Share\sse.h"
+Delete "$INSTDIR\Share\threefry.h"
+Delete "$INSTDIR\Share\xmi_kernels.cl"
+Delete "$INSTDIR\Share\xmimsim-cl.dll"
+
+
+
 ;RMDir "$APPDATA\xmimsim"
 RMDir "$INSTDIR\Share"
 
@@ -470,6 +492,8 @@ DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2csv"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2spe"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2xmsi"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2htm"
+DeleteRegKey HKLM "Software\${PRODUCT_NAME}\openclcode"
+DeleteRegKey HKLM "Software\${PRODUCT_NAME}\opencllib"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
 

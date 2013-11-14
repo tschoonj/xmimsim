@@ -37,10 +37,12 @@ fi
 #are we dealing with windows?
 OS_WINDOWS=0
 LDFLAGS_XMIMSIM_LIB=""
+LDFLAGS_XMIMSIM_CL=""
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
 		LDFLAGS_XMIMSIM_LIB+="-no-undefined"
+		LDFLAGS_XMIMSIM_CL+="-no-undefined -export-dynamic"
 		;;
 esac
 
@@ -332,6 +334,7 @@ fi
 
 AC_SUBST(XLINKER)
 AC_SUBST(LDFLAGS_XMIMSIM_LIB)
+AC_SUBST(LDFLAGS_XMIMSIM_CL)
 
 
 #search for MPI
@@ -390,6 +393,28 @@ AC_SUBST(OPENMPI_LDFLAGS)
 AC_SUBST(OPENMPI_LIBADD)
 AC_SUBST(OPENMPI_CFLAGS)
 
+#OpenCL test
+no_cl=yes
+
+AC_ARG_ENABLE([opencl],[AS_HELP_STRING([--disable-opencl],[build without OpenCL support])],[enable_opencl=$enableval],[enable_opencl=check])
+
+if test "x$enable_opencl" != xno ; then
+	AX_HAVE_OPENCL
+	if test "x$no_cl" = xyes ; then
+		if test "x$enable_opencl" = xcheck ; then
+		AC_MSG_NOTICE([no OpenCL implementation found])
+		else
+		AC_MSG_ERROR([no OpenCL implementation found])
+		fi
+	else
+		PKG_CHECK_MODULES([gmodule],gmodule-2.0)
+		AC_MSG_NOTICE([OpenCL implementation found])
+		AC_SUBST(CPPFLAGS_CL)
+		AC_SUBST(LIBS_CL)
+	fi
+fi
+
+AM_CONDITIONAL([ENABLE_OPENCL], [test "x$no_cl" != "xyes"])
 
 
 AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile libxmimsim.pc osx/Makefile osx/Info.plist])
