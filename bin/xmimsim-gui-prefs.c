@@ -251,7 +251,6 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		preferences_error_handler(pa->window);
 	}
 
-	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
@@ -261,6 +260,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 #endif
 
+	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, xpv) == 0) {
 		//abort	
 		preferences_error_handler(pa->window);

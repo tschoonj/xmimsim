@@ -1284,7 +1284,7 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 	archive->start_value2 = start_value2;
 	archive->end_value2= end_value2;
 	archive->nsteps2 = nsteps2;
-	if (archive->xpath2)
+	if (xpath2)
 		archive->xpath2 = strdup(xpath2);
 	else
 		archive->xpath2 = NULL;

@@ -4924,6 +4924,7 @@ XMI_MAIN
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			struct xmi_archive *archive;
+			//have to add busy readin XMSA dialog here, through custom g_idle_add callback
 			if (xmi_read_archive_xml(filename, &archive) == 0) {
 				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
 					GTK_DIALOG_DESTROY_WITH_PARENT,

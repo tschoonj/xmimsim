@@ -84,7 +84,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!-- outputfile structure -->
 
 
-<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history, xmimsim-input, svg_graphs)>
+<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history, xmimsim-input, svg_graphs?)>
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
 <!ATTLIST xmimsim-results step1 CDATA #IMPLIED>
 <!ATTLIST xmimsim-results step2 CDATA #IMPLIED>

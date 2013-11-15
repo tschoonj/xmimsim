@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-prefs.h"
@@ -59,6 +60,9 @@ struct options_widget {
 	GtkWidget *poisson_prefsW;
 	GtkWidget *nchannels_prefsW;
 	GtkWidget *superframe;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	GtkWidget *opencl_prefsW;
+#endif
 };
 
 enum xmi_msim_batch_options{
@@ -194,6 +198,13 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 	else
 		wacd->xmo->use_poisson = 0;
 
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->opencl_prefsW)))
+		wacd->xmo->use_opencl = 1;
+	else
+		wacd->xmo->use_opencl = 0;
+#endif
+
 	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ow->nchannels_prefsW));
 
 	//range parameters
@@ -235,6 +246,10 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		if (strcmp(filename+strlen(filename)-5, ".xmsa") != 0) {
+			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
+			strcat(filename,".xmsa");
+		}
 		gtk_entry_set_text(archiveEntry, filename);
 		g_free (filename);							
 	}
@@ -426,7 +441,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 
 	gtk_window_set_title(GTK_WINDOW(wizard), "Simulation options");
 	//add intro page
-	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter will take on. Optionally, you can choose to save the different generated XMSO files into one XMSA file that will be used to produce a graph showing the variation of the intensity of a particular XRF line with respect to the variable parameter.");	
+	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter(s) will assume. Afterwards, the batch simulation interface will be produced: launch the simulations by clicking the \"\xe2\x96\xb8\" button. Afterwards an interface will be produced that will allow the user to inspect the results of the simulations.");	
 	gtk_label_set_line_wrap(GTK_LABEL(introLabel), TRUE);
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), introLabel);
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), introLabel, TRUE);
@@ -1032,6 +1047,15 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	arg_counter++;
 #endif
 
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+	if (bwd->options[j].use_opencl) {
+		argv[arg_counter++] = g_strdup("--enable-opencl");
+	}
+	else {
+		argv[arg_counter++] = g_strdup("--disable-opencl");
+	} 
+#endif
 	//number of threads
 	if (bwd->nthreadsW != NULL) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -1579,6 +1603,17 @@ static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->poisson_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->poisson_prefsW, FALSE, FALSE, 3);
 
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	rv->opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
+	gtk_widget_set_tooltip_text(rv->opencl_prefsW,"");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->opencl_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->opencl_prefsW, FALSE, FALSE, 3);
+#endif
+
 	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
 	rv->nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);
 	gtk_editable_set_editable(GTK_EDITABLE(rv->nchannels_prefsW), TRUE);
@@ -1647,6 +1682,12 @@ static void wizard_close(GtkAssistant *wizard, struct wizard_close_data *wcd) {
 		else
 			wcd->options[i].use_poisson = 0;
 
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->opencl_prefsW)))
+			wcd->options[i].use_opencl = 1;
+		else
+			wcd->options[i].use_opencl = 0;
+#endif
 		wcd->options[i].nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wcd->ows[i]->nchannels_prefsW));
 			
 	}
@@ -1768,6 +1809,13 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options *opti
 			options->use_poisson = 1;
 		else
 			options->use_poisson = 0;
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->opencl_prefsW)))
+			options->use_opencl = 1;
+		else
+			options->use_opencl = 0;
+#endif
 
 		options->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ow->nchannels_prefsW));
 	}
@@ -2188,10 +2236,12 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			}	
 		}
 		*/
+
 		//convert to an archive struct
 		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value1, aod->end_value1, aod->nsteps1, xpath1, aod->start_value2, aod->end_value2, aod->nsteps2, xpath2);
 		//save to XMSA file
 		//g_fprintf(stdout, "Writing %s\n", aod->xmsa_file);
+
 		if (xmi_write_archive_xml(aod->xmsa_file, archive) == 0) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error writing to archive-file %s. Aborting batch mode", aod->xmsa_file);
 			gtk_dialog_run(GTK_DIALOG(dialog));
@@ -2202,8 +2252,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		for (i = 0 ; i <= aod->nsteps1 ; i++) {
 			for (j = 0 ; j <= aod->nsteps2 ; j++) {
 				xmi_free_output(output[i][j]);
-			g_free(output[i]);
 			}
+			g_free(output[i]);
 		}
 		g_free(output);
 
@@ -4029,10 +4079,10 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		struct xmi_fluorescence_line_counts **history = NULL; 
 		int *nhistory = NULL;
 
+		nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
+		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
 		if (apd->archive->output[0][0]->nvar_red_history > 0) {
 			var_red = TRUE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
 			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 				history[i] = apd->archive->output[i][0]->var_red_history;
 				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
@@ -4040,8 +4090,6 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		}
 		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
 			var_red = FALSE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
 			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 				history[i] = apd->archive->output[i][0]->brute_force_history;
 				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
@@ -4125,6 +4173,8 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 			}
 			y[i] = yval;	
 		}
+		g_free(history);
+		g_free(nhistory);
 	}
 
 	//y values have been calculated -> plot
@@ -4197,7 +4247,7 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	
-	if (plot_ymax < 10000.0 && plot_ymin > 1.0) {
+	if (plot_ymax <= 10000.0 && plot_ymin >= -1.0) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
@@ -4210,7 +4260,7 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
 	}
 
-	if (plot_xmax < 10000.0 && plot_xmin > 1.0) {
+	if (plot_xmax <= 10000.0 && plot_xmin >= 1.0) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
@@ -4245,6 +4295,9 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+
+	g_free(x);
+	g_free(y);
 
 	return;
 }
@@ -4300,7 +4353,7 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 						zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
 				}
 			}
-			z[i*(apd->archive->nsteps2+1)+j] = zval;	
+			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 		}
 		}
 	}
@@ -4310,26 +4363,28 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		struct xmi_fluorescence_line_counts ***history = NULL; 
 		int **nhistory = NULL;
 
+		nhistory = g_malloc(sizeof(int*)*(apd->archive->nsteps1+1)); 
+		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts **)*(apd->archive->nsteps1+1));
 		if (apd->archive->output[0][0]->nvar_red_history > 0) {
 			var_red = TRUE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
-				history[i][i2] = apd->archive->output[i][i2]->var_red_history;
-				nhistory[i][i2] = apd->archive->output[i][i2]->nvar_red_history;
-			}
+				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
+				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
+				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+					history[i][i2] = apd->archive->output[i][i2]->var_red_history;
+					nhistory[i][i2] = apd->archive->output[i][i2]->nvar_red_history;
+				}
 			}
 		}
 		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
 			var_red = FALSE;
-			nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)); 
-			history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
-				history[i][i2] = apd->archive->output[i][i2]->brute_force_history;
-				nhistory[i][i2] = apd->archive->output[i][i2]->nbrute_force_history;
-			}
+				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
+				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
+				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+					history[i][i2] = apd->archive->output[i][i2]->brute_force_history;
+					nhistory[i][i2] = apd->archive->output[i][i2]->nbrute_force_history;
+				}
 			}
 		}
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
@@ -4408,9 +4463,13 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 					}
 				}	
 			}
-			z[i*(apd->archive->nsteps2+1)+j] = zval;	
+			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 		}
+		g_free(nhistory[i]);
+		g_free(history[i]);
 		}
+		g_free(nhistory);
+		g_free(history);
 	}
 
 	//z values have been calculated -> plot
@@ -4425,9 +4484,43 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	}
 	//add box with default settings
 	GtkWidget *plot_window;
-	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+
+	plot_window = gtk_plot_new_with_size(NULL,1,1);
+	gtk_plot_set_range(GTK_PLOT(plot_window),apd->archive->start_value1, apd->archive->end_value1, apd->archive->start_value2, apd->archive->end_value2);
 	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
 	//gtk_plot_hide_legends(GTK_PLOT(plot_window));
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT), apd->archive->xpath2);
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), apd->archive->xpath1);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+
+	if (apd->archive->end_value2 <= 10000.0 &&  apd->archive->start_value2 >= -10000.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+
+	if (apd->archive->end_value1 <= 10000.0 &&  apd->archive->start_value1 >= -10000.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	}
 
 	GtkWidget *surface;
 	surface = gtk_plot_csurface_new();
@@ -4448,5 +4541,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+	g_free(x);
+	g_free(y);
+	g_free(z);
 }
 

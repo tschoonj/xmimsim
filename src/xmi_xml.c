@@ -60,7 +60,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
 static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2);
+static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg);
 static int xmi_write_default_comments(xmlTextWriterPtr writer);
 static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
 static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int *step1, int *step2);
@@ -1363,7 +1363,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 }
 
 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2) {
+static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg) {
 
 	char detector_type[20];
 	int i,j,k;
@@ -1691,6 +1691,11 @@ after_var_red_history:
 		fprintf(stderr,"Error ending xmimsim-input\n");
 		return 0;
 	}
+	if (with_svg == 0) {
+		goto after_svg;
+	}
+	
+
 
 	//write svg stuff
 	if (xmlTextWriterStartElement(writer, BAD_CAST "svg_graphs") < 0) {
@@ -1742,6 +1747,7 @@ after_var_red_history:
 	}
 
 	//end it
+after_svg:
 	if (xmlTextWriterEndElement(writer) < 0) {
 		fprintf(stderr,"Error ending xmimsim-results\n");
 		return 0;
@@ -1780,7 +1786,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_output *output) {
 		return 0;
 	}
 
-	if(xmi_write_output_xml_body(writer, output, -1, -1) == 0){
+	if(xmi_write_output_xml_body(writer, output, -1, -1, 1) == 0){
 		return 0;
 	}
 
@@ -3058,7 +3064,7 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			if (xmi_write_output_xml_body(writer, archive->output[i][j], i, j) == 0) {
+			if (xmi_write_output_xml_body(writer, archive->output[i][j], i, j, 0) == 0) {
 				return 0;
 			}
 		}

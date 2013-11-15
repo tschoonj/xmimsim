@@ -241,6 +241,9 @@ XMI_MAIN
 		g_fprintf(stdout,"Option variance reduction: %i\n", options.use_variance_reduction);
 		g_fprintf(stdout,"Option pile-up: %i\n", options.use_sum_peaks);
 		g_fprintf(stdout,"Option Poisson noise: %i\n", options.use_poisson);
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
+#endif
 		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
 		g_fprintf(stdout,"Option number of channels: %i\n", options.nchannels);
 	}
