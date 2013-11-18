@@ -3761,7 +3761,7 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_start_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels, 1);
+	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_box_pack_end(GTK_BOX(lilHBox), roi_start_spinnerW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
@@ -3772,9 +3772,9 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
 	gtk_container_add(GTK_CONTAINER(align), roi_end_labelW);
 	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels, 1);
+	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0][0]->nchannels);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0][0]->nchannels-1);
 	gtk_box_pack_end(GTK_BOX(lilHBox), roi_end_spinnerW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 
@@ -4529,7 +4529,17 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	gtk_plot_surface_set_ystep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value2 - apd->archive->start_value2)/apd->archive->nsteps2);
 	gtk_plot_add_data(GTK_PLOT(plot_window), GTK_PLOT_DATA(surface));
 	gtk_widget_show(surface);
-	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)),xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1)), 5, 5);
+	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 5, 5);
+	if (maxz <= 10000.0 && maxz >= 10.0)
+		gtk_plot_data_gradient_set_style(GTK_PLOT_DATA(surface), GTK_PLOT_LABEL_FLOAT, 2);
+	else
+		gtk_plot_data_gradient_set_style(GTK_PLOT_DATA(surface), GTK_PLOT_LABEL_EXP, 2);
+
+	gtk_plot_data_gradient_set_title(GTK_PLOT_DATA(surface), "Intensity");
+
+
 	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
         gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
         gtk_widget_show(plot_window);
