@@ -4336,21 +4336,32 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
 			double zval = 0.0;
 			if (cumulative) {
-				for (j = apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							zval += apd->archive->output[i][i2]->channels_conv[j][k];
-						else
-							zval += apd->archive->output[i][i2]->channels_unconv[j][k];
-					}
-				}
-			}
-			else {
+				//for (j = apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
+				j = interaction;
 				for (k = start_channel ; k <= end_channel ; k++) {
 					if (convoluted)
-						zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
+						zval += apd->archive->output[i][i2]->channels_conv[j][k];
 					else
-						zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
+						zval += apd->archive->output[i][i2]->channels_unconv[j][k];
+				}
+				//}
+			}
+			else {
+				if ((apd->archive->output[i][i2]->use_zero_interactions == 1 && interaction == 0) || (apd->archive->output[i][i2]->use_zero_interactions == 0 && interaction == 1)) {
+					for (k = start_channel ; k <= end_channel ; k++) {
+						if (convoluted)
+							zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
+						else
+							zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
+					}
+				}
+				else {
+					for (k = start_channel ; k <= end_channel ; k++) {
+						if (convoluted)
+							zval += MAX(apd->archive->output[i][i2]->channels_conv[interaction][k]-apd->archive->output[i][i2]->channels_conv[interaction-1][k],0);
+						else
+							zval += MAX(apd->archive->output[i][i2]->channels_unconv[interaction][k]-apd->archive->output[i][i2]->channels_unconv[interaction-1][k],0);
+					}
 				}
 			}
 			z[i*(apd->archive->nsteps2+1)+i2] = zval;	

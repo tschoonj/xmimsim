@@ -339,6 +339,15 @@ struct read_xmsa_data {
 gpointer read_xmsa_thread(struct read_xmsa_data *rxd) {
 	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));	
 }
+
+struct dialog_helper_xmsa_data {
+	GtkWidget *window;
+	gchar *filename;
+};
+
+static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data);
+
+
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
@@ -417,10 +426,10 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 
 	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
 
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return;
 	
 	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 		if (xmi_read_input_xml(filename, &xi) == 1) {
 			//success reading it in...
@@ -443,6 +452,8 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 		}
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			gchar *temp_base = g_path_get_basename(filename);
@@ -459,6 +470,15 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy (dialog);
 		}
+	}
+	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+		my_data->window = data;
+		my_data->filename = filename;
+		dialog_helper_xmsa_cb(my_data);
+		return;
+	}
+	else {
 	}
 
 	g_free(filename);
@@ -3097,12 +3117,6 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
-
-struct dialog_helper_xmsa_data {
-	GtkWidget *window;
-	gchar *filename;
-};
-
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	struct xmi_archive *archive;
 	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -3249,7 +3263,6 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		my_data->window = old->window;
 		my_data->filename = filename;
 		dialog_helper_xmsa_cb(my_data);
-		
 	}
 
 	return FALSE;
