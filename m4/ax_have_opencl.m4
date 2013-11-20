@@ -64,7 +64,10 @@ AC_DEFUN([AX_HAVE_OPENCL],
       AX_CHECK_FRAMEWORK([OpenCL], [LIBS_CL="-framework OpenCL"], [])
     ;;
     *)
-      AC_CHECK_LIB([OpenCL],[clGetPlatformIDs],[LIBS_CL="-lOpenCL"])
+      save_LIBS=$LIBS
+      LIBS="-L/usr/lib64/nvidia -L/usr/lib/nvidia"
+      AC_CHECK_LIB([OpenCL],[clGetPlatformIDs],[LIBS_CL="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCL"])
+      LIBS=$save_LIBS
     ;;
   esac
   if test x"$LIBS_CL" = xnone ; then
