@@ -2225,29 +2225,55 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		if (exec_rv == 0) {
 			return;
 		}
-		/*
-		for (i = 0 ; i <= aod->nsteps ; i++) {
-			//g_fprintf(stdout, "Reading %s\n", filenames_xmso[i]);
-			if (xmi_read_output_xml(filenames_xmso[i], &output[i]) == 0) {
-				dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", filenames_xmso[i]);
-				gtk_dialog_run(GTK_DIALOG(dialog));
-				gtk_widget_destroy(dialog);
-				return;
-			}	
-		}
-		*/
+
+		dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
+		gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(window));
+		gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+		gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
+		gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+		GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
+		GtkWidget *label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label),"<b>Converting XMSO files to archive</b>");
+		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+		gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
+		gtk_widget_show(label);
+		GtkWidget *label2 = gtk_label_new("This may take a while...");
+		gtk_box_pack_start(GTK_BOX(main_vbox), label2, FALSE, FALSE, 10);
+		gtk_widget_show(label2);
+		gtk_widget_show(main_vbox);
+		gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
+		gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
+		gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
+		g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
+		gtk_widget_show_all(dialog);
+		GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
+		gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+
 
 		//convert to an archive struct
 		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value1, aod->end_value1, aod->nsteps1, xpath1, aod->start_value2, aod->end_value2, aod->nsteps2, xpath2);
 		//save to XMSA file
 		//g_fprintf(stdout, "Writing %s\n", aod->xmsa_file);
 
+		gtk_label_set_markup(GTK_LABEL(label),"<b>Saving XMSA file</b>");
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+
 		if (xmi_write_archive_xml(aod->xmsa_file, archive) == 0) {
+			gtk_widget_destroy(dialog);
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error writing to archive-file %s. Aborting batch mode", aod->xmsa_file);
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
 		}
+
+		gtk_label_set_markup(GTK_LABEL(label),"<b>Freeing XMSO memory</b>");
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+
 		//g_fprintf(stdout, "Freeing output\n");
 		for (i = 0 ; i <= aod->nsteps1 ; i++) {
 			for (j = 0 ; j <= aod->nsteps2 ; j++) {
@@ -2261,18 +2287,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		g_strfreev(filenames_xmso);
 		g_slist_free(filenames_xmsiGSL);
 
-		//test
-		/*g_fprintf(stdout, "Freeing archive\n");
-		xmi_free_archive(archive);
-		g_fprintf(stdout, "Reading archive %s\n", aod->xmsa_file);
-		if (xmi_read_archive_xml(aod->xmsa_file, &archive) == 0) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading from archive-file %s. Aborting batch mode", aod->xmsa_file);
-			gtk_dialog_run(GTK_DIALOG(dialog));
-			gtk_widget_destroy(dialog);
-			return;
-		}*/
-		
 		//and plot!
+		gtk_widget_destroy(dialog);
 		launch_archive_plot(archive, window);
 	}
 

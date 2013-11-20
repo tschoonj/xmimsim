@@ -3125,7 +3125,6 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	gtk_window_set_title(GTK_WINDOW(dialog), "Message");
 	//gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
 	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
 	GtkWidget *label = gtk_label_new(NULL);
