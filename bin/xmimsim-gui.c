@@ -473,7 +473,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
 		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
-		my_data->window = data;
+		my_data->window = (GtkWidget *)data;
 		my_data->filename = filename;
 		dialog_helper_xmsa_cb(my_data);
 		return;
@@ -3981,6 +3981,9 @@ XMI_MAIN
 	g_type_init();
 #endif
 
+#if !GLIB_CHECK_VERSION (2, 32, 0)
+	g_thread_init(NULL);
+#endif
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {

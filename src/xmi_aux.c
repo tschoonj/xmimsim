@@ -529,4 +529,38 @@ void xmi_free(void *ptr) {
 	free(ptr);
 }
 
+#if LIBXML_VERSION < 20901
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+//taken from the libxml2 source code...
+int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx) {
+    if ((node == NULL) || (ctx == NULL))
+        return(-1);
 
+    if (node->doc == ctx->doc) {
+        ctx->node = node;
+        return(0);
+    }
+    return(-1);
+}
+
+xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx) {
+    if (str == NULL)
+        return(NULL);
+    if (xmlXPathSetContextNode(node, ctx) < 0)
+        return(NULL);
+    return(xmlXPathEval(str, ctx));
+}
+
+#endif
+
+#if !GLIB_CHECK_VERSION (2, 28, 0)
+void
+g_list_free_full (GList          *list,
+                  GDestroyNotify  free_func)
+{
+  g_list_foreach (list, (GFunc) free_func, NULL);
+  g_list_free (list);
+}
+
+#endif

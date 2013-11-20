@@ -95,6 +95,7 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
+PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])

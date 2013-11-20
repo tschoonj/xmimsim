@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <stdio.h>
 #include <xraylib.h>
+#include <libxml/xmlversion.h>
 
 
 
@@ -114,4 +115,15 @@ gchar *xmi_version_string();
 
 int xmi_omp_get_max_threads();
 
+#if LIBXML_VERSION < 20901
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
+xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
+
+#endif
+
+#if !GLIB_CHECK_VERSION (2, 28, 0)
+void g_list_free_full (GList *list, GDestroyNotify  free_func);
+#endif
 #endif

@@ -3808,9 +3808,9 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	}
 #else
 	roi_interactions_comboW = gtk_combo_box_new_text();
-	if (archive->output[0]->use_zero_interactions)
+	if (archive->output[0][0]->use_zero_interactions)
 		gtk_combo_box_append_text(GTK_COMBO_BOX(roi_interactions_comboW), "0");
-	for (i = 1 ; i <= archive->output[0]->ninteractions ; i++) {
+	for (i = 1 ; i <= archive->output[0][0]->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_append_text(GTK_COMBO_BOX(roi_interactions_comboW), interaction);
 		g_free(interaction);
