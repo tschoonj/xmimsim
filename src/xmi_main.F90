@@ -989,18 +989,18 @@ SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
 
         photon%theta = ACOS(photon%dirv(3))
 
-        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-                !processor dependent...
-                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-        ELSE
+        !IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+        !        !watch out... if photon%dirv(2) EQ 0.0 then result may be
+        !        !processor dependent...
+        !        photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        !ELSE
 #if DEBUG == 2
-                WRITE (*,'(A)') 'Dont think we should get here'
+         !       WRITE (*,'(A)') 'Dont think we should get here'
 #endif
-                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
+         !       photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        !ENDIF
         
-!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
         
         RETURN
 
@@ -1043,18 +1043,18 @@ SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
 
         photon%theta = ACOS(photon%dirv(3))
 
-        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-                !processor dependent...
-                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-        ELSE
+        !IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+        !        !watch out... if photon%dirv(2) EQ 0.0 then result may be
+        !        !processor dependent...
+        !        photon%phi = SIGN(M_PI_2, photon%dirv(2))
+        !ELSE
 #if DEBUG == 2
-                WRITE (*,'(A)') 'Dont think we should get here'
+        !        WRITE (*,'(A)') 'Dont think we should get here'
 #endif
-                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
+        !        photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+        !ENDIF
         
-!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
         
         RETURN
 
@@ -2055,6 +2055,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         photon%history(photon%n_interactions,2) = photon%current_element 
 
 
+
 !        ENDASSOCIATE
 #undef hdf5_Z
 
@@ -2171,6 +2172,10 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 #undef hdf5_Z
         rv = 1
 
+        !IF (photon%n_interactions .EQ. 1) THEN
+        !        WRITE (output_unit, '(2ES14.6)') photon%theta,&
+        !        photon%phi
+        !ENDIF
 #if DEBUG == 1
         IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
                 WRITE (output_unit, '(A,ES12.6)') 'compt energy:',&
@@ -2303,7 +2308,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         ENDDO
 
         !calculate theta and phi
-        theta_i = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
+        theta_i = ACOS(-2.0_C_DOUBLE*fgsl_rng_uniform(rng)+1.0_C_DOUBLE)
         phi_i = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
 
 #if DEBUG == 1
@@ -4815,6 +4820,62 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
         RETURN
 ENDSUBROUTINE xmi_update_photon_energy_compton
 
+SUBROUTINE xmi_update_photon_dirv_laszlo(photon, theta_i, phi_i)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i, phi_i
+        REAL (C_DOUBLE) :: theta1, fi1, theta, fi, costhk,&
+        sinthk, costheta, sintheta, sinfi, cosfi, sinfi1,&
+        cosfi1, ca1, cb1, cc1, costh, cf, cosfin, sf, sinfin, &
+        sinth, thet1
+
+        theta1 = theta_i
+        fi1 = phi_i
+        theta = photon%theta
+        fi = photon%phi
+        costhk=cos(theta1)
+        sinthk=sin(theta1)
+        costheta=cos(theta)
+        sintheta=sin(theta)
+        sinfi=sin(fi)
+        cosfi=cos(fi)
+        sinfi1=sin(fi1)
+        cosfi1=cos(fi1)
+        ca1=costheta*sinthk*cosfi1
+        cb1=sinthk*sinfi1
+        cc1=sintheta*costhk
+
+        costh=-sintheta*sinthk*cosfi1+costheta*costhk
+        IF (ABS(costh) .GT. 1.0_C_DOUBLE) THEN
+                photon%energy = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+        
+        thet1=acos(costh)
+        if(abs(thet1).lt.1.0d-8)then
+         fi=0.d0
+        else
+         sf=sinfi*(ca1+cc1)+cb1*cosfi
+         cf=cosfi*(ca1+cc1)-cb1*sinfi
+         sinfin=sf/sin(thet1)
+         cosfin=cf/sin(thet1)
+         if(sinfin.gt.1.)sinfin=.999999d0
+         if(sinfin.lt.-1.)sinfin=-.999999d0
+         fi=asin(sinfin)
+         if(cosfin.lt.0.d0)fi=dble(M_PI)-fi
+        endif
+        theta=thet1
+        sinth=sin(thet1)
+
+        photon%dirv(1)=sinth*cosfin
+        photon%dirv(2)=sinth*sinfin
+        photon%dirv(3)=costh
+        photon%theta = theta
+        photon%phi = fi
+
+        RETURN
+ENDSUBROUTINE xmi_update_photon_dirv_laszlo
+
 SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -4833,55 +4894,63 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         !For actual formula consult the PhD thesis of Laszlo Vincze
         !
 
-        IF (phi_i .GT. 2.0_C_DOUBLE*M_PI) THEN
-                phi_i_new = phi_i-2.0_C_DOUBLE*M_PI
-        ELSEIF (phi_i .LT. 0.0_C_DOUBLE*M_PI) THEN
-                phi_i_new = phi_i+2.0_C_DOUBLE*M_PI
-        ELSE
-                phi_i_new = phi_i
-        ENDIF
+         IF (phi_i .GT. 2.0_C_DOUBLE*M_PI) THEN
+                 phi_i_new = phi_i-2.0_C_DOUBLE*M_PI
+         ELSEIF (phi_i .LT. 0.0_C_DOUBLE*M_PI) THEN
+                 phi_i_new = phi_i+2.0_C_DOUBLE*M_PI
+         ELSE
+                 phi_i_new = phi_i
+         ENDIF
+ 
+ 
+ 
+         cosphi_i = COS(photon%phi)
+         sinphi_i = SIN(photon%phi)
+         costheta_i = COS(photon%theta)
+         sintheta_i = SIN(photon%theta)
+ 
+         trans_m(1,1) = costheta_i*cosphi_i
+         trans_m(1,2) = -sinphi_i
+         trans_m(1,3) = sintheta_i*cosphi_i
+ 
+         trans_m(2,1) = costheta_i*sinphi_i
+         trans_m(2,2) = cosphi_i
+         trans_m(2,3) = sintheta_i*sinphi_i
+ 
+         trans_m(3,1) = -sintheta_i
+         trans_m(3,2) = 0.0_C_DOUBLE
+         trans_m(3,3) = costheta_i
+ 
+         tempsin = SIN(theta_i)
+         dirv = [tempsin*COS(phi_i_new), tempsin*SIN(phi_i_new),COS(theta_i)]
+         
+         photon%dirv = MATMUL(trans_m,dirv)
+ 
+         CALL normalize_vector(photon%dirv)
+ 
+         !update theta and phi in photon
+         photon%theta = ACOS(photon%dirv(3))
+ 
+         !IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
+         !        !watch out... if photon%dirv(2) EQ 0.0 then result may be
+         !        !processor dependent...
+         !        photon%phi = SIGN(M_PI_2, photon%dirv(2))
+         !ELSE
+         !        photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
+         !ENDIF
+ 
+         photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
+
+         IF (photon%phi .GT. 2.0_C_DOUBLE*M_PI) THEN
+                 photon%phi = photon%phi-2.0_C_DOUBLE*M_PI
+         ELSEIF (photon%phi .LT. 0.0_C_DOUBLE*M_PI) THEN
+                 photon%phi = photon%phi+2.0_C_DOUBLE*M_PI
+         ENDIF
+
+         !photon%theta_i = theta_i
+         !photon%phi_i = phi_i_new
 
 
-
-        cosphi_i = COS(photon%phi)
-        sinphi_i = SIN(photon%phi)
-        costheta_i = COS(photon%theta)
-        sintheta_i = SIN(photon%theta)
-
-        trans_m(1,1) = costheta_i*cosphi_i
-        trans_m(1,2) = -sinphi_i
-        trans_m(1,3) = sintheta_i*cosphi_i
-
-        trans_m(2,1) = costheta_i*sinphi_i
-        trans_m(2,2) = cosphi_i
-        trans_m(2,3) = sintheta_i*sinphi_i
-
-        trans_m(3,1) = -sintheta_i
-        trans_m(3,2) = 0.0_C_DOUBLE
-        trans_m(3,3) = costheta_i
-
-        tempsin = SIN(theta_i)
-        dirv = [tempsin*COS(phi_i_new), tempsin*SIN(phi_i_new),COS(theta_i)]
-
-        photon%dirv = MATMUL(trans_m,dirv)
-
-        CALL normalize_vector(photon%dirv)
-
-        !update theta and phi in photon
-        photon%theta = ACOS(photon%dirv(3))
-
-        IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
-                !watch out... if photon%dirv(2) EQ 0.0 then result may be
-                !processor dependent...
-                photon%phi = SIGN(M_PI_2, photon%dirv(2))
-        ELSE
-                photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
-
-!        photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
-
-        photon%theta_i = theta_i
-        photon%phi_i = phi_i_new
 
         RETURN
 ENDSUBROUTINE xmi_update_photon_dirv
@@ -4916,6 +4985,7 @@ SUBROUTINE xmi_update_photon_elecv(photon)
         c_be = -c_ae*cosalfa
 
         photon%elecv = c_ae * photon%elecv + c_be *photon%dirv
+        CALL normalize_vector(photon%elecv)
 
 ENDSUBROUTINE xmi_update_photon_elecv
 
