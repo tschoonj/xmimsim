@@ -622,6 +622,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
         ENDDO
 
+        IF (xmi_db_close(hdf5_vars) .EQ. 0_C_INT) RETURN
+
 
 #if DEBUG == 2
         ASSOCIATE (layers => xmi_inputF%composition%layers)
