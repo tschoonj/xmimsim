@@ -2061,12 +2061,9 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
         rv = 1
 
-#if DEBUG == 1
-        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
-                WRITE (output_unit, '(A,ES12.6)') 'rayl energy:',&
-                photon%energy
-        ENDIF
-#endif
+        !IF (photon%n_interactions .EQ. 1) &
+        !WRITE (6,'(5ES14.5)') photon%theta, photon%phi, photon%dirv
+
         RETURN
 ENDFUNCTION xmi_simulate_photon_rayleigh
 
@@ -2172,16 +2169,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 #undef hdf5_Z
         rv = 1
 
-        !IF (photon%n_interactions .EQ. 1) THEN
-        !        WRITE (output_unit, '(2ES14.6)') photon%theta,&
-        !        photon%phi
-        !ENDIF
-#if DEBUG == 1
-        IF (photon%energy .GT. 28.0_C_DOUBLE) THEN
-                WRITE (output_unit, '(A,ES12.6)') 'compt energy:',&
-                photon%energy
-        ENDIF
-#endif
+        !IF (photon%n_interactions .EQ. 1) &
+        !WRITE (6,'(5ES14.5)') photon%theta, photon%phi, photon%dirv
         RETURN
 
 ENDFUNCTION xmi_simulate_photon_compton
@@ -4819,62 +4808,6 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
 
         RETURN
 ENDSUBROUTINE xmi_update_photon_energy_compton
-
-SUBROUTINE xmi_update_photon_dirv_laszlo(photon, theta_i, phi_i)
-        IMPLICIT NONE
-        TYPE (xmi_photon), INTENT(INOUT) :: photon
-        REAL (C_DOUBLE), INTENT(IN) :: theta_i, phi_i
-        REAL (C_DOUBLE) :: theta1, fi1, theta, fi, costhk,&
-        sinthk, costheta, sintheta, sinfi, cosfi, sinfi1,&
-        cosfi1, ca1, cb1, cc1, costh, cf, cosfin, sf, sinfin, &
-        sinth, thet1
-
-        theta1 = theta_i
-        fi1 = phi_i
-        theta = photon%theta
-        fi = photon%phi
-        costhk=cos(theta1)
-        sinthk=sin(theta1)
-        costheta=cos(theta)
-        sintheta=sin(theta)
-        sinfi=sin(fi)
-        cosfi=cos(fi)
-        sinfi1=sin(fi1)
-        cosfi1=cos(fi1)
-        ca1=costheta*sinthk*cosfi1
-        cb1=sinthk*sinfi1
-        cc1=sintheta*costhk
-
-        costh=-sintheta*sinthk*cosfi1+costheta*costhk
-        IF (ABS(costh) .GT. 1.0_C_DOUBLE) THEN
-                photon%energy = 0.0_C_DOUBLE
-                RETURN
-        ENDIF
-        
-        thet1=acos(costh)
-        if(abs(thet1).lt.1.0d-8)then
-         fi=0.d0
-        else
-         sf=sinfi*(ca1+cc1)+cb1*cosfi
-         cf=cosfi*(ca1+cc1)-cb1*sinfi
-         sinfin=sf/sin(thet1)
-         cosfin=cf/sin(thet1)
-         if(sinfin.gt.1.)sinfin=.999999d0
-         if(sinfin.lt.-1.)sinfin=-.999999d0
-         fi=asin(sinfin)
-         if(cosfin.lt.0.d0)fi=dble(M_PI)-fi
-        endif
-        theta=thet1
-        sinth=sin(thet1)
-
-        photon%dirv(1)=sinth*cosfin
-        photon%dirv(2)=sinth*sinfin
-        photon%dirv(3)=costh
-        photon%theta = theta
-        photon%phi = fi
-
-        RETURN
-ENDSUBROUTINE xmi_update_photon_dirv_laszlo
 
 SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         IMPLICIT NONE

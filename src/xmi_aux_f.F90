@@ -1120,25 +1120,9 @@ SUBROUTINE xmi_move_photon_with_dist(photon, dist)
         TYPE (xmi_photon), INTENT(INOUT)  :: photon
         REAL (C_DOUBLE), INTENT(IN) :: dist
 
-        REAL (C_DOUBLE) :: theta, phi
 
-        !check if photon isn't moving through the collimator or through the
-        !detector surface...
+        photon%coords = photon%coords + dist*photon%dirv
 
-
-        !photon%dirv are normalized...
-        theta = ACOS(photon%dirv(3))
-        IF (photon%dirv(1) .LT. 1E-16) THEN
-                phi = 0.0_C_DOUBLE
-        ELSE 
-                phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
-
-        photon%coords(1) = photon%coords(1) + dist*SIN(theta)*COS(phi)
-        photon%coords(2) = photon%coords(2) + dist*SIN(theta)*SIN(phi)
-        photon%coords(3) = photon%coords(3) + dist*COS(theta)
-
-        RETURN
 ENDSUBROUTINE xmi_move_photon_with_dist
 
 FUNCTION cross_product(a,b) RESULT(rv)
