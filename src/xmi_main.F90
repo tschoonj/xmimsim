@@ -107,6 +107,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         precalc_mu_cs
         INTEGER (4) :: time_before, time_after
         REAL (C_DOUBLE) :: weight
+        INTEGER (C_INT) :: progress_percentage
 
         TYPE (xmi_ran_trap_workspace) :: workspace
 
@@ -123,6 +124,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         comptons = 0
         einsteins = 0
         detector_solid_angle_not_found = 0
+        progress_percentage = 1
 
 
 
@@ -527,17 +529,17 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
-                          IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                          REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE).AND.&
-                          options%verbose == 1_C_INT)&
+                          IF (REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE)&
+                          .GE. progress_percentage .AND. options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                          CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                          INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
+                            CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                            progress_percentage)
 #else
-                          WRITE(output_unit,'(A,I3,A)')&
-                          'Simulating interactions at ',n_photons_sim*100_C_INT64_T&
-                          /n_photons_tot,' %'
+                            WRITE(output_unit,'(A,I3,A)')&
+                            'Simulating interactions at ',progress_percentage,' %'
 #endif
+                            progress_percentage = progress_percentage+1
+                          ENDIF
                         ENDIF
                 ENDDO photons_cont
         ENDDO cont
@@ -582,7 +584,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #endif
 
 
-                photons:DO j=1,n_photons
+                photons_disc:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
@@ -603,7 +605,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 photon%energy = fgsl_ran_gaussian_ziggurat(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold) CYCLE &
-                                photons 
+                                photons_disc
                                 photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
                         ELSEIF (exc%discrete(i)%distribution_type .EQ.&
@@ -612,7 +614,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 photon%energy = fgsl_ran_cauchy(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold) CYCLE &
-                                photons 
+                                photons_disc
                                 photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
                         ELSE
@@ -815,19 +817,19 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
-                          IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                          REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE).AND.&
-                          options%verbose == 1_C_INT)&
+                          IF (REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE)&
+                          .GE. progress_percentage .AND. options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                          CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
-                          INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
+                            CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
+                            progress_percentage)
 #else
-                          WRITE(output_unit,'(A,I3,A)')&
-                          'Simulating interactions at ',n_photons_sim*100_C_INT64_T&
-                          /n_photons_tot,' %'
+                            WRITE(output_unit,'(A,I3,A)')&
+                            'Simulating interactions at ',progress_percentage,' %'
 #endif
+                            progress_percentage = progress_percentage+1
+                          ENDIF
                         ENDIF
-                ENDDO photons
+                ENDDO photons_disc
         ENDDO disc 
 
 #undef exc
@@ -5250,9 +5252,9 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         TYPE (xmi_energy_continuous) :: energy_cont
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
         INTEGER (C_INT64_T) :: n_photons_sim,n_photons_tot 
+        INTEGER (C_INT) :: progress_percentage
 
-        !WRITE (6,'(A)') 'Precalculating escape ratios'
-        !WRITE (6,'(A)') 'This could take a long time...'
+        progress_percentage = 1
 
         !associate c pointers
         CALL C_F_POINTER(inputFPtr, inputF)
@@ -5466,19 +5468,18 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         DEALLOCATE(photon)
 
                         IF (omp_get_thread_num() == 0) THEN
-                        n_photons_sim = n_photons_sim+1_C_INT64_T
-                        IF(n_photons_sim*100_C_INT64_T/n_photons_tot == &
-                        REAL(n_photons_sim*100_C_INT64_T,KIND=C_DOUBLE)&
-                        /REAL(n_photons_tot,KIND=C_DOUBLE).AND.&
-                        input_options%verbose == 1_C_INT)&
+                          n_photons_sim = n_photons_sim+1_C_INT64_T
+                          IF (REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE)&
+                          .GE. progress_percentage .AND. input_options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Escape peak ratios calculation at'&
-                        //C_NULL_CHAR,INT(n_photons_sim*100_C_INT64_T/n_photons_tot,KIND=C_INT))
+                            CALL xmi_print_progress('Escape peak ratios calculation at'//C_NULL_CHAR,&
+                            progress_percentage)
 #else
-                        WRITE(output_unit,'(A,I3,A)')&
-                        'Escape peak ratios calculation at ',&
-                        n_photons_sim*100_C_INT64_T/n_photons_tot,' %'
+                            WRITE(output_unit,'(A,I3,A)')&
+                            'Escape peak ratios calculation at ',progress_percentage,' %'
 #endif
+                            progress_percentage = progress_percentage+1
+                          ENDIF
                         ENDIF
                 ENDDO
                 fluo_escape_ratios(:,:,i) =&
