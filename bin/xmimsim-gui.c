@@ -4335,7 +4335,9 @@ XMI_MAIN
 	//toolbar
 	toolbar = gtk_toolbar_new();
 	newT = gtk_tool_button_new_from_stock(GTK_STOCK_NEW);
+	gtk_tool_item_set_tooltip_text(newT, "New XMSI file");
 	openT = gtk_menu_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	gtk_tool_item_set_tooltip_text(openT, "Open file");
 	GtkWidget *openrecentT = gtk_recent_chooser_menu_new();
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentT), filter);
 	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), TRUE);
@@ -4349,12 +4351,17 @@ XMI_MAIN
 	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(openT), openrecentT); 
 
 	saveasT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_tool_item_set_tooltip_text(saveasT, "Save XMSI file as");
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
+	gtk_tool_item_set_tooltip_text(saveT, "Save XMSI file");
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
 	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
+	gtk_tool_item_set_tooltip_text(preferencesT, "Preferences");
 	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	gtk_tool_item_set_tooltip_text(tube_ebelT, "X-ray tube spectra");
 	batchmodeT = gtk_tool_button_new_from_stock(GTK_STOCK_DND_MULTIPLE);
+	gtk_tool_item_set_tooltip_text(batchmodeT, "Batch mode");
 	gtk_tool_button_set_label(GTK_TOOL_BUTTON(batchmodeT), "Batch mode");
 	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
