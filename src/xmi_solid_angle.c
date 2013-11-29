@@ -34,6 +34,10 @@ struct xmi_solid_angles_data{
 	struct xmi_main_options options;
 };
 
+#ifdef G_OS_WIN32
+	#include "xmi_registry_win.h"
+#endif
+
 #ifndef XMIMSIM_CL
   #include <hdf5.h>
   #include "xmi_aux.h"
@@ -45,9 +49,6 @@ struct xmi_solid_angles_data{
 	#include "xmi_resources_mac.h"
   #endif
 
-  #ifdef _WIN32
-    	#include "xmi_registry_win.h"
-  #endif
 
 
   static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);

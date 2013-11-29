@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[2.3],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[2.4],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.60])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])

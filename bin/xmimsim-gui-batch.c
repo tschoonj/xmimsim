@@ -43,6 +43,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include "xmi_resources_mac.h"
 #elif defined(G_OS_WIN32)
 	#include "xmi_registry_win.h"
+	#define getpid GetCurrentProcessId
 #endif
 
 
@@ -1017,6 +1018,7 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else {
 		argv[8] = g_strdup("--very-verbose");
 	} 
+	char buffer[512];
 #ifdef G_OS_WIN32
 	//set solid angles and escape ratios files ourself!
 	char *xmimsim_hdf5_solid_angles = NULL;
@@ -1024,7 +1026,7 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
-		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
 		}
@@ -1036,7 +1038,7 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
 		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
-		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
+		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
 		}
@@ -1068,7 +1070,6 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	gboolean spawn_rv;
 	gint out_fh, err_fh;
 	GError *spawn_error = NULL;
-	char buffer[512];
 
 	//spawn
 	spawn_rv = g_spawn_async_with_pipes(wd, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);

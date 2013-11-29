@@ -24,8 +24,9 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "2.17.0"
-!define XRAYLIB_VERSION_MIN "2.17.0"
+!define XRAYLIB_VERSION "3.0.0"
+!define XRAYLIB_VERSION_MIN "3.0.0"
+!define WITH_XRAYLIB
 
 
 ;!define WITH_XRAYLIB
@@ -198,7 +199,7 @@ DetailPrint "Installing OpenMP runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgomp-1.dll" "$INSTDIR\Lib\libgomp-1.dll" "$INSTDIR"
 
 DetailPrint "Installing POSIX threads runtime libraries"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib\pthreadGC2.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libwinpthread-1.dll" "$INSTDIR\Lib\libwinpthread-1.dll" "$INSTDIR"
 
 DetailPrint "Installing libcurl"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libcurl-4.dll" "$INSTDIR\Lib\libcurl-4.dll" "$INSTDIR"
@@ -208,12 +209,12 @@ DetailPrint "Installing Json-Glib"
 
 !ifdef WITH_XRAYLIB
 DetailPrint "Installing xraylib"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-3.dll" "$INSTDIR\Lib\libxrl-3.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libxrl-7.dll" "$INSTDIR\Lib\libxrl-7.dll" "$INSTDIR"
 !endif
 
 
 DetailPrint "Installing GTK-EXTRA runtime libraries"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0-5.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libgtkextra-win32-3.0-6.dll" "$INSTDIR\Lib\libgtkextra-win32-3.0-6.dll" "$INSTDIR"
 
 ;my own stuff
 DetailPrint "Installing XMI-MSIM runtime library"
@@ -381,7 +382,7 @@ RMDir /R "$INSTDIR\GTK2"
 
 !ifdef WITH_XRAYLIB
 DetailPrint "Uninstalling xraylib"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-3.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxrl-7.dll"
 !endif
 
 
@@ -413,7 +414,7 @@ DetailPrint "Uninstalling OpenMP runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgomp-1.dll" 
 
 DetailPrint "Uninstalling POSIX threads runtime libraries"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libwinpthread-1.dll" 
 
 DetailPrint "Uninstalling libcurl"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libcurl-4.dll" 
@@ -422,7 +423,7 @@ DetailPrint "Uninstalling Json-Glib"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libjson-glib-1.0-0.dll" 
 
 DetailPrint "Uninstalling GTK-EXTRA runtime libraries"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0-5.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgtkextra-win32-3.0-6.dll" 
 
 DetailPrint "Uninstalling XMI-MSIM runtime library"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxmimsim-0.dll" 

@@ -38,45 +38,6 @@
 AC_DEFUN([AX_HAVE_OPENCL],
 [dnl
   AC_REQUIRE([AC_CANONICAL_HOST])dnl
-  #
-  # A test program
-  #
-  AC_CHECK_HEADERS([windows.h])
-  m4_define([AX_HAVE_OPENCL_TESTPROG],
-    [AC_LANG_PROGRAM([[
-      # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
-      #   include <windows.h>
-      # endif
-      # ifdef HAVE_CL_CL_H
-      #   include <CL/cl.h>
-      # elif defined(HAVE_OPENCL_CL_H)
-      #   include <OpenCL/cl.h>
-      # else
-      #   error no CL.h
-      # endif]],
-    [[clCreateContextFromType(0,0,0,0,0)]])])
-  #
-  # First we check for Mac OS X, since OpenCL is standard there
-  #
-  LIBS_CL="none"
-  case "$host_os" in
-    darwin*) # On Mac OS X we check for installed frameworks
-      AX_CHECK_FRAMEWORK([OpenCL], [LIBS_CL="-framework OpenCL"], [])
-    ;;
-    *)
-      save_LIBS=$LIBS
-      LIBS="-L/usr/lib64/nvidia -L/usr/lib/nvidia"
-      AC_CHECK_LIB([OpenCL],[clGetPlatformIDs],[LIBS_CL="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCL"])
-      LIBS=$save_LIBS
-    ;;
-  esac
-  if test x"$LIBS_CL" = xnone ; then
-    AC_MSG_WARN([no OpenCL library found])
-    CL_ENABLED=false
-    CL_VERSION=0
-    no_cl=yes
-  else
-    CL_ENABLED=true
     CPPFLAGS_CL=""
     AC_CHECK_HEADERS([CL/cl.h OpenCL/cl.h], [HAVE_CL_H="yes"; break], [HAVE_CL_H="no"])
     if test x"$HAVE_CL_H" = xno ; then
@@ -99,11 +60,58 @@ AC_DEFUN([AX_HAVE_OPENCL],
       fi
       AC_MSG_RESULT([$HAVE_CL_H])
     fi
-    if test x"$HAVE_CL_H" = xyes ; then
-    	no_cl=no
+    if test x"$HAVE_CL_H" = xno ; then
+    	no_cl=yes
+    	AC_MSG_WARN([no OpenCL headers found])
+    	CL_ENABLED=false
+    	CL_VERSION=0
+
     else
-    	no_cl_yes
-    fi
+  	#
+  	# First we check for Mac OS X, since OpenCL is standard there
+  	#
+  	LIBS_CL="none"
+	AC_MSG_CHECKING([for OpenCL library])
+  	case "$host_os" in
+  	  darwin*) # On Mac OS X we check for installed frameworks
+  	    AX_CHECK_FRAMEWORK([OpenCL], [
+	    LIBS_CL="-framework OpenCL"
+	    AC_MSG_RESULT(yes)], [AC_MSG_RESULT(no)])
+  	  ;;
+  	  *)
+  	    save_LIBS=$LIBS
+	    save_CFLAGS=$CFLAGS
+	    CFLAGS=$CPPFLAGS_CL
+  	    LIBS="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCl"
+	    AC_LINK_IFELSE(
+	    [AC_LANG_PROGRAM([
+  		#ifdef HAVE_OPENCL_CL_H
+			#include <OpenCL/cl.h>
+		#elif defined(HAVE_CL_CL_H)
+			#include <CL/cl.h>
+		#endif
+	    	#include <stddef.h>
+	    ],[
+		clGetPlatformIDs(0, NULL, NULL);
+	    
+	    ])],[ 
+    		no_cl=no
+    		AC_MSG_RESULT(yes)
+    		CL_ENABLED=true
+    		CL_VERSION=1
+	    	LIBS_CL="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCl"
+	    ],[
+    		no_cl=yes
+    		AC_MSG_RESULT(no)
+    		CL_ENABLED=false
+    		CL_VERSION=0
+	    ]) 
+
+  	    LIBS=$save_LIBS
+	    CFLAGS=$save_CFLAGS
+  	  ;;
+  	esac
+
   fi
 ])
 
