@@ -193,13 +193,13 @@ DetailPrint "Installing xraylib Fortran bindings"
 DetailPrint "Installing gfortran runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgfortran-3.dll" "$INSTDIR\Lib\libgfortran-3.dll" "$INSTDIR"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libquadmath-0.dll" "$INSTDIR\Lib\libquadmath-0.dll" "$INSTDIR"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgcc_s_sjlj-1.dll" "$INSTDIR\Lib\libgcc_s_sjlj-1.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgcc_s_dw2-1.dll" "$INSTDIR\Lib\libgcc_s_dw2-1.dll" "$INSTDIR"
 
 DetailPrint "Installing OpenMP runtime libraries"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libgomp-1.dll" "$INSTDIR\Lib\libgomp-1.dll" "$INSTDIR"
 
 DetailPrint "Installing POSIX threads runtime libraries"
-!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\libwinpthread-1.dll" "$INSTDIR\Lib\libwinpthread-1.dll" "$INSTDIR"
+!insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_MINGW}bin\pthreadGC2.dll" "$INSTDIR\Lib\pthreadGC2.dll" "$INSTDIR"
 
 DetailPrint "Installing libcurl"
 !insertmacro InstallLib DLL NOTSHARED NOREBOOT_PROTECTED "${MY_HOME}bin\libcurl-4.dll" "$INSTDIR\Lib\libcurl-4.dll" "$INSTDIR"
@@ -408,13 +408,13 @@ DetailPrint "Uninstalling xraylib Fortran bindings"
 DetailPrint "Uninstalling gfortran runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgfortran-3.dll" 
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libquadmath-0.dll"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgcc_s_sjlj-1.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgcc_s_dw2-1.dll"
 
 DetailPrint "Uninstalling OpenMP runtime libraries"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libgomp-1.dll" 
 
 DetailPrint "Uninstalling POSIX threads runtime libraries"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libwinpthread-1.dll" 
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\pthreadGC2.dll" 
 
 DetailPrint "Uninstalling libcurl"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libcurl-4.dll" 
