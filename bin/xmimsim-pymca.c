@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_random.h"
 #include "xmi_detector.h"
 #include <math.h>
+#include <locale.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -133,6 +134,14 @@ XMI_MAIN
 	char *xmi_input_string;
 
 
+	setbuf(stdout,NULL);
+	//locale...
+	//setlocale(LC_ALL,"C");
+#if defined(G_OS_WIN32)
+	setlocale(LC_ALL,"English_United States");
+#else
+	g_setenv("LANG","en_US",TRUE);
+#endif
 
 	options.use_M_lines = 1;
 	options.use_cascade_auger = 1;

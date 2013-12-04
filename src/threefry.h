@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef _threefry_dot_h_
 #define _threefry_dot_h_
-#include "compilerfeatures.h"
-#include "array.h"
-
+/* #include "compilerfeatures.h"
+ * #include "array.h"
+ */
 /** \cond HIDDEN_FROM_DOXYGEN */
 /* Significant parts of this file were copied from
    from:

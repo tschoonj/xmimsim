@@ -1033,7 +1033,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	//
 	
 
-	gchar *kernel_code;
 	gchar *opencl_code;
 
 #ifdef G_OS_WIN32
@@ -1046,41 +1045,105 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	opencl_code = g_strdup(XMI_OPENCL_CODE);
 #endif
 
-	gchar *kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);;
-
-
-	if(g_file_get_contents(kernel_file, &kernel_code, NULL, NULL) == FALSE) {
-		fprintf(stderr,"Could not open %s\n",kernel_file);
+	gchar *kernel_code = NULL;
+	gchar *kernel_file;
+	gchar *source_code = NULL;
+	gsize file_length;
+	
+	//kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);;
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "openclfeatures.h",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (file_length+2));
+	strcpy(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
 	g_free(kernel_file);
+
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "compilerfeatures.h",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
+		return 0;
+	}
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
+	strcat(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
+	g_free(kernel_file);
+
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "sse.h",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
+		return 0;
+	}
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
+	strcat(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
+	g_free(kernel_file);
+
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "array.h",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
+		return 0;
+	}
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
+	strcat(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
+	g_free(kernel_file);
+
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "threefry.h",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
+		return 0;
+	}
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
+	strcat(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
+	g_free(kernel_file);
+
+	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);
+	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+		g_fprintf(stderr,"Could not open %s\n",kernel_file);
+		return 0;
+	}
+	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
+	strcat(kernel_code, source_code);
+	strcat(kernel_code, "\n");
+	g_free(source_code);
+	g_free(kernel_file);
+
+	g_free(opencl_code);
 	
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
+	g_free(kernel_code);
 
-	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i -I%s", RANGE_DIVIDER,opencl_code);
+	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i", RANGE_DIVIDER);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
 	g_free(build_options);
-	g_free(opencl_code);
 	//OPENCL_ERROR(clBuildProgram)
 
 	if (status == CL_BUILD_PROGRAM_FAILURE) {
 		fprintf(stderr,"build failure\n");
 		// Determine the size of the log
 		size_t log_size;
-		clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 		OPENCL_ERROR(clGetProgramBuildInfo)
 	
 		// Allocate memory for the log
-		char *log = (char *) malloc(log_size);
+		char *log = (char *) malloc(log_size+1);
 		
 	        // Get the log
-		clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
 		OPENCL_ERROR(clGetProgramBuildInfo)
 		
 		// Print the log
-		printf("%s\n", log);
+		g_fprintf(stderr, "%s\n", log);
 		return 0;;
 	}
 	//else {

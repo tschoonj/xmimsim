@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef _r123array_dot_h__
 #define _r123array_dot_h__
-#include "compilerfeatures.h"
-#include "sse.h"
-
+/* #include "compilerfeatures.h"
+ * #include "sse.h"
+ */
 #ifndef __cplusplus
 #define CXXMETHODS(_N, W, T)
 #define CXXOVERLOADS(_N, W, T)

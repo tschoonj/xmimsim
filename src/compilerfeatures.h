@@ -183,7 +183,7 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 
 /* N.B.  most other compilers (icc, nvcc, open64, llvm) will also define __GNUC__, so order matters. */
 #if defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ > 0
-#include "openclfeatures.h"
+/*#include "openclfeatures.h"*/
 #elif defined(__CUDACC__)
 #include "nvccfeatures.h"
 #elif defined(__ICC)
