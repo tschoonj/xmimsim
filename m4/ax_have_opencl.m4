@@ -91,7 +91,7 @@ AC_DEFUN([AX_HAVE_OPENCL],
   	    save_LIBS=$LIBS
 	    save_CFLAGS=$CFLAGS
 	    CFLAGS=$CPPFLAGS_CL
-  	    LIBS="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCl"
+  	    LIBS="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCL"
 	    AC_LINK_IFELSE(
 	    [AC_LANG_PROGRAM([
   		#ifdef HAVE_OPENCL_CL_H
