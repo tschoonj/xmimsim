@@ -3857,59 +3857,59 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(lilVBox), roi_radioW, FALSE, FALSE, 2);
 
 	lilHBox = gtk_hbox_new(FALSE, 0);
-	GtkWidget *tinyVBox = gtk_vbox_new(FALSE, 0);
-	GtkWidget *tinyHBox = gtk_hbox_new(FALSE, 0);
-	roi_channel_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "");
+	GtkWidget *tinyVBox = gtk_vbox_new(TRUE, 8);
+	roi_channel_radioW = gtk_radio_button_new(NULL);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_channel_radioW), FALSE);
 	align = gtk_alignment_new(1, 1, 1, 1);
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
-	gtk_container_add(GTK_CONTAINER(align), roi_channel_radioW);
-	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(align), lilHBox);
+	gtk_box_pack_start(GTK_BOX(lilHBox), roi_channel_radioW, FALSE, FALSE, 0);
 
 	roi_start_channel_labelW = gtk_label_new("First channel");
-	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_start_channel_labelW, FALSE, FALSE, 0);
+	roi_end_channel_labelW = gtk_label_new("Last channel");
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_channel_labelW, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_channel_labelW, TRUE, FALSE, 2);
+	gtk_container_add(GTK_CONTAINER(roi_channel_radioW), tinyVBox);
+
+	tinyVBox = gtk_vbox_new(FALSE, 0);
 	roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_channel_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_start_channel_spinnerW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
-
-	tinyHBox = gtk_hbox_new(FALSE, 0);
-	roi_end_channel_labelW = gtk_label_new("Last channel");
-	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_end_channel_labelW, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_channel_spinnerW, FALSE, FALSE, 2);
 	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), archive->output[0][0]->nchannels-1);
-	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_end_channel_spinnerW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(lilHBox), tinyVBox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_channel_spinnerW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(lilHBox), tinyVBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 0);
+
+
 
 	lilHBox = gtk_hbox_new(FALSE, 0);
-	tinyVBox = gtk_vbox_new(FALSE, 0);
-	tinyHBox = gtk_hbox_new(FALSE, 0);
-	roi_energy_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_channel_radioW),"");
+	tinyVBox = gtk_vbox_new(TRUE, 8);
+	roi_energy_radioW = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(roi_channel_radioW));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_energy_radioW), FALSE);
 	align = gtk_alignment_new(1, 1, 1, 1);
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
-	gtk_container_add(GTK_CONTAINER(align), roi_energy_radioW);
-	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(align), lilHBox);
+	gtk_box_pack_start(GTK_BOX(lilHBox), roi_energy_radioW, FALSE, FALSE, 0);
 
 	roi_start_energy_labelW = gtk_label_new("First energy");
-	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_start_energy_labelW, FALSE, FALSE, 0);
+	roi_end_energy_labelW = gtk_label_new("Last energy");
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_energy_labelW, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_energy_labelW, TRUE, FALSE, 2);
+	gtk_container_add(GTK_CONTAINER(roi_energy_radioW), tinyVBox);
+
+	tinyVBox = gtk_vbox_new(FALSE, 0);
 	roi_start_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_start_energy_spinnerW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
-
-	tinyHBox = gtk_hbox_new(FALSE, 0);
-	roi_end_energy_labelW = gtk_label_new("Last energy");
-	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_end_energy_labelW, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_energy_spinnerW, FALSE, FALSE, 2);
 	roi_end_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), archive->output[0][0]->nchannels-1);
-	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_end_energy_spinnerW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(lilHBox), tinyVBox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_energy_spinnerW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(lilHBox), tinyVBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 0);
+
 
 
 	roi_conv_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Use convoluted spectra");
