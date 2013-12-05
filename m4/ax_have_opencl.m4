@@ -71,14 +71,23 @@ AC_DEFUN([AX_HAVE_OPENCL],
   	# First we check for Mac OS X, since OpenCL is standard there
   	#
   	LIBS_CL="none"
-	AC_MSG_CHECKING([for OpenCL library])
   	case "$host_os" in
   	  darwin*) # On Mac OS X we check for installed frameworks
   	    AX_CHECK_FRAMEWORK([OpenCL], [
 	    LIBS_CL="-framework OpenCL"
-	    AC_MSG_RESULT(yes)], [AC_MSG_RESULT(no)])
+    	    no_cl=no
+    	    CL_ENABLED=true
+    	    CL_VERSION=1
+	    ]
+	    ,
+	    [
+    	    no_cl=yes
+    	    CL_ENABLED=false
+    	    CL_VERSION=0
+	    ])
   	  ;;
   	  *)
+	    AC_MSG_CHECKING([for OpenCL library])
   	    save_LIBS=$LIBS
 	    save_CFLAGS=$CFLAGS
 	    CFLAGS=$CPPFLAGS_CL

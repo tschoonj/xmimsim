@@ -3537,10 +3537,16 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 
 struct archive_plot_data {
 	GtkWidget *roi_radioW;
-	GtkWidget *roi_start_spinnerW;
-	GtkWidget *roi_start_labelW;
-	GtkWidget *roi_end_spinnerW;
-	GtkWidget *roi_end_labelW;
+	GtkWidget *roi_channel_radioW;
+	GtkWidget *roi_energy_radioW;
+	GtkWidget *roi_start_channel_spinnerW;
+	GtkWidget *roi_start_channel_labelW;
+	GtkWidget *roi_end_channel_spinnerW;
+	GtkWidget *roi_end_channel_labelW;
+	GtkWidget *roi_start_energy_spinnerW;
+	GtkWidget *roi_start_energy_labelW;
+	GtkWidget *roi_end_energy_spinnerW;
+	GtkWidget *roi_end_energy_labelW;
 	GtkWidget *roi_conv_radioW;
 	GtkWidget *roi_unconv_radioW;
 	GtkWidget *roi_interactions_labelW;
@@ -3585,13 +3591,13 @@ static void save_archive_plot(GtkButton *saveButton, GtkWidget *canvas) {
 	export_canvas_image(canvas, "Export plot as");
 }
 
-static void roi_spin_button_changed_cb(GtkSpinButton *roi_start_spinnerW, struct archive_plot_data *apd) {
-	//warning: will have to disable temporarily the plot_archive_data_cb on roi_end_spinnerW
-	gint value_start = gtk_spin_button_get_value_as_int(roi_start_spinnerW);
-	gint value_end = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+static void roi_spin_button_changed_cb(GtkSpinButton *roi_start_channel_spinnerW, struct archive_plot_data *apd) {
+	//warning: will have to disable temporarily the plot_archive_data_cb on roi_end_channel_spinnerW
+	gint value_start = gtk_spin_button_get_value_as_int(roi_start_channel_spinnerW);
+	gint value_end = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
 
 	if (value_end < value_start) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(apd->roi_end_spinnerW), (double) value_start);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW), (double) value_start);
 		return;
 	}
 	plot_archive_data_cb(apd);
@@ -3636,13 +3642,43 @@ static void xrf_element_changed_cb(GtkComboBox *xrf_element_comboW, struct archi
 	return;
 }
 
+static void roi_channel_energy_toggled_cb(GtkToggleButton *roi_channel_radioW, struct archive_plot_data *apd) {
+
+	if (gtk_toggle_button_get_active(roi_channel_radioW)) {
+		gtk_widget_set_sensitive(apd->roi_start_channel_spinnerW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_channel_spinnerW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_start_energy_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_energy_spinnerW, FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(apd->roi_start_channel_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_channel_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_energy_spinnerW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_energy_spinnerW, TRUE);
+	}
+
+	plot_archive_data_cb(apd);
+	return;
+
+}
+
 static void roi_xrf_toggled_cb(GtkToggleButton *roi_radioW, struct archive_plot_data *apd) {
 	if (gtk_toggle_button_get_active(roi_radioW)) {
 		//ROI mode
-		gtk_widget_set_sensitive(apd->roi_start_spinnerW, TRUE);
-		gtk_widget_set_sensitive(apd->roi_start_labelW, TRUE);
-		gtk_widget_set_sensitive(apd->roi_end_spinnerW, TRUE);
-		gtk_widget_set_sensitive(apd->roi_end_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_channel_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_energy_radioW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_start_channel_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_channel_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_start_energy_labelW, TRUE);
+		gtk_widget_set_sensitive(apd->roi_end_energy_labelW, TRUE);
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_channel_radioW))) {
+			gtk_widget_set_sensitive(apd->roi_start_channel_spinnerW, TRUE);
+			gtk_widget_set_sensitive(apd->roi_end_channel_spinnerW, TRUE);
+		}
+		else {
+			gtk_widget_set_sensitive(apd->roi_start_energy_spinnerW, TRUE);
+			gtk_widget_set_sensitive(apd->roi_end_energy_spinnerW, TRUE);
+		}
 		gtk_widget_set_sensitive(apd->roi_conv_radioW, TRUE);
 		gtk_widget_set_sensitive(apd->roi_unconv_radioW, TRUE);
 		gtk_widget_set_sensitive(apd->roi_interactions_labelW, TRUE);
@@ -3666,10 +3702,16 @@ static void roi_xrf_toggled_cb(GtkToggleButton *roi_radioW, struct archive_plot_
 	}
 	else {
 		//XRF mode
-		gtk_widget_set_sensitive(apd->roi_start_spinnerW, FALSE);
-		gtk_widget_set_sensitive(apd->roi_start_labelW, FALSE);
-		gtk_widget_set_sensitive(apd->roi_end_spinnerW, FALSE);
-		gtk_widget_set_sensitive(apd->roi_end_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_channel_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_energy_radioW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_channel_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_channel_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_channel_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_channel_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_energy_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_start_energy_labelW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_energy_spinnerW, FALSE);
+		gtk_widget_set_sensitive(apd->roi_end_energy_labelW, FALSE);
 		gtk_widget_set_sensitive(apd->roi_conv_radioW, FALSE);
 		gtk_widget_set_sensitive(apd->roi_unconv_radioW, FALSE);
 		gtk_widget_set_sensitive(apd->roi_interactions_labelW, FALSE);
@@ -3742,10 +3784,16 @@ static gboolean resize_canvas_cb(GtkWidget *canvas, GdkEvent *event, struct canv
 void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	//on quitting this window -> free archive (lot of memory)
 	GtkWidget *roi_radioW;
-	GtkWidget *roi_start_spinnerW;
-	GtkWidget *roi_start_labelW;
-	GtkWidget *roi_end_spinnerW;
-	GtkWidget *roi_end_labelW;
+	GtkWidget *roi_channel_radioW;
+	GtkWidget *roi_energy_radioW;
+	GtkWidget *roi_start_channel_spinnerW;
+	GtkWidget *roi_start_channel_labelW;
+	GtkWidget *roi_end_channel_spinnerW;
+	GtkWidget *roi_end_channel_labelW;
+	GtkWidget *roi_start_energy_spinnerW;
+	GtkWidget *roi_start_energy_labelW;
+	GtkWidget *roi_end_energy_spinnerW;
+	GtkWidget *roi_end_energy_labelW;
 	GtkWidget *roi_conv_radioW;
 	GtkWidget *roi_unconv_radioW;
 	GtkWidget *roi_interactions_labelW;
@@ -3808,28 +3856,61 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_radioW), FALSE);
 	gtk_box_pack_start(GTK_BOX(lilVBox), roi_radioW, FALSE, FALSE, 2);
 
-	lilHBox = gtk_hbox_new(FALSE, 2);
-	roi_start_labelW = gtk_label_new("First channel");
+	lilHBox = gtk_hbox_new(FALSE, 0);
+	GtkWidget *tinyVBox = gtk_vbox_new(FALSE, 0);
+	GtkWidget *tinyHBox = gtk_hbox_new(FALSE, 0);
+	roi_channel_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "");
 	align = gtk_alignment_new(1, 1, 1, 1);
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
-	gtk_container_add(GTK_CONTAINER(align), roi_start_labelW);
-	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_start_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_box_pack_end(GTK_BOX(lilHBox), roi_start_spinnerW, FALSE, FALSE, 3);
+	gtk_container_add(GTK_CONTAINER(align), roi_channel_radioW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 0);
+
+	roi_start_channel_labelW = gtk_label_new("First channel");
+	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_start_channel_labelW, FALSE, FALSE, 0);
+	roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_channel_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_start_channel_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
+
+	tinyHBox = gtk_hbox_new(FALSE, 0);
+	roi_end_channel_labelW = gtk_label_new("Last channel");
+	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_end_channel_labelW, FALSE, FALSE, 0);
+	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), archive->output[0][0]->nchannels-1);
+	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_end_channel_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilHBox), tinyVBox, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
 
-	lilHBox = gtk_hbox_new(FALSE, 2);
-	roi_end_labelW = gtk_label_new("Last channel");
+	lilHBox = gtk_hbox_new(FALSE, 0);
+	tinyVBox = gtk_vbox_new(FALSE, 0);
+	tinyHBox = gtk_hbox_new(FALSE, 0);
+	roi_energy_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(roi_channel_radioW),"");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_energy_radioW), FALSE);
 	align = gtk_alignment_new(1, 1, 1, 1);
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 20, 0);
-	gtk_container_add(GTK_CONTAINER(align), roi_end_labelW);
-	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 3);
-	roi_end_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_spinnerW), archive->output[0][0]->nchannels-1);
-	gtk_box_pack_end(GTK_BOX(lilHBox), roi_end_spinnerW, FALSE, FALSE, 3);
+	gtk_container_add(GTK_CONTAINER(align), roi_energy_radioW);
+	gtk_box_pack_start(GTK_BOX(lilHBox), align, FALSE, FALSE, 0);
+
+	roi_start_energy_labelW = gtk_label_new("First energy");
+	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_start_energy_labelW, FALSE, FALSE, 0);
+	roi_start_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_start_energy_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
+
+	tinyHBox = gtk_hbox_new(FALSE, 0);
+	roi_end_energy_labelW = gtk_label_new("Last energy");
+	gtk_box_pack_start(GTK_BOX(tinyHBox), roi_end_energy_labelW, FALSE, FALSE, 0);
+	roi_end_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), archive->output[0][0]->nchannels-1);
+	gtk_box_pack_end(GTK_BOX(tinyHBox), roi_end_energy_spinnerW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(tinyVBox), tinyHBox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilHBox), tinyVBox, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(lilVBox), lilHBox, FALSE, FALSE, 2);
+
 
 	roi_conv_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "Use convoluted spectra");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(roi_conv_radioW), TRUE);
@@ -4053,10 +4134,16 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 
 	//default sensitivities
 	gtk_widget_set_sensitive(xrf_line_comboW, FALSE);
-	gtk_widget_set_sensitive(roi_start_spinnerW, FALSE);
-	gtk_widget_set_sensitive(roi_start_labelW, FALSE);
-	gtk_widget_set_sensitive(roi_end_spinnerW, FALSE);
-	gtk_widget_set_sensitive(roi_end_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_channel_radioW, FALSE);
+	gtk_widget_set_sensitive(roi_energy_radioW, FALSE);
+	gtk_widget_set_sensitive(roi_start_channel_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_start_channel_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_end_channel_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_end_channel_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_start_energy_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_start_energy_labelW, FALSE);
+	gtk_widget_set_sensitive(roi_end_energy_spinnerW, FALSE);
+	gtk_widget_set_sensitive(roi_end_energy_labelW, FALSE);
 	gtk_widget_set_sensitive(roi_conv_radioW, FALSE);
 	gtk_widget_set_sensitive(roi_unconv_radioW, FALSE);
 	gtk_widget_set_sensitive(roi_interactions_labelW, FALSE);
@@ -4069,10 +4156,16 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 
 	struct archive_plot_data *apd = g_malloc(sizeof(struct archive_plot_data));
 	apd->roi_radioW = roi_radioW;
-	apd->roi_start_spinnerW = roi_start_spinnerW;
-	apd->roi_start_labelW = roi_start_labelW;
-	apd->roi_end_spinnerW = roi_end_spinnerW;
-	apd->roi_end_labelW = roi_end_labelW;
+	apd->roi_channel_radioW = roi_channel_radioW;
+	apd->roi_energy_radioW = roi_energy_radioW;
+	apd->roi_start_channel_spinnerW = roi_start_channel_spinnerW;
+	apd->roi_start_channel_labelW = roi_start_channel_labelW;
+	apd->roi_end_channel_spinnerW = roi_end_channel_spinnerW;
+	apd->roi_end_channel_labelW = roi_end_channel_labelW;
+	apd->roi_start_energy_spinnerW = roi_start_energy_spinnerW;
+	apd->roi_start_energy_labelW = roi_start_energy_labelW;
+	apd->roi_end_energy_spinnerW = roi_end_energy_spinnerW;
+	apd->roi_end_energy_labelW = roi_end_energy_labelW;
 	apd->roi_conv_radioW = roi_conv_radioW;
 	apd->roi_unconv_radioW = roi_unconv_radioW;
 	apd->roi_interactions_labelW = roi_interactions_labelW;
@@ -4103,10 +4196,11 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 
 	//callbacks registration
 	g_signal_connect(G_OBJECT(roi_radioW), "toggled", G_CALLBACK(roi_xrf_toggled_cb), apd);
+	g_signal_connect(G_OBJECT(roi_channel_radioW), "toggled", G_CALLBACK(roi_channel_energy_toggled_cb), apd);
 	g_signal_connect(G_OBJECT(xrf_element_comboW), "changed", G_CALLBACK(xrf_element_changed_cb), apd);
-	g_signal_connect(G_OBJECT(roi_start_spinnerW), "value-changed", G_CALLBACK(roi_spin_button_changed_cb), apd);
+	g_signal_connect(G_OBJECT(roi_start_channel_spinnerW), "value-changed", G_CALLBACK(roi_spin_button_changed_cb), apd);
 
-	g_signal_connect_swapped(G_OBJECT(roi_end_spinnerW), "value-changed", G_CALLBACK(plot_archive_data_cb), apd);
+	g_signal_connect_swapped(G_OBJECT(roi_end_channel_spinnerW), "value-changed", G_CALLBACK(plot_archive_data_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_conv_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_interactions_comboW), "changed", G_CALLBACK(plot_archive_data_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_cumulative_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
@@ -4160,8 +4254,8 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
 		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
-		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
-		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
+		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
 #if GTK_CHECK_VERSION(2,24,0)
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
 #else
@@ -4467,8 +4561,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
 		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
-		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_spinnerW));
-		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_spinnerW));
+		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
+		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
 #if GTK_CHECK_VERSION(2,24,0)
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
 #else
