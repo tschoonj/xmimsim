@@ -3575,6 +3575,10 @@ struct archive_plot_data {
 	struct xmi_archive *archive;
 	struct fluor_data *fd;
 	int nfd;
+	gulong roi_start_channel_spinnerG;
+	gulong roi_end_channel_spinnerG;
+	gulong roi_start_energy_spinnerG;
+	gulong roi_end_energy_spinnerG;
 };
 
 static void plot_archive_data_2D(struct archive_plot_data *apd);
@@ -3591,16 +3595,35 @@ static void save_archive_plot(GtkButton *saveButton, GtkWidget *canvas) {
 	export_canvas_image(canvas, "Export plot as");
 }
 
-static void roi_spin_button_changed_cb(GtkSpinButton *roi_start_channel_spinnerW, struct archive_plot_data *apd) {
-	//warning: will have to disable temporarily the plot_archive_data_cb on roi_end_channel_spinnerW
-	gint value_start = gtk_spin_button_get_value_as_int(roi_start_channel_spinnerW);
-	gint value_end = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
-
-	if (value_end < value_start) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW), (double) value_start);
-		return;
-	}
+static gboolean plot_archive_data_cb_helper(struct archive_plot_data *apd) {
 	plot_archive_data_cb(apd);
+	return FALSE;
+}
+
+static void roi_start_channel_changed_cb(GtkSpinButton *roi_start_channel_spinnerW, struct archive_plot_data *apd) {
+	gint value_start = gtk_spin_button_get_value_as_int(roi_start_channel_spinnerW);
+
+	g_signal_handler_block(apd->roi_end_channel_spinnerW, apd->roi_end_channel_spinnerG);
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW), (double) value_start, (double) apd->archive->output[0][0]->nchannels-1);
+	g_signal_handler_unblock(apd->roi_end_channel_spinnerW, apd->roi_end_channel_spinnerG);
+
+	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) apd);
+	return;
+}
+
+static void roi_start_energy_changed_cb(GtkSpinButton *roi_start_energy_spinnerW, struct archive_plot_data *apd) {
+	gint value_start = gtk_spin_button_get_value_as_int(roi_start_energy_spinnerW);
+
+	g_signal_handler_block(apd->roi_end_energy_spinnerW, apd->roi_end_energy_spinnerG);
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_energy_spinnerW), (double) value_start, (apd->archive->output[0][0]->nchannels-1)*(apd->archive->input[0][0]->detector->gain)+(apd->archive->input[0][0]->detector->zero));
+	g_signal_handler_unblock(apd->roi_end_energy_spinnerW, apd->roi_end_energy_spinnerG);
+
+	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) apd);
+	return;
+}
+
+static void roi_end_changed_cb(struct archive_plot_data *apd) {
+	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) apd);
 	return;
 }
 
@@ -3875,7 +3898,7 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_channel_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_channel_spinnerW, FALSE, FALSE, 2);
-	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
+	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(1, archive->output[0][0]->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), archive->output[0][0]->nchannels-1);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_channel_spinnerW, FALSE, FALSE, 2);
@@ -3900,12 +3923,18 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_container_add(GTK_CONTAINER(roi_energy_radioW), tinyVBox);
 
 	tinyVBox = gtk_vbox_new(FALSE, 0);
-	roi_start_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
+	double energy_min = 0.0; 
+	double energy_max = (archive->output[0][0]->nchannels-2)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
+	roi_start_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), 2);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_energy_spinnerW, FALSE, FALSE, 2);
-	roi_end_energy_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-1, 1);
+	energy_min = archive->input[0][0]->detector->gain;
+	energy_max = (archive->output[0][0]->nchannels-1)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
+	roi_end_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), archive->output[0][0]->nchannels-1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), energy_max);
+	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), 2);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_energy_spinnerW, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(lilHBox), tinyVBox, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 0);
@@ -4198,9 +4227,11 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	g_signal_connect(G_OBJECT(roi_radioW), "toggled", G_CALLBACK(roi_xrf_toggled_cb), apd);
 	g_signal_connect(G_OBJECT(roi_channel_radioW), "toggled", G_CALLBACK(roi_channel_energy_toggled_cb), apd);
 	g_signal_connect(G_OBJECT(xrf_element_comboW), "changed", G_CALLBACK(xrf_element_changed_cb), apd);
-	g_signal_connect(G_OBJECT(roi_start_channel_spinnerW), "value-changed", G_CALLBACK(roi_spin_button_changed_cb), apd);
+	apd->roi_start_channel_spinnerG = g_signal_connect(G_OBJECT(roi_start_channel_spinnerW), "value-changed", G_CALLBACK(roi_start_channel_changed_cb), apd);
+	apd->roi_start_energy_spinnerG = g_signal_connect(G_OBJECT(roi_start_energy_spinnerW), "value-changed", G_CALLBACK(roi_start_energy_changed_cb), apd);
 
-	g_signal_connect_swapped(G_OBJECT(roi_end_channel_spinnerW), "value-changed", G_CALLBACK(plot_archive_data_cb), apd);
+	apd->roi_end_channel_spinnerG = g_signal_connect_swapped(G_OBJECT(roi_end_channel_spinnerW), "value-changed", G_CALLBACK(roi_end_changed_cb), apd);
+	apd->roi_end_energy_spinnerG = g_signal_connect_swapped(G_OBJECT(roi_end_energy_spinnerW), "value-changed", G_CALLBACK(roi_end_changed_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_conv_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_interactions_comboW), "changed", G_CALLBACK(plot_archive_data_cb), apd);
 	g_signal_connect_swapped(G_OBJECT(roi_cumulative_radioW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
@@ -4254,8 +4285,17 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
 		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
-		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
-		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
+		gint start_channel, end_channel;
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_channel_radioW))) {
+			start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
+			end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
+		}
+		else {
+			gdouble start_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(apd->roi_start_energy_spinnerW));
+			gdouble end_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(apd->roi_end_energy_spinnerW));
+			start_channel = (int) ((start_energy - apd->archive->input[0][0]->detector->zero)/apd->archive->input[0][0]->detector->gain);
+			end_channel = (int) ((end_energy - apd->archive->input[0][0]->detector->zero)/apd->archive->input[0][0]->detector->gain);
+		}
 #if GTK_CHECK_VERSION(2,24,0)
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
 #else
@@ -4561,8 +4601,17 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
 		gboolean convoluted = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_conv_radioW));
-		gint start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
-		gint end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
+		gint start_channel, end_channel;
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_channel_radioW))) {
+			start_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_start_channel_spinnerW));
+			end_channel = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW));
+		}
+		else {
+			gdouble start_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(apd->roi_start_energy_spinnerW));
+			gdouble end_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(apd->roi_end_energy_spinnerW));
+			start_channel = (int) ((start_energy - apd->archive->input[0][0]->detector->zero)/apd->archive->input[0][0]->detector->gain);
+			end_channel = (int) ((end_energy - apd->archive->input[0][0]->detector->zero)/apd->archive->input[0][0]->detector->gain);
+		}
 #if GTK_CHECK_VERSION(2,24,0)
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(apd->roi_interactions_comboW));
 #else
