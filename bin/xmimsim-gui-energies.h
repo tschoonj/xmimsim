@@ -51,4 +51,5 @@ enum {
 	NCOLUMNS_ENERGIES,
 };
 void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
+void export_canvas_image (GtkWidget *canvas, gchar *title);
 #endif

@@ -33,6 +33,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
+#ifdef CAIRO_HAS_SVG_SURFACE
+#include <cairo-svg.h>
+#endif
 #include <gsl/gsl_spline.h>
 
 
@@ -191,95 +194,7 @@ static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) 
 }
 
 static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
-	GtkWidget *dialog;
-	GtkFileFilter *filter;
-	gchar *filename;
-	cairo_t *cairo;
-	cairo_surface_t *surface;
-
-	dialog = gtk_file_chooser_dialog_new("Save spectrum as image", 
-		GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_FILE_CHOOSER_ACTION_SAVE,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.eps");
-	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.pdf");
-	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.png");
-	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		//get selected filter
-		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
-		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
-			fprintf(stdout,"EPS selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".eps");
-			}
-			//surface = cairo_ps_surface_create(filename,595.0,842);
-			surface = cairo_ps_surface_create(filename,842,595);
-			/*cairo_ps_surface_dsc_begin_page_setup (surface);
-			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
-			cairo_ps_surface_set_eps(surface,1);
-			cairo = cairo_create(surface);
-			/*cairo_translate (cairo, 0, 842);
-			cairo_rotate(cairo, -M_PI/2);*/
-			
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
-			fprintf(stdout,"PDF selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".pdf");
-			}
-			surface = cairo_pdf_surface_create(filename,842.0,595.0);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
-			fprintf(stdout,"PNG selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".png");
-			}
-			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_surface_write_to_png(surface,filename);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}			
-		g_free(filename);
-		gtk_widget_destroy(dialog);
-	}
-	else
-		gtk_widget_destroy(dialog);
-
-
+	export_canvas_image(gen->canvas, "Save spectrum as image");	
 	return;
 }
 static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -703,7 +618,7 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 
 static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
-	gchar *text;
+	gchar *text = NULL;
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
 	
@@ -727,7 +642,7 @@ static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRen
 static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
 	gdouble scale_parameter;
-	gchar *text;
+	gchar *text = NULL;
 
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
@@ -2241,7 +2156,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %i lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %zu lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
 				return -3;
 		};
 
@@ -2463,7 +2378,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
 	struct transmission_data *td = (struct transmission_data *) malloc(sizeof(struct transmission_data));
-	g_signal_connect(G_OBJECT(transmissionW), "clicked", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
+	g_signal_connect(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
 	td->anodeDensityW = anodeDensityW;
 	td->anodeThicknessW = anodeThicknessW;
 
@@ -2475,7 +2390,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_widget_set_sensitive(transmissionEffFileW, FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	g_signal_connect(G_OBJECT(transmissionEffW), "clicked", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
 
 
 	//buttons	
@@ -2547,4 +2462,119 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_widget_show_all(window);
 
+}
+
+void export_canvas_image (GtkWidget *canvas, gchar *title) {
+
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+	cairo_t *cairo;
+	cairo_surface_t *surface;
+
+	dialog = gtk_file_chooser_dialog_new(title, 
+		GTK_WINDOW(gtk_widget_get_toplevel(canvas)), GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.eps");
+	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.pdf");
+	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.png");
+	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#ifdef CAIRO_HAS_SVG_SURFACE
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.svg");
+	gtk_file_filter_set_name(filter,"SVG (Scalar Vector Graphics)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#endif
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		//get selected filter
+		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
+		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
+			fprintf(stdout,"EPS selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".eps");
+			}
+			//surface = cairo_ps_surface_create(filename,595.0,842);
+			surface = cairo_ps_surface_create(filename,842,595);
+			/*cairo_ps_surface_dsc_begin_page_setup (surface);
+			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
+			cairo_ps_surface_set_eps(surface,1);
+			cairo = cairo_create(surface);
+			/*cairo_translate (cairo, 0, 842);
+			cairo_rotate(cairo, -M_PI/2);*/
+			
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+
+		}
+		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
+			fprintf(stdout,"PDF selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".pdf");
+			}
+			surface = cairo_pdf_surface_create(filename,842.0,595.0);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}
+		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
+			fprintf(stdout,"PNG selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".png");
+			}
+			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_surface_write_to_png(surface,filename);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}			
+#ifdef CAIRO_HAS_SVG_SURFACE
+		else if (strncmp(gtk_file_filter_get_name(filter),"SVG", 3) == 0) {
+			fprintf(stdout,"SVG selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".svg") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".svg");
+			}
+			surface = cairo_svg_surface_create(filename, 842, 595);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}			
+#endif
+		g_free(filename);
+		gtk_widget_destroy(dialog);
+	}
+	else
+		gtk_widget_destroy(dialog);
+
+
+	return;
 }

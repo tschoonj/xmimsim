@@ -14,6 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/.
 -->
+<!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
+<!-- Next line is for backwards compatibility only -->
 <!ELEMENT xmimsim (general, composition , geometry, excitation, absorbers, detector)>
 
 <!ELEMENT general (outputfile, n_photons_interval,n_photons_line,n_interactions_trajectory, comments)>
@@ -82,8 +84,10 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!-- outputfile structure -->
 
 
-<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history, xmimsim-input, svg_graphs)>
+<!ELEMENT xmimsim-results (inputfile, spectrum_conv, spectrum_unconv ,brute_force_history, variance_reduction_history, xmimsim-input, svg_graphs?)>
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
+<!ATTLIST xmimsim-results step1 CDATA #IMPLIED>
+<!ATTLIST xmimsim-results step2 CDATA #IMPLIED>
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
 <!ELEMENT spectrum_unconv (channel+)>
@@ -102,7 +106,6 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST fluorescence_line energy CDATA #REQUIRED>
 <!ATTLIST fluorescence_line total_counts CDATA #REQUIRED>
 
-<!ELEMENT xmimsim-input (general, composition , geometry, excitation, absorbers, detector)>
 
 <!-- svg stuff...  -->
 <!ELEMENT svg_graphs (graphic*)>
@@ -125,4 +128,13 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT value (#PCDATA)>
 <!ELEMENT color (#PCDATA)>
 
-
+<!-- archive -->
+<!ELEMENT xmimsim-archive (start_value1, end_value1, nsteps1, xpath1, start_value2?, end_value2?, nsteps2?, xpath2?, xmimsim-results+)>
+<!ELEMENT start_value1 (#PCDATA)>
+<!ELEMENT end_value1 (#PCDATA)>
+<!ELEMENT nsteps1 (#PCDATA)>
+<!ELEMENT xpath1 (#PCDATA)>
+<!ELEMENT start_value2 (#PCDATA)>
+<!ELEMENT end_value2 (#PCDATA)>
+<!ELEMENT nsteps2 (#PCDATA)>
+<!ELEMENT xpath2 (#PCDATA)>

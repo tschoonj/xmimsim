@@ -69,4 +69,6 @@ extern GtkWidget *stopButton;
 	
 extern GPid xmimsim_pid;
 
+void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
+
 #endif

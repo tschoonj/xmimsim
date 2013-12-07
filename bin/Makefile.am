@@ -61,7 +61,9 @@ xmimsim_gui_SOURCES = xmimsim-gui.c \
 		      xmimsim-gui-prefs.h \
 		      xmimsim-gui-prefs.c \
 		      xmimsim-gui-tools.c \
-		      xmimsim-gui-tools.h
+		      xmimsim-gui-tools.h \
+		      xmimsim-gui-batch.h \
+		      xmimsim-gui-batch.c
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
@@ -69,8 +71,8 @@ endif
 xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
 		     @gtk2_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
-		     @OPENMP_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
+		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\"
 if ENABLE_UPDATER
 xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
@@ -81,7 +83,8 @@ xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    @gtk3extra_LIBS@ \
 		    @gtk2_LIBS@ \
 		    @GTK_MAC_LIBS@ \
-		    @xraylib_LIBS@
+		    @xraylib_LIBS@ \
+		    @gthread2_LIBS@
 if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
@@ -115,10 +118,10 @@ endif
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
+		 @xml2_CFLAGS@ \
 		 @gsl_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
-		 @OPENMP_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la \
@@ -137,8 +140,8 @@ xmimsim_pymca_LDADD = ../src/libxmimsim.la \
 		      @glib2_LIBS@
 xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
-		       @OPENMP_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
+		       @xml2_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 
 
@@ -147,13 +150,15 @@ xmso2xmsi_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmso2xmsi_CFLAGS = @glib2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		   @xml2_CFLAGS@ \
+		   @xraylib_CFLAGS@ 
 
 xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2svg_CFLAGS = @glib2_CFLAGS@ \
+		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
 xmso2spe_SOURCES = xmso2spe.c
@@ -161,6 +166,7 @@ xmso2spe_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2spe_CFLAGS = @glib2_CFLAGS@ \
+		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
 xmso2csv_SOURCES = xmso2csv.c
@@ -168,6 +174,7 @@ xmso2csv_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2csv_CFLAGS = @glib2_CFLAGS@ \
+		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
 xmso2htm_SOURCES = xmso2htm.c
@@ -175,6 +182,7 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2htm_CFLAGS = @glib2_CFLAGS@ \
+		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ 
 
 xmimsim_db_SOURCES = xmimsim-db.c

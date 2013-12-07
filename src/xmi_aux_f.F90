@@ -19,6 +19,7 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
 USE :: fgsl
+USE :: omp_lib
 
 IMPLICIT NONE
 
@@ -280,8 +281,10 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: escape_ratios_mode
         INTEGER (C_INT) :: verbose 
         INTEGER (C_INT) :: use_poisson
+        INTEGER (C_INT) :: use_opencl
         INTEGER (C_INT) :: omp_num_threads
         INTEGER (C_INT) :: extra_verbose
+        INTEGER (C_INT) :: nchannels
 ENDTYPE xmi_main_options
 !
 !
@@ -785,6 +788,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                 ALLOCATE(xmi_inputF%composition%layers(i)%weight(xmi_layer_temp(i)%n_elements))
                 xmi_inputF%composition%layers(i)%weight = &
                 weight_temp
+                xmi_inputF%composition%layers(i)%weight = xmi_inputF%composition%layers(i)%weight&
+                /SUM(xmi_inputF%composition%layers(i)%weight)
         ENDDO
 
 #if DEBUG == 1
@@ -862,6 +867,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%absorbers%exc_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%exc_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%absorbers%exc_layers(i)%weight = xmi_inputF%absorbers%exc_layers(i)%weight&
+                        /SUM(xmi_inputF%absorbers%exc_layers(i)%weight)
                 ENDDO
         ENDIF
 
@@ -887,6 +894,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%absorbers%det_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%absorbers%det_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%absorbers%det_layers(i)%weight = xmi_inputF%absorbers%det_layers(i)%weight&
+                        /SUM(xmi_inputF%absorbers%det_layers(i)%weight)
                 ENDDO
         ENDIF
 
@@ -930,6 +939,8 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
                         ALLOCATE(xmi_inputF%detector%crystal_layers(i)%weight(xmi_layer_temp(i)%n_elements))
                         xmi_inputF%detector%crystal_layers(i)%weight = &
                         weight_temp
+                        xmi_inputF%detector%crystal_layers(i)%weight = xmi_inputF%detector%crystal_layers(i)%weight&
+                        /SUM(xmi_inputF%detector%crystal_layers(i)%weight)
                 ENDDO
         ENDIF
 
@@ -1109,25 +1120,9 @@ SUBROUTINE xmi_move_photon_with_dist(photon, dist)
         TYPE (xmi_photon), INTENT(INOUT)  :: photon
         REAL (C_DOUBLE), INTENT(IN) :: dist
 
-        REAL (C_DOUBLE) :: theta, phi
 
-        !check if photon isn't moving through the collimator or through the
-        !detector surface...
+        photon%coords = photon%coords + dist*photon%dirv
 
-
-        !photon%dirv are normalized...
-        theta = ACOS(photon%dirv(3))
-        IF (photon%dirv(1) .LT. 1E-16) THEN
-                phi = 0.0_C_DOUBLE
-        ELSE 
-                phi = ATAN(photon%dirv(2)/photon%dirv(1))
-        ENDIF
-
-        photon%coords(1) = photon%coords(1) + dist*SIN(theta)*COS(phi)
-        photon%coords(2) = photon%coords(2) + dist*SIN(theta)*SIN(phi)
-        photon%coords(3) = photon%coords(3) + dist*COS(theta)
-
-        RETURN
 ENDSUBROUTINE xmi_move_photon_with_dist
 
 FUNCTION cross_product(a,b) RESULT(rv)
@@ -1387,6 +1382,22 @@ FUNCTION xmi_sum_double(array, n_elements) BIND(C,NAME='xmi_sum_double')
 
         RETURN
 ENDFUNCTION xmi_sum_double
+
+FUNCTION xmi_sum_int(array, n_elements) BIND(C,NAME='xmi_sum_int')
+        IMPLICIT NONE
+        INTEGER (C_INT), INTENT(IN),VALUE :: n_elements
+        TYPE (C_PTR), VALUE, INTENT(IN) :: array
+        INTEGER (C_INT) :: xmi_sum_int
+        INTEGER (C_INT), DIMENSION(:), POINTER :: arrayF
+
+        xmi_sum_int = 0_C_INT
+        CALL C_F_POINTER(array, arrayF, [n_elements])
+
+
+        xmi_sum_int = SUM(arrayF)
+
+        RETURN
+ENDFUNCTION xmi_sum_int
 
 SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_scale_double')
         IMPLICIT NONE
@@ -1791,6 +1802,7 @@ FUNCTION xmi_ran_trap_workspace_init(x1, x2, y1, y2, workspace)&
 ENDFUNCTION xmi_ran_trap_workspace_init
 
 FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
+        IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_ran_trap_workspace) :: workspace
         REAL (C_DOUBLE) :: rv
@@ -1824,5 +1836,13 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
 
         RETURN
 ENDFUNCTION xmi_ran_trap
+
+FUNCTION xmi_omp_get_max_threads() RESULT(rv)&
+BIND(C,NAME='xmi_omp_get_max_threads')
+        IMPLICIT NONE
+        INTEGER (C_INT) :: rv
+
+        rv = INT(omp_get_max_threads(), KIND=C_INT)
+ENDFUNCTION xmi_omp_get_max_threads
 
 ENDMODULE 

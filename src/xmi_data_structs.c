@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_data_structs.h"
 #include "xmi_aux.h"
+#include "xmi_lines.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -692,6 +693,7 @@ void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, st
 int xmi_validate_input(struct xmi_input *a) {
 	int i,j;
 	int rv = 0;
+	double sum;
 
 
 
@@ -730,6 +732,22 @@ after_general:
 	}
 
 	for (i = 0 ; i < a->composition->n_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->composition->layers[i].n_elements ; j++) {
+			if (a->composition->layers[i].Z[j] < 1 || a->composition->layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_COMPOSITION;
+				goto after_composition;
+			}
+			else if (a->composition->layers[i].weight[j] < 0.0 || a->composition->layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_COMPOSITION;
+				goto after_composition;
+			}
+			sum += a->composition->layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_COMPOSITION;
+			goto after_composition;
+		}
 		if (a->composition->layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_COMPOSITION;
 			goto after_composition;
@@ -840,6 +858,22 @@ after_excitation:
 
 	//absorbers
 	for (i = 0 ; i < a->absorbers->n_exc_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->absorbers->exc_layers[i].n_elements ; j++) {
+			if (a->absorbers->exc_layers[i].Z[j] < 1 || a->absorbers->exc_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			else if (a->absorbers->exc_layers[i].weight[j] < 0.0 || a->absorbers->exc_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			sum += a->absorbers->exc_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_ABSORBERS;
+			goto after_absorbers;
+		}
 		if (a->absorbers->exc_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_ABSORBERS;
 			goto after_absorbers;
@@ -851,6 +885,22 @@ after_excitation:
 	}
 
 	for (i = 0 ; i < a->absorbers->n_det_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->absorbers->det_layers[i].n_elements ; j++) {
+			if (a->absorbers->det_layers[i].Z[j] < 1 || a->absorbers->det_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			else if (a->absorbers->det_layers[i].weight[j] < 0.0 || a->absorbers->det_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_ABSORBERS;
+				goto after_absorbers;
+			}
+			sum += a->absorbers->det_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_ABSORBERS;
+			goto after_absorbers;
+		}
 		if (a->absorbers->det_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_ABSORBERS;
 			goto after_absorbers;
@@ -895,6 +945,22 @@ after_absorbers:
 	}
 
 	for (i = 0 ; i < a->detector->n_crystal_layers ; i++) {
+		sum = 0.0;
+		for (j = 0 ; j < a->detector->crystal_layers[i].n_elements ; j++) {
+			if (a->detector->crystal_layers[i].Z[j] < 1 || a->detector->crystal_layers[i].Z[j] > 94) {
+				rv |= XMI_CONFLICT_DETECTOR;
+				goto after_detector;
+			}
+			else if (a->detector->crystal_layers[i].weight[j] < 0.0 || a->detector->crystal_layers[i].weight[j] > 1.0) {
+				rv |= XMI_CONFLICT_DETECTOR;
+				goto after_detector;
+			}
+			sum += a->detector->crystal_layers[i].weight[j];
+		}
+		if (sum <= 0.0) {
+			rv |= XMI_CONFLICT_DETECTOR;
+			goto after_detector;
+		}
 		if (a->detector->crystal_layers[i].density <= 0.0) {
 			rv |= XMI_CONFLICT_DETECTOR;
 			goto after_detector;
@@ -1007,7 +1073,282 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "\n");
 
 
-
+	return;
 } 
 
+#define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
+#define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
+struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+
+	struct xmi_output* output = malloc(sizeof(struct xmi_output));
+	int i,j,k;
+
+	//first the easy ones
+	output->input = input;
+	xmi_copy_input(input, &output->input);
+	output->inputfile = strdup(inputfile);
+	output->nchannels = nchannels;
+	output->use_zero_interactions = use_zero_interactions;
+	output->channels_conv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->channels_unconv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->ninteractions = input->general->n_interactions_trajectory;
+
+	for (i = (use_zero_interactions ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
+		output->channels_unconv[i] = malloc(sizeof(double)*nchannels);
+		output->channels_conv[i] = malloc(sizeof(double)*nchannels);
+		for (j = 0 ; j < nchannels ; j++) {
+			output->channels_unconv[i][j] = ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels);
+			output->channels_conv[i][j] = channels_conv[i][j];
+		}
+	}
+
+	int *uniqZ = NULL;
+	int nuniqZ = 1;
+	int found;
+	uniqZ = realloc(uniqZ, sizeof(int));
+	uniqZ[0] = input->composition->layers[0].Z[0];
+	for (i = 0 ; i < input->composition->n_layers ; i++) {
+		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			found = 0;
+			for (k = 0 ; k < nuniqZ ; k++) {
+				if (uniqZ[k] == input->composition->layers[i].Z[j]) {
+					found = 1;
+					break;
+				}
+			}
+			if (found == 0) {
+				//enlarge uniqZ
+				uniqZ = (int *) realloc(uniqZ, sizeof(int)*++nuniqZ);
+				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j]; 
+			}
+		}
+	}
+	qsort(uniqZ, nuniqZ, sizeof(int),xmi_cmp_int);
+	output->nbrute_force_history = 0;
+	output->nvar_red_history = 0;
+	output->brute_force_history = NULL;
+	output->var_red_history = NULL;
+	
+	for (i = 0 ; i < nuniqZ ; i++) {
+		//start by checking total number of counts for this element
+		double counts_sum = 0.0;
+		for (j = 1 ; j <= 383 ; j++) {
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}
+		}	
+		if (counts_sum == 0.0)
+			continue;
+
+		//so there are counts somewhere: open element
+		output->brute_force_history = realloc(output->brute_force_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nbrute_force_history);
+		output->brute_force_history[output->nbrute_force_history-1].atomic_number = uniqZ[i];
+		output->brute_force_history[output->nbrute_force_history-1].total_counts = counts_sum;
+		output->brute_force_history[output->nbrute_force_history-1].n_lines = 0;
+		output->brute_force_history[output->nbrute_force_history-1].lines = NULL;
+		for (j = 1 ; j <= 383 ; j++) {
+			counts_sum = 0.0;
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}	
+			if (counts_sum == 0.0)
+				continue;
+			output->brute_force_history[output->nbrute_force_history-1].lines = realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
+			strcpy(output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].line_type, xmi_lines[j]);
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].total_counts = counts_sum;
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions = 0;
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = NULL;
+
+			//interactions loop
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
+					continue;
+				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = realloc(output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions, ++output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
+				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions[output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions-1].counts = ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions[output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions-1].interaction_number = k;
+			}
+		}
+	}
+
+	if (var_red_history == NULL)
+		return output;
+
+	for (i = 0 ; i < nuniqZ ; i++) {
+		//start by checking total number of counts for this element
+		double counts_sum = 0.0;
+		for (j = 1 ; j <= 383 ; j++) {
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}
+		}	
+		if (counts_sum == 0.0)
+			continue;
+
+		//so there are counts somewhere: open element
+		output->var_red_history = realloc(output->var_red_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nvar_red_history);
+		output->var_red_history[output->nvar_red_history-1].atomic_number = uniqZ[i];
+		output->var_red_history[output->nvar_red_history-1].total_counts = counts_sum;
+		output->var_red_history[output->nvar_red_history-1].n_lines = 0;
+		output->var_red_history[output->nvar_red_history-1].lines = NULL;
+		for (j = 1 ; j <= 383 ; j++) {
+			counts_sum = 0.0;
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+			}	
+			if (counts_sum == 0.0)
+				continue;
+			output->var_red_history[output->nvar_red_history-1].lines = realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
+			strcpy(output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].line_type, xmi_lines[j]);
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].total_counts = counts_sum;
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions = 0;
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = NULL;
+
+			//interactions loop
+			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
+				if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
+					continue;
+				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = realloc(output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions, ++output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
+				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions[output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions-1].counts = ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
+				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions[output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions-1].interaction_number = k;
+			}
+		}
+	}
+
+
+	return output;
+}
+
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory) {
+	int i,j,k;
+
+	if (history == NULL)
+		return;
+
+	for (i = 0 ; i < nhistory ; i++) {
+		for (j = 0 ; j < history[i].n_lines ; j++) {
+			free(history[i].lines[j].interactions);
+		}
+		free(history[i].lines);
+	}
+	free(history);
+}
+
+void xmi_free_output(struct xmi_output *output) {
+	free(output->inputfile);
+	int i;
+
+	for (i = (output->use_zero_interactions ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
+		free(output->channels_conv[i]);
+		free(output->channels_unconv[i]);
+	}
+	free(output->channels_conv);
+	free(output->channels_unconv);
+	xmi_free_fluorescence_line_counts(output->brute_force_history, output->nbrute_force_history);
+	xmi_free_fluorescence_line_counts(output->var_red_history, output->nvar_red_history);
+
+	xmi_free_input(output->input);
+
+	return;
+}
+
+void xmi_free_archive(struct xmi_archive *archive) {
+	free(archive->xpath1);
+	if (archive->xpath2 != NULL)
+		free(archive->xpath2);
+	int i,j;
+	for (i = 0 ; i <= archive->nsteps1 ; i++) {
+		for (j = 0 ; j <= archive->nsteps2 ; j++) {
+			xmi_free_output(archive->output[i][j]);
+		}
+		free(archive->input[i]);
+		free(archive->output[i]);
+		free(archive->inputfiles[i]);
+		free(archive->outputfiles[i]);
+	}
+	free(archive->input);
+	free(archive->output);
+	free(archive->inputfiles);
+	free(archive->outputfiles);
+
+	return;
+}
+
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
+	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));	
+	archive->start_value1 = start_value1;
+	archive->end_value1 = end_value1;
+	archive->nsteps1 = nsteps1;
+	archive->xpath1 = strdup(xpath1);
+	archive->start_value2 = start_value2;
+	archive->end_value2= end_value2;
+	archive->nsteps2 = nsteps2;
+	if (xpath2)
+		archive->xpath2 = strdup(xpath2);
+	else
+		archive->xpath2 = NULL;
+	archive->output = malloc(sizeof(struct xmi_output **)*(nsteps1+1));
+	archive->input = malloc(sizeof(struct xmi_input **)*(nsteps1+1));
+	archive->inputfiles = malloc(sizeof(char **)*(nsteps1+1));
+	archive->outputfiles = malloc(sizeof(char **)*(nsteps1+1));
+	int i;
+	for (i = 0 ; i <= nsteps1 ; i++) {
+		archive->output[i] = malloc(sizeof(struct xmi_output *)*(nsteps2+1));
+		archive->input[i] = malloc(sizeof(struct xmi_input *)*(nsteps2+1));
+		archive->inputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
+		archive->outputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
+	}
+
+	int j;
+	for (i = 0 ; i <= nsteps1 ; i++) {
+		for (j = 0 ; j <= nsteps2 ; j++) {
+			xmi_copy_output(output[i][j], &archive->output[i][j]);
+			archive->input[i][j] = archive->output[i][j]->input;
+			archive->inputfiles[i][j] = archive->output[i][j]->inputfile;
+			archive->outputfiles[i][j] = archive->input[i][j]->general->outputfile;
+		}
+	}
+
+	return archive;
+}
+
+void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
+	struct xmi_output *C = malloc(sizeof(struct xmi_output));
+	C->inputfile = strdup(A->inputfile);
+	xmi_copy_input(A->input, &C->input);
+	C->nbrute_force_history = A->nbrute_force_history;
+	C->nvar_red_history = A->nvar_red_history;
+	C->nchannels = A->nchannels;
+	C->ninteractions = A->ninteractions;
+	C->use_zero_interactions = A->use_zero_interactions;
+	int i, j;
+	C->channels_conv = malloc(sizeof(double *) * (C->ninteractions+1));
+	C->channels_unconv = malloc(sizeof(double *) * (C->ninteractions+1));
+	for (i = 0 ; i <= C->ninteractions ; i++) {
+		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->nchannels);
+		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->nchannels);
+	}
+
+	C->brute_force_history = xmi_memdup(A->brute_force_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nbrute_force_history);
+
+	for (i = 0 ; i < C->nbrute_force_history ; i++) {
+		C->brute_force_history[i].lines = xmi_memdup(A->brute_force_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->brute_force_history[i].n_lines);
+		for (j = 0 ; j < C->brute_force_history[i].n_lines ; j++)
+			C->brute_force_history[i].lines[j].interactions = xmi_memdup(C->brute_force_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->brute_force_history[i].lines[j].n_interactions);
+	}
+
+	C->var_red_history = xmi_memdup(A->var_red_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nvar_red_history);
+
+	for (i = 0 ; i < C->nvar_red_history ; i++) {
+		C->var_red_history[i].lines = xmi_memdup(A->var_red_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->var_red_history[i].n_lines);
+		for (j = 0 ; j < C->var_red_history[i].n_lines ; j++)
+			C->var_red_history[i].lines[j].interactions = xmi_memdup(C->var_red_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->var_red_history[i].lines[j].n_interactions);
+	}
+
+
+
+	*B = C;
+	return;
+}
 
