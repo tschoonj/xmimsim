@@ -905,7 +905,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
-	error_spinner();
+	error_spinners();
 
 
 
