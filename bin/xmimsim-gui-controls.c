@@ -102,6 +102,47 @@ static gboolean xmimsim_paused = FALSE;
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 void reset_controls(void);
 
+void error_spinners(void) {
+	//check spinners
+#if GTK_CHECK_VERSION(2,20,0)
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_solidW);
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_mainW);
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_escapeW);
+	}
+#else
+		//should query status of progressbar
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_mainW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+	}
+#endif
+
+}
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
 }
@@ -421,8 +462,13 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	g_timer_stop(timer);
 	g_timer_destroy(timer);
 
-	if (!success)
+	if (!success) {
+		//if something is spinning, make it stop and make it red
+		error_spinners();
+
 		return; 
+	}
+
 
 	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
@@ -859,44 +905,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
-	//check spinners
-#if GTK_CHECK_VERSION(2,20,0)
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
-		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_solidW);
-	}
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
-		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_mainW);
-	}
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
-		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_escapeW);
-	}
-#else
-		//should query status of progressbar
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_solidW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_mainW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_escapeW);
-	}
-#endif
+	error_spinner();
 
 
 
