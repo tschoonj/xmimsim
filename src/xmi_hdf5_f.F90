@@ -704,7 +704,7 @@ TYPE (interaction_prob) :: ip_temp
 
 INTEGER (8), PARAMETER :: nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_pz=1000000
-REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
+REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 200.0, lowe = 0.1, &
         PI = 3.14159265359,maxpz = 100.0
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis,trapez2
@@ -1000,19 +1000,16 @@ ENDDO Zloop
 
 ENDSUBROUTINE xmi_db_Z_specific
 
-SUBROUTINE xmi_db_Z_independent(rayleigh_phiPtr, compton_phiPtr, thetasPtr, &
-rsPtr, energiesPtr, nintervals_theta2, nintervals_e, nintervals_r) &
+SUBROUTINE xmi_db_Z_independent(phiPtr, thetasPtr, &
+rsPtr, nintervals_theta2, nintervals_r) &
 BIND(C,NAME='xmi_db_Z_independent')
 
 IMPLICIT NONE
 
-TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_phiPtr, compton_phiPtr, thetasPtr, &
-rsPtr, energiesPtr
-INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_theta2, nintervals_e, &
-nintervals_r
-REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: &
-        rayleigh_phi
-REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:,:) ::  compton_phi
+TYPE (C_PTR), VALUE, INTENT(IN) :: phiPtr, thetasPtr, &
+rsPtr
+INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_theta2, nintervals_r
+REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: phi
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs, phis
 REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: thetas, energies, rs
 INTEGER (8), PARAMETER :: nintervals_phi=100000
@@ -1021,17 +1018,15 @@ REAL (KIND=C_DOUBLE) :: K0K
 REAL (KIND=C_DOUBLE) :: PI = 3.14159265359
 
 
-CALL C_F_POINTER(rayleigh_phiPtr, rayleigh_phi, [nintervals_theta2,nintervals_r])
-CALL C_F_POINTER(compton_phiPtr, compton_phi, [nintervals_theta2,nintervals_e,nintervals_r])
+CALL C_F_POINTER(phiPtr, phi, [nintervals_theta2,nintervals_r])
 CALL C_F_POINTER(thetasPtr, thetas, [nintervals_theta2])
 !energies and rs will be reused
-CALL C_F_POINTER(energiesPtr,energies,[nintervals_e])
 CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
 
 ALLOCATE(phis(nintervals_phi))
 
 DO i=1,nintervals_theta2
-        thetas(i) = 0.0_C_DOUBLE+(PI-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
+        thetas(i) = 0.0_C_DOUBLE+(0.5_C_DOUBLE-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
 ENDDO
 
 DO i=1,nintervals_phi
@@ -1044,12 +1039,10 @@ ALLOCATE(cdfs(nintervals_phi))
 
 !$OMP DO
 DO i=1,nintervals_theta2
-        !Rayleigh first...
         DO j=1,nintervals_phi 
         cdfs(j)= &
-        (phis(j)-(SIN(thetas(i))*SIN(thetas(i))*&
-        SIN(2.0*phis(j)))/2.0/&
-        (2.0-SIN(thetas(i))*SIN(thetas(i))))/2.0/PI
+        (phis(j)-thetas(i)*&
+        SIN(2.0*phis(j)))/2.0/PI
         ENDDO
         k=1
 
@@ -1057,56 +1050,19 @@ DO i=1,nintervals_theta2
 
         DO j=1,nintervals_phi
                 IF (cdfs(j) >= rs(k)) THEN
-                        rayleigh_phi(i,k) = phis(j)
+                        phi(i,k) = phis(j)
                         IF (k == nintervals_r) EXIT
                         k=k+1
                 ENDIF
         ENDDO
-        rayleigh_phi(i,1) = 0.0 
-        rayleigh_phi(i,nintervals_r) = 2.0*PI
+        phi(i,1) = 0.0 
+        phi(i,nintervals_r) = 2.0*PI
 
 ENDDO
 
 !$OMP END DO
 DEALLOCATE(cdfs)
 !$OMP END PARALLEL
-
-
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,cdfs,K0K)
-
-ALLOCATE(cdfs(nintervals_phi))
-
-!$OMP DO
-DO i=1,nintervals_theta2
-
-        !...and then of course Compton.
-        DO m=1,nintervals_e
-               K0K= 1.0 + energies(m)*(1.0-COS(thetas(i)))/MEC2
-                DO j=1,nintervals_phi
-                cdfs(j)= &
-                (phis(j)-(SIN(thetas(i))*SIN(thetas(i))*&
-                SIN(2.0*phis(j)))/2.0/&
-                (K0K+(1.0/K0K)-SIN(thetas(i)*SIN(thetas(i)))))/2.0/PI
-                ENDDO
-
-                k=1
-
-               DO j=1,nintervals_phi
-                        IF (cdfs(j) >= rs(k)) THEN
-                                compton_phi(i,m,k) = phis(j)
-                                IF (k == nintervals_r) EXIT
-                                k=k+1
-                        ENDIF
-                ENDDO
-                compton_phi(i,m,1) = 0.0 
-                compton_phi(i,m,nintervals_r) = 2.0*PI
-        ENDDO
-ENDDO
-
-!$OMP END DO
-DEALLOCATE(cdfs)
-!$OMP END PARALLEL
-
 
 ENDSUBROUTINE xmi_db_Z_independent
 ENDMODULE xmimsim_hdf5
