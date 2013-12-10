@@ -52,10 +52,12 @@ dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSI.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSO.png \
 		     256x256/Radiation_warning_symbol.png
+if !ENABLE_MAC_APP
 dist_iconsscalable_DATA = Logo_xmi_msim.svg \
 			  Logo_xmi_msim_Gnome_XMSI.svg \
 			  Logo_xmi_msim_Gnome_XMSO.svg \
 			  Radiation_warning_symbol.svg
+endif
 xmimsimdir = $(datadir)/xmimsim
 #used from within the About screen -> not working in the Mac App version starting with ML...
 dist_xmimsim_DATA = Logo_xmi_msim.png

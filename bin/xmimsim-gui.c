@@ -4978,6 +4978,9 @@ XMI_MAIN
 
 #ifdef MAC_INTEGRATION
 	gtkosx_application_ready(theApp);
+	//only works in Lion and newer
+	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
+	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 #endif
 
 	gchar *filename = g_strdup(argv[1]);
