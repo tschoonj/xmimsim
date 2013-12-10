@@ -33,6 +33,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
+#ifdef CAIRO_HAS_SVG_SURFACE
+#include <cairo-svg.h>
+#endif
+#include <gsl/gsl_spline.h>
 
 
 struct energyDialog {
@@ -47,6 +51,8 @@ struct energyDialog {
 	GtkWidget *sigma_ypEntry;
 	GtkWidget *distribution_typeCombo;
 	GtkWidget *scale_parameterEntry;
+	GtkWidget *scale_parameterLabel;
+	GtkWidget *scale_parameterBox;
 	GtkWidget *window;
 	gulong energyGulong;
 	gulong hor_intensityGulong;
@@ -137,6 +143,8 @@ struct generate {
 	GtkWidget *tubeCurrentW;
 	GtkWidget *tubeSolidAngleW;
 	GtkWidget *canvas;
+	GtkWidget *transmissionEffW;
+	GtkWidget *transmissionEffFileW;
 };
 
 static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
@@ -167,6 +175,16 @@ static void transmission_clicked_cb(GtkToggleButton *button, struct transmission
 	return;
 }
 
+static void transmissioneff_clicked_cb(GtkToggleButton *button, GtkWidget *filechooser) {
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(filechooser, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(filechooser, FALSE);
+	}
+
+	return;
+}
 static void generate_spectrum(struct generate *gen);
 
 static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -176,95 +194,7 @@ static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) 
 }
 
 static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
-	GtkWidget *dialog;
-	GtkFileFilter *filter;
-	gchar *filename;
-	cairo_t *cairo;
-	cairo_surface_t *surface;
-
-	dialog = gtk_file_chooser_dialog_new("Save spectrum as image", 
-		GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_FILE_CHOOSER_ACTION_SAVE,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.eps");
-	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.pdf");
-	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.png");
-	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		//get selected filter
-		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
-		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
-			fprintf(stdout,"EPS selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".eps");
-			}
-			//surface = cairo_ps_surface_create(filename,595.0,842);
-			surface = cairo_ps_surface_create(filename,842,595);
-			/*cairo_ps_surface_dsc_begin_page_setup (surface);
-			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
-			cairo_ps_surface_set_eps(surface,1);
-			cairo = cairo_create(surface);
-			/*cairo_translate (cairo, 0, 842);
-			cairo_rotate(cairo, -M_PI/2);*/
-			
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
-			fprintf(stdout,"PDF selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".pdf");
-			}
-			surface = cairo_pdf_surface_create(filename,842.0,595.0);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
-			fprintf(stdout,"PNG selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".png");
-			}
-			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(gen->canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
-			cairo_surface_write_to_png(surface,filename);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}			
-		g_free(filename);
-		gtk_widget_destroy(dialog);
-	}
-	else
-		gtk_widget_destroy(dialog);
-
-
+	export_canvas_image(gen->canvas, "Save spectrum as image");	
 	return;
 }
 static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -496,6 +426,63 @@ static void generate_spectrum(struct generate *gen) {
 		return;
 	}
 
+
+	//read transmission efficiency file if appropriate
+	double *eff_x = NULL;
+	double *eff_y = NULL;
+	size_t n_eff = 0;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionEffW)) == TRUE) {
+		g_fprintf(stdout,"Found transmission efficiency file\n");
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gen->transmissionEffFileW));
+		if (strlen(filename) == 0) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		FILE *fp;
+		if ((fp = fopen(filename, "r")) == NULL) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for reading.", filename);		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+			
+		}
+		char *line;
+		double energy, efficiency;
+		ssize_t linelen;
+		size_t linecap = 0;
+		int values;
+		while ((linelen = getline(&line, &linecap, fp)) > -1) {
+			if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+				continue;
+			}
+			values = sscanf(line,"%lf %lf", &energy, &efficiency);
+			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy < 1.0)) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+				gtk_dialog_run(GTK_DIALOG(dialog));
+				gtk_widget_destroy(dialog);
+				return;
+				
+			} 
+			n_eff++;
+			eff_x = g_realloc(eff_x, sizeof(double)*n_eff);
+			eff_y = g_realloc(eff_y, sizeof(double)*n_eff);
+			eff_x[n_eff-1] = energy;
+			eff_y[n_eff-1] = efficiency;
+			g_fprintf(stdout,"Efficiency: %lf -> %lf\n",energy,efficiency);
+		}
+		fclose(fp);
+		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
+		if (n_eff < 10 || gen->excitation->continuous[gen->excitation->n_continuous-1].energy > eff_x[n_eff-1]) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+	}
+
+
 	
 	GtkPlotCanvasChild *child;
 
@@ -510,6 +497,33 @@ static void generate_spectrum(struct generate *gen) {
 	//ebel main function
 	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation);
 	
+	//apply transmission efficiencies if required
+	int i,j;
+	if (n_eff > 0) {
+		//use some gsl tricks
+		gsl_interp_accel *acc = gsl_interp_accel_alloc();
+		gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, n_eff);
+		gsl_spline_init(spline, eff_x, eff_y, n_eff);
+		
+		for (i = 0 ; i < gen->excitation->n_continuous ; i++) {
+			gen->excitation->continuous[i].horizontal_intensity = 
+			gen->excitation->continuous[i].vertical_intensity = 
+			gen->excitation->continuous[i].horizontal_intensity * 
+			gsl_spline_eval(spline, gen->excitation->continuous[i].energy, acc);
+		}
+
+		for (i = 0 ; i < gen->excitation->n_discrete ; i++) {
+			gen->excitation->discrete[i].horizontal_intensity = 
+			gen->excitation->discrete[i].vertical_intensity = 
+			gen->excitation->discrete[i].horizontal_intensity * 
+			gsl_spline_eval(spline, gen->excitation->discrete[i].energy, acc);
+		}
+		g_free(eff_x);
+		g_free(eff_y);
+		gsl_spline_free (spline);
+		gsl_interp_accel_free (acc);
+	}
+
 
 	//add box with default settings
 	GtkWidget *plot_window;
@@ -518,7 +532,6 @@ static void generate_spectrum(struct generate *gen) {
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
 	double *bins = (double *) malloc(sizeof(double) * gen->excitation->n_continuous);
-	int i,j;
 
 	for (i = 0 ; i < gen->excitation->n_continuous ; i++)
 		bins[i] = gen->excitation->continuous[i].horizontal_intensity*2.0*tube_deltaE;
@@ -605,7 +618,7 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 
 static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
-	gchar *text;
+	gchar *text = NULL;
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
 	
@@ -629,7 +642,7 @@ static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRen
 static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 	gint type;
 	gdouble scale_parameter;
-	gchar *text;
+	gchar *text = NULL;
 
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
@@ -1064,7 +1077,23 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
 		}\
 	}
-	energy_short1(1, ew->energyEntry)
+
+#define energy_short3(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
+	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
+	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0 && value ## n > 0.0 && value ## n <= 200.0) \
+		ok ## n = 1;\
+	else\
+		ok ## n = 0;\
+	if (widget == my_entry) {\
+		if (ok ## n)\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+		else {\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+			gtk_widget_set_sensitive(ew->okButton, FALSE);\
+		}\
+	}
+
+	energy_short3(1, ew->energyEntry)
 	//energy_short1(2, ew->hor_intensityEntry)
 	//energy_short1(3, ew->ver_intensityEntry)
 	energy_short2(4, ew->sigma_xEntry)
@@ -1649,6 +1678,7 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),"");
 		if (discOrCont == DISCRETE) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), XMI_DISCRETE_MONOCHROMATIC);
+			gtk_widget_hide(ew->scale_parameterBox);
 			gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),"");
 			gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 		}
@@ -1684,13 +1714,23 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), energy_disc->distribution_type);
 			if (energy_disc->distribution_type == XMI_DISCRETE_MONOCHROMATIC) {
-				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry), "");
-				gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
+				gtk_widget_hide(ew->scale_parameterBox);
+				//gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry), "");
+				//gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 			}
-			else {
+			else if (energy_disc->distribution_type == XMI_DISCRETE_GAUSSIAN){
 				sprintf(buffer,"%lg",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
+				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Standard deviation (keV)");
+				gtk_widget_show_all(ew->scale_parameterBox);
+			}
+			else if (energy_disc->distribution_type == XMI_DISCRETE_LORENTZIAN){
+				sprintf(buffer,"%lg",energy_disc->scale_parameter);
+				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
+				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
+				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Scale parameter (keV)");
+				gtk_widget_show_all(ew->scale_parameterBox);
 			}
 		}
 		else if (discOrCont == CONTINUOUS) {
@@ -1739,11 +1779,17 @@ static void distribution_type_changed_cb(GtkComboBox *combobox, struct energyDia
 
 	if (active == XMI_DISCRETE_MONOCHROMATIC) {
 		//monochromatic
-		gtk_widget_set_sensitive(ed->scale_parameterEntry, FALSE);
+		gtk_widget_hide(ed->scale_parameterBox);
 	}
-	else {
+	else if (active == XMI_DISCRETE_GAUSSIAN){
 		gtk_widget_set_sensitive(ed->scale_parameterEntry, TRUE);
-	
+		gtk_label_set_text(GTK_LABEL(ed->scale_parameterLabel),"Standard deviation (keV)");
+		gtk_widget_show_all(ed->scale_parameterBox);
+	}
+	else if (active == XMI_DISCRETE_LORENTZIAN){
+		gtk_widget_set_sensitive(ed->scale_parameterEntry, TRUE);
+		gtk_label_set_text(GTK_LABEL(ed->scale_parameterLabel),"Scale parameter (keV)");
+		gtk_widget_show_all(ed->scale_parameterBox);
 	}
 
 	energy_window_changed_cb(NULL, ed);
@@ -1766,6 +1812,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 	rv->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Modify energy");
 	gtk_window_set_default_size(GTK_WINDOW(window),420,300);
@@ -1893,6 +1940,8 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 		gtk_box_pack_end(GTK_BOX(HBox), entry, FALSE, FALSE, 2);
 		gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 		rv->scale_parameterEntry = entry;	
+		rv->scale_parameterLabel = label;
+		rv->scale_parameterBox = HBox;
 	}
 	//separator
 	separator = gtk_hseparator_new();
@@ -2017,7 +2066,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 				return -3;
 		};
 		//ignore the useless lines
-		if (energy <= 0.0000000001 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+		if (energy <= 0.0000000001 || energy > 200.0 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
 			nlines--;
 			continue;
 		}
@@ -2123,12 +2172,12 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %i lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %zu lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
 				return -3;
 		};
 
 		//ignore the useless lines
-		if (energy <= 0.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
+		if (energy <= 0.0 || energy > 200.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
 			nlines--;
 			continue;
 		}
@@ -2316,7 +2365,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *alphaElectronW = gtk_spin_button_new(GTK_ADJUSTMENT(adj2), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaElectronW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
-	label = gtk_label_new("\316\261 electron (degrees)");
+	label = gtk_label_new("Electron incidence angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
@@ -2325,7 +2374,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *alphaXrayW = gtk_spin_button_new(GTK_ADJUSTMENT(adj3), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaXrayW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
-	label = gtk_label_new("\316\261 X-ray (degrees)");
+	label = gtk_label_new("X-ray take-off angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
@@ -2345,9 +2394,20 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
 	struct transmission_data *td = (struct transmission_data *) malloc(sizeof(struct transmission_data));
-	g_signal_connect(G_OBJECT(transmissionW), "clicked", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
+	g_signal_connect(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
 	td->anodeDensityW = anodeDensityW;
 	td->anodeThicknessW = anodeThicknessW;
+
+	GtkWidget *transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionEffW), FALSE);
+	hbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffW, FALSE, FALSE, 0);
+	GtkWidget *transmissionEffFileW = gtk_file_chooser_button_new("Select a transmission efficiency file", GTK_FILE_CHOOSER_ACTION_OPEN);
+	gtk_widget_set_sensitive(transmissionEffFileW, FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
+	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+
 
 	//buttons	
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
@@ -2396,6 +2456,8 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gen->tubeVoltageW = tubeVoltageW;
 	gen->transmissionW = transmissionW;
+	gen->transmissionEffW = transmissionEffW;
+	gen->transmissionEffFileW = transmissionEffFileW;
 	gen->anodeMaterialW = anodeMaterialW;
 	gen->anodeThicknessW = anodeThicknessW;
 	gen->anodeDensityW = anodeDensityW;
@@ -2416,4 +2478,119 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_widget_show_all(window);
 
+}
+
+void export_canvas_image (GtkWidget *canvas, gchar *title) {
+
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+	cairo_t *cairo;
+	cairo_surface_t *surface;
+
+	dialog = gtk_file_chooser_dialog_new(title, 
+		GTK_WINDOW(gtk_widget_get_toplevel(canvas)), GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.eps");
+	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.pdf");
+	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.png");
+	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#ifdef CAIRO_HAS_SVG_SURFACE
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.svg");
+	gtk_file_filter_set_name(filter,"SVG (Scalar Vector Graphics)");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+#endif
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		//get selected filter
+		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
+		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
+			fprintf(stdout,"EPS selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".eps");
+			}
+			//surface = cairo_ps_surface_create(filename,595.0,842);
+			surface = cairo_ps_surface_create(filename,842,595);
+			/*cairo_ps_surface_dsc_begin_page_setup (surface);
+			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
+			cairo_ps_surface_set_eps(surface,1);
+			cairo = cairo_create(surface);
+			/*cairo_translate (cairo, 0, 842);
+			cairo_rotate(cairo, -M_PI/2);*/
+			
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+
+		}
+		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
+			fprintf(stdout,"PDF selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".pdf");
+			}
+			surface = cairo_pdf_surface_create(filename,842.0,595.0);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_show_page(cairo);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}
+		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
+			fprintf(stdout,"PNG selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".png");
+			}
+			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_surface_write_to_png(surface,filename);
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}			
+#ifdef CAIRO_HAS_SVG_SURFACE
+		else if (strncmp(gtk_file_filter_get_name(filter),"SVG", 3) == 0) {
+			fprintf(stdout,"SVG selected\n");
+			if (strcmp(filename+strlen(filename)-4, ".svg") != 0) {
+				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+				strcat(filename,".svg");
+			}
+			surface = cairo_svg_surface_create(filename, 842, 595);
+			cairo = cairo_create(surface);
+			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+			cairo_surface_destroy(surface);
+			cairo_destroy(cairo);
+		}			
+#endif
+		g_free(filename);
+		gtk_widget_destroy(dialog);
+	}
+	else
+		gtk_widget_destroy(dialog);
+
+
+	return;
 }

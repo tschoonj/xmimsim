@@ -128,19 +128,16 @@ TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc_temp
 
 
 !fortran aux variables
-TYPE (xmi_layer), ALLOCATABLE :: tube_anodeF, tube_windowF, tube_filterF
+TYPE (xmi_layer), POINTER :: tube_anodeF, tube_windowF => NULL(), tube_filterF => NULL()
 INTEGER (C_INT), POINTER, DIMENSION(:) :: Z
 REAL (C_DOUBLE), POINTER, DIMENSION(:) :: weight
 
 !characteristic line variables
-REAL (C_DOUBLE), POINTER, DIMENSION(:) :: disc_energy, disc_intensity, disc_pol_degree
 REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: &
 disc_edge_energy,disc_edge_energy_temp
 INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
 REAL (C_DOUBLE) :: my_disc_edge_energy
 
-!bremsstrahlung variables
-REAL (C_DOUBLE), POINTER, DIMENSION(:) :: cont_energy, cont_intensity, cont_pol_degree
 
 !
 INTEGER (C_INT) :: i, ndisc, ncont, shell1, shell2
@@ -248,8 +245,8 @@ rhoz = rhozmax*(p1/p2)
 
 !photoelectric absorption of Bremsstrahlung
 DO i=1,ncont
-        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        + tube_delta_energy/2.0_C_DOUBLE,KIND=C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),ebel_spectrum_cont(i)%energy&
+        + tube_delta_energy/2.0_C_DOUBLE)
 ENDDO
 
 rhelp = tau*2.0_C_DOUBLE*rhoz*sinfactor
@@ -366,7 +363,7 @@ rhoz = rhozmax*(p1/p2)
 DEALLOCATE(tau)
 ALLOCATE(tau(ndisc))
 DO i=1,ndisc
-        tau(i)=CS_Total(tube_anodeF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT))
+        tau(i)=CS_Total(tube_anodeF%Z(1),ebel_spectrum_disc(i)%energy)
        !tau(i)=CS_Photo(Z,REAL(disc_energy(i),C_FLOAT))
 ENDDO
 
@@ -567,31 +564,30 @@ DO i=1,ndisc
 
 ENDDO
 !take window in account
-IF (ALLOCATED(tube_windowF)) THEN
+IF (ASSOCIATED(tube_windowF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_windowF%Z(1),ebel_spectrum_disc(i)%energy))
 ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
-        CS_Total_Kissel(tube_windowF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        +tube_delta_energy/2.0_C_DOUBLE,C_FLOAT)))
+        CS_Total_Kissel(tube_windowF%Z(1),ebel_spectrum_cont(i)%energy&
+        +tube_delta_energy/2.0_C_DOUBLE))
 ENDDO
 ENDIF
 !and if there's a filter, use that one too
-IF (ALLOCATED(tube_filterF)) THEN
+IF (ASSOCIATED(tube_filterF)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_disc(i)%energy,C_FLOAT)))
+        CS_Total_Kissel(tube_filterF%Z(1),ebel_spectrum_disc(i)%energy))
 ENDDO
 DO i=1,ncont
         ebel_spectrum_cont(i)%horizontal_intensity=ebel_spectrum_cont(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
-        CS_Total_Kissel(tube_filterF%Z(1),REAL(ebel_spectrum_cont(i)%energy&
-        ,C_FLOAT)))
+        CS_Total_Kissel(tube_filterF%Z(1),ebel_spectrum_cont(i)%energy))
 ENDDO
 ENDIF
 
@@ -633,6 +629,10 @@ ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
 ebel_excitation = C_LOC(ebel_excitation_rv)
 
 xmi_tube_ebel=1
+
+DEALLOCATE(tube_anodeF)
+IF (ASSOCIATED(tube_windowF)) DEALLOCATE(tube_windowF)
+IF (ASSOCIATED(tube_filterF)) DEALLOCATE(tube_filterF)
 
 ENDFUNCTION xmi_tube_ebel
 

@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
@@ -25,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <omp.h>
 #ifdef G_OS_UNIX
   #include <sys/types.h>
   #include <sys/wait.h>
@@ -54,6 +54,9 @@ GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *poissonW;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+GtkWidget *openclW;
+#endif
 GtkWidget *nchannelsW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
@@ -94,11 +97,52 @@ GIOChannel *xmimsim_stderr;
 
 GPid xmimsim_pid = GPID_INACTIVE;
 
-gboolean xmimsim_paused;
+static gboolean xmimsim_paused = FALSE;
 
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 void reset_controls(void);
 
+void error_spinners(void) {
+	//check spinners
+#if GTK_CHECK_VERSION(2,20,0)
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
+		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_solidW);
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
+		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_mainW);
+	}
+	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
+		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
+		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
+		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
+		gtk_widget_show_all(image_escapeW);
+	}
+#else
+		//should query status of progressbar
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_solidW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_mainW);
+	}
+	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
+		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+	}
+#endif
+
+}
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	return g_file_test(filter_info->filename,G_FILE_TEST_IS_EXECUTABLE);
 }
@@ -400,6 +444,9 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	gtk_widget_set_sensitive(openclW,TRUE);	
+#endif
 	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
@@ -415,8 +462,13 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	g_timer_stop(timer);
 	g_timer_destroy(timer);
 
-	if (!success)
+	if (!success) {
+		//if something is spinning, make it stop and make it red
+		error_spinners();
+
 		return; 
+	}
+
 
 	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
@@ -537,6 +589,9 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
 	gtk_widget_set_sensitive(poissonW,FALSE);	
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	gtk_widget_set_sensitive(openclW,FALSE);
+#endif
 	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
@@ -552,49 +607,67 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	reset_controls();
 	timer = g_timer_new();
 
-	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
+	arg_counter = 0;
+	argv = g_malloc(sizeof(gchar *)*++arg_counter);
 	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
+	
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[1] = g_strdup("--enable-M-lines");
 	}
 	else
 		argv[1] = g_strdup("--disable-M-lines");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascadeW)) == TRUE) {
 		argv[2] = g_strdup("--enable-radiative-cascade");
 	}
 	else
 		argv[2] = g_strdup("--disable-radiative-cascade");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW)) == TRUE) {
 		argv[3] = g_strdup("--enable-auger-cascade");
 	}
 	else
 		argv[3] = g_strdup("--disable-auger-cascade");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reductionW)) == TRUE) {
 		argv[4] = g_strdup("--enable-variance-reduction");
 	}
 	else
 		argv[4] = g_strdup("--disable-variance-reduction");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_upW)) == TRUE) {
 		argv[5] = g_strdup("--enable-pile-up");
 	}
 	else
 		argv[5] = g_strdup("--disable-pile-up");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
 		argv[6] = g_strdup("--enable-poisson");
 	}
 	else
 		argv[6] = g_strdup("--disable-poisson");
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[7]	= g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
 
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[8] = g_strdup("--verbose");
 
-	arg_counter = 9;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(openclW)) == TRUE) {
+		argv[9] = g_strdup("--enable-opencl");
+	}
+	else
+		argv[9] = g_strdup("--disable-opencl");
+#endif
+
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -832,44 +905,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 #endif
 
-	//check spinners
-#if GTK_CHECK_VERSION(2,20,0)
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
-		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_solidW);
-	}
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
-		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_mainW);
-	}
-	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW)))) {
-		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
-		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
-		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
-		gtk_widget_show_all(image_escapeW);
-	}
-#else
-		//should query status of progressbar
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_solidW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_mainW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
-		gtk_widget_show_all(image_escapeW);
-	}
-#endif
+	error_spinners();
 
 
 
@@ -1214,10 +1250,10 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	hbox_controls = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 5);
 
-	if (omp_get_max_threads() > 1) {
+	if (xmi_omp_get_max_threads() > 1) {
 		cpuBox = gtk_vbox_new(FALSE,1);
 		cpuLabel = gtk_label_new("CPUs");
-		nthreadsA = gtk_adjustment_new((gdouble) omp_get_max_threads(), 1.0, (gdouble) omp_get_max_threads(), 1.0,1.0,0.0);
+		nthreadsA = gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0);
 		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));	
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
 		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
@@ -1391,6 +1427,17 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
 
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	openclW = gtk_check_button_new_with_label("Enable OpenCL");
+	gtk_widget_set_tooltip_text(openclW,"");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(openclW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook),openclW, TRUE, FALSE, 3);
+#endif
+
 	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
 	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
 	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
@@ -1559,7 +1606,7 @@ void reset_controls(void) {
 	gtk_text_buffer_get_end_iter (controlsLogB,&end); 
 	gtk_text_buffer_delete (controlsLogB,&start,&end); 
 
-
+	xmimsim_paused = FALSE;
 }
 
 

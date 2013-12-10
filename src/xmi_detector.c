@@ -29,9 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_hdf5.h"
 #include <xraylib.h>
 #include <sys/stat.h>
+#include <glib/gstdio.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 #endif
+
+#define MIN_VERSION 2
 
 void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
 
@@ -398,7 +401,6 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 
 int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options) {
 
-	//let's take this one on a bit more elegant than xmi_find_solid_angle_match...
 	//open the hdf5 file and iterate through all the groups
 	//in every group read ONLY the xmi_input_string and use it to compare...
 	//if comparison is successful, then read in the rest and close the file
@@ -413,6 +415,51 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 		return 0;
 	}
 
+	//version check!
+	hid_t root_group_id;
+	hid_t attribute_id;
+
+	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "Escape ratios file %s does not contain the version tag\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+		
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_escape_ratios_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+	//attribute exists -> let's read it
+	float version;
+	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+	H5Aclose(attribute_id);
+	H5Gclose(root_group_id);
+
+	if (version < MIN_VERSION) {
+		//too old -> delete file
+		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_escape_ratios_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
 	data.escape_ratios = rv;
 	data.input = A;
 	data.options = options;
@@ -426,7 +473,10 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	}
 	
 
-	H5Fclose(file_id);
+	if (H5Fclose(file_id) < 0) {
+		g_fprintf(stderr, "Error closing %s... Fatal error\n", hdf5_file);
+		return 0;
+	}
 	return 1;
 }
 

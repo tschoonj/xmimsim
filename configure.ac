@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[2.3],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[2.5],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.60])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -37,10 +37,12 @@ fi
 #are we dealing with windows?
 OS_WINDOWS=0
 LDFLAGS_XMIMSIM_LIB=""
+LDFLAGS_XMIMSIM_CL=""
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
 		LDFLAGS_XMIMSIM_LIB+="-no-undefined"
+		LDFLAGS_XMIMSIM_CL+="-no-undefined -export-dynamic"
 		;;
 esac
 
@@ -86,13 +88,14 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 2.17.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 2.17.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 3.0.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.0.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 0.9.3)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
+PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
@@ -308,17 +311,7 @@ AC_FC_SRCEXT(f90)
 #search for openmp
 AC_LANG_PUSH(Fortran)
 AC_OPENMP
-#AX_OPENMP([
-#	AC_DEFINE(HAVE_OPENMP,1,[OpenMP support detected])
-#],)
 AC_LANG_POP(Fortran)
-#AC_SUBST(HAVE_OPENMP)
-#OPENMP_FFLAGS=$ax_cv_fc_openmp
-#AC_SUBST(OPENMP_FFLAGS)
-
-AC_LANG_PUSH(C)
-AC_OPENMP
-AC_LANG_POP(C)
 
 XLINKER=""
 #when we have Intel Fortran on Mac OS X, add the openmp static link option
@@ -342,6 +335,7 @@ fi
 
 AC_SUBST(XLINKER)
 AC_SUBST(LDFLAGS_XMIMSIM_LIB)
+AC_SUBST(LDFLAGS_XMIMSIM_CL)
 
 
 #search for MPI
@@ -400,6 +394,28 @@ AC_SUBST(OPENMPI_LDFLAGS)
 AC_SUBST(OPENMPI_LIBADD)
 AC_SUBST(OPENMPI_CFLAGS)
 
+#OpenCL test
+no_cl=yes
+
+AC_ARG_ENABLE([opencl],[AS_HELP_STRING([--disable-opencl],[build without OpenCL support])],[enable_opencl=$enableval],[enable_opencl=check])
+
+if test "x$enable_opencl" != xno ; then
+	AX_HAVE_OPENCL
+	if test "x$no_cl" = xyes ; then
+		if test "x$enable_opencl" = xcheck ; then
+		AC_MSG_NOTICE([no OpenCL implementation found])
+		else
+		AC_MSG_ERROR([no OpenCL implementation found])
+		fi
+	else
+		PKG_CHECK_MODULES([gmodule],gmodule-2.0)
+		AC_MSG_NOTICE([OpenCL implementation found])
+		AC_SUBST(CPPFLAGS_CL)
+		AC_SUBST(LIBS_CL)
+	fi
+fi
+
+AM_CONDITIONAL([ENABLE_OPENCL], [test "x$no_cl" != "xyes"])
 
 
 AC_CONFIG_FILES([Makefile src/Makefile bin/Makefile include/Makefile xml/Makefile etc/Makefile etc/be.ugent.xmi.harvester.plist nsis/Makefile nsis/xmimsim.nsi xmimsim.spec icons/Makefile libxmimsim.pc osx/Makefile osx/Info.plist])

@@ -14,10 +14,16 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimincludedir = ${includedir}/xmimsim
+xmimsimdir = $(datadir)/xmimsim
+
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
+
+dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
+
+plugindir = $(libdir)/xmimsim
 
 lib_LTLIBRARIES = libxmimsim.la
 libxmimsim_la_SOURCES =	xmi_xml.c \
@@ -54,7 +60,6 @@ if ENABLE_MAC_APP
 libxmimsim_la_SOURCES += xmi_resources_mac.c 
 endif
 
-
 libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			@PTHREAD_CFLAGS@ \
 			@xslt_CFLAGS@ \
@@ -71,11 +76,14 @@ libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\" \
 			-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
 			-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
-			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+			-DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\" \
+			-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			@fgsl_CFLAGS@ \
 			@xraylib_f2003_CFLAGS@ \
 			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
 libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@PTHREAD_LIBS@ \
@@ -86,6 +94,17 @@ libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@glib2_LIBS@ \
 			@GTK_MAC_LIBS@
 
+if ENABLE_OPENCL
+plugin_LTLIBRARIES = xmimsim-cl.la
+libxmimsim_la_CFLAGS += @gmodule_CFLAGS@ 
+libxmimsim_la_LIBADD += @gmodule_LIBS@ 
+xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
+xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include -DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\"
+xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
+xmimsim_cl_la_SOURCES = xmi_solid_angle.c
+xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
+endif
+
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 
 endif
@@ -93,6 +112,9 @@ if ENABLE_MAC_APP
 libxmimsim_la_CFLAGS += -xobjective-c
 libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 endif
+
+
+
 
 xmimsim_main.mod: libxmimsim.la
 

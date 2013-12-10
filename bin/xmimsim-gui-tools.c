@@ -33,6 +33,7 @@ struct xmi_tools {
 	GtkWidget *spinner;
 };
 
+/*
 static struct xmi_input *input = NULL;
 static struct xmi_fluorescence_line_counts *brute_force_history = NULL;
 static int nbrute_force_history = 0;
@@ -44,6 +45,7 @@ static int nchannels = 0;
 static int ninteractions = 0;
 static char *inputfile = NULL;
 static int use_zero_interactions = 0;
+*/
 
 static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	
@@ -80,6 +82,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	GtkFileFilter *filter;
 	gchar *filename;
 	struct xmi_tools *xt = (struct xmi_tools *) data;
+	struct xmi_output *output;
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmso");
@@ -99,19 +102,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		//read the file
-		if (xmi_read_output_xml(filename,
-			&input,
-			&brute_force_history,
-			&nbrute_force_history,
-			&var_red_history,
-			&nvar_red_history,
-			&channels_conv,
-			&channels_unconv,
-			&nchannels,
-			&ninteractions,
-			&inputfile,
-			&use_zero_interactions
-			) == 0) {
+		if (xmi_read_output_xml(filename, &output) == 0) {
 			gtk_widget_destroy(dialog);
 			dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -126,22 +117,11 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 		//set the spinner
 		gtk_widget_set_sensitive(xt->spinner, TRUE);
-		GtkObject *adj = gtk_adjustment_new(ninteractions, use_zero_interactions ? 0 : 1, ninteractions, 1 , 1, 1);
+		GtkObject *adj = gtk_adjustment_new(output->ninteractions, output->use_zero_interactions ? 0 : 1, output->ninteractions, 1 , 1, 1);
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner), GTK_ADJUSTMENT(adj));
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner),ninteractions);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner),output->ninteractions);
 		//free everything
-		if (input != NULL)
-			xmi_free_input(input);
-		if (brute_force_history != NULL)
-			xmi_free_fluorescence_line_counts(brute_force_history, nbrute_force_history);
-		if (var_red_history != NULL)
-			xmi_free_fluorescence_line_counts(var_red_history, nvar_red_history);
-		if (channels_conv != NULL)
-			free(channels_conv);
-		if (channels_unconv != NULL)
-			free(channels_unconv);
-		if (inputfile != NULL)
-			free(inputfile);
+		xmi_free_output(output);
 	
 		g_free(filename);
 	}

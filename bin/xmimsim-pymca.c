@@ -30,8 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xmi_random.h"
 #include "xmi_detector.h"
-#include <omp.h>
 #include <math.h>
+#include <locale.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -111,6 +111,10 @@ XMI_MAIN
 		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
+		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
+#endif
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
@@ -130,9 +134,16 @@ XMI_MAIN
 	char *xmi_input_string;
 
 
+	setbuf(stdout,NULL);
+	//locale...
+	//setlocale(LC_ALL,"C");
+#if defined(G_OS_WIN32)
+	setlocale(LC_ALL,"English_United States");
+#else
+	g_setenv("LANG","en_US",TRUE);
+#endif
 
 	options.use_M_lines = 1;
-	options.use_self_enhancement = 0;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
@@ -140,8 +151,9 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.use_opencl = 1;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
 
 
 	//parse options
@@ -164,9 +176,9 @@ XMI_MAIN
 	}
 	
 
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
 	//omp_set_num_threads(omp_num_threads);
@@ -262,7 +274,9 @@ XMI_MAIN
 		if (options.verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
-		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+		options.nchannels = xp->nchannels;
+
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
@@ -490,6 +504,8 @@ XMI_MAIN
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
+	options.nchannels = xp->nchannels;
+
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
 		xmi_deallocate(channels);
 		xmi_deallocate(brute_history);
@@ -510,7 +526,7 @@ XMI_MAIN
 		if (options.verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
-		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, xp->nchannels ,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
@@ -671,7 +687,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, xp->nchannels, options, escape_ratios_def);
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -718,6 +734,7 @@ XMI_MAIN
 
 
 	}
+	
 
 single_run:
 
@@ -730,7 +747,7 @@ single_run:
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, xp->nchannels, options,escape_ratios_def);
+		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, options,escape_ratios_def);
 		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
 	}
 
@@ -739,11 +756,13 @@ single_run:
 	}
 
 	//write to xml outputfile
-	if (xmi_write_output_xml(argv[2], xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+	if (xmi_write_output_xml(argv[2], output) == 0) {
 		return 1;
 	}
 	else if (options.verbose)
 		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
+	xmi_free_output(output);	
 
 	//write to CSV and SPE if necessary...
 #ifndef G_OS_WIN32

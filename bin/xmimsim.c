@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include <mpi.h>
 #endif
 
-//#include <omp.h>
 
 #include "xmi_main.h"
 #include "xmi_data_structs.h"
@@ -37,7 +36,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale.h>
 #include <xraylib.h>
 #include <stdlib.h>
-#include <omp.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -64,6 +62,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"
 #endif
+
 
 XMI_MAIN
 
@@ -96,7 +95,6 @@ XMI_MAIN
 	GOptionContext *context;
 	static struct xmi_main_options options;
 	int use_M_lines;
-	int use_self_enhancement;
 	int use_cascade;
 	int use_variance_reduction;
 	double *brute_history;
@@ -112,7 +110,6 @@ XMI_MAIN
 	static gchar *svg_file_conv=NULL;
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
-	static int nchannels=2048;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
@@ -124,8 +121,6 @@ XMI_MAIN
 	static GOptionEntry entries[] = {
 		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
 		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-		{ "enable-lorentzian-broadening", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Enable Lorentzian line broadening", NULL },
-		{ "disable-lorentzian-broadening", 0, G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &(options.use_self_enhancement), "Disable Lorentzian line broadening (default)", NULL },
 		{ "enable-auger-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Enable Auger (non radiative) cascade effects (default)", NULL },
 		{ "disable-auger-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Disable Auger cascade effects", NULL },
 		{ "enable-radiative-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Enable radiative cascade effects (default)", NULL },
@@ -143,17 +138,21 @@ XMI_MAIN
 		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
 		{"htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL},
 		{"htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL},
-		{"set-channels",0,0,G_OPTION_ARG_INT,&nchannels,"Change number of channels (default=2048)",NULL},
-		{ "enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
-		{ "disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
-		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
-		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
-		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+		{"set-channels",0,0,G_OPTION_ARG_INT,&options.nchannels,"Change number of channels (default=2048)",NULL},
+		{"enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
+		{"disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
+		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
+		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
+		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
+		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
+#endif
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
-		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
-		{ "very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
-		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{ NULL }
 	};
 
@@ -190,12 +189,10 @@ XMI_MAIN
 	//
 	//options...
 	//1) use M-lines
-	//2) use self-enhancement -> see paper of Fernandez/Scot
 	//3) use cascade effect
 	//4) use variance reduction
 
 	options.use_M_lines = 1;
-	options.use_self_enhancement = 0;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
@@ -203,8 +200,10 @@ XMI_MAIN
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
 	options.verbose = 0;
+	options.use_opencl = 1;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
+	options.nchannels = 2048;
 
 
 
@@ -228,17 +227,28 @@ XMI_MAIN
 	}
 
 	
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
-	if (options.extra_verbose)
+	if (options.extra_verbose) {
 		options.verbose = 1;
+		//print all selected options
+		g_fprintf(stdout,"Option M-lines: %i\n", options.use_M_lines);
+		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options.use_cascade_auger);
+		g_fprintf(stdout,"Option radiative cascade: %i\n", options.use_cascade_radiative);
+		g_fprintf(stdout,"Option variance reduction: %i\n", options.use_variance_reduction);
+		g_fprintf(stdout,"Option pile-up: %i\n", options.use_sum_peaks);
+		g_fprintf(stdout,"Option Poisson noise: %i\n", options.use_poisson);
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
+#endif
+		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
+		g_fprintf(stdout,"Option number of channels: %i\n", options.nchannels);
+	}
 
-	//omp_set_num_threads(omp_num_threads);
-	//omp_set_dynamic(0);
-	
+		
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -354,7 +364,7 @@ XMI_MAIN
 	if (options.verbose)
 		g_fprintf(stdout,"Simulating interactions\n");
 
-	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, nchannels,options, &brute_history, &var_red_history, solid_angle_def) == 0) {
+	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 		g_fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
@@ -389,7 +399,7 @@ XMI_MAIN
 
 
 	if (rank == 0) {
-		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*nchannels,sizeof(double));
+		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*options.nchannels,sizeof(double));
 		brute_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
 		if (options.use_variance_reduction == 1)
 			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
@@ -397,7 +407,7 @@ XMI_MAIN
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	//reduce channels
-	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*options.nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce brute_history
 	MPI_Reduce(brute_history, brute_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce var_red_history
@@ -437,7 +447,7 @@ XMI_MAIN
 
 #endif
 		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
-		zero_sum = xmi_sum_double(channelsdef, nchannels);
+		zero_sum = xmi_sum_double(channelsdef, options.nchannels);
 
 #if DEBUG == 2
 		fprintf(stdout,"zero_sum: %lf\n",zero_sum);
@@ -450,7 +460,7 @@ XMI_MAIN
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
-			fprintf(stdout,"channel 223 contents unspoiled: %lf\n",channelsdef[i*nchannels+222]);
+			fprintf(stdout,"channel 223 contents unspoiled: %lf\n",channelsdef[i*options.nchannels+222]);
 
 #endif
 
@@ -486,14 +496,14 @@ XMI_MAIN
 		
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 #if DEBUG == 2
-			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*nchannels+222]);
+			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*options.nchannels+222]);
 #endif
-			xmi_detector_convolute(inputFPtr, channelsdef+i*nchannels, &channels_conv_temp, nchannels,options,escape_ratios_def);
+			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, &channels_conv_temp, options,escape_ratios_def);
 			//channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 			channels_conv[i] = channels_conv_temp;
 #if DEBUG == 2
 			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
-			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*nchannels+222]);
+			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*options.nchannels+222]);
 #endif
 		}
 #if DEBUG == 2
@@ -537,9 +547,9 @@ XMI_MAIN
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n",nchannels-1);
-				for (j=0 ; j < nchannels ; j++) {
-					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
+				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
+				for (j=0 ; j < options.nchannels ; j++) {
+					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
 					}
@@ -562,8 +572,8 @@ XMI_MAIN
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n",nchannels-1);
-				for (j=0 ; j < nchannels ; j++) {
+				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
+				for (j=0 ; j < options.nchannels ; j++) {
 					fprintf(outPtr,"%lg",channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
@@ -579,11 +589,11 @@ XMI_MAIN
 
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
-			for (j=0 ; j < nchannels ; j++) {
+			for (j=0 ; j < options.nchannels ; j++) {
 				fprintf(csv_noconvPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,nchannels));
+					fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
 				}
 				fprintf(csv_noconvPtr,"\n");
 			}
@@ -592,7 +602,7 @@ XMI_MAIN
 
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
-			for (j=0 ; j < nchannels ; j++) {
+			for (j=0 ; j < options.nchannels ; j++) {
 				fprintf(csv_convPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
@@ -613,13 +623,14 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		if (xmi_write_output_xml(input->general->outputfile, input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		struct xmi_output *output = xmi_output_raw2struct(input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, options.nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+		if (xmi_write_output_xml(input->general->outputfile, output) == 0) {
 			return 1;
 		}
 		else if (options.verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
-	
+		xmi_free_output(output);	
 #ifdef G_OS_WIN32
 	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
 

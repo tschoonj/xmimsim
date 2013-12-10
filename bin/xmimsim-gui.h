@@ -183,6 +183,7 @@ void quit_program_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data); 
 #endif
 
+int kill_current_job(void);
 
 
 #endif

@@ -141,23 +141,59 @@ struct xmi_input {
 	struct xmi_detector *detector;
 };
 
-//one day I'll actually use this structure...
+struct xmi_counts {
+	double counts;
+	int interaction_number;
+};
+
+struct xmi_fluorescence_line {
+	char line_type[10];
+	double energy;
+	double total_counts;
+	int n_interactions;
+	struct xmi_counts *interactions;
+};
+
+struct xmi_fluorescence_line_counts {
+	int atomic_number;
+	double total_counts;
+	int n_lines;
+	struct xmi_fluorescence_line *lines;
+};
+
 struct xmi_output {
-	struct xmi_input *input;
-	long int *brute_history;
-	double *var_red_history;
-	double **channels_conv;
-	double *channels_unconv;
-	int nchannels;
 	char *inputfile;
+	struct xmi_input *input;
+	struct xmi_fluorescence_line_counts *brute_force_history;
+	struct xmi_fluorescence_line_counts *var_red_history;
+	int nbrute_force_history;
+	int nvar_red_history;
+	double **channels_conv;
+	double **channels_unconv;
+	int nchannels;
+	int ninteractions;
 	int use_zero_interactions;
 };
 
-
+struct xmi_archive {
+	double start_value1;
+	double end_value1;
+	int nsteps1;
+	char *xpath1;
+	double start_value2;
+	double end_value2;
+	int nsteps2;
+	char *xpath2;
+	//input are just pointers to the input structs with output!
+	struct xmi_input ***input;
+	struct xmi_output ***output;
+	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
+	char ***inputfiles;
+	char ***outputfiles;
+};
 
 struct xmi_main_options {
 	int use_M_lines;
-	int use_self_enhancement;
 	int use_cascade_auger;
 	int use_cascade_radiative;
 	int use_variance_reduction;
@@ -166,8 +202,10 @@ struct xmi_main_options {
 	int escape_ratios_mode;
 	int verbose;
 	int use_poisson;
+	int use_opencl;
 	int omp_num_threads;
 	int extra_verbose;
+	int nchannels;
 };
 
 //typedefs are clearer then using void *...
@@ -227,6 +265,18 @@ int xmi_init_input(xmi_inputFPtr *inputFPtr);
 void xmi_print_input(FILE *fPtr, struct xmi_input *input);
 
 void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
+
+struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
+
+void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
+
+void xmi_free_output(struct xmi_output *);
+
+void xmi_free_archive(struct xmi_archive *archive);
+
+struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
+
+void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
 
 #ifdef __cplusplus
 }

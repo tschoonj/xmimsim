@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xraylib.h"
 #include "xmi_aux.h"
+#include <glib/gprintf.h>
 
 
 extern GdkColor white;
@@ -398,6 +399,7 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	vbox = gtk_vbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Select a composition from the list"),TRUE, FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
 
 #if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *listW = gtk_combo_box_text_new();
@@ -427,7 +429,7 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
 			exit(1);
 		}
-		double thickness;
+		double thickness = 0.0;
 		if (*(lw->my_layer) != NULL) {
 			thickness = (*(lw->my_layer))->thickness;
 			if ((*(lw->my_layer))->n_elements > 0) {
@@ -436,10 +438,18 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 			free(*(lw->my_layer));
 		}
+		else if (gtk_widget_get_sensitive(lw->okButton)){
+			//get thickness from widget
+			thickness = strtod(gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry)),NULL);
+		}
+		else 
+			thickness = 0.0;
+
 		double sum = xmi_sum_double(cdn->massFractions, cdn->nElements);
 		xmi_scale_double(cdn->massFractions, cdn->nElements, 1.0/sum);
 		*(lw->my_layer) = compoundDataNIST2xmi_layer(cdn);
 
+		//this next line is fishy
 		(*(lw->my_layer))->thickness = thickness;
 		FreeCompoundDataNIST(cdn);
 		//update store

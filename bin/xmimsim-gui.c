@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
+#include "xmimsim-gui-batch.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -85,6 +86,8 @@ static GtkWidget *newW;
 static GtkWidget *openW;
 static GtkWidget *preferencesW;
 static GtkWidget *tube_ebelW;
+static GtkWidget *batchmodeW;
+
 
 GtkWidget *saveW;
 GtkWidget *save_asW;
@@ -99,6 +102,7 @@ static GtkToolItem *undoT;
 static GtkToolItem *redoT;
 static GtkToolItem *preferencesT;
 static GtkToolItem *tube_ebelT;
+static GtkToolItem *batchmodeT;
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
@@ -327,6 +331,23 @@ char *xmimsim_filename_xmso = NULL;
 
 
 
+struct read_xmsa_data {
+	gchar *filename;
+	struct xmi_archive **archive;
+};
+
+gpointer read_xmsa_thread(struct read_xmsa_data *rxd) {
+	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));	
+}
+
+struct dialog_helper_xmsa_data {
+	GtkWidget *window;
+	gchar *filename;
+};
+
+static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data);
+
+
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
 void change_all_values(struct xmi_input *);
 void load_from_file_cb(GtkWidget *, gpointer);
@@ -341,6 +362,7 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 void new_cb(GtkWidget *widget, gpointer data);
+gboolean process_pre_file_operation (GtkWidget *window);
 
 #ifdef G_OS_UNIX
 void signal_handler(int sig) {
@@ -357,19 +379,7 @@ void signal_handler(int sig) {
 		fprintf(stdout,"SIGHUP caught\n");
 	}
 
-	if (xmimsim_pid != GPID_INACTIVE) {
-		int kill_rv;
-	
-		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
-		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-		wait(NULL);
-		if (kill_rv == 0) {
-			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
-		}
-		else {
-			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
-		}
-	}
+	kill_current_job();
 	_exit(0);
 }
 
@@ -416,10 +426,10 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 
 	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
 
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return;
 	
 	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 		if (xmi_read_input_xml(filename, &xi) == 1) {
 			//success reading it in...
@@ -442,6 +452,8 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 		}
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			gchar *temp_base = g_path_get_basename(filename);
@@ -458,6 +470,15 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy (dialog);
 		}
+	}
+	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+		my_data->window = (GtkWidget *)data;
+		my_data->filename = filename;
+		dialog_helper_xmsa_cb(my_data);
+		return;
+	}
+	else {
 	}
 
 	g_free(filename);
@@ -1517,6 +1538,7 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 	fprintf(stdout,"depth: %i\n",depth);
 	fprintf(stdout,"indices: %i\n",indices[0]);
 #endif
+	composition = NULL;
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
 	else if (mb->matrixKind == EXC_COMPOSITION)
@@ -3095,6 +3117,67 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
+static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
+	struct xmi_archive *archive;
+	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(data->window));
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+	//gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
+	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"<b>Reading XMSA file</b>");
+	gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
+	gtk_widget_show(label);
+	label = gtk_label_new("This may take a while...");
+	gtk_box_pack_start(GTK_BOX(main_vbox), label, FALSE, FALSE, 10);
+	gtk_widget_show(label);
+	gtk_widget_show(main_vbox);
+	gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
+	gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
+	gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
+	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
+	gtk_widget_show_all(dialog);
+	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
+	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+	while(gtk_events_pending())
+	    gtk_main_iteration();
+
+
+
+	struct read_xmsa_data *rxd = g_malloc(sizeof(struct read_xmsa_data));	
+	rxd->filename = data->filename;
+	rxd->archive = &archive;
+#if GLIB_CHECK_VERSION (2, 32, 0)
+	//new API
+	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) read_xmsa_thread, (gpointer) rxd);
+#else
+	//old API
+	GThread *xmsa_thread = g_thread_create((GThreadFunc) read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
+#endif
+	int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
+	g_free(rxd);
+	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
+	gtk_widget_destroy(dialog);
+	if (!xmsa_thread_rv) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW(data->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"Could not read file %s",data->filename
+	       	);
+	    	gtk_dialog_run (GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+	}
+	else {
+		launch_archive_plot(archive, data->window);
+	}
+	g_free(data->filename);
+	g_free(data);
+	return FALSE;
+}
 
 
 #ifdef MAC_INTEGRATION
@@ -3122,11 +3205,11 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	
 
 
-	if (process_pre_file_operation(old->window) == FALSE)
-		return FALSE;
-
 	//check for filetype
 	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		if (process_pre_file_operation(old->window) == FALSE)
+			return FALSE;
+
 		//XMSI file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 		if (xmi_read_input_xml(filename, &xi) == 1) {
@@ -3152,6 +3235,9 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		}
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		if (process_pre_file_operation(old->window) == FALSE)
+			return FALSE;
+
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
@@ -3171,6 +3257,13 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
+	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+		my_data->window = old->window;
+		my_data->filename = filename;
+		dialog_helper_xmsa_cb(my_data);
+	}
+
 	return FALSE;
 }
 
@@ -3534,8 +3627,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			strcpy(last->message,"deletion of continuous energy");
-			 n = last->xi->excitation->n_continuous;
-			j;
+			n = last->xi->excitation->n_continuous;
 			if (n != delete_current_nindices) {
 				for (i = n-1 ; i >= 0 ; i--) {
 					if (i == delete_current_indices[delete_current_nindices-1]) {
@@ -3888,6 +3980,9 @@ XMI_MAIN
 	g_type_init();
 #endif
 
+#if !GLIB_CHECK_VERSION (2, 32, 0)
+	g_thread_init(NULL);
+#endif
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -4046,9 +4141,10 @@ XMI_MAIN
 	openW = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN,accel_group);
 	GtkWidget *openrecentW = gtk_recent_chooser_menu_new();
 	GtkRecentFilter *filter = gtk_recent_filter_new();
-	//gtk_recent_filter_add_pattern(filter, "*.xmsi");
-	//gtk_recent_filter_add_pattern(filter, "*.xmso");
-	gtk_recent_filter_add_application(filter, g_get_application_name());
+	gtk_recent_filter_add_pattern(filter, "*.xmsi");
+	gtk_recent_filter_add_pattern(filter, "*.xmso");
+	gtk_recent_filter_add_pattern(filter, "*.xmsa");
+	//gtk_recent_filter_add_application(filter, g_get_application_name());
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentW), filter);
 #if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)
 	gtk_recent_chooser_set_show_icons(GTK_RECENT_CHOOSER(openrecentW), FALSE);
@@ -4100,11 +4196,15 @@ XMI_MAIN
 	tools = gtk_menu_item_new_with_label("Tools");
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
 	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
+	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
+	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
 
 	convertmenu = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
@@ -4235,7 +4335,9 @@ XMI_MAIN
 	//toolbar
 	toolbar = gtk_toolbar_new();
 	newT = gtk_tool_button_new_from_stock(GTK_STOCK_NEW);
+	gtk_tool_item_set_tooltip_text(newT, "New XMSI file");
 	openT = gtk_menu_tool_button_new_from_stock(GTK_STOCK_OPEN);
+	gtk_tool_item_set_tooltip_text(openT, "Open file");
 	GtkWidget *openrecentT = gtk_recent_chooser_menu_new();
 	gtk_recent_chooser_add_filter(GTK_RECENT_CHOOSER(openrecentT), filter);
 	gtk_recent_chooser_set_show_tips(GTK_RECENT_CHOOSER(openrecentT), TRUE);
@@ -4249,11 +4351,18 @@ XMI_MAIN
 	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(openT), openrecentT); 
 
 	saveasT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_tool_item_set_tooltip_text(saveasT, "Save XMSI file as");
 	saveT = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
+	gtk_tool_item_set_tooltip_text(saveT, "Save XMSI file");
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
 	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
+	gtk_tool_item_set_tooltip_text(preferencesT, "Preferences");
 	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
+	gtk_tool_item_set_tooltip_text(tube_ebelT, "X-ray tube spectra");
+	batchmodeT = gtk_tool_button_new_from_stock(GTK_STOCK_DND_MULTIPLE);
+	gtk_tool_item_set_tooltip_text(batchmodeT, "Batch mode");
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(batchmodeT), "Batch mode");
 	gtk_widget_set_can_focus(GTK_WIDGET(newT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(openT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(saveasT),FALSE);
@@ -4262,6 +4371,7 @@ XMI_MAIN
 	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(tube_ebelT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(batchmodeT),FALSE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
@@ -4272,8 +4382,9 @@ XMI_MAIN
 	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
 	gtk_tool_item_set_expand(separatorT, TRUE);
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 7);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 8);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), batchmodeT,(gint) 7);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 8);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 9);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
@@ -4286,6 +4397,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
@@ -4298,6 +4410,7 @@ XMI_MAIN
 	notebookG = g_signal_connect(G_OBJECT(notebook), "switch-page",G_CALLBACK(notebook_page_changed_cb),window);
 	g_signal_handler_block(G_OBJECT(notebook), notebookG);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
+	gtk_notebook_set_homogeneous_tabs(GTK_NOTEBOOK(notebook), TRUE);
 	gtk_widget_show(notebook);
 
 	frame = gtk_frame_new("General");
@@ -4402,6 +4515,7 @@ XMI_MAIN
 	label = gtk_label_new("Input parameters");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Input parameters</span>");
 	input_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), scrolled_window, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	current_page = (gint) input_page;
 	gtk_box_pack_start(GTK_BOX(Main_vbox), notebook, TRUE, TRUE, 3);
 	gtk_widget_show_all(notebook);
@@ -4703,10 +4817,17 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Detector type");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+#if GTK_CHECK_VERSION(2,24,0)
+	detector_typeW = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Si(Li)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"Ge");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(detector_typeW),"SDD");
+#else
 	detector_typeW = gtk_combo_box_new_text();
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Si(Li)");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"Ge");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"SDD");
+#endif
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),current->xi->detector->detector_type);
 	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);
@@ -4832,6 +4953,7 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation controls</span>");
 	controlsPageW = init_simulation_controls(window);
 	control_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), controlsPageW, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), controlsPageW, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	gtk_widget_show_all(controlsPageW);
 
 	//third notebook page: Results
@@ -4839,6 +4961,7 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
 	resultsPageW = init_results(window);
 	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
+	gtk_container_child_set(GTK_CONTAINER(notebook), resultsPageW, "tab-expand", TRUE, "tab-fill", FALSE, NULL);
 	gtk_widget_show_all(resultsPageW);
 	//gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), results_page);
 	//fprintf(stdout,"going to input_page\n");
@@ -4909,6 +5032,15 @@ XMI_MAIN
 				//gtk_widget_destroy (dialog);
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
+		}
+		else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+			update_xmimsim_title_xmsi("New file", window, NULL);
+			update_xmimsim_title_xmso("No simulation data available", window, NULL);
+			//have to add busy readin XMSA dialog here, through custom g_idle_add callback
+			struct dialog_helper_xmsa_data *data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+			data->window = window;
+			data->filename = filename;
+			g_idle_add((GSourceFunc) dialog_helper_xmsa_cb, (gpointer) data);
 		}
 		else {
 			update_xmimsim_title_xmsi("New file", window, NULL);
@@ -5266,24 +5398,8 @@ void new_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
-#ifdef MAC_INTEGRATION
-gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
 
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return TRUE;
-	return FALSE;
-
-}
-
-void quit_program_cb(GtkosxApplication *app, gpointer data) {
-#else
-void quit_program_cb(GtkWidget *widget, gpointer data) {
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return;
-#endif
-
-
-
+int kill_current_job(void) {
 	if (xmimsim_pid != GPID_INACTIVE) {
 		//if UNIX -> send sigterm
 		//if WIN32 -> call TerminateProcess 
@@ -5293,7 +5409,13 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 	
 		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
 		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-		wait(NULL);
+#if !GLIB_CHECK_VERSION (2, 35, 0)
+		//starting with 2.36.0 (and some unstable versions before),
+		//waitpid is called from within the main loop
+		//causing all kinds of trouble if I would call wait here
+		//wait(NULL);
+		waitpid(xmimsim_pid, NULL, WNOHANG);
+#endif
 		if (kill_rv == 0) {
 			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
 		}
@@ -5314,8 +5436,30 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 #endif
 		g_spawn_close_pid(xmimsim_pid);
 		xmimsim_pid = GPID_INACTIVE;
-
+		return 1;
 	}
+	return 0;
+}
+#ifdef MAC_INTEGRATION
+gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data){
+
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return TRUE;
+	return FALSE;
+
+}
+
+
+
+void quit_program_cb(GtkosxApplication *app, gpointer data) {
+#else
+void quit_program_cb(GtkWidget *widget, gpointer data) {
+	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+		return;
+#endif
+
+	kill_current_job();
+
 
 	fprintf(stdout,"quitting\n");
 
@@ -5324,16 +5468,15 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *dialog = NULL;
-	GtkFileFilter *filter1, *filter2;
+	GtkFileFilter *filter1, *filter2, *filter3;
 	gchar *filename;
 	struct xmi_input *xi;
 	gchar *title;
 
 
-	if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-		return;
 
 
 	filter1 = gtk_file_filter_new();
@@ -5342,6 +5485,9 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	filter2 = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter2,"*.xmso");
 	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
+	filter3 = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter3,"*.xmsa");
+	gtk_file_filter_set_name(filter3,"XMI-MSIM archives");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -5350,6 +5496,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter3);
 	 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
@@ -5365,6 +5512,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		//get filetype
 		if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter1) {
+			if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+				return;
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
@@ -5374,6 +5523,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				title = g_path_get_basename(filename);
 				update_xmimsim_title_xmsi(title, data, filename);
 				g_free(title);
+				adjust_save_buttons();
 				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
 			else {
@@ -5388,6 +5538,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 			}
 		}
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter2) {
+			if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+				return;
 			
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
@@ -5406,11 +5558,18 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	     			gtk_dialog_run (GTK_DIALOG (dialog));
 			}
 		}
+		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter3) {
+			gtk_widget_destroy(dialog);
+			struct dialog_helper_xmsa_data *mydata = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+			mydata->window = (GtkWidget *) data;
+			mydata->filename = filename;
+			dialog_helper_xmsa_cb(mydata);
+			return;
+		}
 		g_free (filename);							
 	}
 
 	gtk_widget_destroy (dialog);
-	adjust_save_buttons();
 }
 
 int check_changeables(void) {
@@ -5563,8 +5722,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 		NULL);
-		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-		gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
