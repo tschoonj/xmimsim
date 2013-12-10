@@ -1077,7 +1077,23 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
 		}\
 	}
-	energy_short1(1, ew->energyEntry)
+
+#define energy_short3(n,my_entry) value ## n = strtod(textPtr ## n, &endPtr ## n);\
+	lastPtr ## n = textPtr ## n + strlen(textPtr ## n);\
+	if (lastPtr ## n == endPtr ## n && strcmp(textPtr ## n,"") != 0 && value ## n > 0.0 && value ## n <= 200.0) \
+		ok ## n = 1;\
+	else\
+		ok ## n = 0;\
+	if (widget == my_entry) {\
+		if (ok ## n)\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+		else {\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+			gtk_widget_set_sensitive(ew->okButton, FALSE);\
+		}\
+	}
+
+	energy_short3(1, ew->energyEntry)
 	//energy_short1(2, ew->hor_intensityEntry)
 	//energy_short1(3, ew->ver_intensityEntry)
 	energy_short2(4, ew->sigma_xEntry)
@@ -2050,7 +2066,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 				return -3;
 		};
 		//ignore the useless lines
-		if (energy <= 0.0000000001 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+		if (energy <= 0.0000000001 || energy > 200.0 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
 			nlines--;
 			continue;
 		}
@@ -2161,7 +2177,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 		};
 
 		//ignore the useless lines
-		if (energy <= 0.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
+		if (energy <= 0.0 || energy > 200.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
 			nlines--;
 			continue;
 		}
