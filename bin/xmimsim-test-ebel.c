@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 	double tube_current = 1.0;
 	double tube_angle_electron = 45.0;
 	double tube_angle_xray= 45.0;
-	double tube_delta_energy = 0.2;
+	double tube_delta_energy = 0.5;
 
 	struct xmi_excitation *excitation;
 	int tube_transmission = 0;
