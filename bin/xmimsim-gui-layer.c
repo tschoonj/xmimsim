@@ -399,6 +399,7 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	vbox = gtk_vbox_new(FALSE,2);
 	gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Select a composition from the list"),TRUE, FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
 
 #if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *listW = gtk_combo_box_text_new();
