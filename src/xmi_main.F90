@@ -1967,6 +1967,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         INTEGER (C_INT) :: pos_1, pos_2
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
+        REAL (C_DOUBLE) :: theta_temp
 
         rv = 0
 
@@ -2011,9 +2012,12 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         pos_1 = 0_C_INT
         pos_2 = 0_C_INT
 
-        phi_i = bilinear_interpolation(hdf5F%RayleighPhi_ICDF, &
-                hdf5F%RayleighThetas, hdf5F%RayleighRandomNumbers,&
-                theta_i, fgsl_rng_uniform(rng), pos_1, pos_2)
+        theta_temp = (SIN(theta_i))**2
+        theta_temp = theta_temp/(4.0_C_DOUBLE-2.0_C_DOUBLE*theta_temp)
+
+        phi_i = bilinear_interpolation(hdf5F%Phi_ICDF, &
+                hdf5F%Thetas, hdf5F%RandomNumbers,&
+                theta_temp, fgsl_rng_uniform(rng), pos_1, pos_2)
         
 #if DEBUG == 2
         WRITE (*,'(A,F12.6)') 'phi_i: ',phi_i
@@ -2064,7 +2068,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         rv = 1
 
         !IF (photon%n_interactions .EQ. 1) &
-        !WRITE (6,'(5ES14.5)') photon%theta, photon%phi, photon%dirv
+        !WRITE (6,'(2ES14.5)') theta_i, phi_i
 
         RETURN
 ENDFUNCTION xmi_simulate_photon_rayleigh
@@ -2080,6 +2084,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
         REAL (C_DOUBLE) :: pp, rat, rk, w_h
+        REAL (C_DOUBLE) :: theta_temp, K0K
        
         rv = 0
         pos_1 = 0
@@ -2097,14 +2102,19 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         hdf5_Z%RandomNumbers, &
         photon%energy,fgsl_rng_uniform(rng), pos_1, pos_2) 
 
-        !calculate phi
-        phi_i = trilinear_interpolation(&
-        hdf5F%ComptonPhi_ICDF, &
-        hdf5F%ComptonThetas, &
-        hdf5F%ComptonEnergies,&
-        hdf5F%ComptonRandomNumbers,&
-        theta_i, photon%energy,fgsl_rng_uniform(rng)) 
+        K0K = 1.0_C_DOUBLE + photon%energy * (1.0_C_DOUBLE - COS(theta_i))/XMI_MEC2
+        theta_temp = (SIN(theta_i))**2
+        theta_temp = theta_temp/(K0K+(1.0_C_DOUBLE/K0K)-theta_temp)/2.0_C_DOUBLE
+        
 
+        !reset position variables
+        pos_1 = 0
+        pos_2 = 0
+
+        !calculate phi
+        phi_i = bilinear_interpolation(hdf5F%Phi_ICDF, &
+                hdf5F%Thetas, hdf5F%RandomNumbers,&
+                theta_temp, fgsl_rng_uniform(rng), pos_1, pos_2)
 
         !again according to laszlo... some things need to happen here first...
         !see comment with rayleigh
@@ -2173,6 +2183,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !IF (photon%n_interactions .EQ. 1) &
         !WRITE (6,'(5ES14.5)') photon%theta, photon%phi, photon%dirv
+        IF (photon%n_interactions .EQ. 1) &
+        WRITE (6,'(2ES14.5)') theta_i, phi_i
         RETURN
 
 ENDFUNCTION xmi_simulate_photon_compton
@@ -5227,9 +5239,9 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon
         INTEGER, PARAMETER :: maxz = 94
-        INTEGER (C_LONG), PARAMETER :: n_input_energies = 990
-        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 999
-        INTEGER (C_LONG), PARAMETER :: n_photons = 1000000
+        INTEGER (C_LONG), PARAMETER :: n_input_energies = 1990
+        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 1999
+        INTEGER (C_LONG), PARAMETER :: n_photons = 250000
         !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies

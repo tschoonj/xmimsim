@@ -60,13 +60,9 @@ ENDTYPE
 
 TYPE :: xmi_hdf5
         TYPE (xmi_hdf5_Z), POINTER, DIMENSION(:) :: xmi_hdf5_Zs
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighPhi_ICDF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighThetas
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RayleighRandomNumbers
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: ComptonPhi_ICDF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonThetas
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonEnergies
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: ComptonRandomNumbers
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: Phi_ICDF
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Thetas
+        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
 ENDTYPE
 
 TYPE :: xmi_hdf5_ZPtr

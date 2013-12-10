@@ -228,18 +228,17 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
         !start by reading in the Z independent part...
-        !RayleighPhi
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening group RayleighPhi'
+                WRITE (output_unit,'(A)') 'Opening group Phi'
         ENDIF
-        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'RayleighPhi'//C_NULL_CHAR) &
+        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'Phi'//C_NULL_CHAR) &
                 .EQ. 0_C_INT) RETURN
 
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset RayleighPhi_ICDF'
+                WRITE (output_unit,'(A)') 'Opening dataset Phi_ICDF'
         ENDIF
         IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'RayleighPhi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                C_CHAR_'Phi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
                 0_C_INT) RETURN
         CALL C_F_POINTER(dimsPtr, dims, [ndims])
         IF (ndims .NE. 2_C_INT) THEN
@@ -249,11 +248,11 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighPhi_ICDF(dims(1),dims(2)))
+        ALLOCATE(xmi_hdf5F%Phi_ICDF(dims(1),dims(2)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighPhi_ICDF(1,1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Phi_ICDF(1,1)))&
                 .EQ. 0_C_INT) RETURN
 
         !thetas
@@ -271,11 +270,11 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighThetas(dims(1)))
+        ALLOCATE(xmi_hdf5F%Thetas(dims(1)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighThetas(1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Thetas(1)))&
                 .EQ. 0_C_INT) RETURN
 
         !random numbers
@@ -293,112 +292,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighRandomNumbers(dims(1)))
+        ALLOCATE(xmi_hdf5F%RandomNumbers(dims(1)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighRandomNumbers(1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RandomNumbers(1)))&
                 .EQ. 0_C_INT) RETURN
-
-        !close group
-        IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
-
-        !ComptonPhi
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening group ComptonPhi'
-        ENDIF
-        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'ComptonPhi'//C_NULL_CHAR) &
-                .EQ. 0_C_INT) RETURN
-
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset ComptonPhi_ICDF'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'ComptonPhi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 3_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonPhi_ICDF(dims(1),dims(2),dims(3)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonPhi_ICDF(1,1,1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !Read ComptonThetas and ComptonRandomNumbers
-        !thetas
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Thetas'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Thetas'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonThetas(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonThetas(1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !random numbers
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Random numbers'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Random numbers'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonRandomNumbers(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonRandomNumbers(1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !energies
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Energies'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Energies'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonEnergies(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonEnergies(1)))&
-                .EQ. 0_C_INT) RETURN
-
-
 
         !close group
         IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
@@ -407,12 +306,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !read Z dependent part...
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
         DO i=1,SIZE(uniqZ) 
-!
-!
-!       Internal files issue in intel fortran...
-!
-
-
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
 
@@ -660,13 +553,9 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
 
-        DEALLOCATE(xmi_hdf5F%RayleighPhi_ICDF)
-        DEALLOCATE(xmi_hdf5F%RayleighThetas)
-        DEALLOCATE(xmi_hdf5F%RayleighRandomNumbers)
-        DEALLOCATE(xmi_hdf5F%ComptonPhi_ICDF)
-        DEALLOCATE(xmi_hdf5F%ComptonThetas)
-        DEALLOCATE(xmi_hdf5F%ComptonEnergies)
-        DEALLOCATE(xmi_hdf5F%ComptonRandomNumbers)
+        DEALLOCATE(xmi_hdf5F%Phi_ICDF)
+        DEALLOCATE(xmi_hdf5F%Thetas)
+        DEALLOCATE(xmi_hdf5F%RandomNumbers)
 
         DO i=1,SIZE(xmi_hdf5F%xmi_hdf5_Zs)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF)
@@ -704,7 +593,7 @@ TYPE (interaction_prob) :: ip_temp
 
 INTEGER (8), PARAMETER :: nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_pz=1000000
-REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 100.0, lowe = 0.1, &
+REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 200.0, lowe = 0.1, &
         PI = 3.14159265359,maxpz = 100.0
 
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis,trapez2
@@ -1000,19 +889,16 @@ ENDDO Zloop
 
 ENDSUBROUTINE xmi_db_Z_specific
 
-SUBROUTINE xmi_db_Z_independent(rayleigh_phiPtr, compton_phiPtr, thetasPtr, &
-rsPtr, energiesPtr, nintervals_theta2, nintervals_e, nintervals_r) &
+SUBROUTINE xmi_db_Z_independent(phiPtr, thetasPtr, &
+rsPtr, nintervals_theta2, nintervals_r) &
 BIND(C,NAME='xmi_db_Z_independent')
 
 IMPLICIT NONE
 
-TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_phiPtr, compton_phiPtr, thetasPtr, &
-rsPtr, energiesPtr
-INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_theta2, nintervals_e, &
-nintervals_r
-REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: &
-        rayleigh_phi
-REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:,:) ::  compton_phi
+TYPE (C_PTR), VALUE, INTENT(IN) :: phiPtr, thetasPtr, &
+rsPtr
+INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_theta2, nintervals_r
+REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: phi
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs, phis
 REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: thetas, energies, rs
 INTEGER (8), PARAMETER :: nintervals_phi=100000
@@ -1021,17 +907,15 @@ REAL (KIND=C_DOUBLE) :: K0K
 REAL (KIND=C_DOUBLE) :: PI = 3.14159265359
 
 
-CALL C_F_POINTER(rayleigh_phiPtr, rayleigh_phi, [nintervals_theta2,nintervals_r])
-CALL C_F_POINTER(compton_phiPtr, compton_phi, [nintervals_theta2,nintervals_e,nintervals_r])
+CALL C_F_POINTER(phiPtr, phi, [nintervals_theta2,nintervals_r])
 CALL C_F_POINTER(thetasPtr, thetas, [nintervals_theta2])
 !energies and rs will be reused
-CALL C_F_POINTER(energiesPtr,energies,[nintervals_e])
 CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
 
 ALLOCATE(phis(nintervals_phi))
 
 DO i=1,nintervals_theta2
-        thetas(i) = 0.0_C_DOUBLE+(PI-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
+        thetas(i) = 0.0_C_DOUBLE+(0.5_C_DOUBLE-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta2-1.0)
 ENDDO
 
 DO i=1,nintervals_phi
@@ -1044,12 +928,10 @@ ALLOCATE(cdfs(nintervals_phi))
 
 !$OMP DO
 DO i=1,nintervals_theta2
-        !Rayleigh first...
         DO j=1,nintervals_phi 
         cdfs(j)= &
-        (phis(j)-(SIN(thetas(i))*SIN(thetas(i))*&
-        SIN(2.0*phis(j)))/2.0/&
-        (2.0-SIN(thetas(i))*SIN(thetas(i))))/2.0/PI
+        (phis(j)-thetas(i)*&
+        SIN(2.0*phis(j)))/2.0/PI
         ENDDO
         k=1
 
@@ -1057,56 +939,19 @@ DO i=1,nintervals_theta2
 
         DO j=1,nintervals_phi
                 IF (cdfs(j) >= rs(k)) THEN
-                        rayleigh_phi(i,k) = phis(j)
+                        phi(i,k) = phis(j)
                         IF (k == nintervals_r) EXIT
                         k=k+1
                 ENDIF
         ENDDO
-        rayleigh_phi(i,1) = 0.0 
-        rayleigh_phi(i,nintervals_r) = 2.0*PI
+        phi(i,1) = 0.0 
+        phi(i,nintervals_r) = 2.0*PI
 
 ENDDO
 
 !$OMP END DO
 DEALLOCATE(cdfs)
 !$OMP END PARALLEL
-
-
-!$OMP PARALLEL DEFAULT(shared) PRIVATE(j,k,l,m,cdfs,K0K)
-
-ALLOCATE(cdfs(nintervals_phi))
-
-!$OMP DO
-DO i=1,nintervals_theta2
-
-        !...and then of course Compton.
-        DO m=1,nintervals_e
-               K0K= 1.0 + energies(m)*(1.0-COS(thetas(i)))/MEC2
-                DO j=1,nintervals_phi
-                cdfs(j)= &
-                (phis(j)-(SIN(thetas(i))*SIN(thetas(i))*&
-                SIN(2.0*phis(j)))/2.0/&
-                (K0K+(1.0/K0K)-SIN(thetas(i)*SIN(thetas(i)))))/2.0/PI
-                ENDDO
-
-                k=1
-
-               DO j=1,nintervals_phi
-                        IF (cdfs(j) >= rs(k)) THEN
-                                compton_phi(i,m,k) = phis(j)
-                                IF (k == nintervals_r) EXIT
-                                k=k+1
-                        ENDIF
-                ENDDO
-                compton_phi(i,m,1) = 0.0 
-                compton_phi(i,m,nintervals_r) = 2.0*PI
-        ENDDO
-ENDDO
-
-!$OMP END DO
-DEALLOCATE(cdfs)
-!$OMP END PARALLEL
-
 
 ENDSUBROUTINE xmi_db_Z_independent
 ENDMODULE xmimsim_hdf5
