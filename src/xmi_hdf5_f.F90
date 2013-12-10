@@ -228,18 +228,17 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
         !start by reading in the Z independent part...
-        !RayleighPhi
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening group RayleighPhi'
+                WRITE (output_unit,'(A)') 'Opening group Phi'
         ENDIF
-        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'RayleighPhi'//C_NULL_CHAR) &
+        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'Phi'//C_NULL_CHAR) &
                 .EQ. 0_C_INT) RETURN
 
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset RayleighPhi_ICDF'
+                WRITE (output_unit,'(A)') 'Opening dataset Phi_ICDF'
         ENDIF
         IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'RayleighPhi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                C_CHAR_'Phi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
                 0_C_INT) RETURN
         CALL C_F_POINTER(dimsPtr, dims, [ndims])
         IF (ndims .NE. 2_C_INT) THEN
@@ -249,11 +248,11 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighPhi_ICDF(dims(1),dims(2)))
+        ALLOCATE(xmi_hdf5F%Phi_ICDF(dims(1),dims(2)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighPhi_ICDF(1,1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Phi_ICDF(1,1)))&
                 .EQ. 0_C_INT) RETURN
 
         !thetas
@@ -271,11 +270,11 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighThetas(dims(1)))
+        ALLOCATE(xmi_hdf5F%Thetas(dims(1)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighThetas(1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Thetas(1)))&
                 .EQ. 0_C_INT) RETURN
 
         !random numbers
@@ -293,112 +292,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDIF
 
         !read the dataset
-        ALLOCATE(xmi_hdf5F%RayleighRandomNumbers(dims(1)))
+        ALLOCATE(xmi_hdf5F%RandomNumbers(dims(1)))
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RayleighRandomNumbers(1)))&
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RandomNumbers(1)))&
                 .EQ. 0_C_INT) RETURN
-
-        !close group
-        IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
-
-        !ComptonPhi
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening group ComptonPhi'
-        ENDIF
-        IF (xmi_db_open_group(hdf5_vars, C_CHAR_'ComptonPhi'//C_NULL_CHAR) &
-                .EQ. 0_C_INT) RETURN
-
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset ComptonPhi_ICDF'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'ComptonPhi_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 3_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonPhi_ICDF(dims(1),dims(2),dims(3)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonPhi_ICDF(1,1,1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !Read ComptonThetas and ComptonRandomNumbers
-        !thetas
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Thetas'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Thetas'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonThetas(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonThetas(1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !random numbers
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Random numbers'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Random numbers'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonRandomNumbers(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonRandomNumbers(1)))&
-                .EQ. 0_C_INT) RETURN
-
-        !energies
-        IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A)') 'Opening dataset Energies'
-        ENDIF
-        IF (xmi_db_open_dataset(hdf5_vars,&
-                C_CHAR_'Energies'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                0_C_INT) RETURN
-        CALL C_F_POINTER(dimsPtr, dims, [ndims])
-        IF (ndims .NE. 1_C_INT) THEN
-                WRITE (error_unit,'(A)') &
-                'Wrong dimensions found after opening dataset'
-                RETURN
-        ENDIF
-
-        !read the dataset
-        ALLOCATE(xmi_hdf5F%ComptonEnergies(dims(1)))
-        NULLIFY(dims)
-        CALL xmi_free(dimsPtr)
-
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%ComptonEnergies(1)))&
-                .EQ. 0_C_INT) RETURN
-
-
 
         !close group
         IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
@@ -407,12 +306,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !read Z dependent part...
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
         DO i=1,SIZE(uniqZ) 
-!
-!
-!       Internal files issue in intel fortran...
-!
-
-
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
 
@@ -660,13 +553,9 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
 
-        DEALLOCATE(xmi_hdf5F%RayleighPhi_ICDF)
-        DEALLOCATE(xmi_hdf5F%RayleighThetas)
-        DEALLOCATE(xmi_hdf5F%RayleighRandomNumbers)
-        DEALLOCATE(xmi_hdf5F%ComptonPhi_ICDF)
-        DEALLOCATE(xmi_hdf5F%ComptonThetas)
-        DEALLOCATE(xmi_hdf5F%ComptonEnergies)
-        DEALLOCATE(xmi_hdf5F%ComptonRandomNumbers)
+        DEALLOCATE(xmi_hdf5F%Phi_ICDF)
+        DEALLOCATE(xmi_hdf5F%Thetas)
+        DEALLOCATE(xmi_hdf5F%RandomNumbers)
 
         DO i=1,SIZE(xmi_hdf5F%xmi_hdf5_Zs)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF)
