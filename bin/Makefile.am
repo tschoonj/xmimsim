@@ -41,6 +41,8 @@ endif
 
 if !OS_WINDOWS
 bin_PROGRAMS += xmimsim-harvester
+else
+bin_PROGRAMS += xmimsim-cli
 endif
 
 
@@ -136,6 +138,11 @@ xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
 if OS_WINDOWS
 xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif
+
+xmimsim_cli_SOURCES = $(xmimsim_SOURCES)
+xmimsim_cli_CFLAGS = $(xmimsim_CFLAGS)
+xmimsim_cli_LDADD = $(xmimsim_LDADD)
+xmimsim_cli_LDFLAGS = @OPENMPI_LDFLAGS@
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la \
