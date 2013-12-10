@@ -1,9 +1,9 @@
 
 
 
-#include "xmi_data_structs.h"
 #ifndef XMI_EBEL_H
 #define XMI_EBEL_H
+#include "xmi_data_structs.h"
 
 int xmi_tube_ebel(struct xmi_layer *tube_anode, struct xmi_layer *tube_window,
 		  struct xmi_layer *tube_filter, double tube_voltage,

@@ -1,17 +1,17 @@
 #include <stdio.h>
-#include "xmi_ebel.h"
+#include "xmi_boone.h"
 #include <stdlib.h>
 
 
 int main(int argc, char *argv[]) {
 
 
-	double tube_voltage = 30.0;
+	double tube_voltage = 40.0;
 	struct xmi_layer tube_anode, tube_window, tube_filter;
 	double tube_current = 1.0;
-	double tube_angle_electron = 45.0;
-	double tube_angle_xray= 6.0;
-	double tube_delta_energy = 0.5;
+	double tube_angle_electron = 90.0;
+	double tube_angle_xray= 90.0;
+	double tube_delta_energy = 0.1;
 
 	struct xmi_excitation *excitation;
 	int tube_transmission = 0;
@@ -19,9 +19,9 @@ int main(int argc, char *argv[]) {
 	tube_anode.n_elements = 1;
 	tube_anode.Z = malloc(sizeof(int));
 	tube_anode.weight = malloc(sizeof(double));
-	tube_anode.Z[0] = 29;
+	tube_anode.Z[0] = 74;
 	tube_anode.weight[0] = 1.0;
-	tube_anode.density = 8.96;
+	tube_anode.density = 10.500000;
 	tube_anode.thickness= 0.000200;
 
 	tube_window.n_elements = 1;
@@ -35,16 +35,17 @@ int main(int argc, char *argv[]) {
 	tube_filter.n_elements = 1;
 	tube_filter.Z = malloc(sizeof(int));
 	tube_filter.weight = malloc(sizeof(double));
-	tube_filter.Z[0] = 13;
+	tube_filter.Z[0] = 10;
 	tube_filter.weight[0] = 1.0;
-	tube_filter.thickness = 0.0870;
-	tube_filter.density = 2.7;
+	tube_filter.thickness = 2.00000;
+	tube_filter.density = 0.0009;
 
 
 
 
-	//xmi_tube_ebel(&tube_anode, &tube_window, &tube_filter, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, 1.0,
-	xmi_tube_ebel(&tube_anode, NULL, NULL, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy, 1.0, tube_transmission, &excitation);
+	if (xmi_tube_boone_1661(NULL, NULL, 0.0, tube_voltage, tube_current, 1.0E-5, &excitation) == 0) {
+		return 1;
+	}
 
 	int i; 
 
