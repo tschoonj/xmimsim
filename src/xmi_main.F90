@@ -5238,7 +5238,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER, PARAMETER :: maxz = 94
         INTEGER (C_LONG), PARAMETER :: n_input_energies = 1990
         INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 1999
-        INTEGER (C_LONG), PARAMETER :: n_photons = 250000
+        INTEGER (C_LONG), PARAMETER :: n_photons = 500000
         !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
