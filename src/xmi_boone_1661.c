@@ -221,7 +221,7 @@ static int genspec1(double kvolt, double ripple, double spec[151])
 	int i,j,k,iphase,np;
 
 	if (kvolt < 30.0 || kvolt > 140.0) {
-		fprint(stderr,"Illegal tube voltage detected in genspec1\nOnly values between 30.0 and 140.0 keV are accepted\n");
+		fprintf(stderr,"Illegal tube voltage detected in genspec1\nOnly values between 30.0 and 140.0 keV are accepted\n");
 		return 0;
 	}
 	if (ripple < 0.0 || ripple > 100.0) {

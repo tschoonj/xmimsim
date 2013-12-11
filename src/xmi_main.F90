@@ -1601,9 +1601,6 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%last_interaction = COMPTON_INTERACTION
                         rv_interaction = xmi_simulate_photon_compton(photon,&
                         inputF, hdf5F, rng) 
-!                        photon%last_interaction = RAYLEIGH_INTERACTION
-!                        rv_interaction = xmi_simulate_photon_rayleigh(photon,&
-!                        inputF, hdf5F, rng) 
                 ELSE
                         !we've got photoelectric
 #if DEBUG == 1
@@ -2183,8 +2180,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !IF (photon%n_interactions .EQ. 1) &
         !WRITE (6,'(5ES14.5)') photon%theta, photon%phi, photon%dirv
-        IF (photon%n_interactions .EQ. 1) &
-        WRITE (6,'(2ES14.5)') theta_i, phi_i
+        !IF (photon%n_interactions .EQ. 1) &
+        !WRITE (6,'(2ES14.5)') theta_i, phi_i
         RETURN
 
 ENDFUNCTION xmi_simulate_photon_compton
