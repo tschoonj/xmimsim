@@ -161,9 +161,9 @@ if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz; then 
 		
-	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration >= 2.0.1,[
+	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.5,[
 			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration >= 2.0.1")
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk2 >= 2.0.5")
 			],[GTK_MAC_INTEGRATION_FOUND=no])
 	fi
 
