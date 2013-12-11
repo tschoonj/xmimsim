@@ -278,8 +278,8 @@ static void info_button_clicked_cb(GtkButton *button, GtkWidget *window) {
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "X-ray tube spectrum");
 	gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), 
 	"The model is based on the equations that can be found in "
-	"the paper written by Horst Ebel and published in <a href='http://dx.doi.org/10.1002/(SICI)1097-4539(199907/08)28:4<255::AID-XRS347>3.0.CO;2-Y'>X-ray spectrometry "
-	"28 (1999), 255-266</a>."
+	"the papers written by Horst Ebel and published in <a href='http://dx.doi.org/10.1002/(SICI)1097-4539(199907/08)28:4<255::AID-XRS347>3.0.CO;2-Y'>X-ray Spectrometry "
+	"28 (1999), 255-266</a> and <a href='http://dx.doi.org/10.1002/xrs.610'>X-ray Spectrometry 32 (2003), 46-51</a>."
 	);
 #if GTK_CHECK_VERSION(2,22,0)
 	GtkWidget *area = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
