@@ -108,7 +108,7 @@ AC_DEFUN([AX_HAVE_OPENCL],
     		AC_MSG_RESULT(yes)
     		CL_ENABLED=true
     		CL_VERSION=1
-	    	LIBS_CL="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCl"
+	    	LIBS_CL="-L/usr/lib64/nvidia -L/usr/lib/nvidia -lOpenCL"
 	    ],[
     		no_cl=yes
     		AC_MSG_RESULT(no)
