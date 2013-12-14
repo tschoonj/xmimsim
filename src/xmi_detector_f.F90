@@ -338,7 +338,10 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
                         X=(E-E0)/B0
                         G=EXP(-X*X)
                         F=ERFC(X)
-                        IF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
+                        IF (F .LT. 1E-30 .OR. ALFA*(E-E0) .GT. 500.0) THEN
+                                !let's avoid some NaN's
+                                R(I) = A0*G
+                        ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
                                 R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
                         ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
                                 R(I)= A0*G+1.0_C_DOUBLE*(0.63_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
