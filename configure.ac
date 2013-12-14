@@ -110,6 +110,7 @@ if test "x$enable_gui" != xno ; then
 		AC_MSG_NOTICE([Building with GUI])
 		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.18.0")
 		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0")
+		AC_DEFINE([HAVE_GUI],[],[building with GUI])
 	fi
 fi
 

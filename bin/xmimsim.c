@@ -63,6 +63,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
+//#include <fenv.h>
 
 XMI_MAIN
 
@@ -168,6 +169,7 @@ XMI_MAIN
 
 
 	setbuf(stdout,NULL);
+	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
 
 
@@ -495,20 +497,10 @@ XMI_MAIN
 
 		
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-#if DEBUG == 2
-			fprintf(stdout,"channel 223 contents: %lf\n",channelsdef[i*options.nchannels+222]);
-#endif
 			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, &channels_conv_temp, options,escape_ratios_def);
 			//channels_conv[i] = xmi_memdup(channels_conv_temp,sizeof(double)*nchannels);
 			channels_conv[i] = channels_conv_temp;
-#if DEBUG == 2
-			fprintf(stdout,"channel 223 contents after conv: %lf\n",channels_conv[i][222]);
-			fprintf(stdout,"channel 223 contents modified?: %lf\n",channelsdef[i*options.nchannels+222]);
-#endif
 		}
-#if DEBUG == 2
-		fprintf(stdout,"After detector convolution\n");
-#endif
 
 #ifndef G_OS_WIN32
 

@@ -266,12 +266,14 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	return 0;
 }
 #include <xraylib.h>
+#ifdef HAVE_GUI
 #include <gtk/gtk.h>
+#include <gtkextra/gtkextra.h>
+#endif
 #include <gsl/gsl_version.h>
 #include <hdf5.h>
 #include <libxml/xmlversion.h>
 #include <libxslt/xsltconfig.h>
-#include <gtkextra/gtkextra.h>
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
@@ -294,9 +296,11 @@ gchar *xmi_version_string() {
 	strcat(string,temp);
 	g_free(temp);
 	//gtk2
+#ifdef HAVE_GUI
 	temp = g_strdup_printf("gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
 	strcat(string,temp);
 	g_free(temp);
+#endif
 	//GSL
 	temp = g_strdup_printf("gsl %s, ", GSL_VERSION);
 	strcat(string,temp);
@@ -317,10 +321,12 @@ gchar *xmi_version_string() {
 	temp = g_strdup_printf("fgsl 0.9.4, ");
 	strcat(string,temp);
 	g_free(temp);
+#ifdef HAVE_GUI
 	//gtkextra
 	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
 	strcat(string,temp);
 	g_free(temp);
+#endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 	temp = g_strdup_printf(", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
