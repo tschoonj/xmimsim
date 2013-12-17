@@ -315,11 +315,6 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	ymax = MAX(y1, y2);
 
 
-	fprintf(stdout,"Entering spectra_region_changed_cb\n");
-	fprintf(stdout,"x1: %lf\n",x1);
-	fprintf(stdout,"y1: %lf\n",y1);
-	fprintf(stdout,"x2: %lf\n",x2);
-	fprintf(stdout,"y2: %lf\n",y2);
 
 	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmin, ymin, &px1, &py1);
 	gtk_plot_canvas_get_pixel(GTK_PLOT_CANVAS(canvas), xmax, ymax, &px2, &py2);
@@ -331,13 +326,6 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
         gtk_plot_get_point(GTK_PLOT(plot_window), px1, py1, &xmin, &ymax);
 	gtk_plot_get_point(GTK_PLOT(plot_window), px2, py2, &xmax, &ymin);
 
-
-	//make sure to check that these functions return the same results in gtk+extra 2.1.2
-	fprintf(stdout,"Transformed coordinates\n");
-	fprintf(stdout,"xmin: %lf\n",xmin);
-	fprintf(stdout,"xmax: %lf\n",xmax);
-	fprintf(stdout,"ymin: %lf\n",ymin);
-	fprintf(stdout,"ymax: %lf\n",ymax);
 
 	xmin = MAX(xmin,plot_xmin);
 	xmax = MIN(xmax,plot_xmax);
@@ -353,6 +341,35 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	else if (ymin > plot_ymax)
 		return;
 
+	double tickstep = 1E-10;
+	double nticks = floor((xmax-xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((xmax-xmin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
+	if ((xmax - xmin) < 0.005) {
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,4);
+	}
+	else if ((xmax - xmin) < 0.05) {
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,3);
+	}
+	else if ((xmax - xmin) < 0.5) {
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
+	}
+	else if ((xmax - xmin) < 5) {
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
+	}
+	else {
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
+	}
+		
 
 	gtk_plot_set_range(GTK_PLOT(plot_window), xmin,xmax,ymin,ymax);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
@@ -367,9 +384,22 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 
 gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 
-	fprintf(stdout,"Entering spectra_region_double_clicked\n");
 	if (event->type == GDK_2BUTTON_PRESS) {
-		fprintf(stdout,"Double click registered\n");
+
+		double tickstep = 1E-10;
+		double nticks = floor((plot_xmax-plot_xmin)/tickstep);
+	
+		while (nticks < 1 || nticks >= 10) {
+			tickstep *= 10.0;
+			nticks = floor((plot_xmax-plot_xmin)/tickstep);
+		} 
+
+		if (nticks == 1.0) {
+			tickstep /= 5.0;
+		}
+
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
+		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
 		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 		gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 		gtk_widget_queue_draw(GTK_WIDGET(canvas));
@@ -1079,7 +1109,23 @@ int plot_spectra_from_file(char *xmsofile) {
 	plot_ymin = 1.0;
 	plot_xmin = 0.0;
 	plot_xmax = results->nchannels * results->input->detector->gain + results->input->detector->zero;
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,5.0,5);
+
+	//x-axis number of ticks continues to be a problem
+	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
+
+	double tickstep = 1E-10;
+	double nticks = floor((plot_xmax-plot_xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = floor((plot_xmax-plot_xmin)/tickstep);
+	} 
+
+	if (nticks == 1.0) {
+		tickstep /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
 	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
