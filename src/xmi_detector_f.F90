@@ -543,7 +543,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                         ENDDO
                         ENDIF
                         IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L3_SHELL)) THEN
-                        DO k=L3M1_LINE,L3Q1_LINE,-1
+                        DO k=L3M1_LINE,L3P3_LINE,-1
                                 line_e=LineEnergy(escape_ratios%Z(j),k)
                                 IF ((channel_e-line_e) .GE. channel_1e .AND. channel_e .GE.&
                                 escape_ratios%fluo_escape_input_energies(1) .AND.&
