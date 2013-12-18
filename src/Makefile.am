@@ -18,8 +18,9 @@ xmimsimdir = $(datadir)/xmimsim
 
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
 
+if ENABLE_OPENCL
 dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
-
+endif
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 
