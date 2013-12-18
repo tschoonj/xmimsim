@@ -174,14 +174,14 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 ENDSUBROUTINE xmi_detector_sum_peaks
 
 SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
-channels_convPtr, options, escape_ratiosCPtr, thread_num&
+channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 ) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
-        INTEGER (C_INT), VALUE, INTENT(IN) :: thread_num
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions
 
         TYPE (xmi_escape_ratios) :: escape_ratios 
         TYPE (xmi_input), POINTER :: inputF
@@ -261,11 +261,11 @@ channels_convPtr, options, escape_ratiosCPtr, thread_num&
         
         IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                CALL xmi_print_progress('Calculating escape peaks in thread '&
-                //C_NULL_CHAR, thread_num)
+                CALL xmi_print_progress('Calculating escape peaks after interactions: '&
+                //C_NULL_CHAR, n_interactions)
 #else
-                WRITE(output_unit,'(A, I2)') 'Calculating escape peaks in thread ',&
-                thread_num
+                WRITE(output_unit,'(A, I2)') 'Calculating escape peaks after interactions: ',&
+                n_interactions
 #endif
 
         !escape peak
@@ -282,11 +282,11 @@ channels_convPtr, options, escape_ratiosCPtr, thread_num&
         IF (options%use_sum_peaks == 1_C_INT) THEN
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Calculating pile-up in thread '&
-                        //C_NULL_CHAR, thread_num)
+                        CALL xmi_print_progress('Calculating pile-up after interactions: '&
+                        //C_NULL_CHAR, n_interactions)
 #else
-                        WRITE(output_unit,'(A,I2)') 'Calculating pile-up in thread ',&
-                        thread_num
+                        WRITE(output_unit,'(A,I2)') 'Calculating pile-up after interactions: ',&
+                        n_interactions
 #endif
                 CALL xmi_detector_sum_peaks(inputF, channels_temp)
         ENDIF
@@ -296,11 +296,11 @@ channels_convPtr, options, escape_ratiosCPtr, thread_num&
 
         IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                CALL xmi_print_progress('Applying Gaussian convolution in thread '&
-                //C_NULL_CHAR, thread_num)
+                CALL xmi_print_progress('Applying Gaussian convolution after interactions: '&
+                //C_NULL_CHAR, n_interactions)
 #else
-                WRITE(output_unit,'(A,I2)') 'Applying Gaussian convolution in thread ',&
-                thread_num
+                WRITE(output_unit,'(A,I2)') 'Applying Gaussian convolution after interactions: ',&
+                n_interactions
 #endif
 
         DO I0=0,nlim
@@ -364,11 +364,11 @@ channels_convPtr, options, escape_ratiosCPtr, thread_num&
         IF (options%use_poisson == 1_C_INT) THEN
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Calculating Poisson noise in thread '&
-                        //C_NULL_CHAR, thread_num)
+                        CALL xmi_print_progress('Calculating Poisson noise after interactions: '&
+                        //C_NULL_CHAR, n_interactions)
 #else
-                        WRITE(output_unit,'(A,I2)') 'Calculating Poisson noise in thread ',&
-                        thread_num
+                        WRITE(output_unit,'(A,I2)') 'Calculating Poisson noise after interactions: ',&
+                        n_interactions
 #endif
                 CALL xmi_detector_poisson(channels_conv)
         ENDIF

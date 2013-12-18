@@ -494,7 +494,7 @@ XMI_MAIN
 		
 #pragma omp parallel for default(shared) private(i)
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, channels_conv+i, options,escape_ratios_def, omp_get_thread_num());
+			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, channels_conv+i, options,escape_ratios_def, i);
 		}
 
 #ifndef G_OS_WIN32

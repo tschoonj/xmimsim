@@ -685,7 +685,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def, 0);
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -746,7 +746,7 @@ single_run:
 	
 #pragma omp parallel for default(shared) private(i)
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, channels_conv+i, options,escape_ratios_def, omp_get_thread_num());
+		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, channels_conv+i, options,escape_ratios_def, i);
 	}
 
 	if (xmi_end_random_acquisition() == 0) {
