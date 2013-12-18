@@ -1,4 +1,4 @@
-!Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+!Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
 
 !This program is free software: you can redistribute it and/or modify
 !it under the terms of the GNU General Public License as published by
@@ -18,6 +18,9 @@ MODULE xmimsim_varred
 USE :: xmimsim_aux
 USE :: xmimsim_solid_angle
 
+!increase this value to obtain a better simulation of the compton peaks, but
+!this comes at a significant computational cost
+INTEGER (C_INT), PARAMETER :: N_COMPTON_VARRED = 1
 
 CONTAINS
 
@@ -42,10 +45,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: radius, theta
         TYPE (xmi_plane) :: plane_coll, plane
         TYPE (xmi_line) :: line_coll, line
-        INTEGER (C_INT) :: step_do_max, step_do_dir,i,j,line_new
-        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: distances, mus
-        REAL (C_DOUBLE) :: Pconv, Pdir, Pesc, Pesc_comp, Pesc_rayl, Pdir_fluo
-        REAL (C_DOUBLE) :: temp_murhod, energy_compton, energy_fluo, dotprod
+        INTEGER (C_INT) :: step_do_max, step_do_dir,i,j,line_new,comp
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: distances
+        REAL (C_DOUBLE) :: Pconv, Pdir, Pesc, Pesc_rayl, Pdir_fluo
+        REAL (C_DOUBLE) :: temp_murhod, energy_fluo, dotprod
         INTEGER (C_INT) :: line_last
         REAL (C_DOUBLE) :: total_distance
         REAL (C_DOUBLE) :: detector_solid_angle
@@ -329,7 +332,6 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 line_last = L3Q1_LINE
         ENDIF
 
-        ALLOCATE(mus(inputF%composition%n_layers))
 
         var_red: DO i=1,layer%n_elements
                 !
@@ -373,43 +375,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !       moving on with COMPTON
                 !
-                !calculate compton energy
-                CALL xmi_update_photon_energy_compton_var_red(photon, i,theta, rng,&
-                inputF, hdf5F, energy_compton)
-                mus=xmi_mu_calc(inputF%composition,&
-                energy_compton)
-                temp_murhod = 0.0_C_DOUBLE
-                DO j=photon%current_layer,step_do_max,step_do_dir
-                temp_murhod = temp_murhod + mus(j)*&
-                inputF%composition%layers(j)%density*distances(j)
-                ENDDO
-                Pesc_comp = EXP(-temp_murhod) 
-                Pconv = layer%weight(i)/photon%mus(photon%current_layer)
-                Pdir = detector_solid_angle&
-                *DCSP_Compt(layer%Z(i),photon%energy,&
-                theta,phi)
-                !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,383+2)&
-                != Pconv*Pdir*Pesc_comp*photon%weight
-                !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+2)&
-                != energy_compton
-
-                temp_weight = Pconv*Pdir*Pesc_comp*photon%weight
-                photon%var_red_history(layer%Z(i),383+2,n_ia) =&
-                photon%var_red_history(layer%Z(i),383+2,n_ia)+temp_weight
-                !should be multiplied with detector absorption
-
-                IF (energy_compton .GE. energy_threshold) THEN
-                        channel = INT((energy_compton - &
-                        inputF%detector%zero)/inputF%detector%gain)
-                ELSE
-                        channel = -1
-                ENDIF
-
-                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
-                        photon%channels(n_ia:, channel) =&
-                        photon%channels(n_ia:, channel)+&
-                        temp_weight
-                ENDIF
+                CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
+                distances, detector_solid_angle, step_do_max,step_do_dir)
 
                 !
                 !      and finishing with FLUORESCENCE 
@@ -817,4 +784,64 @@ SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
         RETURN
 ENDSUBROUTINE xmi_fluorescence_yield_check_varred_optim
 
+SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
+        distances, detector_solid_angle, step_do_max,step_do_dir)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        INTEGER (C_INT), INTENT(IN) :: i
+        REAL (C_DOUBLE), INTENT(IN) :: theta, phi
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
+        REAL (C_DOUBLE), INTENT(IN) :: detector_solid_angle
+        INTEGER (C_INT), INTENT(IN) :: step_do_max, step_do_dir
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
+        REAL (C_DOUBLE) :: energy_compton, temp_murhod, Pesc_comp
+        REAL (C_DOUBLE) :: Pconv, Pdir
+        INTEGER (C_INT) :: j, comp
+        INTEGER (C_INT) :: channel
+        REAL (C_DOUBLE) :: temp_weight
+
+#define layer inputF%composition%layers(photon%current_layer)
+#define n_ia photon%n_interactions
+        ALLOCATE(mus(inputF%composition%n_layers))
+        DO comp=1,N_COMPTON_VARRED
+                CALL xmi_update_photon_energy_compton_var_red(photon, i,theta, rng,&
+                inputF, hdf5F, energy_compton)
+                mus=xmi_mu_calc(inputF%composition,&
+                energy_compton)
+                temp_murhod = 0.0_C_DOUBLE
+                DO j=photon%current_layer,step_do_max,step_do_dir
+                temp_murhod = temp_murhod + mus(j)*&
+                inputF%composition%layers(j)%density*distances(j)
+                ENDDO
+                Pesc_comp = EXP(-temp_murhod) 
+                Pconv = layer%weight(i)/photon%mus(photon%current_layer)
+                Pdir = detector_solid_angle&
+                *DCSP_Compt(layer%Z(i),photon%energy,&
+                theta,phi)
+
+                temp_weight = Pconv*Pdir*Pesc_comp*photon%weight/&
+                REAL(N_COMPTON_VARRED, KIND=C_DOUBLE)
+                photon%var_red_history(layer%Z(i),383+2,n_ia) =&
+                photon%var_red_history(layer%Z(i),383+2,n_ia)+temp_weight
+
+                IF (energy_compton .GE. energy_threshold) THEN
+                        channel = INT((energy_compton - &
+                        inputF%detector%zero)/inputF%detector%gain)
+                ELSE
+                        channel = -1
+                ENDIF
+
+                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
+                        photon%channels(n_ia:, channel) =&
+                        photon%channels(n_ia:, channel)+&
+                        temp_weight
+                ENDIF
+        ENDDO
+#undef layer
+#undef n_ia
+
+ENDSUBROUTINE xmi_compton_varred
 ENDMODULE xmimsim_varred
