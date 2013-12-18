@@ -129,7 +129,8 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
-		-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+		 @OPENMP_CFLAGS@ \
+		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
@@ -153,6 +154,7 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
+		       @OPENMP_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 
 

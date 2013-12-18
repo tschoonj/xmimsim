@@ -313,6 +313,9 @@ AC_FC_SRCEXT(f90)
 AC_LANG_PUSH(Fortran)
 AC_OPENMP
 AC_LANG_POP(Fortran)
+AC_LANG_PUSH(C)
+AC_OPENMP
+AC_LANG_POP(C)
 
 XLINKER=""
 #when we have Intel Fortran on Mac OS X, add the openmp static link option

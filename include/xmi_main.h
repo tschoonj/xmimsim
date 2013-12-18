@@ -30,7 +30,7 @@ extern "C" {
 
 int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double **channels, struct xmi_main_options, double **brute_history, double **var_red_history, struct xmi_solid_angle *solid_angles);
 
-void xmi_detector_convolute(xmi_inputFPtr inputFPtr, double *channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios);
+void xmi_detector_convolute(xmi_inputFPtr inputFPtr, double *channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int thread_num);
 
 void xmi_deallocate(void *array);
 

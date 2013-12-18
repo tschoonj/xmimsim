@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_detector.h"
 #include <math.h>
 #include <locale.h>
+#include "omp.h"
 
 #ifdef _WIN32
   #define _UNICODE
@@ -82,7 +83,6 @@ XMI_MAIN
 	static int use_matrix_override= 0;
 	static int use_single_run= 0;
 	int rayleigh_channel;
-	int matched;
 	double max_scale;
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
@@ -123,9 +123,7 @@ XMI_MAIN
 	};
 	double *channels;
 	double **channels_conv;
-	double **channels_conv_temp;
 	double *channels_conv_temp2;
-	char tempFile[100];
 	double zero_sum;
 	double *brute_history;
 	double *var_red_history;
@@ -687,7 +685,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def);
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def, 0);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -746,9 +744,9 @@ single_run:
 	//convolute_spectrum
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
+#pragma omp parallel for default(shared) private(i)
 	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, &channels_conv_temp2, options,escape_ratios_def);
-		channels_conv[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
+		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, channels_conv+i, options,escape_ratios_def, omp_get_thread_num());
 	}
 
 	if (xmi_end_random_acquisition() == 0) {

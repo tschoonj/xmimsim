@@ -34,7 +34,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         INTEGER (C_INT) :: nchannels
         INTEGER (C_LONG) :: i,j
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: new_channels
-        INTEGER :: max_threads, thread_num
+        INTEGER :: max_threads
 
         TYPE (fgsl_rng_type) :: rng_type
         TYPE (fgsl_rng) :: rng
@@ -76,10 +76,9 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         fgsl_ran_discrete_preproc(INT(nchannels,KIND=fgsl_size_t),channels)
 
 
-        max_threads = omp_get_max_threads()
+        max_threads = 1 
         ALLOCATE(seeds(max_threads))
 
-        max_threads=1
 
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
@@ -87,17 +86,15 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
         rng_type = fgsl_rng_mt19937
 
-!!$omp parallel default(shared) private(pulses_sum,energies_sum,deltaT,pulses,npulses,npulses_all,i,rng,thread_num) reduction(+:new_channels,n_sum_counts)
 
 !
 !
 !       Initialize random number generator
 !
 !
-        thread_num = omp_get_thread_num()
 
         rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+        CALL fgsl_rng_set(rng,seeds(1))
 
         !i=1,Nt_long/max_threads
        
@@ -163,10 +160,8 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
         CALL fgsl_rng_free(rng) 
 
-!!$omp end parallel
 
-     !for some reason does ifort not put this function into the fgsl module
-     !file!!!
+     !bug in fgsl
      !CALL fgsl_ran_discrete_free(preproc)
 
 #if DEBUG == 1
@@ -179,12 +174,14 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 ENDSUBROUTINE xmi_detector_sum_peaks
 
 SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
-channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolute')
+channels_convPtr, options, escape_ratiosCPtr, thread_num&
+) BIND(C,NAME='xmi_detector_convolute')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        INTEGER (C_INT), VALUE, INTENT(IN) :: thread_num
 
         TYPE (xmi_escape_ratios) :: escape_ratios 
         TYPE (xmi_input), POINTER :: inputF
@@ -230,11 +227,6 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
         escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies]) 
         
 
-
-#if DEBUG == 1
-        WRITE (*,'(A,F15.4)') 'channel 223 contents: ', channels_noconv(223)
-#endif
-
         !allocate memory for results
         ALLOCATE(channels_temp(0:options%nchannels-1))
         ALLOCATE(channels_conv(0:options%nchannels-1))
@@ -269,10 +261,11 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
         
         IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                CALL xmi_print_progress('Calculating escape peaks'&
-                //C_NULL_CHAR,-1_C_INT)
+                CALL xmi_print_progress('Calculating escape peaks in thread '&
+                //C_NULL_CHAR, thread_num)
 #else
-                WRITE(output_unit,'(A)') 'Calculating escape peaks'
+                WRITE(output_unit,'(A, I2)') 'Calculating escape peaks in thread ',&
+                thread_num
 #endif
 
         !escape peak
@@ -289,10 +282,11 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
         IF (options%use_sum_peaks == 1_C_INT) THEN
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Calculating pile-up'&
-                        //C_NULL_CHAR, -1_C_INT)
+                        CALL xmi_print_progress('Calculating pile-up in thread '&
+                        //C_NULL_CHAR, thread_num)
 #else
-                        WRITE(output_unit,'(A)') 'Calculating pile-up'
+                        WRITE(output_unit,'(A,I2)') 'Calculating pile-up in thread ',&
+                        thread_num
 #endif
                 CALL xmi_detector_sum_peaks(inputF, channels_temp)
         ENDIF
@@ -302,10 +296,11 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
 
         IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                CALL xmi_print_progress('Applying Gaussian convolution'&
-                //C_NULL_CHAR,-1_C_INT)
+                CALL xmi_print_progress('Applying Gaussian convolution in thread '&
+                //C_NULL_CHAR, thread_num)
 #else
-                WRITE(output_unit,'(A)') 'Applying Gaussian convolution'
+                WRITE(output_unit,'(A,I2)') 'Applying Gaussian convolution in thread ',&
+                thread_num
 #endif
 
         DO I0=0,nlim
@@ -369,10 +364,11 @@ channels_convPtr, options, escape_ratiosCPtr) BIND(C,NAME='xmi_detector_convolut
         IF (options%use_poisson == 1_C_INT) THEN
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-                        CALL xmi_print_progress('Calculating Poisson noise'&
-                        //C_NULL_CHAR, -1_C_INT)
+                        CALL xmi_print_progress('Calculating Poisson noise in thread '&
+                        //C_NULL_CHAR, thread_num)
 #else
-                        WRITE(output_unit,'(A)') 'Calculating Poisson noise'
+                        WRITE(output_unit,'(A,I2)') 'Calculating Poisson noise in thread ',&
+                        thread_num
 #endif
                 CALL xmi_detector_poisson(channels_conv)
         ENDIF
