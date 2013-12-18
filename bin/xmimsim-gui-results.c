@@ -342,15 +342,18 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 		return;
 
 	double tickstep = 1E-10;
-	double nticks = floor((xmax-xmin)/tickstep);
+	int nticks = (int) floor((xmax-xmin)/tickstep);
 
 	while (nticks < 1 || nticks >= 10) {
 		tickstep *= 10.0;
-		nticks = floor((xmax-xmin)/tickstep);
+		nticks = (int) floor((xmax-xmin)/tickstep);
 	} 
 
-	if (nticks == 1.0) {
+	if (nticks == 1) {
 		tickstep /= 5.0;
+	}
+	else if (nticks == 2) {
+		tickstep /= 2.0;
 	}
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
@@ -387,15 +390,18 @@ gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gp
 	if (event->type == GDK_2BUTTON_PRESS) {
 
 		double tickstep = 1E-10;
-		double nticks = floor((plot_xmax-plot_xmin)/tickstep);
+		int nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
 	
 		while (nticks < 1 || nticks >= 10) {
 			tickstep *= 10.0;
-			nticks = floor((plot_xmax-plot_xmin)/tickstep);
+			nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
 		} 
 
-		if (nticks == 1.0) {
+		if (nticks == 1) {
 			tickstep /= 5.0;
+		}
+		else if (nticks == 2) {
+			tickstep /= 2.0;
 		}
 
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
@@ -1114,15 +1120,18 @@ int plot_spectra_from_file(char *xmsofile) {
 	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
 
 	double tickstep = 1E-10;
-	double nticks = floor((plot_xmax-plot_xmin)/tickstep);
+	int nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
 
 	while (nticks < 1 || nticks >= 10) {
 		tickstep *= 10.0;
-		nticks = floor((plot_xmax-plot_xmin)/tickstep);
+		nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
 	} 
 
-	if (nticks == 1.0) {
+	if (nticks == 1) {
 		tickstep /= 5.0;
+	}
+	else if (nticks == 2) {
+		tickstep /= 2.0;
 	}
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
