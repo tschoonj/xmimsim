@@ -4445,7 +4445,6 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		}
 	}
 
-	g_fprintf(stdout, "minval: %lf\n", minval);
 
 	//y values have been calculated -> plot
 	GtkPlotCanvasChild *child;
@@ -4775,7 +4774,6 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		g_free(history);
 	}
 
-	g_fprintf(stdout, "minval: %lf\n", minval);
 
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_log10W))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_log10W)))) {
 		//log10 selected
@@ -4838,14 +4836,18 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 
 	GtkWidget *surface;
 	surface = gtk_plot_csurface_new();
+	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+
+	g_fprintf(stdout, "minz: %lg\n", minz);
+	g_fprintf(stdout, "maxz: %lg\n", maxz);
+
+	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 4, 4);
+	gtk_plot_data_set_gradient_show_lt_gt(GTK_PLOT_DATA(surface), FALSE);
+	//gtk_plot_data_set_gradient_outer_colors(GTK_PLOT_DATA(surface), &blue_plot, &red_plot);
 	gtk_plot_surface_set_points(GTK_PLOT_SURFACE(surface), x, y, z, NULL, NULL, NULL, apd->archive->nsteps1+1, apd->archive->nsteps2+1);
 	gtk_plot_surface_set_xstep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value1 - apd->archive->start_value1)/apd->archive->nsteps1);
 	gtk_plot_surface_set_ystep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value2 - apd->archive->start_value2)/apd->archive->nsteps2);
-	gtk_plot_add_data(GTK_PLOT(plot_window), GTK_PLOT_DATA(surface));
-	gtk_widget_show(surface);
-	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 5, 5);
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_log10W))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_log10W)))) {
 		gtk_plot_data_gradient_set_scale(GTK_PLOT_DATA(surface), GTK_PLOT_SCALE_LOG10);
 	}
@@ -4860,13 +4862,15 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	gtk_plot_data_gradient_set_title(GTK_PLOT_DATA(surface), "Intensity");
 
 
+	gtk_plot_surface_set_grid_visible(GTK_PLOT_SURFACE(surface), FALSE);
+	gtk_plot_surface_set_transparent(GTK_PLOT_SURFACE(surface), TRUE);
+	gtk_plot_csurface_set_projection(GTK_PLOT_CSURFACE(surface), GTK_PLOT_PROJECT_FULL);
+	gtk_plot_add_data(GTK_PLOT(plot_window), GTK_PLOT_DATA(surface));
+	gtk_widget_show(surface);
 	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
         gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
 	apd->plot_window = plot_window;
         gtk_widget_show(plot_window);
-	gtk_plot_surface_set_grid_visible(GTK_PLOT_SURFACE(surface), FALSE);
-	gtk_plot_surface_set_transparent(GTK_PLOT_SURFACE(surface), TRUE);
-	gtk_plot_csurface_set_projection(GTK_PLOT_CSURFACE(surface), GTK_PLOT_PROJECT_FULL);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
