@@ -604,7 +604,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 !gaussian distribution
                                 photon%energy = fgsl_ran_gaussian_ziggurat(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
-                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                IF (photon%energy .LE. energy_threshold .OR.&
+                                photon%energy .GT. energy_max) CYCLE &
                                 photons_disc
                                 photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
@@ -613,7 +614,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 !lorentzian distribution
                                 photon%energy = fgsl_ran_cauchy(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
-                                IF (photon%energy .LE. energy_threshold) CYCLE &
+                                IF (photon%energy .LE. energy_threshold .OR.&
+                                photon%energy .GT. energy_max) CYCLE &
                                 photons_disc
                                 photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
@@ -960,7 +962,6 @@ SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
         TYPE (xmi_energy_discrete), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-
         REAL (C_DOUBLE) :: x1, y1
 
 #if DEBUG == 2
@@ -980,9 +981,14 @@ SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
                 CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
         ENDIF
 
-        photon%dirv(1) = SIN(x1) 
-        photon%dirv(2) = SIN(y1) 
-        photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+        !photon%dirv(1) = SIN(x1) 
+        !photon%dirv(2) = SIN(y1) 
+        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+
+        photon%dirv(1) = TAN(x1)
+        photon%dirv(2) = TAN(y1)
+        photon%dirv(3) = 1.0_C_DOUBLE
+        CALL normalize_vector(photon%dirv)
 
 #if DEBUG == 2
         WRITE (*,*) 'dirv: ', photon%dirv
@@ -1034,9 +1040,14 @@ SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
                 CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
         ENDIF
 
-        photon%dirv(1) = SIN(x1) 
-        photon%dirv(2) = SIN(y1) 
-        photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+        !photon%dirv(1) = SIN(x1) 
+        !photon%dirv(2) = SIN(y1) 
+        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+
+        photon%dirv(1) = TAN(x1)
+        photon%dirv(2) = TAN(y1)
+        photon%dirv(3) = 1.0_C_DOUBLE
+        CALL normalize_vector(photon%dirv)
 
 #if DEBUG == 2
         WRITE (*,*) 'dirv: ', photon%dirv
