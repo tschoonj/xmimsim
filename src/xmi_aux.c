@@ -283,7 +283,7 @@ gchar *xmi_version_string() {
 	gchar *string = g_malloc(sizeof(gchar)*5*1024);
 	gchar *temp;
 
-	temp = g_strdup_printf("XMI-MSIM %i.%i\n\n", XMI_MSIM_VERSION_MAJOR, XMI_MSIM_VERSION_MINOR);
+	temp = g_strdup_printf("XMI-MSIM %s\n\n", VERSION);
 	strcat(string,temp);
 	g_free(temp);
 	strcat(string,"Compiled with ");
