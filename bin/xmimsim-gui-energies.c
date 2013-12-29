@@ -96,6 +96,7 @@ struct energiesWidget *discWidget;
 struct energyButtons {
 	GtkWidget *editButton;
 	GtkWidget *deleteButton;
+	GtkWidget *clearButton;
 };
 
 
@@ -982,6 +983,7 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 		case 0:
 			gtk_widget_set_sensitive(eb->deleteButton,FALSE);
 			gtk_widget_set_sensitive(eb->editButton,FALSE);
+			gtk_widget_set_sensitive(eb->clearButton,FALSE);
 			break;
 		case 1:
 			valid = gtk_tree_model_get_iter_first(model, &temp_iter);
@@ -996,6 +998,7 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 			}
 			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
 			gtk_widget_set_sensitive(eb->editButton,TRUE);
+			gtk_widget_set_sensitive(eb->clearButton,TRUE);
 		default:
 			//multiple selected
 			if (delete_current_indices)
@@ -1520,6 +1523,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	clearButton = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
 	g_signal_connect(G_OBJECT(clearButton), "clicked", G_CALLBACK(clear_button_clicked_cb), (gpointer) k_a_w);
 	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, TRUE, FALSE, 3);
+	eb->clearButton = clearButton;
 	
 
 
@@ -1527,6 +1531,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(deleteButton, FALSE);
+	gtk_widget_set_sensitive(clearButton, FALSE);
 
 	rv = (struct energiesWidget *) malloc(sizeof(struct energiesWidget));
 	rv->store=store;
