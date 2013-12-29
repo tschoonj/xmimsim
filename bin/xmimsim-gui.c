@@ -2056,6 +2056,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_CLEAR:
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
+		case DISCRETE_ENERGY_SCALE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -2078,6 +2079,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
+		case CONTINUOUS_ENERGY_SCALE:
 			gtk_list_store_clear(contWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
@@ -2555,6 +2557,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_CLEAR:
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
+		case DISCRETE_ENERGY_SCALE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -2577,6 +2580,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case CONTINUOUS_ENERGY_CLEAR:
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
+		case CONTINUOUS_ENERGY_SCALE:
 			gtk_list_store_clear(contWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
 				gtk_list_store_append(contWidget->store, &iter);
@@ -3545,6 +3549,14 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_discrete = 0;
 
 			break;
+		case DISCRETE_ENERGY_SCALE:
+			strcpy(last->message,"scaling of all discrete energies");
+			double value = *((double *) widget);
+			for (i = 0 ; i < last->xi->excitation->n_discrete ; i++) {
+				last->xi->excitation->discrete[i].horizontal_intensity *= value;
+				last->xi->excitation->discrete[i].vertical_intensity *= value;
+			}
+			break;
 		case DISCRETE_ENERGY_EDIT:
 			strcpy(last->message,"editing of discrete energy");
 			last->xi->excitation->discrete[current_index] = *energy_disc;
@@ -3616,6 +3628,14 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			free(last->xi->excitation->continuous);
 			last->xi->excitation->continuous = NULL;
 			last->xi->excitation->n_continuous = 0;
+			break;
+		case CONTINUOUS_ENERGY_SCALE:
+			strcpy(last->message,"scaling of all continuous energies");
+			value = *((double *) widget);
+			for (i = 0 ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i].horizontal_intensity *= value;
+				last->xi->excitation->continuous[i].vertical_intensity *= value;
+			}
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			strcpy(last->message,"editing of continuous energy");

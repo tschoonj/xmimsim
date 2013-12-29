@@ -96,6 +96,7 @@ struct energiesWidget *discWidget;
 struct energyButtons {
 	GtkWidget *editButton;
 	GtkWidget *deleteButton;
+	GtkWidget *scaleButton;
 	GtkWidget *clearButton;
 };
 
@@ -692,6 +693,101 @@ static void clear_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k
 
 }
 
+static void scale_entry_changed_cb(GtkWidget *scaleEntry, GtkWidget *okButton) {
+	double value;	
+	char *textPtr,*endPtr,*lastPtr;
+
+	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(scaleEntry));
+	value=strtod(textPtr, &endPtr);
+	lastPtr = textPtr + strlen(textPtr);
+
+	if (strlen(textPtr) == 0 || lastPtr != endPtr || value <= 0.0) {
+		gtk_widget_modify_base(scaleEntry, GTK_STATE_NORMAL, &red);
+		gtk_widget_set_sensitive(okButton, FALSE);
+	}
+	else {
+		gtk_widget_modify_base(scaleEntry, GTK_STATE_NORMAL, &white);
+		gtk_widget_set_sensitive(okButton, TRUE);
+	}
+	return;
+}
+
+static void scale_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k_a_w) {
+	int kind = k_a_w->kind;
+
+	//Launch dialog to select the scale factor
+	GtkWidget *dialog = gtk_dialog_new_with_buttons("Intensity scale factor", GTK_WINDOW(k_a_w->main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 2);
+	GtkWidget *label = gtk_label_new("Intensity scale factor");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	GtkWidget *entry = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(entry), TRUE);
+	gtk_box_pack_end(GTK_BOX(hbox), entry, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(content_area), hbox, FALSE, FALSE,0);
+	gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
+	gtk_widget_show_all(hbox);
+	gtk_widget_set_size_request(dialog, 300, -1);
+
+	GtkWidget *okButton = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_widget_set_sensitive(okButton, FALSE);
+	g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(scale_entry_changed_cb), (gpointer) okButton);	
+
+	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
+
+	if (rv != GTK_RESPONSE_ACCEPT) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	const char *textPtr;
+	double value;
+	int i;
+
+	textPtr = gtk_entry_get_text(GTK_ENTRY(entry));
+	value = strtod(textPtr, NULL);
+	gtk_widget_destroy(dialog);
+	GtkTreeIter iter;
+	
+	if (kind == DISCRETE) {
+		update_undo_buffer(DISCRETE_ENERGY_SCALE, (GtkWidget *) &value);
+		i = 0;
+		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(discWidget->store), &iter);
+		gtk_list_store_set(discWidget->store, &iter,
+		HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+		VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+		-1);
+		while (gtk_tree_model_iter_next(GTK_TREE_MODEL(discWidget->store), &iter)) {
+			i++;
+			gtk_list_store_set(discWidget->store, &iter,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+			-1);
+			
+		}
+	}
+	else if (kind == CONTINUOUS) {
+		update_undo_buffer(CONTINUOUS_ENERGY_SCALE, (GtkWidget *) &value);
+		i = 0;
+		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(contWidget->store), &iter);
+		gtk_list_store_set(contWidget->store, &iter,
+		HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+		VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+		-1);
+		while (gtk_tree_model_iter_next(GTK_TREE_MODEL(contWidget->store), &iter)) {
+			i++;
+			gtk_list_store_set(contWidget->store, &iter,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+			-1);
+			
+		}
+	}
+	
+
+}
+
 
 static void radio_button_toggled_cb(GtkToggleButton *button, GtkWidget *spinner){
 	if (gtk_toggle_button_get_active(button))
@@ -983,7 +1079,6 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 		case 0:
 			gtk_widget_set_sensitive(eb->deleteButton,FALSE);
 			gtk_widget_set_sensitive(eb->editButton,FALSE);
-			gtk_widget_set_sensitive(eb->clearButton,FALSE);
 			break;
 		case 1:
 			valid = gtk_tree_model_get_iter_first(model, &temp_iter);
@@ -998,7 +1093,6 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 			}
 			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
 			gtk_widget_set_sensitive(eb->editButton,TRUE);
-			gtk_widget_set_sensitive(eb->clearButton,TRUE);
 		default:
 			//multiple selected
 			if (delete_current_indices)
@@ -1294,6 +1388,27 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+static void row_deleted_or_inserted_cb(GtkTreeModel *tree_model, struct energyButtons *eb) {
+	gint kids = gtk_tree_model_iter_n_children(tree_model, NULL);
+
+	if (kids > 0) {
+		gtk_widget_set_sensitive(eb->clearButton, TRUE);
+		gtk_widget_set_sensitive(eb->scaleButton, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(eb->clearButton, FALSE);
+		gtk_widget_set_sensitive(eb->scaleButton, FALSE);
+	}
+
+}
+
+static void row_deleted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, struct energyButtons *eb) {
+	row_deleted_or_inserted_cb(tree_model, eb);
+} 
+
+static void row_inserted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, GtkTreeIter *iter, struct energyButtons *eb) {
+	row_deleted_or_inserted_cb(tree_model, eb);
+} 
 
 struct energiesWidget *initialize_single_energies(void *energies, int n_energies, int kind, GtkWidget *main_window) {
 	GtkListStore *store;
@@ -1311,6 +1426,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	//GtkWidget *EbelButton;
 	GtkWidget *deleteButton;
 	GtkWidget *clearButton;
+	GtkWidget *scaleButton;
 	int i;
 
 	struct xmi_energy_discrete *energies_d;
@@ -1525,13 +1641,28 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, TRUE, FALSE, 3);
 	eb->clearButton = clearButton;
 	
+	scaleButton = gtk_button_new_from_stock(GTK_STOCK_REFRESH);
+	update_button_text(scaleButton, "Scale");
+	g_signal_connect(G_OBJECT(scaleButton), "clicked", G_CALLBACK(scale_button_clicked_cb), (gpointer) k_a_w);
+	gtk_box_pack_start(GTK_BOX(buttonbox), scaleButton, TRUE, FALSE, 3);
+	eb->scaleButton = scaleButton;
 
 
 	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
 
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(deleteButton, FALSE);
-	gtk_widget_set_sensitive(clearButton, FALSE);
+	if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL) > 0) {
+		gtk_widget_set_sensitive(clearButton, TRUE);
+		gtk_widget_set_sensitive(scaleButton, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(clearButton, FALSE);
+		gtk_widget_set_sensitive(scaleButton, FALSE);
+	}
+
+	g_signal_connect(G_OBJECT(store), "row-inserted", G_CALLBACK(row_inserted_cb), (gpointer) eb);	
+	g_signal_connect(G_OBJECT(store), "row-deleted", G_CALLBACK(row_deleted_cb), (gpointer) eb);	
 
 	rv = (struct energiesWidget *) malloc(sizeof(struct energiesWidget));
 	rv->store=store;
