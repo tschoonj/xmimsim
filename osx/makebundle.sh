@@ -1,5 +1,6 @@
 rm -rf .xmimsim-gui.app 
 gtk-mac-bundler xmimsim.bundle || exit 1
+find XMI-MSIM.app -name '*.svg' | xargs rm
 gtk-update-icon-cache --quiet XMI-MSIM.app/Contents/Resources/share/icons/hicolor
 update-mime-database XMI-MSIM.app/Contents/Resources/share/mime
 cp libintl.8.dylib libxrl.7.dylib XMI-MSIM.app/Contents/Resources/lib/

@@ -392,8 +392,7 @@ void adjust_save_buttons(void) {
 	int status;
 
 	check_changes_saved(&status);
-
-
+	
 	if(check_changeables() == 1 && xmi_validate_input(current->xi) == 0) {
 		if (status == CHECK_CHANGES_SAVED_BEFORE || status == CHECK_CHANGES_NEVER_SAVED) {
 			gtk_widget_set_sensitive(saveW,TRUE);
@@ -439,6 +438,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			title = g_path_get_basename(filename);
 			update_xmimsim_title_xmsi(title, (GtkWidget *) data, filename);
 			g_free(title);
+			adjust_save_buttons();
 		}
 		else {
 			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
