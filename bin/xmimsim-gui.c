@@ -3549,14 +3549,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_discrete = 0;
 
 			break;
-		case DISCRETE_ENERGY_SCALE:
-			strcpy(last->message,"scaling of all discrete energies");
-			double value = *((double *) widget);
-			for (i = 0 ; i < last->xi->excitation->n_discrete ; i++) {
-				last->xi->excitation->discrete[i].horizontal_intensity *= value;
-				last->xi->excitation->discrete[i].vertical_intensity *= value;
-			}
-			break;
 		case DISCRETE_ENERGY_EDIT:
 			strcpy(last->message,"editing of discrete energy");
 			last->xi->excitation->discrete[current_index] = *energy_disc;
@@ -3565,8 +3557,16 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			free(energy_disc);
 			energy_disc = NULL;
 			break;
+		case DISCRETE_ENERGY_SCALE:
+			strcpy(last->message,"scaling of discrete energies");
+			double value = *((double *) widget);
+			for (i = 0 ; i < delete_current_nindices ; i++) {
+				last->xi->excitation->discrete[delete_current_indices[i]].horizontal_intensity *= value;
+				last->xi->excitation->discrete[delete_current_indices[i]].vertical_intensity *= value;
+			}
+			break;
 		case DISCRETE_ENERGY_DELETE:
-			strcpy(last->message,"deletion of discrete energy");
+			strcpy(last->message,"deletion of discrete energies");
 			int n = last->xi->excitation->n_discrete;
 			int j;
 			if (n != delete_current_nindices) {
@@ -3630,11 +3630,11 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_continuous = 0;
 			break;
 		case CONTINUOUS_ENERGY_SCALE:
-			strcpy(last->message,"scaling of all continuous energies");
+			strcpy(last->message,"scaling of continuous energies");
 			value = *((double *) widget);
-			for (i = 0 ; i < last->xi->excitation->n_continuous ; i++) {
-				last->xi->excitation->continuous[i].horizontal_intensity *= value;
-				last->xi->excitation->continuous[i].vertical_intensity *= value;
+			for (i = 0 ; i < delete_current_nindices ; i++) {
+				last->xi->excitation->continuous[delete_current_indices[i]].horizontal_intensity *= value;
+				last->xi->excitation->continuous[delete_current_indices[i]].vertical_intensity *= value;
 			}
 			break;
 		case CONTINUOUS_ENERGY_EDIT:

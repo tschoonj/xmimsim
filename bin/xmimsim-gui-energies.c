@@ -749,39 +749,30 @@ static void scale_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k
 	value = strtod(textPtr, NULL);
 	gtk_widget_destroy(dialog);
 	GtkTreeIter iter;
+	int delete_current_nindices_local = delete_current_nindices;
 	
 	if (kind == DISCRETE) {
 		update_undo_buffer(DISCRETE_ENERGY_SCALE, (GtkWidget *) &value);
-		i = 0;
-		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(discWidget->store), &iter);
-		gtk_list_store_set(discWidget->store, &iter,
-		HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
-		VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
-		-1);
-		while (gtk_tree_model_iter_next(GTK_TREE_MODEL(discWidget->store), &iter)) {
-			i++;
+		for (i = 0 ; i < delete_current_nindices_local ; i++){
+			GtkTreePath *path = gtk_tree_path_new_from_indices(delete_current_indices[i], -1);
+			gtk_tree_model_get_iter(GTK_TREE_MODEL(discWidget->store), &iter, path);
+			gtk_tree_path_free(path);
 			gtk_list_store_set(discWidget->store, &iter,
-			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[delete_current_indices[i]].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[delete_current_indices[i]].vertical_intensity,
 			-1);
-			
 		}
 	}
 	else if (kind == CONTINUOUS) {
 		update_undo_buffer(CONTINUOUS_ENERGY_SCALE, (GtkWidget *) &value);
-		i = 0;
-		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(contWidget->store), &iter);
-		gtk_list_store_set(contWidget->store, &iter,
-		HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
-		VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
-		-1);
-		while (gtk_tree_model_iter_next(GTK_TREE_MODEL(contWidget->store), &iter)) {
-			i++;
+		for (i = 0 ; i < delete_current_nindices_local ; i++){
+			GtkTreePath *path = gtk_tree_path_new_from_indices(delete_current_indices[i], -1);
+			gtk_tree_model_get_iter(GTK_TREE_MODEL(contWidget->store), &iter, path);
+			gtk_tree_path_free(path);
 			gtk_list_store_set(contWidget->store, &iter,
-			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[delete_current_indices[i]].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[delete_current_indices[i]].vertical_intensity,
 			-1);
-			
 		}
 	}
 	
@@ -1079,6 +1070,7 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 		case 0:
 			gtk_widget_set_sensitive(eb->deleteButton,FALSE);
 			gtk_widget_set_sensitive(eb->editButton,FALSE);
+			gtk_widget_set_sensitive(eb->scaleButton,FALSE);
 			break;
 		case 1:
 			valid = gtk_tree_model_get_iter_first(model, &temp_iter);
@@ -1091,13 +1083,13 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 				current_nindices++;
 				valid = gtk_tree_model_iter_next(model, &temp_iter);
 			}
-			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
 			gtk_widget_set_sensitive(eb->editButton,TRUE);
 		default:
 			//multiple selected
 			if (delete_current_indices)
 				free(delete_current_indices);
 			gtk_widget_set_sensitive(eb->deleteButton,TRUE);
+			gtk_widget_set_sensitive(eb->scaleButton,TRUE);
 			if (nselected > 1)
 				gtk_widget_set_sensitive(eb->editButton,FALSE);
 			delete_current_indices = malloc(sizeof(int)*nselected);
@@ -1285,6 +1277,24 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 
 	return;
 }
+static void row_deleted_or_inserted_cb(GtkTreeModel *tree_model, struct energyButtons *eb) {
+	gint kids = gtk_tree_model_iter_n_children(tree_model, NULL);
+
+	if (kids > 0) {
+		gtk_widget_set_sensitive(eb->clearButton, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(eb->clearButton, FALSE);
+	}
+}
+
+static void row_deleted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, struct energyButtons *eb) {
+       row_deleted_or_inserted_cb(tree_model, eb);
+} 
+
+static void row_inserted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, GtkTreeIter *iter, struct energyButtons *eb) {
+       row_deleted_or_inserted_cb(tree_model, eb);
+}
 
 void energy_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
@@ -1387,28 +1397,6 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	
 	return;
 }
-
-static void row_deleted_or_inserted_cb(GtkTreeModel *tree_model, struct energyButtons *eb) {
-	gint kids = gtk_tree_model_iter_n_children(tree_model, NULL);
-
-	if (kids > 0) {
-		gtk_widget_set_sensitive(eb->clearButton, TRUE);
-		gtk_widget_set_sensitive(eb->scaleButton, TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(eb->clearButton, FALSE);
-		gtk_widget_set_sensitive(eb->scaleButton, FALSE);
-	}
-
-}
-
-static void row_deleted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, struct energyButtons *eb) {
-	row_deleted_or_inserted_cb(tree_model, eb);
-} 
-
-static void row_inserted_cb (GtkTreeModel *tree_model, GtkTreePath  *path, GtkTreeIter *iter, struct energyButtons *eb) {
-	row_deleted_or_inserted_cb(tree_model, eb);
-} 
 
 struct energiesWidget *initialize_single_energies(void *energies, int n_energies, int kind, GtkWidget *main_window) {
 	GtkListStore *store;
@@ -1652,17 +1640,16 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(deleteButton, FALSE);
+	gtk_widget_set_sensitive(scaleButton, FALSE);
 	if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL) > 0) {
 		gtk_widget_set_sensitive(clearButton, TRUE);
-		gtk_widget_set_sensitive(scaleButton, TRUE);
 	}
 	else {
 		gtk_widget_set_sensitive(clearButton, FALSE);
-		gtk_widget_set_sensitive(scaleButton, FALSE);
 	}
 
-	g_signal_connect(G_OBJECT(store), "row-inserted", G_CALLBACK(row_inserted_cb), (gpointer) eb);	
-	g_signal_connect(G_OBJECT(store), "row-deleted", G_CALLBACK(row_deleted_cb), (gpointer) eb);	
+	g_signal_connect(G_OBJECT(store), "row-inserted", G_CALLBACK(row_inserted_cb), (gpointer) eb);  
+	g_signal_connect(G_OBJECT(store), "row-deleted", G_CALLBACK(row_deleted_cb), (gpointer) eb);
 
 	rv = (struct energiesWidget *) malloc(sizeof(struct energiesWidget));
 	rv->store=store;
