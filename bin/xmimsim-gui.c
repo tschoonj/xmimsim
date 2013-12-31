@@ -3577,6 +3577,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 						for (j = i ; j < last->xi->excitation->n_discrete-1 ; j++)
 							last->xi->excitation->discrete[j] = last->xi->excitation->discrete[j+1];	
 						last->xi->excitation->n_discrete--;
+						if (delete_current_nindices < 1)
+							break;
 					}	
 				}
 			
@@ -3656,6 +3658,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 						for (j = i ; j < last->xi->excitation->n_continuous-1 ; j++)
 							last->xi->excitation->continuous[j] = last->xi->excitation->continuous[j+1];	
 						last->xi->excitation->n_continuous--;
+						if (delete_current_nindices < 1)
+							break;
 					}	
 				}
 			
