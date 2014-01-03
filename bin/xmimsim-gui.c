@@ -63,6 +63,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-notifications.h"
 
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
@@ -5092,12 +5093,16 @@ XMI_MAIN
 	
 #endif
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
+
+	xmimsim_notifications_init();
+
 	gtk_main();
 
 #ifdef MAC_INTEGRATION
 	g_object_unref(theApp);
 #endif
 
+	xmimsim_notifications_close();
 
 
 	return 0;

@@ -39,8 +39,12 @@ GtkWidget *nchannels_prefsW;
 GtkWidget *opencl_prefsW;
 #endif
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 GtkWidget *check_updates_prefsW;
-
+#endif
+#if defined(MAC_INTEGRATION)
+GtkWidget *notifications_prefsW;
+#endif
 enum {
 	URL_COLUMN_PREFS,
 	N_COLUMNS_PREFS
@@ -255,6 +259,14 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+#endif
+
+#if defined(MAC_INTEGRATION)
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(notifications_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, xpv) == 0) {
 		//abort	
 		preferences_error_handler(pa->window);
 	}
@@ -477,6 +489,22 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->i = 2048;
 			}
 			break;
+#if defined(MAC_INTEGRATION)
+		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Notifications not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Notifications", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
+			}
+			break;
+#endif
 		
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
@@ -556,6 +584,11 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL: 
 			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
+			break;
+#endif
+#if defined(MAC_INTEGRATION)
+		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
+			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
 			break;
 #endif
 		default:
@@ -839,6 +872,17 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_escape_ratios_clicked_cb), (gpointer) window);
+
+#if defined(MAC_INTEGRATION)
+	notifications_prefsW = gtk_check_button_new_with_label("Enable notifications");
+	gtk_widget_set_tooltip_text(notifications_prefsW,"Check this button to enable notifications support");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(notifications_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),notifications_prefsW, FALSE, FALSE, 3);
+#endif
 
 	//back to master_box
 	//separator

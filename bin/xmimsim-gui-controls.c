@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-notifications.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
@@ -463,10 +464,18 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	g_timer_destroy(timer);
 
 	if (!success) {
+		xmimsim_notifications_deliver("Simulation failed","Check error messages");
 		//if something is spinning, make it stop and make it red
 		error_spinners();
 
 		return; 
+	}
+	else {
+		gchar *my_basename = g_path_get_basename(cd->outputfile);
+		gchar *information = g_strdup_printf("%s is now showing in the results window", my_basename);
+		xmimsim_notifications_deliver("Simulation succeeded",information);
+		g_free(my_basename);
+		g_free(information);
 	}
 
 
