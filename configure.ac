@@ -171,6 +171,15 @@ if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
+LIBNOTIFY_FOUND=no
+if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
+	#libnotify
+	PKG_CHECK_MODULES([libnotify], [libnotify >= 0.7.0], [
+		LIBNOTIFY_FOUND=yes
+		AC_SUBST(LIBNOTIFY_PC, "libnotify >= 0.7.0")
+		AC_DEFINE([HAVE_LIBNOTIFY], [], [libnotify found])])
+fi
+
 #check for headers
 AC_CHECK_HEADER(stdio.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(errno.h,,[AC_MSG_ERROR([Required header not found on the system])])

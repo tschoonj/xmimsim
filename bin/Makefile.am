@@ -81,7 +81,8 @@ xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
 		     @xml2_CFLAGS@ \
-		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\"
+		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
+		     @libnotify_CFLAGS@
 if ENABLE_UPDATER
 xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
 		      @libcurl_CFLAGS@
@@ -92,7 +93,8 @@ xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    @gtk2_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
-		    @gthread2_LIBS@
+		    @gthread2_LIBS@ \
+		    @libnotify_LIBS@
 if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
