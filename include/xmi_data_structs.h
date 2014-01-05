@@ -278,6 +278,14 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 
 void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
 
+void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B);
+void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B);
+void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B);
+
+void xmi_free_detector(struct xmi_detector *A);
+void xmi_free_excitation(struct xmi_excitation *A);
+void xmi_free_geometry(struct xmi_geometry *A);
+
 #ifdef __cplusplus
 }
 #endif

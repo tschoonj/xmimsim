@@ -76,6 +76,9 @@ XMI_MAIN
 	static gchar *csv_file_conv=NULL;
 	static gchar *svg_file_noconv=NULL;
 	static gchar *svg_file_conv=NULL;
+	static gchar *excitation_file = NULL;
+	static gchar *geometry_file = NULL;
+	static gchar *detector_file = NULL;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	char filename[512];
 	static int use_rayleigh_normalization = 0;
@@ -92,8 +95,8 @@ XMI_MAIN
 	
 	
 	static GOptionEntry entries[] = {
-		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
-		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
+		{"enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
+		{"disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
 		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
 		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
 		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
@@ -107,18 +110,21 @@ XMI_MAIN
 		{"disable-roi-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_roi_normalization,"Disable region of interest integration based intensity normalization (default)",NULL},
 		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead",NULL},
 		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead (default)",NULL},
-		{ "enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
-		{ "disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{ "enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
-		{ "disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
+		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
+		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
 		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
 #endif
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
-		{ "enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
-		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
-		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
+		{"override-excitation",0,0,G_OPTION_ARG_FILENAME,&excitation_file, "Override excitation from XMSI file",NULL},
+		{"override-detector",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Override detector from XMSI file",NULL},
+		{"override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL},
+		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
 	double *channels;
@@ -211,6 +217,52 @@ XMI_MAIN
 		return 1;
 	else if (options.verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);
+
+	//override if necessary
+	struct xmi_input *override = NULL;
+	int override_rv;
+	if (excitation_file) {
+		override_rv = xmi_read_input_xml(excitation_file, &override);
+		if (override_rv == 0) {
+			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
+			return 1;
+		}
+		else if (options.verbose) {
+			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
+		}
+		xmi_free_excitation(xi->excitation);
+		xmi_copy_excitation(override->excitation, &xi->excitation);
+		xmi_free_input(override);
+	}
+
+	if (geometry_file) {
+		override_rv = xmi_read_input_xml(geometry_file, &override);
+		if (override_rv == 0) {
+			g_fprintf(stderr, "Override geometry file %s could not be parsed\n", geometry_file);
+			return 1;
+		}
+		else if (options.verbose) {
+			g_fprintf(stderr, "Override geometry file %s successfully parsed\n", geometry_file);
+		}
+		xmi_free_geometry(xi->geometry);
+		xmi_copy_geometry(override->geometry, &xi->geometry);
+		xmi_free_input(override);
+	}
+
+	if (excitation_file) {
+		override_rv = xmi_read_input_xml(excitation_file, &override);
+		if (override_rv == 0) {
+			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
+			return 1;
+		}
+		else if (options.verbose) {
+			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
+		}
+		xmi_free_excitation(xi->excitation);
+		xmi_copy_excitation(override->excitation, &xi->excitation);
+		xmi_free_input(override);
+	}
+
 
 #if DEBUG == 2
 	xmi_print_input(stdout,xi);

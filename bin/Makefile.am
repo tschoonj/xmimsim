@@ -139,7 +139,10 @@ xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
 		@GTK_MAC_LIBS@
-xmimsim_LDFLAGS = @OPENMPI_LDFLAGS@
+xmimsim_LDFLAGS = $(AM_LDFLAGS)
+if !ENABLE_MAC_APP
+xmimsim_LDFLAGS += @OPENMPI_LDFLAGS@
+endif
 if OS_WINDOWS
 xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif

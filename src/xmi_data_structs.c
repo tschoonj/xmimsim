@@ -34,54 +34,25 @@ void xmi_free_layer (struct xmi_layer *layer) {
 
 
 void xmi_free_input(struct xmi_input *input) {
-	int i;
-
 	//general
 	free(input->general->outputfile);
 	free(input->general->comments);
 	free(input->general);
 
 	//composition
-	for (i = 0 ; i < input->composition->n_layers ; i++) 
-		xmi_free_layer(input->composition->layers+i);
-	 
-	free(input->composition->layers);
-	free(input->composition);
+	xmi_free_composition(input->composition);
 
 	//geometry
-	free(input->geometry);
+	xmi_free_geometry(input->geometry);
 
 	//excitation
-	if (input->excitation->n_discrete > 0)
-		free(input->excitation->discrete);
-
-	if (input->excitation->n_continuous > 0)
-		free(input->excitation->continuous);
-
-	free(input->excitation);
+	xmi_free_excitation(input->excitation);
 
 	//absorbers
-	if (input->absorbers->n_exc_layers > 0) {
-		for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) 
-			xmi_free_layer(input->absorbers->exc_layers+i);
-		free(input->absorbers->exc_layers);
-	}
-	if (input->absorbers->n_det_layers > 0) {
-		for (i = 0 ; i < input->absorbers->n_det_layers ; i++) 
-			xmi_free_layer(input->absorbers->det_layers+i);
-		free(input->absorbers->det_layers);
-	}
-
-	free(input->absorbers);
+	xmi_free_absorbers(input->absorbers);
 
 	//detector
-	if (input->detector->n_crystal_layers > 0) {
-		for (i = 0 ; i < input->detector->n_crystal_layers ; i++) 
-			xmi_free_layer(input->detector->crystal_layers+i);
-		free(input->detector->crystal_layers);
-	}
-
-	free(input->detector);
+	xmi_free_detector(input->detector);
 
 	//input
 	free(input);
@@ -113,25 +84,10 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	}
 	
 	//geometry
-	(*B)->geometry = (struct xmi_geometry *) xmi_memdup((A)->geometry,sizeof(struct xmi_geometry));
+	xmi_copy_geometry(A->geometry, &((*B)->geometry));
 
 	//excitation
-	
-	(*B)->excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
-	(*B)->excitation->n_discrete = (A)->excitation->n_discrete;
-	(*B)->excitation->n_continuous = (A)->excitation->n_continuous;
-
-	if ((*B)->excitation->n_discrete > 0) {
-		(*B)->excitation->discrete = (struct xmi_energy_discrete *) xmi_memdup((A)->excitation->discrete,(A)->excitation->n_discrete*sizeof(struct xmi_energy_discrete));
-	}
-	else 
-		(*B)->excitation->discrete = NULL;
-	if ((*B)->excitation->n_continuous > 0) {
-		(*B)->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup((A)->excitation->continuous,(A)->excitation->n_continuous*sizeof(struct xmi_energy_continuous));
-
-	}
-	else 
-		(*B)->excitation->continuous = NULL;
+	xmi_copy_excitation(A->excitation, &((*B)->excitation));
 
 	//absorbers
 	(*B)->absorbers = (struct xmi_absorbers*) malloc(sizeof(struct xmi_absorbers));
@@ -150,16 +106,10 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	}
 
 	//detector
-	(*B)->detector = (struct xmi_detector *) xmi_memdup((A)->detector,sizeof(struct xmi_detector));
-	(*B)->detector->crystal_layers = (struct xmi_layer *) xmi_memdup((A)->detector->crystal_layers,((A)->detector->n_crystal_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->detector->n_crystal_layers ; i++) {
-		(*B)->detector->crystal_layers[i].Z = (int *) xmi_memdup((A)->detector->crystal_layers[i].Z,((A)->detector->crystal_layers[i].n_elements)*sizeof(int));
-		(*B)->detector->crystal_layers[i].weight = (double *) xmi_memdup((A)->detector->crystal_layers[i].weight,((A)->detector->crystal_layers[i].n_elements)*sizeof(double));
-	}
+	xmi_copy_detector(A->detector, &((*B)->detector));
 
 	
-
-
+	return;
 }
 
 
@@ -623,15 +573,17 @@ struct xmi_input *xmi_init_empty_input(void) {
 void xmi_free_absorbers(struct xmi_absorbers *A) {
 	int i;
 
-	for (i = 0 ; i < A->n_exc_layers ; i++) 
-		xmi_free_layer(A->exc_layers+i);
-	 
-	free(A->exc_layers);
+	if (A->n_exc_layers > 0) {
+		for (i = 0 ; i < A->n_exc_layers ; i++) 
+			xmi_free_layer(A->exc_layers+i);
+		free(A->exc_layers);
+	}
 
-	for (i = 0 ; i < A->n_det_layers ; i++) 
-		xmi_free_layer(A->det_layers+i);
-	 
-	free(A->det_layers);
+	if (A->n_det_layers > 0) {
+		for (i = 0 ; i < A->n_det_layers ; i++) 
+			xmi_free_layer(A->det_layers+i);
+		free(A->det_layers);
+	}
 
 	free(A);
 
@@ -1352,3 +1304,74 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	return;
 }
 
+void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B) {
+	//allocate space for B
+	*B = (struct xmi_geometry *) xmi_memdup(A,sizeof(struct xmi_geometry));
+
+	return;
+} 
+
+void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
+	*B = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	(*B)->n_discrete = A->n_discrete;
+	(*B)->n_continuous = A->n_continuous;
+
+	if ((*B)->n_discrete > 0) {
+		(*B)->discrete = (struct xmi_energy_discrete *) xmi_memdup(A->discrete,A->n_discrete*sizeof(struct xmi_energy_discrete));
+	}
+	else 
+		(*B)->discrete = NULL;
+	if ((*B)->n_continuous > 0) {
+		(*B)->continuous = (struct xmi_energy_continuous *) xmi_memdup(A->continuous,A->n_continuous*sizeof(struct xmi_energy_continuous));
+
+	}
+	else 
+		(*B)->continuous = NULL;
+
+	return;
+}
+
+void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B) {
+	int i;
+
+	*B= (struct xmi_detector *) xmi_memdup(A,sizeof(struct xmi_detector));
+	(*B)->crystal_layers = (struct xmi_layer *) xmi_memdup(A->crystal_layers,(A->n_crystal_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < A->n_crystal_layers ; i++) {
+		(*B)->crystal_layers[i].Z = (int *) xmi_memdup(A->crystal_layers[i].Z,(A->crystal_layers[i].n_elements)*sizeof(int));
+		(*B)->crystal_layers[i].weight = (double *) xmi_memdup(A->crystal_layers[i].weight,(A->crystal_layers[i].n_elements)*sizeof(double));
+	}
+
+	return;
+}
+
+void xmi_free_detector(struct xmi_detector *A) {
+	int i;
+
+	if (A->n_crystal_layers > 0) {
+		for (i = 0 ; i < A->n_crystal_layers ; i++) 
+			xmi_free_layer(A->crystal_layers+i);
+		free(A->crystal_layers);
+	}
+
+	free(A);
+
+	return;
+}
+
+void xmi_free_geometry(struct xmi_geometry *A) {
+	free(A);
+
+	return;
+}
+
+void xmi_free_excitation(struct xmi_excitation *A) {
+	if (A->n_discrete > 0)
+		free(A->discrete);
+
+	if (A->n_continuous > 0)
+		free(A->continuous);
+
+	free(A);
+
+	return;
+}
