@@ -60,6 +60,8 @@ struct xmi_pymca {
 	int usematrix;
 	//0 if Auto, else Z
 	int reference;
+	int n_ignore_elements;
+	int *ignore_elements;
 };
 
 

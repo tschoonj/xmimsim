@@ -1243,6 +1243,24 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	if (read_excitation_spectrum(pymcaFile, &excitation, detector) == 0)
 		return rv;
 
+	//elements to be ignored
+	gchar **ignore_elements = g_key_file_get_string_list(pymcaFile, "xrfmc.setup", "ignore_elements", NULL, NULL);
+	(*pymca_input)->n_ignore_elements = 0;
+	(*pymca_input)->ignore_elements = NULL;
+	if (ignore_elements) {
+		int element;
+		int atomic_number;
+		for (element = 0 ; ignore_elements[element] != NULL ; element++) {
+			atomic_number = SymbolToAtomicNumber(ignore_elements[element]);
+			if (atomic_number < 1) {
+				g_fprintf(stderr,"Invalid chemical symbol %s found in ignore_elements\n", ignore_elements[element]);
+				return rv;
+			}
+			(*pymca_input)->ignore_elements = realloc((*pymca_input)->ignore_elements, sizeof(int)*++(*pymca_input)->n_ignore_elements);
+			(*pymca_input)->ignore_elements[(*pymca_input)->n_ignore_elements-1] = atomic_number;
+		}
+	}
+
 
 	if (!use_single_run) {
 
@@ -1292,6 +1310,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		//2nd condition: the element may not be part of the matrix composition unless matrix is overridden
 		//3rd condition: the element may not be part of any of the other layers
 		//4th condition: the element may not be the reference element if --enable-roi-integration is active
+		//5th condition: the element may not be a part of the ignore_elements list
 		(*pymca_input)->z_arr_quant = NULL;
 		(*pymca_input)->n_z_arr_quant = 0;
 		for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
@@ -1304,6 +1323,20 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 			if ((*pymca_input)->usematrix && (*pymca_input)->z_arr[i] == (*pymca_input)->reference)
 				continue;
+
+			if ((*pymca_input)->n_ignore_elements > 0) {
+				found = 0;
+				for (j = 0 ; j < (*pymca_input)->n_ignore_elements ; j++) {
+					if ((*pymca_input)->ignore_elements[j] == (*pymca_input)->z_arr[i]) {
+						found = 1;
+						break;
+					}
+				}
+				if (found) {
+					//element ignored
+					continue;
+				}
+			}
 
 			found = 0;
 			//check multilayer
