@@ -177,7 +177,10 @@ if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
 	PKG_CHECK_MODULES([libnotify], [libnotify >= 0.7.0], [
 		LIBNOTIFY_FOUND=yes
 		AC_SUBST(LIBNOTIFY_PC, "libnotify >= 0.7.0")
-		AC_DEFINE([HAVE_LIBNOTIFY], [], [libnotify found])])
+		AC_DEFINE([HAVE_LIBNOTIFY], [], [libnotify found])],
+		[
+		LIBNOTIFY_FOUND=no
+		])
 fi
 
 #check for headers
