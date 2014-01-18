@@ -74,14 +74,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	(*B)->general->comments= strdup(A->general->comments);
 
 	//composition
-	(*B)->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
-	(*B)->composition->n_layers = (A)->composition->n_layers;
-	(*B)->composition->reference_layer = (A)->composition->reference_layer;
-	(*B)->composition->layers = (struct xmi_layer *) xmi_memdup((A)->composition->layers,((A)->composition->n_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->composition->n_layers ; i++) {
-		(*B)->composition->layers[i].Z = (int *) xmi_memdup((A)->composition->layers[i].Z,((A)->composition->layers[i].n_elements)*sizeof(int));
-		(*B)->composition->layers[i].weight = (double *) xmi_memdup((A)->composition->layers[i].weight,((A)->composition->layers[i].n_elements)*sizeof(double));
-	}
+	xmi_copy_composition(A->composition, &((*B)->composition));
 	
 	//geometry
 	xmi_copy_geometry(A->geometry, &((*B)->geometry));
@@ -90,20 +83,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	xmi_copy_excitation(A->excitation, &((*B)->excitation));
 
 	//absorbers
-	(*B)->absorbers = (struct xmi_absorbers*) malloc(sizeof(struct xmi_absorbers));
-	(*B)->absorbers->n_exc_layers = (A)->absorbers->n_exc_layers; 
-	(*B)->absorbers->n_det_layers = (A)->absorbers->n_det_layers; 
-
-	(*B)->absorbers->exc_layers = (struct xmi_layer *) xmi_memdup((A)->absorbers->exc_layers,((A)->absorbers->n_exc_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->absorbers->n_exc_layers ; i++) {
-		(*B)->absorbers->exc_layers[i].Z = (int *) xmi_memdup((A)->absorbers->exc_layers[i].Z,((A)->absorbers->exc_layers[i].n_elements)*sizeof(int));
-		(*B)->absorbers->exc_layers[i].weight = (double *) xmi_memdup((A)->absorbers->exc_layers[i].weight,((A)->absorbers->exc_layers[i].n_elements)*sizeof(double));
-	}
-	(*B)->absorbers->det_layers = (struct xmi_layer *) xmi_memdup((A)->absorbers->det_layers,((A)->absorbers->n_det_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->absorbers->n_det_layers ; i++) {
-		(*B)->absorbers->det_layers[i].Z = (int *) xmi_memdup((A)->absorbers->det_layers[i].Z,((A)->absorbers->det_layers[i].n_elements)*sizeof(int));
-		(*B)->absorbers->det_layers[i].weight = (double *) xmi_memdup((A)->absorbers->det_layers[i].weight,((A)->absorbers->det_layers[i].n_elements)*sizeof(double));
-	}
+	xmi_copy_absorbers(A->absorbers, &((*B)->absorbers));
 
 	//detector
 	xmi_copy_detector(A->detector, &((*B)->detector));
@@ -570,7 +550,8 @@ struct xmi_input *xmi_init_empty_input(void) {
 
 }
 
-void xmi_free_absorbers(struct xmi_absorbers *A) {
+
+void xmi_free_exc_absorbers(struct xmi_absorbers *A) {
 	int i;
 
 	if (A->n_exc_layers > 0) {
@@ -578,36 +559,57 @@ void xmi_free_absorbers(struct xmi_absorbers *A) {
 			xmi_free_layer(A->exc_layers+i);
 		free(A->exc_layers);
 	}
+	A->n_exc_layers = 0;
+	A->exc_layers = NULL;
+}
+
+void xmi_free_det_absorbers(struct xmi_absorbers *A) {
+	int i;
 
 	if (A->n_det_layers > 0) {
 		for (i = 0 ; i < A->n_det_layers ; i++) 
 			xmi_free_layer(A->det_layers+i);
 		free(A->det_layers);
 	}
+	A->n_det_layers = 0;
+	A->det_layers = NULL;
+}
+
+void xmi_free_absorbers(struct xmi_absorbers *A) {
+	xmi_free_exc_absorbers(A);
+	xmi_free_det_absorbers(A);
 
 	free(A);
+}
 
+void xmi_copy_exc_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
+	int i;
+
+	B->n_exc_layers = A->n_exc_layers;
+	B->exc_layers = (struct xmi_layer *) xmi_memdup(A->exc_layers,(A->n_exc_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < A->n_exc_layers ; i++) {
+		B->exc_layers[i].Z = (int *) xmi_memdup(A->exc_layers[i].Z,(A->exc_layers[i].n_elements)*sizeof(int));
+		B->exc_layers[i].weight = (double *) xmi_memdup(A->exc_layers[i].weight,(A->exc_layers[i].n_elements)*sizeof(double));
+	}
+}
+
+void xmi_copy_det_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
+	int i;
+
+	B->n_det_layers = A->n_det_layers;
+	B->det_layers = (struct xmi_layer *) xmi_memdup(A->det_layers,(A->n_det_layers)*sizeof(struct xmi_layer));
+	for (i = 0 ; i < A->n_det_layers ; i++) {
+		B->det_layers[i].Z = (int *) xmi_memdup(A->det_layers[i].Z,(A->det_layers[i].n_elements)*sizeof(int));
+		B->det_layers[i].weight = (double *) xmi_memdup(A->det_layers[i].weight,(A->det_layers[i].n_elements)*sizeof(double));
+	}
 }
 
 void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B) {
-	int i;
-
 	//allocate space for B
 	*B = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
-	(*B)->n_exc_layers = A->n_exc_layers;
-	(*B)->exc_layers = (struct xmi_layer *) xmi_memdup((A)->exc_layers,((A)->n_exc_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->n_exc_layers ; i++) {
-		(*B)->exc_layers[i].Z = (int *) xmi_memdup((A)->exc_layers[i].Z,((A)->exc_layers[i].n_elements)*sizeof(int));
-		(*B)->exc_layers[i].weight = (double *) xmi_memdup((A)->exc_layers[i].weight,((A)->exc_layers[i].n_elements)*sizeof(double));
-	}
-	
-	(*B)->n_det_layers = A->n_det_layers;
-	(*B)->det_layers = (struct xmi_layer *) xmi_memdup((A)->det_layers,((A)->n_det_layers)*sizeof(struct xmi_layer));
-	for (i = 0 ; i < (A)->n_det_layers ; i++) {
-		(*B)->det_layers[i].Z = (int *) xmi_memdup((A)->det_layers[i].Z,((A)->det_layers[i].n_elements)*sizeof(int));
-		(*B)->det_layers[i].weight = (double *) xmi_memdup((A)->det_layers[i].weight,((A)->det_layers[i].n_elements)*sizeof(double));
-	}
 
+	xmi_copy_exc_absorbers(A, *B);
+	xmi_copy_det_absorbers(A, *B);
 }
 
 void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition) {

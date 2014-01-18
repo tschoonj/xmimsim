@@ -85,6 +85,7 @@ static GtkWidget *undoW;
 static GtkWidget *redoW;
 static GtkWidget *newW;
 static GtkWidget *openW;
+static GtkWidget *importW;
 static GtkWidget *preferencesW;
 static GtkWidget *tube_ebelW;
 static GtkWidget *batchmodeW;
@@ -350,7 +351,14 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data);
 
 
 void reset_undo_buffer(struct xmi_input *xi_new, char *filename);
-void change_all_values(struct xmi_input *);
+static void change_all_values(struct xmi_input *);
+static void change_all_values_general(struct xmi_input *new_input);
+static void change_all_values_composition(struct xmi_input *new_input);
+static void change_all_values_geometry(struct xmi_input *new_input);
+static void change_all_values_excitation(struct xmi_input *new_input);
+static void change_all_values_beamabsorbers(struct xmi_input *new_input);
+static void change_all_values_detectionabsorbers(struct xmi_input *new_input);
+static void change_all_values_detectorsettings(struct xmi_input *new_input);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
@@ -362,8 +370,14 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 #else
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
-void new_cb(GtkWidget *widget, gpointer data);
+static void new_cb(GtkWidget *widget, gpointer data);
+static void import_cb(GtkWidget *widget, gpointer data);
 gboolean process_pre_file_operation (GtkWidget *window);
+struct import_undo_data {
+	struct xmi_input *xi;
+	int undo_rv;
+	char *filename;
+};
 
 #ifdef G_OS_UNIX
 void signal_handler(int sig) {
@@ -1887,6 +1901,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
 	char *elementString;
 	int i,j;
+	int undo_rv;
 
 
 	//restore previous state
@@ -2276,6 +2291,27 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_max_convolution_energyG);
 			break;
+		case IMPORT_FROM_FILE:
+			undo_rv = GPOINTER_TO_INT(current->widget);
+			if (undo_rv & IMPORT_SELECT_COMPOSITION) {
+				change_all_values_composition((current-1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_GEOMETRY) {
+				change_all_values_geometry((current-1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_EXCITATION) {
+				change_all_values_excitation((current-1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_DETECTORSETTINGS) {
+				change_all_values_detectorsettings((current-1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_BEAMABSORBERS) {
+				change_all_values_beamabsorbers((current-1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_DETECTIONABSORBERS) {
+				change_all_values_detectionabsorbers((current-1)->xi);
+			}
+			break;
 	}
 	if (current-1 != redo_buffer) {
 		g_sprintf(buffer,"Undo: %s",(current-1)->message);
@@ -2399,6 +2435,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
 	char *elementString;
 	int i,j;
+	int undo_rv;
 
 #if DEBUG == 1
 	fprintf(stdout,"Redo button clicked: current kind: %i\n",current->kind);
@@ -2770,6 +2807,27 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
+			break;
+		case IMPORT_FROM_FILE:
+			undo_rv = GPOINTER_TO_INT((current+1)->widget);
+			if (undo_rv & IMPORT_SELECT_COMPOSITION) {
+				change_all_values_composition((current+1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_GEOMETRY) {
+				change_all_values_geometry((current+1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_EXCITATION) {
+				change_all_values_excitation((current+1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_DETECTORSETTINGS) {
+				change_all_values_detectorsettings((current+1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_BEAMABSORBERS) {
+				change_all_values_beamabsorbers((current+1)->xi);
+			}
+			if (undo_rv & IMPORT_SELECT_DETECTIONABSORBERS) {
+				change_all_values_detectionabsorbers((current+1)->xi);
+			}
 			break;
 			
 
@@ -3341,6 +3399,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	ptrdiff_t last_diff, current_diff;
 	struct undo_single *tempPtr;
 	int i, status;
+	struct import_undo_data *iud;
 
 	//two cases... 
 	//current == last (NO REDO(s) used)
@@ -3851,6 +3910,35 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->detector->max_convolution_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->widget = widget;
 			break;
+		case IMPORT_FROM_FILE:
+			iud = (struct import_undo_data *) widget;
+			g_sprintf(last->message, "import from %s", g_path_get_basename(iud->filename));
+			last->widget = GINT_TO_POINTER(iud->undo_rv);
+			if (iud->undo_rv & IMPORT_SELECT_COMPOSITION) {
+				xmi_free_composition(last->xi->composition);
+				xmi_copy_composition(iud->xi->composition, &last->xi->composition);
+			}
+			if (iud->undo_rv & IMPORT_SELECT_GEOMETRY) {
+				xmi_free_geometry(last->xi->geometry);
+				xmi_copy_geometry(iud->xi->geometry, &last->xi->geometry);
+			}
+			if (iud->undo_rv & IMPORT_SELECT_EXCITATION) {
+				xmi_free_excitation(last->xi->excitation);
+				xmi_copy_excitation(iud->xi->excitation, &last->xi->excitation);
+			}
+			if (iud->undo_rv & IMPORT_SELECT_DETECTORSETTINGS) {
+				xmi_free_detector(last->xi->detector);
+				xmi_copy_detector(iud->xi->detector, &last->xi->detector);
+			}
+			if (iud->undo_rv & IMPORT_SELECT_BEAMABSORBERS) {
+				xmi_free_exc_absorbers(last->xi->absorbers);
+				xmi_copy_exc_absorbers(iud->xi->absorbers, last->xi->absorbers);
+			}
+			if (iud->undo_rv & IMPORT_SELECT_DETECTIONABSORBERS) {
+				xmi_free_det_absorbers(last->xi->absorbers);
+				xmi_copy_det_absorbers(iud->xi->absorbers, last->xi->absorbers);
+			}
+			break;
 	} 
 	current = last;
 	g_sprintf(buffer,"Undo: %s",last->message);
@@ -4185,6 +4273,7 @@ XMI_MAIN
 
 	saveW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE,accel_group);
 	save_asW = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE_AS,accel_group);
+	importW= gtk_menu_item_new_with_label("Import");
 #ifndef MAC_INTEGRATION
 	quitW = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT,accel_group);
 #endif
@@ -4194,6 +4283,7 @@ XMI_MAIN
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),openrecent_menuW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),saveW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),save_asW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),importW);
 #ifndef MAC_INTEGRATION
 	gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),quitW);
 #endif
@@ -4208,7 +4298,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
-	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(new_cb),(gpointer) window);
+	g_signal_connect(G_OBJECT(importW),"activate",G_CALLBACK(import_cb),(gpointer) window);
 	editmenu = gtk_menu_new();
 	edit = gtk_menu_item_new_with_label("Edit");
 	undoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_UNDO,accel_group);
@@ -4276,6 +4366,7 @@ XMI_MAIN
 	gtk_widget_add_accelerator(openW, "activate", accel_group, GDK_o, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(saveW, "activate", accel_group, GDK_s, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(save_asW, "activate", accel_group, GDK_s, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(importW, "activate", accel_group, GDK_i, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
 
@@ -5108,309 +5199,166 @@ XMI_MAIN
 	return 0;
 }
 
-void change_all_values(struct xmi_input *new_input) {
+static void change_all_values(struct xmi_input *new_input) {
 	char buffer[512], *elementString;
 	int i,j;
 	GtkTreeIter iter;
-	GtkTextBuffer *commentsBuffer;
 
-	//checkeable values
-	n_photons_intervalC = 1;
-	n_photons_lineC = 1;
-	n_interactions_trajectoryC = 1;
-	d_sample_sourceC = 1;
-	n_sample_orientation_xC = 1;
-	n_sample_orientation_yC = 1;
-	n_sample_orientation_zC = 1;
-	p_detector_window_xC = 1;
-	p_detector_window_yC = 1;
-	p_detector_window_zC = 1;
-	n_detector_orientation_xC = 1;
-	n_detector_orientation_yC = 1;
-	n_detector_orientation_zC = 1;
-	area_detectorC = 1;
-	collimator_heightC = 1;
-	collimator_diameterC = 1;
-	d_source_slitC = 1;
-	slit_size_xC = 1;
-	slit_size_yC = 1;
-	detector_typeC = 1;
-	detector_gainC = 1;
-	detector_live_timeC = 1;
-	detector_pulse_widthC = 1;
-	detector_zeroC = 1;
-	detector_fanoC = 1;
-	detector_noiseC = 1;
-	detector_max_convolution_energyC = 1;
-
-	//disable signal handlers where necessary
-	g_signal_handler_block(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
-	g_signal_handler_block(G_OBJECT(n_photons_lineW), n_photons_lineG);
-	g_signal_handler_block(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
-	g_signal_handler_block(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
-	g_signal_handler_block(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
-	g_signal_handler_block(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
-	g_signal_handler_block(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
-	g_signal_handler_block(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
-	g_signal_handler_block(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
-	g_signal_handler_block(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
-	g_signal_handler_block(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
-	g_signal_handler_block(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
-	g_signal_handler_block(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
-	g_signal_handler_block(G_OBJECT(area_detectorW), area_detectorG);
-	g_signal_handler_block(G_OBJECT(collimator_heightW), collimator_heightG);
-	g_signal_handler_block(G_OBJECT(collimator_diameterW), collimator_diameterG);
-	g_signal_handler_block(G_OBJECT(d_source_slitW), d_source_slitG);
-	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
-	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
-	g_signal_handler_block(G_OBJECT(detector_typeW), detector_typeG);
-	g_signal_handler_block(G_OBJECT(detector_gainW), detector_gainG);
-	g_signal_handler_block(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
-	g_signal_handler_block(G_OBJECT(detector_live_timeW), detector_live_timeG);
-	g_signal_handler_block(G_OBJECT(detector_zeroW), detector_zeroG);
-	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
-	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
-	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
-	g_signal_handler_block(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
-	
-
-	//general
-	gtk_entry_set_text(GTK_ENTRY(outputfileW),new_input->general->outputfile);
-	g_sprintf(buffer,"%li",new_input->general->n_photons_interval);
-	gtk_entry_set_text(GTK_ENTRY(n_photons_intervalW),buffer);
-	g_sprintf(buffer,"%li",new_input->general->n_photons_line);
-	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
-	g_sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
-	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
-	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
-	gtk_text_buffer_set_text(commentsBuffer,new_input->general->comments,-1);
-
-
-	//composition
-	gtk_list_store_clear(compositionL);
-	for (i=0 ; i < new_input->composition->n_layers ; i++) {
-		gtk_list_store_append(compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->composition->layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->composition->layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->composition->layers[i].Z[j]));
-			if (j != new_input->composition->layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
-		gtk_list_store_set(compositionL, &iter,
-			N_ELEMENTS_COLUMN, new_input->composition->layers[i].n_elements,
-			ELEMENTS_COLUMN,elementString,
-			DENSITY_COLUMN, new_input->composition->layers[i].density,
-			THICKNESS_COLUMN, new_input->composition->layers[i].thickness,
-			REFERENCE_COLUMN,(i+1 == new_input->composition->reference_layer) ? TRUE : FALSE,
-			-1
-			);
-		free(elementString);
-	}
-	xmi_free_composition(compositionS);
-	xmi_copy_composition(new_input->composition,&compositionS);	
-
-	//geometry
-	g_sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
-	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
-	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
-	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
-	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
-	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
-	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
-	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
-	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
-	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
-	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->area_detector);
-	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->collimator_height);
-	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
-	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
-	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
-	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
-	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
-	
-
-	//energies
-	gtk_list_store_clear(discWidget->store);
-	for (i = 0 ; i < (new_input)->excitation->n_discrete ; i++) {
-		gtk_list_store_append(discWidget->store, &iter);
-		gtk_list_store_set(discWidget->store, &iter,
-			ENERGY_COLUMN, (new_input)->excitation->discrete[i].energy,
-			HOR_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].vertical_intensity,
-			SIGMA_X_COLUMN, (new_input)->excitation->discrete[i].sigma_x,
-			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
-			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
-			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
-			DISTRIBUTION_TYPE_COLUMN,(new_input)->excitation->discrete[i].distribution_type,
-			SCALE_PARAMETER_COLUMN,(new_input)->excitation->discrete[i].scale_parameter,
-			-1);
-	}
-	gtk_list_store_clear(contWidget->store);
-	for (i = 0 ; i < (new_input)->excitation->n_continuous ; i++) {
-		gtk_list_store_append(contWidget->store, &iter);
-		gtk_list_store_set(contWidget->store, &iter,
-			ENERGY_COLUMN, (new_input)->excitation->continuous[i].energy,
-			HOR_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].vertical_intensity,
-			SIGMA_X_COLUMN, (new_input)->excitation->continuous[i].sigma_x,
-			SIGMA_XP_COLUMN,(new_input)->excitation->continuous[i].sigma_xp,
-			SIGMA_Y_COLUMN,(new_input)->excitation->continuous[i].sigma_y,
-			SIGMA_YP_COLUMN,(new_input)->excitation->continuous[i].sigma_yp,
-			-1);
-	}
-
-	//absorbers
-	gtk_list_store_clear(exc_compositionL);
-	for (i=0 ; i < new_input->absorbers->n_exc_layers ; i++) {
-		gtk_list_store_append(exc_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->exc_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->absorbers->exc_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->exc_layers[i].Z[j]));
-			if (j != new_input->absorbers->exc_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
-		gtk_list_store_set(exc_compositionL, &iter,
-			N_ELEMENTS_COLUMN, new_input->absorbers->exc_layers[i].n_elements,
-			ELEMENTS_COLUMN,elementString,
-			DENSITY_COLUMN, new_input->absorbers->exc_layers[i].density,
-			THICKNESS_COLUMN, new_input->absorbers->exc_layers[i].thickness,
-			-1
-			);
-		free(elementString);
-	}
-	xmi_free_composition(exc_compositionS);
-	xmi_copy_abs_or_crystal2composition(new_input->absorbers->exc_layers, new_input->absorbers->n_exc_layers,&exc_compositionS);	
-
-	gtk_list_store_clear(det_compositionL);
-	for (i=0 ; i < new_input->absorbers->n_det_layers ; i++) {
-		gtk_list_store_append(det_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->det_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->absorbers->det_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->det_layers[i].Z[j]));
-			if (j != new_input->absorbers->det_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
-		gtk_list_store_set(det_compositionL, &iter,
-			N_ELEMENTS_COLUMN, new_input->absorbers->det_layers[i].n_elements,
-			ELEMENTS_COLUMN,elementString,
-			DENSITY_COLUMN, new_input->absorbers->det_layers[i].density,
-			THICKNESS_COLUMN, new_input->absorbers->det_layers[i].thickness,
-			-1
-			);
-		free(elementString);
-	}
-	xmi_free_composition(det_compositionS);
-	xmi_copy_abs_or_crystal2composition(new_input->absorbers->det_layers, new_input->absorbers->n_det_layers,&det_compositionS);	
-
-	//detector
-	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
-	
-	g_sprintf(buffer,"%lg",new_input->detector->gain);
-#if DEBUG == 1
-	fprintf(stdout,"gain: %s\n",buffer);
-#endif
-	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->zero);
-#if DEBUG == 1
-	fprintf(stdout,"zero: %s\n",buffer);
-#endif
-	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->fano);
-	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->noise);
-	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
-	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->live_time);
-	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
-	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
-
-	gtk_list_store_clear(crystal_compositionL);
-	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
-		gtk_list_store_append(crystal_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->detector->crystal_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->detector->crystal_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->detector->crystal_layers[i].Z[j]));
-			if (j != new_input->detector->crystal_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
-		gtk_list_store_set(crystal_compositionL, &iter,
-			N_ELEMENTS_COLUMN, new_input->detector->crystal_layers[i].n_elements,
-			ELEMENTS_COLUMN,elementString,
-			DENSITY_COLUMN, new_input->detector->crystal_layers[i].density,
-			THICKNESS_COLUMN, new_input->detector->crystal_layers[i].thickness,
-			-1
-			);
-		free(elementString);
-	}
-	xmi_free_composition(crystal_compositionS);
-	xmi_copy_abs_or_crystal2composition(new_input->detector->crystal_layers, new_input->detector->n_crystal_layers,&crystal_compositionS);	
-
-
-	//enable signal handlers where necessary
-	g_signal_handler_unblock(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
-	g_signal_handler_unblock(G_OBJECT(n_photons_lineW), n_photons_lineG);
-	g_signal_handler_unblock(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
-	g_signal_handler_unblock(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
-	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
-	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
-	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
-	g_signal_handler_unblock(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
-	g_signal_handler_unblock(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
-	g_signal_handler_unblock(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
-	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
-	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
-	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
-	g_signal_handler_unblock(G_OBJECT(area_detectorW), area_detectorG);
-	g_signal_handler_unblock(G_OBJECT(collimator_heightW), collimator_heightG);
-	g_signal_handler_unblock(G_OBJECT(collimator_diameterW), collimator_diameterG);
-	g_signal_handler_unblock(G_OBJECT(d_source_slitW), d_source_slitG);
-	g_signal_handler_unblock(G_OBJECT(slit_size_xW), slit_size_xG);
-	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
-	g_signal_handler_unblock(G_OBJECT(detector_typeW), detector_typeG);
-	g_signal_handler_unblock(G_OBJECT(detector_gainW), detector_gainG);
-	g_signal_handler_unblock(G_OBJECT(detector_zeroW), detector_zeroG);
-	g_signal_handler_unblock(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
-	g_signal_handler_unblock(G_OBJECT(detector_live_timeW), detector_live_timeG);
-	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
-	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
-	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
-	g_signal_handler_unblock(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
-	
-	
+	change_all_values_general(new_input);
+	change_all_values_composition(new_input);
+	change_all_values_geometry(new_input);
+	change_all_values_excitation(new_input);
+	change_all_values_beamabsorbers(new_input);
+	change_all_values_detectionabsorbers(new_input);
+	change_all_values_detectorsettings(new_input);
 
 	return;
 }
 
-void new_cb(GtkWidget *widget, gpointer data) {
+static void import_cb(GtkWidget *widget, gpointer data) {
+	//launch file selection dialog
+	GtkWidget *dialog = NULL;
+	GtkFileFilter *filter;
+	gchar *filename;
+	struct xmi_input *xi = NULL;
+	struct xmi_output *xo = NULL;
+
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_set_name(filter,"XMI-MSIM input and output files");
+	dialog = gtk_file_chooser_dialog_new ("Select a XMI-MSIM file to import from",
+		GTK_WINDOW((GtkWidget *) data),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	 
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		//open file based on extension
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		if (strcmp(filename+strlen(filename)-5, ".xmsi") == 0) {
+			//input-file found
+			if (xmi_read_input_xml(filename, &xi) == 0) {
+				xi = NULL;
+			}
+		}
+		else if (strcmp(filename+strlen(filename)-5, ".xmso") == 0) {
+			//output-file found
+			if (xmi_read_output_xml(filename, &xo) == 0) {
+				xo = NULL;
+				xi = NULL;
+			}
+			else {
+				xi = xo->input;
+			}
+		}
+		else {
+			g_fprintf(stderr,"Unsupported filetype selected. This error should never appear\n");
+			exit(1);
+		}
+		gtk_widget_destroy(dialog);
+		if (xi == NULL) {
+			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not read file %s: model is incomplete/invalid",filename
+	               	);
+	     		gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		//ok... spawn dialogue with components selection
+		dialog = gtk_dialog_new_with_buttons("Import components", GTK_WINDOW((GtkWidget *) data), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+		gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	
+		GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		GtkWidget *vbox = gtk_vbox_new(FALSE, 2);
+		GtkWidget *composition_check = gtk_check_button_new_with_label("Composition");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(composition_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), composition_check, FALSE, FALSE, 0);
+		GtkWidget *geometry_check = gtk_check_button_new_with_label("Geometry");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(geometry_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), geometry_check, FALSE, FALSE, 0);
+		GtkWidget *excitation_check = gtk_check_button_new_with_label("Excitation");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(excitation_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), excitation_check, FALSE, FALSE, 0);
+		GtkWidget *beamabsorbers_check = gtk_check_button_new_with_label("Beam absorbers");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(beamabsorbers_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), beamabsorbers_check, FALSE, FALSE, 0);
+		GtkWidget *detectionabsorbers_check = gtk_check_button_new_with_label("Detection absorbers");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(detectionabsorbers_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), detectionabsorbers_check, FALSE, FALSE, 0);
+		GtkWidget *detectorsettings_check = gtk_check_button_new_with_label("Detection settings");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(detectorsettings_check), TRUE);
+		gtk_box_pack_start(GTK_BOX(vbox), detectorsettings_check, FALSE, FALSE, 0);
+		gtk_box_pack_start(GTK_BOX(content_area), vbox, FALSE, FALSE,0);
+		gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
+		gtk_widget_show_all(vbox);
+		if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_ACCEPT) {
+			gtk_widget_destroy(dialog);\
+			return;
+		}
+		//let's see what was selected
+		int undo_rv = 0;
+
+		
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(composition_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_COMPOSITION;
+			change_all_values_composition(xi);
+			
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(geometry_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_GEOMETRY;
+			change_all_values_geometry(xi);
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(excitation_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_EXCITATION;
+			change_all_values_excitation(xi);
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(beamabsorbers_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_BEAMABSORBERS;
+			change_all_values_beamabsorbers(xi);
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(detectionabsorbers_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_DETECTIONABSORBERS;
+			change_all_values_detectionabsorbers(xi);
+		}
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(detectorsettings_check)) == TRUE) {
+			undo_rv |= IMPORT_SELECT_DETECTORSETTINGS;
+			change_all_values_detectorsettings(xi);
+		}
+		if (undo_rv == 0) {
+			//nothing selected
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		struct import_undo_data *iud = g_malloc(sizeof(struct import_undo_data));
+		iud->xi = xi;
+		iud->undo_rv = undo_rv;
+		iud->filename = filename;
+		update_undo_buffer(IMPORT_FROM_FILE, (GtkWidget *) iud);
+		if (xo) {
+			xmi_free_output(xo);
+			xi = NULL;
+		}
+		if (xi) {
+			xmi_free_input(xi);
+		}
+		g_free(iud->filename);
+		g_free(iud);
+		
+	}
+	gtk_widget_destroy(dialog);
+	return;
+}
+
+static void new_cb(GtkWidget *widget, gpointer data) {
 	struct xmi_input *xi;
 	
 
@@ -5876,4 +5824,331 @@ void xmi_open_url(char *link) {
 		execvp("xdg-open", argv);
 #endif
 	return;
+}
+
+static void change_all_values_general(struct xmi_input *new_input) {
+	char buffer[512];
+	GtkTextBuffer *commentsBuffer;
+
+	n_photons_intervalC = 1;
+	n_photons_lineC = 1;
+	n_interactions_trajectoryC = 1;
+
+	g_signal_handler_block(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
+	g_signal_handler_block(G_OBJECT(n_photons_lineW), n_photons_lineG);
+	g_signal_handler_block(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
+	g_signal_handler_block(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
+
+	gtk_entry_set_text(GTK_ENTRY(outputfileW),new_input->general->outputfile);
+	g_sprintf(buffer,"%li",new_input->general->n_photons_interval);
+	gtk_entry_set_text(GTK_ENTRY(n_photons_intervalW),buffer);
+	g_sprintf(buffer,"%li",new_input->general->n_photons_line);
+	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
+	g_sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
+	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
+	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
+	gtk_text_buffer_set_text(commentsBuffer,new_input->general->comments,-1);
+
+
+	g_signal_handler_unblock(G_OBJECT(n_photons_intervalW), n_photons_intervalG);
+	g_signal_handler_unblock(G_OBJECT(n_photons_lineW), n_photons_lineG);
+	g_signal_handler_unblock(G_OBJECT(n_interactions_trajectoryW), n_interactions_trajectoryG);
+	g_signal_handler_unblock(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
+
+	return;
+}
+
+
+static void change_all_values_composition(struct xmi_input *new_input) {
+	char buffer[512], *elementString;
+	int i,j;
+	GtkTreeIter iter;
+
+	gtk_list_store_clear(compositionL);
+	for (i=0 ; i < new_input->composition->n_layers ; i++) {
+		gtk_list_store_append(compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->composition->layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->composition->layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->composition->layers[i].Z[j]));
+			if (j != new_input->composition->layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->composition->layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->composition->layers[i].density,
+			THICKNESS_COLUMN, new_input->composition->layers[i].thickness,
+			REFERENCE_COLUMN,(i+1 == new_input->composition->reference_layer) ? TRUE : FALSE,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(compositionS);
+	xmi_copy_composition(new_input->composition,&compositionS);	
+}
+
+static void change_all_values_geometry(struct xmi_input *new_input) {
+	char buffer[512];
+
+	d_sample_sourceC = 1;
+	n_sample_orientation_xC = 1;
+	n_sample_orientation_yC = 1;
+	n_sample_orientation_zC = 1;
+	p_detector_window_xC = 1;
+	p_detector_window_yC = 1;
+	p_detector_window_zC = 1;
+	n_detector_orientation_xC = 1;
+	n_detector_orientation_yC = 1;
+	n_detector_orientation_zC = 1;
+	area_detectorC = 1;
+	collimator_heightC = 1;
+	collimator_diameterC = 1;
+	d_source_slitC = 1;
+	slit_size_xC = 1;
+	slit_size_yC = 1;
+
+	g_signal_handler_block(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
+	g_signal_handler_block(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
+	g_signal_handler_block(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
+	g_signal_handler_block(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
+	g_signal_handler_block(G_OBJECT(area_detectorW), area_detectorG);
+	g_signal_handler_block(G_OBJECT(collimator_heightW), collimator_heightG);
+	g_signal_handler_block(G_OBJECT(collimator_diameterW), collimator_diameterG);
+	g_signal_handler_block(G_OBJECT(d_source_slitW), d_source_slitG);
+	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
+	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
+
+	g_sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
+	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
+	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
+	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->area_detector);
+	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->collimator_height);
+	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
+	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
+	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
+	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
+	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
+
+	g_signal_handler_unblock(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_xW), n_sample_orientation_xG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_yW), n_sample_orientation_yG);
+	g_signal_handler_unblock(G_OBJECT(n_sample_orientation_zW), n_sample_orientation_zG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_xW), p_detector_window_xG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_yW), p_detector_window_yG);
+	g_signal_handler_unblock(G_OBJECT(p_detector_window_zW), p_detector_window_zG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_xW), n_detector_orientation_xG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_yW), n_detector_orientation_yG);
+	g_signal_handler_unblock(G_OBJECT(n_detector_orientation_zW), n_detector_orientation_zG);
+	g_signal_handler_unblock(G_OBJECT(area_detectorW), area_detectorG);
+	g_signal_handler_unblock(G_OBJECT(collimator_heightW), collimator_heightG);
+	g_signal_handler_unblock(G_OBJECT(collimator_diameterW), collimator_diameterG);
+	g_signal_handler_unblock(G_OBJECT(d_source_slitW), d_source_slitG);
+	g_signal_handler_unblock(G_OBJECT(slit_size_xW), slit_size_xG);
+	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
+}
+
+static void change_all_values_excitation(struct xmi_input *new_input) {
+	int i,j;
+	GtkTreeIter iter;
+
+	gtk_list_store_clear(discWidget->store);
+	for (i = 0 ; i < (new_input)->excitation->n_discrete ; i++) {
+		gtk_list_store_append(discWidget->store, &iter);
+		gtk_list_store_set(discWidget->store, &iter,
+			ENERGY_COLUMN, (new_input)->excitation->discrete[i].energy,
+			HOR_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].vertical_intensity,
+			SIGMA_X_COLUMN, (new_input)->excitation->discrete[i].sigma_x,
+			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
+			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
+			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,(new_input)->excitation->discrete[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,(new_input)->excitation->discrete[i].scale_parameter,
+			-1);
+	}
+	gtk_list_store_clear(contWidget->store);
+	for (i = 0 ; i < (new_input)->excitation->n_continuous ; i++) {
+		gtk_list_store_append(contWidget->store, &iter);
+		gtk_list_store_set(contWidget->store, &iter,
+			ENERGY_COLUMN, (new_input)->excitation->continuous[i].energy,
+			HOR_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].vertical_intensity,
+			SIGMA_X_COLUMN, (new_input)->excitation->continuous[i].sigma_x,
+			SIGMA_XP_COLUMN,(new_input)->excitation->continuous[i].sigma_xp,
+			SIGMA_Y_COLUMN,(new_input)->excitation->continuous[i].sigma_y,
+			SIGMA_YP_COLUMN,(new_input)->excitation->continuous[i].sigma_yp,
+			-1);
+	}
+
+
+
+}
+
+static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
+	char buffer[512], *elementString;
+	int i,j;
+	GtkTreeIter iter;
+
+	gtk_list_store_clear(exc_compositionL);
+	for (i=0 ; i < new_input->absorbers->n_exc_layers ; i++) {
+		gtk_list_store_append(exc_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->exc_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->absorbers->exc_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->exc_layers[i].Z[j]));
+			if (j != new_input->absorbers->exc_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(exc_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->absorbers->exc_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->absorbers->exc_layers[i].density,
+			THICKNESS_COLUMN, new_input->absorbers->exc_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(exc_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->absorbers->exc_layers, new_input->absorbers->n_exc_layers,&exc_compositionS);	
+
+
+	return;
+}
+
+static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
+	char buffer[512], *elementString;
+	int i,j;
+	GtkTreeIter iter;
+
+	gtk_list_store_clear(det_compositionL);
+	for (i=0 ; i < new_input->absorbers->n_det_layers ; i++) {
+		gtk_list_store_append(det_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->det_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->absorbers->det_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->det_layers[i].Z[j]));
+			if (j != new_input->absorbers->det_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(det_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->absorbers->det_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->absorbers->det_layers[i].density,
+			THICKNESS_COLUMN, new_input->absorbers->det_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(det_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->absorbers->det_layers, new_input->absorbers->n_det_layers,&det_compositionS);	
+
+
+}
+
+static void change_all_values_detectorsettings(struct xmi_input *new_input) {
+	char buffer[512], *elementString;
+	int i,j;
+	GtkTreeIter iter;
+
+	detector_typeC = 1;
+	detector_gainC = 1;
+	detector_live_timeC = 1;
+	detector_pulse_widthC = 1;
+	detector_zeroC = 1;
+	detector_fanoC = 1;
+	detector_noiseC = 1;
+	detector_max_convolution_energyC = 1;
+
+	g_signal_handler_block(G_OBJECT(detector_typeW), detector_typeG);
+	g_signal_handler_block(G_OBJECT(detector_gainW), detector_gainG);
+	g_signal_handler_block(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
+	g_signal_handler_block(G_OBJECT(detector_live_timeW), detector_live_timeG);
+	g_signal_handler_block(G_OBJECT(detector_zeroW), detector_zeroG);
+	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
+	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
+	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
+	
+	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
+	
+	g_sprintf(buffer,"%lg",new_input->detector->gain);
+	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->zero);
+	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->fano);
+	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->noise);
+	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
+	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->live_time);
+	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
+	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
+	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
+
+	gtk_list_store_clear(crystal_compositionL);
+	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
+		gtk_list_store_append(crystal_compositionL, &iter);
+		elementString = (char *) malloc(sizeof(char)* (new_input->detector->crystal_layers[i].n_elements*5));
+		elementString[0] = '\0';
+		for (j = 0 ; j < new_input->detector->crystal_layers[i].n_elements ; j++) {
+			strcat(elementString,AtomicNumberToSymbol(new_input->detector->crystal_layers[i].Z[j]));
+			if (j != new_input->detector->crystal_layers[i].n_elements-1) {
+				strcat(elementString,", ");
+			}
+
+		}
+		gtk_list_store_set(crystal_compositionL, &iter,
+			N_ELEMENTS_COLUMN, new_input->detector->crystal_layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN, new_input->detector->crystal_layers[i].density,
+			THICKNESS_COLUMN, new_input->detector->crystal_layers[i].thickness,
+			-1
+			);
+		free(elementString);
+	}
+	xmi_free_composition(crystal_compositionS);
+	xmi_copy_abs_or_crystal2composition(new_input->detector->crystal_layers, new_input->detector->n_crystal_layers,&crystal_compositionS);	
+	g_signal_handler_unblock(G_OBJECT(detector_typeW), detector_typeG);
+	g_signal_handler_unblock(G_OBJECT(detector_gainW), detector_gainG);
+	g_signal_handler_unblock(G_OBJECT(detector_zeroW), detector_zeroG);
+	g_signal_handler_unblock(G_OBJECT(detector_pulse_widthW), detector_pulse_widthG);
+	g_signal_handler_unblock(G_OBJECT(detector_live_timeW), detector_live_timeG);
+	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
+	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
+	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 }
