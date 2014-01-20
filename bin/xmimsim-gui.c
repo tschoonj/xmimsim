@@ -467,8 +467,6 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 		}
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
-		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			gchar *temp_base = g_path_get_basename(filename);
@@ -3298,9 +3296,6 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		}
 	}
 	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
-		if (process_pre_file_operation(old->window) == FALSE)
-			return FALSE;
-
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
@@ -5494,8 +5489,10 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		//get filetype
 		if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter1) {
-			if (process_pre_file_operation((GtkWidget *) data) == FALSE)
+			if (process_pre_file_operation((GtkWidget *) data) == FALSE) {
+				gtk_widget_destroy (dialog);
 				return;
+			}
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 			if (xmi_read_input_xml(filename, &xi) == 1) {
 				//success reading it in...
@@ -5520,8 +5517,6 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 			}
 		}
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter2) {
-			if (process_pre_file_operation((GtkWidget *) data) == FALSE)
-				return;
 			
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
