@@ -30,7 +30,6 @@ lib_LTLIBRARIES = libxmimsim.la
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
-			xmi_aux.h \
 			xmi_aux_f.F90 \
 			xmi_data_f.F90 \
 			xmi_data.c \

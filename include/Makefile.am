@@ -26,6 +26,7 @@ xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_data.h \
 			 xmi_msim.h \
 			 xmi_ebel.h \
+			 xmi_aux.h \
 			 xmi_boone.h
 
 if OS_WINDOWS
