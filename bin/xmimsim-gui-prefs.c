@@ -124,7 +124,7 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_ERROR,
 				GTK_BUTTONS_CLOSE,
-				"Could not determine the location of the solid angle grids file."
+				"Could not determine the location of the escape ratios file."
 	       			);
 	     			gtk_dialog_run (GTK_DIALOG (dialog));
 	     			gtk_widget_destroy (dialog);
