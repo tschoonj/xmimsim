@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_random.h"
 #include "xmi_xslt.h"
 #include "xmi_detector.h"
-#include "xmi_hdf5.h"
+#include "xmi_data.h"
 #include <unistd.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -157,7 +157,7 @@ XMI_MAIN
 
 
 
-
+	xmi_init_hdf5();
 
 #ifdef HAVE_OPENMPI
 	MPI_Init(&argc, &argv);

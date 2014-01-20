@@ -4047,7 +4047,9 @@ XMI_MAIN
  *
  */
 
-	context = g_option_context_new ("XMSI_or_XMSO_file");
+	xmi_init_hdf5();
+
+	context = g_option_context_new ("XMSI/XMSO/XMSA file");
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_set_summary(context, "xmimsim-gui: a graphical user interface for generating and running XMSI files and visualizing XMSO files\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {

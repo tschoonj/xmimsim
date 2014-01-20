@@ -126,4 +126,15 @@ xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPath
 #if !GLIB_CHECK_VERSION (2, 28, 0)
 void g_list_free_full (GList *list, GDestroyNotify  free_func);
 #endif
+
+void xmi_init_hdf5(void);
+
+enum {
+	XMI_HDF5_DATA = 0,
+	XMI_HDF5_SOLID_ANGLES,
+	XMI_HDF5_ESCAPE_RATIOS,
+};
+
+int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char **groups, int force);
+
 #endif

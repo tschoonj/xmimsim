@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <gmodule.h>
 
-#define MIN_VERSION 2.0
 
 
 struct xmi_solid_angles_data{
@@ -51,7 +50,7 @@ struct xmi_solid_angles_data{
 
 
 
-  static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
+  static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
   extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
 //static void xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
@@ -148,11 +147,15 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 	hid_t dataspace_id;
 	herr_t status;
 
-	float version = (float) g_ascii_strtod(VERSION, NULL);
+	double version = g_ascii_strtod(VERSION, NULL);
 	
 
 	/* Create a new file using default properties. */
-	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t gcpl = H5Pcreate (H5P_FILE_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
+
 	if (file_id < 0) {
 		fprintf(stderr,"Could not create solid angle HDF5 file %s\n",hdf5_file);
 		return 0;
@@ -160,12 +163,25 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
 
 	dataspace_id = H5Screate(H5S_SCALAR);
-	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
-
+	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &version);
 	
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
+
+	//write kind attribute
+	dataspace_id = H5Screate(H5S_SCALAR);
+	hid_t atype = H5Tcopy(H5T_C_S1);
+	H5Tset_size(atype, strlen("XMI_HDF5_SOLID_ANGLES")+1);
+	H5Tset_strpad(atype,H5T_STR_NULLTERM);
+	attribute_id = H5Acreate2(root_group_id, "kind", atype, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, atype, "XMI_HDF5_SOLID_ANGLES");
+	
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+	H5Sclose(dataspace_id);
+
+
 	H5Gclose(root_group_id);
 
 
@@ -206,7 +222,10 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	g_free(timestring);
 
 	//create group
-	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t gcpl = H5Pcreate (H5P_GROUP_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
 
 	//add solid_angles dataset
 	dims[1] = solid_angle->grid_dims_r_n;
@@ -273,7 +292,7 @@ struct multiple_solid_angles {
 
 
 
-static herr_t xmi_read_single_solid_angle( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
+static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 	hid_t dset_id, dapl_id, dspace_id;
 	hsize_t dims[2], dims_string[1]; 
 	hid_t group_id;
@@ -691,6 +710,45 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	hid_t attribute_id;
 
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+
+	//check for kind attribute
+	attribute_id = H5Aopen(root_group_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "Solid angles file %s does not contain the kind attribute\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+		
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_solid_angle_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+	hid_t atype = H5Aget_type(attribute_id);
+	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	char kind[512];
+	H5Aread(attribute_id, atype_mem, kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	if (strcmp(kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+		g_fprintf(stderr, "Solid angles file %s does not have the correct kind attribute\n", hdf5_file);
+		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", kind);
+		g_fprintf(stderr, "Aborting\n");
+
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		return 0;
+	} 
+
+
 	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		//attribute does not exist
@@ -710,12 +768,12 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 		return 1;
 	}
 	//attribute exists -> let's read it
-	float version;
-	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+	double version;
+	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
 	H5Aclose(attribute_id);
 	H5Gclose(root_group_id);
 
-	if (version < MIN_VERSION) {
+	if (version < XMI_SOLID_ANGLES_MIN_VERSION) {
 		//too old -> delete file
 		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
 		g_fprintf(stderr, "The file will be deleted and recreated\n");
@@ -736,7 +794,7 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	data.input = A;
 	data.options = options;
 
-	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_solid_angle,(void *) &data);
+	iterate_rv = H5Literate(file_id,H5_INDEX_CRT_ORDER, H5_ITER_DEC, NULL, xmi_read_single_solid_angle,(void *) &data);
 
 	if (iterate_rv < 0)
 		return 0;

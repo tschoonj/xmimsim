@@ -16,7 +16,7 @@
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
-nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod
+nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
 
 if ENABLE_OPENCL
 dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
@@ -32,8 +32,8 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_aux.c \
 			xmi_aux.h \
 			xmi_aux_f.F90 \
-			xmi_hdf5_f.F90 \
-			xmi_hdf5.c \
+			xmi_data_f.F90 \
+			xmi_data.c \
 			xmi_solid_angle_f.F90 \
 			xmi_variance_reduction.F90 \
 			xmi_detector_f.F90 \
@@ -123,7 +123,7 @@ xmimsim_aux.mod: libxmimsim.la
 
 xmimsim_solid_angle.mod: libxmimsim.la
 
-xmimsim_hdf5.mod: libxmimsim.la
+xmimsim_data.mod: libxmimsim.la
 
 xmimsim_varred.mod: libxmimsim.la
 
@@ -131,4 +131,4 @@ xmimsim_detector.mod: libxmimsim.la
 
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_hdf5.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod

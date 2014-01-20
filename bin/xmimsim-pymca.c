@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_xslt.h"
-#include "xmi_hdf5.h"
+#include "xmi_data.h"
 #include <xraylib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -138,6 +138,7 @@ XMI_MAIN
 	char *xmi_input_string;
 
 
+	xmi_init_hdf5();
 	setbuf(stdout,NULL);
 	//locale...
 	//setlocale(LC_ALL,"C");

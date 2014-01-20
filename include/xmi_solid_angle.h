@@ -48,6 +48,8 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 
 void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle);
 
+#define XMI_SOLID_ANGLES_MIN_VERSION 2.8
+
 #ifdef __cplusplus
 }
 #endif

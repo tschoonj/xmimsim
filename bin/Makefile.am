@@ -210,7 +210,8 @@ xmimsim_db_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		    @xml2_CFLAGS@ \
+		    @xraylib_CFLAGS@ 
 		
 xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
 xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 

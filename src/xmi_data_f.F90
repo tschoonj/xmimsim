@@ -17,7 +17,7 @@
 #define MIN_VERSION 2.1
 
 
-MODULE xmimsim_hdf5
+MODULE xmimsim_data
 
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
@@ -954,4 +954,4 @@ DEALLOCATE(cdfs)
 !$OMP END PARALLEL
 
 ENDSUBROUTINE xmi_db_Z_independent
-ENDMODULE xmimsim_hdf5
+ENDMODULE xmimsim_data

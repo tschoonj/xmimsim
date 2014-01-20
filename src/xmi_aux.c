@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_linalg.h>
+#include <glib/gstdio.h>
+#include <hdf5.h>
 
 
 
@@ -568,5 +570,313 @@ g_list_free_full (GList          *list,
   g_list_foreach (list, (GFunc) free_func, NULL);
   g_list_free (list);
 }
-
 #endif
+
+
+void xmi_init_hdf5(void) {
+	if (H5open() < 0) {
+		g_fprintf(stderr, "Could not initialize HDF5!\n");
+		exit(1);
+	}
+
+	//disable HDF5's error messages -> could be a bad idea!
+	H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
+
+}
+
+struct copy_hdf5_data {
+	int kind;
+	hid_t file_from_id;
+	hid_t file_to_id;
+	char *file_from;
+	char *file_to;
+	char **groups;
+	int force;
+	struct xmi_input *temp_input;
+};
+
+static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
+	struct copy_hdf5_data *chd = (struct copy_hdf5_data *) op_data;
+	
+	//read in this particular group
+	hid_t group_id;
+	hid_t dset_id, dspace_id;
+	hsize_t dims_string[1]; 
+	char *xmi_input_string;
+
+	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
+	if (group_id < 0) {
+		fprintf(stderr,"Error opening group %s\n",name);
+		return -1;
+	}
+
+	//open xmi_input_string
+	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
+	dspace_id = H5Dget_space(dset_id);
+	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
+	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, xmi_input_string);
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+	H5Gclose(group_id);
+
+	struct xmi_input *temp_input;
+
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+		return -1;
+
+	herr_t rv = 0;
+	if (chd->kind == XMI_HDF5_ESCAPE_RATIOS && xmi_check_escape_ratios_match(temp_input, chd->temp_input) == 1) {
+		rv = 1;
+	}
+	else if (chd->kind == XMI_HDF5_SOLID_ANGLES && xmi_check_solid_angle_match(temp_input, chd->temp_input) == 1) {
+		rv = 1;
+	}
+	xmi_free_input(temp_input);
+	return rv;
+}
+
+static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
+	//we'll assume that based on previous checks the groups are actually groups!
+	//first thing to is check if name is one of the allowed groups (if relevant)
+	struct copy_hdf5_data *chd = (struct copy_hdf5_data *) op_data;
+	int i;
+
+	if (chd->groups != NULL) {
+		int found = 0;
+		for (i = 0 ; chd->groups[i] != NULL ; i++) {
+			if (strcmp(name, chd->groups[i]) == 0) {
+				found = 1;
+				break;
+			}
+		}
+		if (found == 0) {
+			//go to next one
+			return 0;	
+		}
+	}
+
+	if (chd->force) {
+		//forced copy
+		//since this copy will have the most recent creation date, it should be picked up over older groups
+		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 1) {
+			g_fprintf(stderr,"Could not perform forced copy of %s from %s to %s\n", name, chd->file_from, chd->file_to);
+			return -1;
+		}
+		else {
+			return 0;
+		}
+	}
+
+	//read in this particular group
+	hid_t group_id;
+	hid_t dset_id, dspace_id;
+	hsize_t dims_string[1]; 
+	char *xmi_input_string;
+
+	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
+	if (group_id < 0) {
+		fprintf(stderr,"Error opening group %s\n",name);
+		return -1;
+	}
+
+	//open xmi_input_string
+	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
+	dspace_id = H5Dget_space(dset_id);
+	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
+	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, xmi_input_string);
+	H5Sclose(dspace_id);
+	H5Dclose(dset_id);
+	H5Gclose(group_id);
+
+	struct xmi_input *temp_input;
+
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+		return -1;
+
+	chd->temp_input = temp_input;
+
+	herr_t iterate_rv = H5Literate(chd->file_to_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_hdf5_group2, (void *) chd);
+	
+	xmi_free_input(temp_input);
+
+	if (iterate_rv < 0) 
+		return -1;
+	else if (iterate_rv == 0) {
+		//no match found -> copy!
+		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 1) {
+			g_fprintf(stderr,"Could not perform copy of %s from %s to %s\n", name, chd->file_from, chd->file_to);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char **groups, int force) {
+	hid_t file_from_id;
+	hid_t file_to_id;
+
+	if (kind < XMI_HDF5_DATA || kind > XMI_HDF5_ESCAPE_RATIOS) {
+		g_fprintf(stderr, "Invalid kind selected in xmi_copy_between_hdf5_files\n");
+		return 0;
+	}
+
+	//for now XMI_HDF5_DATA is not available
+	if (kind == XMI_HDF5_DATA) {
+		return 0;
+	}
+
+	//open files	
+	file_from_id = H5Fopen(file_from, H5F_ACC_RDONLY, H5P_DEFAULT);
+	if (file_from_id < 0) {
+		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 file %s for reading\n", file_from);
+		return 0;
+	}
+	//check if kind and version are correct
+	hid_t attribute_id;
+	attribute_id = H5Aopen(file_from_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the kind attribute\n", file_from);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	hid_t atype = H5Aget_type(attribute_id);
+	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	char xmi_kind[512];
+	H5Aread(attribute_id, atype_mem, xmi_kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	if (kind == XMI_HDF5_SOLID_ANGLES && strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
+		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
+		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
+		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	attribute_id = H5Aopen(file_from_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the version attribute\n", file_from);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	double version;
+	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
+	H5Aclose(attribute_id);
+
+	if (kind == XMI_HDF5_SOLID_ANGLES && version < XMI_SOLID_ANGLES_MIN_VERSION) {
+		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", file_from);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
+		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", file_from);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_DATA && version < XMI_DATA_MIN_VERSION) {
+		g_fprintf(stderr, "Data file %s is not compatible with this version of XMI-MSIM\n", file_from);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	//if we get here then file_from is ok to work with
+
+	file_to_id = H5Fopen(file_to, H5F_ACC_RDWR, H5P_DEFAULT);
+	if (file_to_id < 0) {
+		//if it doesnt exist, try to create it
+		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 file %s for writing\n", file_to);
+		H5Fclose(file_from_id);
+		return 0;
+	}
+	//check if kind and version are correct
+	attribute_id = H5Aopen(file_to_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the kind attribute\n", file_to);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	atype = H5Aget_type(attribute_id);
+	atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	H5Aread(attribute_id, atype_mem, xmi_kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	if (kind == XMI_HDF5_SOLID_ANGLES && strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
+		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
+		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
+		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	attribute_id = H5Aopen(file_to_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the version attribute\n", file_to);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
+	H5Aclose(attribute_id);
+
+	if (kind == XMI_HDF5_SOLID_ANGLES && version < XMI_SOLID_ANGLES_MIN_VERSION) {
+		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", file_to);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
+		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", file_to);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	else if (kind == XMI_HDF5_DATA && version < XMI_DATA_MIN_VERSION) {
+		g_fprintf(stderr, "Data file %s is not compatible with this version of XMI-MSIM\n", file_to);
+		H5Fclose(file_to_id);
+		return 0;
+	}
+	
+	struct copy_hdf5_data chd;
+	chd.kind = kind;
+	chd.file_from_id = file_from_id; 
+	chd.file_to_id = file_to_id; 
+	chd.file_from = file_from;
+	chd.file_to = file_to; 
+	chd.groups = groups;
+	chd.force = force;
+
+	herr_t iterate_rv = H5Literate(file_from_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_hdf5_group, (void *) &chd);
+
+	//cleanup
+	H5Fclose(file_to_id);
+	H5Fclose(file_from_id);
+
+	if (iterate_rv < 0)
+		return 0;
+
+	return 1;
+}

@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <xmi_data_structs.h>
 
-#ifndef XMI_HDF5_H
-#define XMI_HDF5_H
+#ifndef XMI_DATA_H
+#define XMI_DATA_H
 
 typedef void* xmi_hdf5FPtr;
 
@@ -35,5 +35,8 @@ int xmi_init_from_hdf5(char *hdf5_file, xmi_inputFPtr inputFPtr, xmi_hdf5FPtr *h
 void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
 
 int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
+
+
+#define XMI_DATA_MIN_VERSION 2.8
 
 #endif

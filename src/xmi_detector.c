@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_xml.h"
-#include "xmi_hdf5.h"
+#include "xmi_data.h"
 #include <xraylib.h>
 #include <sys/stat.h>
 #include <glib/gstdio.h>
@@ -34,7 +34,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#import <Foundation/Foundation.h>
 #endif
 
-#define MIN_VERSION 2
 
 void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
 
@@ -46,11 +45,15 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	hid_t dataspace_id;
 	herr_t status;
 
-	float version = (float) g_ascii_strtod(VERSION, NULL);
+	double version = g_ascii_strtod(VERSION, NULL);
 	
 
 	/* Create a new file using default properties. */
-	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t gcpl = H5Pcreate (H5P_FILE_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	file_id = H5Fcreate(hdf5_file, H5F_ACC_TRUNC, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
+
 	if (file_id < 0) {
 		fprintf(stderr,"Could not create escape ratios HDF5 file %s\n",hdf5_file);
 		return 0;
@@ -58,12 +61,25 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
 
 	dataspace_id = H5Screate(H5S_SCALAR);
-	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-	H5Awrite(attribute_id, H5T_NATIVE_FLOAT, &version);
+	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &version);
 
-	
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
+	//
+	//write kind attribute
+	dataspace_id = H5Screate(H5S_SCALAR);
+	hid_t atype = H5Tcopy(H5T_C_S1);
+	H5Tset_size(atype, strlen("XMI_HDF5_ESCAPE_RATIOS")+1);
+	H5Tset_strpad(atype,H5T_STR_NULLTERM);
+	attribute_id = H5Acreate2(root_group_id, "kind", atype, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, atype, "XMI_HDF5_ESCAPE_RATIOS");
+	
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+	H5Sclose(dataspace_id);
+
+
 	H5Gclose(root_group_id);
 
 
@@ -183,7 +199,10 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	g_free(timestring);
 
 	//create group
-	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t gcpl = H5Pcreate (H5P_GROUP_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
 
 
 	//write Z
@@ -420,6 +439,45 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	hid_t attribute_id;
 
 	root_group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+
+	//check for kind attribute
+	attribute_id = H5Aopen(root_group_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "Escape ratios file %s does not contain the kind tag\n", hdf5_file);
+		g_fprintf(stderr, "The file will be deleted and recreated\n");
+		
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		if(g_unlink(hdf5_file) == -1) {
+			g_fprintf(stderr,"Could not delete file %s... Fatal error\n", hdf5_file);
+			return 0;
+		}
+		if (xmi_get_escape_ratios_file(&hdf5_file, 1) == 0) {
+			return 0;
+		}
+		*rv = NULL;
+		return 1;
+	}
+	hid_t atype = H5Aget_type(attribute_id);
+	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	char kind[512];
+	H5Aread(attribute_id, atype_mem, kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	if (strcmp(kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+		g_fprintf(stderr, "Escape ratios file %s does not have the correct kind attribute\n", hdf5_file);
+		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", kind);
+		g_fprintf(stderr, "Aborting\n");
+
+		H5Gclose(root_group_id);
+		H5Fclose(file_id);
+		return 0;
+	} 
+
+
 	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		//attribute does not exist
@@ -439,12 +497,12 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 		return 1;
 	}
 	//attribute exists -> let's read it
-	float version;
-	H5Aread(attribute_id, H5T_NATIVE_FLOAT, &version);
+	double version;
+	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
 	H5Aclose(attribute_id);
 	H5Gclose(root_group_id);
 
-	if (version < MIN_VERSION) {
+	if (version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
 		//too old -> delete file
 		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", hdf5_file);
 		g_fprintf(stderr, "The file will be deleted and recreated\n");
@@ -464,7 +522,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	data.input = A;
 	data.options = options;
 
-	iterate_rv = H5Literate(file_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_escape_ratios,(void *) &data);
+	iterate_rv = H5Literate(file_id, H5_INDEX_CRT_ORDER, H5_ITER_DEC, NULL, xmi_read_single_escape_ratios,(void *) &data);
 
 	if (iterate_rv < 0)
 		return 0;

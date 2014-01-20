@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_solid_angle.h"
 #include "xmi_xml.h"
 #include "xmi_xslt.h"
-#include "xmi_hdf5.h"
+#include "xmi_data.h"
 #include "xmi_ebel.h"
 #include "xmi_boone.h"
 

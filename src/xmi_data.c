@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include <stdlib.h>
-#include "xmi_hdf5.h"
+#include "xmi_data.h"
 #include "xmi_aux.h"
 #include "xmi_main.h"
 #include <glib.h>
@@ -28,6 +28,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <math.h>
 #include <hdf5.h>
+#include "xmi_detector.h"
+#include "xmi_solid_angle.h"
+#include "xmi_xml.h"
 
 #ifdef MAC_INTEGRATION
   #import <Foundation/Foundation.h>
@@ -38,7 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_registry_win.h"
 #endif
 
-#define MIN_VERSION 2.1
 
 struct interaction_prob {
 	int len;
@@ -146,7 +148,11 @@ int xmi_db(char *filename) {
 	int i,j,k;
 
 	/* Create a new file using default properties. */
-	file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t gcpl = H5Pcreate (H5P_FILE_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	file_id = H5Fcreate(filename, H5F_ACC_TRUNC, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
+
 	if (file_id < 0) {
 		fprintf(stderr,"Could not create HDF5 XMI-MSIM data file %s\n",filename);
 		return 0;
@@ -158,9 +164,22 @@ int xmi_db(char *filename) {
 	attribute_id = H5Acreate(root_group_id, "version", H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
 	H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &version);
 
-	
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
+
+	//write kind attribute
+	dataspace_id = H5Screate(H5S_SCALAR);
+	hid_t atype = H5Tcopy(H5T_C_S1);
+	H5Tset_size(atype, strlen("XMI_HDF5_DATA")+1);
+	H5Tset_strpad(atype,H5T_STR_NULLTERM);
+	attribute_id = H5Acreate2(root_group_id, "kind", atype, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+	H5Awrite(attribute_id, atype, "XMI_HDF5_DATA");
+	
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+	H5Sclose(dataspace_id);
+
+
 	H5Gclose(root_group_id);
 
 	//rayleigh_theta
@@ -225,7 +244,10 @@ int xmi_db(char *filename) {
 
 		//create group for the element
 		sprintf(elements,"%2i", i);
-		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		hid_t gcpl = H5Pcreate (H5P_GROUP_CREATE);
+		H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, gcpl, H5P_DEFAULT);
+		H5Pclose (gcpl);
 		group_id2 = H5Gcreate(group_id, "Theta_ICDF", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
 		//create rayleigh theta dataset
@@ -322,7 +344,10 @@ int xmi_db(char *filename) {
 	xmi_db_Z_independent(phi, thetas, rs, nintervals_theta2, nintervals_r);
 
 	//write to hdf5 file
-	group_id = H5Gcreate(file_id, "Phi", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	gcpl = H5Pcreate (H5P_GROUP_CREATE);
+	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
+	group_id = H5Gcreate(file_id, "Phi", H5P_DEFAULT, gcpl, H5P_DEFAULT);
+	H5Pclose (gcpl);
 
 	dspace_id = H5Screate_simple(2, dims2, dims2);
 	dset_id = H5Dcreate(group_id, "Phi_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -368,10 +393,39 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		return NULL;
 	}
 
+	attribute_id = H5Aopen(rv->file_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		//attribute does not exist
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the kind attribute\n", filename);
+		
+		H5Fclose(rv->file_id);
+		free(rv);
+		return NULL;
+	}
+
+	hid_t atype = H5Aget_type(attribute_id);
+	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	char kind[512];
+	H5Aread(attribute_id, atype_mem, kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	if (strcmp(kind, "XMI_HDF5_DATA") != 0) {
+		//wrong attribute value
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not have the correct kind attribute\n", filename);
+		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", kind);
+		g_fprintf(stderr, "Aborting\n");
+		
+		H5Fclose(rv->file_id);
+		free(rv);
+		return NULL;
+	}
+
 	attribute_id = H5Aopen(rv->file_id, "version", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		//attribute does not exist
-		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the version tag\n", filename);
+		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the version attribute\n", filename);
 		
 		H5Fclose(rv->file_id);
 		free(rv);
@@ -389,7 +443,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		return NULL;
 	}
 	H5Aclose(attribute_id);
-	if (version < MIN_VERSION) {
+	if (version < XMI_DATA_MIN_VERSION) {
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s version is too old\nGenerate a new file with xmimsim-db\n", filename);
 		H5Fclose(rv->file_id);
 		free(rv);
