@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <stdlib.h>
+#include <xmi_aux.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
 #endif
@@ -59,6 +60,119 @@ const gchar * const xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
+
+static gboolean hdf5_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
+	int kind = GPOINTER_TO_INT(data);
+
+	int file_kind = xmi_get_hdf5_kind((char *) (filter_info->filename));
+
+	if (kind != file_kind)
+		return FALSE;
+	return TRUE;
+}
+
+static void import_hdf5_data_cb(GtkWidget *window, int kind) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, hdf5_file_filter, GINT_TO_POINTER(kind), NULL);
+	if (kind == XMI_HDF5_SOLID_ANGLES) {
+		gtk_file_filter_set_name(filter,"XMI-MSIM Solid angles file");
+	}
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS) {
+		gtk_file_filter_set_name(filter,"XMI-MSIM Escape ratios file");
+	}
+	dialog = gtk_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
+		GTK_WINDOW(window),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	GtkWidget *forceW = gtk_check_button_new_with_label("Force copying");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(forceW), FALSE);
+	gtk_widget_show_all(forceW);
+	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), forceW);
+
+
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		gboolean forced = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(forceW));
+		gtk_widget_destroy(dialog);
+		char *target = NULL;
+
+		if (kind == XMI_HDF5_SOLID_ANGLES) {
+			if (xmi_get_solid_angle_file(&target, 1) == 0) {
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+				GTK_BUTTONS_CLOSE,
+				"Could not determine the location of the solid angle grids file."
+	       			);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+	     			return;
+			}
+		}
+		else if (kind == XMI_HDF5_ESCAPE_RATIOS) {
+			if (xmi_get_escape_ratios_file(&target, 1) == 0) {
+				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+				GTK_BUTTONS_CLOSE,
+				"Could not determine the location of the solid angle grids file."
+	       			);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+	     			return;
+			}
+		}
+		int ncopied = xmi_copy_between_hdf5_files(kind, filename, target, NULL, forced ? 1 : 0);
+
+		if (ncopied >=0) {
+			dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_INFO,
+			GTK_BUTTONS_CLOSE,
+			"%i groups were successfully copied from %s to %s",
+			ncopied,
+			filename,
+			target
+	       		);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+		}
+		else {
+			dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR,
+			GTK_BUTTONS_CLOSE,
+			"An error occurred while copying from %s to %s",
+			filename,
+			target
+	       		);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+		}
+
+		g_free(filename);
+		free(target);
+	}
+	gtk_widget_destroy(dialog);
+
+
+}
+
+
+static void import_solid_angles_clicked_cb(GtkWidget *button, GtkWidget *window) {
+	import_hdf5_data_cb(window, XMI_HDF5_SOLID_ANGLES);
+}
+
+static void import_escape_ratios_clicked_cb(GtkWidget *button, GtkWidget *window) {
+	import_hdf5_data_cb(window, XMI_HDF5_ESCAPE_RATIOS);
+}
 
 static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
 	GtkWidget *window = (GtkWidget *) data;
@@ -860,18 +974,43 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	hbox = gtk_hbox_new(FALSE,2);
 	GtkWidget *button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
 	label = gtk_label_new("Remove the solid angles HDF5 file");
-	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_widget_set_tooltip_text(label,"It is recommended to remove this file when a definitive uninstallation of XMI-MSIM is required, or when this file got somehow corrupted.");
+	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_solid_angles_clicked_cb), (gpointer) window);
 
 	hbox = gtk_hbox_new(FALSE,2);
 	button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
 	label = gtk_label_new("Remove the escape ratios HDF5 file");
-	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+	gtk_widget_set_tooltip_text(label,"It is recommended to remove this file when a definitive uninstallation of XMI-MSIM is required, or when this file got somehow corrupted.");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_escape_ratios_clicked_cb), (gpointer) window);
+
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
+
+	hbox = gtk_hbox_new(FALSE,2);
+	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	label = gtk_label_new("Import solid angle grids");
+	gtk_widget_set_tooltip_text(label,"Use this feature to import solid angle grids into your personal default HDF5 file.");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_solid_angles_clicked_cb), (gpointer) window);
+	
+	hbox = gtk_hbox_new(FALSE,2);
+	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	label = gtk_label_new("Import escape ratios");
+	gtk_widget_set_tooltip_text(label,"Use this feature to import detector specific escape ratios into your personal default HDF5 file.");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
+	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_escape_ratios_clicked_cb), (gpointer) window);
+	
+
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	notifications_prefsW = gtk_check_button_new_with_label("Enable notifications");

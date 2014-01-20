@@ -594,6 +594,7 @@ struct copy_hdf5_data {
 	char **groups;
 	int force;
 	struct xmi_input *temp_input;
+	int ncopied;
 };
 
 static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
@@ -660,11 +661,13 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	if (chd->force) {
 		//forced copy
 		//since this copy will have the most recent creation date, it should be picked up over older groups
-		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 1) {
+		//consider deleting the old one with H5Ldelete
+		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 0) {
 			g_fprintf(stderr,"Could not perform forced copy of %s from %s to %s\n", name, chd->file_from, chd->file_to);
 			return -1;
 		}
 		else {
+			chd->ncopied++;
 			return 0;
 		}
 	}
@@ -706,10 +709,11 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 		return -1;
 	else if (iterate_rv == 0) {
 		//no match found -> copy!
-		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 1) {
+		if (H5Ocopy(g_id, name, chd->file_to_id, name, H5P_DEFAULT, H5P_DEFAULT) < 0) {
 			g_fprintf(stderr,"Could not perform copy of %s from %s to %s\n", name, chd->file_from, chd->file_to);
 			return -1;
 		}
+		chd->ncopied++;
 	}
 
 	return 0;
@@ -721,19 +725,19 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 
 	if (kind < XMI_HDF5_DATA || kind > XMI_HDF5_ESCAPE_RATIOS) {
 		g_fprintf(stderr, "Invalid kind selected in xmi_copy_between_hdf5_files\n");
-		return 0;
+		return -1;
 	}
 
 	//for now XMI_HDF5_DATA is not available
 	if (kind == XMI_HDF5_DATA) {
-		return 0;
+		return -1;
 	}
 
 	//open files	
 	file_from_id = H5Fopen(file_from, H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (file_from_id < 0) {
 		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 file %s for reading\n", file_from);
-		return 0;
+		return -1;
 	}
 	//check if kind and version are correct
 	hid_t attribute_id;
@@ -741,7 +745,7 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	if (attribute_id < 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the kind attribute\n", file_from);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	hid_t atype = H5Aget_type(attribute_id);
 	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
@@ -755,25 +759,25 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	attribute_id = H5Aopen(file_from_id, "version", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the version attribute\n", file_from);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	double version;
 	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
@@ -782,17 +786,17 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	if (kind == XMI_HDF5_SOLID_ANGLES && version < XMI_SOLID_ANGLES_MIN_VERSION) {
 		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", file_from);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS && version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
 		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", file_from);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_DATA && version < XMI_DATA_MIN_VERSION) {
 		g_fprintf(stderr, "Data file %s is not compatible with this version of XMI-MSIM\n", file_from);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	//if we get here then file_from is ok to work with
 
@@ -801,14 +805,14 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 		//if it doesnt exist, try to create it
 		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 file %s for writing\n", file_to);
 		H5Fclose(file_from_id);
-		return 0;
+		return -1;
 	}
 	//check if kind and version are correct
 	attribute_id = H5Aopen(file_to_id, "kind", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the kind attribute\n", file_to);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	atype = H5Aget_type(attribute_id);
 	atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
@@ -821,25 +825,25 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	attribute_id = H5Aopen(file_to_id, "version", H5P_DEFAULT);
 	if (attribute_id < 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s does not contain the version attribute\n", file_to);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
 	H5Aclose(attribute_id);
@@ -847,17 +851,17 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	if (kind == XMI_HDF5_SOLID_ANGLES && version < XMI_SOLID_ANGLES_MIN_VERSION) {
 		g_fprintf(stderr, "Solid angles file %s is not compatible with this version of XMI-MSIM\n", file_to);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS && version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
 		g_fprintf(stderr, "Escape ratios file %s is not compatible with this version of XMI-MSIM\n", file_to);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	else if (kind == XMI_HDF5_DATA && version < XMI_DATA_MIN_VERSION) {
 		g_fprintf(stderr, "Data file %s is not compatible with this version of XMI-MSIM\n", file_to);
 		H5Fclose(file_to_id);
-		return 0;
+		return -1;
 	}
 	
 	struct copy_hdf5_data chd;
@@ -868,6 +872,7 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	chd.file_to = file_to; 
 	chd.groups = groups;
 	chd.force = force;
+	chd.ncopied = 0;
 
 	herr_t iterate_rv = H5Literate(file_from_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_hdf5_group, (void *) &chd);
 
@@ -876,7 +881,68 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	H5Fclose(file_from_id);
 
 	if (iterate_rv < 0)
-		return 0;
+		return -1;
 
-	return 1;
+	return chd.ncopied;
+}
+
+int xmi_get_hdf5_kind(char *name) {
+	//open files	
+	hid_t file_id = H5Fopen(name, H5F_ACC_RDONLY, H5P_DEFAULT);
+	if (file_id < 0) {
+		return XMI_HDF5_INVALID;
+	}
+	//check if kind and version are correct
+	hid_t attribute_id;
+	attribute_id = H5Aopen(file_id, "kind", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	hid_t atype = H5Aget_type(attribute_id);
+	hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+	char xmi_kind[512];
+	H5Aread(attribute_id, atype_mem, xmi_kind);
+	H5Tclose(atype_mem);
+	H5Tclose(atype);
+	H5Aclose(attribute_id);
+
+	int rv = XMI_HDF5_INVALID;
+
+	if (strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") == 0) {
+		rv = XMI_HDF5_SOLID_ANGLES;
+	}
+	else if (strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") == 0) {
+		rv = XMI_HDF5_ESCAPE_RATIOS;
+	}
+	else if (strcmp(xmi_kind, "XMI_HDF5_DATA") == 0) {
+		rv = XMI_HDF5_DATA;
+	}
+	else {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	attribute_id = H5Aopen(file_id, "version", H5P_DEFAULT);
+	if (attribute_id < 0) {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	double version;
+	H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version);
+	H5Aclose(attribute_id);
+
+	if (rv == XMI_HDF5_SOLID_ANGLES && version < XMI_SOLID_ANGLES_MIN_VERSION) {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	else if (rv == XMI_HDF5_ESCAPE_RATIOS && version < XMI_ESCAPE_RATIOS_MIN_VERSION) {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	else if (rv == XMI_HDF5_DATA && version < XMI_DATA_MIN_VERSION) {
+		H5Fclose(file_id);
+		return XMI_HDF5_INVALID;
+	}
+	H5Fclose(file_id);
+	return  rv;
 }
