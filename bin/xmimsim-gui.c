@@ -441,7 +441,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
 
 	
-	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+	if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
@@ -466,7 +466,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+	else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			gchar *temp_base = g_path_get_basename(filename);
@@ -484,7 +484,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+	else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
 		my_data->window = (GtkWidget *)data;
 		my_data->filename = filename;
@@ -905,7 +905,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-5, ".xmso") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmso") != 0) {
 			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmso");
 		}
@@ -3267,7 +3267,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 
 	//check for filetype
-	if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+	if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		if (process_pre_file_operation(old->window) == FALSE)
 			return FALSE;
 
@@ -3295,7 +3295,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy(dialog);
 		}
 	}
-	else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+	else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
@@ -3315,7 +3315,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+	else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
 		my_data->window = old->window;
 		my_data->filename = filename;
@@ -5100,7 +5100,7 @@ XMI_MAIN
 	struct xmi_input *xi;
 	GtkWidget *dialog;
 	if (argc == 2) {
-		if (strcmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSI file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
@@ -5127,7 +5127,7 @@ XMI_MAIN
 			}
 			adjust_save_buttons();
 		}
-		else if (strcmp(filename+strlen(filename)-5,".xmso") == 0) {
+		else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSO file
@@ -5149,7 +5149,7 @@ XMI_MAIN
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 		}
-		else if (strcmp(filename+strlen(filename)-5,".xmsa") == 0) {
+		else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//have to add busy readin XMSA dialog here, through custom g_idle_add callback
@@ -5238,13 +5238,13 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		//open file based on extension
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		if (strcmp(filename+strlen(filename)-5, ".xmsi") == 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") == 0) {
 			//input-file found
 			if (xmi_read_input_xml(filename, &xi) == 0) {
 				xi = NULL;
 			}
 		}
-		else if (strcmp(filename+strlen(filename)-5, ".xmso") == 0) {
+		else if (strcasecmp(filename+strlen(filename)-5, ".xmso") == 0) {
 			//output-file found
 			if (xmi_read_output_xml(filename, &xo) == 0) {
 				xo = NULL;
@@ -5706,7 +5706,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") != 0) {
 			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmsi");
 		}

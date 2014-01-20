@@ -152,7 +152,7 @@ static void xmsi_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-5, ".xmsi") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmsi");
 		}
@@ -187,7 +187,7 @@ static void xmso_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-5, ".xmso") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmso") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmso");
 		}
@@ -223,7 +223,7 @@ static void csv_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-4, ".csv") != 0) {
+		if (strcasecmp(filename+strlen(filename)-4, ".csv") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 			strcat(filename,".csv");
 		}
@@ -259,7 +259,7 @@ static void html_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-5, ".html") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".html") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".html");
 		}
@@ -295,7 +295,7 @@ static void svg_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-4, ".svg") != 0) {
+		if (strcasecmp(filename+strlen(filename)-4, ".svg") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 			strcat(filename,".svg");
 		}
@@ -331,7 +331,7 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcmp(filename+strlen(filename)-4, ".spe") != 0) {
+		if (strcasecmp(filename+strlen(filename)-4, ".spe") != 0) {
 			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 			strcat(filename,".spe");
 		}

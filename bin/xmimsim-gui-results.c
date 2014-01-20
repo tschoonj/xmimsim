@@ -621,7 +621,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
 		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
 			fprintf(stdout,"EPS selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".eps") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".eps");
 			}
@@ -643,7 +643,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
 			fprintf(stdout,"PDF selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".pdf") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".pdf");
 			}
@@ -657,7 +657,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
 			fprintf(stdout,"PNG selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".png") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".png");
 			}

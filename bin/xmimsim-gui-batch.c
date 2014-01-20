@@ -247,7 +247,7 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		if (strcmp(filename+strlen(filename)-5, ".xmsa") != 0) {
+		if (strcasecmp(filename+strlen(filename)-5, ".xmsa") != 0) {
 			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
 			strcat(filename,".xmsa");
 		}

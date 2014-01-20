@@ -2645,7 +2645,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
 		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
 			fprintf(stdout,"EPS selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".eps") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".eps") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".eps");
 			}
@@ -2667,7 +2667,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
 			fprintf(stdout,"PDF selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".pdf") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".pdf") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".pdf");
 			}
@@ -2681,7 +2681,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
 			fprintf(stdout,"PNG selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".png") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".png") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".png");
 			}
@@ -2696,7 +2696,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 #ifdef CAIRO_HAS_SVG_SURFACE
 		else if (strncmp(gtk_file_filter_get_name(filter),"SVG", 3) == 0) {
 			fprintf(stdout,"SVG selected\n");
-			if (strcmp(filename+strlen(filename)-4, ".svg") != 0) {
+			if (strcasecmp(filename+strlen(filename)-4, ".svg") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".svg");
 			}
