@@ -239,7 +239,7 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 	GtkWidget *dialog  = gtk_file_chooser_dialog_new("Select the filename of the XMSA file", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(saveButton))), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsa");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][aA]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM archive files");
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
@@ -1840,7 +1840,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);	
 	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 

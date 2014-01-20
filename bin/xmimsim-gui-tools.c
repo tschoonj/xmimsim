@@ -55,7 +55,7 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	struct xmi_tools *xt = (struct xmi_tools *) data;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
 	dialog = gtk_file_chooser_dialog_new("Select an XMI-MSIM outputfile",
@@ -85,7 +85,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	struct xmi_output *output;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
 	dialog = gtk_file_chooser_dialog_new("Select an XMI-MSIM outputfile",
@@ -134,7 +134,7 @@ static void xmsi_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	gchar *filename;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	struct xmi_tools *xt = (struct xmi_tools *) data;
 
@@ -169,7 +169,7 @@ static void xmso_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	gchar *filename;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 	struct xmi_tools *xt = (struct xmi_tools *) data;
 

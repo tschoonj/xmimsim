@@ -890,7 +890,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 	char *filename;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
 	dialog = gtk_file_chooser_dialog_new("Select the outputfile for the simulation",
@@ -5227,8 +5227,8 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsi");
-	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM input and output files");
 	dialog = gtk_file_chooser_dialog_new ("Select a XMI-MSIM file to import from",
 		GTK_WINDOW((GtkWidget *) data),
@@ -5462,13 +5462,13 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 
 	filter1 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter1,"*.xmsi");
+	gtk_file_filter_add_pattern(filter1,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter1,"XMI-MSIM inputfiles");
 	filter2 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter2,"*.xmso");
+	gtk_file_filter_add_pattern(filter2,"*.[xX][mM][sS][oO]");
 	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
 	filter3 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter3,"*.xmsa");
+	gtk_file_filter_add_pattern(filter3,"*.[xX][mM][sS][aA]");
 	gtk_file_filter_set_name(filter3,"XMI-MSIM archives");
 	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
@@ -5696,7 +5696,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	     return FALSE;
 	}
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	dialog = gtk_file_chooser_dialog_new ("Save simulation inputfile",
 		GTK_WINDOW((GtkWidget *) data),
