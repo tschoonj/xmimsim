@@ -65,6 +65,20 @@
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>xmsa</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>XMI-MSIM Archive File</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>Logo_xmi_msim_MacOSX_XMSA</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
 	</array>
 	<key>NSHighResolutionCapable</key>
 	<true/>

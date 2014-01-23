@@ -1,6 +1,6 @@
 [Desktop Entry] 
 Encoding=UTF-8
-Name=XMI MSIM
+Name=XMI-MSIM
 Comment=A tool to predict the spectral XRF response of a sample when irradiated with an X-ray beam 
 Exec=xmimsim-gui %f
 Terminal=false
