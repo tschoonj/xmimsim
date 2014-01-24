@@ -355,19 +355,19 @@ createShortCut "$SMPROGRAMS\XMI-MSIM\Uninstall XMI-MSIM.lnk" "$INSTDIR\Uninstall
 ;register xmsi extension
 DetailPrint "Registering xmsi extension"
 WriteRegStr HKCR ".xmsi" "" "XMI-MSIM input-file"  ; set our file association
-WriteRegStr HKCR "XMI-MSIM inputfile" "" "XMI-MSIM input-file"
-WriteRegStr HKCR "XMI-MSIM inputfile\shell" "" "open"
-WriteRegStr HKCR "XMI-MSIM inputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,1"
-WriteRegStr HKCR "XMI-MSIM inputfile\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
-WriteRegStr HKCR "XMI-MSIM inputfile\shell\edit" "" "Edit XMI-MSIM input-file"
-WriteRegStr HKCR "XMI-MSIM inputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+WriteRegStr HKCR "XMI-MSIM input-file" "" "XMI-MSIM input-file"
+WriteRegStr HKCR "XMI-MSIM input-file\shell" "" "open"
+WriteRegStr HKCR "XMI-MSIM input-file\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,1"
+WriteRegStr HKCR "XMI-MSIM input-file\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+WriteRegStr HKCR "XMI-MSIM input-file\shell\edit" "" "Edit XMI-MSIM input-file"
+WriteRegStr HKCR "XMI-MSIM input-file\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
 DetailPrint "Registering xmso extension"
 WriteRegStr HKCR ".xmso" "" "XMI-MSIM output-file"  ; set our file association
-WriteRegStr HKCR "XMI-MSIM outputfile" "" "XMI-MSIM output-file"
-WriteRegStr HKCR "XMI-MSIM outputfile\shell" "" "open"
-WriteRegStr HKCR "XMI-MSIM outputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,2"
-WriteRegStr HKCR "XMI-MSIM outputfile\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
+WriteRegStr HKCR "XMI-MSIM output-file" "" "XMI-MSIM output-file"
+WriteRegStr HKCR "XMI-MSIM output-file\shell" "" "open"
+WriteRegStr HKCR "XMI-MSIM output-file\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,2"
+WriteRegStr HKCR "XMI-MSIM output-file\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
 DetailPrint "Registering xmsa extension"
 WriteRegStr HKCR ".xmsa" "" "XMI-MSIM archive"  ; set our file association
@@ -457,7 +457,9 @@ Delete "$INSTDIR\Bin\xmso2htm.exe"
 RMDir "$INSTDIR\Bin"
 
 DetailPrint "Uninstalling auxiliary files"
+!ifdef WITH_DATA
 Delete "$INSTDIR\Share\xmimsimdata.h5"
+!endif
 Delete "$INSTDIR\Share\xmso2xmsi.xml"
 Delete "$INSTDIR\Share\xmso2svg.xml"
 Delete "$INSTDIR\Share\xmso2spe.xml"
@@ -499,7 +501,9 @@ RMDir "$INSTDIR"
 ;${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR\GTK2"
 
 ;clean registry
+!ifdef WITH_DATA
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\data"
+!endif
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\catalog"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2svg"
 DeleteRegKey HKLM "Software\${PRODUCT_NAME}\xmso2csv"
@@ -529,11 +533,11 @@ RmDir "$SMPROGRAMS\XMI-MSIM"
 
 DetailPrint "Unregistering xmsi extension"
 DeleteRegKey HKCR ".xmsi"
-DeleteRegKey HKCR "XMI-MSIM inputfile" 
+DeleteRegKey HKCR "XMI-MSIM input-file" 
 
 DetailPrint "Unregistering xmso extension"
 DeleteRegKey HKCR ".xmso"
-DeleteRegKey HKCR "XMI-MSIM outputfile" 
+DeleteRegKey HKCR "XMI-MSIM output-file" 
 
 DetailPrint "Unregistering xmsa extension"
 DeleteRegKey HKCR ".xmsa"
