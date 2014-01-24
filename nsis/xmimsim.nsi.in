@@ -368,8 +368,6 @@ WriteRegStr HKCR "XMI-MSIM outputfile" "" "XMI-MSIM output-file"
 WriteRegStr HKCR "XMI-MSIM outputfile\shell" "" "open"
 WriteRegStr HKCR "XMI-MSIM outputfile\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,2"
 WriteRegStr HKCR "XMI-MSIM outputfile\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
-WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit" "" "Edit XMI-MSIM output-file"
-WriteRegStr HKCR "XMI-MSIM outputfile\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
 DetailPrint "Registering xmsa extension"
 WriteRegStr HKCR ".xmsa" "" "XMI-MSIM archive"  ; set our file association
@@ -377,8 +375,6 @@ WriteRegStr HKCR "XMI-MSIM archive" "" "XMI-MSIM archive"
 WriteRegStr HKCR "XMI-MSIM archive\shell" "" "open"
 WriteRegStr HKCR "XMI-MSIM archive\DefaultIcon" "" "$INSTDIR\Bin\xmimsim-gui.exe,3"
 WriteRegStr HKCR "XMI-MSIM archive\shell\open\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
-WriteRegStr HKCR "XMI-MSIM archive\shell\edit" "" "Edit XMI-MSIM archive"
-WriteRegStr HKCR "XMI-MSIM archive\shell\edit\command" "" '"$INSTDIR\Bin\xmimsim-gui.exe" "%1"'
 
 System::Call 'shell32.dll::SHChangeNotify(i, i, i, i) v (0x08000000, 0, 0, 0)'
 
@@ -542,6 +538,8 @@ DeleteRegKey HKCR "XMI-MSIM outputfile"
 DetailPrint "Unregistering xmsa extension"
 DeleteRegKey HKCR ".xmsa"
 DeleteRegKey HKCR "XMI-MSIM archive" 
+
+System::Call 'shell32.dll::SHChangeNotify(i, i, i, i) v (0x08000000, 0, 0, 0)'
 
 SectionEnd
 
