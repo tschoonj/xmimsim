@@ -541,14 +541,14 @@ DeleteRegKey HKCR "XMI-MSIM archive"
 SectionEnd
 
 Function .onInit
-ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "UninstallString"
+ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
 StrCmp $R0 "" done
 MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT_NAME} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." IDOK uninst
 Abort
 
 uninst:
 ClearErrors
-Exec $INSTDIR\Uninstall.exe
+ExecWait "$R0" 
 
 
 done:
