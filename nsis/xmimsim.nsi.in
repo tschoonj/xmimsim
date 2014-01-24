@@ -27,6 +27,7 @@
 !define XRAYLIB_VERSION "3.0.0"
 !define XRAYLIB_VERSION_MIN "3.0.0"
 !define WITH_XRAYLIB
+!define WITH_DATA
 
 
 ;!define WITH_XRAYLIB
@@ -263,8 +264,10 @@ WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.e
 WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\xmso2htm.exe" "Path" "$INSTDIR\Bin;$INSTDIR\Lib;$INSTDIR\GTK2"
 
 SetOutPath "$INSTDIR\Share"
+!ifdef WITH_DATA
 DetailPrint "Installing XMI-MSIM HDF5 database"
 File "${MY_HOME}github\xmimsim\build\bin\xmimsimdata.h5"
+!endif
 
 DetailPrint "Installing XMI-MSIM XML and XSLT files"
 File "${MY_HOME}github\xmimsim\xml\xmimsim-1.0.dtd"
@@ -322,7 +325,9 @@ File "${MY_HOME}github\xmimsim\build\xmimsim-${VERSION}.tar.gz"
 ;registry modifications
 WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallationDirectory" "$INSTDIR"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}" "Vendor" "Tom Schoonjans"
+!ifdef WITH_DATA
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\data" "" "$INSTDIR\Share\xmimsimdata.h5"
+!endif
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\catalog" "" "$INSTDIR\Share\xmimsim_cat.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2svg" "" "$INSTDIR\Share\xmso2svg.xml"
 WriteRegStr HKLM "Software\${PRODUCT_NAME}\xmso2spe" "" "$INSTDIR\Share\xmso2spe.xml"
