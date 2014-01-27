@@ -579,7 +579,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			if (error != NULL) {
 				//error
 				fprintf(stderr,"OpenCL not found in preferences file\n");
-				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
+				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
@@ -828,7 +828,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
-	gtk_widget_set_tooltip_text(opencl_prefsW,"Enabling this feature will enable support for the calculation of the solid angle grids");
+	gtk_widget_set_tooltip_text(opencl_prefsW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(main_window);

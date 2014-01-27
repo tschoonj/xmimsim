@@ -1438,7 +1438,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	openclW = gtk_check_button_new_with_label("Enable OpenCL");
-	gtk_widget_set_tooltip_text(openclW,"");
+	gtk_widget_set_tooltip_text(openclW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(window);
