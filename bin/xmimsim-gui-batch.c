@@ -46,7 +46,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define getpid GetCurrentProcessId
 #endif
 
-
 struct canvas_data {
 	double width;
 	double height;
@@ -3569,7 +3568,8 @@ struct archive_plot_data {
 	GtkWidget *xaxis_titleW;
 	GtkWidget *yaxis_titleW;
 	GtkWidget *okButton;
-	GtkWidget *saveButton;
+	GtkWidget *imageButton;
+	GtkWidget *exportButton;
 	GtkWidget *canvas;
 	GtkWidget *plot_window;
 	struct xmi_archive *archive;
@@ -3579,6 +3579,9 @@ struct archive_plot_data {
 	gulong roi_end_channel_spinnerG;
 	gulong roi_start_energy_spinnerG;
 	gulong roi_end_energy_spinnerG;
+	double *x;
+	double *y;
+	double *z;
 };
 
 static void plot_archive_data_2D(struct archive_plot_data *apd);
@@ -3591,8 +3594,82 @@ static void plot_archive_data_cb(struct archive_plot_data *apd) {
 	return;
 }
 
-static void save_archive_plot(GtkButton *saveButton, GtkWidget *canvas) {
+static void save_archive_plot(GtkWidget *canvas) {
 	export_canvas_image(canvas, "Export plot as");
+}
+
+static void export_archive_plot(struct archive_plot_data *apd) {
+	//fire up file dialog
+	GtkWidget *dialog  = gtk_file_chooser_dialog_new("Select the filename of the CSV file", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(apd->exportButton))), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.[cC][sS][vV]");
+	gtk_file_filter_set_name(filter,"CSV files");
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gchar *filename;
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		if (strcasecmp(filename+strlen(filename)-4, ".csv") != 0) {
+			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
+			strcat(filename,".csv");
+
+		}
+		//open file
+		FILE *filePtr;
+		if ((filePtr = fopen(filename, "w")) == NULL) {
+			gtk_widget_destroy(dialog);
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for writing.", filename);
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			g_free (filename);
+			gtk_widget_destroy(dialog);
+			return;
+		} 
+		int i,j;
+		if (apd->archive->xpath2) {
+			//3D
+			//ROW1
+			//start with an empty block
+			fprintf(filePtr, ",");
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				//this %g may cause serious trouble on Windows...
+				fprintf(filePtr, "%g", apd->x[i*(apd->archive->nsteps2+1)]);
+				if (i == apd->archive->nsteps1)
+					fprintf(filePtr, "\n");
+				else
+					fprintf(filePtr, ",");
+			}
+			//OTHER ROWS
+			for (j = 0 ; j <= apd->archive->nsteps2 ; j++) {
+				fprintf(filePtr, "%g,", apd->y[j]);
+				for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+					fprintf(filePtr, "%g", apd->z[i*(apd->archive->nsteps2+1)+j]);
+					if (i == apd->archive->nsteps1)
+						fprintf(filePtr, "\n");
+					else
+						fprintf(filePtr, ",");
+					
+				}
+			}
+		}
+		else {
+			//2D
+			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+				//this %g may cause serious trouble on Windows...
+				fprintf(filePtr, "%g,%g\n", apd->x[i], apd->y[i]);
+			}
+		}
+		fclose(filePtr);
+
+		gtk_widget_destroy(dialog);
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Successfully created CSV file %s.", filename);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+
+		g_free (filename);
+	}
+	gtk_widget_destroy(dialog);
+	return;
 }
 
 static gboolean plot_archive_data_cb_helper(struct archive_plot_data *apd) {
@@ -3800,9 +3877,17 @@ static gboolean resize_canvas_cb(GtkWidget *canvas, GdkEvent *event, struct canv
 
 
 	return FALSE;
-
-
 }
+
+void destroy_archive_plot(struct archive_plot_data *apd) {
+	g_free(apd->x);
+	g_free(apd->y);
+	if (apd->archive->xpath2)
+		g_free(apd->z);
+	xmi_free_archive(apd->archive);
+	g_free(apd);
+}
+
 
 void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	//on quitting this window -> free archive (lot of memory)
@@ -3839,7 +3924,8 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	GtkWidget *xaxis_titleW;
 	GtkWidget *yaxis_titleW;
 	GtkWidget *okButton;
-	GtkWidget *saveButton;
+	GtkWidget *imageButton;
+	GtkWidget *exportButton;
 	
 	//find all unique elements and lines
 	int i;
@@ -4117,8 +4203,12 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	lilHBox = gtk_hbox_new(TRUE, 2);
 	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	gtk_box_pack_start(GTK_BOX(lilHBox), okButton, FALSE, FALSE, 2);
-	saveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	gtk_box_pack_start(GTK_BOX(lilHBox), saveButton, FALSE, FALSE, 2);
+	imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	gtk_box_pack_start(GTK_BOX(lilHBox), imageButton, FALSE, FALSE, 2);
+	exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	update_button_text(exportButton, "Export as CSV");
+	update_button_text(imageButton, "Save image");
+	gtk_box_pack_start(GTK_BOX(lilHBox), exportButton, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 4);
 
@@ -4217,11 +4307,35 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	apd->xaxis_titleW = xaxis_titleW;
 	apd->yaxis_titleW = yaxis_titleW;
 	apd->okButton = okButton;
-	apd->saveButton = saveButton;
+	apd->imageButton = imageButton;
+	apd->exportButton = exportButton;
 	apd->canvas = canvas;
 	apd->archive = archive;
 	apd->nfd = nfd;
 	apd->fd = fd;
+
+	int j;
+	if (apd->archive->xpath2) {
+		//3D
+		apd->x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+		apd->y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+		apd->z = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			for (j = 0 ; j <= apd->archive->nsteps2 ; j++) {
+				apd->x[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
+				apd->y[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value2 + (apd->archive->end_value2 - apd->archive->start_value2)*j/apd->archive->nsteps2;
+			}
+		}
+	}
+	else {
+		//2D
+		apd->x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+		apd->y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			apd->x[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
+	}
+	}
+
 
 	//callbacks registration
 	g_signal_connect(G_OBJECT(roi_radioW), "toggled", G_CALLBACK(roi_xrf_toggled_cb), apd);
@@ -4242,9 +4356,10 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	g_signal_connect_swapped(G_OBJECT(xrf_linearW), "toggled", G_CALLBACK(plot_archive_data_cb), apd);
 
 	g_signal_connect_swapped(G_OBJECT(okButton), "clicked", G_CALLBACK(gtk_widget_destroy), window);
-	g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(xmi_free_archive), apd->archive);
+	g_signal_connect_swapped(G_OBJECT(window), "destroy", G_CALLBACK(destroy_archive_plot), apd);
 
-	g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(save_archive_plot), canvas);
+	g_signal_connect_swapped(G_OBJECT(imageButton), "clicked", G_CALLBACK(save_archive_plot), canvas);
+	g_signal_connect_swapped(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_archive_plot), apd);
 	g_signal_connect(G_OBJECT(xaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), apd);
 	g_signal_connect(G_OBJECT(yaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), apd);
 	/*struct canvas_data *cd = g_malloc(sizeof(struct canvas_data));
@@ -4273,14 +4388,9 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	gchar *buffer;
 	gdouble minval = 1E50;
 
-	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
-	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1));
+	x = apd->x;
+	y = apd->y;
 	
-	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-		x[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
-	}
-
-
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
@@ -4530,15 +4640,15 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
 	}
 	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,2);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",20,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
 	}
 
-	if (plot_xmax <= 10000.0 && plot_xmin >= 1.0) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,1);
+	if (plot_xmax <= 10000.0 && plot_xmin >= -10000) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,2);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",25,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	}
@@ -4573,29 +4683,20 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
 
-	g_free(x);
-	g_free(y);
-
 	return;
 }
 
 static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	//first section will deal with generating the x-, y- and z-values
-	double *x, *y, *z;
 	int i,j,k,l,i2;
 	gchar *buffer;
 	gdouble minval = 1.0E50;
+	double *x, *y, *z;
 
-	x = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-	y = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-	z = g_malloc(sizeof(double)*(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
+	x = apd->x;
+	y = apd->y;
+	z = apd->z;
 
-	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-		for (j = 0 ; j <= apd->archive->nsteps2 ; j++) {
-			x[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
-			y[i*(apd->archive->nsteps2+1)+j] = apd->archive->start_value2 + (apd->archive->end_value2 - apd->archive->start_value2)*j/apd->archive->nsteps2;
-		}
-	}
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
 		//ROI mode
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_cumulative_radioW));
@@ -4876,8 +4977,5 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-	g_free(x);
-	g_free(y);
-	g_free(z);
 }
 

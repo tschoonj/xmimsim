@@ -1159,7 +1159,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	else if (we->entry == csv_convW) {
 		filter = gtk_file_filter_new();
 		gtk_file_filter_add_pattern(filter, "*.csv");
-		gtk_file_filter_set_name(filter,"Comma separated value files");
+		gtk_file_filter_set_name(filter,"CSV files");
 		strcpy(title,"Select the name of the CSV file");
 	}
 	else if (we->entry == html_convW) {

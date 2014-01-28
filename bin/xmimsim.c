@@ -620,6 +620,7 @@ XMI_MAIN
 		xmi_free_output(output);	
 #ifdef G_OS_WIN32
 	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
+	//am betting it has to do with printf's %lf
 
 		if (csv_file_conv != NULL) {
 			// 1 = convoluted
