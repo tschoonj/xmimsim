@@ -615,24 +615,24 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	if (same_layer) {
 		if ((allowed1 & PARAMETER_DOUBLE) && (allowed2 & PARAMETER_DOUBLE)) {
 			valued = strtod(keyword, NULL);
-			buffer = g_strdup_printf("%lg", valued);
+			buffer = g_strdup_printf("%g", valued);
 			gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
 			g_free(buffer);
 			xmlFree(keyword);
 			keyword = (gchar *) xmlNodeListGetString(doc, nodeset2->nodeTab[0]->children, 1);
 			//valued = strtod(keyword, NULL) + 1.0;
 			double valued2 = strtod(keyword, NULL);
-			buffer = g_strdup_printf("%lg", valued2);
+			buffer = g_strdup_printf("%g", valued2);
 			gtk_entry_set_text(GTK_ENTRY(start2Entry), buffer);
 			g_free(buffer);
 			inc = 1.0;
 			while (valued+valued2+2*inc >= 100.0) {
 				inc/=10.0;
 			}
-			buffer = g_strdup_printf("%lg", valued+inc);
+			buffer = g_strdup_printf("%g", valued+inc);
 			gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
 			g_free(buffer);
-			buffer = g_strdup_printf("%lg", valued2+inc);
+			buffer = g_strdup_printf("%g", valued2+inc);
 			gtk_entry_set_text(GTK_ENTRY(end2Entry), buffer);
 			g_free(buffer);
 		}	
@@ -641,7 +641,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 		if (allowed1 & PARAMETER_DOUBLE) {
 			//valued = strtod(keyword, NULL) + 1.0;
 			valued = strtod(keyword, NULL);
-			buffer = g_strdup_printf("%lg", valued);
+			buffer = g_strdup_printf("%g", valued);
 			gtk_entry_set_text(GTK_ENTRY(start1Entry), buffer);
 			g_free(buffer);
 			inc = 1.0;
@@ -650,7 +650,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 				inc/=10.0;
 				}
 			}
-			buffer = g_strdup_printf("%lg", valued+inc);
+			buffer = g_strdup_printf("%g", valued+inc);
 			gtk_entry_set_text(GTK_ENTRY(end1Entry), buffer);
 			g_free(buffer);
 		}
@@ -663,7 +663,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 			keyword = (gchar *) xmlNodeListGetString(doc, nodeset2->nodeTab[0]->children, 1);
 			//valued = strtod(keyword, NULL) + 1.0;
 			valued = strtod(keyword, NULL);
-			buffer = g_strdup_printf("%lg", valued);
+			buffer = g_strdup_printf("%g", valued);
 			gtk_entry_set_text(GTK_ENTRY(start2Entry), buffer);
 			g_free(buffer);
 			inc = 1.0;
@@ -672,7 +672,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 				inc/=10.0;
 				}
 			}
-			buffer = g_strdup_printf("%lg", valued+inc);
+			buffer = g_strdup_printf("%g", valued+inc);
 			gtk_entry_set_text(GTK_ENTRY(end2Entry), buffer);
 			g_free(buffer);
 		}
@@ -2158,7 +2158,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 							continue;
 						}
 						double new_weight = orig_weight[k]*new_weight_sum/weight_sum;
-						buffer = g_strdup_printf("%lg", new_weight);
+						buffer = g_strdup_printf("%g", new_weight);
 						xmlNodeSetContent(grandkids->nodeTab[k], BAD_CAST buffer);
 						g_free(buffer);
 					}
@@ -2173,7 +2173,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 								continue;
 							}
 							double new_weight = orig_weight[k]*new_weight_sum/weight_sum;
-							buffer = g_strdup_printf("%lg", new_weight);
+							buffer = g_strdup_printf("%g", new_weight);
 							xmlNodeSetContent(grandkids->nodeTab[k], BAD_CAST buffer);
 							g_free(buffer);
 						}
@@ -2186,17 +2186,17 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 								continue;
 							}
 							double new_weight = orig_weight2[k]*new_weight_sum/weight_sum2;
-							buffer = g_strdup_printf("%lg", new_weight);
+							buffer = g_strdup_printf("%g", new_weight);
 							xmlNodeSetContent(grandkids2->nodeTab[k], BAD_CAST buffer);
 							g_free(buffer);
 						}
 					}
 				}
-				buffer = g_strdup_printf("%lg", value1);
+				buffer = g_strdup_printf("%g", value1);
 				xmlNodeSetContent(nodeset->nodeTab[0], BAD_CAST buffer);
 				g_free(buffer);
 				if (xpath2) {
-					buffer = g_strdup_printf("%lg", value2);
+					buffer = g_strdup_printf("%g", value2);
 					xmlNodeSetContent(nodeset2->nodeTab[0], BAD_CAST buffer);
 					g_free(buffer);
 				}
@@ -2573,7 +2573,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			);
 			xrlFree(buffer);
 			g_free(buffer2);
-			buffer = g_strdup_printf("%lg", input->composition->layers[i].weight[j]*100.0);
+			buffer = g_strdup_printf("%g", input->composition->layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
 			gtk_tree_store_set(model, &iter4,
@@ -2588,7 +2588,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 		}
 
-		buffer = g_strdup_printf("%lg", input->composition->layers[i].density);
+		buffer = g_strdup_printf("%g", input->composition->layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -2602,7 +2602,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 
-		buffer = g_strdup_printf("%lg", input->composition->layers[i].thickness);
+		buffer = g_strdup_printf("%g", input->composition->layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -2638,7 +2638,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 
-	buffer = g_strdup_printf("%lg", input->geometry->d_sample_source);
+	buffer = g_strdup_printf("%g", input->geometry->d_sample_source);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "d_sample_source",
@@ -2649,7 +2649,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 
-	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[0]);
+	buffer = g_strdup_printf("%g", input->geometry->n_sample_orientation[0]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_x",
@@ -2660,7 +2660,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[1]);
+	buffer = g_strdup_printf("%g", input->geometry->n_sample_orientation[1]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_y",
@@ -2671,7 +2671,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->n_sample_orientation[2]);
+	buffer = g_strdup_printf("%g", input->geometry->n_sample_orientation[2]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_sample_orientation_z",
@@ -2683,7 +2683,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 
-	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[0]);
+	buffer = g_strdup_printf("%g", input->geometry->p_detector_window[0]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "p_detector_window_x",
@@ -2694,7 +2694,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[1]);
+	buffer = g_strdup_printf("%g", input->geometry->p_detector_window[1]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "p_detector_window_y",
@@ -2705,7 +2705,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->p_detector_window[2]);
+	buffer = g_strdup_printf("%g", input->geometry->p_detector_window[2]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "p_detector_window_z",
@@ -2717,7 +2717,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 
-	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[0]);
+	buffer = g_strdup_printf("%g", input->geometry->n_detector_orientation[0]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_x",
@@ -2728,7 +2728,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[1]);
+	buffer = g_strdup_printf("%g", input->geometry->n_detector_orientation[1]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_y",
@@ -2739,7 +2739,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->n_detector_orientation[2]);
+	buffer = g_strdup_printf("%g", input->geometry->n_detector_orientation[2]);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "n_detector_orientation_z",
@@ -2750,7 +2750,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->area_detector);
+	buffer = g_strdup_printf("%g", input->geometry->area_detector);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "area_detector",
@@ -2761,7 +2761,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->collimator_height);
+	buffer = g_strdup_printf("%g", input->geometry->collimator_height);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "collimator_height",
@@ -2772,7 +2772,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->collimator_diameter);
+	buffer = g_strdup_printf("%g", input->geometry->collimator_diameter);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "collimator_diameter",
@@ -2783,7 +2783,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->d_source_slit);
+	buffer = g_strdup_printf("%g", input->geometry->d_source_slit);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "d_source_slit",
@@ -2794,7 +2794,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->slit_size_x);
+	buffer = g_strdup_printf("%g", input->geometry->slit_size_x);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "slit_size_x",
@@ -2805,7 +2805,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	buffer = g_strdup_printf("%lg", input->geometry->slit_size_y);
+	buffer = g_strdup_printf("%g", input->geometry->slit_size_y);
 	gtk_tree_store_append(model, &iter2, &iter1);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "slit_size_y",
@@ -2838,7 +2838,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].energy);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].energy);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/energy", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "energy",
@@ -2851,7 +2851,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].horizontal_intensity);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].horizontal_intensity);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/horizontal_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
@@ -2864,7 +2864,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].vertical_intensity);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].vertical_intensity);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/vertical_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "vertical_intensity",
@@ -2877,7 +2877,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_x);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].sigma_x);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_x", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_x",
@@ -2889,7 +2889,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_y);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].sigma_y);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_y", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_y",
@@ -2901,7 +2901,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_xp);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].sigma_xp);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_xp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_xp",
@@ -2913,7 +2913,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->discrete[i].sigma_yp);
+		buffer = g_strdup_printf("%g", input->excitation->discrete[i].sigma_yp);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/discrete[%i]/sigma_yp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_yp",
@@ -2992,7 +2992,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].energy);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].energy);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/energy", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "energy",
@@ -3004,7 +3004,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].horizontal_intensity);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].horizontal_intensity);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/horizontal_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "horizontal_intensity",
@@ -3017,7 +3017,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].vertical_intensity);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].vertical_intensity);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/vertical_intensity", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "vertical_intensity",
@@ -3030,7 +3030,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_x);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].sigma_x);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_x", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_x",
@@ -3042,7 +3042,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_y);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].sigma_y);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_y", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_y",
@@ -3054,7 +3054,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_xp);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].sigma_xp);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_xp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_xp",
@@ -3066,7 +3066,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 		gtk_tree_store_append(model, &iter3, &iter2);
-		buffer = g_strdup_printf("%lg", input->excitation->continuous[i].sigma_yp);
+		buffer = g_strdup_printf("%g", input->excitation->continuous[i].sigma_yp);
 		buffer2 = g_strdup_printf("/xmimsim/excitation/continuous[%i]/sigma_yp", i+1);
 		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, "sigma_yp",
@@ -3122,7 +3122,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			);
 			xrlFree(buffer);
 			g_free(buffer2);
-			buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].weight[j]*100.0);
+			buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
 			gtk_tree_store_set(model, &iter4,
@@ -3137,7 +3137,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 		}
 
-		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].density);
+		buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -3151,7 +3151,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 
-		buffer = g_strdup_printf("%lg", input->absorbers->exc_layers[i].thickness);
+		buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -3200,7 +3200,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			);
 			xrlFree(buffer);
 			g_free(buffer2);
-			buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].weight[j]*100.0);
+			buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
 			gtk_tree_store_set(model, &iter4,
@@ -3215,7 +3215,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 		}
 
-		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].density);
+		buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -3229,7 +3229,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 
-		buffer = g_strdup_printf("%lg", input->absorbers->det_layers[i].thickness);
+		buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -3280,7 +3280,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			break;
 	}
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->live_time);
+	buffer = g_strdup_printf("%g", input->detector->live_time);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "live_time",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3291,7 +3291,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->pulse_width);
+	buffer = g_strdup_printf("%g", input->detector->pulse_width);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "pulse_width",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3302,7 +3302,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->gain);
+	buffer = g_strdup_printf("%g", input->detector->gain);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "gain",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3313,7 +3313,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->zero);
+	buffer = g_strdup_printf("%g", input->detector->zero);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "zero",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3324,7 +3324,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->fano);
+	buffer = g_strdup_printf("%g", input->detector->fano);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "fano",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3335,7 +3335,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->noise);
+	buffer = g_strdup_printf("%g", input->detector->noise);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "noise",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3346,7 +3346,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%lg", input->detector->max_convolution_energy);
+	buffer = g_strdup_printf("%g", input->detector->max_convolution_energy);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "max_convolution_energy",
 		INPUT_VALUE_COLUMN, buffer,
@@ -3390,7 +3390,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			);
 			xrlFree(buffer);
 			g_free(buffer2);
-			buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].weight[j]*100.0);
+			buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
 			gtk_tree_store_set(model, &iter4,
@@ -3405,7 +3405,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 		}
 
-		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].density);
+		buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/density", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -3419,7 +3419,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 
-		buffer = g_strdup_printf("%lg", input->detector->crystal_layers[i].thickness);
+		buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/thickness", i+1);
 		gtk_tree_store_append(model, &iter3, &iter2);
 		gtk_tree_store_set(model, &iter3,
@@ -4940,8 +4940,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 
-	g_fprintf(stdout, "minz: %lg\n", minz);
-	g_fprintf(stdout, "maxz: %lg\n", maxz);
+	g_fprintf(stdout, "minz: %g\n", minz);
+	g_fprintf(stdout, "maxz: %g\n", maxz);
 
 	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 4, 4);
 	gtk_plot_data_set_gradient_show_lt_gt(GTK_PLOT_DATA(surface), FALSE);
