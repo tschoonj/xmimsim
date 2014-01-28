@@ -819,7 +819,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
-                          IF (n_photons_sim/n_photons_tot*100_C_INT64_T&
+                          IF ((n_photons_sim*100_C_INT64_T)/n_photons_tot&
                           .GE. progress_percentage .AND. options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                             CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
@@ -5489,7 +5489,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
                         IF (omp_get_thread_num() == 0) THEN
                           n_photons_sim = n_photons_sim+1_C_INT64_T
-                          IF (n_photons_sim/n_photons_tot*100_C_INT64_T&
+                          IF ((n_photons_sim*100_C_INT64_T)/n_photons_tot&
                           .GE. progress_percentage .AND. input_options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                             CALL xmi_print_progress('Escape peak ratios calculation at'//C_NULL_CHAR,&
