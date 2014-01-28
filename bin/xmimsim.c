@@ -448,7 +448,7 @@ XMI_MAIN
 		zero_sum = xmi_sum_double(channelsdef, options.nchannels);
 
 #if DEBUG == 2
-		fprintf(stdout,"zero_sum: %lf\n",zero_sum);
+		fprintf(stdout,"zero_sum: %f\n",zero_sum);
 #endif
 
 
@@ -458,7 +458,7 @@ XMI_MAIN
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
-			fprintf(stdout,"channel 223 contents unspoiled: %lf\n",channelsdef[i*options.nchannels+222]);
+			fprintf(stdout,"channel 223 contents unspoiled: %f\n",channelsdef[i*options.nchannels+222]);
 
 #endif
 
@@ -497,7 +497,6 @@ XMI_MAIN
 			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, channels_conv+i, options,escape_ratios_def, i);
 		}
 
-#ifndef G_OS_WIN32
 
 		csv_convPtr = csv_noconvPtr = NULL;
 
@@ -532,11 +531,11 @@ XMI_MAIN
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
+				fprintf(outPtr,"%f %f\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
 				for (j=0 ; j < options.nchannels ; j++) {
-					fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
+					fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
 					}
@@ -557,11 +556,11 @@ XMI_MAIN
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%lf %lf\n\n", input->detector->zero, input->detector->gain);
+				fprintf(outPtr,"%f %f\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
 				for (j=0 ; j < options.nchannels ; j++) {
-					fprintf(outPtr,"%lg",channels_conv[i][j]);
+					fprintf(outPtr,"%g",channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
 					}
@@ -577,10 +576,10 @@ XMI_MAIN
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
 			for (j=0 ; j < options.nchannels ; j++) {
-				fprintf(csv_noconvPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_noconvPtr,"%i,%f",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
+					fprintf(csv_noconvPtr,",%f",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
 				}
 				fprintf(csv_noconvPtr,"\n");
 			}
@@ -590,10 +589,10 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < options.nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%lf",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_convPtr,"%i,%f",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
+					fprintf(csv_convPtr,",%f",channels_conv[i][j]);
 				}
 				fprintf(csv_convPtr,"\n");
 			}
@@ -601,7 +600,6 @@ XMI_MAIN
 		}
 
 
-#endif
 
 
 
@@ -618,55 +616,6 @@ XMI_MAIN
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		xmi_free_output(output);	
-#ifdef G_OS_WIN32
-	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
-	//am betting it has to do with printf's %lf
-
-		if (csv_file_conv != NULL) {
-			// 1 = convoluted
-			if (xmi_xmso_to_csv_xslt(input->general->outputfile, csv_file_conv, 1) == 0) {
-				return 1;
-			}
-			else if (options.verbose)
-				g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
-			
-		}
-		if (csv_file_noconv != NULL) {
-			// 0 = unconvoluted
-			if (xmi_xmso_to_csv_xslt(input->general->outputfile, csv_file_noconv, 0) == 0) {
-				return 1;
-			}
-			else if (options.verbose)
-				g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
-			
-		}
-
-		if (spe_file_conv != NULL) {
-			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-				sprintf(filename,"%s_%i.spe",spe_file_conv,i);
-				if (xmi_xmso_to_spe_xslt(input->general->outputfile, filename, 1, i) == 0) {
-					return 1;
-				}
-				else if (options.verbose)
-					g_fprintf(stdout,"Output written to SPE file %s\n", filename);
-		
-			}
-		}
-
-		if (spe_file_noconv != NULL) {
-			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-				sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
-				if (xmi_xmso_to_spe_xslt(input->general->outputfile, filename, 0, i) == 0) {
-					return 1;
-				}
-				else if (options.verbose)
-					g_fprintf(stdout,"Output written to SPE file %s\n", filename);
-		
-			}
-		}
-
-
-#endif
 		if (svg_file_conv != NULL) {
 			// 1 = convoluted
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {

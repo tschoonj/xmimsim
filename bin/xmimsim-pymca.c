@@ -780,8 +780,8 @@ XMI_MAIN
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 	
 		g_fprintf(stdout,"Iteration: %i\n",i);
-		g_fprintf(stdout,"sum_k: %lf\n",sum_k);
-		g_fprintf(stdout,"sum_l: %lf\n",sum_l);
+		g_fprintf(stdout,"sum_k: %f\n",sum_k);
+		g_fprintf(stdout,"sum_l: %f\n",sum_l);
 
 
 	}
@@ -816,7 +816,6 @@ single_run:
 	xmi_free_output(output);	
 
 	//write to CSV and SPE if necessary...
-#ifndef G_OS_WIN32
 	csv_convPtr = csv_noconvPtr = NULL;
 
 	if (csv_file_noconv != NULL) {
@@ -851,11 +850,11 @@ single_run:
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%lf %lf\n\n", xi->detector->zero, xi->detector->gain);
+				fprintf(outPtr,"%f %f\n\n", xi->detector->zero, xi->detector->gain);
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"0\t%i\n",xp->nchannels-1);
 			for (j=0 ; j < xp->nchannels ; j++) {
-				fprintf(outPtr,"%lg",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
 				}
@@ -879,7 +878,7 @@ single_run:
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"1\t%i\n",xp->nchannels);
 			for (j=0 ; j < xp->nchannels ; j++) {
-				fprintf(outPtr,"%lg",channels_conv[i][j]);
+				fprintf(outPtr,"%g",channels_conv[i][j]);
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
 				}
@@ -896,10 +895,10 @@ single_run:
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_noconvPtr,"%i,%lf",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_noconvPtr,"%i,%f",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_noconvPtr,",%lf",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(csv_noconvPtr,",%f",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 			}
 			fprintf(csv_noconvPtr,"\n");
 		}
@@ -909,65 +908,19 @@ single_run:
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_convPtr,"%i,%lf",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_convPtr,"%i,%f",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_convPtr,",%lf",channels_conv[i][j]);
+				fprintf(csv_convPtr,",%f",channels_conv[i][j]);
 			}
 			fprintf(csv_convPtr,"\n");
 		}
 		fclose(csv_convPtr);
 	}
 
-#else
-	//this piece of code is necessary because of some weird bug I'm getting on Windows. I hope I'll be able to remove it in the future
-
-	if (csv_file_conv != NULL) {
-		// 1 = convoluted
-		if (xmi_xmso_to_csv_xslt(argv[2], csv_file_conv, 1) == 0) {
-			return 1;
-		}
-		else if (options.verbose)
-			g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
-		
-	}
-	if (csv_file_noconv != NULL) {
-		// 0 = unconvoluted
-		if (xmi_xmso_to_csv_xslt(argv[2], csv_file_noconv, 0) == 0) {
-			return 1;
-		}
-		else if (options.verbose)
-			g_fprintf(stdout,"Output written to CSV file %s\n",csv_file_conv);
-		
-	}
-
-	if (spe_file_conv != NULL) {
-		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-			sprintf(filename,"%s_%i.spe",spe_file_conv,i);
-			if (xmi_xmso_to_spe_xslt(argv[2], filename, 1, i) == 0) {
-				return 1;
-			}
-			else if (options.verbose)
-				g_fprintf(stdout,"Output written to SPE file %s\n", filename);
-	
-		}
-	}
-
-	if (spe_file_noconv != NULL) {
-		for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-			sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
-			if (xmi_xmso_to_spe_xslt(argv[2], filename, 0, i) == 0) {
-				return 1;
-			}
-			else if (options.verbose)
-				g_fprintf(stdout,"Output written to SPE file %s\n", filename);
-	
-		}
-	}
 
 
 
-#endif
 
 
 	//svg files

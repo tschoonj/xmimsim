@@ -26,7 +26,7 @@
 !define MY_MINGW "C:\MinGW32\"
 !define XRAYLIB_VERSION "3.0.0"
 !define XRAYLIB_VERSION_MIN "3.0.0"
-!define WITH_XRAYLIB
+;!define WITH_XRAYLIB
 !define WITH_DATA
 
 
@@ -143,6 +143,7 @@ ${If} $0 == "OK"
 	Goto xraylib_install
 ${Else}
 	#try to get it from S3
+	DetailPrint "Could not download xraylib from lvserver.ugent.be. Trying Amazon S3"
 	inetc::get /NOCANCEL "http://xraylib.s3.amazonaws.com/xraylib-${XRAYLIB_VERSION}-win32.exe" "xraylib-${XRAYLIB_VERSION}-win32.exe"
 	Pop $0
 	${If} $0 == "OK"
