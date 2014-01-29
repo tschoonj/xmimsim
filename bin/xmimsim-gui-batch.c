@@ -287,7 +287,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 			return;
 		}
-		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,NULL);
 	}
 	else if (entry == GTK_EDITABLE(wrd->end1Entry)) {
 		double value;
@@ -304,7 +304,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 			gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 			return;
 		}
-		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,NULL);
 	}
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nsteps1Entry));
 	nsteps1=strtol(textPtr, &endPtr, 10);
@@ -315,7 +315,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 		return;
 	}
 	else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps1 >= 1) {
-		gtk_widget_modify_base(wrd->nsteps1Entry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->nsteps1Entry,GTK_STATE_NORMAL,NULL);
 	}
 	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start1Entry));
 	start = strtod(textPtr, &endPtr);
@@ -324,8 +324,8 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 
 	if (end > start) {
 		start_end1 = 1;
-		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,NULL);
 	}
 	else {
 		gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&red);
@@ -350,7 +350,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 				gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 				return;
 			}
-			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,NULL);
 		}
 		else if (entry == GTK_EDITABLE(wrd->end2Entry)) {
 			double value;
@@ -367,7 +367,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 				gtk_assistant_set_page_complete(GTK_ASSISTANT(wrd->wizard), vbox, FALSE);
 				return;
 			}
-			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,NULL);
 		}
 		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->nsteps2Entry));
 		nsteps2=strtol(textPtr, &endPtr, 10);
@@ -378,7 +378,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 			return;
 		}
 		else if (strlen(textPtr) > 0 && lastPtr == endPtr && nsteps2 >= 1) {
-			gtk_widget_modify_base(wrd->nsteps2Entry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(wrd->nsteps2Entry,GTK_STATE_NORMAL,NULL);
 		}
 		textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(wrd->start2Entry));
 		start = strtod(textPtr, &endPtr);
@@ -387,8 +387,8 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 
 		if (end > start) {
 			start_end2 = 1;
-			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
-			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,NULL);
+			gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,NULL);
 		}
 		else {
 			gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&red);
@@ -409,10 +409,10 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 				return;
 			}
 			else {
-				gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,&white);
-				gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,&white);
-				gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,&white);
-				gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(wrd->start1Entry,GTK_STATE_NORMAL,NULL);
+				gtk_widget_modify_base(wrd->end1Entry,GTK_STATE_NORMAL,NULL);
+				gtk_widget_modify_base(wrd->start2Entry,GTK_STATE_NORMAL,NULL);
+				gtk_widget_modify_base(wrd->end2Entry,GTK_STATE_NORMAL,NULL);
 				one_and_two = 1;
 			}
 		}

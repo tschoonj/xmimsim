@@ -52,4 +52,5 @@ enum {
 };
 void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
 void export_canvas_image (GtkWidget *canvas, gchar *title);
+void update_button_text(GtkWidget *button, gchar *text);
 #endif

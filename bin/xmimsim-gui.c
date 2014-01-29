@@ -2972,7 +2972,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
 			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
-				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
@@ -3004,7 +3004,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case COLLIMATOR_DIAMETER:
 			if (lastPtr == endPtr && value >= 0.0 && strlen(textPtr) != 0) {
 				//ok
-				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
@@ -3044,7 +3044,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_ZERO:
 			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				//ok
-				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
@@ -3115,7 +3115,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
 				value = strtol(textPtr, NULL, 10);
-				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (pos_int_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);

@@ -706,7 +706,7 @@ static void scale_entry_changed_cb(GtkWidget *scaleEntry, GtkWidget *okButton) {
 		gtk_widget_set_sensitive(okButton, FALSE);
 	}
 	else {
-		gtk_widget_modify_base(scaleEntry, GTK_STATE_NORMAL, &white);
+		gtk_widget_modify_base(scaleEntry, GTK_STATE_NORMAL, NULL);
 		gtk_widget_set_sensitive(okButton, TRUE);
 	}
 	return;
@@ -1029,13 +1029,13 @@ static void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data)
 	else if (widget == ew->cancelButton) {
 		//cancel clicked
 		//if Entries are red, make them white again
-		gtk_widget_modify_base(ew->energyEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_xEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_yEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_xpEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_ypEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->energyEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_xEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_yEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_xpEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_ypEntry, GTK_STATE_NORMAL,NULL);
 		
 
 		if (discOrCont == DISCRETE) {
@@ -1145,7 +1145,7 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 		ok ## n = 0;\
 	if (widget == my_entry) {\
 		if (ok ## n)\
-			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
 		else {\
 			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
@@ -1160,7 +1160,7 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 		ok ## n = 0;\
 	if (widget == my_entry) {\
 		if (ok ## n)\
-			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
 		else {\
 			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
@@ -1175,7 +1175,7 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 		ok ## n = 0;\
 	if (widget == my_entry) {\
 		if (ok ## n)\
-			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&white);\
+			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
 		else {\
 			gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
 			gtk_widget_set_sensitive(ew->okButton, FALSE);\
@@ -1224,19 +1224,19 @@ static void energy_window_changed_cb(GtkWidget *widget, gpointer data) {
 
 
 	if (ok2 == 1 || ok2 == 0)	
-		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,NULL);
 	else if (ok2 == -1)
 		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&red);
 
 	if (ok3 == 1 || ok3 == 0)	
-		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,NULL);
 	else if (ok3 == -1)
 		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&red);
 
 	if ((ok2 == 1 && ok3 == -2 && discOrCont == DISCRETE)||(ok2 == -2 && ok3 == 1 && discOrCont == DISCRETE)) {
 		ok2 = ok3 = 1;
-		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->hor_intensityEntry, GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->ver_intensityEntry, GTK_STATE_NORMAL,NULL);
 	}
 	else if ((ok2 == -2 && ok3 == -2 && discOrCont == DISCRETE)) {
 		ok2 = ok3 = 0;
@@ -1805,15 +1805,15 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),"");
 			gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 		}
-		gtk_widget_modify_base(ew->energyEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->hor_intensityEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->ver_intensityEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_xEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_yEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_xpEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(ew->sigma_ypEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(ew->energyEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->hor_intensityEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->ver_intensityEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_xEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_yEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_xpEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(ew->sigma_ypEntry,GTK_STATE_NORMAL,NULL);
 		if (discOrCont == DISCRETE) {
-			gtk_widget_modify_base(ew->scale_parameterEntry,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(ew->scale_parameterEntry,GTK_STATE_NORMAL,NULL);
 		}
 	}
 	else if (addOrEdit == ENERGY_EDIT){
@@ -1896,7 +1896,7 @@ static void distribution_type_changed_cb(GtkComboBox *combobox, struct energyDia
 	gint active = gtk_combo_box_get_active(combobox);
 
 	g_signal_handler_block(G_OBJECT(ed->scale_parameterEntry),ed->scale_parameterGulong);
-	gtk_widget_modify_base(ed->scale_parameterEntry,GTK_STATE_NORMAL,&white);
+	gtk_widget_modify_base(ed->scale_parameterEntry,GTK_STATE_NORMAL,NULL);
 	gtk_entry_set_text(GTK_ENTRY(ed->scale_parameterEntry),"");
 	g_signal_handler_unblock(G_OBJECT(ed->scale_parameterEntry),ed->scale_parameterGulong);
 

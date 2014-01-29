@@ -193,8 +193,8 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
 		gtk_widget_set_sensitive(lw->okButton, FALSE);
-		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,&white);
-		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,&white);
+		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,NULL);
+		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,NULL);
 	}
 
 	g_signal_handler_unblock(G_OBJECT(lw->densityEntry),lw->densityG);
@@ -264,7 +264,7 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 
 	if (widget == lw->densityEntry) {
 		if (density_ok)
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 		else {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(lw->okButton,FALSE);
@@ -272,7 +272,7 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 	}
 	else if (widget ==  lw->thicknessEntry) {
 		if (thickness_ok) 
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 		else {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(lw->okButton,FALSE);
@@ -541,8 +541,8 @@ void dialog_hide_cb(GtkWidget *widget, gpointer data) {
 void dialog_show_cb(GtkWidget *widget, gpointer data) {
 	struct compoundWidget * cw = (struct compoundWidget *) data;
 
-	gtk_widget_modify_base(cw->compoundEntry,GTK_STATE_NORMAL,&white);
-	gtk_widget_modify_base(cw->weightEntry,GTK_STATE_NORMAL,&white);
+	gtk_widget_modify_base(cw->compoundEntry,GTK_STATE_NORMAL,NULL);
+	gtk_widget_modify_base(cw->weightEntry,GTK_STATE_NORMAL,NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(widget), GTK_RESPONSE_ACCEPT);
 
 }
@@ -575,7 +575,7 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 
 	if (widget == cw->compoundEntry) {
 		if (cd) {
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 			FreeCompoundData(cd);
 		}
 		else {
@@ -589,7 +589,7 @@ void compound_changed(GtkWidget * widget, gpointer data) {
 	}
 	else if (widget == cw->weightEntry) {
 		if (lastPtr == endPtr && weight > 0.0) {
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&white);
+			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 		}
 		else {
 			//bad value
