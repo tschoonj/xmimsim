@@ -8,7 +8,7 @@ Packager: Tom Schoonjans <Tom.Schoonjans@me.com>
 URL: http://github.com/tschoonj/xmimsim
 Source: xmimsim-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-fortran >= 2.15.0 xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils gtkextra3-devel >= 3.0.1
+BuildRequires: gcc gcc-gfortran >= 4.4.0 glib2-devel gtk2-devel gsl-devel fgsl-devel xraylib-fortran >= 2.15.0 xraylib-devel >= 2.15.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils gtkextra3-devel >= 3.0.1 libnotify-devel
 Requires: libgfortran >= 4.4.0 glib2 gtk2 gsl fgsl xraylib >= 2.15.0 hdf5 libxml2 libxslt xraylib-fortran >= 2.15.0 desktop-file-utils gtkextra3 >= 3.0.1
 
 %description
