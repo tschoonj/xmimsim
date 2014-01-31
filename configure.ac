@@ -46,6 +46,18 @@ case "$host" in
 		;;
 esac
 
+WINDRES_ARCH=
+case "$host" in
+	i686-*mingw*)
+		WINDRES_ARCH="pe-i386"
+		;;
+	x86_64-*mingw*)
+		WINDRES_ARCH="pe-x86-64"
+		;;
+esac
+
+AC_SUBST(WINDRES_ARCH)
+
 AC_SUBST(OS_WINDOWS)
 AM_CONDITIONAL([OS_WINDOWS],[test x$OS_WINDOWS = x1])
 

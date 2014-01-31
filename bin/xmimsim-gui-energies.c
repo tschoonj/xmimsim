@@ -2295,7 +2295,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %zu lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %u lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
 				return -3;
 		};
 

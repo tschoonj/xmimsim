@@ -225,7 +225,7 @@ xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc
-	$(WINDRES) -v --use-temp-file -F pe-i386 \
+	$(WINDRES) -v --use-temp-file -F $(WINDRES_ARCH) \
 	-DXMIMSIM_WIN_ICO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7.ico\" \
 	-DXMIMSIM_WIN_ICO_XMSI=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSI.ico\" \
 	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \

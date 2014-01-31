@@ -49,9 +49,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     #undef HAVE_OPENMPI
   #endif
 #endif
-#ifdef _WIN64
-  #warn Win 64 platform detected... proceed at your own risk...
-#endif
 
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"
