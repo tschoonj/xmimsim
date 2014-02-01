@@ -13,4 +13,4 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-EXTRA_DIST = xmimsim.nsi.in GPLv3.rtf License.rtf
+EXTRA_DIST = xmimsim-win32.nsi.in xmimsim-win64.nsi.in GPLv3.rtf License.rtf

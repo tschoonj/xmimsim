@@ -460,7 +460,14 @@ int download_updates(GtkWidget *window, char *max_version) {
 	
 #elif defined(G_OS_WIN32)
 	//Win 32
+#ifdef _WIN64
+	filename = g_strdup_printf("XMI-MSIM-%s-win64.exe",max_version);
+#elif defined(_WIN32)
 	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
+#else
+#error Unknown Windows architecture detected
+#endif
+
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
 	
 #else
