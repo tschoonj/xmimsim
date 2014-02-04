@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmi_aux.h"
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
@@ -34,15 +35,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <gdk/gdkkeysyms.h>
 #include <locale.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <unistd.h>
+#include <gdk-pixbuf/gdk-pixdata.h>
+#include "xmimsim-gui-coordinate-system.h"
 
 #ifdef G_OS_UNIX
 #include <signal.h>
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
-#include <gdk-pixbuf/gdk-pixdata.h>
 #include "xmimsim-gui-icons.h"
 #endif
 
@@ -124,6 +125,7 @@ static GtkListStore *crystal_compositionL;
 
 //geometry
 static GtkWidget *d_sample_sourceW;
+static GtkWidget *d_sample_source_ebW;
 static GtkWidget *n_sample_orientation_xW;
 static GtkWidget *n_sample_orientation_yW;
 static GtkWidget *n_sample_orientation_zW;
@@ -139,6 +141,8 @@ static GtkWidget *collimator_diameterW;
 static GtkWidget *d_source_slitW;
 static GtkWidget *slit_size_xW;
 static GtkWidget *slit_size_yW;
+static GtkWidget *geometry_helpW;
+static GtkWidget *cs_window;
 
 //detector
 static GtkWidget *detector_typeW;
@@ -183,6 +187,7 @@ static gulong collimator_diameterG;
 static gulong d_source_slitG;
 static gulong slit_size_xG;
 static gulong slit_size_yG;
+static gulong geometry_helpG;
 
 //detector
 static gulong detector_typeG;
@@ -292,6 +297,7 @@ GRegex *pos_int;
 
 GdkColor white = {.red = (guint16) 65535, .green = (guint16) 65535, .blue = (guint16) 65535};
 GdkColor red = {.red = (guint16) 65535, .green = (guint16) 1000, .blue = (guint16) 1000};
+GdkColor green = {.red = (guint16) 0, .green = (guint16) 65535, .blue = (guint16) 0};
 
 
 /*
@@ -373,6 +379,9 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 static void new_cb(GtkWidget *widget, gpointer data);
 static void import_cb(GtkWidget *widget, gpointer data);
 gboolean process_pre_file_operation (GtkWidget *window);
+static void geometry_help_clicked_cb(GtkWidget *window); 
+
+
 struct import_undo_data {
 	struct xmi_input *xi;
 	int undo_rv;
@@ -4656,9 +4665,8 @@ XMI_MAIN
 	//geometry
 	//d_sample_source
 	vbox_notebook = gtk_vbox_new(FALSE,5);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook), 5);
 	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Sample-source distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_sample_sourceW = gtk_entry_new();
@@ -4669,6 +4677,13 @@ XMI_MAIN
 	vc->check = &d_sample_sourceC;
 	d_sample_sourceG = g_signal_connect(G_OBJECT(d_sample_sourceW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_sample_sourceW, FALSE, FALSE, 0);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox_text_label), 5);
+	d_sample_source_ebW = gtk_event_box_new();
+	gtk_container_add(GTK_CONTAINER(d_sample_source_ebW), hbox_text_label);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), d_sample_source_ebW, TRUE, FALSE, 3);
+
+	
+
 	//n_sample_orientation
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -4869,6 +4884,12 @@ XMI_MAIN
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 
+	geometry_helpW = gtk_toggle_button_new_with_label("Show geometry help");
+	hbox_text_label = gtk_hbox_new(TRUE,5);
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), geometry_helpW, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	geometry_helpG = g_signal_connect_swapped(G_OBJECT(geometry_helpW),"toggled",G_CALLBACK(geometry_help_clicked_cb), (gpointer) window);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(geometry_helpW), FALSE);
 
 	frame = gtk_frame_new("Geometry");
 
@@ -6148,4 +6169,106 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
+}
+
+#define GEOMETRY_HELP_SCALE_FACTOR 2.0
+
+static gdouble sample_source_distance_coords[2][2] = {{530, 498}, {652, 584}};
+static gdouble sample_orientation_coords[2][2] = {{530, 498}, {652, 584}};
+static gdouble detector_window_position_coords[2][2] = {{530, 498}, {652, 584}};
+static gdouble detector_window_normal_coords[2][2] = {{530, 498}, {652, 584}};
+
+
+static gboolean cs_window_delete_event(void) {
+	g_signal_handler_block(G_OBJECT(geometry_helpW), geometry_helpG);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(geometry_helpW), FALSE);
+	g_signal_handler_unblock(G_OBJECT(geometry_helpW), geometry_helpG);
+	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Show geometry help");
+
+	return FALSE;
+}
+
+static gboolean coordinate_system_clicked_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+
+	g_fprintf(stdout,"Click x: %lf\ty: %lf\n", event->button.x*GEOMETRY_HELP_SCALE_FACTOR, event->button.y*GEOMETRY_HELP_SCALE_FACTOR);
+
+	return TRUE;
+}
+
+#define COORDS_CHECK(coords, x, y) (x > coords[0][0] && x < coords[1][0] && y > coords[0][1] && y < coords[1][1])
+
+static gboolean coordinate_system_enter_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+	g_fprintf(stdout,"Entering coordinate system window\n");
+
+	gdouble x = event->crossing.x*GEOMETRY_HELP_SCALE_FACTOR;
+	gdouble y = event->crossing.y*GEOMETRY_HELP_SCALE_FACTOR;
+
+	if (COORDS_CHECK(sample_source_distance_coords, x, y)) {
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &green);
+	}
+
+	return FALSE;
+}
+
+static gboolean coordinate_system_leave_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+	g_fprintf(stdout,"Leaving coordinate system window\n");
+	gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, NULL);
+	return TRUE;
+}
+
+static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+	//g_fprintf(stdout,"Moving in coordinate system window\n");
+
+	gdouble x = event->motion.x*GEOMETRY_HELP_SCALE_FACTOR;
+	gdouble y = event->motion.y*GEOMETRY_HELP_SCALE_FACTOR;
+
+	//g_fprintf(stdout, "x: %lf\ty: %lf\n", x, y);
+
+	if (COORDS_CHECK(sample_source_distance_coords, x, y)) {
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &green);
+	}
+	else {
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, NULL);
+	}
+
+
+
+	return FALSE;
+}
+
+static void geometry_help_clicked_cb(GtkWidget *window) {
+
+	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(geometry_helpW))) {
+		cs_window_delete_event();
+		gtk_widget_destroy(cs_window);
+		return;
+	}
+
+	g_fprintf(stdout,"Opening coordinate_system window\n");
+	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Hide geometry help");
+	cs_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_resizable(GTK_WINDOW(cs_window), FALSE);
+	gtk_window_set_resizable(GTK_WINDOW(cs_window), FALSE);
+	gtk_window_set_title(GTK_WINDOW(cs_window), "Geometry coordinate system");
+	//gtk_window_set_default_size(GTK_WINDOW(window),420,300);
+	gtk_window_set_position(GTK_WINDOW(cs_window), GTK_WIN_POS_NONE);
+	g_signal_connect(G_OBJECT(cs_window), "delete-event", G_CALLBACK(cs_window_delete_event), NULL);
+	GdkWindow *gdkwindow = gtk_widget_get_window(cs_window);
+
+	GtkWidget *event_box = gtk_event_box_new();
+	g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(coordinate_system_clicked_cb), NULL);
+	//g_signal_connect(G_OBJECT(event_box), "enter-notify-event", G_CALLBACK(coordinate_system_enter_cb), NULL);
+	//g_signal_connect(G_OBJECT(event_box), "leave-notify-event", G_CALLBACK(coordinate_system_leave_cb), NULL);
+	g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(coordinate_system_motion_cb), NULL);
+	GdkPixbuf *pixbuf, *pixbuf2;
+	pixbuf = gdk_pixbuf_from_pixdata(&coordinate_system_pixbuf, TRUE, NULL);
+	pixbuf2 = gdk_pixbuf_scale_simple(pixbuf, gdk_pixbuf_get_width(pixbuf)/GEOMETRY_HELP_SCALE_FACTOR, gdk_pixbuf_get_height(pixbuf)/GEOMETRY_HELP_SCALE_FACTOR, GDK_INTERP_HYPER);
+	GtkWidget *coordinate_system_image = gtk_image_new_from_pixbuf(pixbuf2);
+	gtk_widget_set_events(event_box, gtk_widget_get_events(event_box) | GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
+	gtk_misc_set_alignment(GTK_MISC(coordinate_system_image), 0.0, 0.0);
+	gtk_misc_set_padding(GTK_MISC(coordinate_system_image), 0, 0);
+	gtk_container_add(GTK_CONTAINER(event_box), coordinate_system_image);
+	gtk_container_add(GTK_CONTAINER(cs_window), event_box); 
+	
+	gtk_widget_show_all(cs_window);
 }

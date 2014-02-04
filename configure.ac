@@ -266,12 +266,12 @@ if test x$OS_WINDOWS = x1 ; then
   if test x$WINDRES = xfail ; then
   	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
   fi
-  if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
-  	AC_CHECK_PROG([GDK_PIXBUF_CSOURCE],[gdk-pixbuf-csource],[gdk-pixbuf-csource],[fail])
+fi
+if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
+	AC_CHECK_PROG([GDK_PIXBUF_CSOURCE],[gdk-pixbuf-csource],[gdk-pixbuf-csource],[fail])
   	if test x$GDK_PIXBUF_CSOURCE = xfail ; then
   		AC_MSG_ERROR([gdk-pixbuf-csource was not found. This program is necessary to insert our custom icons in the GUI])
   	fi
-  fi
 fi
 #search for chmod
 AC_CHECK_PROG([CHMOD],[chmod],[chmod],[fail])

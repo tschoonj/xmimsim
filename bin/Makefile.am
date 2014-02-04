@@ -35,6 +35,8 @@ bin_PROGRAMS += xmimsim-test-ebel \
 		xmimsim-test-boone1 \
 		xmimsim-test-boone2
 
+dist_noinst_DATA = coordinate_system.png
+
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 endif
@@ -71,7 +73,9 @@ xmimsim_gui_SOURCES = xmimsim-gui.c \
 		      xmimsim-gui-batch.h \
 		      xmimsim-gui-batch.c \
 		      xmimsim-gui-notifications.c \
-		      xmimsim-gui-notifications.h
+		      xmimsim-gui-notifications.h \
+		      xmimsim-gui-coordinate-system.h
+
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
@@ -233,18 +237,25 @@ xmimsim-icon.o: xmimsim-icon.rc
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
 
 
-xmimsim-gui.c: xmimsim-gui-icons.h
+xmimsim-gui.c: xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
 
 xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
 	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
 	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
 	> xmimsim-gui-icons.h
+
+else
+xmimsim-gui.c: xmimsim-gui-coordinate-system.h
 endif
 
+xmimsim-gui-coordinate-system.h:
+	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
+	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
+	> xmimsim-gui-coordinate-system.h
 
 clean-local:
-	rm -rf xmimsim-gui-icons.h
+	rm -rf xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
