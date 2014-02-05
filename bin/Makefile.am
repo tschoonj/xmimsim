@@ -74,7 +74,8 @@ xmimsim_gui_SOURCES = xmimsim-gui.c \
 		      xmimsim-gui-batch.c \
 		      xmimsim-gui-notifications.c \
 		      xmimsim-gui-notifications.h \
-		      xmimsim-gui-coordinate-system.h
+		      xmimsim-gui-coordinate-system.h \
+		      xmimsim-gui-fonts.h
 
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
