@@ -73,27 +73,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	//Linux and Mac OS X Unix
 	//Perhaps in the future I could include a check for darwin in configure
 	//and also use the same values as with MAC_INTEGRATION when doing a non-native build
-	#define RESULTS_PLOT_TITLE 30
-	#define RESULTS_PLOT_LABELS_LR_FLOAT 25
-	#define RESULTS_PLOT_LABELS_LR_EXP 20
-	#define RESULTS_PLOT_LABELS_TP 25
+	#define RESULTS_PLOT_TITLE 20
+	#define RESULTS_PLOT_LABELS_LR_FLOAT 20
+	#define RESULTS_PLOT_LABELS_LR_EXP 16
+	#define RESULTS_PLOT_LABELS_TP 18
 
-	#define TUBE_PLOT_TITLE 30
-	#define TUBE_PLOT_LABELS_LR_FLOAT 25
-	#define TUBE_PLOT_LABELS_LR_EXP 20
-	#define TUBE_PLOT_LABELS_TP 25
+	#define TUBE_PLOT_TITLE 22
+	#define TUBE_PLOT_LABELS_LR_FLOAT 20
+	#define TUBE_PLOT_LABELS_LR_EXP 14
+	#define TUBE_PLOT_LABELS_TP 20
 
-	#define BATCH_2D_PLOT_TITLE 30
-	#define BATCH_2D_PLOT_LABELS_LR_FLOAT 25
-	#define BATCH_2D_PLOT_LABELS_LR_EXP 20
-	#define BATCH_2D_PLOT_LABELS_TB_FLOAT 25
-	#define BATCH_2D_PLOT_LABELS_TB_EXP 20
+	#define BATCH_2D_PLOT_TITLE 20
+	#define BATCH_2D_PLOT_LABELS_LR_FLOAT 17
+	#define BATCH_2D_PLOT_LABELS_LR_EXP 13
+	#define BATCH_2D_PLOT_LABELS_TB_FLOAT 17
+	#define BATCH_2D_PLOT_LABELS_TB_EXP 13
 
-	#define BATCH_3D_PLOT_TITLE 30
-	#define BATCH_3D_PLOT_LABELS_LR_FLOAT 20
-	#define BATCH_3D_PLOT_LABELS_LR_EXP 20
-	#define BATCH_3D_PLOT_LABELS_TB_FLOAT 20
-	#define BATCH_3D_PLOT_LABELS_TB_EXP 20
+	#define BATCH_3D_PLOT_TITLE 20
+	#define BATCH_3D_PLOT_LABELS_LR_FLOAT 17
+	#define BATCH_3D_PLOT_LABELS_LR_EXP 13
+	#define BATCH_3D_PLOT_LABELS_TB_FLOAT 17
+	#define BATCH_3D_PLOT_LABELS_TB_EXP 13
 
 #endif
 
