@@ -6176,9 +6176,14 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 static double geometry_help_scale_factor = GEOMETRY_HELP_SCALE_FACTOR_DEFAULT;
 
 static double sample_source_distance_coords[2][2] = {{530, 498}, {652, 584}};
-static double sample_orientation_coords[2][2] = {{530, 498}, {652, 584}};
-static double detector_window_position_coords[2][2] = {{530, 498}, {652, 584}};
-static double detector_window_normal_coords[2][2] = {{530, 498}, {652, 584}};
+static double sample_orientation_coords[2][2] = {{1232, 200}, {1385, 290}};
+static double detector_window_position_coords[2][2] = {{1417, 592}, {1565, 655}};
+static double detector_window_normal_coords[2][2] = {{1604, 663}, {1744, 725}};
+static double active_detector_area_coords[2][2] = {{1505, 497}, {1607, 564}};
+static double collimator_height_coords[2][2] = {{1263, 647}, {1386, 761}};
+static double collimator_diameter_coords[2][2] = {{1358, 450}, {1460, 540}};
+static double source_slits_coords[2][2] = {{374, 671}, {445, 720}};
+static double slits_size_coords[2][2] = {{706, 510}, {981, 846}};
 
 
 static gboolean cs_window_delete_event(void) {

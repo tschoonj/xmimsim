@@ -250,7 +250,7 @@ else
 xmimsim-gui.c: xmimsim-gui-coordinate-system.h
 endif
 
-xmimsim-gui-coordinate-system.h:
+xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
 	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
 	> xmimsim-gui-coordinate-system.h
