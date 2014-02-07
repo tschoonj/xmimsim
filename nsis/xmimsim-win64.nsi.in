@@ -402,7 +402,7 @@ DetailPrint "Uninstalling GNU Scientific Library Fortran bindings (FGSL)"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libfgsl-0.dll"
 
 DetailPrint "Uninstalling HDF5"
-!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-6.dll"
+!insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libhdf5-8.dll"
 
 DetailPrint "Uninstalling libxml2"
 !insertmacro UnInstallLib DLL NOTSHARED REBOOT_PROTECTED "$INSTDIR\Lib\libxml2-2.dll" 
@@ -543,6 +543,9 @@ System::Call 'shell32.dll::SHChangeNotify(i, i, i, i) v (0x08000000, 0, 0, 0)'
 
 SectionEnd
 
+Function un.onInit
+SetRegView 64
+FunctionEnd
 Function .onInit
 
 ${IfNot} ${RunningX64} 
