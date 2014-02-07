@@ -5117,10 +5117,10 @@ XMI_MAIN
 	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 #endif
 
-	gchar *filename = g_strdup(argv[1]);
 	struct xmi_input *xi;
 	GtkWidget *dialog;
 	if (argc == 2) {
+		gchar *filename = g_strdup(argv[1]);
 		if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSI file
