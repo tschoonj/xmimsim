@@ -4230,7 +4230,7 @@ XMI_MAIN
 	gtk_icon_set_unref (iconset);
 #endif
 
-
+	gtk_window_set_default_icon_name(XMI_STOCK_LOGO);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	accel_group = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
@@ -6190,11 +6190,16 @@ static gboolean cs_window_delete_event(void) {
 	return FALSE;
 }
 
+struct coordinate_pixbufs {
+	GdkPixbuf *orig_pixbuf;
+	GdkPixbuf *current_pixbuf;
+};
 
-static gboolean coordinate_system_clicked_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+
+static gboolean coordinate_system_clicked_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
 
 	g_fprintf(stdout,"Click x: %lf\ty: %lf\n", event->button.x*geometry_help_scale_factor, event->button.y*geometry_help_scale_factor);
-
+	g_fprintf(stdout,"Raw Click x: %lf\ty: %lf\n", event->button.x, event->button.y);
 	return TRUE;
 }
 
@@ -6219,7 +6224,7 @@ static gboolean coordinate_system_leave_cb(GtkWidget *event_box, GdkEvent *event
 	return TRUE;
 }
 
-static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *event, gpointer data) {
+static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
 	//g_fprintf(stdout,"Moving in coordinate system window\n");
 
 	gdouble x = event->motion.x*geometry_help_scale_factor;
@@ -6242,16 +6247,18 @@ static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *even
 static gint old_width;
 static gint old_height;
 
-static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, GdkPixbuf *orig_pixbuf) {
+static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, struct coordinate_pixbufs *cp) {
 	gint new_width = image->allocation.width;
 	gint new_height = image->allocation.height;
 
 	if (new_width != old_width || new_height != old_height) {
-		g_fprintf(stdout, "Resizing coordinate_system\n");
 		old_width = new_width;
 		old_height = new_height;
-		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(orig_pixbuf, new_width, new_height, GDK_INTERP_HYPER);
-		gtk_image_set_from_pixbuf(GTK_IMAGE(image), new_pixbuf);
+		if (cp->current_pixbuf != NULL)
+			g_object_unref(G_OBJECT(cp->current_pixbuf));
+		cp->current_pixbuf = gdk_pixbuf_scale_simple(cp->orig_pixbuf, new_width, new_height, GDK_INTERP_HYPER);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image), cp->current_pixbuf);
+		geometry_help_scale_factor = (double) gdk_pixbuf_get_width(cp->orig_pixbuf)/ (double) gdk_pixbuf_get_width(cp->current_pixbuf);
 	}
 
 	return FALSE;
@@ -6264,10 +6271,12 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 		gtk_widget_destroy(cs_window);
 		return;
 	}
-
+	geometry_help_scale_factor = GEOMETRY_HELP_SCALE_FACTOR_DEFAULT;
 	g_fprintf(stdout,"Opening coordinate_system window\n");
 	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Hide geometry help");
 	cs_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_widget_modify_bg(cs_window, GTK_STATE_NORMAL, &white);
+	gtk_container_set_border_width(GTK_CONTAINER(cs_window),5);
 	//gtk_window_set_resizable(GTK_WINDOW(cs_window), FALSE);
 	gtk_window_set_title(GTK_WINDOW(cs_window), "Geometry coordinate system");
 	//gtk_window_set_default_size(GTK_WINDOW(window),420,300);
@@ -6275,12 +6284,15 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	g_signal_connect(G_OBJECT(cs_window), "delete-event", G_CALLBACK(cs_window_delete_event), NULL);
 
 	GtkWidget *event_box = gtk_event_box_new();
-	g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(coordinate_system_clicked_cb), NULL);
+	struct coordinate_pixbufs *cp = malloc(sizeof(struct coordinate_pixbufs));
+	cp->current_pixbuf = NULL;
+	g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(coordinate_system_clicked_cb), cp);
 	//g_signal_connect(G_OBJECT(event_box), "enter-notify-event", G_CALLBACK(coordinate_system_enter_cb), NULL);
 	//g_signal_connect(G_OBJECT(event_box), "leave-notify-event", G_CALLBACK(coordinate_system_leave_cb), NULL);
-	g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(coordinate_system_motion_cb), NULL);
+	g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(coordinate_system_motion_cb), cp);
 	GdkPixbuf *orig_pixbuf;
 	orig_pixbuf = gdk_pixbuf_from_pixdata(&coordinate_system_pixbuf, TRUE, NULL);
+	cp->orig_pixbuf = orig_pixbuf;
 	//pixbuf2 = gdk_pixbuf_scale_simple(pixbuf, gdk_pixbuf_get_width(pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(pixbuf)/geometry_help_scale_factor, GDK_INTERP_HYPER);
 	GtkWidget *coordinate_system_image = gtk_image_new_from_pixbuf(orig_pixbuf);
 	gtk_widget_set_events(event_box, gtk_widget_get_events(event_box) | GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
@@ -6293,11 +6305,11 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 
 	GdkGeometry geometry;
 	geometry.min_aspect = (double) gdk_pixbuf_get_width(orig_pixbuf)/(double) gdk_pixbuf_get_height(orig_pixbuf);
-	geometry.max_aspect = (double) gdk_pixbuf_get_width(orig_pixbuf)/(double) gdk_pixbuf_get_height(orig_pixbuf)*1.02;
+	geometry.max_aspect = (double) gdk_pixbuf_get_width(orig_pixbuf)/(double) gdk_pixbuf_get_height(orig_pixbuf);
 
 	gtk_window_set_geometry_hints(GTK_WINDOW(cs_window), cs_window, &geometry, GDK_HINT_ASPECT);
 
-	g_signal_connect(G_OBJECT(coordinate_system_image), "expose-event", G_CALLBACK(image_expose_event), (gpointer) orig_pixbuf);
+	g_signal_connect(G_OBJECT(coordinate_system_image), "expose-event", G_CALLBACK(image_expose_event), cp);
 	gtk_widget_set_size_request(cs_window, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor);
 	
 	gtk_widget_show_all(cs_window);
