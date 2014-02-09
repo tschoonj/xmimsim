@@ -211,6 +211,24 @@ static gulong detector_max_convolution_energyG;
 //notebook
 gulong notebookG;
 
+static gulong d_sample_source_enter_ebG;
+static gulong n_sample_orientation_enter_ebG;
+static gulong p_detector_window_enter_ebG;
+static gulong n_detector_orientation_enter_ebG;
+static gulong area_detector_enter_ebG;
+static gulong collimator_height_enter_ebG;
+static gulong collimator_diameter_enter_ebG;
+static gulong d_source_slit_enter_ebG;
+static gulong slit_size_enter_ebG;
+static gulong d_sample_source_leave_ebG;
+static gulong n_sample_orientation_leave_ebG;
+static gulong p_detector_window_leave_ebG;
+static gulong n_detector_orientation_leave_ebG;
+static gulong area_detector_leave_ebG;
+static gulong collimator_height_leave_ebG;
+static gulong collimator_diameter_leave_ebG;
+static gulong d_source_slit_leave_ebG;
+static gulong slit_size_leave_ebG;
 
 
 /*
@@ -306,6 +324,7 @@ GRegex *pos_int;
 GdkColor white = {.red = (guint16) 65535, .green = (guint16) 65535, .blue = (guint16) 65535};
 GdkColor red = {.red = (guint16) 65535, .green = (guint16) 1000, .blue = (guint16) 1000};
 GdkColor green = {.red = (guint16) 0, .green = (guint16) 65535, .blue = (guint16) 0};
+GdkColor chartreuse_green;
 
 
 /*
@@ -4189,6 +4208,11 @@ XMI_MAIN
 
 	g_set_application_name("XMI-MSIM");
 
+	if (!gdk_color_parse("Chartreuse", &chartreuse_green)) {
+		g_fprintf(stderr, "Chartreuse green not found, continuing with standard green instead\n");
+		chartreuse_green = green;
+	}
+
 	//iconfactory stuff
 	//based on http://www.gtkforums.com/viewtopic.php?t=7654
 	static GtkStockItem stock_items[] = {
@@ -6209,12 +6233,12 @@ static double geometry_help_scale_factor = GEOMETRY_HELP_SCALE_FACTOR_DEFAULT;
 
 static double sample_source_distance_coords[2][2] = {{530, 498}, {652, 584}};
 static double sample_orientation_coords[2][2] = {{1232, 200}, {1385, 290}};
-static double detector_window_position_coords[2][2] = {{1417, 592}, {1565, 655}};
+static double detector_window_position_coords[2][2] = {{1417, 592}, {1573, 683}};
 static double detector_window_normal_coords[2][2] = {{1604, 663}, {1744, 725}};
 static double active_detector_area_coords[2][2] = {{1505, 497}, {1607, 564}};
-static double collimator_height_coords[2][2] = {{1263, 647}, {1386, 761}};
+static double collimator_height_coords[2][2] = {{1263, 647}, {1381, 780}};
 static double collimator_diameter_coords[2][2] = {{1358, 450}, {1460, 540}};
-static double source_slit_distance_coords[2][2] = {{374, 671}, {445, 720}};
+static double source_slit_distance_coords[2][2] = {{374, 671}, {455, 750}};
 static double slits_size_coords[2][2] = {{706, 510}, {981, 846}};
 
 
@@ -6224,8 +6248,23 @@ static gboolean cs_window_delete_event(void) {
 	g_signal_handler_unblock(G_OBJECT(geometry_helpW), geometry_helpG);
 	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Show geometry help");
 
+	//deactivate all eventbox callbacks
+#define EB_DISCONNECT(type) g_signal_handler_disconnect((gpointer) type ## _ebW, type ## _enter_ebG);\
+			    g_signal_handler_disconnect((gpointer) type ## _ebW, type ## _leave_ebG)
+
+	EB_DISCONNECT(d_sample_source);
+	EB_DISCONNECT(n_sample_orientation);
+	EB_DISCONNECT(p_detector_window);
+	EB_DISCONNECT(n_detector_orientation);
+	EB_DISCONNECT(area_detector);
+	EB_DISCONNECT(collimator_height);
+	EB_DISCONNECT(collimator_diameter);
+	EB_DISCONNECT(d_source_slit);
+	EB_DISCONNECT(slit_size);
+#undef EB_DISCONNECT
 	return FALSE;
 }
+
 
 struct coordinate_pixbufs {
 	GdkPixbuf *orig_pixbuf;
@@ -6236,7 +6275,7 @@ struct coordinate_pixbufs {
 static gboolean coordinate_system_clicked_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
 
 	g_fprintf(stdout,"Click x: %lf\ty: %lf\n", event->button.x*geometry_help_scale_factor, event->button.y*geometry_help_scale_factor);
-	g_fprintf(stdout,"Raw Click x: %lf\ty: %lf\n", event->button.x, event->button.y);
+	//g_fprintf(stdout,"Raw Click x: %lf\ty: %lf\n", event->button.x, event->button.y);
 	return TRUE;
 }
 
@@ -6249,7 +6288,7 @@ static gboolean coordinate_system_enter_cb(GtkWidget *event_box, GdkEvent *event
 	gdouble y = event->crossing.y*geometry_help_scale_factor;
 
 	if (COORDS_CHECK(sample_source_distance_coords, x, y)) {
-		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &chartreuse_green);
 	}
 
 	return FALSE;
@@ -6261,6 +6300,28 @@ static gboolean coordinate_system_leave_cb(GtkWidget *event_box, GdkEvent *event
 	return TRUE;
 }
 
+
+static void draw_box(double coords[2][2], GtkWidget *image, struct coordinate_pixbufs *cp) {
+	cairo_t *cr = gdk_cairo_create(image->window);
+	gdk_cairo_set_source_pixbuf(cr, gtk_image_get_pixbuf(GTK_IMAGE(image)), 0, 0);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_line_width (cr, 1.0);
+
+	cairo_move_to(cr, coords[0][0]/geometry_help_scale_factor, coords[0][1]/geometry_help_scale_factor);
+	cairo_line_to(cr, coords[0][0]/geometry_help_scale_factor, coords[1][1]/geometry_help_scale_factor);
+	cairo_move_to(cr, coords[0][0]/geometry_help_scale_factor, coords[1][1]/geometry_help_scale_factor);
+	cairo_line_to(cr, coords[1][0]/geometry_help_scale_factor, coords[1][1]/geometry_help_scale_factor);
+	cairo_move_to(cr, coords[1][0]/geometry_help_scale_factor, coords[1][1]/geometry_help_scale_factor);
+	cairo_line_to(cr, coords[1][0]/geometry_help_scale_factor, coords[0][1]/geometry_help_scale_factor);
+	cairo_move_to(cr, coords[1][0]/geometry_help_scale_factor, coords[0][1]/geometry_help_scale_factor);
+	cairo_line_to(cr, coords[0][0]/geometry_help_scale_factor, coords[0][1]/geometry_help_scale_factor);
+	cairo_stroke(cr);
+	cairo_destroy(cr);
+	//gtk_image_set_from_pixbuf(GTK_IMAGE(image), copy);
+	//gtk_widget_queue_draw_area(image, coords[0][0]/geometry_help_scale_factor-2, coords[0][1]/geometry_help_scale_factor-2, 
+	//	(coords[1][0]-coords[0][0])/geometry_help_scale_factor+4,(coords[1][1]-coords[0][1])/geometry_help_scale_factor+4);
+}
+
 static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
 	//g_fprintf(stdout,"Moving in coordinate system window\n");
 
@@ -6270,31 +6331,40 @@ static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *even
 	//g_fprintf(stdout, "x: %lf\ty: %lf\n", x, y);
 
 	if (COORDS_CHECK(sample_source_distance_coords, x, y)) {
-		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(sample_source_distance_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(sample_orientation_coords, x, y)) {
-		gtk_widget_modify_bg(n_sample_orientation_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(n_sample_orientation_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(sample_orientation_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(detector_window_position_coords, x, y)) {
-		gtk_widget_modify_bg(p_detector_window_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(p_detector_window_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(detector_window_position_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(detector_window_normal_coords, x, y)) {
-		gtk_widget_modify_bg(n_detector_orientation_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(n_detector_orientation_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(detector_window_normal_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(active_detector_area_coords, x, y)) {
-		gtk_widget_modify_bg(area_detector_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(area_detector_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(active_detector_area_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(collimator_height_coords, x, y)) {
-		gtk_widget_modify_bg(collimator_height_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(collimator_height_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(collimator_height_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(collimator_diameter_coords, x, y)) {
-		gtk_widget_modify_bg(collimator_diameter_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(collimator_diameter_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(collimator_diameter_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(source_slit_distance_coords, x, y)) {
-		gtk_widget_modify_bg(d_source_slit_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(d_source_slit_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(source_slit_distance_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else if (COORDS_CHECK(slits_size_coords, x, y)) {
-		gtk_widget_modify_bg(slit_size_ebW, GTK_STATE_NORMAL, &green);
+		gtk_widget_modify_bg(slit_size_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(slits_size_coords, gtk_bin_get_child(GTK_BIN(event_box)), cp);
 	}
 	else {
 		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, NULL);
@@ -6306,6 +6376,7 @@ static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *even
 		gtk_widget_modify_bg(collimator_diameter_ebW, GTK_STATE_NORMAL, NULL);
 		gtk_widget_modify_bg(d_source_slit_ebW, GTK_STATE_NORMAL, NULL);
 		gtk_widget_modify_bg(slit_size_ebW, GTK_STATE_NORMAL, NULL);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(event_box))), cp->current_pixbuf);
 	}
 
 
@@ -6329,10 +6400,90 @@ static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, struct coo
 		gtk_image_set_from_pixbuf(GTK_IMAGE(image), cp->current_pixbuf);
 		geometry_help_scale_factor = (double) gdk_pixbuf_get_width(cp->orig_pixbuf)/ (double) gdk_pixbuf_get_width(cp->current_pixbuf);
 	}
-
 	return FALSE;
 }
 
+
+static gboolean geometry_eb_enter_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
+	//entering the eventbox!
+	//1) turn it chartreuse_green
+	//2) draw the box
+
+	if (event_box == d_sample_source_ebW) {
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(sample_source_distance_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == n_sample_orientation_ebW) {
+		gtk_widget_modify_bg(n_sample_orientation_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(sample_orientation_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == p_detector_window_ebW) {
+		gtk_widget_modify_bg(p_detector_window_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(detector_window_position_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == n_detector_orientation_ebW) {
+		gtk_widget_modify_bg(n_detector_orientation_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(detector_window_normal_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == area_detector_ebW) {
+		gtk_widget_modify_bg(area_detector_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(active_detector_area_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == collimator_height_ebW) {
+		gtk_widget_modify_bg(collimator_height_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(collimator_height_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == collimator_diameter_ebW) {
+		gtk_widget_modify_bg(collimator_diameter_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(collimator_diameter_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == d_source_slit_ebW) {
+		gtk_widget_modify_bg(d_source_slit_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(source_slit_distance_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	else if (event_box == slit_size_ebW) {
+		gtk_widget_modify_bg(slit_size_ebW, GTK_STATE_NORMAL, &chartreuse_green);
+		draw_box(slits_size_coords, gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window)))), cp);
+	}
+	return FALSE;
+}
+
+static gboolean geometry_eb_leave_cb(GtkWidget *event_box, GdkEvent *event, struct coordinate_pixbufs *cp) {
+	//leaving the eventbox!
+	//1) turn it back to its normal color
+	//2) remove the box
+
+	if (event_box == d_sample_source_ebW) {
+		gtk_widget_modify_bg(d_sample_source_ebW, GTK_STATE_NORMAL, NULL);
+	}	
+	else if (event_box == n_sample_orientation_ebW) {
+		gtk_widget_modify_bg(n_sample_orientation_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == p_detector_window_ebW) {
+		gtk_widget_modify_bg(p_detector_window_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == n_detector_orientation_ebW) {
+		gtk_widget_modify_bg(n_detector_orientation_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == area_detector_ebW) {
+		gtk_widget_modify_bg(area_detector_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == collimator_height_ebW) {
+		gtk_widget_modify_bg(collimator_height_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == collimator_diameter_ebW) {
+		gtk_widget_modify_bg(collimator_diameter_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == d_source_slit_ebW) {
+		gtk_widget_modify_bg(d_source_slit_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	else if (event_box == slit_size_ebW) {
+		gtk_widget_modify_bg(slit_size_ebW, GTK_STATE_NORMAL, NULL);
+	}
+	gtk_image_set_from_pixbuf(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(cs_window))))), cp->current_pixbuf);
+
+	return FALSE;
+}
 static void geometry_help_clicked_cb(GtkWidget *window) {
 
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(geometry_helpW))) {
@@ -6380,6 +6531,21 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 
 	g_signal_connect(G_OBJECT(coordinate_system_image), "expose-event", G_CALLBACK(image_expose_event), cp);
 	gtk_widget_set_size_request(cs_window, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor);
+
+	//activate all signals for *_ebW
+#define EB_CONNECT(type) type ## _enter_ebG = g_signal_connect(G_OBJECT(type ## _ebW), "enter-notify-event", G_CALLBACK(geometry_eb_enter_cb), cp);\
+			 type ## _leave_ebG = g_signal_connect(G_OBJECT(type ## _ebW), "leave-notify-event", G_CALLBACK(geometry_eb_leave_cb), cp);
+	EB_CONNECT(d_sample_source);
+	EB_CONNECT(n_sample_orientation);
+	EB_CONNECT(p_detector_window);
+	EB_CONNECT(n_detector_orientation);
+	EB_CONNECT(area_detector);
+	EB_CONNECT(collimator_height);
+	EB_CONNECT(collimator_diameter);
+	EB_CONNECT(d_source_slit);
+	EB_CONNECT(slit_size);
+#undef EB_CONNECT
 	
+
 	gtk_widget_show_all(cs_window);
 }
