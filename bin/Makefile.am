@@ -31,9 +31,9 @@ bin_PROGRAMS =  xmimsim \
 		xmso2htm \
 		xmso2xmsi
 
-bin_PROGRAMS += xmimsim-test-ebel \
-		xmimsim-test-boone1 \
-		xmimsim-test-boone2
+#bin_PROGRAMS += xmimsim-test-ebel \
+#		xmimsim-test-boone1 \
+#		xmimsim-test-boone2
 
 dist_noinst_DATA = coordinate_system.png
 
@@ -218,14 +218,14 @@ xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
 		    @xraylib_CFLAGS@ 
 		
-xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
-xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
+#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
 
-xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
-xmimsim_test_boone1_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
+#xmimsim_test_boone1_LDADD = ../src/libxmimsim.la 
 
-xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
-xmimsim_test_boone2_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
+#xmimsim_test_boone2_LDADD = ../src/libxmimsim.la 
 
 
 if OS_WINDOWS

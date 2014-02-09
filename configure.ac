@@ -1,4 +1,4 @@
-#Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
+#Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[2.9],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[2.10],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.60])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
