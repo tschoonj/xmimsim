@@ -464,7 +464,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->general->version = 1.0;
 	rv->general->outputfile = strdup("");
 	rv->general->comments= strdup("");
-	rv->general->n_photons_interval = 1000;
+	rv->general->n_photons_interval = 10000;
 	rv->general->n_photons_line = 100000;
 	rv->general->n_interactions_trajectory = 4;
 
@@ -478,13 +478,13 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->geometry = (struct xmi_geometry *) malloc(sizeof(struct xmi_geometry));
 	rv->geometry->d_sample_source=100.0;
 	rv->geometry->n_sample_orientation[0] = 0.0;
-	rv->geometry->n_sample_orientation[1] = sqrt(2.0)/2.0;
+	rv->geometry->n_sample_orientation[1] = -1.0*sqrt(2.0)/2.0;
 	rv->geometry->n_sample_orientation[2] = sqrt(2.0)/2.0;
 	rv->geometry->p_detector_window[0] = 0.0;
-	rv->geometry->p_detector_window[1] = -1.0;
+	rv->geometry->p_detector_window[1] = 1.0;
 	rv->geometry->p_detector_window[2] = 100.0;
 	rv->geometry->n_detector_orientation[0] = 0.0;
-	rv->geometry->n_detector_orientation[1] = 1.0;
+	rv->geometry->n_detector_orientation[1] = -1.0;
 	rv->geometry->n_detector_orientation[2] = 0.0;
 	rv->geometry->area_detector = 0.3;
 	//default is NO collimator
