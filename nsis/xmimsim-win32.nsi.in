@@ -42,6 +42,7 @@ SetCompressor /SOLID lzma
 ;!include "${MY_HOME}github\xmimsim\nsis\EnumUsersReg.nsh"
 !include "Sections.nsh"
 !include "WordFunc.nsh"
+!include "x64.nsh"
 
 Name ${PRODUCT_NAME}
 OutFile ${PRODUCT_NAME}-${VERSION}-win32.exe
@@ -549,6 +550,25 @@ System::Call 'shell32.dll::SHChangeNotify(i, i, i, i) v (0x08000000, 0, 0, 0)'
 SectionEnd
 
 Function .onInit
+
+#if this is a 64-bit capable system, make sure the 64-bit version is not installed already
+${If} ${RunningX64} 
+	SetRegView 64
+	ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
+	SetRegView 32
+	StrCmp $R0 "" to32
+	MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT_NAME} 64-bit is already installed. $\n$\nClick `OK` to remove this incompatible version or `Cancel` to cancel this install." IDOK uninst64
+	Abort
+${Else}
+	Goto to32
+${EndIf}
+
+uninst64:
+ClearErrors
+ExecWait "$R0" 
+
+to32:
+
 ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
 StrCmp $R0 "" done
 MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT_NAME} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." IDOK uninst

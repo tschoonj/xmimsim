@@ -553,7 +553,20 @@ ${IfNot} ${RunningX64}
 	Abort
 ${EndIf}
 
+#make sure the 32-bit version is not installed already
+SetRegView 32
+ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
 SetRegView 64
+StrCmp $R0 "" to64
+MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT_NAME} 32-bit is already installed. $\n$\nClick `OK` to remove this incompatible version or `Cancel` to cancel this install." IDOK uninst32
+Abort
+
+uninst32:
+ClearErrors
+ExecWait "$R0" 
+
+to64:
+
 
 ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
 StrCmp $R0 "" done
