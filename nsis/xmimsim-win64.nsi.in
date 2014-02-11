@@ -567,6 +567,7 @@ ExecWait "$R0"
 
 to64:
 
+strCpy $INSTDIR "$PROGRAMFILES64\XMI-MSIM"
 
 ReadRegStr $R0 HKLM ${PRODUCT_UNINST_KEY} "QuietUninstallString"
 StrCmp $R0 "" done
