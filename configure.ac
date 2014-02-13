@@ -111,7 +111,7 @@ PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
-	PKG_CHECK_MODULES([gtk3extra],gtkextra-3.0, [GTKEXTRA3_FOUND=yes],[GTKEXTRA3_FOUND=no])
+	PKG_CHECK_MODULES([gtk3extra],gtkextra-3.0 >= 3.1.0, [GTKEXTRA3_FOUND=yes],[GTKEXTRA3_FOUND=no])
 	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes && test "x$GTKEXTRA3_FOUND" = xno ; then
 		AC_MSG_ERROR([no gtk and/or gtkextra found on the system.])
 	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
@@ -121,7 +121,7 @@ if test "x$enable_gui" != xno ; then
 	else
 		AC_MSG_NOTICE([Building with GUI])
 		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.18.0")
-		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0")
+		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0 >= 3.1.0")
 		AC_DEFINE([HAVE_GUI],[],[building with GUI])
 	fi
 fi
