@@ -35,7 +35,7 @@ export CFLAGS=$RPM_OPT_FLAGS
 export FCFLAGS=$RPM_OPT_FLAGS
 %endif
 
-%configure --enable-gui --disable-mpi --disable-updater --enable-opencl CPPFLAGS="-DRPM_BUILD"
+%configure --enable-gui --disable-mpi --disable-updater --disable-opencl CPPFLAGS="-DRPM_BUILD"
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
