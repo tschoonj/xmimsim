@@ -157,9 +157,16 @@ ${Endif}
 
 xraylib_install:
 DetailPrint "xraylib download has succeeded. Installing..."
-ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /S'
+ExecWait '"xraylib-${XRAYLIB_VERSION}-win32.exe" /VERYSILENT /SP-' $0
 Delete "xraylib-${XRAYLIB_VERSION}-win32.exe"
 
+${If} $0 == 0
+	Goto gtk2install
+${Else}
+	DetailPrint "Error when installing xraylib: $0"
+	MessageBox MB_OK "Error when installing xraylib: $0. Aborting"
+	Abort "xraylib installation failed with error: $0"
+${Endif}
 
 !endif
 
