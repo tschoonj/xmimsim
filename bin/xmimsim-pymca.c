@@ -777,8 +777,8 @@ XMI_MAIN
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 	
 		g_fprintf(stdout,"Iteration: %i\n",i);
-		g_fprintf(stdout,"sum_k: %f\n",sum_k);
-		g_fprintf(stdout,"sum_l: %f\n",sum_l);
+		g_fprintf(stdout,"sum_k: %g\n",sum_k);
+		g_fprintf(stdout,"sum_l: %g\n",sum_l);
 
 
 	}
@@ -847,7 +847,7 @@ single_run:
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%f %f\n\n", xi->detector->zero, xi->detector->gain);
+				fprintf(outPtr,"%g %g\n\n", xi->detector->zero, xi->detector->gain);
 			fprintf(outPtr,"$DATA:\n");
 			fprintf(outPtr,"0\t%i\n",xp->nchannels-1);
 			for (j=0 ; j < xp->nchannels ; j++) {
@@ -892,10 +892,10 @@ single_run:
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_noconvPtr,"%i,%f",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_noconvPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_noconvPtr,",%f",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
 			}
 			fprintf(csv_noconvPtr,"\n");
 		}
@@ -905,10 +905,10 @@ single_run:
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
 		for (j=0 ; j < xp->nchannels ; j++) {
-			fprintf(csv_convPtr,"%i,%f",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_convPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_convPtr,",%f",channels_conv[i][j]);
+				fprintf(csv_convPtr,",%g",channels_conv[i][j]);
 			}
 			fprintf(csv_convPtr,"\n");
 		}

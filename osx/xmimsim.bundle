@@ -24,7 +24,7 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSA.icns</data>
-<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-3.0.tar.gz</data>
+<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-3.1.tar.gz</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/nsis/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>

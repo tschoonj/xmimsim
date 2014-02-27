@@ -220,10 +220,10 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		else {
 			int i;
 			for (i = 0 ; i < gen->excitation->n_continuous ; i++) {
-				fprintf(filePtr, "%lg     %lg\n", gen->excitation->continuous[i].energy, gen->excitation->continuous[i].horizontal_intensity*2.0);
+				fprintf(filePtr, "%g     %g\n", gen->excitation->continuous[i].energy, gen->excitation->continuous[i].horizontal_intensity*2.0);
 			}
 			for (i = 0 ; i < gen->excitation->n_discrete ; i++) {
-				fprintf(filePtr, "%lg     %lg\n", gen->excitation->discrete[i].energy, gen->excitation->discrete[i].horizontal_intensity*2.0);
+				fprintf(filePtr, "%g     %g\n", gen->excitation->discrete[i].energy, gen->excitation->discrete[i].horizontal_intensity*2.0);
 			}
 			fclose(filePtr);	
 		}
@@ -473,7 +473,7 @@ static void generate_spectrum(struct generate *gen) {
 			eff_y = g_realloc(eff_y, sizeof(double)*n_eff);
 			eff_x[n_eff-1] = energy;
 			eff_y[n_eff-1] = efficiency;
-			g_fprintf(stdout,"Efficiency: %lf -> %lf\n",energy,efficiency);
+			g_fprintf(stdout,"Efficiency: %f -> %f\n",energy,efficiency);
 		}
 		fclose(fp);
 		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
@@ -655,7 +655,7 @@ static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRende
 	}
 	else if (type == XMI_DISCRETE_GAUSSIAN || type == XMI_DISCRETE_LORENTZIAN) {
 		gtk_tree_model_get(tree_model,iter, SCALE_PARAMETER_COLUMN, &scale_parameter,-1);
-		text = g_strdup_printf("%lg", scale_parameter);
+		text = g_strdup_printf("%g", scale_parameter);
 	}
 
 	g_object_set(G_OBJECT(renderer), "text", text, NULL);
@@ -671,7 +671,7 @@ static void energy_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rend
 
 	gtk_tree_model_get(tree_model,iter, GPOINTER_TO_INT(data), &value,-1);
 
-	double_text = g_strdup_printf("%lg",value);
+	double_text = g_strdup_printf("%g",value);
 	g_object_set(G_OBJECT(renderer), "text", double_text, NULL);
 
 	g_free(double_text);
@@ -893,15 +893,23 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 		if (rv > 0) {
 			//success
 			g_fprintf(stdout,"File %s read in successfully\n",filename);
+
 			//now ask if we have to add or replace...
-			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
-			gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
-			GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
-			update_button_text(button, "Replace");
-			//this may not work on all platforms -> Mac OS X
-			gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
+			int rv2;
+			if ((kind == DISCRETE && current->xi->excitation->n_discrete > 0) ||
+				(kind == CONTINUOUS && current->xi->excitation->n_continuous > 0)) {
+				dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
+				gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
+				GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+				update_button_text(button, "Replace");
+				//this may not work on all platforms -> Mac OS X
+				gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
 		
-			int rv2 = gtk_dialog_run (GTK_DIALOG (dialog));
+				rv2 = gtk_dialog_run (GTK_DIALOG (dialog));
+			}
+			else {
+				rv2 = GTK_RESPONSE_CANCEL;
+			}
 			if (rv2 == GTK_RESPONSE_OK) {
 				//add	
 				int i;
@@ -1008,6 +1016,9 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 		}
 		else if (rv == -4) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Duplicate energies found in %s. The energies of the lines or intervals in the first column must be unique\n", filename);
+		}
+		else if (rv == -5) {
+			dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Intensity problem detected in %s. Two consecutive intensity densities cannot both have a total intensity of zero\n", filename);
 		}
 		g_free (filename);
 		gtk_dialog_run(GTK_DIALOG(dialog));
@@ -1378,7 +1389,7 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 #if DEBUG == 1
 	fprintf(stdout,"current_index: %i\n",current_index);
-	fprintf(stdout,"current discrete hor intensity: %lg\n",current->xi->excitation->discrete[0].horizontal_intensity);
+	fprintf(stdout,"current discrete hor intensity: %g\n",current->xi->excitation->discrete[0].horizontal_intensity);
 #endif
 
 	if (kind == DISCRETE) {
@@ -1822,19 +1833,19 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		//set values
 		if (discOrCont == DISCRETE) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%lg",energy_disc->energy);
+			sprintf(buffer,"%g",energy_disc->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->horizontal_intensity);
+			sprintf(buffer,"%g",energy_disc->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->vertical_intensity);
+			sprintf(buffer,"%g",energy_disc->vertical_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->ver_intensityEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->sigma_x);
+			sprintf(buffer,"%g",energy_disc->sigma_x);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->sigma_y);
+			sprintf(buffer,"%g",energy_disc->sigma_y);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_yEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->sigma_xp);
+			sprintf(buffer,"%g",energy_disc->sigma_xp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),buffer);
-			sprintf(buffer,"%lg",energy_disc->sigma_yp);
+			sprintf(buffer,"%g",energy_disc->sigma_yp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), energy_disc->distribution_type);
 			if (energy_disc->distribution_type == XMI_DISCRETE_MONOCHROMATIC) {
@@ -1843,14 +1854,14 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 				//gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 			}
 			else if (energy_disc->distribution_type == XMI_DISCRETE_GAUSSIAN){
-				sprintf(buffer,"%lg",energy_disc->scale_parameter);
+				sprintf(buffer,"%g",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
 				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Standard deviation (keV)");
 				gtk_widget_show_all(ew->scale_parameterBox);
 			}
 			else if (energy_disc->distribution_type == XMI_DISCRETE_LORENTZIAN){
-				sprintf(buffer,"%lg",energy_disc->scale_parameter);
+				sprintf(buffer,"%g",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
 				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Scale parameter (keV)");
@@ -1859,19 +1870,19 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (discOrCont == CONTINUOUS) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%lg",energy_cont->energy);
+			sprintf(buffer,"%g",energy_cont->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->horizontal_intensity);
+			sprintf(buffer,"%g",energy_cont->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->vertical_intensity);
+			sprintf(buffer,"%g",energy_cont->vertical_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->ver_intensityEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->sigma_x);
+			sprintf(buffer,"%g",energy_cont->sigma_x);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->sigma_y);
+			sprintf(buffer,"%g",energy_cont->sigma_y);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_yEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->sigma_xp);
+			sprintf(buffer,"%g",energy_cont->sigma_xp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),buffer);
-			sprintf(buffer,"%lg",energy_cont->sigma_yp);
+			sprintf(buffer,"%g",energy_cont->sigma_yp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 		}
 	}
@@ -2186,11 +2197,11 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf(stderr,"Syntax error in file %s at line %i\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read);
+				g_fprintf(stderr,"Syntax error in file %s at line %i after reading %u lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, (unsigned int) nxe, nlines);
 				return -3;
 		};
 		//ignore the useless lines
-		if (energy <= 0.0000000001 || energy > 200.0 || horizontal_intensity + vertical_intensity <= 0.000000001 || horizontal_intensity < -0.0000000001 || vertical_intensity < -0.0000000001) {
+		if (temp.energy <= 0.0000000001 || temp.energy > 200.0 || temp.horizontal_intensity + temp.vertical_intensity <= 0.000000001 || temp.horizontal_intensity < -0.0000000001 || temp.vertical_intensity < -0.0000000001) {
 			nlines--;
 			continue;
 		}
@@ -2202,17 +2213,20 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		}
 		else {
 			//make sure the value was not already in the list
+			struct xmi_energy_discrete *find_res;
 #ifdef G_OS_WIN32
-			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) == NULL) {
+			if((find_res = _lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL) 
 #else
-			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) == NULL) {
+			if((find_res = lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL) 
 #endif
+				{
 				xe = (struct xmi_energy_discrete *) realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
 				xe[nxe-1] = temp;
 			}
 			else  {
-				g_fprintf(stderr,"Duplicate energies found in %s\n", filename);
-				return -4;
+				g_fprintf(stderr,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
+				find_res->horizontal_intensity += temp.horizontal_intensity;	
+				find_res->vertical_intensity += temp.vertical_intensity;	
 			}
 		}
 		if (nxe == nlines) 
@@ -2223,6 +2237,12 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 	if (fclose(fp) != 0) {
 		g_fprintf(stderr,"Could not close file %s\n", filename);
 		return -2;
+	}
+
+
+	//sort
+	if (nxe > 1) {
+		qsort(xe, nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 	}
 
 	*energies = xe;
@@ -2296,12 +2316,12 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 				temp.energy = energy;
 				break;
 			default:
-				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %u lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, nxe, nlines);
+				g_fprintf (stderr,"Syntax error in file %s at line %i after reading %u lines of %i requested\nNumber of columns must be 2, 3 or 7!\n", filename, lines_read, (unsigned int) nxe, nlines);
 				return -3;
 		};
 
 		//ignore the useless lines
-		if (energy <= 0.0 || energy > 200.0 || horizontal_intensity + vertical_intensity < 0.0 || horizontal_intensity < 0.0 || vertical_intensity < 0.0) {
+		if (temp.energy <= 0.0 || temp.energy > 200.0 || temp.horizontal_intensity + temp.vertical_intensity < 0.0 || temp.horizontal_intensity < 0.0 || temp.vertical_intensity < 0.0) {
 			nlines--;
 			continue;
 		}
@@ -2315,10 +2335,11 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 		else {
 			//make sure the value was not already in the list
 #ifdef G_OS_WIN32
-			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) {
+			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) 
 #else
-			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) {
+			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL) 
 #endif
+				{
 				xe = (struct xmi_energy_continuous *) realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
 				xe[nxe-1] = temp;
 			}
@@ -2335,6 +2356,22 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 	if (fclose(fp) != 0) {
 		g_fprintf(stderr,"Could not close file %s\n", filename);
 		return -2;
+	}
+
+	//sort
+	if (nxe > 1) {
+		qsort(xe, nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+	}
+
+	if (nxe > 2) {
+		int i;
+		for (i = 0 ; i < nxe-1 ; i++) {
+			if (xe[i].horizontal_intensity + xe[i].vertical_intensity + xe[i+1].horizontal_intensity + xe[i+1].vertical_intensity == 0.0) {
+				g_fprintf(stderr, "Error: Two consecutive continuous intensity densities cannot both have a total intensity of zero\n");
+				return -5;
+					
+			}
+		}
 	}
 
 	*energies = xe;
@@ -2386,7 +2423,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
 	char buf[20];
-	sprintf(buf, "%lg", solid_angle);
+	sprintf(buf, "%g", solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(tubeSolidAngleW), buf);
 
 

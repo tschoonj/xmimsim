@@ -445,7 +445,7 @@ XMI_MAIN
 		zero_sum = xmi_sum_double(channelsdef, options.nchannels);
 
 #if DEBUG == 2
-		fprintf(stdout,"zero_sum: %f\n",zero_sum);
+		fprintf(stdout,"zero_sum: %g\n",zero_sum);
 #endif
 
 
@@ -455,7 +455,7 @@ XMI_MAIN
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
-			fprintf(stdout,"channel 223 contents unspoiled: %f\n",channelsdef[i*options.nchannels+222]);
+			fprintf(stdout,"channel 223 contents unspoiled: %g\n",channelsdef[i*options.nchannels+222]);
 
 #endif
 
@@ -528,7 +528,7 @@ XMI_MAIN
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%f %f\n\n", input->detector->zero, input->detector->gain);
+				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
 				for (j=0 ; j < options.nchannels ; j++) {
@@ -553,7 +553,7 @@ XMI_MAIN
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%f %f\n\n", input->detector->zero, input->detector->gain);
+				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
 				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
 				for (j=0 ; j < options.nchannels ; j++) {
@@ -573,10 +573,10 @@ XMI_MAIN
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
 			for (j=0 ; j < options.nchannels ; j++) {
-				fprintf(csv_noconvPtr,"%i,%f",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_noconvPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_noconvPtr,",%f",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
+					fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
 				}
 				fprintf(csv_noconvPtr,"\n");
 			}
@@ -586,10 +586,10 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < options.nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%f",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_convPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_convPtr,",%f",channels_conv[i][j]);
+					fprintf(csv_convPtr,",%g",channels_conv[i][j]);
 				}
 				fprintf(csv_convPtr,"\n");
 			}
