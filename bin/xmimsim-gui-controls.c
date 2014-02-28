@@ -35,8 +35,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <windows.h>
   #include "xmi_detector.h"
   #include "xmi_solid_angle.h"
-  typedef LONG (*pNtSuspendProcess )( HANDLE ProcessHandle );
-  typedef LONG (*pNtResumeProcess )( HANDLE ProcessHandle );
+  typedef LONG (NTAPI *pNtSuspendProcess )(IN HANDLE ProcessHandle );
+  typedef LONG (NTAPI *pNtResumeProcess )(IN HANDLE ProcessHandle );
   pNtSuspendProcess NtSuspendProcess = NULL;
   pNtResumeProcess NtResumeProcess = NULL;
 #endif
@@ -823,7 +823,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #ifdef G_OS_UNIX
 	kill_rv = kill((pid_t) xmimsim_pid, SIGSTOP);
 #elif defined(G_OS_WIN32)
-	kill_rv = (LONG) NtSuspendProcess(xmimsim_pid);
+	kill_rv = (int) NtSuspendProcess((HANDLE) xmimsim_pid);
 #endif
 	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n",(int) xmimsim_pid);
@@ -952,7 +952,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #ifdef G_OS_UNIX
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
 #elif defined(G_OS_WIN32)
-		kill_rv = (LONG) NtResumeProcess(xmimsim_pid);
+		kill_rv = (int) NtResumeProcess((HANDLE) xmimsim_pid);
 #endif
 		if (kill_rv == 0) {
 			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
@@ -1264,13 +1264,11 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 #endif
 	buttonbox = gtk_vbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
-#ifdef G_OS_UNIX
-	gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
-#endif
+	if (pauseButton)
+		gtk_box_pack_start(GTK_BOX(buttonbox), pauseButton, FALSE,FALSE,3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), stopButton, FALSE,FALSE,3);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
+	if (pauseButton)
+		gtk_widget_set_sensitive(pauseButton,FALSE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	hbox_controls = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(hbox_controls), buttonbox, FALSE, FALSE, 5);
