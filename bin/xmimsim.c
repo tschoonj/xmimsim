@@ -162,6 +162,9 @@ XMI_MAIN
 
 
 	setbuf(stdout,NULL);
+#ifdef G_OS_WIN32
+	setbuf(stderr,NULL);
+#endif
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
 

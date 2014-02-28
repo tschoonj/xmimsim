@@ -35,6 +35,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <windows.h>
   #include "xmi_detector.h"
   #include "xmi_solid_angle.h"
+  typedef LONG (*pNtSuspendProcess )( HANDLE ProcessHandle );
+  typedef LONG (*pNtResumeProcess )( HANDLE ProcessHandle );
+  pNtSuspendProcess NtSuspendProcess = NULL;
+  pNtResumeProcess NtResumeProcess = NULL;
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -73,7 +77,7 @@ GtkWidget *html_convB;
 GtkWidget *html_uconvW;
 
 GtkWidget *playButton;
-GtkWidget *pauseButton;
+GtkWidget *pauseButton = NULL;
 GtkWidget *stopButton;
 
 GtkWidget *controlsLogW;
@@ -386,9 +390,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
 	gtk_widget_set_sensitive(stopButton,FALSE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
+	if (pauseButton)
+		gtk_widget_set_sensitive(pauseButton,FALSE);
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
@@ -767,9 +770,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	g_free(wd);
 
 	xmimsim_paused=FALSE;
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,TRUE);
-#endif
+	if (pauseButton)
+		gtk_widget_set_sensitive(pauseButton,TRUE);
 	gtk_widget_set_sensitive(stopButton,TRUE);
 
 	cd = (struct child_data *) g_malloc(sizeof(struct child_data));
@@ -807,7 +809,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	
 }
 
-#ifdef G_OS_UNIX
 static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//UNIX only
 	
@@ -819,7 +820,11 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	gtk_widget_set_sensitive(pauseButton,FALSE);
 	gtk_widget_set_sensitive(stopButton,FALSE);
+#ifdef G_OS_UNIX
 	kill_rv = kill((pid_t) xmimsim_pid, SIGSTOP);
+#elif defined(G_OS_WIN32)
+	kill_rv = (LONG) NtSuspendProcess(xmimsim_pid);
+#endif
 	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
@@ -858,7 +863,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	
 
 }
-#endif
+
 static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//difference UNIX <-> Windows
 	//UNIX -> send sigkill signal
@@ -867,9 +872,8 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gboolean spinning;
 
 	gtk_widget_set_sensitive(stopButton,FALSE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(pauseButton,FALSE);
-#endif
+	if (pauseButton)
+		gtk_widget_set_sensitive(pauseButton,FALSE);
 	//g_io_channel_shutdown(xmimsim_stdout, FALSE, NULL);
 	//g_io_channel_shutdown(xmimsim_stderr, FALSE, NULL);
 	//g_io_channel_unref(xmimsim_stdout);
@@ -936,8 +940,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	fprintf(stdout,"paused: %i\n",xmimsim_paused);
 
-#ifdef G_OS_UNIX
-	if (xmimsim_paused == TRUE) {
+	if (pauseButton && xmimsim_paused == TRUE) {
 		gtk_widget_set_sensitive(playButton,FALSE);
 		//send SIGCONT	
 		int kill_rv;
@@ -946,7 +949,11 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 		g_timer_continue(timer);
 
+#ifdef G_OS_UNIX
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
+#elif defined(G_OS_WIN32)
+		kill_rv = (LONG) NtResumeProcess(xmimsim_pid);
+#endif
 		if (kill_rv == 0) {
 			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
@@ -980,7 +987,6 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		}
 		return;
 	}
-#endif
 
 	xmimsim_paused = FALSE;
 
@@ -1241,10 +1247,20 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	stopButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
 	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
-#ifdef G_OS_UNIX
-	pauseButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
-	g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
+#ifdef G_OS_WIN32 
+	HMODULE ntdll = LoadLibrary( "ntdll.dll" );
+	if (ntdll) {
+		NtSuspendProcess = (pNtSuspendProcess)GetProcAddress(ntdll, "NtSuspendProcess" );
+		NtResumeProcess = (pNtResumeProcess)GetProcAddress(ntdll, "NtResumeProcess" );
+		FreeLibrary(ntdll);
+		if (NtSuspendProcess != NULL && NtResumeProcess != NULL) {
+#endif
+			pauseButton = gtk_button_new();
+			gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
+			g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
+#ifdef G_OS_WIN32 
+		}
+	}
 #endif
 	buttonbox = gtk_vbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(buttonbox), playButton, FALSE,FALSE,3);
