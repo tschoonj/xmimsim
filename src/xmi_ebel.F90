@@ -206,7 +206,7 @@ sinfactor = sinalphae/sinalphax
 !determine number of intervals
 !set minimum energy equal to 1 keV
 ALLOCATE(ebel_spectrum_cont(FLOOR((tube_voltage-TUBE_MINIMUM_ENERGY)/tube_delta_energy,KIND=C_LONG)+1))
-IF (tube_voltage/tube_delta_energy /= INT(tube_voltage/tube_delta_energy)) THEN
+IF (tube_voltage/tube_delta_energy /= NINT(tube_voltage/tube_delta_energy)) THEN
         ALLOCATE(ebel_spectrum_cont_temp(SIZE(ebel_spectrum_cont)+1))
         ebel_spectrum_cont_temp(1:SIZE(ebel_spectrum_cont)) = ebel_spectrum_cont
         CALL MOVE_ALLOC(ebel_spectrum_cont_temp, ebel_spectrum_cont)

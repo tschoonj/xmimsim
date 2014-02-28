@@ -938,10 +938,10 @@ void xmi_print_layer(FILE *fPtr ,struct xmi_layer *layer, int n_layers) {
 	for (i = 0 ; i < n_layers ; i++) {
 		fprintf(fPtr,"Layer %i\n", i);
 		for (j = 0 ; j < layer[i].n_elements ; j++) {
-			fprintf(fPtr, "Z: %i -> weight: %lf\n",layer[i].Z[j],layer[i].weight[j]);
+			fprintf(fPtr, "Z: %i -> weight: %g\n",layer[i].Z[j],layer[i].weight[j]);
 		}
-		fprintf(fPtr, "density: %lf\n",layer[i].density);
-		fprintf(fPtr, "thickness: %lf\n",layer[i].thickness);
+		fprintf(fPtr, "density: %g\n",layer[i].density);
+		fprintf(fPtr, "thickness: %g\n",layer[i].thickness);
 	}
 	return;
 }
@@ -966,42 +966,43 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 
 	//geometry
 	fprintf(fPtr, "geometry\n");
-	fprintf(fPtr, "d_sample_source: %lf\n", input->geometry->d_sample_source);
-	fprintf(fPtr, "n_sample_orientation: %lf  %lf  %lf\n",input->geometry->n_sample_orientation[0],input->geometry->n_sample_orientation[1],input->geometry->n_sample_orientation[2]);
-	fprintf(fPtr, "p_detector_window: %lf  %lf  %lf\n",input->geometry->p_detector_window[0],input->geometry->p_detector_window[1],input->geometry->p_detector_window[2]);
-	fprintf(fPtr, "n_detector_orientation: %lf  %lf  %lf\n",input->geometry->n_detector_orientation[0],input->geometry->n_detector_orientation[1],input->geometry->n_detector_orientation[2]);
-	fprintf(fPtr, "area_detector: %lf\n",input->geometry->area_detector);
-	fprintf(fPtr, "collimator_height: %lf\n",input->geometry->collimator_height);
-	fprintf(fPtr, "collimator_diameter: %lf\n",input->geometry->collimator_diameter);
-	fprintf(fPtr, "d_source_slit: %lf\n",input->geometry->d_source_slit);
-	fprintf(fPtr, "slit_size_x: %lf\n",input->geometry->slit_size_x);
-	fprintf(fPtr, "slit_size_y: %lf\n",input->geometry->slit_size_y);
+	fprintf(fPtr, "d_sample_source: %g\n", input->geometry->d_sample_source);
+	fprintf(fPtr, "n_sample_orientation: %g  %g  %g\n",input->geometry->n_sample_orientation[0],input->geometry->n_sample_orientation[1],input->geometry->n_sample_orientation[2]);
+	fprintf(fPtr, "p_detector_window: %g  %g  %g\n",input->geometry->p_detector_window[0],input->geometry->p_detector_window[1],input->geometry->p_detector_window[2]);
+	fprintf(fPtr, "n_detector_orientation: %g  %g  %g\n",input->geometry->n_detector_orientation[0],input->geometry->n_detector_orientation[1],input->geometry->n_detector_orientation[2]);
+	fprintf(fPtr, "area_detector: %g\n",input->geometry->area_detector);
+	fprintf(fPtr, "collimator_height: %g\n",input->geometry->collimator_height);
+	fprintf(fPtr, "collimator_diameter: %g\n",input->geometry->collimator_diameter);
+	fprintf(fPtr, "d_source_slit: %g\n",input->geometry->d_source_slit);
+	fprintf(fPtr, "slit_size_x: %g\n",input->geometry->slit_size_x);
+	fprintf(fPtr, "slit_size_y: %g\n",input->geometry->slit_size_y);
 	fprintf(fPtr, "\n");
 
 	//excitation
 	fprintf(fPtr, "excitation\n");
 	fprintf(fPtr, "discrete\n");
 	for (i = 0 ; i < input->excitation->n_discrete ; i++) {
-		fprintf(fPtr, "Energy %i: %lf\n",i,input->excitation->discrete[i].energy);
-		fprintf(fPtr, "Horizontal intensity: %lf\n",input->excitation->discrete[i].horizontal_intensity);
-		fprintf(fPtr, "Vertical intensity: %lf\n",input->excitation->discrete[i].vertical_intensity);
-		fprintf(fPtr, "sigma_x: %lf\n",input->excitation->discrete[i].sigma_x);
-		fprintf(fPtr, "sigma_xp: %lf\n",input->excitation->discrete[i].sigma_xp);
-		fprintf(fPtr, "sigma_y: %lf\n",input->excitation->discrete[i].sigma_y);
-		fprintf(fPtr, "sigma_yp: %lf\n",input->excitation->discrete[i].sigma_yp);
+		fprintf(fPtr, "Energy %i: %g\n",i,input->excitation->discrete[i].energy);
+		fprintf(fPtr, "Horizontal intensity: %g\n",input->excitation->discrete[i].horizontal_intensity);
+		fprintf(fPtr, "Vertical intensity: %g\n",input->excitation->discrete[i].vertical_intensity);
+		fprintf(fPtr, "sigma_x: %g\n",input->excitation->discrete[i].sigma_x);
+		fprintf(fPtr, "sigma_xp: %g\n",input->excitation->discrete[i].sigma_xp);
+		fprintf(fPtr, "sigma_y: %g\n",input->excitation->discrete[i].sigma_y);
+		fprintf(fPtr, "sigma_yp: %g\n",input->excitation->discrete[i].sigma_yp);
 		fprintf(fPtr, "distribution_type: %i\n",input->excitation->discrete[i].distribution_type);
-		fprintf(fPtr, "scale_parameter: %lf\n",input->excitation->discrete[i].scale_parameter);
+		if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC)
+			fprintf(fPtr, "scale_parameter: %g\n",input->excitation->discrete[i].scale_parameter);
 	}
 
 	fprintf(fPtr, "continuous\n");
 	for (i = 0 ; i < input->excitation->n_continuous ; i++) {
-		fprintf(fPtr, "Energy %i: %lf\n",i,input->excitation->continuous[i].energy);
-		fprintf(fPtr, "Horizontal intensity: %lf\n",input->excitation->continuous[i].horizontal_intensity);
-		fprintf(fPtr, "Vertical intensity: %lf\n",input->excitation->continuous[i].vertical_intensity);
-		fprintf(fPtr, "sigma_x: %lf\n",input->excitation->continuous[i].sigma_x);
-		fprintf(fPtr, "sigma_xp: %lf\n",input->excitation->continuous[i].sigma_xp);
-		fprintf(fPtr, "sigma_y: %lf\n",input->excitation->continuous[i].sigma_y);
-		fprintf(fPtr, "sigma_yp: %lf\n",input->excitation->continuous[i].sigma_yp);
+		fprintf(fPtr, "Energy %i: %g\n",i,input->excitation->continuous[i].energy);
+		fprintf(fPtr, "Horizontal intensity: %g\n",input->excitation->continuous[i].horizontal_intensity);
+		fprintf(fPtr, "Vertical intensity: %g\n",input->excitation->continuous[i].vertical_intensity);
+		fprintf(fPtr, "sigma_x: %g\n",input->excitation->continuous[i].sigma_x);
+		fprintf(fPtr, "sigma_xp: %g\n",input->excitation->continuous[i].sigma_xp);
+		fprintf(fPtr, "sigma_y: %g\n",input->excitation->continuous[i].sigma_y);
+		fprintf(fPtr, "sigma_yp: %g\n",input->excitation->continuous[i].sigma_yp);
 	}
 	fprintf(fPtr, "\n");
 
@@ -1015,13 +1016,13 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	//detector
 	fprintf(fPtr, "Detector\n");
 	fprintf(fPtr, "detectortype: %i\n",input->detector->detector_type);
-	fprintf(fPtr, "gain: %lf\n", input->detector->gain);
-	fprintf(fPtr, "live_time: %lf\n", input->detector->live_time);
-	fprintf(fPtr, "pulse_width: %lf\n", input->detector->pulse_width);
-	fprintf(fPtr, "zero: %lf\n", input->detector->zero);
-	fprintf(fPtr, "fano: %lf\n", input->detector->fano);
-	fprintf(fPtr, "noise: %lf\n", input->detector->noise);
-	fprintf(fPtr, "max_convolution_energy: %lf\n", input->detector->max_convolution_energy);
+	fprintf(fPtr, "gain: %g\n", input->detector->gain);
+	fprintf(fPtr, "live_time: %g\n", input->detector->live_time);
+	fprintf(fPtr, "pulse_width: %g\n", input->detector->pulse_width);
+	fprintf(fPtr, "zero: %g\n", input->detector->zero);
+	fprintf(fPtr, "fano: %g\n", input->detector->fano);
+	fprintf(fPtr, "noise: %g\n", input->detector->noise);
+	fprintf(fPtr, "max_convolution_energy: %g\n", input->detector->max_convolution_energy);
 	fprintf(fPtr, "detector crystal\n");
 	xmi_print_layer(fPtr, input->detector->crystal_layers, input->detector->n_crystal_layers);
 	fprintf(fPtr, "\n");
