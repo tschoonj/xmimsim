@@ -197,7 +197,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 					interaction_loc = (int) strtol((char *) txt, NULL, 10);
 					xmlFree(txt);
 					txt = xmlNodeListGetString(doc,countsPtr->children,1);	
-					if (sscanf((const char*) txt, "%lf", &(channels_loc[interaction_loc][channel_loc])) !=1) {
+					if (sscanf((const char*) txt, "%lg", &(channels_loc[interaction_loc][channel_loc])) !=1) {
 						fprintf(stderr,"readSpectrumXML: could not read counts\n");
 						return 0;
 					}
@@ -253,7 +253,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 			}
 			else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 				txt =xmlNodeListGetString(doc,attr->children,1);
-				if(sscanf((const char *)txt,"%lf",&(history_loc[counter].total_counts)) != 1) {
+				if(sscanf((const char *)txt,"%lg",&(history_loc[counter].total_counts)) != 1) {
 					fprintf(stderr,"readHistoryXML: error reading in total_counts\n");
 					return 0;
 				}
@@ -283,7 +283,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
-					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].energy)) != 1) {
 						fprintf(stderr,"readHistoryXML: error reading in energy\n");
 						return 0;
 					}
@@ -291,7 +291,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
-					if(sscanf((const char *)txt,"%lf",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
 						fprintf(stderr,"readHistoryXML: error reading in total_counts lvl2\n");
 						return 0;
 					}
@@ -320,7 +320,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 					attr = attr->next;
 				}
 				txt = xmlNodeListGetString(doc,subcountsPtr->children,1);	
-				if (sscanf((const char*) txt, "%lf",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
+				if (sscanf((const char*) txt, "%lg",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
 					fprintf(stderr,"readHistoryXML: could not read counts\n");
 					return 0;
 				}
@@ -472,7 +472,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_sample_source")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_sample_source)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_sample_source)) != 1) {
 				fprintf(stderr,"error reading in d_sample_source of xml file\n");
 				return 0;
 			}
@@ -483,7 +483,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation x of xml file\n");
 						return 0;
 					}
@@ -491,7 +491,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
 						return 0;
 					}
@@ -499,7 +499,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_sample_orientation[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
 						return 0;
 					}
@@ -514,7 +514,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[0])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window x of xml file\n");
 						return 0;
 					}
@@ -522,7 +522,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[1])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
 						return 0;
 					}
@@ -530,7 +530,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->p_detector_window[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[2])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window z of xml file\n");
 						return 0;
 					}
@@ -544,7 +544,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[0])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation x of xml file\n");
 						return 0;
 					}
@@ -552,7 +552,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[1])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
 						return 0;
 					}
@@ -560,7 +560,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "z")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->n_detector_orientation[2])) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation z of xml file\n");
 						return 0;
 					}
@@ -571,7 +571,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "area_detector")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->area_detector)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->area_detector)) != 1) {
 				fprintf(stderr,"error reading in area_detector of xml file\n");
 				return 0;
 			}
@@ -579,7 +579,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_height")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_height)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_height)) != 1) {
 				fprintf(stderr,"error reading in collimator_height of xml file\n");
 				return 0;
 			}
@@ -587,7 +587,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "collimator_diameter")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->collimator_diameter)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_diameter)) != 1) {
 				fprintf(stderr,"error reading in collimator_diameter of xml file\n");
 				return 0;
 			}
@@ -595,7 +595,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "d_source_slit")){
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*geometry)->d_source_slit)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_source_slit)) != 1) {
 				fprintf(stderr,"error reading in d_source_slit of xml file\n");
 				return 0;
 			}
@@ -606,7 +606,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_x)) != 1) {
 						fprintf(stderr,"error reading in slit_size_x of xml file\n");
 						return 0;
 					}
@@ -614,7 +614,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&((*geometry)->slit_size_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_y)) != 1) {
 						fprintf(stderr,"error reading in slit_size_y of xml file\n");
 						return 0;
 					}
@@ -662,7 +662,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in discrete energy of xml file\n");
 						return 0;
 					}
@@ -670,7 +670,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -678,7 +678,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -686,7 +686,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -694,7 +694,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -702,7 +702,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -710,7 +710,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
@@ -731,7 +731,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeListGetString(doc,subsubnode->children,1);
-								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
 								}
@@ -742,7 +742,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeListGetString(doc,subsubnode->children,1);
-								if(sscanf((const char *)txt,"%lf",&scale_parameter) != 1) {
+								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
 								}
@@ -797,7 +797,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(energy)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in continuous energy of xml file\n");
 						return 0;
 					}
@@ -805,7 +805,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "horizontal_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(horizontal_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous horizontal_intensity of xml file\n");
 						return 0;
 					}
@@ -813,7 +813,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "vertical_intensity")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(vertical_intensity)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
 						return 0;
 					}
@@ -821,7 +821,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_x")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_x)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
 						return 0;
 					}
@@ -829,7 +829,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_xp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_xp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
 						return 0;
 					}
@@ -837,7 +837,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_y")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_y)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
 						return 0;
 					}
@@ -845,7 +845,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "sigma_yp")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",&(sigma_yp)) != 1) {
+					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
 						return 0;
 					}
@@ -999,7 +999,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "live_time")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->live_time)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->live_time)) != 1) {
 				fprintf(stderr,"error reading in live_time of xml file\n");
 				return 0;
 			}
@@ -1007,7 +1007,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "pulse_width")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->pulse_width)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->pulse_width)) != 1) {
 				fprintf(stderr,"error reading in pulse_width of xml file\n");
 				return 0;
 			}
@@ -1015,7 +1015,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "gain")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->gain)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->gain)) != 1) {
 				fprintf(stderr,"error reading in gain of xml file\n");
 				return 0;
 			}
@@ -1023,7 +1023,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "zero")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->zero)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->zero)) != 1) {
 				fprintf(stderr,"error reading in zero of xml file\n");
 				return 0;
 			}
@@ -1031,7 +1031,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "fano")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->fano)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->fano)) != 1) {
 				fprintf(stderr,"error reading in fano of xml file\n");
 				return 0;
 			}
@@ -1039,7 +1039,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "noise")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->noise)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->noise)) != 1) {
 				fprintf(stderr,"error reading in noise of xml file\n");
 				return 0;
 			}
@@ -1047,7 +1047,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "max_convolution_energy")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&((*detector)->max_convolution_energy)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&((*detector)->max_convolution_energy)) != 1) {
 				fprintf(stderr,"error reading in max_convolution_energy of xml file\n");
 				return 0;
 			}
@@ -1114,7 +1114,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 				}
 				else if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "weight_fraction")) {
 					txt = xmlNodeListGetString(doc,subsubnode->children,1);
-					if(sscanf((const char *)txt,"%lf",weight+n_elements-1) != 1) {
+					if(sscanf((const char *)txt,"%lg",weight+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in weight_fraction of xml file\n");
 						return 0;
 					}
@@ -1136,7 +1136,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "density")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&(layer->density)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&(layer->density)) != 1) {
 				fprintf(stderr,"error reading in density of xml file\n");
 				return 0;
 			}
@@ -1144,7 +1144,7 @@ static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer)
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "thickness")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lf",&(layer->thickness)) != 1) {
+			if(sscanf((const char *)txt,"%lg",&(layer->thickness)) != 1) {
 				fprintf(stderr,"error reading in thickness of xml file\n");
 				return 0;
 			}
@@ -2896,7 +2896,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value1")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lf", &ar->start_value1) !=1) {
+			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
 				return 0;
 			}
@@ -2904,7 +2904,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value1")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lf", &ar->end_value1) !=1) {
+			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
 				return 0;
 			}
@@ -2930,7 +2930,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lf", &ar->start_value2) !=1) {
+			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
 				return 0;
 			}
@@ -2938,7 +2938,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value2")) {
 			txt = xmlNodeListGetString(doc,subroot->children,1);	
-			if (sscanf((const char*) txt, "%lf", &ar->end_value2) !=1) {
+			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
 				return 0;
 			}

@@ -460,7 +460,7 @@ static void generate_spectrum(struct generate *gen) {
 			if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
 				continue;
 			}
-			values = sscanf(line,"%lf %lf", &energy, &efficiency);
+			values = sscanf(line,"%lg %lg", &energy, &efficiency);
 			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy < 1.0)) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
 				gtk_dialog_run(GTK_DIALOG(dialog));
@@ -2172,7 +2172,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		}
 		if (nlines == nxe)
 			break;
-		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
+		values = sscanf(line,"%lg %lg %lg %lg %lg %lg %lg", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
 		temp.sigma_x = 0.0;
 		temp.sigma_y = 0.0;
 		temp.sigma_xp = 0.0;
@@ -2293,7 +2293,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 		}
 		if (nlines == nxe)
 			break;
-		values = sscanf(line,"%lf %lf %lf %lf %lf %lf %lf", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
+		values = sscanf(line,"%lg %lg %lg %lg %lg %lg %lg", &energy, &horizontal_intensity, &vertical_intensity, &sigma_x, &sigma_y, &sigma_xp, &sigma_yp);
 		temp.sigma_x = 0.0;
 		temp.sigma_y = 0.0;
 		temp.sigma_xp = 0.0;
