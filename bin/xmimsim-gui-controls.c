@@ -37,8 +37,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_solid_angle.h"
   typedef LONG (NTAPI *pNtSuspendProcess )(IN HANDLE ProcessHandle );
   typedef LONG (NTAPI *pNtResumeProcess )(IN HANDLE ProcessHandle );
-  pNtSuspendProcess NtSuspendProcess = NULL;
-  pNtResumeProcess NtResumeProcess = NULL;
+  static pNtSuspendProcess NtSuspendProcess = NULL;
+  static pNtResumeProcess NtResumeProcess = NULL;
 #endif
 
 #ifdef MAC_INTEGRATION

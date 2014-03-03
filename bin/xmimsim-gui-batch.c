@@ -47,6 +47,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define getpid GetCurrentProcessId
 #endif
 
+#if defined(G_OS_WIN32)
+  #include <windows.h>
+  #include "xmi_detector.h"
+  #include "xmi_solid_angle.h"
+  typedef LONG (NTAPI *pNtSuspendProcess )(IN HANDLE ProcessHandle );
+  typedef LONG (NTAPI *pNtResumeProcess )(IN HANDLE ProcessHandle );
+  static pNtSuspendProcess NtSuspendProcess = NULL;
+  static pNtResumeProcess NtResumeProcess = NULL;
+#endif
+
+
+
 struct canvas_data {
 	double width;
 	double height;
