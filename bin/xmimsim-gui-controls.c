@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <sys/types.h>
   #include <sys/wait.h>
   #include <signal.h>
+  #define real_xmimsim_pid ((int) xmimsim_pid)
 #elif defined(G_OS_WIN32)
   #include <windows.h>
   #include "xmi_detector.h"
@@ -39,7 +40,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   typedef LONG (NTAPI *pNtResumeProcess )(IN HANDLE ProcessHandle );
   static pNtSuspendProcess NtSuspendProcess = NULL;
   static pNtResumeProcess NtResumeProcess = NULL;
+  #define real_xmimsim_pid ((int) GetProcessId(xmimsim_pid))
 #endif
+
+
+
 
 #ifdef MAC_INTEGRATION
 #include <gtkosxapplication.h>
@@ -313,7 +318,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
-			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
+			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_error_free(pipe_error);
 			return FALSE;
@@ -351,7 +356,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
 		if (pipe_status == G_IO_STATUS_ERROR) {
-			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, (int) xmimsim_pid,pipe_error->message);
+			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_error_free(pipe_error);
 			return FALSE;
@@ -399,35 +404,35 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #ifdef G_OS_UNIX
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) == 0) { /* child was terminated due to a call to exit */
-			sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
+			sprintf(buffer,"%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 			success = 1;
 		}
 		else {
-			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, WEXITSTATUS(status));
+			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, WEXITSTATUS(status));
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			success = 0;
 		}
 	}
 	else if (WIFSIGNALED(status)) { /* child was terminated due to a signal */
-		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",data, (int) xmimsim_pid, WTERMSIG(status));
+		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",data, real_xmimsim_pid, WTERMSIG(status));
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 	else {
-		sprintf(buffer, "%s with process id %i was terminated in some special way\n",data, (int) xmimsim_pid);
+		sprintf(buffer, "%s with process id %i was terminated in some special way\n",data, real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 
 #elif defined(G_OS_WIN32)
 	if (status == 0) {
-		sprintf(buffer,"%s with process id %i exited normally without errors\n", data, (int) xmimsim_pid);
+		sprintf(buffer,"%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 		success = 1;
 	}
 	else {
-		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, (int) xmimsim_pid, status);
+		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, status);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
@@ -765,7 +770,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		xmimsim_pid = (GPid) -1;
 		return;
 	}
-	sprintf(buffer,"%s was started with process id %i\n",argv[0],(int)xmimsim_pid);
+	sprintf(buffer,"%s was started with process id %i\n",argv[0], real_xmimsim_pid);
 	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
 	g_free(wd);
 
@@ -826,7 +831,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	kill_rv = (int) NtSuspendProcess((HANDLE) xmimsim_pid);
 #endif
 	if (kill_rv == 0) {
-		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 		xmimsim_paused=TRUE;
 		gtk_widget_set_sensitive(stopButton,TRUE);
@@ -854,7 +859,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 	else {
 		g_timer_continue(timer);
-		sprintf(buffer, "Process %i could not be paused.\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i could not be paused.\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		xmimsim_paused=FALSE;
 		gtk_widget_set_sensitive(pauseButton,TRUE);
@@ -895,11 +900,11 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
-		sprintf(buffer, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i was successfully terminated before completion\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
-		sprintf(buffer, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i could not be terminated with the SIGTERM signal\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 
@@ -909,11 +914,11 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	terminate_rv = TerminateProcess((HANDLE) xmimsim_pid, (UINT) 1);
 
 	if (terminate_rv == TRUE) {
-		sprintf(buffer, "Process %i was successfully terminated\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i was successfully terminated\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
-		sprintf(buffer, "Process %i could not be terminated with the TerminateProcess call\n",(int) xmimsim_pid);
+		sprintf(buffer, "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 #endif
@@ -955,7 +960,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		kill_rv = (int) NtResumeProcess((HANDLE) xmimsim_pid);
 #endif
 		if (kill_rv == 0) {
-			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
+			sprintf(buffer, "Process %i was successfully resumed\n", real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 			gtk_widget_set_sensitive(pauseButton,TRUE);
 			xmimsim_paused = FALSE;
@@ -981,7 +986,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 		}
 		else {
-			sprintf(buffer, "Process %i could not be resumed\n",(int) xmimsim_pid);
+			sprintf(buffer, "Process %i could not be resumed\n", real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			gtk_widget_set_sensitive(playButton,TRUE);
 		}
