@@ -109,7 +109,7 @@ xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc 
 xmimsim_gui_LDADD += xmimsim-icon.o
 nodist_xmimsim_gui_SOURCES = xmimsim-gui-icons.h
-xmimsim_gui_CFLAGS += -I$(builddir)
+xmimsim_gui_CFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
 
 if ENABLE_MAC_APP
