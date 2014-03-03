@@ -76,9 +76,7 @@ struct batch_window_data {
 	GtkWidget *batch_window;
 	GtkWidget *playButton;
 	GtkWidget *stopButton;
-#ifdef G_OS_UNIX
 	GtkWidget *pauseButton;
-#endif
 	GtkWidget *nthreadsW;
 	GtkWidget *progressbarW;
 	GtkWidget *controlsLogW;
@@ -1108,9 +1106,9 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 	bwd->paused=FALSE;
 
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
-#endif
+	if (bwd->pauseButton)
+		gtk_widget_set_sensitive(bwd->pauseButton,TRUE);
+
 	gtk_widget_set_sensitive(bwd->stopButton,TRUE);
 
 	GIOChannel *xmimsim_stdout;
@@ -1263,8 +1261,7 @@ static void play_button_clicked(GtkButton *playButton, struct batch_window_data 
 	char buffer[512];
 
 	//first deal with the pause case
-#ifdef G_OS_UNIX
-	if (bwd->paused) {
+	if (bwd->pauseButton && bwd->paused) {
 		gtk_widget_set_sensitive(bwd->playButton, FALSE);
 		//send SIGCONT	
 		int kill_rv;
@@ -1272,7 +1269,11 @@ static void play_button_clicked(GtkButton *playButton, struct batch_window_data 
 		gboolean spinning;
 		g_timer_continue(bwd->timer);
 
+#ifdef G_OS_UNIX
 		kill_rv = kill((pid_t) xmimsim_pid, SIGCONT);
+#elif defined(G_OS_WIN32)
+		kill_rv = (int) NtResumeProcess((HANDLE) xmimsim_pid);
+#endif
 		if (kill_rv == 0) {
 			sprintf(buffer, "Process %i was successfully resumed\n",(int) xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
@@ -1294,7 +1295,6 @@ static void play_button_clicked(GtkButton *playButton, struct batch_window_data 
 		}
 		return;
 	}
-#endif
 	bwd->paused = FALSE;
 
 	//start_job
@@ -1336,9 +1336,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 
 	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
-#endif
+	if (bwd->pauseButton)
+		gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
@@ -1469,9 +1468,10 @@ static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data 
 	gboolean spinning;
 
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
-#ifdef G_OS_UNIX
-	gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
-#endif
+
+	if (bwd->pauseButton)
+		gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
+
 	//set buttons back in order
 	bwd->paused = FALSE;
 #ifdef G_OS_UNIX
@@ -1516,7 +1516,6 @@ static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data 
 	return;
 }
 
-#ifdef G_OS_UNIX
 static void pause_button_clicked(GtkButton *pauseButton, struct batch_window_data *bwd) {
 	//UNIX only
 	
@@ -1528,7 +1527,11 @@ static void pause_button_clicked(GtkButton *pauseButton, struct batch_window_dat
 
 	gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
+#ifdef G_OS_UNIX
 	kill_rv = kill((pid_t) xmimsim_pid, SIGSTOP);
+#elif defined(G_OS_WIN32)
+	kill_rv = (int) NtSuspendProcess((HANDLE) xmimsim_pid);
+#endif
 	if (kill_rv == 0) {
 		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n",(int) xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
@@ -1540,7 +1543,6 @@ static void pause_button_clicked(GtkButton *pauseButton, struct batch_window_dat
 	}
 
 }
-#endif
 
 static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	union xmimsim_prefs_val xpv;
@@ -2321,12 +2323,23 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	bwd->playButton = playButton;
 	gtk_box_pack_start(GTK_BOX(hbox), playButton, FALSE, FALSE, 2);
 
-#ifdef G_OS_UNIX
-	GtkWidget *pauseButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
-	bwd->pauseButton = pauseButton;
-	gtk_box_pack_start(GTK_BOX(hbox), pauseButton, FALSE, FALSE, 2);
-	gtk_widget_set_sensitive(pauseButton, FALSE);
+	bwd->pauseButton = NULL;	
+#ifdef G_OS_WIN32 
+	HMODULE ntdll = LoadLibrary( "ntdll.dll" );
+	if (ntdll) {
+		NtSuspendProcess = (pNtSuspendProcess)GetProcAddress(ntdll, "NtSuspendProcess" );
+		NtResumeProcess = (pNtResumeProcess)GetProcAddress(ntdll, "NtResumeProcess" );
+		FreeLibrary(ntdll);
+		if (NtSuspendProcess != NULL && NtResumeProcess != NULL) {
+#endif
+			GtkWidget *pauseButton = gtk_button_new();
+			gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
+			bwd->pauseButton = pauseButton;
+			gtk_box_pack_start(GTK_BOX(hbox), pauseButton, FALSE, FALSE, 2);
+			gtk_widget_set_sensitive(pauseButton, FALSE);
+#ifdef G_OS_WIN32 
+		}
+	}
 #endif
 
 	GtkWidget *stopButton = gtk_button_new();
@@ -2423,9 +2436,8 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	g_signal_connect(G_OBJECT(exitButton), "clicked", G_CALLBACK(batch_window_exit), (gpointer) bwd);
 	g_signal_connect(G_OBJECT(playButton), "clicked", G_CALLBACK(play_button_clicked), (gpointer) bwd);
 	g_signal_connect(G_OBJECT(stopButton), "clicked", G_CALLBACK(stop_button_clicked), (gpointer) bwd);
-#ifdef G_OS_UNIX
-	g_signal_connect(G_OBJECT(pauseButton), "clicked", G_CALLBACK(pause_button_clicked), (gpointer) bwd);
-#endif
+	if (bwd->pauseButton)
+		g_signal_connect(G_OBJECT(bwd->pauseButton), "clicked", G_CALLBACK(pause_button_clicked), (gpointer) bwd);
 	bwd->paused = FALSE;
 	bwd->logFile = NULL;
 	gtk_widget_show_all(batch_window);
