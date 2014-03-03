@@ -815,7 +815,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int rv = 0;
 	gchar **elements, **lines;
 	gsize n_elements, n_lines;
-	GError *error;
+	GError *error = NULL;
 	int i, Z, j;
 	int K_found, Ka_found, Kb_found, L_found, L1_found, L2_found, L3_found;
 	int use_K, use_L;
