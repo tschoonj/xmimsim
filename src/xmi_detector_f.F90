@@ -161,8 +161,8 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         CALL fgsl_rng_free(rng) 
 
 
-     !bug in fgsl
-     !CALL fgsl_ran_discrete_free(preproc)
+     !bug in fgsl -> fixed it in 1.0.0
+     CALL fgsl_ran_discrete_free(preproc)
 
 #if DEBUG == 1
         WRITE (6,'(A,I)') 'Nt_long: ',Nt_long
