@@ -475,7 +475,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	GtkWidget *vbox = gtk_vbox_new(FALSE, 2);
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), vbox);
 	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), vbox, GTK_ASSISTANT_PAGE_CONTENT);
-	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), vbox, "Parameter range and file names");
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), vbox, "Select parameter ranges and file location");
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), vbox, TRUE);
 	GtkWidget *hbox, *label;
 
@@ -846,7 +846,7 @@ static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path
 
 static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
-	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select the variable parameter", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select one or two variable parameters", GTK_WINDOW(window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *scrolled_window = get_inputfile_treeview(input, 1);
 
 
@@ -1854,7 +1854,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Select one or more files", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	GtkWidget *label = gtk_label_new("If one file is selected then a batch of files will be created based on this file with one variable parameter. Selecting multiple files will result in all these files being executed.");
+	GtkWidget *label = gtk_label_new("If one file is selected then a batch of files will be created based on this file with one or two variable parameters. Selecting multiple files will result in all the selected files being executed.");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);	
 	GtkFileFilter *filter = gtk_file_filter_new();
