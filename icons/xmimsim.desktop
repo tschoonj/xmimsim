@@ -5,6 +5,6 @@ Comment=A tool to predict the spectral XRF response of a sample when irradiated 
 Exec=xmimsim-gui %f
 Terminal=false
 Type=Application
-Categories=Education;Science;Physics;
+Categories=Science;Education;Physics;
 Icon=Logo_xmi_msim
 MimeType=application/x-xmimsim-xmsi;application/x-xmimsim-xmso;application/x-xmimsim-xmsa
