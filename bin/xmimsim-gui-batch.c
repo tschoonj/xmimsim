@@ -4604,11 +4604,15 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps1+1);
 	double real_ymin = xmi_minval_double(y,apd->archive->nsteps1+1);
 
-	double plot_ymax = real_ymax + (real_ymax-real_ymin)/10.0;
-	double plot_ymin = real_ymin - (real_ymax-real_ymin)/10.0;
-	double plot_xmin = x[0] - (x[apd->archive->nsteps1]-x[0])/10.0;
-	double plot_xmax = x[apd->archive->nsteps1] + (x[apd->archive->nsteps1]-x[0])/10.0;
+	double plot_ymax = 0.95*(real_ymax-real_ymin)/0.9 + real_ymin;
+	double plot_ymin = -0.05*(real_ymax-real_ymin)/0.9 + real_ymin;
+	double plot_xmin = -0.05*(x[apd->archive->nsteps1]-x[0])/0.9 + x[0];
+	double plot_xmax = 0.95*(x[apd->archive->nsteps1]-x[0])/0.9 + x[0];
 
+	if (x[0] >= 0) {
+		plot_xmin = MAX(0, plot_xmin);
+	}
+	plot_ymin = MAX(0, plot_ymin);
 
 	if (real_ymax == 0.0) {
 		//if y is zero everywhere
@@ -4630,6 +4634,20 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		tickstep /= 5.0;
 	}
 
+	double tickstep2 = 1E-10;
+	double nticks2 = floor((plot_xmax-plot_xmin)/tickstep2);
+
+	while (nticks2 < 1 || nticks2 >= 10) {
+		tickstep2 *= 10.0;
+		nticks2 = floor((plot_xmax-plot_xmin)/tickstep2);
+	} 
+
+	if (nticks2 == 1.0) {
+		tickstep2 /= 5.0;
+	}
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep2,5);
+
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_linearW))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_linearW)))) {
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
@@ -4637,22 +4655,9 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	}
 	else {
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
-		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, MIN(real_ymin, 1.0), real_ymax*1.2);
+		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
 	}
 
-	tickstep = 1E-10;
-	nticks = floor((plot_xmax-plot_xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = floor((plot_xmax-plot_xmin)/tickstep);
-	} 
-
-	if (nticks == 1.0) {
-		tickstep /= 5.0;
-	}
-
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep,5);
 
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
