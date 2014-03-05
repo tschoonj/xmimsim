@@ -490,8 +490,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
-	Pabs_a = 1.0 - exp(-1.0*sum);
-	myln = -1.0*log(1.0-R1*Pabs_a);
+	Pabs_a = -1.0*expm1(-1.0*sum);
+	myln = -1.0*log1p(-1.0*R1*Pabs_a);
 
 	sum=0.0;
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
@@ -525,8 +525,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
-	Pabs_a = 1.0 - exp(-1.0*sum);
-	myln = -1.0*log(1.0-R2*Pabs_a);
+	Pabs_a = -1.0*expm1(-1.0*sum);
+	myln = -1.0*log1p(-1.0*R2*Pabs_a);
 
 	sum=0.0;
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
@@ -563,8 +563,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
-	Pabs_b = 1.0 - exp(-1.0*sum);
-	myln = -1.0*log(1.0-R1*Pabs_b);
+	Pabs_b = -1.0*expm1(-1.0*sum);
+	myln = -1.0*log1p(-1.0*R1*Pabs_b);
 
 #if DEBUG == 1
 	g_fprintf(stdout,"S1 Pabs_b: %lf\n", Pabs_b);
@@ -608,8 +608,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
-	Pabs_b = 1.0 - exp(-1.0*sum);
-	myln = -1.0*log(1.0-R2*Pabs_b);
+	Pabs_b = -1.0*expm1(-1.0*sum);
+	myln = -1.0*log1p(-1.0*R2*Pabs_b);
 #if DEBUG == 1
 	g_fprintf(stdout,"S2 Pabs_b: %lf\n", Pabs_b);
 	g_fprintf(stdout,"S2 myln: %lf\n", myln);
@@ -1194,14 +1194,14 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 		OPENCL_ERROR(clGetProgramBuildInfo)
 	
 		// Allocate memory for the log
-		char *log = (char *) malloc(log_size+1);
+		char *my_log = (char *) malloc(log_size+1);
 		
 	        // Get the log
-		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, my_log, NULL);
 		OPENCL_ERROR(clGetProgramBuildInfo)
 		
 		// Print the log
-		g_fprintf(stderr, "%s\n", log);
+		g_fprintf(stderr, "%s\n", my_log);
 		return 0;;
 	}
 	//else {

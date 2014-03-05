@@ -570,6 +570,20 @@ SUBROUTINE xmi_free(ptr) BIND(C,NAME='xmi_free')
         TYPE (C_PTR), VALUE, INTENT(IN) :: ptr
 ENDSUBROUTINE xmi_free
 
+FUNCTION log1p(x) BIND(C,NAME='log1p') RESULT(rv)
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        REAL (C_DOUBLE), VALUE, INTENT(IN) :: x
+        REAL (C_DOUBLE) :: rv
+ENDFUNCTION log1p
+
+FUNCTION expm1(x) BIND(C,NAME='expm1') RESULT(rv)
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        REAL (C_DOUBLE), VALUE, INTENT(IN) :: x
+        REAL (C_DOUBLE) :: rv
+ENDFUNCTION expm1
+
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)

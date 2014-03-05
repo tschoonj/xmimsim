@@ -889,11 +889,11 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         i*inputF%detector%gain+inputF%detector%zero)) 
                 ENDDO
                 DO j=1,inputF%detector%n_crystal_layers
-                        det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+                        det_corr = -1.0*det_corr * expm1(-1.0_C_DOUBLE*&
                         inputF%detector%crystal_layers(j)%density*&
                         inputF%detector%crystal_layers(j)%thickness*&
                         xmi_mu_calc(inputF%detector%crystal_layers(j),&
-                        i*inputF%detector%gain+inputF%detector%zero)) )
+                        i*inputF%detector%gain+inputF%detector%zero))
                 ENDDO
                 channels(:,i) = channels(:,i)*det_corr
         ENDDO
@@ -1148,6 +1148,8 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         TYPE (xmi_plane) :: plane
         INTEGER :: i
 
+        photon%current_layer = 0
+
         IF (photon%coords(3) .GE. &
         composition%layers(1)%Z_coord_begin) THEN
                 DO i=1,composition%n_layers
@@ -1157,6 +1159,11 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
                                 RETURN
                         ENDIF
                 ENDDO
+                IF (photon%current_layer .EQ. 0) THEN
+                        WRITE (error_unit,'(A)') 'current layer equal 0'
+                        WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
+                        CALL EXIT(1)
+                ENDIF
         ENDIF
 
         !Calculate intersection of photon trajectory with plane of first layer
@@ -1203,7 +1210,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         INTEGER (C_INT) :: rv_interaction, rv_check
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: distances, r_random_layer
         REAL (C_DOUBLE) :: r_random_layer_sum
-        REAL (C_DOUBLE) :: Pabs, negln, my_sum,temp_sum, temp_prod
+        REAL (C_DOUBLE) :: Pabs, Pabs2, negln, my_sum,temp_sum, temp_prod
         INTEGER :: my_index
 
         rv = 0
@@ -1323,11 +1330,11 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 temp_prod=-1.0_C_DOUBLE*dist*&
                                 inputF%composition%layers(i)%density*&
                                 photon%mus(i)
-                                tempexp = EXP(temp_prod)
+                                !tempexp = EXP(temp_prod)
 
                                 min_random_layer = max_random_layer 
-                                max_random_layer = max_random_layer + blbs*(&
-                                1.0_C_DOUBLE - tempexp)
+                                max_random_layer = max_random_layer - blbs*expm1(temp_prod)
+
                                 !dist here must be total dist: from previous interaction
                                 !until current layer
                        
@@ -1353,7 +1360,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 IF (interactionR .LE. max_random_layer) THEN
                                         !interaction occurs in this layer!!!
                                         !update coordinates of photon
-                                        dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
+                                        !dist = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE-(interactionR-&
+                                        !min_random_layer)/blbs)&
+                                        dist = -1.0_C_DOUBLE*log1p(-1.0*(interactionR-&
                                         min_random_layer)/blbs)&
                                         /photon%mus(i)/inputF%composition%layers(i)%density
                                         temp_coords=photon%coords
@@ -1446,12 +1455,15 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 Pabs = Pabs + photon%mus(i)*inputF%composition%layers(i)%density*distances(i)
                         ENDDO
 
-                        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*Pabs)
-                        photon%weight = photon%weight * Pabs
+                        !precision problems arise when using very very thin
+                        !layers
+                        !Pabs2 = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*Pabs)
+                        Pabs2 = -1.0*expm1(-1.0_C_DOUBLE*Pabs)
+                        photon%weight = photon%weight * Pabs2
 
 
 
-                        negln = -1.0_C_DOUBLE*LOG(1.0_C_DOUBLE - interactionR*Pabs)
+                        negln = -1.0_C_DOUBLE*log1p(-1.0*interactionR*Pabs2)
 
                         my_index = 0
                         my_sum = 0.0_C_DOUBLE
@@ -1466,6 +1478,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         WRITE (*,'(A,F12.4)') 'my_sum: ',my_sum
                         WRITE (*,'(A,F12.4)') 'negln: ',negln
 #endif
+
+                        IF (my_index .EQ. 0 .OR. my_index .GT.&
+                        inputF%composition%n_layers) THEN
+                          WRITE(error_unit,'(A)') 'Invalid current_layer detected'
+                          WRITE(error_unit,'(A,I3)') 'current_layer: ', my_index
+                          CALL EXIT(1)
+                        ENDIF
+
                         temp_sum = 0.0_C_DOUBLE
                         DO i=photon%current_layer,my_index, step_do_dir
                                 temp_sum = temp_sum + (1.0_C_DOUBLE-(photon%mus(i)*&
@@ -1473,12 +1493,12 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 inputF%composition%layers(my_index)%density)))*distances(i)
                         ENDDO
 
-                        temp_sum = temp_sum - 1.0_C_DOUBLE*LOG(1.0_C_DOUBLE -&
-                        interactionR*Pabs)/(photon%mus(my_index)*&
+                        temp_sum = temp_sum - 1.0_C_DOUBLE*log1p(-1.0_C_DOUBLE*&
+                        interactionR*Pabs2)/(photon%mus(my_index)*&
                         inputF%composition%layers(my_index)%density)
                         CALL xmi_move_photon_with_dist(photon,temp_sum)
 #if DEBUG == 1
-                        WRITE (*,'(A,F12.4)') 'Pabs: ',Pabs
+                        WRITE (*,'(A,F12.4)') 'Pabs2: ',Pabs2
                         WRITE (*,'(A,I2)') 'my_index: ',my_index
                         WRITE (*,'(A,F12.4)') 'temp_sum: ', temp_sum
                         WRITE (*,'(A,F12.4)') 'negln: ', negln

@@ -113,8 +113,8 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
                 inputF%composition%layers(i)%thickness_along_Z
         ENDDO
-        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R1*Pabs)
+        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * log1p(-1.0*R1*Pabs)
 
 #if DEBUG == 1
         WRITE (6, '(A, ES14.5)') 'S1 Pabs: ',Pabs
@@ -175,8 +175,8 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
                 inputF%composition%layers(i)%thickness_along_Z
         ENDDO
-        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R2*Pabs)
+        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * log1p(-1.0*R2*Pabs)
 
 #if DEBUG == 1
         WRITE (6, '(A, ES14.5)') 'S2 Pabs: ',Pabs
@@ -338,8 +338,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
                 inputF%composition%layers(i)%thickness_along_Z
         ENDDO
-        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R1*Pabs)
+        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * log1p(-1.0_C_DOUBLE*R1*Pabs)
 
 #if DEBUG == 1
         WRITE (6, '(A, ES14.5)') 'S1 Pabs: ',Pabs
@@ -400,8 +400,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
                 my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
                 inputF%composition%layers(i)%thickness_along_Z
         ENDDO
-        Pabs = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * LOG(1.0_C_DOUBLE-R2*Pabs)
+        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
+        myln = -1.0_C_DOUBLE * log1p(-1.0_C_DOUBLE*R2*Pabs)
 
 #if DEBUG == 1
         WRITE (6, '(A, ES14.5)') 'S2 Pabs: ',Pabs

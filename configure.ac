@@ -242,6 +242,8 @@ AC_CHECK_FUNC(strrchr,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(expm1,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
 AC_CHECK_FUNCS_ONCE([getdelim getline])
 
