@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_DATA_H
 #define XMI_DATA_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void* xmi_hdf5FPtr;
 
 //returns 1 on success; 0 on error
@@ -39,4 +43,7 @@ int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
 
 #define XMI_DATA_MIN_VERSION 2.8
 
+#ifdef __cplusplus
+}
+#endif
 #endif

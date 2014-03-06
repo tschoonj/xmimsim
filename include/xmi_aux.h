@@ -26,6 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <libxml/xmlversion.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #ifndef HAVE_GETLINE
@@ -140,4 +143,7 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 
 int xmi_get_hdf5_kind(char *name);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
