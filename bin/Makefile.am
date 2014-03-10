@@ -29,7 +29,8 @@ bin_PROGRAMS =  xmimsim \
 		xmso2spe \
 		xmso2csv \
 		xmso2htm \
-		xmso2xmsi
+		xmso2xmsi \
+		xmsi2xrmc
 
 #bin_PROGRAMS += xmimsim-test-ebel \
 #		xmimsim-test-boone1 \
@@ -168,6 +169,14 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+
+xmsi2xrmc_SOURCES = xmsi2xrmc.c
+xmsi2xrmc_LDADD = ../src/libxmimsim.la \
+		  @GTK_MAC_LIBS@ \
+		  @glib2_LIBS@
+xmsi2xrmc_CFLAGS = @glib2_CFLAGS@ \
+		   @xml2_CFLAGS@ \
+		   @xraylib_CFLAGS@ 
 
 
 xmso2xmsi_SOURCES = xmso2xmsi.c

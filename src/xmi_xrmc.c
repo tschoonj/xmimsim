@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ static char *xmi_convert_xrmc_path(char *path) {
 		else {
 			new_path = realloc(new_path, sizeof(char)*(j+2));
 			new_path[j] = path[i];
+			new_path[j+1] = '\0';
 			j += 1;
 		}
 	}
@@ -178,9 +179,9 @@ static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *in
 	fprintf(filePtr, "CompName Composition\n");
 	fprintf(filePtr, "WeightedStepLength 0\n");
 	fprintf(filePtr, "FluorFlag 1\n");
-	fprintf(filePtr, "ScatterOrderNum %i\n", input->general->n_interactions_trajectory);
+	fprintf(filePtr, "ScattOrderNum %i\n", input->general->n_interactions_trajectory);
 	fprintf(filePtr, "0\n");
-	for (i = 1 ; i < input->general->n_interactions_trajectory ; i++) {
+	for (i = 1 ; i <= input->general->n_interactions_trajectory ; i++) {
 		fprintf(filePtr, "%i\n", 1);
 	}
 
@@ -236,9 +237,9 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	int reference_layer = input->composition->reference_layer-1;
 	int counter = 0;
 
-	fprintf(filePtr, "Plane_Lower_%i\n", counter);
+	fprintf(filePtr, "Plane Lower_%i\n", counter);
 	fprintf(filePtr, "0 %g 0 %g %g %g\n", input->geometry->d_sample_source, lower_normal[0], lower_normal[1], lower_normal[2]);
-	fprintf(filePtr, "Plane_Higher_%i\n", counter);
+	fprintf(filePtr, "Plane Higher_%i\n", counter);
 	fprintf(filePtr, "%g %g %g %g %g %g\n", input->composition->layers[reference_layer].thickness*upper_normal[0],	
 	input->geometry->d_sample_source+input->composition->layers[reference_layer].thickness*upper_normal[1],
 	input->composition->layers[reference_layer].thickness*upper_normal[2],
@@ -256,11 +257,11 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		temp_point[0] += input->composition->layers[i].thickness*lower_normal[0];
 		temp_point[1] += input->composition->layers[i].thickness*lower_normal[1]-1E-7;
 		temp_point[2] += input->composition->layers[i].thickness*lower_normal[2];
-		fprintf(filePtr, "Plane_Lower_%i\n", counter);
+		fprintf(filePtr, "Plane Lower_%i\n", counter);
 		fprintf(filePtr, "%g %g %g %g %g %g\n",
 		temp_point[0], temp_point[1], temp_point[2],
 		lower_normal[0], lower_normal[1], lower_normal[2]);
-		fprintf(filePtr, "Plane_Higher_%i\n", counter);
+		fprintf(filePtr, "Plane Higher_%i\n", counter);
 		fprintf(filePtr, "%g %g %g %g %g %g\n",
 		temp_point[0] + input->composition->layers[i].thickness*upper_normal[0],
 		temp_point[1] + input->composition->layers[i].thickness*upper_normal[1],
@@ -274,7 +275,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	temp_point[1] = input->composition->layers[reference_layer].thickness*upper_normal[1]+1E-7;
 	temp_point[2] = input->composition->layers[reference_layer].thickness*upper_normal[2];
 	for (i = reference_layer +1 ; i < input->composition->n_layers ; i++) {
-		fprintf(filePtr, "Plane_Lower_%i\n", counter);
+		fprintf(filePtr, "Plane Lower_%i\n", counter);
 		fprintf(filePtr, "%g %g %g %g %g %g\n",
 		temp_point[0], temp_point[1], temp_point[2],
 		lower_normal[0], lower_normal[1], lower_normal[2]);
@@ -282,7 +283,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		temp_point[0] += input->composition->layers[i].thickness*upper_normal[0];
 		temp_point[1] += input->composition->layers[i].thickness*upper_normal[1];
 		temp_point[2] += input->composition->layers[i].thickness*upper_normal[2];
-		fprintf(filePtr, "Plane_Higher_%i\n", counter);
+		fprintf(filePtr, "Plane Higher_%i\n", counter);
 		fprintf(filePtr, "%g %g %g %g %g %g\n",
 		temp_point[0], temp_point[1], temp_point[2],
 		upper_normal[0], upper_normal[1], upper_normal[2]);
@@ -315,14 +316,14 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 	int counter = 0;
 	fprintf(filePtr, "Object Box_%i\n", counter);
 	fprintf(filePtr, "Comp_%i Vacuum\n6\n", counter);
-	fprintf(filePtr, "Upside Downside Rightside Leftside Plane_Lower_%i Plane_Higher_%i\n", counter, counter);
+	fprintf(filePtr, "Upside Downside Rightside Leftside Lower_%i Higher_%i\n", counter, counter);
 	counter++;
 
 	//before the reference layer
 	for (i = reference_layer-1 ; i >= 0 ; i--) {
 		fprintf(filePtr, "Object Box_%i\n", counter);
 		fprintf(filePtr, "Comp_%i Vacuum\n6\n", counter);
-		fprintf(filePtr, "Upside Downside Rightside Leftside Plane_Lower_%i Plane_Higher_%i\n", counter, counter);
+		fprintf(filePtr, "Upside Downside Rightside Leftside Lower_%i Higher_%i\n", counter, counter);
 		counter++;
 	}
 
@@ -330,7 +331,7 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 	for (i = reference_layer +1 ; i < input->composition->n_layers ; i++) {
 		fprintf(filePtr, "Object Box_%i\n", counter);
 		fprintf(filePtr, "Comp_%i Vacuum\n6\n", counter);
-		fprintf(filePtr, "Upside Downside Rightside Leftside Plane_Lower_%i Plane_Higher_%i\n", counter, counter);
+		fprintf(filePtr, "Upside Downside Rightside Leftside Lower_%i Higher_%i\n", counter, counter);
 		counter++;
 	}
 	//collimator code to follow...
@@ -456,7 +457,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 		fprintf(filePtr, "WindowThickness 0.0\n");
 	}
 	fprintf(filePtr, "FanoFactor %g\n", input->detector->fano);
-	fprintf(filePtr, "Noise%g\n", input->detector->noise);
+	fprintf(filePtr, "Noise %g\n", input->detector->noise);
 	if (options.use_sum_peaks) {
 		fprintf(filePtr, "PulseWidth %g\n", input->detector->pulse_width);
 	}
