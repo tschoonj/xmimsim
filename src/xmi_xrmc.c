@@ -409,8 +409,97 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	fclose(filePtr);
 	return 1;
 }
-int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator) {
 
+static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input *input, struct xmi_main_options options) {
+	FILE *filePtr;
+
+	if ((filePtr = fopen(xrmc_detectorfile, "w")) == NULL) {
+		fprintf(stderr, "Could not write to %s\n", xrmc_detectorfile);
+		return 0;
+	}
+	fprintf(filePtr, "Newdevice detectorconvolute\n");
+	fprintf(filePtr, "Detector\n");
+	fprintf(filePtr, "SourceName Sample\n");
+	fprintf(filePtr, "CompositionName Composition\n");
+	fprintf(filePtr, "NPixels 1 1\n");
+	fprintf(filePtr, "PixelSize %g %g\n", sqrt(4.0*input->geometry->area_detector/M_PI), sqrt(4.0*input->geometry->area_detector/M_PI));
+	fprintf(filePtr, "Shape 1\n");
+	fprintf(filePtr, "X %g %g %g\n", input->geometry->p_detector_window[1], 
+					 input->geometry->p_detector_window[2],
+					 input->geometry->p_detector_window[0]);
+	fprintf(filePtr, "uk %g %g %g\n", input->geometry->n_detector_orientation[1], 
+					 input->geometry->n_detector_orientation[2],
+					 input->geometry->n_detector_orientation[0]);
+	fprintf(filePtr, "ui %g %g %g\n", 0.0, 0.0, 0.0); 
+	fprintf(filePtr, "ExpTime %g\n", input->detector->live_time); 
+	fprintf(filePtr, "PhotonNum %i\n", 100000); 
+	fprintf(filePtr, "RandomPixelFlag 1\n");
+	fprintf(filePtr, "PoissonFlag %i\n", options.use_poisson);
+	fprintf(filePtr, "RoundFlag 0\n");
+	fprintf(filePtr, "HeaderFlag 1\n");
+	fprintf(filePtr, "ForceDetectFlag 1\n");
+	fprintf(filePtr, "PixelType 2\n");
+	fprintf(filePtr, "Emin %g\n", input->detector->zero);
+	fprintf(filePtr, "Emax %g\n", input->detector->zero + input->detector->gain*(options.nchannels-1));
+	fprintf(filePtr, "NBins %i\n", options.nchannels);
+	fprintf(filePtr, "SaturateEmin 0\n");
+	fprintf(filePtr, "SaturateEmax 0\n");
+	fprintf(filePtr, "CrystalPhase Crystal\n");
+	fprintf(filePtr, "CrystalThickness %g\n", input->detector->crystal_layers[0].thickness);
+
+	if (input->absorbers->n_det_layers > 0) {
+		fprintf(filePtr, "WindowPhase Window\n");
+		fprintf(filePtr, "WindowThickness %g\n", input->absorbers->det_layers[0].thickness);
+	}
+	else {
+		fprintf(filePtr, "WindowPhase Vacuum\n");
+		fprintf(filePtr, "WindowThickness 0.0\n");
+	}
+	fprintf(filePtr, "FanoFactor %g\n", input->detector->fano);
+	fprintf(filePtr, "Noise%g\n", input->detector->noise);
+	if (options.use_sum_peaks) {
+		fprintf(filePtr, "PulseWidth %g\n", input->detector->pulse_width);
+	}
+
+	fprintf(filePtr, "End\n");
+	fclose(filePtr);
+	return 1;
+}
+
+int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator, struct xmi_main_options options) {
+	
+	if (xmi_write_xrmc_inputfile(xrmc_inputfile, xrmc_compositionfile, xrmc_detectorfile, xrmc_geom3dfile, xrmc_quadricfile, xrmc_samplefile, xrmc_sourcefile, xrmc_spectrumfile, xrmc_convolutedspectrumfile, xrmc_unconvolutedspectrumfile) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_inputfile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_sourcefile(xrmc_sourcefile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_sourcefile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_spectrumfile(xrmc_spectrumfile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_spectrumfile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_samplefile(xrmc_samplefile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_samplefile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_quadricfile(xrmc_quadricfile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_quadricfile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_geom3dfile(xrmc_geom3dfile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_geom3dfile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_compositionfile(xrmc_compositionfile, input) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_compositionfile: Aborting\n");
+		return 0;
+	}
+	if (xmi_write_xrmc_detectorfile(xrmc_detectorfile, input, options) == 0) {
+		fprintf(stderr, "Error in xmi_write_xrmc_detectorfile: Aborting\n");
+		return 0;
+	}
 
 
 
