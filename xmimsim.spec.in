@@ -111,6 +111,7 @@ fi || :
 #%{_datadir}/pixmaps/Logo_xmi_msim*.png
 %{_datadir}/mime/packages/applications-x-xmimsim.xml
 %{_datadir}/icons/hicolor/*/apps/Logo_xmi_msim*.png
+%{_datadir}/icons/hicolor/*/apps/Radiation_warning_symbol.png
 
 #%{_libdir}/xmimsim/xmimsim-cl.so
 #%{_prefix}/share/xmimsim/array.h
