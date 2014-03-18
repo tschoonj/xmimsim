@@ -77,12 +77,18 @@ static float i2c(double intensity, double maximum_log, double minimum_log);
 
 
 
+static gboolean xml_catalog_loaded = FALSE;
+
 #ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
 
 int xmi_xmlLoadCatalog() {
 	char *catalog;
 	int rv;
+	
+	if (xml_catalog_loaded)
+		return 1;
+
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0) {
 		return 0;
 	}
@@ -96,6 +102,8 @@ int xmi_xmlLoadCatalog() {
 		free(catalog);
 	}
 
+	xml_catalog_loaded = TRUE;
+
 	return rv;
 
 }
@@ -104,6 +112,10 @@ int xmi_xmlLoadCatalog() {
 #include <gtkosxapplication.h>
 int xmi_xmlLoadCatalog() {
 	int rv;
+	
+	if (xml_catalog_loaded)
+		return 1;
+
 	gchar *resource_path;
 	resource_path = gtkosx_application_get_resource_path();
 	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
@@ -129,6 +141,9 @@ int xmi_xmlLoadCatalog() {
 
 	free(resource_path);
 
+
+	xml_catalog_loaded = TRUE;
+
 	return rv;
 
 }
@@ -137,6 +152,9 @@ int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;
 	int rv;
 
+	if (xml_catalog_loaded)
+		return 1;
+
 	if (xmlLoadCatalog(catalog) != 0) {
 		fprintf(stderr,"Could not load %s\n",catalog);
 		rv=0;
@@ -144,6 +162,8 @@ int xmi_xmlLoadCatalog() {
 	else
 		rv=1;
 	
+	xml_catalog_loaded = TRUE;
+
 	return rv;
 }
 #endif

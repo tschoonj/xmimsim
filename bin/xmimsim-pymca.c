@@ -32,7 +32,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_detector.h"
 #include <math.h>
 #include <locale.h>
-#include "omp.h"
 
 #ifdef _WIN32
   #define _UNICODE

@@ -59,7 +59,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-#include <omp.h>
 
 //#include <fenv.h>
 
@@ -200,7 +199,7 @@ XMI_MAIN
 	options.verbose = 0;
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.nchannels = 2048;
 
 
@@ -225,9 +224,9 @@ XMI_MAIN
 	}
 
 	
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
 	if (options.extra_verbose) {
