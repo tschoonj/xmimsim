@@ -173,6 +173,42 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
 ENDSUBROUTINE xmi_detector_sum_peaks
 
+SUBROUTINE xmi_detector_convolute_all(inputFPtr, channels_noconvPtr,&
+channels_convPtr, options, escape_ratiosCPtr, n_interactions_all,&
+zero_inter) BIND(C,NAME='xmi_detector_convolute_all')
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: channels_noconvPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: channels_convPtr
+        TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions_all, zero_inter
+
+        TYPE (C_PTR), POINTER, DIMENSION(:) :: channels_noconv, channels_conv
+
+        INTEGER (C_INT) :: i, start_index
+
+        IF (zero_inter .EQ. 1_C_INT) THEN 
+                start_index = 1 
+        ELSE 
+                start_index = 2
+        ENDIF
+
+        CALL C_F_POINTER(channels_noconvPtr, &
+        channels_noconv,[n_interactions_all+1])
+        CALL C_F_POINTER(channels_convPtr, &
+        channels_conv,[n_interactions_all+1])
+
+!$omp parallel do default(shared) private(i)&
+!$omp num_threads(options%omp_num_threads)
+        DO i=start_index, n_interactions_all+1
+               CALL xmi_detector_convolute(inputFPtr, channels_noconv(i),&
+               channels_conv(i), options, escape_ratiosCPtr, i-1) 
+        ENDDO
+!$omp end parallel do
+
+ENDSUBROUTINE xmi_detector_convolute_all
+
 SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
 channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 ) BIND(C,NAME='xmi_detector_convolute')

@@ -793,10 +793,13 @@ single_run:
 	//convolute_spectrum
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
-#pragma omp parallel for default(shared) private(i)
-	for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
-		xmi_detector_convolute(inputFPtr, channels+i*xp->nchannels, channels_conv+i, options,escape_ratios_def, i);
-	}
+	double **channels_def_ptrs = malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
+	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
+		channels_def_ptrs[i] = channels+i*xp->nchannels;
+
+	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, xi->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+
+	free(channels_def_ptrs);
 
 	if (xmi_end_random_acquisition() == 0) {
 		return 1;
