@@ -246,12 +246,6 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 	//gtk_plot_paint(GTK_PLOT(plot_window));
 
 
-
-
-	fprintf(stdout,"toggle path: %s toggled: %i\n",path, toggled);
-
-
-
 	gtk_tree_path_free(tree_path);
 
 	return;
@@ -265,19 +259,14 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 
 	depth = gtk_tree_store_iter_depth(countsTS, iter);
 
-
 	if (depth == 2) {
 		//set invisible
 		g_object_set(G_OBJECT(renderer), "visible",FALSE, NULL);
 		g_object_set(G_OBJECT(renderer), "activatable",FALSE, NULL);
-		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 	}
 	else if (depth == 1) {
 		g_object_set(G_OBJECT(renderer), "activatable",TRUE, NULL);
 		g_object_set(G_OBJECT(renderer), "visible",TRUE, NULL);
-		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 		g_object_set(G_OBJECT(renderer), "inconsistent", FALSE, NULL);
 		gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
 		g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
@@ -290,17 +279,12 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 		if (consistent) {
 			gtk_tree_model_get(tree_model,iter, SHOW_LINE_COLUMN, &show_line,-1);
 			g_object_set(G_OBJECT(renderer), "active", show_line, NULL);
+			g_object_set(G_OBJECT(renderer), "inconsistent", FALSE, NULL);
 		}
 		else {
 			g_object_set(G_OBJECT(renderer), "inconsistent", TRUE, NULL);
 		}
-		//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-		//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 	}
-
-
-	//g_object_set(G_OBJECT(renderer), "xalign", 0.5, NULL);
-	//g_object_set(G_OBJECT(renderer), "yalign", 0.5, NULL);
 
 	return;
 }
@@ -621,7 +605,6 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 		//get selected filter
 		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
 		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
-			fprintf(stdout,"EPS selected\n");
 			if (strcasecmp(filename+strlen(filename)-4, ".eps") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".eps");
@@ -643,7 +626,6 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
-			fprintf(stdout,"PDF selected\n");
 			if (strcasecmp(filename+strlen(filename)-4, ".pdf") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".pdf");
@@ -657,7 +639,6 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 			cairo_destroy(cairo);
 		}
 		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
-			fprintf(stdout,"PNG selected\n");
 			if (strcasecmp(filename+strlen(filename)-4, ".png") != 0) {
 				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
 				strcat(filename,".png");
@@ -698,8 +679,6 @@ static void print_button_clicked_cb(GtkButton *button, gpointer data) {
 	GError *error = NULL;
 	GtkPrintOperationResult res;
 
-	fprintf(stdout,"Entering print_button_clicked_cb\n");
-
 	operation = gtk_print_operation_new();
 	gtk_print_operation_set_print_settings(operation,print_settings);
 	gtk_print_operation_set_default_page_setup(operation,page_setup);
@@ -732,7 +711,6 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	gfloat width;
 	GdkColor color;
 
-	fprintf(stdout,"Entering spectrum_button_clicked_cb\n");
 
 	//suspend signals
 	g_signal_handler_block((gpointer) spectra_properties_widthW, spectra_properties_widthG);
@@ -784,9 +762,6 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 
 static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer data) {
 	struct spectra_data *sd = (struct spectra_data *) data;
-	
-
-	fprintf(stdout,"Entering spectrum_button_toggled_cb\n");
 	
 
 	if (gtk_toggle_button_get_active(toggleButton) == TRUE) {
@@ -1095,7 +1070,6 @@ int plot_spectra_from_file(char *xmsofile) {
 
 	list = GTK_PLOT_CANVAS(canvas)->childs;
 	while (list) {
-		fprintf(stdout,"clearing canvas child\n");
 		child = GTK_PLOT_CANVAS_CHILD(list->data);
 		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(canvas), child);
 		list = GTK_PLOT_CANVAS(canvas)->childs;
@@ -1341,8 +1315,6 @@ int plot_spectra_from_file(char *xmsofile) {
 		}
 	}
 	else if (results->var_red_history != NULL) {
-		fprintf(stdout,"adding variance reduction history: %i\n",results->nvar_red_history);
-
 		//variance reduction mode
 		
 		for (i = 0 ; i < results->nvar_red_history ; i++) {

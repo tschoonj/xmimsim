@@ -572,8 +572,16 @@ g_list_free_full (GList          *list,
 }
 #endif
 
+static gboolean xmi_init_hdf5_done = FALSE;
 
 void xmi_init_hdf5(void) {
+	//this is not thread-safe but I don't expect problems
+
+	if (xmi_init_hdf5_done)
+		return;
+
+	xmi_init_hdf5_done = TRUE;
+
 	if (H5open() < 0) {
 		g_fprintf(stderr, "Could not initialize HDF5!\n");
 		exit(1);

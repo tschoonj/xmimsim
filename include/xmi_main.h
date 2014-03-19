@@ -32,6 +32,8 @@ int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hos
 
 void xmi_detector_convolute(xmi_inputFPtr inputFPtr, double *channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions);
 
+void xmi_detector_convolute_all(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
+
 void xmi_deallocate(void *array);
 
 #ifdef __cplusplus

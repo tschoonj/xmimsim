@@ -59,7 +59,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-#include <omp.h>
 
 //#include <fenv.h>
 
@@ -200,7 +199,7 @@ XMI_MAIN
 	options.verbose = 0;
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
-	options.omp_num_threads = omp_get_max_threads();
+	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.nchannels = 2048;
 
 
@@ -225,9 +224,9 @@ XMI_MAIN
 	}
 
 	
-	if (options.omp_num_threads > omp_get_max_threads() ||
+	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
-		options.omp_num_threads = omp_get_max_threads();
+		options.omp_num_threads = xmi_omp_get_max_threads();
 	}
 
 	if (options.extra_verbose) {
@@ -491,12 +490,13 @@ XMI_MAIN
 			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 
 
-		
-#pragma omp parallel for default(shared) private(i)
-		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-			xmi_detector_convolute(inputFPtr, channelsdef+i*options.nchannels, channels_conv+i, options,escape_ratios_def, i);
-		}
+		double **channels_def_ptrs = malloc(sizeof(double *) * (input->general->n_interactions_trajectory+1));
+		for (i = 0 ; i <= input->general->n_interactions_trajectory ; i++)
+			channels_def_ptrs[i] = channelsdef+i*options.nchannels;
 
+		xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+
+		free(channels_def_ptrs);
 
 		csv_convPtr = csv_noconvPtr = NULL;
 
