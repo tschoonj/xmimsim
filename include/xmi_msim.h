@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-#define XMI_MSIM_VERSION_MAJOR 2
+#define XMI_MSIM_VERSION_MAJOR 3
 #define XMI_MSIM_VERSION_MINOR 1
 
 #include <glib.h>
