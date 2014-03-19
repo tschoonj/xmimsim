@@ -219,7 +219,7 @@ typedef void* xmi_inputFPtr;
 #define XMI_CONFLICT_ABSORBERS 16
 #define XMI_CONFLICT_DETECTOR 32
 
-#define XMI_COMPARE_THRESHOLD 0.000001
+#define XMI_COMPARE_THRESHOLD 1E-20
 
 void xmi_free_input(struct xmi_input *);
 
