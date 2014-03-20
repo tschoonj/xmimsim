@@ -56,7 +56,7 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios);
 
 int xmi_init_input_escape_ratios(xmi_inputFPtr *inputFPtr);
 
-#define XMI_ESCAPE_RATIOS_MIN_VERSION 2.8
+#define XMI_ESCAPE_RATIOS_MIN_VERSION 3.1
 
 #ifdef __cplusplus
 }
