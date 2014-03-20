@@ -49,6 +49,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define getpid GetCurrentProcessId
 #endif
 
+#ifdef G_OS_UNIX
+  #include <sys/types.h>
+  #include <sys/wait.h>
+#endif
+ 
 #if defined(G_OS_WIN32)
   #include "xmi_detector.h"
   #include "xmi_solid_angle.h"

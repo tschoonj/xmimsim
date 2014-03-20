@@ -40,6 +40,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-coordinate-system.h"
 
 #ifdef G_OS_UNIX
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <signal.h>
 #define real_xmimsim_pid ((int) xmimsim_pid)
 #elif defined(G_OS_WIN32)
