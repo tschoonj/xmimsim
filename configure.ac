@@ -22,7 +22,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 
 AC_CANONICAL_HOST
-
+AC_GNU_SOURCE
 
 #if platform is Mac OS X, take care of the launchd plist file
 AM_CONDITIONAL(OS_DARWIN, [echo $host_os | grep '^darwin' > /dev/null])
@@ -242,6 +242,7 @@ AC_CHECK_FUNC(strrchr,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(qsort,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(bsearch,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
+AC_CHECK_LIB([m], [exp], [], [AC_MSG_ERROR([math library does not contain exp])])
 AC_CHECK_FUNC(expm1,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
