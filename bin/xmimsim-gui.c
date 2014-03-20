@@ -41,10 +41,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef G_OS_UNIX
 #include <signal.h>
+#define real_xmimsim_pid ((int) xmimsim_pid)
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
 #include "xmimsim-gui-icons.h"
+#define real_xmimsim_pid ((int) GetProcessId((HANDLE) xmimsim_pid))
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -5482,10 +5484,10 @@ int kill_current_job(void) {
 		terminate_rv = TerminateProcess((HANDLE) xmimsim_pid, (UINT) 1);
 
 		if (terminate_rv == TRUE) {
-			fprintf(stdout, "Process %i was successfully terminated\n",(int) xmimsim_pid);
+			fprintf(stdout, "Process %i was successfully terminated\n", real_xmimsim_pid);
 		}
 		else {
-			fprintf(stdout, "Process %i could not be terminated with the TerminateProcess call\n",(int) xmimsim_pid);
+			fprintf(stdout, "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
 		}
 #endif
 		g_spawn_close_pid(xmimsim_pid);

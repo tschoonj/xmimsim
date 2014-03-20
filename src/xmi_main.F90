@@ -1330,7 +1330,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 temp_prod=-1.0_C_DOUBLE*dist*&
                                 inputF%composition%layers(i)%density*&
                                 photon%mus(i)
-                                !tempexp = EXP(temp_prod)
+                                tempexp = EXP(temp_prod)
 
                                 min_random_layer = max_random_layer 
                                 max_random_layer = max_random_layer - blbs*expm1(temp_prod)
