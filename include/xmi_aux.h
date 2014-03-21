@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #ifndef HAVE_GETLINE
+#include <sys/types.h>
 ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 #endif
 
