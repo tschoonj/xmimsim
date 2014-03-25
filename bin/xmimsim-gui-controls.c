@@ -65,6 +65,7 @@ GtkWidget *nonrad_cascadeW;
 GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *poissonW;
+GtkWidget *escape_peaksW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *openclW;
 #endif
@@ -178,6 +179,15 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		gtk_widget_show_all(image_solidW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid redundant");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
+		while(gtk_events_pending())
+		    gtk_main_iteration();
+		return 1;
+	}
+	else if(strncmp(string, "No escape peaks requested: escape peak calculation is redundant", strlen("No escape peaks requested: escape peak calculation is redundant")) == 0) {
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_widget_show_all(image_escapeW);
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peaks redundant");
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		return 1;
@@ -454,6 +464,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
+	gtk_widget_set_sensitive(escape_peaksW,TRUE);	
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,TRUE);	
 #endif
@@ -607,6 +618,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
 	gtk_widget_set_sensitive(poissonW,FALSE);	
+	gtk_widget_set_sensitive(escape_peaksW,FALSE);	
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
@@ -627,63 +639,70 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	arg_counter = 0;
 	argv = g_malloc(sizeof(gchar *)*++arg_counter);
-	argv[0] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
+	argv[arg_counter-1] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
 	
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
-		argv[1] = g_strdup("--enable-M-lines");
+		argv[arg_counter-1] = g_strdup("--enable-M-lines");
 	}
 	else
-		argv[1] = g_strdup("--disable-M-lines");
+		argv[arg_counter-1] = g_strdup("--disable-M-lines");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascadeW)) == TRUE) {
-		argv[2] = g_strdup("--enable-radiative-cascade");
+		argv[arg_counter-1] = g_strdup("--enable-radiative-cascade");
 	}
 	else
-		argv[2] = g_strdup("--disable-radiative-cascade");
+		argv[arg_counter-1] = g_strdup("--disable-radiative-cascade");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW)) == TRUE) {
-		argv[3] = g_strdup("--enable-auger-cascade");
+		argv[arg_counter-1] = g_strdup("--enable-auger-cascade");
 	}
 	else
-		argv[3] = g_strdup("--disable-auger-cascade");
+		argv[arg_counter-1] = g_strdup("--disable-auger-cascade");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reductionW)) == TRUE) {
-		argv[4] = g_strdup("--enable-variance-reduction");
+		argv[arg_counter-1] = g_strdup("--enable-variance-reduction");
 	}
 	else
-		argv[4] = g_strdup("--disable-variance-reduction");
+		argv[arg_counter-1] = g_strdup("--disable-variance-reduction");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_upW)) == TRUE) {
-		argv[5] = g_strdup("--enable-pile-up");
+		argv[arg_counter-1] = g_strdup("--enable-pile-up");
 	}
 	else
-		argv[5] = g_strdup("--disable-pile-up");
+		argv[arg_counter-1] = g_strdup("--disable-pile-up");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
-		argv[6] = g_strdup("--enable-poisson");
+		argv[arg_counter-1] = g_strdup("--enable-poisson");
 	}
 	else
-		argv[6] = g_strdup("--disable-poisson");
+		argv[arg_counter-1] = g_strdup("--disable-poisson");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
-	argv[7]	= g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(escape_peaksW)) == TRUE) {
+		argv[arg_counter-1] = g_strdup("--enable-escape-peaks");
+	}
+	else
+		argv[arg_counter-1] = g_strdup("--disable-escape-peaks");
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
-	argv[8] = g_strdup("--verbose");
+	argv[arg_counter-1] = g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
+
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv[arg_counter-1] = g_strdup("--verbose");
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(openclW)) == TRUE) {
-		argv[9] = g_strdup("--enable-opencl");
+		argv[arg_counter-1] = g_strdup("--enable-opencl");
 	}
 	else
-		argv[9] = g_strdup("--disable-opencl");
+		argv[arg_counter-1] = g_strdup("--disable-opencl");
 #endif
 
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
@@ -1448,13 +1467,22 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),pile_upW, TRUE, FALSE, 3);
 
 	poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
-	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
+	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),poissonW, TRUE, FALSE, 3);
+
+	escape_peaksW = gtk_check_button_new_with_label("Enable escape peaks support");
+	gtk_widget_set_tooltip_text(escape_peaksW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaksW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), escape_peaksW, TRUE, FALSE, 3);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	openclW = gtk_check_button_new_with_label("Enable OpenCL");

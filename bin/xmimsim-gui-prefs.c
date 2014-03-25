@@ -35,6 +35,7 @@ GtkWidget *nonrad_cascade_prefsW;
 GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
+GtkWidget *escape_peaks_prefsW;
 GtkWidget *nchannels_prefsW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *opencl_prefsW;
@@ -369,6 +370,12 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		preferences_error_handler(pa->window);
 	}
 
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
@@ -573,6 +580,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->b = FALSE;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Escape peaks", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Escape peaks not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
+			}
+			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
@@ -691,6 +712,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON: 
 			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);
+			break;
+		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
+			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
 			break;
 		case XMIMSIM_GUI_PREFS_NCHANNELS: 
 			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
@@ -816,15 +840,23 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, FALSE, FALSE, 3);
 
-
 	poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
-	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
+	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, FALSE, FALSE, 3);
+
+	escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
+	gtk_widget_set_tooltip_text(escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), escape_peaks_prefsW, FALSE, FALSE, 3);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");

@@ -80,6 +80,7 @@ struct options_widget {
 	GtkWidget *variance_reduction_prefsW;
 	GtkWidget *pile_up_prefsW;
 	GtkWidget *poisson_prefsW;
+	GtkWidget *escape_peaks_prefsW;
 	GtkWidget *nchannels_prefsW;
 	GtkWidget *superframe;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
@@ -217,6 +218,11 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 		wacd->xmo->use_poisson = 1;
 	else
 		wacd->xmo->use_poisson = 0;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->escape_peaks_prefsW)))
+		wacd->xmo->use_escape_peaks = 1;
+	else
+		wacd->xmo->use_escape_peaks = 0;
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->opencl_prefsW)))
@@ -971,7 +977,6 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	xmimsim_executable = g_find_program_in_path("xmimsim");
 #endif
 
-	int arg_counter = 9;
 	//i refers to the file being executed
 	int i = bwd->i;
 
@@ -990,7 +995,8 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else
 		j = 0;
 
-	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
+	int arg_counter = 10;
+	argv = (gchar **) g_malloc(sizeof(gchar *)*11);
 	argv[0] = g_strdup(xmimsim_executable);	
 
 	if (bwd->options[j].use_M_lines) {
@@ -1037,6 +1043,12 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else {
 		argv[8] = g_strdup("--very-verbose");
 	} 
+	if (bwd->options[j].use_escape_peaks) {
+		argv[9] = g_strdup("--enable-escape-peaks");
+	}
+	else
+		argv[9] = g_strdup("--disable-escape-peaks");
+
 	char buffer[512];
 #ifdef G_OS_WIN32
 	//set solid angles and escape ratios files ourself!
@@ -1627,6 +1639,15 @@ static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->poisson_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->poisson_prefsW, FALSE, FALSE, 3);
 
+	rv->escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
+	gtk_widget_set_tooltip_text(rv->escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->escape_peaks_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->escape_peaks_prefsW, FALSE, FALSE, 3);
+
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	rv->opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
 	gtk_widget_set_tooltip_text(rv->opencl_prefsW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
@@ -1705,6 +1726,11 @@ static void wizard_close(GtkAssistant *wizard, struct wizard_close_data *wcd) {
 			wcd->options[i].use_poisson = 1;
 		else
 			wcd->options[i].use_poisson = 0;
+
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->escape_peaks_prefsW)))
+			wcd->options[i].use_escape_peaks = 1;
+		else
+			wcd->options[i].use_escape_peaks = 0;
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->opencl_prefsW)))
@@ -1833,6 +1859,11 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options *opti
 			options->use_poisson = 1;
 		else
 			options->use_poisson = 0;
+
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->escape_peaks_prefsW)))
+			options->use_escape_peaks = 1;
+		else
+			options->use_escape_peaks = 0;
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->opencl_prefsW)))

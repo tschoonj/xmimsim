@@ -199,6 +199,7 @@ struct xmi_main_options {
 	int use_variance_reduction;
 	int use_optimizations;
 	int use_sum_peaks;
+	int use_escape_peaks;
 	int escape_ratios_mode;
 	int verbose;
 	int use_poisson;
