@@ -291,7 +291,51 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		counter++;
 	}
 
-	//collimator code to follow...
+	//so there is a collimator
+	if (input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0) {
+		double detarea_radius = sqrt(input->geometry->area_detector/M_PI); 
+		double collim_radius = input->geometry->collimator_diameter/2.0;
+		double collim_height = input->geometry->collimator_height;
+		double neck_height = 0.05; //cm
+	
+		double tan_alpha = (detarea_radius - collim_radius)/(collim_height - neck_height);
+
+		//OuterCone
+		fprintf(filePtr, "Quadric OuterCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+
+		//OuterCone_BasePlane
+		fprintf(filePtr, "Plane OuterCone_BasePlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-SMALL_VALUE);
+
+		//InnerCone_BasePlane
+		fprintf(filePtr, "Plane InnerCone_BasePlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-2.0*SMALL_VALUE);
+
+		//OuterCone_TopPlane
+		fprintf(filePtr, "Plane OuterCone_TopPlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height);
+
+		//InnerCone_TopPlane
+		fprintf(filePtr, "Plane InnerCone_TopPlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height+SMALL_VALUE);
+
+		//OuterCyl_BasePlane
+		fprintf(filePtr, "Plane OuterCyl_BasePlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-SMALL_VALUE);
+
+		//InnerCyl_BasePlane
+		fprintf(filePtr, "Plane InnerCyl_BasePlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-2.0*SMALL_VALUE);
+
+		//OuterCyl_TopPlane
+		fprintf(filePtr, "Plane OuterCyl_TopPlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height);
+
+		//InnerCyl_TopPlane
+		fprintf(filePtr, "Plane InnerCyl_TopPlane\n");
+		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+SMALL_VALUE);
+
+	}
 
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);
