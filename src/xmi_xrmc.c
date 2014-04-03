@@ -22,6 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <xraylib.h>
 
+#define SMALL_VALUE 1E-7
+
+
 static char *xmi_convert_xrmc_path(char *path) {
 	int i,j;
 	char *new_path = NULL;
@@ -299,9 +302,17 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		double neck_height = 0.05; //cm
 	
 		double tan_alpha = (detarea_radius - collim_radius)/(collim_height - neck_height);
+		double collim_thickness = 0.3; //cm
+
+
+
+
+		//InnerCone
+		fprintf(filePtr, "Quadric InnerCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
 
 		//OuterCone
-		fprintf(filePtr, "Quadric OuterCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Quadric OuterCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Translate %g 0 0\n", -1.0*collim_thickness);
 
 		//OuterCone_BasePlane
 		fprintf(filePtr, "Plane OuterCone_BasePlane\n");
@@ -334,6 +345,12 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		//InnerCyl_TopPlane
 		fprintf(filePtr, "Plane InnerCyl_TopPlane\n");
 		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+SMALL_VALUE);
+
+		//InnerCyl
+		fprintf(filePtr, "CylinderX InnerCyl\n0 0 %g %g\n", collim_radius, collim_radius);
+
+		//OuterCyl
+		fprintf(filePtr, "CylinderX OuterCyl\n0 0 %g %g\n", collim_radius+collim_thickness, collim_radius+collim_thickness);
 
 	}
 
