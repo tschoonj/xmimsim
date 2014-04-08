@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-notifications.h"
 #include "xmimsim-gui-prefs.h"
+#include <glib/gprintf.h>
+#include <glib/gstdio.h>
 
 #ifdef MAC_INTEGRATION
    #import <Foundation/Foundation.h>

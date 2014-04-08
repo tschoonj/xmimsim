@@ -243,6 +243,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         !channels_noconv(0:nchannels-1) => channels_noconv
 
         !escape_ratios
+        IF (options%use_escape_peaks .EQ. 1_C_INT) THEN
         escape_ratios%n_elements = escape_ratiosCPtr%n_elements
         escape_ratios%n_fluo_input_energies = escape_ratiosCPtr%n_fluo_input_energies
         escape_ratios%n_compton_input_energies = escape_ratiosCPtr%n_compton_input_energies
@@ -261,6 +262,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies]) 
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_output_energies,&
         escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies]) 
+        ENDIF
         
 
         !allocate memory for results
@@ -295,7 +297,9 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 #endif
 
         
-        IF (options%verbose == 1_C_INT)&
+        IF (options%use_escape_peaks == 1_C_INT) THEN
+                
+                IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Calculating escape peaks after interactions: '&
                 //C_NULL_CHAR, n_interactions)
@@ -303,9 +307,9 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                 WRITE(output_unit,'(A, I2)') 'Calculating escape peaks after interactions: ',&
                 n_interactions
 #endif
-
-        !escape peak
-        CALL xmi_detector_escape(channels_temp, inputF, escape_ratios)
+                !escape peak
+                CALL xmi_detector_escape(channels_temp, inputF, escape_ratios)
+        ENDIF
 
 #if DEBUG == 1
         WRITE (*,'(A,ES14.6)') 'channels_temp max after escape: ',MAXVAL(channels_temp)

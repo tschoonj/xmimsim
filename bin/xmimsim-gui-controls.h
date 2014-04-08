@@ -48,6 +48,7 @@ extern GtkWidget *nonrad_cascadeW;
 extern GtkWidget *variance_reductionW;
 extern GtkWidget *pile_upW;
 extern GtkWidget *poissonW;
+extern GtkWidget *escape_peaksW;
 extern GtkWidget *spe_convW;
 extern GtkWidget *spe_uconvW;
 extern GtkWidget *csv_convW;

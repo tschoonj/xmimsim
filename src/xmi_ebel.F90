@@ -327,6 +327,9 @@ ENDDO
 
 
 DEALLOCATE(u0,logu0,p1,p2,rhoz,rhelp,tau)
+
+IF (ndisc .GT. 0) THEN
+
 ALLOCATE(u0(ndisc))
 ALLOCATE(logu0(ndisc))
 ALLOCATE(tau(ndisc))
@@ -399,6 +402,7 @@ DO i=1,ndisc
         ebel_spectrum_disc(i)%scale_parameter = 0.0_C_DOUBLE
 
 ENDDO
+ENDIF
 !take window in account
 IF (ASSOCIATED(tube_windowF)) THEN
 DO i=1,ndisc
@@ -436,6 +440,7 @@ ebel_spectrum_cont(:)%sigma_y = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_xp = 0.0_C_DOUBLE
 ebel_spectrum_cont(:)%sigma_yp = 0.0_C_DOUBLE
 
+IF (ndisc .GT. 0) THEN
 ebel_spectrum_disc(:)%horizontal_intensity=ebel_spectrum_disc(:)%horizontal_intensity*&
 tube_solid_angle*tube_current/2.0
 ebel_spectrum_disc(:)%vertical_intensity=ebel_spectrum_disc(:)%horizontal_intensity
@@ -443,18 +448,27 @@ ebel_spectrum_disc(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_y = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_xp = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_yp = 0.0_C_DOUBLE
+ENDIF
 
 ALLOCATE(ebel_excitation_rv)
 ALLOCATE(ebel_spectrum_cont_rv(ncont))
+IF (ndisc .GT. 0) THEN
 ALLOCATE(ebel_spectrum_disc_rv(ndisc))
+ENDIF
 
+IF (ndisc .GT. 0) THEN
 ebel_spectrum_disc_rv = ebel_spectrum_disc
+ENDIF
 ebel_spectrum_cont_rv = ebel_spectrum_cont
 
 ebel_excitation_rv%n_discrete = ndisc
 ebel_excitation_rv%n_continuous = ncont
-ebel_excitation_rv%discrete = C_LOC(ebel_spectrum_disc_rv(1))
 ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
+IF (ndisc .GT. 0) THEN
+ebel_excitation_rv%discrete = C_LOC(ebel_spectrum_disc_rv(1))
+ELSE
+ebel_excitation_rv%discrete= C_NULL_PTR 
+ENDIF
 
 
 

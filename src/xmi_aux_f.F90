@@ -274,6 +274,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_variance_reduction
         INTEGER (C_INT) :: use_optimizations
         INTEGER (C_INT) :: use_sum_peaks
+        INTEGER (C_INT) :: use_escape_peaks
         INTEGER (C_INT) :: escape_ratios_mode
         INTEGER (C_INT) :: verbose 
         INTEGER (C_INT) :: use_poisson

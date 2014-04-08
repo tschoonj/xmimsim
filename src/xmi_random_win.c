@@ -64,22 +64,11 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 	GRand *rng;
 
 	for (i = 0 ; i < n ; i++) {
-		if (sizeof(unsigned long int) == sizeof(guint32)) {
-			//size of unsigned long int is 4 bytes -> 32
-			rng = g_rand_new();
-			result = g_rand_int(rng);
-			numbers[i] = result;
-			g_rand_free(rng);
-		}
-		else if (sizeof(unsigned long int) == 2*sizeof(guint32)) {
-			rng = g_rand_new();
-			result = g_rand_int(rng);
-			numbers[i] = result >> 32;
-			numbers[i] += g_rand_int(rng);
-			g_rand_free(rng);
-			
-			
-		}
+		//size of unsigned long int is 4 bytes -> 32
+		rng = g_rand_new();
+		result = g_rand_int(rng);
+		numbers[i] = result;
+		g_rand_free(rng);
  	}
 
 	return 1;
