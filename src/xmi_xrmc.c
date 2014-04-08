@@ -21,8 +21,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <math.h>
 #include <xraylib.h>
+#include <xmi_aux.h>
 
 #define SMALL_VALUE 1E-7
+
+
+static void sarrus_rule(double a[3], double b[3], double c[3]) {
+
+	c[0] = a[1]*b[2] - a[2]*b[1];
+	c[1] = a[2]*b[0] - a[0]*b[2];
+	c[2] = a[0]*b[1] - a[1]*b[0];
+
+	return;
+}
 
 
 static char *xmi_convert_xrmc_path(char *path) {
@@ -306,51 +317,104 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 
 
 
+		double rot_axis[3];
+		double start_axis[3], end_axis[3];
+		start_axis[0] = -1.0;
+		start_axis[1] = 0.0;
+		start_axis[2] = 0.0;
+		end_axis[0] = input->geometry->n_detector_orientation[1]; 
+		end_axis[1] = input->geometry->n_detector_orientation[2];
+		end_axis[2] = input->geometry->n_detector_orientation[0];
+
+
+		xmi_normalize_vector_double(end_axis, 3);
+
+		//fprintf(stdout, "start_axis: %g %g %g\n", start_axis[0], start_axis[1], start_axis[2]);
+		//fprintf(stdout, "end_axis: %g %g %g\n", end_axis[0], end_axis[1], end_axis[2]);
+
+		double rot_angle = acos(start_axis[0]*end_axis[0]+start_axis[1]*end_axis[1]+start_axis[2]*end_axis[2])*180.0/M_PI;
+
+		if (rot_angle > 179.999999) {
+			//mirror
+			//any rotation axis will do, as long as it's perpendicular compared to the detector normal
+			rot_axis[0] = 0.0;
+			rot_axis[1] = 0.0;
+			rot_axis[2] = 1.0;
+		}
+		else if (rot_angle < 0.000001) {
+			//no rotation necessary
+		}
+		else {
+			//get axis
+			sarrus_rule(end_axis, start_axis, rot_axis);
+			xmi_normalize_vector_double(rot_axis, 3);
+			//fprintf(stdout, "rot_axis: %g %g %g\n", rot_axis[0], rot_axis[1], rot_axis[2]);
+		}
+
+#define TRANSLATE_AND_ROTATE fprintf(filePtr, "Translate %.10g %.10g %.10g\n", input->geometry->p_detector_window[1] - (detarea_radius/tan_alpha-SMALL_VALUE), \
+				input->geometry->p_detector_window[2],\
+				input->geometry->p_detector_window[0]); \
+		if (rot_angle >= 0.000001) fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n", input->geometry->p_detector_window[1], \
+				input->geometry->p_detector_window[2],\
+				input->geometry->p_detector_window[0],\
+				rot_axis[0], rot_axis[1], rot_axis[2], rot_angle);
 
 		//InnerCone
-		fprintf(filePtr, "Quadric InnerCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Quadric InnerCone\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCone
-		fprintf(filePtr, "Quadric OuterCone\n%g 0.0 0.0 0.0 %g 0.0 0.0 %g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
-		fprintf(filePtr, "Translate %g 0 0\n", -1.0*collim_thickness);
+		fprintf(filePtr, "Quadric OuterCone\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Translate %.10g 0 0\n", -1.0*collim_thickness);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCone_BasePlane
 		fprintf(filePtr, "Plane OuterCone_BasePlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//InnerCone_BasePlane
 		fprintf(filePtr, "Plane InnerCone_BasePlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-2.0*SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-2.0*SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCone_TopPlane
 		fprintf(filePtr, "Plane OuterCone_TopPlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height);
+		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height);
+		TRANSLATE_AND_ROTATE
 
 		//InnerCone_TopPlane
 		fprintf(filePtr, "Plane InnerCone_TopPlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height+SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height+SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCyl_BasePlane
 		fprintf(filePtr, "Plane OuterCyl_BasePlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//InnerCyl_BasePlane
 		fprintf(filePtr, "Plane InnerCyl_BasePlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-2.0*SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-2.0*SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCyl_TopPlane
 		fprintf(filePtr, "Plane OuterCyl_TopPlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height);
+		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height);
+		TRANSLATE_AND_ROTATE
 
 		//InnerCyl_TopPlane
 		fprintf(filePtr, "Plane InnerCyl_TopPlane\n");
-		fprintf(filePtr, "%g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+SMALL_VALUE);
+		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+SMALL_VALUE);
+		TRANSLATE_AND_ROTATE
 
 		//InnerCyl
-		fprintf(filePtr, "CylinderX InnerCyl\n0 0 %g %g\n", collim_radius, collim_radius);
+		fprintf(filePtr, "CylinderX InnerCyl\n0 0 %.10g %.10g\n", collim_radius, collim_radius);
+		TRANSLATE_AND_ROTATE
 
 		//OuterCyl
-		fprintf(filePtr, "CylinderX OuterCyl\n0 0 %g %g\n", collim_radius+collim_thickness, collim_radius+collim_thickness);
+		fprintf(filePtr, "CylinderX OuterCyl\n0 0 %.10g %.10g\n", collim_radius+collim_thickness, collim_radius+collim_thickness);
+		TRANSLATE_AND_ROTATE
 
 	}
 
@@ -395,7 +459,21 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 		fprintf(filePtr, "Upside Downside Rightside Leftside Lower_%i Higher_%i\n", counter, counter);
 		counter++;
 	}
-	//collimator code to follow...
+	//so there is a collimator
+	if (input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0) {
+		fprintf(filePtr, "Object CollimConeOuter\n");
+		fprintf(filePtr, "Collimator Vacuum\n3\n");
+		fprintf(filePtr, "OuterCone OuterCone_TopPlane OuterCone_BasePlane\n");
+		fprintf(filePtr, "Object CollimConeInner\n");
+		fprintf(filePtr, "Vacuum Collimator\n3\n");
+		fprintf(filePtr, "InnerCone InnerCone_TopPlane InnerCone_BasePlane\n");
+		fprintf(filePtr, "Object CollimCylOuter\n");
+		fprintf(filePtr, "Collimator Vacuum\n3\n");
+		fprintf(filePtr, "OuterCyl OuterCyl_TopPlane OuterCyl_BasePlane\n");
+		fprintf(filePtr, "Object CollimCylInner\n");
+		fprintf(filePtr, "Vacuum Collimator\n3\n");
+		fprintf(filePtr, "InnerCyl InnerCyl_TopPlane InnerCyl_BasePlane\n");
+	}
 	
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);
@@ -465,7 +543,10 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 		fprintf(filePtr, "Rho %f\n", input->absorbers->det_layers[0].density);
 	}
 
-	//collimator code to follow...
+	if (input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0) {
+		fprintf(filePtr, "Phase Collimator\n");
+		fprintf(filePtr, "NElem 1\n82 100.0\nRho 11.34\n");
+	}
 	
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);
