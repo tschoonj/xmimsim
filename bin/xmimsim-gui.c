@@ -4033,6 +4033,7 @@ XMI_MAIN
 	GtkWidget *xmso2htmlW;
 	GtkWidget *xmso2svgW;
 	GtkWidget *xmso2speW;
+	GtkWidget *xmsi2xrmcW;
 
 	GtkWidget *frame;
 	GtkWidget *superframe;
@@ -4356,12 +4357,16 @@ XMI_MAIN
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
 	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
+	xmsi2xrmcW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(xmsi2xrmcW), "Convert XMSI file to XRMC");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), xmsi2xrmcW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
+	g_signal_connect(G_OBJECT(xmsi2xrmcW), "activate", G_CALLBACK(xmimsim_gui_xmsi2xrmc), (gpointer) window);
 
 	convertmenu = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");

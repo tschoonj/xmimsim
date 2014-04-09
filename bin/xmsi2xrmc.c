@@ -69,6 +69,7 @@ XMI_MAIN
 	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
 	options.use_poisson = 0;
+	options.use_escape_peaks = 1;
 	options.verbose = 0;
 	options.use_opencl = 0;
 	options.extra_verbose = 0;

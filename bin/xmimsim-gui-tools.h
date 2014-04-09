@@ -27,6 +27,7 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data);
+void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data);
 
 
 #endif

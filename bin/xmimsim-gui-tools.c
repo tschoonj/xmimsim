@@ -16,9 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-tools.h"
+#include "xmimsim-gui-prefs.h"
 #include <string.h>
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
+#include "xmi_xrmc.h"
 #include <stdlib.h>
 
 struct xmi_tools {
@@ -31,6 +33,11 @@ struct xmi_tools {
 	GtkWidget *button2;
 	GtkWidget *apply;
 	GtkWidget *spinner;
+	GtkWidget *xmsi_fileW;
+	GtkWidget *xrmc_folderW;
+	GtkWidget *enable_pileupW;
+	GtkWidget *enable_poissonW;
+	GtkWidget *nchannelsW;
 };
 
 /*
@@ -342,6 +349,120 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	gtk_widget_destroy (dialog);
 }
+
+static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) {
+	struct xmi_tools *xt = (struct xmi_tools *) data;
+	GtkWidget *dialog;
+
+	gchar *xmsi_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(xt->xmsi_fileW));
+	gchar *xrmc_folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(xt->xrmc_folderW));
+
+	if (xmsi_file == NULL || xrmc_folder == NULL) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"An XMSI file and an XRMC folder must be selected for the conversion to be performed"
+                	);
+     		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
+		return ;
+	}
+
+	struct xmi_main_options options;
+	options.use_M_lines = 1;
+	options.use_cascade_auger = 1;
+	options.use_cascade_radiative = 1;
+	options.use_variance_reduction = 1;
+	options.use_optimizations = 1;
+	options.use_sum_peaks = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_pileupW)) == TRUE ? 1 : 0;
+	options.use_poisson = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_poissonW)) == TRUE ? 1 : 0;
+	options.use_escape_peaks = 1;
+	options.verbose = 0;
+	options.use_opencl = 0;
+	options.extra_verbose = 0;
+	options.nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(xt->nchannelsW));
+
+	gchar *input_file = NULL;
+	gchar *source_file = NULL;
+	gchar *sample_file = NULL;
+	gchar *composition_file = NULL;
+	gchar *spectrum_file = NULL;
+	gchar *geom3d_file = NULL;
+	gchar *quadric_file = NULL;
+	gchar *detector_file = NULL;
+	gchar *convoluted_file = NULL;
+
+	input_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "input.dat");
+	source_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "source.dat");
+	sample_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "sample.dat");
+	composition_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "composition.dat");
+	spectrum_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "spectrum.dat");
+	geom3d_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "geom3d.dat");
+	quadric_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "quadric.dat");
+	detector_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "detector.dat");
+	convoluted_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "convoluted_spectra.dat");
+	//
+	//read in the inputfile
+	struct xmi_input *input;
+	int rv = xmi_read_input_xml(xmsi_file, &input);
+
+	if (rv != 1) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"Could not read in XMSI file %s\nAborting...",
+                	xmsi_file);
+     		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
+		return ;
+	}
+	if (xmi_copy_input_to_xrmc(input, 
+				input_file,
+				composition_file,
+				detector_file,
+				geom3d_file,
+				quadric_file,
+				sample_file,
+				source_file,
+				spectrum_file,
+				convoluted_file,
+				NULL,
+				/*struct xmi_layer *collimator*/ NULL,
+				options
+				) == 0) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"Could not convert %s to XRMC files in %s\nAborting...",
+                	xmsi_file, xrmc_folder);
+     		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
+		return ;
+	}
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(xt->window),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+       		GTK_MESSAGE_INFO,
+       		GTK_BUTTONS_CLOSE,
+       		"XMI-MSIM input-file %s was successfully converted to XRMC files in %s\nLaunch the simulation using the command: \n\n<i>xrmc %s</i>",
+               	xmsi_file, xrmc_folder, input_file);
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy(dialog);
+
+	xmi_free_input(input);
+	g_free(input_file);
+	g_free(composition_file);
+	g_free(detector_file);
+	g_free(geom3d_file);
+	g_free(quadric_file);
+	g_free(sample_file);
+	g_free(source_file);
+	g_free(spectrum_file);
+	g_free(convoluted_file);
+}
+
 static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	struct xmi_tools *xt = (struct xmi_tools *) data;
 	GtkWidget *dialog;
@@ -1078,6 +1199,113 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2spe_apply_button_clicked_cb), xt4);
+	
+	boxke = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
+
+	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
+
+	gtk_container_add(GTK_CONTAINER(window), master_box);
+
+
+	gtk_widget_show_all(window);
+}
+
+
+
+void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
+	GtkWidget *main_window = (GtkWidget *) data;
+	GtkWidget *window;
+	GtkWidget *master_box, *boxke;
+	GtkWidget *button;
+	GtkWidget *label;
+	GtkWidget *xmsi_fileW, *xrmc_folderW;
+	GtkWidget *enable_pileupW, *enable_poissonW, *nchannelsW;
+	union xmimsim_prefs_val xpv;
+
+	master_box = gtk_vbox_new(FALSE,2);
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSI to XRMC");
+	//gtk_widget_set_size_request(window,450,250);
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
+	//gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+	gtk_container_set_border_width(GTK_CONTAINER(window), 3);
+
+	GtkWidget *frame = gtk_frame_new(NULL);
+	label = gtk_label_new("Convert XMI-MSIM input-files to the corresponding XRMC input-files. Running these new files requires XRMC's XMI-MSIM plug-in.");
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
+	gtk_misc_set_padding(GTK_MISC(label),2,2);
+	gtk_container_add(GTK_CONTAINER(frame), label);
+	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+
+	boxke = gtk_hbox_new(FALSE, 0);
+	label = gtk_label_new("XMSI file");
+	xmsi_fileW = gtk_file_chooser_button_new("Select an XMI-MSIM input-file", GTK_FILE_CHOOSER_ACTION_OPEN);
+	GtkFileFilter *filter;
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(xmsi_fileW), filter);
+	gtk_box_pack_start(GTK_BOX(boxke), label, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(boxke), xmsi_fileW, TRUE, TRUE, 2);
+	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON(xmsi_fileW), 60);
+	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE,FALSE,1);
+	
+	boxke = gtk_hbox_new(FALSE, 0);
+	label = gtk_label_new("XRMC folder");
+	xrmc_folderW = gtk_file_chooser_button_new("Select a folder in which the XRMC files will be stored", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+	gtk_box_pack_start(GTK_BOX(boxke), label, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(boxke), xrmc_folderW, TRUE, TRUE, 2);
+	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON(xrmc_folderW), 60);
+	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE,FALSE,1);
+
+	enable_pileupW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_pileupW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(master_box),enable_pileupW, TRUE, FALSE, 3);
+
+	enable_poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(master_box),enable_poissonW, TRUE, FALSE, 3);
+
+	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
+	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
+	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannelsW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannelsW), TRUE);
+	gtk_entry_set_max_length(GTK_ENTRY(nchannelsW), 7);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannelsW), (gdouble) xpv.i);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
+	label = gtk_label_new("Number of spectrum channels");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(master_box), hbox, FALSE, FALSE, 3);
+
+	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+
+	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
+	struct xmi_tools *xi = malloc(sizeof(struct xmi_tools));
+	xi->window = window;
+	xi->xmsi_fileW = xmsi_fileW;
+	xi->xrmc_folderW = xrmc_folderW;
+	xi->enable_pileupW = enable_pileupW;
+	xi->enable_poissonW = enable_poissonW;
+	xi->nchannelsW = nchannelsW;
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi2xrmc_apply_button_clicked_cb), xi);
 	
 	boxke = gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
