@@ -523,7 +523,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 DO line_new=KL1_LINE,line_last,-1
                         !needs to be checked for each line... will take
                         !forever...
-                        energy_fluo = LineEnergy(layer%Z(i), line_new)
+                        energy_fluo = photon%LineEnergies(layer%Z(i), ABS(line_new))
                         IF (energy_fluo .LT. energy_threshold) CYCLE
 
                         !Pconv calculation...

@@ -461,6 +461,9 @@ TYPE :: xmi_photon
         !detector absorption correction
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: det_corr_all
 
+        !the XRF line energies
+        REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: LineEnergies
+
         LOGICAL :: inside
 
         !debug variables

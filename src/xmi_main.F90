@@ -90,10 +90,11 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
-        INTEGER (C_INT) :: element
+        INTEGER (C_INT) :: element, line_last
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
@@ -177,6 +178,48 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
 
+
+        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
+        brute_history = 0.0_C_DOUBLE
+        last_shell = 0_C_INT
+
+        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:options%nchannels-1))
+        channels = 0.0_C_DOUBLE
+
+        IF (options%use_M_lines .EQ. 1) THEN 
+                line_last = M5P5_LINE 
+        ELSE 
+                line_last = L3Q1_LINE
+        ENDIF
+        ALLOCATE(det_corr_all(100,ABS(line_last)))
+        ALLOCATE(LineEnergies(100,ABS(line_last)))
+
+        det_corr_all = 1.0_C_DOUBLE
+        LineEnergies = 0.0_C_DOUBLE
+
+        DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
+                DO line=KL1_LINE, line_last, -1
+                        det_corr = 1.0_C_DOUBLE
+                        LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)) = &
+                        LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line)
+                        DO j=1,inputF%absorbers%n_det_layers
+                                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                                inputF%absorbers%det_layers(j)%density*&
+                                inputF%absorbers%det_layers(j)%thickness*&
+                                xmi_mu_calc(inputF%absorbers%det_layers(j),&
+                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))) 
+                        ENDDO
+                        DO j=1,inputF%detector%n_crystal_layers
+                                det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+                                inputF%detector%crystal_layers(j)%density*&
+                                inputF%detector%crystal_layers(j)%thickness*&
+                                xmi_mu_calc(inputF%detector%crystal_layers(j),&
+                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))))
+                        ENDDO
+                        det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
+                ENDDO
+        ENDDO
+
         !
         !
         !       Precalculate the absorption coefficients of the XRF photons
@@ -188,44 +231,11 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 DO l=1,maxz
                         DO m=KL1_LINE,M5P5_LINE,-1
                                precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
-                               REAL(LineEnergy(INT(l,C_INT),INT(m,C_INT)),C_DOUBLE)) 
+                               LineEnergies(INT(l,C_INT),ABS(INT(m,C_INT)))) 
                         ENDDO
                 ENDDO
 
         ENDDO
-
-        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
-        brute_history = 0.0_C_DOUBLE
-        last_shell = 0_C_INT
-
-        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:options%nchannels-1))
-        channels = 0.0_C_DOUBLE
-
-        ALLOCATE(det_corr_all(100,383+2))
-
-        det_corr_all = 1.0_C_DOUBLE
-
-        DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
-                DO line=KL1_LINE, P3P5_LINE, -1
-                        det_corr = 1.0_C_DOUBLE
-                        DO j=1,inputF%absorbers%n_det_layers
-                                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-                                inputF%absorbers%det_layers(j)%density*&
-                                inputF%absorbers%det_layers(j)%thickness*&
-                                xmi_mu_calc(inputF%absorbers%det_layers(j),&
-                                REAL(LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line),KIND=C_DOUBLE))) 
-                        ENDDO
-                        DO j=1,inputF%detector%n_crystal_layers
-                                det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
-                                inputF%detector%crystal_layers(j)%density*&
-                                inputF%detector%crystal_layers(j)%thickness*&
-                                xmi_mu_calc(inputF%detector%crystal_layers(j),&
-                                REAL(LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line),KIND=C_DOUBLE))))
-                        ENDDO
-                        det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
-                ENDDO
-        ENDDO
-
 
 
         !because it's unsure how openmp reduction will work with unallocated
@@ -350,6 +360,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
                         photon%det_corr_all => det_corr_all
+                        photon%LineEnergies => LineEnergies
 
 
                         !Calculate its initial coordinates and direction
@@ -637,6 +648,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
                         photon%det_corr_all => det_corr_all
+                        photon%LineEnergies => LineEnergies
 
 
 
@@ -2323,7 +2335,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
-        IF (xmi_fluorescence_line_check(rng, shell, photon%current_element,&
+        IF (xmi_fluorescence_line_check(photon, rng, shell, photon%current_element,&
         photon%energy, line) .EQ. 0_C_INT) THEN
                 rv = 1
                 RETURN
@@ -4424,6 +4436,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
         photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
+        photon%offspring%LineEnergies => photon%LineEnergies
 
 
 
@@ -4440,7 +4453,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                 !so now that we determined the shell to be used, see if we get
                 !fluorescence...
-                IF (xmi_fluorescence_line_check(rng, shell_new1, photon%current_element,&
+                IF (xmi_fluorescence_line_check(photon, rng, shell_new1, photon%current_element,&
                 photon%energy,line_new) .EQ. 0_C_INT) photon%energy = 0.0_C_DOUBLE
 
                 !leave if energy is too low
@@ -4500,7 +4513,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                 !so now that we determined the shell to be used, see if we get
                 !fluorescence...
-                IF (xmi_fluorescence_line_check(rng, shell_new2, photon%offspring%current_element,&
+                IF (xmi_fluorescence_line_check(photon, rng, shell_new2, photon%offspring%current_element,&
                 photon%offspring%energy,line_new) .EQ. 0_C_INT)&
                 photon%offspring%energy = 0.0_C_DOUBLE
 
@@ -4548,6 +4561,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%elecv(2) = SIN(r)
                         photon%offspring%elecv(3) = 0.0_C_DOUBLE 
                         photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
+                        photon%offspring%LineEnergies => photon%LineEnergies
                         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
@@ -4687,7 +4701,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
 
         !so now that we determined the shell to be used, see if we get
         !fluorescence...
-        IF (xmi_fluorescence_line_check(rng, shell_new, photon%current_element,&
+        IF (xmi_fluorescence_line_check(photon, rng, shell_new, photon%current_element,&
         energy,line_new) .EQ. 0_C_INT) RETURN
 
         !leave if energy is too low
@@ -4738,6 +4752,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
         photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
+        photon%offspring%LineEnergies => photon%LineEnergies
 
 #if DEBUG == 1
         WRITE (6,'(A,I4)') 'line_new: ',line_new
@@ -5132,9 +5147,10 @@ FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
         RETURN
 ENDFUNCTION xmi_fluorescence_yield_check
 
-FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv&
+FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_rv&
         ) RESULT(rv)
         IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
         INTEGER (C_INT), INTENT(IN) :: shell, element
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
@@ -5190,7 +5206,7 @@ FUNCTION xmi_fluorescence_line_check(rng, shell, element, energy, line_rv&
         ENDDO
 
         IF (line_found) THEN
-                energy = LineEnergy(element, line)
+                energy = photon%LineEnergies(element, ABS(line))
         ELSE
                 !this should not happen since the radiative rates within one
                 !linegroup must add up to 1.0
@@ -5351,7 +5367,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 DO l=1,maxz
                         DO m=KL1_LINE,M5P5_LINE,-1
                                precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
-                               REAL(LineEnergy(INT(l,C_INT),INT(m,C_INT)),C_DOUBLE)) 
+                               LineEnergy(INT(l,C_INT),INT(m,C_INT)))
                         ENDDO
                 ENDDO
 
