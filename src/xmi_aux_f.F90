@@ -464,6 +464,9 @@ TYPE :: xmi_photon
         !the XRF line energies
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: LineEnergies
 
+        !the precalculated XRF CS, obtained at XRF line energies
+        REAL (C_DOUBLE), DIMENSION(:,:,:,:), POINTER :: precalc_xrf_cs
+
         LOGICAL :: inside
 
         !debug variables

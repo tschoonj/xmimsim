@@ -1,4 +1,4 @@
-!Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+!Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 !This program is free software: you can redistribute it and/or modify
 !it under the terms of the GNU General Public License as published by
@@ -89,12 +89,13 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
         !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
-        INTEGER (C_INT), DIMENSION(K_SHELL:M5_SHELL) :: last_shell
-        INTEGER (C_INT) :: element, line_last
+        INTEGER (C_INT) :: element, line_last, shell_last, shell
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
+        REAL (C_DOUBLE), DIMENSION(:,:,:,:), ALLOCATABLE, TARGET :: &
+        precalc_xrf_cs
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
@@ -107,8 +108,9 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
         INTEGER (4) :: time_before, time_after
-        REAL (C_DOUBLE) :: weight
+        REAL (C_DOUBLE) :: weight, energy
         INTEGER (C_INT) :: progress_percentage
+        REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
 
         TYPE (xmi_ran_trap_workspace) :: workspace
 
@@ -181,27 +183,39 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
         ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
         brute_history = 0.0_C_DOUBLE
-        last_shell = 0_C_INT
 
         ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:options%nchannels-1))
         channels = 0.0_C_DOUBLE
 
         IF (options%use_M_lines .EQ. 1) THEN 
                 line_last = M5P5_LINE 
+                shell_last = M5_SHELL
         ELSE 
                 line_last = L3Q1_LINE
+                shell_last = L3_SHELL
         ENDIF
+        IF (options%use_variance_reduction .EQ. 1) THEN 
+        ALLOCATE(precalc_xrf_cs(SIZE(hdf5F%xmi_hdf5_Zs),K_SHELL:shell_last,&
+        SIZE(hdf5F%xmi_hdf5_Zs),ABS(line_last)))
+        ENDIF
+
         ALLOCATE(det_corr_all(100,ABS(line_last)))
         ALLOCATE(LineEnergies(100,ABS(line_last)))
 
         det_corr_all = 1.0_C_DOUBLE
         LineEnergies = 0.0_C_DOUBLE
+        precalc_xrf_cs = 0.0_C_DOUBLE
 
         DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
                 DO line=KL1_LINE, line_last, -1
-                        det_corr = 1.0_C_DOUBLE
                         LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)) = &
                         LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line)
+                ENDDO
+        ENDDO
+        !time_before = TIME()
+        DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
+                DO line=KL1_LINE, line_last, -1
+                        det_corr = 1.0_C_DOUBLE
                         DO j=1,inputF%absorbers%n_det_layers
                                 det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
                                 inputF%absorbers%det_layers(j)%density*&
@@ -218,7 +232,171 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDDO
                         det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
                 ENDDO
+                IF (options%use_variance_reduction .EQ. 0) CYCLE 
+                !
+                !
+                !  Precalculate the XRF CS: will be used when exciting
+                !  photon is an XRF photon...
+                !
+                !
+                DO j=1,SIZE(hdf5F%xmi_hdf5_Zs)
+                DO line=KL1_LINE, line_last, -1
+                PK = 0.0_C_DOUBLE
+                PL1 = 0.0_C_DOUBLE
+                PL2 = 0.0_C_DOUBLE
+                PL3 = 0.0_C_DOUBLE
+                PM1 = 0.0_C_DOUBLE
+                PM2 = 0.0_C_DOUBLE
+                PM3 = 0.0_C_DOUBLE
+                PM4 = 0.0_C_DOUBLE
+                PM5 = 0.0_C_DOUBLE
+                energy = LineEnergies(hdf5F%xmi_hdf5_Zs(j)%Z, ABS(line))
+                IF (energy .GE. EdgeEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,K_SHELL)) &
+                        PK = CS_Photo_Partial(hdf5F%xmi_hdf5_Zs(i)%Z,K_SHELL,&
+                        energy)
+
+                !set the XRF cross sections according to the options
+                SELECT CASE (xmi_cascade_type)
+                        CASE(XMI_CASCADE_NONE)
+                        PL1 = PL1_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy)
+                        PL2 = PL2_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PL1)
+                        PL3 = PL3_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PL1,PL2)
+                        IF (options%use_M_lines .EQ. 1) THEN 
+                                PM1 = PM1_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy)
+                                PM2 = &
+                                PM2_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,PM1)
+                                PM3 = &
+                                PM3_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,PM1,PM2)
+                                PM4 = &
+                                PM4_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PM1,PM2,PM3)
+                                PM5 = &
+                                PM5_pure_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PM1,PM2,PM3,PM4)
+
+                        ENDIF
+                        CASE(XMI_CASCADE_NONRADIATIVE)
+                        PL1 = PL1_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK)
+                        PL2 = PL2_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK,PL1)
+                        PL3 = PL3_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,&
+                        PK,PL1,PL2)
+                        IF (options%use_M_lines .EQ. 1) THEN 
+                                PM1 =&
+                                PM1_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK, PL1, PL2, PL3)
+                                PM2 = &
+                                PM2_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1)
+                                PM3 = &
+                                PM3_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2)
+                                PM4 = &
+                                PM4_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                PM5 = &
+                                PM5_auger_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                        ENDIF
+                        CASE(XMI_CASCADE_RADIATIVE)
+                        PL1 = PL1_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK)
+                        PL2 = PL2_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK,PL1)
+                        PL3 = PL3_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,&
+                        PK,PL1,PL2)
+                        IF (options%use_M_lines .EQ. 1) THEN 
+                                PM1 =&
+                                PM1_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK, PL1, PL2, PL3)
+                                PM2 = &
+                                PM2_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1)
+                                PM3 = &
+                                PM3_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2)
+                                PM4 = &
+                                PM4_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                PM5 = &
+                                PM5_rad_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                        ENDIF
+                        CASE(XMI_CASCADE_FULL)
+                        PL1 = PL1_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK)
+                        PL2 = PL2_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,PK,PL1)
+                        PL3 = PL3_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                        energy,&
+                        PK,PL1,PL2)
+                        IF (options%use_M_lines .EQ. 1) THEN 
+                                PM1 =&
+                                PM1_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK, PL1, PL2, PL3)
+                                PM2 = &
+                                PM2_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1)
+                                PM3 = &
+                                PM3_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2)
+                                PM4 = &
+                                PM4_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                PM5 = &
+                                PM5_full_cascade_kissel(hdf5F%xmi_hdf5_Zs(i)%Z,&
+                                energy,&
+                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                        ENDIF
+
+                        CASE DEFAULT
+                                WRITE (*,'(A)') 'Unsupported cascade type'
+                                CALL EXIT(1)
+                ENDSELECT
+
+                precalc_xrf_cs(i,K_SHELL,j,ABS(line)) = PK
+                precalc_xrf_cs(i,L1_SHELL,j,ABS(line)) = PL1
+                precalc_xrf_cs(i,L2_SHELL,j,ABS(line)) = PL2
+                precalc_xrf_cs(i,L3_SHELL,j,ABS(line)) = PL3
+                IF (options%use_M_lines .EQ. 1) THEN 
+                        precalc_xrf_cs(i,M1_SHELL,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,M2_SHELL,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,M3_SHELL,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,M4_SHELL,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,M5_SHELL,j,ABS(line)) = PM5
+                ENDIF
+
+                ENDDO
+                ENDDO
         ENDDO
+        !time_after = TIME()
+        !WRITE (output_unit, '(A,I8, A)') 'Time elapsed: ',&
+        !time_after - time_before, ' sec'
 
         !
         !
@@ -259,7 +437,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 !$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle,weight, workspace,&
 !$omp iv_start_intensity, iv_end_intensity)&
 !$omp reduction(+:photons_simulated,detector_hits, detector_hits2,channels,&
-!$omp rayleighs,comptons,einsteins,brute_history, last_shell, var_red_history,&
+!$omp rayleighs,comptons,einsteins,brute_history, var_red_history,&
 !$omp detector_solid_angle_not_found) &
 !$omp num_threads(options%omp_num_threads)
 
@@ -315,12 +493,13 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 photons_cont:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
-                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
                         IF (options%use_variance_reduction .EQ. 1) THEN
                                 photon%solid_angle => solid_angles 
                                 photon%detector_solid_angle_not_found = 0
                                 photon%var_red_history => var_red_history
                                 photon%channels => channels
+                                photon%precalc_xrf_cs => precalc_xrf_cs
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
@@ -498,12 +677,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         photon_temp%weight
                                                 ENDIF
                                                 !ENDDO
-#if DEBUG == 1
-                                                IF (photon_temp%last_interaction .EQ. PHOTOELECTRIC_INTERACTION) THEN
-                                                last_shell(photon_temp%last_shell) =&
-                                                last_shell(photon_temp%last_shell)+1
-                                                ENDIF
-#endif
                                         ENDIF
 
                                 ENDIF det_hit_cont
@@ -598,12 +771,13 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 photons_disc:DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
-                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
                         IF (options%use_variance_reduction .EQ. 1) THEN
                                 photon%solid_angle => solid_angles 
                                 photon%detector_solid_angle_not_found = 0
                                 photon%var_red_history => var_red_history
                                 photon%channels => channels
+                                photon%precalc_xrf_cs => precalc_xrf_cs
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
@@ -789,12 +963,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         photon_temp%weight
                                                 ENDIF
                                                 !ENDDO
-#if DEBUG == 1
-                                                IF (photon_temp%last_interaction .EQ. PHOTOELECTRIC_INTERACTION) THEN
-                                                last_shell(photon_temp%last_shell) =&
-                                                last_shell(photon_temp%last_shell)+1
-                                                ENDIF
-#endif
                                         ENDIF
 
                                 ENDIF det_hit_disc
@@ -2278,11 +2446,6 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                 ENDIF
         ENDDO
 
-#if DEBUG == 1
-        photon%last_shell = shell
-#endif
-
-
         IF (.NOT. shell_found) THEN
                 ! no shell matches -> probably M or higher...
 #if DEBUG == 1
@@ -2391,6 +2554,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !update history
         photon%history(photon%n_interactions,1) = line 
         photon%history(photon%n_interactions,2) = photon%current_element 
+        photon%history(photon%n_interactions,3) = photon%current_element_index
 
         IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
@@ -4424,7 +4588,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         ALLOCATE(photon%offspring)
         ALLOCATE(photon%offspring%mus(inputF%composition%n_layers))
         photon%offspring%options = photon%options
-        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
+        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,3))
         photon%offspring%history=photon%history
         photon%offspring%current_layer = photon%current_layer
         photon%offspring%weight = photon%weight
@@ -4710,7 +4874,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         !create offspring
         ALLOCATE(photon%offspring)
         !take over its history!
-        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,2))
+        ALLOCATE(photon%offspring%history(inputF%general%n_interactions_trajectory,3))
         photon%offspring%history=photon%history
         photon%offspring%energy = energy
         photon%offspring%energy_changed = .FALSE.
@@ -5206,7 +5370,12 @@ FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_r
         ENDDO
 
         IF (line_found) THEN
-                energy = photon%LineEnergies(element, ABS(line))
+                IF (ASSOCIATED(photon%LineEnergies)) THEN
+                        energy = photon%LineEnergies(element, ABS(line))
+                ELSE
+                        !this will be used by the escape ratio mode
+                        energy = LineEnergy(element, line)
+                ENDIF
         ELSE
                 !this should not happen since the radiative rates within one
                 !linegroup must add up to 1.0
@@ -5423,11 +5592,12 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 DO j=1,n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
-                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,2))
+                        ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
                         photon%history(1,1)=NO_INTERACTION
                         photon%last_interaction=NO_INTERACTION
                         photon%n_interactions=0
                         NULLIFY(photon%offspring)
+                        NULLIFY(photon%LineEnergies)
                         !Calculate energy with rng
                         photon%energy = input_energies(i) 
                         photon%energy_changed=.FALSE.

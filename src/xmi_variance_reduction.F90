@@ -381,6 +381,50 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !      and finishing with FLUORESCENCE 
                 !
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(i)%Ptr%Zindex
+                IF (photon%n_interactions .GT. 1 .AND. &
+                photon%history(photon%n_interactions-1,1).LT.0) THEN
+
+                        PK = photon%precalc_xrf_cs(hdf5_Z, K_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PL1 = photon%precalc_xrf_cs(hdf5_Z, L1_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PL2 = photon%precalc_xrf_cs(hdf5_Z, L2_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PL3 = photon%precalc_xrf_cs(hdf5_Z, L3_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        PM1 = photon%precalc_xrf_cs(hdf5_Z, M1_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PM2 = photon%precalc_xrf_cs(hdf5_Z, M2_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PM3 = photon%precalc_xrf_cs(hdf5_Z, M3_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PM4 = photon%precalc_xrf_cs(hdf5_Z, M4_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        PM5 = photon%precalc_xrf_cs(hdf5_Z, M5_SHELL, &
+                        photon%history(photon%n_interactions-1,3), &
+                        ABS(photon%history(photon%n_interactions-1,1)))
+
+                        ENDIF
+#undef hdf5_Z
+                ELSE
                 PK = 0.0_C_DOUBLE
                 PL1 = 0.0_C_DOUBLE
                 PL2 = 0.0_C_DOUBLE
@@ -518,6 +562,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 WRITE (*,'(A)') 'Unsupported cascade type'
                                 CALL EXIT(1)
                 ENDSELECT
+                ENDIF
 
 
                 DO line_new=KL1_LINE,line_last,-1
