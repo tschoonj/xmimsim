@@ -1230,10 +1230,10 @@ int plot_spectra_from_file(char *xmsofile) {
 			default:
 				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",i);
+					sprintf(buffer,"%i interactions",i-(results->use_zero_interactions ? 0 : 1));
 				}
 				else {
-					sprintf(buffer,"%i interactions",i+1);
+					sprintf(buffer,"%i interactions",i+1-(results->use_zero_interactions ? 0 : 1));
 				}
 				break;
 		}
