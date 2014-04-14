@@ -14,7 +14,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_INIT([xmimsim],[3.2],[Tom.Schoonjans@me.com])
-AC_PREREQ([2.60])
+AC_PREREQ([2.67])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
 
@@ -368,6 +368,7 @@ AC_SUBST(XLINKER)
 AC_SUBST(LDFLAGS_XMIMSIM_LIB)
 AC_SUBST(LDFLAGS_XMIMSIM_CL)
 
+AC_FC_LINE_LENGTH(unlimited)
 
 #search for MPI
 OPENMPI_LDFLAGS=
