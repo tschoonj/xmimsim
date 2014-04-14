@@ -214,7 +214,7 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         WRITE (6, '(A,ES14.5)') 'old S2 Fortran: ',&
         inputF%composition%layers(inputF%composition%n_layers)&
         %Z_coord_end
-        !CALL EXIT(1)
+        !CALL xmi_exit(1)
 #endif
 
         
@@ -439,7 +439,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         WRITE (6, '(A,ES14.5)') 'old S2 Fortran: ',&
         inputF%composition%layers(inputF%composition%n_layers)&
         %Z_coord_end
-        !CALL EXIT(1)
+        !CALL xmi_exit(1)
 #endif
 
         
@@ -820,7 +820,7 @@ RESULT(rv)
                         intersection_point) == 0) THEN
                                 WRITE(error_unit,'(A,F12.7)') 'theta: ',theta
                                 WRITE(error_unit,'(A,F12.7)') 'r: ',r
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
                         intersection_point(3) = 0.0_C_DOUBLE
                         IF (norm(intersection_point) .GT. inputF%detector%collimator_radius) &
@@ -832,7 +832,7 @@ RESULT(rv)
                 intersection_point) == 0) THEN
                         WRITE(error_unit,'(A,F12.7)') 'theta: ',theta
                         WRITE(error_unit,'(A,F12.7)') 'r: ',r
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
 #if DEBUG ==1
                 WRITE (*,'(A,3F12.4)') 'intersection_point: ',intersection_point
@@ -855,7 +855,7 @@ RESULT(rv)
 
         
 
-        !CALL EXIT(0)
+        !CALL xmi_exit(0)
         RETURN
 ENDFUNCTION xmi_single_solid_angle_calculation
 

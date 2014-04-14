@@ -110,7 +110,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                         WRITE (error_unit,'(A)') 'pulsetrain maximum reached'
                         WRITE (error_unit,'(A)') 'Adjust pulsewidth value or'
                         WRITE (error_unit,'(A)') 'disable the pileup generation'
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
 
                 !+1 because channels start counting at 1 here (0 elsewhere)
@@ -470,7 +470,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
                                 WRITE (6,*) 'findpos returns low index'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -510,7 +510,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
                                 WRITE (6,*) 'findpos returns low index'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -551,7 +551,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
                                 WRITE (6,*) 'findpos returns low index'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -592,7 +592,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
                                 WRITE (6,*) 'findpos returns low index'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)

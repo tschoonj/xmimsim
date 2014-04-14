@@ -135,7 +135,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 !                plane_coll%normv = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 !
 !                IF (xmi_intersection_plane_line(plane_coll, line_coll,&
-!                point_coll) == 0) CALL EXIT(1)
+!                point_coll) == 0) CALL xmi_exit(1)
 !
 !                point_coll(1) = 0.0_C_DOUBLE
 !                
@@ -263,7 +263,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 ENDIF
 
                 IF (xmi_intersection_plane_line(plane, line, intersect) == 0)  &
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
 #if DEBUG == 1
                 WRITE (*,'(A,3F12.4)') 'intersection: ',intersect
                 CALL&
@@ -560,7 +560,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
                         CASE DEFAULT
                                 WRITE (*,'(A)') 'Unsupported cascade type'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                 ENDSELECT
                 ENDIF
 
@@ -794,7 +794,7 @@ inputF, hdf5F, energy_new)
                         WRITE (*,'(A)') 'Infinite loop in xmi_update_photon_energy_compton_var_red'
                         WRITE (*,'(A,F12.5)') 'initial energy: ',photon%energy
                         WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
                 i = i+1
         ENDDO

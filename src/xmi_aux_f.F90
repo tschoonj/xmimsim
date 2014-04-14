@@ -591,6 +591,11 @@ FUNCTION expm1(x) BIND(C,NAME='expm1') RESULT(rv)
         REAL (C_DOUBLE) :: rv
 ENDFUNCTION expm1
 
+SUBROUTINE xmi_exit(status) BIND(C,NAME='exit')
+        USE, INTRINSIC :: ISO_C_BINDING
+        IMPLICIT NONE
+        INTEGER (C_INT), VALUE, INTENT(IN) :: status
+ENDSUBROUTINE xmi_exit
 ENDINTERFACE
 
 INTERFACE ASSIGNMENT(=)
@@ -1307,7 +1312,7 @@ RESULT(rv)
                 WRITE (error_unit,'(A,I5)') 'SIZE(array1D_1)',SIZE(array1D_1)
                 WRITE (error_unit,'(A,I5)') 'SIZE(array2D,DIM=2)',SIZE(array2D,DIM=2)
                 WRITE (error_unit,'(A,I5)') 'SIZE(array1D_2)',SIZE(array1D_2)
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         !get positions
@@ -1321,7 +1326,7 @@ RESULT(rv)
                         WRITE (error_unit,'(A,ES14.6)') 'x_1: ',x_1
                         WRITE (error_unit,'(A,ES14.6)') 'x_2: ',x_2
                         WRITE (error_unit,'(A,I4)') 'pos_1: ',pos_1
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
 
                 pos_2 = findpos(array1D_2, x_2)        
@@ -1333,7 +1338,7 @@ RESULT(rv)
                         WRITE (error_unit,'(A,ES14.6)') 'x_1: ',x_1
                         WRITE (error_unit,'(A,ES14.6)') 'x_2: ',x_2
                         WRITE (error_unit,'(A,I4)') 'pos_2: ',pos_2
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
         ENDIF
 
@@ -1471,7 +1476,7 @@ x_2, x_3) RESULT(rv)
         ) THEN
                 WRITE (error_unit,'(A)') &
                 'Array dimensions mismatch in trilinear interpolation'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         !get positions
@@ -1483,7 +1488,7 @@ x_2, x_3) RESULT(rv)
                 WRITE (error_unit,'(A,ES12.4)') 'array1D_3(1): ',array1D_3(1)
                 WRITE (error_unit,'(A,ES12.4)') 'array1D_3(last): ',array1D_3(SIZE(array1D_3))
                 WRITE (error_unit,'(A,I4)') 'pos_3: ',pos_3
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
 
@@ -1512,7 +1517,7 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
 
         IF (n .LT. 1) THEN
                 WRITE (error_unit,'(A)') 'xmi_dindgen expects a strict positive integer'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         ALLOCATE(rv(n))
@@ -1598,7 +1603,7 @@ FUNCTION xmi_check_detector_intersection&
                 plane%point=[0.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
                 plane%normv=[1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE]
                 IF (xmi_intersection_plane_line(plane, line,&
-                intersection) == 0) CALL EXIT(1)
+                intersection) == 0) CALL xmi_exit(1)
                 intersection(1)=0.0_C_DOUBLE
                 IF (norm(intersection) .LE. inputF%detector%detector_radius)&
                 THEN
@@ -1698,7 +1703,7 @@ FUNCTION xmi_check_detector_intersection&
                         ENDIF
                         !still possible to hit the detector!
                         IF (xmi_intersection_plane_line(plane, line,&
-                        intersection) == 0) CALL EXIT(1)
+                        intersection) == 0) CALL xmi_exit(1)
                         intersection(1)=0.0_C_DOUBLE
                         IF (norm(intersection) .LE. inputF%detector%&
                         detector_radius .AND. xmi_distance_two_points(&
@@ -1724,7 +1729,7 @@ FUNCTION xmi_check_detector_intersection&
                         ENDIF
                         !still possible to hit the detector!
                         IF (xmi_intersection_plane_line(plane, line,&
-                        intersection) == 0) CALL EXIT(1)
+                        intersection) == 0) CALL xmi_exit(1)
                         intersection(1)=0.0_C_DOUBLE
                         IF (norm(intersection) .LE. inputF%detector%&
                         detector_radius .AND. xmi_distance_two_points(&
@@ -1761,7 +1766,7 @@ FUNCTION xmi_check_detector_intersection&
                         rv = XMI_NO_INTERSECTION
                 ELSE
                         WRITE (error_unit,'(A)') 'should never appear...'
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
         ENDIF
         RETURN
@@ -1839,7 +1844,7 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
             rv2) == 0_C_INT) THEN
                 WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
                 WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         IF (workspace%x1 .LE. rv1 .AND. rv1 .LE. workspace%x2) THEN
@@ -1849,7 +1854,7 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         ELSE
                 WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
                 WRITE (error_unit, '(A)') 'roots are not within interval'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         RETURN

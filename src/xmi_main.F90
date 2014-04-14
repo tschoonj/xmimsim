@@ -376,7 +376,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         CASE DEFAULT
                                 WRITE (*,'(A)') 'Unsupported cascade type'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                 ENDSELECT
 
                 precalc_xrf_cs(i,K_SHELL,j,ABS(line)) = PK
@@ -487,7 +487,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                 IF (xmi_ran_trap_workspace_init(iv_start_energy, iv_end_energy,&
                 iv_start_intensity, iv_end_intensity,workspace) == 0_C_INT) THEN
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
 
                 photons_cont:DO j=1,n_photons
@@ -574,7 +574,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
                                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         c_alfa = ACOS(cosalfa)
@@ -588,7 +588,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
                         IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         photon_temp => photon
@@ -607,7 +607,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #if DEBUG == 1
                                         IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
                                         INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
-                                        .LT. 1) CALL EXIT(1)
+                                        .LT. 1) CALL xmi_exit(1)
                                         IF (photon_temp%last_interaction ==&
                                         RAYLEIGH_INTERACTION .OR. &
                                         photon_temp%last_interaction ==&
@@ -688,7 +688,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                         photon_temp2 => photon_temp%offspring
                                         IF (.NOT. ASSOCIATED(photon_temp2)) THEN
                                                 WRITE (error_unit,'(A)') 'This line should not appear'
-                                                CALL EXIT(1)
+                                                CALL xmi_exit(1)
                                         ENDIF
                                 ELSE
                                         NULLIFY(photon_temp2)
@@ -860,7 +860,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
                                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         c_alfa = ACOS(cosalfa)
@@ -874,7 +874,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
                         IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         photon_temp => photon
@@ -893,7 +893,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #if DEBUG == 1
                                         IF (INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1 .GT. 1000 .OR.&
                                         INT(photon_temp%phi_i*999.0_C_DOUBLE/M_PI/2.0)+1&
-                                        .LT. 1) CALL EXIT(1)
+                                        .LT. 1) CALL xmi_exit(1)
                                         IF (photon_temp%last_interaction ==&
                                         RAYLEIGH_INTERACTION .OR. &
                                         photon_temp%last_interaction ==&
@@ -974,7 +974,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                         photon_temp2 => photon_temp%offspring
                                         IF (.NOT. ASSOCIATED(photon_temp2)) THEN
                                                 WRITE (error_unit,'(A)') 'This line should not appear'
-                                                CALL EXIT(1)
+                                                CALL xmi_exit(1)
                                         ENDIF
                                 ELSE
                                         NULLIFY(photon_temp2)
@@ -1342,7 +1342,7 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
                 IF (photon%current_layer .EQ. 0) THEN
                         WRITE (error_unit,'(A)') 'current layer equal 0'
                         WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
         ENDIF
 
@@ -1359,7 +1359,7 @@ SUBROUTINE xmi_photon_shift_first_layer(photon, composition, geometry)
         IF (xmi_intersection_plane_line(plane, line, photon%coords) == 0) THEN
                 WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
                 WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         photon%current_layer = 1
@@ -1482,7 +1482,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
                                         WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
                                         WRITE (error_unit,'(A)') 'in xmi_simulate_photon'
-                                        CALL EXIT(1)
+                                        CALL xmi_exit(1)
                                 ENDIF
                         
                                 dist = xmi_distance_two_points(photon%coords,intersect)
@@ -1619,7 +1619,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 IF (xmi_intersection_plane_line(plane, line, intersect) == 0) THEN
                                         WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
                                         WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
-                                        CALL EXIT(1)
+                                        CALL xmi_exit(1)
                                 ENDIF
                                 
                                 distances(i) = xmi_distance_two_points(line%point,intersect)
@@ -1663,7 +1663,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         inputF%composition%n_layers) THEN
                           WRITE(error_unit,'(A)') 'Invalid current_layer detected'
                           WRITE(error_unit,'(A,I3)') 'current_layer: ', my_index
-                          CALL EXIT(1)
+                          CALL xmi_exit(1)
                         ENDIF
 
                         temp_sum = 0.0_C_DOUBLE
@@ -1777,7 +1777,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         WRITE (*,'(A,I2)') 'last interaction type: '&
                         ,photon%last_interaction
 #endif
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
 
 #if DEBUG == 2
@@ -1963,7 +1963,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
                 IF (inputF%detector%collimator_radius .GE. &
                 inputF%detector%detector_radius) THEN
                         WRITE (error_unit,'(A)') 'Non conical collimator found'
-                        CALL EXIT(1)
+                        CALL xmi_exit(1)
                 ENDIF
                 !if cylindrical... bad things may happen
                 inputF%detector%half_apex = ATAN((inputF%detector%detector_radius-&
@@ -2132,7 +2132,7 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
                 WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
                 WRITE (error_unit,'(A)') 'in xmi_check_photon_detector_hit'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         IF (norm(intersect) .GT. inputF%detector%detector_radius) RETURN
@@ -2151,7 +2151,7 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         IF (xmi_intersection_plane_line(plane_det_base, photon_trajectory,intersect) == 0) THEN
                 WRITE (error_unit,'(A)') 'xmi_intersection_plane_line error'
                 WRITE (error_unit,'(A)') 'in xmi_check_photon_detector_hit'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         intersect(1) = 0.0_C_DOUBLE
@@ -2544,7 +2544,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         WRITE (*,'(A,F12.5)') 'photon%phi: ',photon%phi
         WRITE (*,'(A,3F12.5)') 'photon%coords: ',photon%coords
         WRITE (*,'(A,3F12.5)') 'photon%dirv: ',photon%dirv
-        CALL EXIT(1)
+        CALL xmi_exit(1)
 #endif
         !
         !update electric field
@@ -4647,7 +4647,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
                                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         c_alfa = ACOS(cosalfa)
@@ -4659,7 +4659,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                         ! do not simulate it
                         !IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
-                        !        CALL EXIT(1)
+                        !        CALL xmi_exit(1)
                         !ENDIF
                 ENDIF
 
@@ -4730,7 +4730,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
                                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         c_alfa = ACOS(cosalfa)
@@ -4744,7 +4744,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                         !simulate offspring
                         IF (xmi_simulate_photon(photon%offspring, inputF, hdf5F,rng) == 0) THEN
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
                 ENDIF
         ELSE
@@ -4927,7 +4927,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
 
         IF (ABS(cosalfa) .GT. 1.0) THEN
                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         c_alfa = ACOS(cosalfa)
@@ -4941,7 +4941,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
 
         !simulate offspring
         IF (xmi_simulate_photon(photon%offspring, inputF, hdf5F,rng) == 0) THEN
-                CALL EXIT(1)
+                CALL xmi_exit(1)
         ENDIF
 
         RETURN
@@ -5416,7 +5416,7 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
 
 #if DEBUG == 1
 !        WRITE (*,'(A,3F12.5)') 'detector_point: ',detector_point
-!        CALL EXIT(1)
+!        CALL xmi_exit(1)
 #endif
 
         photon%dirv = photon%coords-detector_point
@@ -5623,7 +5623,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
                         IF (ABS(cosalfa) .GT. 1.0) THEN
                                 WRITE (error_unit,'(A)') 'cosalfa exception detected'
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         c_alfa = ACOS(cosalfa)
@@ -5636,7 +5636,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 
                         IF (xmi_simulate_photon(photon, inputF, hdf5F,rng) == 0) THEN
-                                CALL EXIT(1)
+                                CALL xmi_exit(1)
                         ENDIF
 
                         photons_simulated = photons_simulated + photon%weight
