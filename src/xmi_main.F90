@@ -1868,6 +1868,8 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         WRITE (*,'(3(3F12.4,/))') inverse(1,:), inverse(2,:),inverse(3,:)
 #endif
         inputF%detector%n_detector_orientation_inverse = inverse
+        NULLIFY(inverse)
+        CALL xmi_free(inversePtr)
 
         !calculate detector solid angle
         distance_sample_detector =&

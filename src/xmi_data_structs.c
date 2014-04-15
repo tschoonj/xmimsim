@@ -1126,8 +1126,10 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 		}
 	}
 
-	if (var_red_history == NULL)
+	if (var_red_history == NULL) {
+		free(uniqZ);
 		return output;
+	}
 
 	for (i = 0 ; i < nuniqZ ; i++) {
 		//start by checking total number of counts for this element
@@ -1172,6 +1174,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	}
 
 
+	free(uniqZ);
 	return output;
 }
 
@@ -1204,6 +1207,7 @@ void xmi_free_output(struct xmi_output *output) {
 	xmi_free_fluorescence_line_counts(output->var_red_history, output->nvar_red_history);
 
 	xmi_free_input(output->input);
+	free(output);	
 
 	return;
 }

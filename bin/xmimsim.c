@@ -226,6 +226,7 @@ XMI_MAIN
 		return 1;
 	}
 
+	g_option_context_free(context);
 	
 	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
@@ -675,6 +676,15 @@ XMI_MAIN
 
 #ifdef HAVE_OPENMPI
 	}	
+#endif
+
+	xmi_free_input(input);	
+#ifdef HAVE_OPENMPI
+	if (rank == 0) {
+#endif
+		xmi_free_input_F(&inputFPtr);
+#ifdef HAVE_OPENMPI
+	}
 #endif
 
 	return 0;

@@ -1535,7 +1535,7 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 		return 0;
 	}
 
-
+	char *symbol;
 	//Z loop
 	for (i = 0 ; i < output->nbrute_force_history; i++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
@@ -1547,10 +1547,12 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 			fprintf(stderr,"Error writing atomic_number\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(output->brute_force_history[i].atomic_number)) < 0) {
+		symbol = AtomicNumberToSymbol(output->brute_force_history[i].atomic_number);
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",symbol) < 0) {
        			fprintf(stderr,"Error writing symbol\n");                     
 			return 0;
 		} 
+		xrlFree(symbol);
 		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g", output->brute_force_history[i].total_counts) < 0) {
        			fprintf(stderr,"Error writing total_counts\n");                     
 			return 0;
@@ -1632,10 +1634,12 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 			fprintf(stderr,"Error writing atomic_number\n");
 			return 0;
 		}
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",AtomicNumberToSymbol(output->var_red_history[i].atomic_number)) < 0) {
+		symbol = AtomicNumberToSymbol(output->var_red_history[i].atomic_number);
+		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s", symbol) < 0) {
        			fprintf(stderr,"Error writing symbol\n");                     
 			return 0;
 		} 
+		xrlFree(symbol);
 		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g", output->var_red_history[i].total_counts) < 0) {
        			fprintf(stderr,"Error writing total_counts\n");                     
 			return 0;
@@ -2701,7 +2705,6 @@ static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi
 
 static int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	gchar *timestring;
-	GTimeVal time;
 
 	//start off with some comments about user, time, date, hostname...
 	if (xmlTextWriterStartComment(writer) < 0) {
@@ -2715,21 +2718,21 @@ static int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	}
 
 #if GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 26
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",g_date_time_format(g_date_time_new_now_local(),"%F %H:%M:%S (%Z)")) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
+	GDateTime *time = g_date_time_new_now_local();
+	timestring = g_date_time_format(time,"%F %H:%M:%S (%Z)");
+	g_date_time_unref(time);
 #else
+	GTimeVal time;
 	g_get_current_time(&time);
         timestring = g_time_val_to_iso8601(&time);
 
+#endif
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",timestring) < 0) {
 		fprintf(stderr,"Error writing comment\n");
 		return 0;
 	}
-
 	g_free(timestring);
-#endif
+
 	
 	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
 		fprintf(stderr,"Error writing comment\n");

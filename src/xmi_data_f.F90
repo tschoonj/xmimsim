@@ -708,6 +708,8 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt)
                 IF (ASSOCIATED(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)) DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)
+                DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr)
+                DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF)
         ENDDO
         DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs)
         DEALLOCATE(xmi_hdf5F)

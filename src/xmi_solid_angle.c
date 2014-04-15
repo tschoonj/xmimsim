@@ -509,6 +509,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	//S2
 	//high energy limit
+	free(mu_a);
 	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
 	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
@@ -592,6 +593,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	//S2
 	//high energy limit
+	free(mu_b);
 	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
 	if (B->excitation->n_continuous > 1 && B->excitation->n_discrete > 0) {
