@@ -180,12 +180,13 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INTEGER (C_INT) :: ndims
         INTEGER (C_INT),DIMENSION(:), POINTER :: dims
         TYPE (C_PTR) :: dimsPtr
-        CHARACTER (LEN=2) :: element
         INTEGER (C_INT) :: xmi_cascade_type
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE, TARGET :: precalc_xrf_cs_local
+        INTEGER :: last_shell, last_line, shell
 
         CHARACTER (LEN=28, KIND=C_CHAR), DIMENSION(4) :: cascade_group_names = ['No cascade effect           ',&
         'Non-radiative cascade effect', 'Radiative cascade effect    ', 'Full cascade effect         ']
-        CHARACTER (LEN=8, KIND=C_CHAR), DIMENSION(9) :: shell_names = ['K shell ', 'L1 shell', 'L2 shell',&
+        CHARACTER (LEN=8, KIND=C_CHAR), DIMENSION(K_SHELL:M5_SHELL) :: shell_names = ['K shell ', 'L1 shell', 'L2 shell',&
         'L3 shell', 'M1 shell', 'M2 shell', 'M3 shell', 'M4 shell', 'M5 shell']
 
         rv = 0
@@ -239,8 +240,15 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 
 
-
-
+        
+        IF (options%use_M_lines .EQ. 1_C_INT) THEN
+                last_shell = M5_SHELL
+                last_line = M5P5_LINE
+        ELSE
+                last_shell = L3_SHELL
+                last_line = L3Q1_LINE
+        ENDIF
+        ALLOCATE(precalc_xrf_cs_local(ABS(last_line)))
 
         !allocate xmi_hdf5 structure
         ALLOCATE(xmi_hdf5F)
@@ -547,6 +555,99 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ENDIF
                 IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
 
+                !the rest of the loop is only useful when using variance
+                !reduction
+                IF (options%use_variance_reduction .EQ. 0_C_INT) THEN
+                        !close group
+                        IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                                elements(uniqZ(i))//C_NULL_CHAR
+                        ENDIF
+                        IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+                        NULLIFY(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)
+                        CYCLE
+                ENDIF
+
+                !open group
+                !Read precalculated XRF cross sections 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A,A)') 'Opening group ',&
+                        C_CHAR_'Precalculated XRF cross sections'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_open_group(hdf5_vars,&
+                        C_CHAR_'Precalculated XRF cross sections'//C_NULL_CHAR) &
+                        .EQ. 0_C_INT) RETURN
+
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs(K_SHELL:last_shell,SIZE(uniqZ),ABS(KL1_LINE):ABS(last_line)))
+
+                !Open cascade mode
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A,A)') 'Opening group ',&
+                        TRIM(cascade_group_names(xmi_cascade_type))//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_open_group(hdf5_vars,&
+                        TRIM(cascade_group_names(xmi_cascade_type))//C_NULL_CHAR) &
+                        .EQ. 0_C_INT) RETURN
+
+                !loop over all shells
+                DO shell=K_SHELL, last_shell
+                        IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                                WRITE (output_unit,'(A,A)') 'Opening group ',&
+                                TRIM(shell_names(shell))
+                        ENDIF
+                        IF (xmi_db_open_group(hdf5_vars,&
+                                TRIM(shell_names(shell))//C_NULL_CHAR) &
+                                .EQ. 0_C_INT) RETURN
+
+                        !loop over all elements
+                        DO j=1,SIZE(uniqZ)
+                                !open element dataset
+                                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                                        WRITE (output_unit,'(A,A)') 'Opening dataset ',&
+                                        elements(uniqZ(j))
+                                ENDIF
+                                IF (xmi_db_open_dataset(hdf5_vars,&
+                                        elements(uniqZ(j))//C_NULL_CHAR,ndims,dimsPtr) &
+                                        .EQ. 0_C_INT) RETURN
+
+                                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                                IF (ndims .NE. 1_C_INT) THEN
+                                        WRITE (error_unit,'(A)') &
+                                        'Wrong dimensions found after opening dataset'
+                                        RETURN
+                                ENDIF
+                                !read the dataset
+                                NULLIFY(dims)
+                                CALL xmi_free(dimsPtr)
+                                IF (xmi_db_read_dataset(hdf5_vars, &
+                                C_LOC(precalc_xrf_cs_local))&
+                                .EQ. 0_C_INT) RETURN
+                                xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs(shell,j,:)=&
+                                precalc_xrf_cs_local
+
+                        ENDDO
+
+                        !close group
+                        IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                                TRIM(shell_names(shell))
+                        ENDIF
+                        IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+                ENDDO
+
+                !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                TRIM(cascade_group_names(xmi_cascade_type))//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+
+                !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                'Precalculated XRF cross sections'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
 
                 !close group
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -554,7 +655,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                  elements(uniqZ(i))//C_NULL_CHAR
                 ENDIF
                 IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
-
 
         ENDDO
 
@@ -607,7 +707,7 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%RandomNumbers)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt)
-
+                IF (ASSOCIATED(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)) DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)
         ENDDO
         DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs)
         DEALLOCATE(xmi_hdf5F)
@@ -973,15 +1073,15 @@ ENDIF
                         energy,&
                         PM1,PM2,PM3,PM4)
 
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,K_SHELL+1,j,ABS(line)) = PK
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L1_SHELL+1,j,ABS(line)) = PL1
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L2_SHELL+1,j,ABS(line)) = PL2
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L3_SHELL+1,j,ABS(line)) = PL3
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M1_SHELL+1,j,ABS(line)) = PM1
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M2_SHELL+1,j,ABS(line)) = PM2
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M3_SHELL+1,j,ABS(line)) = PM3
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M4_SHELL+1,j,ABS(line)) = PM4
-                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M5_SHELL+1,j,ABS(line)) = PM5
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !nonradiative only
                         PL1 = PL1_auger_cascade_kissel(i,&
@@ -1012,15 +1112,15 @@ ENDIF
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
                         
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,K_SHELL+1,j,ABS(line)) = PK
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L1_SHELL+1,j,ABS(line)) = PL1
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L2_SHELL+1,j,ABS(line)) = PL2
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L3_SHELL+1,j,ABS(line)) = PL3
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M1_SHELL+1,j,ABS(line)) = PM1
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M2_SHELL+1,j,ABS(line)) = PM2
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M3_SHELL+1,j,ABS(line)) = PM3
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M4_SHELL+1,j,ABS(line)) = PM4
-                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M5_SHELL+1,j,ABS(line)) = PM5
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !radiative only
                         PL1 = PL1_rad_cascade_kissel(i,&
@@ -1051,15 +1151,15 @@ ENDIF
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
 
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,K_SHELL+1,j,ABS(line)) = PK
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L1_SHELL+1,j,ABS(line)) = PL1
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L2_SHELL+1,j,ABS(line)) = PL2
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L3_SHELL+1,j,ABS(line)) = PL3
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M1_SHELL+1,j,ABS(line)) = PM1
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M2_SHELL+1,j,ABS(line)) = PM2
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M3_SHELL+1,j,ABS(line)) = PM3
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M4_SHELL+1,j,ABS(line)) = PM4
-                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M5_SHELL+1,j,ABS(line)) = PM5
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !full cascade
                         PL1 = PL1_full_cascade_kissel(i,&
@@ -1090,15 +1190,15 @@ ENDIF
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
                         
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,K_SHELL+1,j,ABS(line)) = PK
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L1_SHELL+1,j,ABS(line)) = PL1
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L2_SHELL+1,j,ABS(line)) = PL2
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L3_SHELL+1,j,ABS(line)) = PL3
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M1_SHELL+1,j,ABS(line)) = PM1
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M2_SHELL+1,j,ABS(line)) = PM2
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M3_SHELL+1,j,ABS(line)) = PM3
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M4_SHELL+1,j,ABS(line)) = PM4
-                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M5_SHELL+1,j,ABS(line)) = PM5
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL,M5_SHELL+1,j,ABS(line)) = PM5
 
                 ENDDO
         ENDDO

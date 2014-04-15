@@ -381,49 +381,49 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !      and finishing with FLUORESCENCE 
                 !
-#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(i)%Ptr%Zindex
+#define precalc_xrf_cs_local inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(i)%Ptr%precalc_xrf_cs
                 IF (photon%n_interactions .GT. 1 .AND. &
                 photon%history(photon%n_interactions-1,1).LT.0) THEN
 
-                        PK = photon%precalc_xrf_cs(hdf5_Z, K_SHELL, &
+                        PK = precalc_xrf_cs_local(K_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PL1 = photon%precalc_xrf_cs(hdf5_Z, L1_SHELL, &
+                        PL1 = precalc_xrf_cs_local(L1_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PL2 = photon%precalc_xrf_cs(hdf5_Z, L2_SHELL, &
+                        PL2 = precalc_xrf_cs_local(L2_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PL3 = photon%precalc_xrf_cs(hdf5_Z, L3_SHELL, &
+                        PL3 = precalc_xrf_cs_local(L3_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
                         IF (photon%options%use_M_lines .EQ. 1) THEN 
-                        PM1 = photon%precalc_xrf_cs(hdf5_Z, M1_SHELL, &
+                        PM1 = precalc_xrf_cs_local(M1_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PM2 = photon%precalc_xrf_cs(hdf5_Z, M2_SHELL, &
+                        PM2 = precalc_xrf_cs_local(M2_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PM3 = photon%precalc_xrf_cs(hdf5_Z, M3_SHELL, &
+                        PM3 = precalc_xrf_cs_local(M3_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PM4 = photon%precalc_xrf_cs(hdf5_Z, M4_SHELL, &
+                        PM4 = precalc_xrf_cs_local(M4_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        PM5 = photon%precalc_xrf_cs(hdf5_Z, M5_SHELL, &
+                        PM5 = precalc_xrf_cs_local(M5_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
                         ENDIF
-#undef hdf5_Z
+#undef precalc_xrf_cs_local
                 ELSE
                 PK = 0.0_C_DOUBLE
                 PL1 = 0.0_C_DOUBLE
