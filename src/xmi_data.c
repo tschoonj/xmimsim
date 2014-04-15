@@ -41,6 +41,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_registry_win.h"
 #endif
 
+char *cascade_group_names[4] = {"No cascade effect", "Non-radiative cascade effect", "Radiative cascade effect", "Full cascade effect"};
+char *shell_names[9] = {"K shell", "L1 shell", "L2 shell", "L3 shell", "M1 shell", "M2 shell", "M3 shell", "M4 shell", "M5 shell"};
+
 
 struct interaction_prob {
 	int len;
@@ -50,13 +53,14 @@ struct interaction_prob {
 
 struct hdf5_vars {
 	hid_t file_id;
-	hid_t group_id;
+	hid_t *group_id;
+	int n_group_id;
 	hid_t dset_id;
 	hid_t dspace_id;
 };
 
 //fortran call
-void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *doppler_pz, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int maxz, int nintervals_e_ip);
+void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *doppler_pz, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int maxz, int nintervals_e_ip, double *precalc_xrf_cs);
 void xmi_db_Z_independent(double *phi, double *thetas, double *rs, int nintervals_theta2, int nintervals_r);
 
 
@@ -128,7 +132,7 @@ int xmi_db(char *filename) {
 	hid_t file_id;
 	hid_t dset_id;
 	hid_t dspace_id;
-	hid_t group_id, group_id2;
+	hid_t group_id, group_id2, group_id3, group_id4;
 	hid_t attribute_id;
 	hid_t root_group_id;
 	hid_t dataspace_id;
@@ -140,12 +144,13 @@ int xmi_db(char *filename) {
 	hsize_t dims3[3] = {nintervals_r, nintervals_e, nintervals_theta2};
 	hsize_t dims_corr[1] = {9};
 	hsize_t dims_ip[2];
+	hsize_t dims_xrf[1] = {-1*M5P5_LINE};
 	char elements[3];
-	double *rayleigh_theta, *compton_theta, *energies, *rs, *doppler_pz, *fluor_yield_corr;
+	double *rayleigh_theta, *compton_theta, *energies, *rs, *doppler_pz, *fluor_yield_corr, *precalc_xrf_cs;
 	double *phi, *thetas;
 	struct interaction_prob* ip;
 
-	int i,j,k;
+	int i,j,k,l,m;
 
 	/* Create a new file using default properties. */
 	hid_t gcpl = H5Pcreate (H5P_FILE_CREATE);
@@ -219,14 +224,19 @@ int xmi_db(char *filename) {
 		g_fprintf(stderr,"Could not allocate memory for ip. Aborting\n");
 		return 0;
 	}
+	precalc_xrf_cs = (double *) malloc(sizeof(double)*maxz*4*9*maxz*-1*M5P5_LINE);
+	if (precalc_xrf_cs == NULL) {
+		g_fprintf(stderr,"Could not allocate memory for precalc_xrf_cs. Aborting\n");
+		return 0;
+	}
 
-
-	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, doppler_pz, fluor_yield_corr, ip, nintervals_r, nintervals_e, maxz, nintervals_e_ip);
+	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, doppler_pz, fluor_yield_corr, ip, nintervals_r, nintervals_e, maxz, nintervals_e_ip, precalc_xrf_cs);
 
 	double *rayleigh_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
 	double *compton_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
 	double *doppler_pz_slice = (double*) malloc(sizeof(double)*nintervals_r);
 	double *fluor_yield_corr_slice = (double*) malloc(sizeof(double)*9);
+	double *precalc_xrf_cs_slice = (double*) malloc(sizeof(double)*-1*M5P5_LINE);
 	
 	for (i = 1 ; i <= maxz ; i++) {
 		//these two nested for loops ensure that I extract the data correctly from these fortran column major ordered arrays
@@ -311,6 +321,38 @@ int xmi_db(char *filename) {
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id2);
+
+		//precalculated XRF cross sections
+		group_id2 = H5Gcreate(group_id, "Precalculated XRF cross sections", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		for (j = XMI_CASCADE_NONE ; j <= XMI_CASCADE_FULL ; j++) {
+			group_id3 = H5Gcreate(group_id2, cascade_group_names[j], H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+			for (k = 0 ; k <= M5_SHELL ; k++) {
+				group_id4 = H5Gcreate(group_id3, shell_names[k], H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+				//start loop over elements
+				for (l = 1 ; l <= maxz ; l++) {
+					sprintf(elements,"%2i", l);
+					for (m = 0 ;  m < -1*M5P5_LINE ; m++) {
+						precalc_xrf_cs_slice[m]	= precalc_xrf_cs[i-1+
+									 		maxz*j+
+									 		maxz*4*k+
+									 		maxz*4*(M5_SHELL+1)*(l-1)+
+									 		maxz*4*(M5_SHELL+1)*maxz*m
+									 		];
+					}
+					dspace_id = H5Screate_simple(1, dims_xrf, dims_xrf);
+					dset_id = H5Dcreate(group_id4, elements,H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+					H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, precalc_xrf_cs_slice);	
+					H5Sclose(dspace_id);
+					H5Dclose(dset_id);
+				}
+				H5Gclose(group_id4);
+			}
+			H5Gclose(group_id3);
+		}
+
+
+		H5Gclose(group_id2);
+
 		H5Gclose(group_id);
 	}
 	//free memory
@@ -318,6 +360,7 @@ int xmi_db(char *filename) {
 	free(compton_theta);
 	free(doppler_pz);
 	free(fluor_yield_corr);
+	free(precalc_xrf_cs);
 	for (i=0 ; i < maxz ; i++) {
 		xmi_deallocate(ip[i].energies);
 		xmi_deallocate(ip[i].Rayl_and_Compt);
@@ -327,6 +370,7 @@ int xmi_db(char *filename) {
 	free(compton_theta_slice);
 	free(doppler_pz_slice);
 	free(fluor_yield_corr_slice);
+	free(precalc_xrf_cs_slice);
 
 	//Z independent part
 	phi = (double *) malloc(sizeof(double)*nintervals_theta2*nintervals_r);
@@ -449,24 +493,42 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		free(rv);
 		return NULL;
 	}
+	rv->group_id = NULL;
+	rv->n_group_id = 0;
 	return rv;
 }
 
 int xmi_db_open_group(struct hdf5_vars *hv, char *group_name) {
-	hv->group_id = H5Gopen(hv->file_id, group_name, H5P_DEFAULT);
-	if (hv->group_id < 0) {
+	hid_t open_id;
+
+	if (hv->n_group_id == 0)
+		open_id = hv->file_id;
+	else
+		open_id = hv->group_id[hv->n_group_id-1];
+
+	hid_t group_id = H5Gopen(open_id, group_name, H5P_DEFAULT);
+	if (group_id < 0) {
 		g_fprintf(stderr,"Could not open group %s for reading\n", group_name);
 		return 0;
 	}
 
+	hv->group_id = realloc(hv->group_id, sizeof(hid_t)*++(hv->n_group_id));
+	hv->group_id[hv->n_group_id-1] = group_id;
 	return 1;
 }
 
 int xmi_db_close_group(struct hdf5_vars *hv) {
-	if (H5Gclose(hv->group_id) < 0) {
+	if (H5Gclose(hv->group_id[hv->n_group_id-1]) < 0) {
 		g_fprintf(stderr,"Could not close group\n");
 		return 0;
 	}
+	if (hv->n_group_id == 1) {
+		free(hv->group_id);
+		hv->group_id = NULL;
+		hv->n_group_id = 0;
+	}
+	else
+		hv->group_id = realloc(hv->group_id, sizeof(hid_t)*--(hv->n_group_id));
 
 	return 1;
 }
@@ -475,7 +537,7 @@ int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, in
 	hsize_t ndims5, *dims5;
 	int i;
 
-	hv->dset_id = H5Dopen(hv->group_id, dataset_name, H5P_DEFAULT);
+	hv->dset_id = H5Dopen(hv->group_id[hv->n_group_id-1], dataset_name, H5P_DEFAULT);
 	if (hv->dset_id < 0) {
 		g_fprintf(stderr,"Could not open dataset %s\n", dataset_name);
 		return 0;
@@ -509,7 +571,14 @@ int xmi_db_read_dataset(struct hdf5_vars *hv, void *data) {
 }
 
 int xmi_db_close(struct hdf5_vars *hv) {
+	if (hv->n_group_id > 0) {
+		g_fprintf(stderr,"Closing hdf5 file before all groups were closed!!!\n");
+		return 0;
+	}
+
 	H5Fclose(hv->file_id);
+
+	free(hv);
 
 	return 1;
 }

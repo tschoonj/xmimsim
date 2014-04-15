@@ -181,7 +181,12 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INTEGER (C_INT),DIMENSION(:), POINTER :: dims
         TYPE (C_PTR) :: dimsPtr
         CHARACTER (LEN=2) :: element
+        INTEGER (C_INT) :: xmi_cascade_type
 
+        CHARACTER (LEN=28, KIND=C_CHAR), DIMENSION(4) :: cascade_group_names = ['No cascade effect           ',&
+        'Non-radiative cascade effect', 'Radiative cascade effect    ', 'Full cascade effect         ']
+        CHARACTER (LEN=8, KIND=C_CHAR), DIMENSION(9) :: shell_names = ['K shell ', 'L1 shell', 'L2 shell',&
+        'L3 shell', 'M1 shell', 'M2 shell', 'M3 shell', 'M4 shell', 'M5 shell']
 
         rv = 0
         !associate pointers C -> Fortran
@@ -189,6 +194,20 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
         hdf5_vars = xmi_db_open(xmi_hdf5_file) 
 
+        !set the XRF cross sections according to the options
+        IF (options%use_cascade_auger .EQ. 0 .AND.&
+        options%use_cascade_radiative .EQ.0 ) THEN
+                xmi_cascade_type = XMI_CASCADE_NONE
+        ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
+        options%use_cascade_radiative .EQ.0 ) THEN
+                xmi_cascade_type = XMI_CASCADE_NONRADIATIVE
+        ELSEIF (options%use_cascade_auger .EQ. 0 .AND.&
+        options%use_cascade_radiative .EQ.1 ) THEN
+                xmi_cascade_type = XMI_CASCADE_RADIATIVE
+        ELSEIF (options%use_cascade_auger .EQ. 1 .AND.&
+        options%use_cascade_radiative .EQ.1 ) THEN
+                xmi_cascade_type = XMI_CASCADE_FULL
+        ENDIF
 
 
         IF (.NOT. C_ASSOCIATED(hdf5_vars)) THEN
@@ -311,10 +330,18 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                 WRITE (output_unit,'(A,A)') 'Opening group ',elements(uniqZ(i))&
-                // C_CHAR_'/Theta_ICDF'//C_NULL_CHAR
+                //C_NULL_CHAR
                 ENDIF
                 IF (xmi_db_open_group(hdf5_vars, elements(uniqZ(i)) &
-                        // C_CHAR_'/Theta_ICDF'//C_NULL_CHAR) &
+                        //C_NULL_CHAR) &
+                        .EQ. 0_C_INT) RETURN
+
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Opening group ',&
+                C_CHAR_'Theta_ICDF'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_open_group(hdf5_vars,&
+                        C_CHAR_'Theta_ICDF'//C_NULL_CHAR) &
                         .EQ. 0_C_INT) RETURN
 
                 !Read Rayleigh Theta ICDF
@@ -446,17 +473,21 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 .EQ. 0_C_INT) RETURN
 
                 !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                C_CHAR_'Theta_ICDF'//C_NULL_CHAR
+                ENDIF
                 IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
 
 
 
                 !Read interactions probabilities
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                WRITE (output_unit,'(A,A)') 'Opening group ',elements(uniqZ(i))&
-                // C_CHAR_'/Interaction probabilities'//C_NULL_CHAR
+                WRITE (output_unit,'(A,A)') 'Opening group ',&
+                 C_CHAR_'Interaction probabilities'//C_NULL_CHAR
                 ENDIF
-                IF (xmi_db_open_group(hdf5_vars, elements(uniqZ(i))//&
-                        C_CHAR_'/Interaction probabilities'//C_NULL_CHAR) &
+                IF (xmi_db_open_group(hdf5_vars,&
+                        C_CHAR_'Interaction probabilities'//C_NULL_CHAR) &
                         .EQ. 0_C_INT) RETURN
 
                 !Read energies 
@@ -510,6 +541,18 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 .EQ. 0_C_INT) RETURN
 
                 !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                 C_CHAR_'Interaction probabilities'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+
+
+                !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                 elements(uniqZ(i))//C_NULL_CHAR
+                ENDIF
                 IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
 
 
@@ -573,18 +616,22 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
 ENDSUBROUTINE xmi_free_hdf5_F
 
 SUBROUTINE xmi_db_Z_specific(rayleigh_thetaPtr, compton_thetaPtr, energiesPtr, rsPtr,&
-doppler_pzPtr, fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip) &
+doppler_pzPtr, fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip,&
+precalc_xrf_csPtr) &
 BIND(C,NAME='xmi_db_Z_specific')
 
 IMPLICIT NONE
 
 TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_thetaPtr, compton_thetaPtr, &
-energiesPtr, rsPtr, doppler_pzPtr, fluor_yield_corrPtr, ipPtr
+energiesPtr, rsPtr, doppler_pzPtr, fluor_yield_corrPtr, ipPtr,&
+precalc_xrf_csPtr
 INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_r, nintervals_e, maxz, &
 nintervals_e_ip
 
 REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER::&
 rayleigh_theta, compton_theta
+REAL (C_DOUBLE), DIMENSION(:,:,:,:,:), POINTER::&
+precalc_xrf_cs
 REAL (C_DOUBLE), DIMENSION(:), POINTER :: energies,rs
 REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: doppler_pz
 REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: fluor_yield_corr
@@ -602,9 +649,10 @@ temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
 
-INTEGER :: stat,i,j,k,l,m,n
+INTEGER :: stat,i,j,k,l,m,n,line
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
-REAL (KIND=C_DOUBLE) :: temp_energy,temp_total_cs
+REAL (KIND=C_DOUBLE) :: temp_energy,temp_total_cs,energy
+REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
 
 
 CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
@@ -616,6 +664,7 @@ CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
 CALL C_F_POINTER(doppler_pzPtr,doppler_pz,[maxz,nintervals_r])
 CALL C_F_POINTER(fluor_yield_corrPtr,fluor_yield_corr,[maxz,M5_SHELL+1])
 CALL C_F_POINTER(ipPtr, ip,[maxz])
+CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [maxz, 4, M5_SHELL+1, maxz, ABS(M5P5_LINE)])
 
 
 CALL SetErrorMessages(0)
@@ -641,7 +690,8 @@ DO i=1,nintervals_theta
 ENDDO
 
 !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,&
-!$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs)
+!$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs,&
+!$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line)
 
 ALLOCATE(trapez(nintervals_theta-1))
 ALLOCATE(trapez2(nintervals_pz-1))
@@ -883,6 +933,175 @@ ENDIF
                         FluorYield(i,M5_SHELL)
 #undef CKTB
 
+        DO j=1,maxz
+                DO line=KL1_LINE, M5P5_LINE, -1
+                        PK = 0.0_C_DOUBLE
+                        PL1 = 0.0_C_DOUBLE
+                        PL2 = 0.0_C_DOUBLE
+                        PL3 = 0.0_C_DOUBLE
+                        PM1 = 0.0_C_DOUBLE
+                        PM2 = 0.0_C_DOUBLE
+                        PM3 = 0.0_C_DOUBLE
+                        PM4 = 0.0_C_DOUBLE
+                        PM5 = 0.0_C_DOUBLE
+                        energy = LineEnergy(j, line)
+                        IF (energy .GE. EdgeEnergy(i,K_SHELL)) &
+                                PK = CS_Photo_Partial(i,K_SHELL,&
+                                energy)
+
+                        !no cascade
+                        PL1 = PL1_pure_kissel(i,&
+                        energy)
+                        PL2 = PL2_pure_kissel(i,&
+                        energy,PL1)
+                        PL3 = PL3_pure_kissel(i,&
+                        energy,PL1,PL2)
+                        PM1 = PM1_pure_kissel(i,&
+                        energy)
+                        PM2 = &
+                        PM2_pure_kissel(i,&
+                        energy,PM1)
+                        PM3 = &
+                        PM3_pure_kissel(i,&
+                        energy,PM1,PM2)
+                        PM4 = &
+                        PM4_pure_kissel(i,&
+                        energy,&
+                        PM1,PM2,PM3)
+                        PM5 = &
+                        PM5_pure_kissel(i,&
+                        energy,&
+                        PM1,PM2,PM3,PM4)
+
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_NONE+1,M5_SHELL+1,j,ABS(line)) = PM5
+
+                        !nonradiative only
+                        PL1 = PL1_auger_cascade_kissel(i,&
+                        energy,PK)
+                        PL2 = PL2_auger_cascade_kissel(i,&
+                        energy,PK,PL1)
+                        PL3 = PL3_auger_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2)
+                        PM1 =&
+                        PM1_auger_cascade_kissel(i,&
+                        energy,&
+                        PK, PL1, PL2, PL3)
+                        PM2 = &
+                        PM2_auger_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1)
+                        PM3 = &
+                        PM3_auger_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2)
+                        PM4 = &
+                        PM4_auger_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                        PM5 = &
+                        PM5_auger_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                        
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE+1,M5_SHELL+1,j,ABS(line)) = PM5
+
+                        !radiative only
+                        PL1 = PL1_rad_cascade_kissel(i,&
+                        energy,PK)
+                        PL2 = PL2_rad_cascade_kissel(i,&
+                        energy,PK,PL1)
+                        PL3 = PL3_rad_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2)
+                        PM1 =&
+                        PM1_rad_cascade_kissel(i,&
+                        energy,&
+                        PK, PL1, PL2, PL3)
+                        PM2 = &
+                        PM2_rad_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1)
+                        PM3 = &
+                        PM3_rad_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2)
+                        PM4 = &
+                        PM4_rad_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                        PM5 = &
+                        PM5_rad_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE+1,M5_SHELL+1,j,ABS(line)) = PM5
+
+                        !full cascade
+                        PL1 = PL1_full_cascade_kissel(i,&
+                        energy,PK)
+                        PL2 = PL2_full_cascade_kissel(i,&
+                        energy,PK,PL1)
+                        PL3 = PL3_full_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2)
+                        PM1 =&
+                        PM1_full_cascade_kissel(i,&
+                        energy,&
+                        PK, PL1, PL2, PL3)
+                        PM2 = &
+                        PM2_full_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1)
+                        PM3 = &
+                        PM3_full_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2)
+                        PM4 = &
+                        PM4_full_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                        PM5 = &
+                        PM5_full_cascade_kissel(i,&
+                        energy,&
+                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                        
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,K_SHELL+1,j,ABS(line)) = PK
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L1_SHELL+1,j,ABS(line)) = PL1
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L2_SHELL+1,j,ABS(line)) = PL2
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,L3_SHELL+1,j,ABS(line)) = PL3
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M1_SHELL+1,j,ABS(line)) = PM1
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M2_SHELL+1,j,ABS(line)) = PM2
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M3_SHELL+1,j,ABS(line)) = PM3
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M4_SHELL+1,j,ABS(line)) = PM4
+                        precalc_xrf_cs(i,XMI_CASCADE_FULL+1,M5_SHELL+1,j,ABS(line)) = PM5
+
+                ENDDO
+        ENDDO
 ENDDO Zloop
 !$OMP END DO
 !$OMP END PARALLEL

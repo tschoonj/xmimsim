@@ -588,7 +588,7 @@ void xmi_init_hdf5(void) {
 	}
 
 	//disable HDF5's error messages -> could be a bad idea!
-	H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+	//H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
 
 }

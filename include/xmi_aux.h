@@ -36,6 +36,10 @@ extern "C" {
 ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 #endif
 
+#define XMI_CASCADE_FULL 3
+#define XMI_CASCADE_RADIATIVE 2
+#define XMI_CASCADE_NONRADIATIVE 1
+#define XMI_CASCADE_NONE 0
 
 
 //returns NULL on error
