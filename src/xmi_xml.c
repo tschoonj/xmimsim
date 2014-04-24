@@ -2501,6 +2501,7 @@ double *channels, int nchannels, double maximum2 ) {
        	if(!error) error = write_end_element(writer,  "graphic");
         //end loop
 
+	free(energies);
 
         if(error)
 		return 0;

@@ -823,6 +823,7 @@ void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
 	free(solid_angle->grid_dims_r_vals);
 	free(solid_angle->grid_dims_theta_vals);
 	free(solid_angle->xmi_input_string);
+	free(solid_angle);
 }
 
 int xmi_get_solid_angle_file(char **filePtr, int create_file) {
