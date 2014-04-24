@@ -340,7 +340,7 @@ gchar *xmi_version_string() {
 #endif
 	strcat(string,"\n\n");
 	strcat(string,
-"Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"

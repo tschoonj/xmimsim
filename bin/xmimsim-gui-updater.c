@@ -310,9 +310,11 @@ int check_for_updates(char **max_version_rv) {
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
+	char *user_agent = g_strdup_printf("XMI-MSIM %s updater using curl %i.%i.%i", PACKAGE_VERSION, LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
+	g_free(user_agent);
 	res = curl_easy_perform(curl);
 	if (res != 0) {
 		fprintf(stderr,"check_for_updates: %s\n",curlerrors);
@@ -480,7 +482,9 @@ int download_updates(GtkWidget *window, char *max_version) {
 
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+	char *user_agent = g_strdup_printf("XMI-MSIM %s updater using curl %i.%i.%i", PACKAGE_VERSION, LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
+	g_free(user_agent);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, DownloadProgress);
