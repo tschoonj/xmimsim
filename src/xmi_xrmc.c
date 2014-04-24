@@ -311,6 +311,10 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		double collim_radius = input->geometry->collimator_diameter/2.0;
 		double collim_height = input->geometry->collimator_height;
 		double neck_height = 0.05; //cm
+
+		if (collim_height < 1.0)
+			neck_height = collim_height/20.0;
+			
 	
 		double tan_alpha = (detarea_radius - collim_radius)/(collim_height - neck_height);
 		double collim_thickness = 0.3; //cm
