@@ -546,6 +546,7 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 	free(escape_ratios->compton_escape_input_energies);
 	free(escape_ratios->compton_escape_output_energies);
 	free(escape_ratios->xmi_input_string);
+	free(escape_ratios);
 }
 
 int xmi_get_escape_ratios_file(char **filePtr, int create_file) {

@@ -369,7 +369,8 @@ XMI_MAIN
 		g_fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
-
+	
+	xmi_free_solid_angle(solid_angle_def);
 	
 	if (options.verbose)
 		g_fprintf(stdout,"Interactions simulation finished\n");
@@ -504,6 +505,7 @@ XMI_MAIN
 		xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 
 		free(channels_def_ptrs);
+		xmi_free_escape_ratios(escape_ratios_def);
 
 		csv_convPtr = csv_noconvPtr = NULL;
 
