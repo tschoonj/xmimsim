@@ -348,41 +348,28 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gchar *element;
 	double weight;
 	char buffer[512];
+	GList *paths;
 	
 	//get selection
-	//the olde switcharooooo
-	if (gtk_tree_selection_get_selected(ad->select, &model, &iter)) {
-		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		index = 0;
-		nindices = 0;
-		while(valid) {
-			if (gtk_tree_selection_iter_is_selected(ad->select, &temp_iter)) {
-#if DEBUG == 1
-				fprintf(stdout,"Index: %i\n",nindices);
-#endif
-				index = nindices;
-			}
-			nindices++;
-			valid = gtk_tree_model_iter_next(model, &temp_iter);
-		}
-		//get data from selected
-		gtk_tree_model_get(model, &iter, SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
+	paths = gtk_tree_selection_get_selected_rows(ad->select, &model);
+	GtkTreePath *path = g_list_nth_data(paths, 0);
+	gtk_tree_model_get_iter(model, &iter, path);
 
-		//put it in dialog
-#if DEBUG == 1
-		fprintf(stdout,"Editing element: %s and weight: %lf\n",element, weight);
-#endif
-		gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
-		gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
-		ad->cw->kind = CW_EDIT;
-		sprintf(buffer,"%g", weight);
-		gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
-		g_free(element);
-		gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
-		ad->cw->index = index;
+	//get data from selected
+	gtk_tree_model_get(model, &iter, SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
 
-		gtk_widget_show_all(ad->cw->dialog);
-	}
+	//put it in dialog
+	gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
+	gtk_entry_set_editable(GTK_ENTRY(ad->cw->compoundEntry), FALSE);
+	ad->cw->kind = CW_EDIT;
+	sprintf(buffer,"%g", weight);
+	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
+	g_free(element);
+	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
+	ad->cw->index = index;
+	g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+
+	gtk_widget_show_all(ad->cw->dialog);
 
 	return;
 }
