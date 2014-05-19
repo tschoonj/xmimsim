@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-fonts.h"
+#include "xmimsim-gui-prefs.h"
 #include <math.h>
 #include <stdlib.h>
 #include "xmi_aux.h"
@@ -150,6 +151,79 @@ struct generate {
 	GtkWidget *transmissionEffFileW;
 };
 
+static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
+	struct xmi_ebel_parameters *xep = g_malloc(sizeof(struct xmi_ebel_parameters));
+
+	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeVoltageW)); 
+	xep->transmission_tube = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionW));
+	xep->alpha= gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaElectronW));
+	xep->beta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaXrayW));
+	xep->tube_current = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeCurrentW));
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(gen->tubeSolidAngleW));
+	xep->tube_solid_angle = strtod(text, NULL);	
+	if (xep->tube_solid_angle <= 0.0) {
+		g_fprintf(stderr, "Warning: invalid tube_solid_angle in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	xep->interval_width = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->deltaEnergyW));
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionEffW)) == TRUE) {
+		xep->transmission_efficiency_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gen->transmissionEffFileW));
+		if (xep->transmission_efficiency_file == NULL)
+			xep->transmission_efficiency_file = g_strdup("(None)");
+	}
+	else {
+		xep->transmission_efficiency_file = g_strdup("(None)");
+	}
+	char *endPtr;
+	xep->anode_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->anodeMaterialW))+1; 
+	text = gtk_entry_get_text(GTK_ENTRY(gen->anodeThicknessW));
+	xep->anode_thickness = strtod(text, &endPtr);
+	if (xep->anode_thickness <= 0.0) {
+		g_fprintf(stderr, "Warning: invalid anode_thickness in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(gen->anodeDensityW));
+	xep->anode_rho = strtod(text, &endPtr);
+	if (xep->anode_rho <= 0.0) {
+		g_fprintf(stderr, "Warning: invalid anode_rho in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->windowMaterialW))+1; 
+	text = gtk_entry_get_text(GTK_ENTRY(gen->windowThicknessW));
+	xep->window_thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_thickness < 0.0) {
+		g_fprintf(stderr, "Warning: invalid window_thickness in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(gen->windowDensityW));
+	xep->window_rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_rho < 0.0) {
+		g_fprintf(stderr, "Warning: invalid window_rho in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->filterMaterialW))+1; 
+	text = gtk_entry_get_text(GTK_ENTRY(gen->filterThicknessW));
+	xep->filter_thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->filter_thickness < 0.0) {
+		g_fprintf(stderr, "Warning: invalid filter_thickness in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(gen->filterDensityW));
+	xep->filter_rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->filter_rho < 0.0) {
+		g_fprintf(stderr, "Warning: invalid filter_rho in get_ebel_parameters\n");
+		g_free(xep);
+		return NULL;
+	}
+	return xep;
+}
+
 static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
 	int Z = gtk_combo_box_get_active(widget)+1;
 	float density = ElementDensity(Z);	
@@ -233,7 +307,67 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	return;
 }
 
+static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
+	union xmimsim_prefs_val xpv;
+	xpv.xep = get_ebel_parameters(gen);
+
+	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Ebel configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+	if (xpv.xep)
+		g_free(xpv.xep->transmission_efficiency_file);
+	g_free(xpv.xep);
+
+	gtk_widget_destroy(gtk_widget_get_toplevel(GTK_WIDGET(button)));
+}
+
+static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct generate *gen) {
+	union xmimsim_prefs_val xpv;
+	xpv.xep = get_ebel_parameters(gen);
+
+	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(gen->canvas))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Ebel configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+	if (xpv.xep)
+		g_free(xpv.xep->transmission_efficiency_file);
+	g_free(xpv.xep);
+
+	gtk_widget_destroy(widget);
+	return FALSE;
+}
 static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
+	union xmimsim_prefs_val xpv;
+	xpv.xep = get_ebel_parameters(gen);
+
+	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Ebel configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+		return;
+	}
+	if (xpv.xep)
+		g_free(xpv.xep->transmission_efficiency_file);
+	g_free(xpv.xep);
+
 	update_undo_buffer(EBEL_SPECTRUM_REPLACE, (gpointer) gen->excitation);
 
 	gtk_list_store_clear(discWidget->store);
@@ -437,7 +571,7 @@ static void generate_spectrum(struct generate *gen) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionEffW)) == TRUE) {
 		g_fprintf(stdout,"Found transmission efficiency file\n");
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gen->transmissionEffFileW));
-		if (strlen(filename) == 0) {
+		if (filename == NULL || strlen(filename) == 0) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");		
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
@@ -2391,10 +2525,25 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 2);
 
+	union xmimsim_prefs_val xpv;
+
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_EBEL_LAST_USED, &xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error getting preferences for last used Ebel configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+		return;
+	}
+
+	struct xmi_ebel_parameters *xep = xpv.xep;
 
 	GtkWidget *label;
 	GtkWidget *hbox;
-	GtkObject *adj = gtk_adjustment_new(40.0,5,100,1,10,0);
+	GtkObject *adj = gtk_adjustment_new(xep->tube_voltage,5,100,1,10,0);
 
 	label = gtk_label_new("Tube voltage (kV)");
 	GtkWidget *tubeVoltageW = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 0.1, 1);
@@ -2404,7 +2553,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_end(GTK_BOX(hbox), tubeVoltageW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	GtkObject *adjCurrent = gtk_adjustment_new(1.0,0.001,1000,0.1,1.0,0);
+	GtkObject *adjCurrent = gtk_adjustment_new(xep->tube_current,0.001,1000,0.1,1.0,0);
 	label = gtk_label_new("Tube current (mA)");
 	GtkWidget *tubeCurrentW = gtk_spin_button_new(GTK_ADJUSTMENT(adjCurrent), 0.1, 4);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(tubeCurrentW), GTK_UPDATE_IF_VALID);
@@ -2421,9 +2570,9 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	//calculate solid angle based on slits
-	double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
-	char buf[20];
-	sprintf(buf, "%g", solid_angle);
+	//double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
+	char buf[200];
+	sprintf(buf, "%g", xep->tube_solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(tubeSolidAngleW), buf);
 
 
@@ -2459,16 +2608,20 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 #endif
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(anodeMaterialW), 46);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(anodeMaterialW), xep->anode_Z-1);
 	gtk_table_attach(GTK_TABLE(table), anodeMaterialW, 1, 2, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), anodeDensityW, 2, 3, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *anodeThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), anodeThicknessW, 3, 4, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	
-	gtk_widget_set_sensitive(anodeThicknessW, FALSE);
-	gtk_widget_set_sensitive(anodeDensityW, FALSE);
-	gtk_entry_set_text(GTK_ENTRY(anodeDensityW), "10.5");
-	gtk_entry_set_text(GTK_ENTRY(anodeThicknessW), "0.0002");
+
+	if (xep->transmission_tube == FALSE) {
+		gtk_widget_set_sensitive(anodeThicknessW, FALSE);
+		gtk_widget_set_sensitive(anodeDensityW, FALSE);
+	}
+	sprintf(buf, "%g", xep->anode_rho);
+	gtk_entry_set_text(GTK_ENTRY(anodeDensityW), buf);
+	sprintf(buf, "%g", xep->anode_thickness);
+	gtk_entry_set_text(GTK_ENTRY(anodeThicknessW), buf);
 
 	//row 2
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Window"), 0, 1, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -2488,13 +2641,15 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 #endif
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(windowMaterialW), 3);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(windowMaterialW), xep->window_Z-1);
 	gtk_table_attach(GTK_TABLE(table), windowMaterialW, 1, 2, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), windowDensityW, 2, 3, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *windowThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), windowThicknessW, 3, 4, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_entry_set_text(GTK_ENTRY(windowDensityW), "1.848");
-	gtk_entry_set_text(GTK_ENTRY(windowThicknessW), "0.0125");
+	sprintf(buf, "%g", xep->window_rho);
+	gtk_entry_set_text(GTK_ENTRY(windowDensityW), buf);
+	sprintf(buf, "%g", xep->window_thickness);
+	gtk_entry_set_text(GTK_ENTRY(windowThicknessW), buf);
 		
 	//row 3
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Filter"), 0, 1, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -2514,15 +2669,17 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 #endif
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(filterMaterialW), 1);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(filterMaterialW), xep->filter_Z-1);
 	gtk_table_attach(GTK_TABLE(table), filterMaterialW, 1, 2, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), filterDensityW, 2, 3, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *filterThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), filterThicknessW, 3, 4, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_entry_set_text(GTK_ENTRY(filterDensityW), "0.000166");
-	gtk_entry_set_text(GTK_ENTRY(filterThicknessW), "0");
+	sprintf(buf, "%g", xep->filter_rho);
+	gtk_entry_set_text(GTK_ENTRY(filterDensityW), buf);
+	sprintf(buf, "%g", xep->filter_thickness);
+	gtk_entry_set_text(GTK_ENTRY(filterThicknessW), buf);
 	
-	GtkObject *adj2 = gtk_adjustment_new(60.0,50,90,1,10,0);
+	GtkObject *adj2 = gtk_adjustment_new(xep->alpha,50,90,1,10,0);
 	GtkWidget *alphaElectronW = gtk_spin_button_new(GTK_ADJUSTMENT(adj2), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaElectronW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
@@ -2531,7 +2688,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_end(GTK_BOX(hbox), alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	
-	GtkObject *adj3 = gtk_adjustment_new(60.0,5,90,1,10,0);
+	GtkObject *adj3 = gtk_adjustment_new(xep->beta,5,90,1,10,0);
 	GtkWidget *alphaXrayW = gtk_spin_button_new(GTK_ADJUSTMENT(adj3), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaXrayW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
@@ -2540,7 +2697,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_end(GTK_BOX(hbox), alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	
-	GtkObject *adjDelta = gtk_adjustment_new(0.1,0.0001,10,0.01,10,0);
+	GtkObject *adjDelta = gtk_adjustment_new(xep->interval_width,0.0001,10,0.01,10,0);
 	GtkWidget *deltaEnergyW = gtk_spin_button_new(GTK_ADJUSTMENT(adjDelta), 0.01, 3);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(deltaEnergyW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
@@ -2551,7 +2708,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);	
 
 	GtkWidget *transmissionW = gtk_check_button_new_with_label("Transmission tube");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionW), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionW), xep->transmission_tube);
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
 	struct transmission_data *td = (struct transmission_data *) malloc(sizeof(struct transmission_data));
@@ -2560,15 +2717,20 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	td->anodeThicknessW = anodeThicknessW;
 
 	GtkWidget *transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionEffW), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionEffW), strcmp(xep->transmission_efficiency_file, "(None)") == 0 ? FALSE : TRUE);
 	hbox = gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffW, FALSE, FALSE, 0);
 	GtkWidget *transmissionEffFileW = gtk_file_chooser_button_new("Select a transmission efficiency file", GTK_FILE_CHOOSER_ACTION_OPEN);
-	gtk_widget_set_sensitive(transmissionEffFileW, FALSE);
+	gtk_widget_set_sensitive(transmissionEffFileW, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(transmissionEffW)));
 	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(transmissionEffW))) {
+		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(transmissionEffFileW), xep->transmission_efficiency_file);
+	}
 
+	g_free(xep->transmission_efficiency_file);
+	g_free(xep);
 
 	//buttons	
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
@@ -2581,10 +2743,11 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) window);
-	g_signal_connect_swapped(G_OBJECT(cancelButton), "clicked", G_CALLBACK(gtk_widget_destroy), (gpointer) window);
+	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(cancel_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(okButton), "clicked", G_CALLBACK(ok_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(ebel_delete_event_cb), (gpointer) gen);
 	update_button_text(generateButton, "Update spectrum");
 	update_button_text(exportButton, "Export spectrum");
 	update_button_text(imageButton, "Save image");

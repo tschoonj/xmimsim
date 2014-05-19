@@ -53,8 +53,8 @@ enum {
 };
 
 
-static int current_index;
-static int current_nindices;
+static int download_current_index;
+static int download_current_nindices;
 static GtkTreeIter current_iter;
 
 const gchar * const xmimsim_download_locations[] = {
@@ -253,16 +253,16 @@ static void url_selection_changed_cb (GtkTreeSelection *selection, gpointer data
 
 	if (gtk_tree_selection_get_selected(selection, &model, &current_iter)) {
 		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		current_index = 0;
-		current_nindices = 0;
+		download_current_index = 0;
+		download_current_nindices = 0;
 		while (valid) {
 			if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
-				current_index = current_nindices;
+				download_current_index = download_current_nindices;
 			}
-			current_nindices++;
+			download_current_nindices++;
 			valid = gtk_tree_model_iter_next(model, &temp_iter);
 		}
-		if (current_nindices > 1) {
+		if (download_current_nindices > 1) {
 			gtk_widget_set_sensitive(removeButton, TRUE);
 		}
 		else {
@@ -417,6 +417,46 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
+
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", 60.0);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", 60.0);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", 0.1);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", 47);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", 10.5);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", 0.0002);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", 4);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", 1.848);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", 0.0125);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", 2);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", 0.000166);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
+	g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
+	g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
+
+	g_key_file_set_double(keyfile, "Ebel default", "Tube voltage", 40.0);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube current", 1.0);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube solid angle", 1E-10);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube alpha", 60.0);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube beta", 60.0);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube interval width", 0.1);
+	g_key_file_set_integer(keyfile, "Ebel default", "Tube anode element", 47);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube anode density", 10.5);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube anode thickness", 0.0002);
+	g_key_file_set_integer(keyfile, "Ebel default", "Tube window element", 4);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube window density", 1.848);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube window thickness", 0.0125);
+	g_key_file_set_integer(keyfile, "Ebel default", "Tube filter element", 2);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube filter density", 0.000166);
+	g_key_file_set_double(keyfile, "Ebel default", "Tube filter thickness", 0);
+	g_key_file_set_boolean(keyfile, "Ebel default", "Tube transmission mode", FALSE);
+	g_key_file_set_string(keyfile, "Ebel default", "Tube transmission efficiency file", "(None)");
+
+
+
+
 	//save file
 	//create dir first if necessary
 	if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
@@ -640,7 +680,296 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
-		
+		case XMIMSIM_GUI_EBEL_LAST_USED:
+			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
+			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube voltage not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
+				prefs->xep->tube_voltage = 40.0;
+				error = NULL;
+			}
+			prefs->xep->tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube current not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
+				prefs->xep->tube_current = 1.0;
+				error = NULL;
+			}
+			prefs->xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube solid angle not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
+				prefs->xep->tube_solid_angle = 1E-10;
+				error = NULL;
+			}
+			prefs->xep->alpha = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube alpha not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", 60.0);
+				prefs->xep->alpha = 60.0;
+				error = NULL;
+			}
+			prefs->xep->beta = g_key_file_get_double(keyfile, "Ebel last used", "Tube beta", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube beta not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", 60.0);
+				prefs->xep->beta = 60.0;
+				error = NULL;
+			}
+			prefs->xep->interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube interval width not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", 0.1);
+				prefs->xep->interval_width = 0.1;
+				error = NULL;
+			}
+			prefs->xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube anode element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", 47);
+				prefs->xep->anode_Z = 47;
+				error = NULL;
+			}
+			prefs->xep->anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube anode density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", 10.5);
+				prefs->xep->anode_rho = 10.5;
+				error = NULL;
+			}
+			prefs->xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube anode thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", 0.0002);
+				prefs->xep->anode_thickness = 0.0002;
+				error = NULL;
+			}
+			prefs->xep->window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube window element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", 4);
+				prefs->xep->window_Z= 4;
+				error = NULL;
+			}
+			prefs->xep->window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube window density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", 1.848);
+				prefs->xep->window_rho = 1.848;
+				error = NULL;
+			}
+			prefs->xep->window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube window thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", 0.0125);
+				prefs->xep->window_thickness = 0.0125;
+				error = NULL;
+			}
+			prefs->xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube filter element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", 2);
+				prefs->xep->filter_Z = 2;
+				error = NULL;
+			}
+			prefs->xep->filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube filter density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", 0.000166);
+				prefs->xep->filter_rho = 0.000166;
+				error = NULL;
+			}
+			prefs->xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube filter thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
+				prefs->xep->filter_thickness = 0;
+				error = NULL;
+			}
+			prefs->xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube transmission mode not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
+				prefs->xep->transmission_tube = FALSE;
+				error = NULL;
+			}
+			prefs->xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Tube transmission efficiency file not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
+				prefs->xep->transmission_efficiency_file = g_strdup("(None)");
+				error = NULL;
+			}
+			//save file
+			prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+			if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+				return 0;
+			g_free(prefs_file_contents);	
+
+			break;
+		case XMIMSIM_GUI_EBEL_DEFAULT:
+			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
+			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel default", "Tube voltage", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube voltage not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube voltage", 40.0);
+				prefs->xep->tube_voltage = 40.0;
+				error = NULL;
+			}
+			prefs->xep->tube_current = g_key_file_get_double(keyfile, "Ebel default", "Tube current", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube current not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube current", 1.0);
+				prefs->xep->tube_current = 1.0;
+				error = NULL;
+			}
+			prefs->xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel default", "Tube solid angle", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube solid angle not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube solid angle", 1E-10);
+				prefs->xep->tube_solid_angle = 1E-10;
+				error = NULL;
+			}
+			prefs->xep->alpha = g_key_file_get_double(keyfile, "Ebel default", "Tube alpha", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube alpha not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube alpha", 60.0);
+				prefs->xep->alpha = 60.0;
+				error = NULL;
+			}
+			prefs->xep->beta = g_key_file_get_double(keyfile, "Ebel default", "Tube beta", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube beta not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube beta", 60.0);
+				prefs->xep->beta = 60.0;
+				error = NULL;
+			}
+			prefs->xep->interval_width = g_key_file_get_double(keyfile, "Ebel default", "Tube interval width", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube interval width not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube interval width", 0.1);
+				prefs->xep->interval_width = 0.1;
+				error = NULL;
+			}
+			prefs->xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube anode element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube anode element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel default", "Tube anode element", 47);
+				prefs->xep->anode_Z = 47;
+				error = NULL;
+			}
+			prefs->xep->anode_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube anode density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube anode density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube anode density", 10.5);
+				prefs->xep->anode_rho = 10.5;
+				error = NULL;
+			}
+			prefs->xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube anode thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube anode thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube anode thickness", 0.0002);
+				prefs->xep->anode_thickness = 0.0002;
+				error = NULL;
+			}
+			prefs->xep->window_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube window element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube window element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel default", "Tube window element", 4);
+				prefs->xep->window_Z = 4;
+				error = NULL;
+			}
+			prefs->xep->window_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube window density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube window density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube window density", 1.848);
+				prefs->xep->window_rho = 1.848;
+				error = NULL;
+			}
+			prefs->xep->window_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube window thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube window thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube window thickness", 0.0125);
+				prefs->xep->window_thickness = 0.0125;
+				error = NULL;
+			}
+			prefs->xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube filter element", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube filter element not found in preferences file\n");
+				g_key_file_set_integer(keyfile, "Ebel default", "Tube filter element", 2);
+				prefs->xep->filter_Z = 2;
+				error = NULL;
+			}
+			prefs->xep->filter_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube filter density", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube filter density not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube filter density", 0.000166);
+				prefs->xep->filter_rho = 0.000166;
+				error = NULL;
+			}
+			prefs->xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube filter thickness", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube filter thickness not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Ebel default", "Tube filter thickness", 0);
+				prefs->xep->filter_thickness = 0;
+				error = NULL;
+			}
+			prefs->xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel default", "Tube transmission mode", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube transmission mode not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Ebel default", "Tube transmission mode", FALSE);
+				prefs->xep->transmission_tube = FALSE;
+				error = NULL;
+			}
+			prefs->xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel default", "Tube transmission efficiency file", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel default Tube transmission efficiency file not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Ebel default", "Tube transmission efficiency file", "(None)");
+				prefs->xep->transmission_efficiency_file = g_strdup("(None)");
+				error = NULL;
+			}
+			//save file
+			prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+			if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+				return 0;
+			g_free(prefs_file_contents);	
+
+			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
 			return 0;
@@ -729,6 +1058,26 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
 			break;
 #endif
+		case XMIMSIM_GUI_EBEL_LAST_USED:
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", prefs.xep->tube_voltage);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube current", prefs.xep->tube_current);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", prefs.xep->tube_solid_angle);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", prefs.xep->alpha);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", prefs.xep->beta);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", prefs.xep->interval_width);
+			g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", prefs.xep->anode_Z);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", prefs.xep->anode_rho);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", prefs.xep->anode_thickness);
+			g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", prefs.xep->filter_Z);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", prefs.xep->filter_rho);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", prefs.xep->filter_thickness);
+			g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", prefs.xep->window_Z);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", prefs.xep->window_rho);
+			g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", prefs.xep->window_thickness);
+			g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", prefs.xep->transmission_tube);
+			g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", prefs.xep->transmission_efficiency_file);
+
+			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;

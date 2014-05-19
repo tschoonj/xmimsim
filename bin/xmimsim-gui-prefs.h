@@ -22,6 +22,7 @@
 #include <config.h>
 #include <glib.h>
 #include <gtk/gtk.h>
+#include "xmimsim-gui-energies.h"
 
 enum {
 	//gboolean
@@ -50,14 +51,19 @@ enum {
 #endif
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	//gboolean
-	XMIMSIM_GUI_PREFS_NOTIFICATIONS
+	XMIMSIM_GUI_PREFS_NOTIFICATIONS,
 #endif
+	//struct xmi_ebel_parameters
+	XMIMSIM_GUI_EBEL_LAST_USED,
+	//struct xmi_ebel_parameters
+	XMIMSIM_GUI_EBEL_DEFAULT,
 };
 
 union xmimsim_prefs_val{
 	gboolean b;
 	gint i;
 	gchar **ss;
+	struct xmi_ebel_parameters *xep;
 };
 
 
