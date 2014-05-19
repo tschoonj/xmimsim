@@ -53,9 +53,9 @@ enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_NOTIFICATIONS,
 #endif
-	//struct xmi_ebel_parameters
+	//struct xmi_ebel_parameters*
 	XMIMSIM_GUI_EBEL_LAST_USED,
-	//struct xmi_ebel_parameters
+	//struct xmi_ebel_parameters*
 	XMIMSIM_GUI_EBEL_DEFAULT,
 };
 
@@ -65,6 +65,11 @@ union xmimsim_prefs_val{
 	gchar **ss;
 	struct xmi_ebel_parameters *xep;
 };
+
+//user defined layers manipulation
+gchar **xmimsim_gui_get_user_defined_layer_names(void);
+struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name);
+int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name);
 
 
 

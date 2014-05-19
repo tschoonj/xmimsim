@@ -471,9 +471,169 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	return 1;
 }
 
+static gchar *xmimsim_gui_get_user_defined_layer_filename(void) {
+	gchar *file;
+
+#ifdef MAC_INTEGRATION
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+#endif
+	
+#ifdef MAC_INTEGRATION
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+#else
+        const gchar *config_dir = g_get_user_config_dir();
+#endif
+
+	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
+	file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "user-defined-layers.ini",prefs_dir);
+	g_free(prefs_dir);
+
+#ifdef MAC_INTEGRATION
+        [pool drain];
+#endif
+	return file;
+}
+
+gchar **xmimsim_gui_get_user_defined_layer_names(void) {
+	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
+	GKeyFile *keyfile;
+	gchar **layer_names;
+
+	keyfile = g_key_file_new();
+
+	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+		//file does not exist!
+		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+
+	//so the file exists...
+	layer_names = g_key_file_get_groups(keyfile, NULL);
+
+	g_free(ini_file);
+	g_key_file_free(keyfile);
+
+	return layer_names;
+}
+
+struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
+	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
+	GKeyFile *keyfile;
+
+	keyfile = g_key_file_new();
+
+	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+		//file does not exist!
+		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+
+	//see if the layer exists in the file
+	if(g_key_file_has_group(keyfile, layer_name) == FALSE) {
+		//not found
+		g_fprintf(stderr, "Layer %s does not exist\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+
+	//so the group exists: read elements, weight fractions, density and thickness
+
+	//problem: glib uses g_malloc to allocate the arrays. We need malloc though, in order to avoid problems on Windows with xmi_free_layer
+	gsize Zlen;
+	GError *error = NULL;
+	gint *Z = g_key_file_get_integer_list(keyfile, layer_name, "Z", &Zlen, &error);
+	if (Z == NULL || Zlen == 0 || error != NULL) {
+		g_fprintf(stderr, "Error reading Z in layer %s\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}	
+	gsize weightlen;
+	gdouble *weight = g_key_file_get_double_list(keyfile, layer_name, "weight", &weightlen, &error);
+	if (weight == NULL || weightlen == 0 || error != NULL) {
+		g_fprintf(stderr, "Error reading weight in layer %s\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}	
+	if (Zlen != weightlen) {
+		g_fprintf(stderr, "Inconsistent lengths of Z and weight for layer %s\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+	gdouble density = g_key_file_get_double(keyfile, layer_name, "density", &error);
+	if (error != NULL) {
+		g_fprintf(stderr, "Could not read density of layer %s\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+	gdouble thickness = g_key_file_get_double(keyfile, layer_name, "thickness", &error);
+	if (error != NULL) {
+		g_fprintf(stderr, "Could not read thickness of layer %s\n", layer_name);
+		g_free(ini_file);
+		g_key_file_free(keyfile);
+		return NULL;
+	}
+
+	struct xmi_layer *layer = malloc(sizeof(struct xmi_layer));
+	//fill her up
+	layer->n_elements = (int) Zlen;
+	layer->Z = xmi_memdup(Z, sizeof(int)*Zlen);
+	layer->weight = xmi_memdup(weight, sizeof(double)*Zlen);
+	layer->density = density;
+	layer->thickness = thickness;
+	g_free(Z);
+	g_free(weight);
+	
 
 
+	g_free(ini_file);
+	g_key_file_free(keyfile);
 
+	return layer;
+}
+
+int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name) {
+	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
+	GKeyFile *keyfile;
+
+	keyfile = g_key_file_new();
+
+	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+		//file does not exist!
+		g_fprintf(stderr, "%s does not exist or could not be opened\nTrying to create it...\n", ini_file);
+		g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
+		//save file
+		//create dir first if necessary
+		gchar *prefs_dir = g_path_get_dirname(ini_file);
+		if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
+			return 0;
+		g_free(prefs_dir);
+	}
+
+	g_key_file_set_integer_list(keyfile, layer_name, "Z", layer->Z, (gsize) layer->n_elements);
+	g_key_file_set_double_list(keyfile, layer_name, "weight", layer->weight, (gsize) layer->n_elements);
+	g_key_file_set_double(keyfile, layer_name, "density", layer->density);
+	g_key_file_set_double(keyfile, layer_name, "thickness", layer->thickness);
+
+	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+	if(!g_file_set_contents(ini_file, prefs_file_contents, -1, NULL))
+		return 0;
+	g_free(prefs_file_contents);	
+	g_key_file_free(keyfile);
+	g_free(ini_file);
+
+	return 1;
+}
 int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
@@ -506,6 +666,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	//extract required information from keyfile
 	GError *error = NULL;
 	gchar *prefs_file_contents;
+	gboolean update_file;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
@@ -681,6 +842,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			break;
 #endif
 		case XMIMSIM_GUI_EBEL_LAST_USED:
+			update_file = FALSE;
 			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
 			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
 			if (error != NULL) {
@@ -689,6 +851,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 				prefs->xep->tube_voltage = 40.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &error);
 			if (error != NULL) {
@@ -697,6 +860,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
 				prefs->xep->tube_current = 1.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &error);
 			if (error != NULL) {
@@ -705,6 +869,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
 				prefs->xep->tube_solid_angle = 1E-10;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->alpha = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha", &error);
 			if (error != NULL) {
@@ -713,6 +878,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", 60.0);
 				prefs->xep->alpha = 60.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->beta = g_key_file_get_double(keyfile, "Ebel last used", "Tube beta", &error);
 			if (error != NULL) {
@@ -721,6 +887,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", 60.0);
 				prefs->xep->beta = 60.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &error);
 			if (error != NULL) {
@@ -729,6 +896,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", 0.1);
 				prefs->xep->interval_width = 0.1;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &error);
 			if (error != NULL) {
@@ -737,6 +905,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", 47);
 				prefs->xep->anode_Z = 47;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &error);
 			if (error != NULL) {
@@ -745,6 +914,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", 10.5);
 				prefs->xep->anode_rho = 10.5;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &error);
 			if (error != NULL) {
@@ -753,6 +923,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", 0.0002);
 				prefs->xep->anode_thickness = 0.0002;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &error);
 			if (error != NULL) {
@@ -761,6 +932,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", 4);
 				prefs->xep->window_Z= 4;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &error);
 			if (error != NULL) {
@@ -768,6 +940,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				fprintf(stderr, "Ebel last used Tube window density not found in preferences file\n");
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", 1.848);
 				prefs->xep->window_rho = 1.848;
+				update_file = TRUE;
 				error = NULL;
 			}
 			prefs->xep->window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &error);
@@ -777,6 +950,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", 0.0125);
 				prefs->xep->window_thickness = 0.0125;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &error);
 			if (error != NULL) {
@@ -785,6 +959,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", 2);
 				prefs->xep->filter_Z = 2;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &error);
 			if (error != NULL) {
@@ -793,6 +968,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", 0.000166);
 				prefs->xep->filter_rho = 0.000166;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &error);
 			if (error != NULL) {
@@ -801,6 +977,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
 				prefs->xep->filter_thickness = 0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &error);
 			if (error != NULL) {
@@ -809,6 +986,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
 				prefs->xep->transmission_tube = FALSE;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &error);
 			if (error != NULL) {
@@ -817,15 +995,19 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
 				prefs->xep->transmission_efficiency_file = g_strdup("(None)");
 				error = NULL;
+				update_file = TRUE;
 			}
-			//save file
-			prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-			if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-				return 0;
-			g_free(prefs_file_contents);	
+			if (update_file) {
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+			}
 
 			break;
 		case XMIMSIM_GUI_EBEL_DEFAULT:
+			update_file = FALSE;
 			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
 			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel default", "Tube voltage", &error);
 			if (error != NULL) {
@@ -834,6 +1016,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube voltage", 40.0);
 				prefs->xep->tube_voltage = 40.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->tube_current = g_key_file_get_double(keyfile, "Ebel default", "Tube current", &error);
 			if (error != NULL) {
@@ -842,6 +1025,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube current", 1.0);
 				prefs->xep->tube_current = 1.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel default", "Tube solid angle", &error);
 			if (error != NULL) {
@@ -850,6 +1034,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube solid angle", 1E-10);
 				prefs->xep->tube_solid_angle = 1E-10;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->alpha = g_key_file_get_double(keyfile, "Ebel default", "Tube alpha", &error);
 			if (error != NULL) {
@@ -858,6 +1043,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube alpha", 60.0);
 				prefs->xep->alpha = 60.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->beta = g_key_file_get_double(keyfile, "Ebel default", "Tube beta", &error);
 			if (error != NULL) {
@@ -866,6 +1052,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube beta", 60.0);
 				prefs->xep->beta = 60.0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->interval_width = g_key_file_get_double(keyfile, "Ebel default", "Tube interval width", &error);
 			if (error != NULL) {
@@ -874,6 +1061,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube interval width", 0.1);
 				prefs->xep->interval_width = 0.1;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube anode element", &error);
 			if (error != NULL) {
@@ -882,6 +1070,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel default", "Tube anode element", 47);
 				prefs->xep->anode_Z = 47;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube anode density", &error);
 			if (error != NULL) {
@@ -890,6 +1079,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube anode density", 10.5);
 				prefs->xep->anode_rho = 10.5;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube anode thickness", &error);
 			if (error != NULL) {
@@ -898,6 +1088,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube anode thickness", 0.0002);
 				prefs->xep->anode_thickness = 0.0002;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->window_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube window element", &error);
 			if (error != NULL) {
@@ -906,6 +1097,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel default", "Tube window element", 4);
 				prefs->xep->window_Z = 4;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->window_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube window density", &error);
 			if (error != NULL) {
@@ -914,6 +1106,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube window density", 1.848);
 				prefs->xep->window_rho = 1.848;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->window_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube window thickness", &error);
 			if (error != NULL) {
@@ -922,6 +1115,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube window thickness", 0.0125);
 				prefs->xep->window_thickness = 0.0125;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube filter element", &error);
 			if (error != NULL) {
@@ -930,6 +1124,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_integer(keyfile, "Ebel default", "Tube filter element", 2);
 				prefs->xep->filter_Z = 2;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube filter density", &error);
 			if (error != NULL) {
@@ -938,6 +1133,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube filter density", 0.000166);
 				prefs->xep->filter_rho = 0.000166;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube filter thickness", &error);
 			if (error != NULL) {
@@ -946,6 +1142,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_double(keyfile, "Ebel default", "Tube filter thickness", 0);
 				prefs->xep->filter_thickness = 0;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel default", "Tube transmission mode", &error);
 			if (error != NULL) {
@@ -954,6 +1151,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_boolean(keyfile, "Ebel default", "Tube transmission mode", FALSE);
 				prefs->xep->transmission_tube = FALSE;
 				error = NULL;
+				update_file = TRUE;
 			}
 			prefs->xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel default", "Tube transmission efficiency file", &error);
 			if (error != NULL) {
@@ -962,12 +1160,15 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_key_file_set_string(keyfile, "Ebel default", "Tube transmission efficiency file", "(None)");
 				prefs->xep->transmission_efficiency_file = g_strdup("(None)");
 				error = NULL;
+				update_file = TRUE;
 			}
-			//save file
-			prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-			if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-				return 0;
-			g_free(prefs_file_contents);	
+			if (update_file) {
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+			}
 
 			break;
 		default:
