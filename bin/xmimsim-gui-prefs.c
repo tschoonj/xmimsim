@@ -1520,6 +1520,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 	GtkWidget *buttonbox;
+	int i;
+	GtkTreeIter iter;
 
 #if defined(RPM_BUILD)
 	label = gtk_label_new("XMI-MSIM was built with Redhat Package Manager. All updates should be installed with yum.");
@@ -1590,10 +1592,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	gtk_box_pack_start(GTK_BOX(updatesboxW),buttonbox, TRUE, FALSE, 3);
 
-	int i;
 
 	//populate tree
-	GtkTreeIter iter;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(main_window);
