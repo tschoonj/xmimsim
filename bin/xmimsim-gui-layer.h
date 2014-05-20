@@ -34,6 +34,7 @@ struct layerWidget {
 	GtkWidget *okButton;
 	GtkWidget *cancelButton;
 	GtkWidget *removeButton;
+	GtkWidget *addToCatalogButton;
 	int matrixKind;
 	int AddOrEdit;
 	int layerNumber;

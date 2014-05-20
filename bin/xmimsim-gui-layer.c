@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-layer.h"
+#include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui.h"
 #include <stdlib.h>
 #include <string.h>
@@ -193,6 +194,7 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry),"");
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
 		gtk_widget_set_sensitive(lw->okButton, FALSE);
+		gtk_widget_set_sensitive(lw->addToCatalogButton, FALSE);
 		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,NULL);
 		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,NULL);
 	}
@@ -268,6 +270,7 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 		else {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(lw->okButton,FALSE);
+			gtk_widget_set_sensitive(lw->addToCatalogButton,FALSE);
 		}
 	}
 	else if (widget ==  lw->thicknessEntry) {
@@ -276,11 +279,13 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 		else {
 			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 			gtk_widget_set_sensitive(lw->okButton,FALSE);
+			gtk_widget_set_sensitive(lw->addToCatalogButton,FALSE);
 		}
 	}
 
 	if (thickness_ok && density_ok && layer_ok) {
 		gtk_widget_set_sensitive(lw->okButton,TRUE);
+		gtk_widget_set_sensitive(lw->addToCatalogButton,TRUE);
 		(*(lw->my_layer))->thickness = thickness;
 		(*(lw->my_layer))->density = density;
 	}
@@ -374,18 +379,77 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
-void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
+
+static void name_entry_changed_cb(GtkEntry *nameEntry, GtkWidget *okButton) {
+	if (strlen(g_strstrip(g_strdup(gtk_entry_get_text(nameEntry)))) == 0) {
+		//lil memory leak here
+		gtk_widget_set_sensitive(okButton, FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(okButton, TRUE);
+	}
+	return;
+}
+
+static void add_to_catalog_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	struct layerWidget *lw = (struct layerWidget *) data;
+	GtkWidget *dialog;
+
+	GtkWidget *content_area, *vbox;
+
+	dialog = gtk_dialog_new_with_buttons("Add current layer to the catalog", GTK_WINDOW(gtk_widget_get_toplevel(widget)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	gtk_widget_set_size_request(dialog, 300,-1);
+	
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	vbox = gtk_vbox_new(FALSE,2);
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Choose a name for the layer"),TRUE, FALSE, 2);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
+	GtkWidget *nameEntry = gtk_entry_new();
+	gtk_box_pack_start(GTK_BOX(vbox), nameEntry,TRUE, TRUE, 2);
+	GtkWidget *okButton=my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_widget_set_sensitive(okButton, FALSE);
+	g_signal_connect(G_OBJECT(nameEntry),"changed",G_CALLBACK(name_entry_changed_cb), (gpointer) okButton);
+
+	gtk_widget_show_all(vbox);
+	gtk_container_add (GTK_CONTAINER (content_area), vbox);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		gchar *layer_name = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(nameEntry))));
+		GtkWidget *dialog2;
+		if (xmimsim_gui_add_user_defined_layer(*(lw->my_layer), layer_name) == 1) {
+			dialog2 = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Layer %s has been added to the catalog", layer_name);		
+		}
+		else {
+			dialog2 = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add layer %s to the catalog.\nReport this incident to the developers.", layer_name);		
+		}
+		gtk_dialog_run(GTK_DIALOG(dialog2));
+		gtk_widget_destroy(dialog2);
+		g_free(layer_name);
+	}
+	gtk_widget_destroy(dialog);
+	return;
+}
+
+static void predef_combo_changed_cb(GtkWidget *comboBox, GtkToggleButton *radio) {
+	gtk_toggle_button_set_active(radio, TRUE);
+}
+
+static void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct layerWidget *lw = (struct layerWidget *) data;
 	GtkWidget *dialog;
 	char **list = GetCompoundDataNISTList(NULL);
 	GtkWidget *content_area, *vbox;
 
-	dialog = gtk_dialog_new_with_buttons("NIST composition", GTK_WINDOW(gtk_widget_get_toplevel(widget)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+	dialog = gtk_dialog_new_with_buttons("Select a layer composition", GTK_WINDOW(gtk_widget_get_toplevel(widget)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 		GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 	
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	vbox = gtk_vbox_new(FALSE,2);
-	gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Select a composition from the list"),TRUE, FALSE, 2);
+	GtkWidget *vbox2;
+
+	GtkWidget *nist_radio = gtk_radio_button_new_with_label_from_widget(NULL, "NIST compositions");
+	//gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("NIST compositions"),TRUE, FALSE, 2);
 	gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
 
 #if GTK_CHECK_VERSION(2,24,0)
@@ -405,40 +469,109 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 	xrlFree(list);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(listW), 0);
+	//gtk_container_add(GTK_CONTAINER(nist_radio), );
+	gtk_box_pack_start(GTK_BOX(vbox), nist_radio, TRUE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(vbox), listW, TRUE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), TRUE, FALSE, 2);
+
+	GtkWidget *user_radio = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(nist_radio), "User-defined compositions");
+	//gtk_box_pack_start(GTK_BOX(vbox2), gtk_label_new("User-defined compositions"),TRUE, FALSE, 2);
+	GtkWidget *list_userW = gtk_combo_box_new_text();
+
+#if GTK_CHECK_VERSION(2,24,0)
+	list_userW = gtk_combo_box_text_new();
+#else
+	list_userW = gtk_combo_box_new_text();
+#endif
+
+	list = xmimsim_gui_get_user_defined_layer_names();
+	if (list != NULL) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(user_radio), TRUE);
+		for (i = 0 ; list[i] != NULL ; i++) {
+#if GTK_CHECK_VERSION(2,24,0)
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(list_userW), list[i]);
+#else
+			gtk_combo_box_append_text(GTK_COMBO_BOX(list_userW), list[i]);
+#endif
+			g_free(list[i]);
+		}
+		g_free(list);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(list_userW), 0);
+	}
+	else {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nist_radio), TRUE);
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(list_userW), "(Empty)");
+#else
+		gtk_combo_box_append_text(GTK_COMBO_BOX(list_userW), "(Empty)");
+#endif
+		gtk_widget_set_sensitive(user_radio, FALSE);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(list_userW), 0);
+		gtk_widget_set_sensitive(list_userW, FALSE);
+	}
+	//gtk_container_add(GTK_CONTAINER(user_radio), vbox2);
+	gtk_box_pack_start(GTK_BOX(vbox), user_radio, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), list_userW, TRUE, FALSE, 2);
 	gtk_widget_show_all(vbox);
+
+
 	gtk_container_add (GTK_CONTAINER (content_area), vbox);
+	g_signal_connect(G_OBJECT(listW), "changed", G_CALLBACK(predef_combo_changed_cb), nist_radio);
+	g_signal_connect(G_OBJECT(list_userW), "changed", G_CALLBACK(predef_combo_changed_cb), user_radio);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(listW));	
-		struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
-		if (cdn == NULL) {
-			fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
-			exit(1);
-		}
-		double thickness = 0.0;
-		if (*(lw->my_layer) != NULL) {
-			thickness = (*(lw->my_layer))->thickness;
-			if ((*(lw->my_layer))->n_elements > 0) {
-				free((*(lw->my_layer))->Z);
-				free((*(lw->my_layer))->weight);
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nist_radio))) {
+			int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(listW));	
+			struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
+			if (cdn == NULL) {
+				fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
+				exit(1);
 			}
-			free(*(lw->my_layer));
-		}
-		else if (gtk_widget_get_sensitive(lw->okButton)){
-			//get thickness from widget
-			thickness = strtod(gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry)),NULL);
-		}
-		else 
-			thickness = 0.0;
+			double thickness = 0.0;
+			if (*(lw->my_layer) != NULL) {
+				thickness = (*(lw->my_layer))->thickness;
+				if ((*(lw->my_layer))->n_elements > 0) {
+					free((*(lw->my_layer))->Z);
+					free((*(lw->my_layer))->weight);
+				}
+				free(*(lw->my_layer));
+			}
+			else if (gtk_widget_get_sensitive(lw->okButton)){
+				//get thickness from widget
+				thickness = strtod(gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry)),NULL);
+			}
+			else 
+				thickness = 0.0;
 
-		double sum = xmi_sum_double(cdn->massFractions, cdn->nElements);
-		xmi_scale_double(cdn->massFractions, cdn->nElements, 1.0/sum);
-		*(lw->my_layer) = compoundDataNIST2xmi_layer(cdn);
-
-		//this next line is fishy
-		(*(lw->my_layer))->thickness = thickness;
-		FreeCompoundDataNIST(cdn);
+			double sum = xmi_sum_double(cdn->massFractions, cdn->nElements);
+			xmi_scale_double(cdn->massFractions, cdn->nElements, 1.0/sum);
+			*(lw->my_layer) = compoundDataNIST2xmi_layer(cdn);
+		
+			//this next line is fishy
+			(*(lw->my_layer))->thickness = thickness;
+			FreeCompoundDataNIST(cdn);
+		}
+		else {
+			gchar *user_comp;
+#if GTK_CHECK_VERSION(2,24,0)
+			user_comp = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(list_userW));
+#else
+			user_comp = gtk_combo_box_get_active_text(GTK_COMBO_BOX(list_userW));	
+#endif
+			struct xmi_layer *xl = xmimsim_gui_get_user_defined_layer(user_comp);
+			g_free(user_comp);
+			if (xl == NULL) {
+				fprintf(stderr,"Fatal error in xmimsim_gui_get_user_defined_layer\n");
+				exit(1);
+			}
+			if (*(lw->my_layer)) {
+				xmi_free_layer(*(lw->my_layer));
+				free(*(lw->my_layer));
+			}
+			*(lw->my_layer) = xl;
+		
+		}
 		//update store
 		gtk_list_store_clear(lw->store);
 		GtkTreeIter iter;
@@ -455,6 +588,10 @@ void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		gtk_label_set_markup(GTK_LABEL(lw->sumEntry), buffer);
 		sprintf(buffer,"%g", (*(lw->my_layer))->density);
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry), buffer);
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(user_radio))) {
+			sprintf(buffer,"%g", (*(lw->my_layer))->thickness);
+			gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry), buffer);
+		}
 	}
 	gtk_widget_destroy(dialog);
 }
@@ -493,8 +630,10 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	}
 	sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
 	gtk_label_set_markup(GTK_LABEL(ad->cw->lw->sumEntry), buffer);
-	if ((*(ad->cw->lw->my_layer))->n_elements == 0)
+	if ((*(ad->cw->lw->my_layer))->n_elements == 0) {
 		gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
+		gtk_widget_set_sensitive(ad->cw->lw->addToCatalogButton, FALSE);
+	}
 /*	else{
 		//select next line if available
 		if (index == nindices -1)
@@ -798,6 +937,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	GtkWidget *editButton;
 	GtkWidget *removeButton;
 	GtkWidget *predefButton;
+	GtkWidget *addToCatalogButton;
 	GtkWidget *normalizeButton;
 	GtkWidget *okButton;
 	GtkWidget *cancelButton;
@@ -880,17 +1020,20 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
 	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
 	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
-	predefButton = gtk_button_new_with_label("Catalog");
+	predefButton = gtk_button_new_with_label("Load from catalog");
+	addToCatalogButton = gtk_button_new_with_label("Add to catalog");
 
 	gtk_widget_set_sensitive(addButton, TRUE);
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(removeButton, FALSE);
 	gtk_widget_set_sensitive(predefButton, TRUE);
+	gtk_widget_set_sensitive(addToCatalogButton, FALSE);
 
 	gtk_box_pack_start(GTK_BOX(VBox), addButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(VBox), editButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(VBox), removeButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(VBox), predefButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(VBox), addToCatalogButton, TRUE, FALSE, 3);
 
 	gtk_box_pack_start(GTK_BOX(HBox),VBox, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
@@ -899,6 +1042,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	g_signal_connect(G_OBJECT(editButton),"clicked", G_CALLBACK(edit_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(removeButton),"clicked", G_CALLBACK(remove_button_clicked_cb), (gpointer) ad );
 	g_signal_connect(G_OBJECT(predefButton),"clicked", G_CALLBACK(predef_button_clicked_cb), (gpointer) rv );
+	g_signal_connect(G_OBJECT(addToCatalogButton),"clicked", G_CALLBACK(add_to_catalog_button_clicked_cb), (gpointer) rv );
 	g_signal_connect(G_OBJECT(tree),"row-activated", G_CALLBACK(element_row_activated_cb), (gpointer) ad);
 
 	//Sum and normalize
@@ -970,6 +1114,7 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	rv->removeButton = removeButton;
 	rv->cancelButton = cancelButton;
 	rv->okButton = okButton;
+	rv->addToCatalogButton = addToCatalogButton;
 
 	ad->store = store;
 	ad->layer = my_layer;
