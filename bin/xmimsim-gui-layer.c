@@ -486,7 +486,7 @@ static void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 
 	list = xmimsim_gui_get_user_defined_layer_names();
-	if (list != NULL) {
+	if (list != NULL && g_strv_length(list) > 0) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(user_radio), TRUE);
 		for (i = 0 ; list[i] != NULL ; i++) {
 #if GTK_CHECK_VERSION(2,24,0)

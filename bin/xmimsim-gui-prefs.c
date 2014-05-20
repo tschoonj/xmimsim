@@ -1652,7 +1652,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_layers);
 	gtk_box_pack_start(GTK_BOX(superframe),scrolled_window, TRUE, TRUE,3 );
 	//populate tree
-	if (layer_names != NULL) {
+	if (layer_names != NULL && g_strv_length(layer_names) > 0) {
 		for (i= 0 ; i < g_strv_length(layer_names) ; i++) {
 			gtk_list_store_append(store_layersL,&iter);
 			gtk_list_store_set(store_layersL, &iter, 0, layer_names[i], -1);
