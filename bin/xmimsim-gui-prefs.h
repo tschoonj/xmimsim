@@ -70,6 +70,7 @@ union xmimsim_prefs_val{
 gchar **xmimsim_gui_get_user_defined_layer_names(void);
 struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name);
 int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name);
+int xmimsim_gui_remove_user_defined_layer(gchar *layer_name);
 
 
 

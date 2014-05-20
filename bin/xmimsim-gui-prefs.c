@@ -602,6 +602,31 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 	return layer;
 }
 
+int xmimsim_gui_remove_user_defined_layer(gchar *layer_name) {
+	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
+	GKeyFile *keyfile;
+
+	keyfile = g_key_file_new();
+
+	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+		//file does not exist!
+		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+			return 0;
+	}
+	if (g_key_file_remove_group(keyfile, layer_name, NULL) == FALSE) {
+		g_fprintf(stderr, "Layer %s does not exist in %s\n", layer_name, ini_file);
+			return 0;
+	}
+
+	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+	if(!g_file_set_contents(ini_file, prefs_file_contents, -1, NULL))
+		return 0;
+	g_free(prefs_file_contents);	
+	g_key_file_free(keyfile);
+	g_free(ini_file);
+	return 1;
+}
+
 int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
@@ -1301,6 +1326,55 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 
 }
 
+static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *event, GtkTreeSelection *select_layers) {
+	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+		GtkTreeModel *model;
+		GList *selected_rows = gtk_tree_selection_get_selected_rows(select_layers, &model); 
+		//convert to references
+		int n_selected = gtk_tree_selection_count_selected_rows(select_layers);
+		GtkTreeRowReference **refs = g_malloc(sizeof(GtkTreeRowReference*)*n_selected);
+		int i;
+		GtkTreeIter iter;
+		for (i = 0 ; i < n_selected ; i++) {
+			refs[i] = gtk_tree_row_reference_new(model, (GtkTreePath *) g_list_nth_data(selected_rows, i));	
+		}
+		for (i = 0 ; i < n_selected ; i++) {
+			GtkTreePath *path = gtk_tree_row_reference_get_path(refs[i]);
+			gtk_tree_model_get_iter(model, &iter, path);
+			gchar *layer_name;
+			gtk_tree_model_get(model, &iter, 0, &layer_name, -1);
+			gtk_tree_path_free(path);
+			gtk_tree_row_reference_free(refs[i]);
+			//g_fprintf(stdout, "selected layer: %s\n", layer_name);
+
+			if (xmimsim_gui_remove_user_defined_layer(layer_name) == 1) 	
+				gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+			else {
+				//something went very wrong!
+				GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(widget))),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_ERROR,
+					GTK_BUTTONS_CLOSE,
+					"Error removing layer %s. Please report this incident to the developers.\n",
+					layer_name
+	       				);
+	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_widget_destroy (dialog);
+				return TRUE;
+			}
+
+			g_free(layer_name);
+		}
+
+		g_free(refs);
+		g_list_free_full (selected_rows, (GDestroyNotify) gtk_tree_path_free);
+		return TRUE;
+	}
+
+	return FALSE;
+
+}
+
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 //void xmimsim_gui_launch_preferences(GtkWidget *main_window, gint page) {
 	struct xmi_preferences_data *xpd = (struct xmi_preferences_data *) data;
@@ -1543,7 +1617,50 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 #endif
 
-	//Third page: advanced
+	//Third page: user-defined layers
+	superframe = gtk_vbox_new(FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
+
+	label = gtk_label_new("");
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">User defined layers</span>");
+
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
+	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key. This operation cannot be undone.");
+	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
+
+	gchar **layer_names = xmimsim_gui_get_user_defined_layer_names();
+	GtkListStore *store_layersL;
+	GtkTreeViewColumn *column_layers;
+	GtkTreeSelection *select_layers;
+	GtkCellRenderer *renderer_layers;
+	store_layersL = gtk_list_store_new(1, G_TYPE_STRING);
+	GtkWidget *tree_layers = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_layersL));
+	renderer_layers = gtk_cell_renderer_text_new();
+	my_gtk_cell_renderer_set_alignment(renderer_layers, 0., 0.5);
+	column_layers = gtk_tree_view_column_new_with_attributes("Layer name", renderer_layers,"text",0,NULL);
+	gtk_tree_view_column_set_resizable(column_layers,TRUE);
+	gtk_tree_view_column_set_alignment(column_layers, 0.);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_layers), column_layers);
+	select_layers = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_layers));
+	gtk_tree_selection_set_mode(select_layers, GTK_SELECTION_MULTIPLE);
+	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	//gtk_widget_set_size_request(scrolled_window, 300,150);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_layers);
+	gtk_box_pack_start(GTK_BOX(superframe),scrolled_window, TRUE, TRUE,3 );
+	//populate tree
+	if (layer_names != NULL) {
+		for (i= 0 ; i < g_strv_length(layer_names) ; i++) {
+			gtk_list_store_append(store_layersL,&iter);
+			gtk_list_store_set(store_layersL, &iter, 0, layer_names[i], -1);
+		}
+	}
+	g_signal_connect(G_OBJECT(tree_layers), "key-press-event", G_CALLBACK(layers_backspace_key_clicked_cb), (gpointer) select_layers);
+
+	//Fourth page: advanced
 	superframe = gtk_vbox_new(FALSE,5);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 
