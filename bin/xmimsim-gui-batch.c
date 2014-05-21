@@ -142,10 +142,6 @@ static int compare_fluor_data(const void *f1, const void *f2) {
 
 	return ff1->atomic_number-ff2->atomic_number;
 }
-static int compare_string(const void *a, const void *b)
-{
-   return strcmp(*(char **)a, *(char **)b);
-}
 
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);

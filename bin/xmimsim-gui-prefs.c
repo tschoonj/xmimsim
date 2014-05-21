@@ -514,6 +514,11 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 	//so the file exists...
 	layer_names = g_key_file_get_groups(keyfile, NULL);
 
+	//sort
+	if (g_strv_length(layer_names) > 1) {
+		qsort(layer_names, g_strv_length(layer_names), sizeof(gchar*), compare_string);	
+	}
+
 	g_free(ini_file);
 	g_key_file_free(keyfile);
 

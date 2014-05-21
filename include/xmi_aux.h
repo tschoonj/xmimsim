@@ -92,6 +92,8 @@ struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd);
 
 int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b);
 int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b);
+int compare_string(const void *a, const void *b);
+
 
 #ifdef G_OS_WIN32
   #include <windows.h>
