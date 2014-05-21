@@ -59,6 +59,10 @@ gulong spectra_region_mouse_movedG;
 gulong spectra_region_changedG;
 gulong spectra_region_double_clickedG;
 
+gchar *xaxis_title = NULL;
+gchar *yaxis_title = NULL;
+int current_scale;
+
 GtkWidget *print_button;
 GtkPrintSettings *print_settings;
 GtkPageSetup *page_setup;
@@ -96,6 +100,24 @@ enum {
 
 void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
+
+double get_tickstep(double xmin, double xmax) {
+	double tickstep = 1E-10;
+	int nticks = (int) floor((xmax-xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = (int) floor((xmax-xmin)/tickstep);
+	} 
+
+	if (nticks == 1) {
+		tickstep /= 5.0;
+	}
+	else if (nticks == 2) {
+		tickstep /= 2.0;
+	}
+	return tickstep;
+}
 
 
 static gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
@@ -326,22 +348,13 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	else if (ymin > plot_ymax)
 		return;
 
-	double tickstep = 1E-10;
-	int nticks = (int) floor((xmax-xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = (int) floor((xmax-xmin)/tickstep);
-	} 
-
-	if (nticks == 1) {
-		tickstep /= 5.0;
-	}
-	else if (nticks == 2) {
-		tickstep /= 2.0;
-	}
+	double tickstep = get_tickstep(xmin, xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
+	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		tickstep = get_tickstep(ymin, ymax);
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
+	}
 	if ((xmax - xmin) < 0.005) {
 		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,4);
 	}
@@ -358,6 +371,18 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
 	}
 		
+	if (ymax < 100000.0) {
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,0);
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,0);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",RESULTS_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",RESULTS_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
 
 	gtk_plot_set_range(GTK_PLOT(plot_window), xmin,xmax,ymin,ymax);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
@@ -370,31 +395,38 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	return;
 }
 
-gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
+
+static void zoom_out(void) {
+	double tickstep = get_tickstep(plot_xmin, plot_xmax);
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
+	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		tickstep = get_tickstep(plot_ymin, plot_ymax);
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
+	}
+	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
+	if (plot_ymax < 100000.0) {
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,0);
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,0);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+       		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",RESULTS_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",RESULTS_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+
+}
+
+static gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 
 	if (event->type == GDK_2BUTTON_PRESS) {
-
-		double tickstep = 1E-10;
-		int nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
-	
-		while (nticks < 1 || nticks >= 10) {
-			tickstep *= 10.0;
-			nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
-		} 
-
-		if (nticks == 1) {
-			tickstep /= 5.0;
-		}
-		else if (nticks == 2) {
-			tickstep /= 2.0;
-		}
-
-		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
-		gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
-		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-		gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-		gtk_widget_queue_draw(GTK_WIDGET(canvas));
-		gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+		zoom_out();
 	}
 	
 
@@ -510,6 +542,26 @@ static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_da
 	return;
 }
 
+static void scale_combo_changed_cb(GtkComboBox *widget, gpointer user_data) {
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) == 0) {
+		current_scale = GTK_PLOT_SCALE_LINEAR;
+	}
+	else {
+		current_scale = GTK_PLOT_SCALE_LOG10;
+	}
+	gtk_plot_set_yscale(GTK_PLOT(plot_window), current_scale);
+	if (current_scale == GTK_PLOT_SCALE_LOG10) {
+		plot_ymin = 1.0;
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, 0.1,1);
+	}
+	else if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		plot_ymin = 0.0;
+	}
+
+	//no matter what -> we need to bring everything to 1:1 scaling again
+	zoom_out();
+
+}
 
 static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data) {
 	GtkPlotLineStyle line_style;
@@ -560,16 +612,91 @@ static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data
 }
 
 
+static void axis_title_changed_cb(GtkEntry *axis_titleW, gpointer data) {
+	int kind = GPOINTER_TO_INT(data);
+
+	gchar *new_title = g_strdup(gtk_entry_get_text(GTK_ENTRY(axis_titleW)));
+	if (kind == 0) {
+		//X-axis
+		gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), new_title);
+		g_free(xaxis_title);
+		xaxis_title = new_title;
+	}
+	else {
+		//Y-axis
+		gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT), new_title);
+		g_free(yaxis_title);
+		yaxis_title = new_title;
+	}
+
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+
+	return;
+}
+
 
 static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
-	GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(data),
-		GTK_DIALOG_DESTROY_WITH_PARENT,
-	        GTK_MESSAGE_INFO,
-		GTK_BUTTONS_CLOSE,
-		"Plot properties will be implemented in a future version of XMI-MSIM"
-	         );
-	gtk_dialog_run (GTK_DIALOG (dialog));
+	//For now: lin/log, and titles
+	GtkWidget *dialog= gtk_dialog_new_with_buttons("Plot properties", GTK_WINDOW(data), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,NULL);
+	GtkWidget *vbox = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	GtkWidget *scale_combo;
+#if GTK_CHECK_VERSION(2,24,0)
+	scale_combo = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Linear");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Logarithmic");
+#else
+	scale_combo = gtk_combo_box_new_text();
+	gtk_combo_box_append_text(GTK_COMBO_BOX(scale_combo),"Linear");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(scale_combo),"Logarithmic");
+#endif
+	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 0);	
+	}
+	else if (current_scale == GTK_PLOT_SCALE_LOG10) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 1);	
+	}
+	
+	GtkWidget *lilHBox, *label;
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Y-axis scale");
+	gtk_box_pack_start(GTK_BOX(lilHBox), label, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(lilHBox), scale_combo, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox), lilHBox, FALSE, FALSE,2);
+
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE,2);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("X-axis title");
+	gtk_box_pack_start(GTK_BOX(lilHBox), label, FALSE, FALSE, 2);
+	GtkWidget *xaxis_titleW = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(xaxis_titleW), TRUE);
+	gtk_box_pack_start(GTK_BOX(lilHBox), xaxis_titleW, TRUE, TRUE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox),lilHBox,FALSE,FALSE,2);
+	gtk_entry_set_text(GTK_ENTRY(xaxis_titleW), xaxis_title);
+
+	lilHBox = gtk_hbox_new(FALSE, 2);
+	label = gtk_label_new("Y-axis title");
+	gtk_box_pack_start(GTK_BOX(lilHBox), label, FALSE, FALSE, 2);
+	GtkWidget *yaxis_titleW = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(yaxis_titleW), TRUE);
+	gtk_box_pack_start(GTK_BOX(lilHBox), yaxis_titleW, TRUE, TRUE, 2);
+	gtk_box_pack_start(GTK_BOX(vbox),lilHBox,FALSE,FALSE,2);
+	gtk_entry_set_text(GTK_ENTRY(yaxis_titleW), yaxis_title);
+
+	gtk_widget_set_size_request(dialog, 350,-1);
+	gtk_container_set_border_width(GTK_CONTAINER(dialog), 5);
+	g_signal_connect(G_OBJECT(xaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), GINT_TO_POINTER(0));
+	g_signal_connect(G_OBJECT(yaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), GINT_TO_POINTER(1));
+	g_signal_connect(G_OBJECT(scale_combo),"changed",G_CALLBACK(scale_combo_changed_cb),NULL);
+
+	gtk_widget_show_all(vbox);
+
+	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
+
 	return;
 }
 
@@ -814,6 +941,11 @@ GtkWidget *init_results(GtkWidget *window) {
 	COLOR_INIT(yellow);
 	COLOR_INIT(pink);
 
+
+	//this could be fetched from preferences in the future
+	xaxis_title = g_strdup("Energy (keV)");
+	yaxis_title = g_strdup("Intensity (counts/channel)");
+	current_scale = GTK_PLOT_SCALE_LOG10;
 
 
 
@@ -1087,36 +1219,32 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 	plot_ymax = xmi_maxval_double(temp_channels,results->nchannels)*1.2;
 	free(temp_channels);
-	plot_ymin = 1.0;
+	if (current_scale == GTK_PLOT_SCALE_LOG10) {
+		plot_ymin = 1.0;
+	}
+	else if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		plot_ymin = 0.0;
+	}
 	plot_xmin = 0.0;
 	plot_xmax = results->nchannels * results->input->detector->gain + results->input->detector->zero;
 
 	//x-axis number of ticks continues to be a problem
 	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
 
-	double tickstep = 1E-10;
-	int nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = (int) floor((plot_xmax-plot_xmin)/tickstep);
-	} 
-
-	if (nticks == 1) {
-		tickstep /= 5.0;
-	}
-	else if (nticks == 2) {
-		tickstep /= 2.0;
-	}
+	double tickstep = get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
-	gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
+	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
+		tickstep = get_tickstep(plot_ymin, plot_ymax);
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
+	}
+	gtk_plot_set_yscale(GTK_PLOT(plot_window), current_scale);
 	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity (counts/channel)");
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Energy (keV)");
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),yaxis_title);
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),xaxis_title);
 	//font will be a problem. Helvetica should be ok for Mac OS X, Arial for Windows, but Linux... pfft
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica", RESULTS_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",RESULTS_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
