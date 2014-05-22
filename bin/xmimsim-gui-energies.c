@@ -149,6 +149,14 @@ struct generate {
 	GtkWidget *canvas;
 	GtkWidget *transmissionEffW;
 	GtkWidget *transmissionEffFileW;
+	GtkWidget *linearW;
+	GtkWidget *log10W;
+	double plot_xmin;
+	double plot_xmax;
+	double plot_ymax;
+	double plot_ymin_lin;
+	double plot_ymin_log10;
+	GtkWidget *plot_window;
 };
 
 static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
@@ -250,6 +258,24 @@ static void transmission_clicked_cb(GtkToggleButton *button, struct transmission
 	}
 
 	return;
+}
+
+static void linear_log10_toggled_cb(GtkToggleButton *button, struct generate *gen) {
+	if (gtk_toggle_button_get_active(button)) {
+		//linear mode
+		gtk_plot_set_yscale(GTK_PLOT(gen->plot_window), GTK_PLOT_SCALE_LINEAR);
+		gtk_plot_set_ticks(GTK_PLOT(gen->plot_window), GTK_PLOT_AXIS_Y,get_tickstep(gen->plot_ymin_lin, gen->plot_ymax),5);
+		gtk_plot_set_range(GTK_PLOT(gen->plot_window), gen->plot_xmin, gen->plot_xmax, gen->plot_ymin_lin, gen->plot_ymax);
+	}
+	else {
+		gtk_plot_set_yscale(GTK_PLOT(gen->plot_window), GTK_PLOT_SCALE_LOG10);
+		gtk_plot_set_ticks(GTK_PLOT(gen->plot_window), GTK_PLOT_AXIS_Y, 0.1,1);
+		gtk_plot_set_range(GTK_PLOT(gen->plot_window), gen->plot_xmin, gen->plot_xmax, gen->plot_ymin_log10, gen->plot_ymax);
+	}
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas));
+	gtk_widget_queue_draw(GTK_WIDGET(gen->canvas));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(gen->canvas));
+
 }
 
 static void transmissioneff_clicked_cb(GtkToggleButton *button, GtkWidget *filechooser) {
@@ -695,13 +721,38 @@ static void generate_spectrum(struct generate *gen) {
 	
 	double plot_ymax = xmi_maxval_double(bins,gen->excitation->n_continuous)*1.2;
 	//double plot_ymin = xmi_minval_double(bins,gen->excitation->n_continuous)*0.8;
-	double plot_ymin = 0.0;
+	double plot_ymin_lin = 0.0;
 	double plot_xmin = 0.0;
 	double plot_xmax = gen->excitation->continuous[gen->excitation->n_continuous-1].energy;
 
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,5.0,5);
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,(plot_ymax-plot_ymin)/10,5);
-	//gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
+	//if logarithmic -> search for an appropriate minimum
+	double new_min = plot_ymax;
+	for (i = 0 ; i < gen->excitation->n_continuous ; i++) {
+		if (bins[i] < new_min && bins[i] > 0.0)
+			new_min = bins[i];
+	}
+	double plot_ymin_log10 = MAX(new_min, plot_ymax*1E-5);
+	double plot_ymin;
+
+
+	gen->plot_xmin = plot_xmin;
+	gen->plot_xmax = plot_xmax;
+	gen->plot_ymax = plot_ymax;
+	gen->plot_ymin_lin = plot_ymin_lin;
+	gen->plot_ymin_log10 = plot_ymin_log10;
+	gen->plot_window = plot_window;
+
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linearW))) {	
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
+		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
+		plot_ymin = plot_ymin_lin;
+	}
+	else {
+		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
+		plot_ymin = plot_ymin_log10;
+	}
 	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
 	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
@@ -2746,6 +2797,16 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	//buttons	
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
+
+	
+	GtkWidget *linearW= gtk_radio_button_new_with_label_from_widget(NULL,"Linear scaling");
+	GtkWidget *log10W = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(linearW), "Logaritmic scaling");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(linearW), TRUE);
+	gtk_box_pack_start(GTK_BOX(mainVBox), linearW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainVBox), log10W, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(linearW), "toggled",G_CALLBACK(linear_log10_toggled_cb), (gpointer) gen);
+
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3); 
 	GtkWidget *okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	GtkWidget *cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
@@ -2780,7 +2841,7 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	GtkWidget *mainHBox = gtk_hbox_new(FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 1);
-	GtkWidget *canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.8);
+	GtkWidget *canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);
 	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
 	gtk_box_pack_start(GTK_BOX(mainHBox),canvas,FALSE,FALSE,2);
@@ -2809,6 +2870,8 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gen->tubeSolidAngleW = tubeSolidAngleW;
 	gen->tubeCurrentW = tubeCurrentW;
 	gen->canvas = canvas;
+	gen->linearW = linearW;
+	gen->log10W = log10W;
 
 	generate_spectrum(gen);
 

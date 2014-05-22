@@ -58,5 +58,6 @@ extern GdkColor purple_plot;
 extern GdkColor yellow_plot;
 extern GdkColor pink_plot;
 
+double get_tickstep(double xmin, double xmax);
 
 #endif
