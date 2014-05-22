@@ -307,6 +307,17 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	return;
 }
 
+static void slits_button_clicked_cb(GtkButton *button, GtkEntry *tubeSolidAngleW) {
+	//calculate solid angle based on slits
+	double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
+	
+	char buf[200];
+	sprintf(buf, "%g", solid_angle);
+	gtk_entry_set_text(GTK_ENTRY(tubeSolidAngleW), buf);
+
+	return;
+}
+
 static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	union xmimsim_prefs_val xpv;
 	xpv.xep = get_ebel_parameters(gen);
@@ -2566,11 +2577,12 @@ void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	hbox = gtk_hbox_new(FALSE, 3);
 	label = gtk_label_new("Tube solid angle (sr)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
+	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
+	gtk_box_pack_end(GTK_BOX(hbox), slitsButton, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), tubeSolidAngleW, FALSE, FALSE, 2);
+	g_signal_connect(G_OBJECT(slitsButton), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) tubeSolidAngleW);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	//calculate solid angle based on slits
-	//double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
 	char buf[200];
 	sprintf(buf, "%g", xep->tube_solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(tubeSolidAngleW), buf);
