@@ -242,6 +242,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Option variance reduction: %i\n", options.use_variance_reduction);
 		g_fprintf(stdout,"Option pile-up: %i\n", options.use_sum_peaks);
 		g_fprintf(stdout,"Option Poisson noise: %i\n", options.use_poisson);
+		g_fprintf(stdout,"Option escape peaks: %i\n", options.use_escape_peaks);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
 #endif

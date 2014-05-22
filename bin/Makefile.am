@@ -30,7 +30,8 @@ bin_PROGRAMS =  xmimsim \
 		xmso2csv \
 		xmso2htm \
 		xmso2xmsi \
-		xmsi2xrmc
+		xmsi2xrmc \
+		xmimsim-conv
 
 #bin_PROGRAMS += xmimsim-test-ebel \
 #		xmimsim-test-boone1 \
@@ -157,6 +158,14 @@ xmimsim_cli_SOURCES = $(xmimsim_SOURCES)
 xmimsim_cli_CFLAGS = $(xmimsim_CFLAGS)
 xmimsim_cli_LDADD = $(xmimsim_LDADD)
 xmimsim_cli_LDFLAGS = @OPENMPI_LDFLAGS@
+
+xmimsim_conv_SOURCES = xmimsim-conv.c
+xmimsim_conv_CFLAGS = $(xmimsim_CFLAGS) 
+xmimsim_conv_LDADD = $(xmimsim_LDADD) 
+#xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
+#xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
+##xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
+#xmimsim_test_alloc_LDADD = ../src/libxmimsim.la 
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la \
