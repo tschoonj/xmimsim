@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data.h"
+#include "xmi_main.h"
 #include <xraylib.h>
 #include <sys/stat.h>
 #include <glib/gstdio.h>
@@ -539,14 +540,28 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 }
 
 void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
-	free(escape_ratios->Z);
-	free(escape_ratios->fluo_escape_ratios);
-	free(escape_ratios->fluo_escape_input_energies);
-	free(escape_ratios->compton_escape_ratios);
-	free(escape_ratios->compton_escape_input_energies);
-	free(escape_ratios->compton_escape_output_energies);
-	free(escape_ratios->xmi_input_string);
-	free(escape_ratios);
+	if (escape_ratios->fluo_escape_input_energies != escape_ratios->compton_escape_input_energies) {
+		//allocated in C
+		free(escape_ratios->Z);
+		free(escape_ratios->fluo_escape_ratios);
+		free(escape_ratios->fluo_escape_input_energies);
+		free(escape_ratios->compton_escape_input_energies);
+		free(escape_ratios->compton_escape_ratios);
+		free(escape_ratios->compton_escape_output_energies);
+		free(escape_ratios->xmi_input_string);
+		free(escape_ratios);
+	}
+	else {
+		//allocated in Fortran
+		//do not free compton_escape_input_energies here!!!
+		xmi_deallocate(escape_ratios->Z);
+		xmi_deallocate(escape_ratios->fluo_escape_ratios);
+		xmi_deallocate(escape_ratios->fluo_escape_input_energies);
+		xmi_deallocate(escape_ratios->compton_escape_ratios);
+		xmi_deallocate(escape_ratios->compton_escape_output_energies);
+		xmi_deallocate(escape_ratios->xmi_input_string);
+		xmi_deallocate(escape_ratios);
+	}
 }
 
 int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
