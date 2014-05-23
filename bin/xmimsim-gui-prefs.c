@@ -405,6 +405,8 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gchar *prefs_file) {
 	gchar *prefs_file_contents;
 	
+	//These are all the default values for a new preferences file
+
 	//file does not exist, is not accessible or is not in key format
 	//prepare file with default values
 	//g_key_file_set_comment(keyfile, NULL, NULL, "Preferences file for XMI-MSIM",NULL);
@@ -416,7 +418,11 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
+	g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
+	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
+	g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
 
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
