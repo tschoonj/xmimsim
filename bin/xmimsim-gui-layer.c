@@ -349,7 +349,7 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter,temp_iter;
 	GtkTreeModel *model;
 	gboolean valid;
-	int index,nindices;
+	int *indices;
 	gchar *element;
 	double weight;
 	char buffer[512];
@@ -358,6 +358,7 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//get selection
 	paths = gtk_tree_selection_get_selected_rows(ad->select, &model);
 	GtkTreePath *path = g_list_nth_data(paths, 0);
+	indices = gtk_tree_path_get_indices(path);
 	gtk_tree_model_get_iter(model, &iter, path);
 
 	//get data from selected
@@ -371,7 +372,7 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
 	g_free(element);
 	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
-	ad->cw->index = index;
+	ad->cw->index = indices[0];
 	g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
 
 	gtk_widget_show_all(ad->cw->dialog);
