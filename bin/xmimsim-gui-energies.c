@@ -931,6 +931,9 @@ static void scale_button_clicked_cb(GtkWidget *widget, struct kind_and_window *k
 	gtk_widget_set_sensitive(okButton, FALSE);
 	g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(scale_entry_changed_cb), (gpointer) okButton);	
 
+	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
+	gtk_widget_set_can_default(okButton, TRUE);
+	gtk_widget_grab_default(okButton);
 	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
 
 	if (rv != GTK_RESPONSE_ACCEPT) {
@@ -1272,7 +1275,7 @@ void energy_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 
 	int nselected = gtk_tree_selection_count_selected_rows(selection);
 
-	fprintf(stdout, "energy_selection_changed_cb: %i\n",nselected);
+	//fprintf(stdout, "energy_selection_changed_cb: %i\n",nselected);
 
 	switch (nselected) {
 		case 0:
@@ -1788,7 +1791,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	scrolledWindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_size_request(scrolledWindow,&size);
-	//gtk_widget_set_size_request(scrolledWindow, 660,100);
+	gtk_widget_set_size_request(scrolledWindow, -1,230);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
 
@@ -1814,10 +1817,12 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	eb->deleteButton = deleteButton;
 
 
-	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(buttonbox), editButton, TRUE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(buttonbox), deleteButton, TRUE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), editButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), deleteButton, FALSE, FALSE, 3);
+	GtkWidget *new_buttonbox = gtk_vbox_new(TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(new_buttonbox), buttonbox, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(mainbox), new_buttonbox, FALSE, FALSE, 2);
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
 	importButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
@@ -1827,24 +1832,26 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	k_a_w->kind = kind;
 	k_a_w->main_window = main_window;
 	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), (gpointer) k_a_w);
-	gtk_box_pack_start(GTK_BOX(buttonbox), importButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), importButton, FALSE, FALSE, 3);
 
 	//EbelButton = gtk_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
 	//gtk_box_pack_start(GTK_BOX(buttonbox), EbelButton, TRUE, FALSE, 3);
 
 	clearButton = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
 	g_signal_connect(G_OBJECT(clearButton), "clicked", G_CALLBACK(clear_button_clicked_cb), (gpointer) k_a_w);
-	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), clearButton, FALSE, FALSE, 3);
 	eb->clearButton = clearButton;
 	
 	scaleButton = gtk_button_new_from_stock(GTK_STOCK_REFRESH);
 	update_button_text(scaleButton, "Scale");
 	g_signal_connect(G_OBJECT(scaleButton), "clicked", G_CALLBACK(scale_button_clicked_cb), (gpointer) k_a_w);
-	gtk_box_pack_start(GTK_BOX(buttonbox), scaleButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), scaleButton, FALSE, FALSE, 3);
 	eb->scaleButton = scaleButton;
 
 
-	gtk_box_pack_start(GTK_BOX(mainbox), buttonbox, FALSE, FALSE, 2);
+	new_buttonbox = gtk_vbox_new(TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(new_buttonbox), buttonbox, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(mainbox), new_buttonbox, FALSE, FALSE, 2);
 
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(deleteButton, FALSE);
