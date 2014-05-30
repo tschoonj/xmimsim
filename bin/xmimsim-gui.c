@@ -274,7 +274,8 @@ static int detector_fanoC;
 static int detector_noiseC;
 static int detector_max_convolution_energyC;
 
-
+GdkAtom LayerAtom;
+GtkTargetEntry LayerTE = {"xmi-msim-layer", 0, 0};
 
 
 
@@ -1632,24 +1633,144 @@ static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rende
 static void layer_right_click_menu_delete_cb(GtkWidget *widget, gpointer data) {
 	layers_button_clicked_cb(widget, data);
 }
+
+struct clipboard_data {
+	guchar *data;
+	gint length;
+};
+
+static void clipboard_clear_layer_cb(GtkClipboard *clipboard, struct clipboard_data *cd) {
+	g_fprintf(stdout, "Entering clipboard_clear_layer_cb\n");
+	free(cd->data);
+	free(cd);
+	return;
+}
+
+static void clipboard_get_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, guint info, struct clipboard_data *data) {
+	g_fprintf(stdout, "Entering clipboard_get_layer_cb\n");
+	gtk_selection_data_set(selection_data, LayerAtom, 8, data->data, data->length);
+}
+
+static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, struct matrix_button *mb) {
+	g_fprintf(stdout, "Entering clipboard_receive_layer_cb\n");
+
+	const guchar *data = gtk_selection_data_get_data(selection_data);
+	struct xmi_layer *clipboard_layer = malloc(sizeof(struct xmi_layer));
+	memcpy(&clipboard_layer->n_elements, data, sizeof(int));
+	clipboard_layer->Z = xmi_memdup(data+sizeof(int), sizeof(int)*clipboard_layer->n_elements);
+	clipboard_layer->weight = xmi_memdup(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements, sizeof(double)*clipboard_layer->n_elements);
+	memcpy(&clipboard_layer->density, data+sizeof(int)+(sizeof(int)+sizeof(double))*clipboard_layer->n_elements, sizeof(double));
+	memcpy(&clipboard_layer->thickness, data+sizeof(int)+(sizeof(int)+sizeof(double))*clipboard_layer->n_elements+sizeof(double), sizeof(double));
+
+	xmi_print_layer(stdout, clipboard_layer, 1);	
+	
+}
+
+static void layer_paste_cb(GtkWidget *button, struct matrix_button *mb) {
+	g_fprintf(stdout, "Paste layer activated!\n");
+	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+	gtk_clipboard_request_contents(clipboard, LayerAtom, (GtkClipboardReceivedFunc) clipboard_receive_layer_cb, mb);
+	return;
+}
+
+static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
+	g_fprintf(stdout, "Copy layer activated!\n");
+	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+	struct clipboard_data *cd = malloc(sizeof(struct clipboard_data));
+
+	//this needs to be in a common function for cut and copy!
+	GtkTreeModel *model;
+	GtkTreeIter iter,temp_iter;
+	GtkTreeView *tree;
+	struct xmi_composition *composition = NULL;
+
+	if (!gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
+		g_fprintf(stderr, "Nothing selected in layer_copy_cb->this should not occur!\n");
+		return;
+	}
+	if (mb->matrixKind == COMPOSITION)
+		composition = compositionS;
+	else if (mb->matrixKind == EXC_COMPOSITION)
+		composition = exc_compositionS;
+	else if (mb->matrixKind == DET_COMPOSITION)
+		composition = det_compositionS;
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		composition = crystal_compositionS;
+
+	tree = gtk_tree_selection_get_tree_view(mb->select);
+	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	gint *my_indices = gtk_tree_path_get_indices(path);
+	struct xmi_layer *clipboard_layer;
+	xmi_copy_layer(composition->layers+my_indices[0], &clipboard_layer);
+
+	xmi_print_layer(stdout, clipboard_layer, 1);	
+
+	//create data for clipboard
+	cd->length = sizeof(int)+clipboard_layer->n_elements*(sizeof(double)+sizeof(int))+2*sizeof(double);
+	guchar *data = malloc(cd->length);
+	memcpy(data, &clipboard_layer->n_elements, sizeof(int));	
+	memcpy(data+sizeof(int), clipboard_layer->Z, sizeof(int)*clipboard_layer->n_elements);	
+	memcpy(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements, clipboard_layer->weight, sizeof(double)*clipboard_layer->n_elements);	
+	memcpy(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements+sizeof(double)*clipboard_layer->n_elements, &clipboard_layer->density, sizeof(double));	
+	memcpy(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements+sizeof(double)*clipboard_layer->n_elements+sizeof(double), &clipboard_layer->thickness, sizeof(double));	
+	cd->data = data;
+
+	gtk_tree_path_free(path);
+	xmi_free_layer(clipboard_layer);
+	if (gtk_clipboard_set_with_data(clipboard, &LayerTE, 1, (GtkClipboardGetFunc) clipboard_get_layer_cb, (GtkClipboardClearFunc) clipboard_clear_layer_cb, (gpointer) cd)) {
+		g_fprintf(stdout, "Clipboard set\n");
+	
+	}
+	else {
+		g_fprintf(stderr, "Could not set clipboard!!!\n");
+	}
+
+}
+
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
 	GtkWidget *menu, *menuitem;
 
 	//sensitivity should be determined by clipboard state and whether or not a layer was activated!
+	//paste works always if clipboard is filled with goodies
+	gboolean cut_and_copy_and_delete = FALSE;
+	if (gtk_tree_selection_count_selected_rows(mb->select) == 1) {
+		cut_and_copy_and_delete = TRUE;
+	}
+
 
 	menu = gtk_menu_new();
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, NULL);
-	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	if (cut_and_copy_and_delete) {
+		//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
+	}
+	else {
+		gtk_widget_set_sensitive(menuitem, FALSE);	
+	}
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_COPY, NULL);
-	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_copy_cb), mb);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	if (cut_and_copy_and_delete) {
+		g_signal_connect(menuitem, "activate", G_CALLBACK(layer_copy_cb), mb);
+	}
+	else {
+		gtk_widget_set_sensitive(menuitem, FALSE);	
+	}
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_PASTE, NULL);
-	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_paste_cb), mb);
+	if (gtk_clipboard_wait_is_target_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), LayerAtom)) {
+		g_signal_connect(menuitem, "activate", G_CALLBACK(layer_paste_cb), mb);
+	}
+	else {
+		gtk_widget_set_sensitive(menuitem, FALSE);	
+	}
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_DELETE, NULL);
-	g_signal_connect(menuitem, "activate", G_CALLBACK(layer_right_click_menu_delete_cb), (gpointer) mb);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	if (cut_and_copy_and_delete) {
+		g_signal_connect(menuitem, "activate", G_CALLBACK(layer_right_click_menu_delete_cb), (gpointer) mb);
+	}
+	else {
+		gtk_widget_set_sensitive(menuitem, FALSE);	
+	}
 
 	gtk_widget_show_all(menu);
 
@@ -1659,11 +1780,6 @@ static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct mat
 static gboolean layer_right_click_cb(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
 	if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
 		//count total number of rows
-		if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(mb->store), NULL) == 0) {
-			//do nothing if empty
-			return TRUE;	
-		}
-
 		//if clicked layer is not selected -> select it
 		GtkTreeSelection *selection;
 		selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
@@ -4259,6 +4375,8 @@ XMI_MAIN
 
 
 	gtk_init(&argc, &argv);
+	LayerAtom = gdk_atom_intern("xmi-msim-layer", FALSE);
+
 
 #ifdef MAC_INTEGRATION
 	theApp = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
