@@ -1019,9 +1019,6 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
 			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
 
-			if (composition->n_layers == 1)
-				composition->reference_layer = 1;
-
 			gtk_list_store_append(store, &iter);
 			i = composition->n_layers-1;
 			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
@@ -1033,6 +1030,9 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 				}
 			}
 			if (lw->matrixKind == COMPOSITION) {
+				if (composition->n_layers == 1)
+					composition->reference_layer = 1;
+
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -1664,6 +1664,73 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 
 	xmi_print_layer(stdout, clipboard_layer, 1);	
 	
+	struct xmi_composition *composition = NULL;
+	GtkTreeIter iter;
+	GtkListStore *store = NULL;
+	char *elementString;
+	int i,j;
+	int updateKind;
+
+	if (mb->matrixKind == COMPOSITION) {
+		composition = compositionS;
+		store = compositionL;
+		updateKind = COMPOSITION_PASTE;
+	}
+	else if (mb->matrixKind == EXC_COMPOSITION) {
+		composition = exc_compositionS;
+		store = exc_compositionL;
+		updateKind = EXC_COMPOSITION_PASTE;
+	}
+	else if (mb->matrixKind == DET_COMPOSITION) {
+		composition = det_compositionS;
+		store = det_compositionL;
+		updateKind = DET_COMPOSITION_PASTE;
+	}
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION) {
+		composition = crystal_compositionS;
+		store = crystal_compositionL;
+		updateKind = CRYSTAL_COMPOSITION_PASTE;
+	}
+	//adding layer
+	composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+	xmi_copy_layer2(clipboard_layer,composition->layers+composition->n_layers-1);
+
+	gtk_list_store_append(store, &iter);
+	i = composition->n_layers-1;
+	elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
+	elementString[0] = '\0';
+	for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
+		strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
+		if (j != composition->layers[i].n_elements-1) {
+			strcat(elementString,", ");
+		}
+	}
+	if (mb->matrixKind == COMPOSITION) {
+		if (composition->n_layers == 1)
+			composition->reference_layer = 1;
+
+		gtk_list_store_set(store, &iter,
+			N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN,composition->layers[i].density,
+			THICKNESS_COLUMN,composition->layers[i].thickness,
+			REFERENCE_COLUMN, composition->n_layers == 1 ? TRUE : FALSE,
+			-1
+		);
+
+	}
+	else {
+		gtk_list_store_set(store, &iter,
+			N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+			ELEMENTS_COLUMN,elementString,
+			DENSITY_COLUMN,composition->layers[i].density,
+			THICKNESS_COLUMN,composition->layers[i].thickness,
+			-1
+		);
+	}
+	
+	free(elementString);
+	update_undo_buffer(updateKind, (GtkWidget *) store);	
 }
 
 static void layer_paste_cb(GtkWidget *button, struct matrix_button *mb) {
@@ -2149,6 +2216,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_DELETE:
 		case COMPOSITION_ADD:
 		case COMPOSITION_EDIT:
+		case COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = (GtkListStore *) (current)->widget;
 #if DEBUG == 1
@@ -2352,6 +2420,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case EXC_COMPOSITION_DELETE:
 		case EXC_COMPOSITION_ADD:
 		case EXC_COMPOSITION_EDIT:
+		case EXC_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = exc_compositionL;
 #if DEBUG == 1
@@ -2387,6 +2456,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DET_COMPOSITION_DELETE:
 		case DET_COMPOSITION_ADD:
 		case DET_COMPOSITION_EDIT:
+		case DET_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = det_compositionL;
 #if DEBUG == 1
@@ -2419,6 +2489,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case CRYSTAL_COMPOSITION_DELETE:
 		case CRYSTAL_COMPOSITION_ADD:
 		case CRYSTAL_COMPOSITION_EDIT:
+		case CRYSTAL_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = crystal_compositionL;
 #if DEBUG == 1
@@ -2675,6 +2746,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_DELETE:
 		case COMPOSITION_ADD:
 		case COMPOSITION_EDIT:
+		case COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = (GtkListStore *) (current+1)->widget;
 			gtk_list_store_clear(store);
@@ -2875,6 +2947,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case EXC_COMPOSITION_DELETE:
 		case EXC_COMPOSITION_ADD:
 		case EXC_COMPOSITION_EDIT:
+		case EXC_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = exc_compositionL;
 #if DEBUG == 1
@@ -2907,6 +2980,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DET_COMPOSITION_DELETE:
 		case DET_COMPOSITION_ADD:
 		case DET_COMPOSITION_EDIT:
+		case DET_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = det_compositionL;
 #if DEBUG == 1
@@ -2939,6 +3013,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case CRYSTAL_COMPOSITION_DELETE:
 		case CRYSTAL_COMPOSITION_ADD:
 		case CRYSTAL_COMPOSITION_EDIT:
+		case CRYSTAL_COMPOSITION_PASTE:
 			//clear list and repopulate
 			store = crystal_compositionL;
 #if DEBUG == 1
@@ -3692,6 +3767,12 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			xmi_copy_composition(compositionS, &(last->xi->composition));
 			last->widget = widget;
 			break;
+		case COMPOSITION_PASTE:
+			strcpy(last->message,"pasting of layer");
+			xmi_free_composition(last->xi->composition);
+			xmi_copy_composition(compositionS, &(last->xi->composition));
+			last->widget = widget;
+			break;
 		case D_SAMPLE_SOURCE:
 			strcpy(last->message,"change of sample-source distance");
 			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
@@ -3979,6 +4060,16 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
 			last->widget = widget;
 			break;
+		case EXC_COMPOSITION_PASTE:
+			strcpy(last->message,"pasting of excitation absorber layer");
+			if (last->xi->absorbers->n_exc_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->exc_layers+i);
+				free(last->xi->absorbers->exc_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
+			last->widget = widget;
+			break;
 		case EXC_COMPOSITION_EDIT:
 			strcpy(last->message,"editing of excitation absorber layer");
 			if (last->xi->absorbers->n_exc_layers > 0) {
@@ -4022,6 +4113,16 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
 			last->widget = widget;
 			break;
+		case DET_COMPOSITION_PASTE:
+			strcpy(last->message,"pasting of detector absorber layer");
+			if (last->xi->absorbers->n_det_layers > 0) {
+				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
+					xmi_free_layer(last->xi->absorbers->det_layers+i);
+				free(last->xi->absorbers->det_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
+			last->widget = widget;
+			break;
 		case DET_COMPOSITION_EDIT:
 			strcpy(last->message,"editing of detector absorber layer");
 			if (last->xi->absorbers->n_det_layers > 0) {
@@ -4057,6 +4158,16 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CRYSTAL_COMPOSITION_ADD:
 			strcpy(last->message,"addition of crystal absorber layer");
+			if (last->xi->detector->n_crystal_layers > 0) {
+				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
+					xmi_free_layer(last->xi->detector->crystal_layers+i);
+				free(last->xi->detector->crystal_layers);	
+			}
+			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
+			last->widget = widget;
+			break;
+		case CRYSTAL_COMPOSITION_PASTE:
+			strcpy(last->message,"pasting of crystal absorber layer");
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
 					xmi_free_layer(last->xi->detector->crystal_layers+i);
