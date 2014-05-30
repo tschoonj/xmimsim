@@ -1635,6 +1635,8 @@ static void layer_right_click_menu_delete_cb(GtkWidget *widget, gpointer data) {
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
 	GtkWidget *menu, *menuitem;
 
+	//sensitivity should be determined by clipboard state and whether or not a layer was activated!
+
 	menu = gtk_menu_new();
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, NULL);
 	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
