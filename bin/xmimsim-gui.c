@@ -1629,7 +1629,60 @@ static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *rende
 	return;
 
 }
+static void layer_right_click_menu_delete_cb(GtkWidget *widget, gpointer data) {
+	layers_button_clicked_cb(widget, data);
+}
+static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
+	GtkWidget *menu, *menuitem;
 
+	menu = gtk_menu_new();
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, NULL);
+	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_COPY, NULL);
+	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_copy_cb), mb);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_PASTE, NULL);
+	//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_paste_cb), mb);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_DELETE, NULL);
+	g_signal_connect(menuitem, "activate", G_CALLBACK(layer_right_click_menu_delete_cb), (gpointer) mb);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	gtk_widget_show_all(menu);
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event != NULL ? event->button : 0, gdk_event_get_time((GdkEvent *) event));
+}
+
+static gboolean layer_right_click_cb(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
+	if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
+		//count total number of rows
+		if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(mb->store), NULL) == 0) {
+			//do nothing if empty
+			return TRUE;	
+		}
+
+		//if clicked layer is not selected -> select it
+		GtkTreeSelection *selection;
+		selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+		GtkTreePath *path;
+		if (gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(tree), (gint) event->x, (gint) event->y, &path, NULL, NULL, NULL) &&
+		    !gtk_tree_selection_path_is_selected(selection, path)) {
+			gtk_tree_selection_select_path(selection, path);	
+			gtk_tree_path_free(path);
+		}
+		create_popup_menu(tree, event, mb);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static gboolean layer_popup_menu_cb(GtkWidget *tree, struct matrix_button *mb) {
+	//call menu
+	create_popup_menu(tree, NULL, mb);
+	
+	return TRUE;
+}
 
 
 GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
@@ -1856,6 +1909,9 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mb->store=store;
 	g_signal_connect(G_OBJECT(deleteButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(layers_backspace_key_clicked), (gpointer) mb);
+	//right click menu -> needs delete data
+	g_signal_connect(G_OBJECT(tree), "button-press-event", G_CALLBACK(layer_right_click_cb), (gpointer) mb);
+	g_signal_connect(G_OBJECT(tree), "popup-menu", G_CALLBACK(layer_popup_menu_cb), (gpointer) mb);
 
 	//ADD
 	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
@@ -1877,7 +1933,6 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 
 
-
 	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
 	md->topButton = topButton;
 	md->upButton = upButton;
@@ -1888,10 +1943,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	md->deleteButton = deleteButton;
 
 	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
-	g_signal_connect(G_OBJECT(select), "changed",
-			G_CALLBACK(layer_selection_changed_cb),
-			(gpointer) md
-		);
+	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(layer_selection_changed_cb), (gpointer) md);
 
 	mr = (struct matrix_reorder *) malloc(sizeof(struct matrix_reorder));
 	mr->kind=kind;
