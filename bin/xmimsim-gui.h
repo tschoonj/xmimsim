@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 struct undo_single {
 	struct xmi_input *xi;
-	char message[512];
+	gchar *message;
 	int kind;
 	GtkWidget *widget;
 	char *filename;
