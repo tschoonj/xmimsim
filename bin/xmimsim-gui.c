@@ -94,6 +94,9 @@ static GtkWidget *importW;
 static GtkWidget *preferencesW;
 static GtkWidget *tube_ebelW;
 static GtkWidget *batchmodeW;
+static GtkWidget *cutW;
+static GtkWidget *copyW;
+static GtkWidget *pasteW;
 
 
 GtkWidget *saveW;
@@ -110,6 +113,9 @@ static GtkToolItem *redoT;
 static GtkToolItem *preferencesT;
 static GtkToolItem *tube_ebelT;
 static GtkToolItem *batchmodeT;
+static GtkToolItem *cutT;
+static GtkToolItem *copyT;
+static GtkToolItem *pasteT;
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
@@ -118,14 +124,14 @@ static GtkWidget *updatesW;
 //composition 
 struct layerWidget *layerW;
 
-static GtkWidget *compositionW;
 static GtkListStore *compositionL;
-static GtkWidget *exc_compositionW;
 static GtkListStore *exc_compositionL;
-static GtkWidget *det_compositionW;
 static GtkListStore *det_compositionL;
-static GtkWidget *crystal_compositionW;
 static GtkListStore *crystal_compositionL;
+static GtkWidget *compositionW;
+static GtkWidget *exc_compositionW;
+static GtkWidget *det_compositionW;
+static GtkWidget *crystal_compositionW;
 
 //geometry
 static GtkWidget *d_sample_sourceW;
@@ -276,6 +282,8 @@ static int detector_max_convolution_energyC;
 
 GdkAtom LayerAtom;
 GtkTargetEntry LayerTE = {"xmi-msim-layer", 0, 0};
+
+static GtkWidget *cut_copy_entryW = NULL;
 
 
 
@@ -1187,44 +1195,45 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 	int i,j;
 	int updateKind;
 
-#if DEBUG == 1
-	fprintf(stdout,"layerWidget is hiding\n");
-#endif
+	
+	
 
-	if (lw->matrixKind == COMPOSITION) {
-		composition = compositionS;
-		store = compositionL;
-		if (lw->AddOrEdit == LW_ADD) 
-			updateKind = COMPOSITION_ADD;
-		else if (lw->AddOrEdit == LW_EDIT) 
-			updateKind = COMPOSITION_EDIT;
-	}
-	else if (lw->matrixKind == EXC_COMPOSITION) {
-		composition = exc_compositionS;
-		store = exc_compositionL;
-		if (lw->AddOrEdit == LW_ADD) 
-			updateKind = EXC_COMPOSITION_ADD;
-		else if (lw->AddOrEdit == LW_EDIT) 
-			updateKind = EXC_COMPOSITION_EDIT;
-	}
-	else if (lw->matrixKind == DET_COMPOSITION) {
-		composition = det_compositionS;
-		store = det_compositionL;
-		if (lw->AddOrEdit == LW_ADD) 
-			updateKind = DET_COMPOSITION_ADD;
-		else if (lw->AddOrEdit == LW_EDIT) 
-			updateKind = DET_COMPOSITION_EDIT;
-	}
-	else if (lw->matrixKind == CRYSTAL_COMPOSITION) {
-		composition = crystal_compositionS;
-		store = crystal_compositionL;
-		if (lw->AddOrEdit == LW_ADD) 
-			updateKind = CRYSTAL_COMPOSITION_ADD;
-		else if (lw->AddOrEdit == LW_EDIT) 
-			updateKind = CRYSTAL_COMPOSITION_EDIT;
-	}
 
 	if (*(lw->my_layer) != NULL) {
+
+		if (lw->matrixKind == COMPOSITION) {
+			composition = compositionS;
+			store = compositionL;
+			if (lw->AddOrEdit == LW_ADD) 
+				updateKind = COMPOSITION_ADD;
+			else if (lw->AddOrEdit == LW_EDIT) 
+				updateKind = COMPOSITION_EDIT;
+		}
+		else if (lw->matrixKind == EXC_COMPOSITION) {
+			composition = exc_compositionS;
+			store = exc_compositionL;
+			if (lw->AddOrEdit == LW_ADD) 
+				updateKind = EXC_COMPOSITION_ADD;
+			else if (lw->AddOrEdit == LW_EDIT) 
+				updateKind = EXC_COMPOSITION_EDIT;
+		}
+		else if (lw->matrixKind == DET_COMPOSITION) {
+			composition = det_compositionS;
+			store = det_compositionL;
+			if (lw->AddOrEdit == LW_ADD) 
+				updateKind = DET_COMPOSITION_ADD;
+			else if (lw->AddOrEdit == LW_EDIT) 
+				updateKind = DET_COMPOSITION_EDIT;
+		}
+		else if (lw->matrixKind == CRYSTAL_COMPOSITION) {
+			composition = crystal_compositionS;
+			store = crystal_compositionL;
+			if (lw->AddOrEdit == LW_ADD) 
+				updateKind = CRYSTAL_COMPOSITION_ADD;
+			else if (lw->AddOrEdit == LW_EDIT) 
+				updateKind = CRYSTAL_COMPOSITION_EDIT;
+		}
+
 		//OK button was clicked
 		//in case of editing and changing nothing.. undo should not be triggered
 		//requires xmi_compare_layer... too lazy for now
@@ -1232,7 +1241,7 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			//adding layer
 			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
 			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
-
+	
 			gtk_list_store_append(store, &iter);
 			i = composition->n_layers-1;
 			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
@@ -1246,7 +1255,7 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			if (lw->matrixKind == COMPOSITION) {
 				if (composition->n_layers == 1)
 					composition->reference_layer = 1;
-
+	
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -1255,7 +1264,7 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 					REFERENCE_COLUMN, composition->n_layers == 1 ? TRUE : FALSE,
 					-1
 					);
-
+	
 			}
 			else {
 				gtk_list_store_set(store, &iter,
@@ -1277,7 +1286,7 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 			free(composition->layers[i].Z);
 			free(composition->layers[i].weight);
 			xmi_copy_layer2(layer,composition->layers+lw->layerNumber);
-
+	
 			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
 			elementString[0] = '\0';
 			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
@@ -1305,15 +1314,25 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 					-1
 					);
 			}
-	
+		
 			free(elementString);
 		}
 		update_undo_buffer(updateKind, (GtkWidget *) store);	
 
+	}
+	  	
+	//return focus to treeview!
+	gtk_widget_grab_focus(GTK_WIDGET(gtk_tree_selection_get_tree_view(lw->select)));
+	//make sure a layer is selected
+	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(lw->select));
+	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(lw->select) == 0) {
+		GtkTreeIter iter;
+		gtk_tree_model_get_iter_first(model, &iter);
+		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
+		gtk_tree_selection_select_path(lw->select, path);
+		gtk_tree_path_free(path);
+	}
 
-	}  	
-	else
-		return;
 
 
 	return;
@@ -1526,6 +1545,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		layer = NULL;
 		layerW->AddOrEdit = LW_ADD;
 		layerW->matrixKind = mb->matrixKind;
+		layerW->select= mb->select;
 		gtk_widget_show_all(layerW->window);
 #if DEBUG == 1
 		fprintf(stdout,"After widget show command\n" );
@@ -1698,6 +1718,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				update_undo_buffer(DET_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+			gtk_widget_grab_focus(GTK_WIDGET(gtk_tree_selection_get_tree_view(mb->select)));
 		
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
@@ -1710,6 +1731,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			xmi_copy_layer(composition->layers+index,&layer);
 			layerW->AddOrEdit = LW_EDIT;
 			layerW->matrixKind = mb->matrixKind;
+			layerW->select= mb->select;
 			layerW->layerNumber = index;
 			layerW->iter = iter;
 			gtk_widget_show_all(layerW->window);
@@ -1938,6 +1960,18 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 	
 	free(elementString);
 	update_undo_buffer(updateKind, (GtkWidget *) store);	
+	
+	//if there is one layer now -> activeate copy/cut 
+	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(mb->select));
+	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(mb->select) == 0) {
+		GtkTreeIter iter;
+		gtk_tree_model_get_iter_first(model, &iter);
+		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
+		gtk_tree_selection_select_path(mb->select, path);
+		gtk_tree_path_free(path);
+		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+	}
 }
 
 static void layer_paste_cb(GtkWidget *button, struct matrix_button *mb) {
@@ -2068,7 +2102,12 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 		update_undo_buffer(CRYSTAL_COMPOSITION_CUT, (GtkWidget*) mb->store);
 
-
+	//if no layers remain -> disable copy/cut
+	if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
+		gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+	}
+	
 }
 
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
@@ -2146,6 +2185,29 @@ static gboolean layer_popup_menu_cb(GtkWidget *tree, struct matrix_button *mb) {
 	return TRUE;
 }
 
+static gboolean layer_focus_in_cb(GtkTreeView *tree, GdkEvent *event, gpointer data) {
+	static int counter = 0;
+	g_fprintf(stdout, "Entering layer_focus_in_cb: %i\n", counter++);
+
+	//count number of children
+	GtkTreeModel *model = gtk_tree_view_get_model(tree);
+	if (gtk_tree_model_iter_n_children(model, NULL) > 0) {
+		//activate cut and copy
+		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+	}
+	return FALSE;
+}
+
+static gboolean layer_focus_out_cb(GtkTreeView *tree, GdkEvent *event, gpointer data) {
+	static int counter = 0;
+	g_fprintf(stdout, "Entering layer_focus_out_cb: %i\n", counter++);
+
+	//deactivate cut and copy
+	gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+	return FALSE;
+}
 
 GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	GtkListStore *store;
@@ -2393,6 +2455,8 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(matrix_row_activated_cb), (gpointer) mb);
 
 
+	g_signal_connect(G_OBJECT(tree), "focus-in-event", G_CALLBACK(layer_focus_in_cb), NULL);
+	g_signal_connect(G_OBJECT(tree), "focus-out-event", G_CALLBACK(layer_focus_out_cb), NULL);
 
 
 	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
@@ -2420,24 +2484,24 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	mr->deleteButton = deleteButton;
 	g_signal_connect(G_OBJECT(store), "rows-reordered", G_CALLBACK(layer_reordering_cb), (gpointer) mr);	
 	if (kind == COMPOSITION) {
-		compositionW = tree;
 		xmi_copy_composition(composition,&compositionS);	
 		compositionL = store;
+		compositionW = tree;
 	}
 	else if (kind == EXC_COMPOSITION) {
-		exc_compositionW = tree;
 		xmi_copy_composition(composition,&exc_compositionS);	
 		exc_compositionL = store;
+		exc_compositionW = tree;
 	}
 	else if (kind == DET_COMPOSITION) {
-		det_compositionW = tree;
 		xmi_copy_composition(composition,&det_compositionS);	
 		det_compositionL = store;
+		det_compositionW = tree;
 	}
 	else if (kind == CRYSTAL_COMPOSITION) {
-		crystal_compositionW = tree;
 		xmi_copy_composition(composition,&crystal_compositionS);	
 		crystal_compositionL = store;
+		crystal_compositionW = tree;
 	}
 	return mainbox2;
 }
@@ -2902,6 +2966,32 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 	adjust_save_buttons();
 
+	//adjust cut/copy
+	GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(toplevel));
+	if (focused == compositionW ||
+	    focused == exc_compositionW ||
+	    focused == det_compositionW ||
+	    focused == crystal_compositionW) {
+		//let's assume it will remain focused
+		//so if the store is now empty -> disable cut/copy
+		//if instead the store is no longer empty -> enable cut/copy and make sure something is selected
+		GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(focused));
+		if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
+			gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+		}
+		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
+			GtkTreeIter iter;
+			gtk_tree_model_get_iter_first(model, &iter);
+			GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
+			gtk_tree_selection_select_path(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused)), path);
+			gtk_tree_path_free(path);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+		}
+
+	}
 }
 
 static void about_activate_link(GtkAboutDialog *about, const gchar *link, gpointer data) {
@@ -3425,6 +3515,33 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	}
 
 	adjust_save_buttons();
+	
+	//adjust cut/copy
+	GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(toplevel));
+	if (focused == compositionW ||
+	    focused == exc_compositionW ||
+	    focused == det_compositionW ||
+	    focused == crystal_compositionW) {
+		//let's assume it will remain focused
+		//so if the store is now empty -> disable cut/copy
+		//if instead the store is no longer empty -> enable cut/copy and make sure something is selected
+		GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(focused));
+		if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
+			gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+		}
+		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
+			GtkTreeIter iter;
+			gtk_tree_model_get_iter_first(model, &iter);
+			GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
+			gtk_tree_selection_select_path(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused)), path);
+			gtk_tree_path_free(path);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+		}
+
+	}
 }
 
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
@@ -4384,6 +4501,35 @@ void comments_end(GtkTextBuffer *textbuffer, gpointer user_data){
 	return;
 }
 
+static void entry_notify_cursor_position_cb(GObject *entry, GParamSpec *pspec, gpointer data) {
+	fprintf(stdout, "Entering entry_notify_selection_bound_cb\n");
+
+	gint selection_bound;
+	gint current_pos;
+
+	g_object_get(entry, "selection-bound", &selection_bound, "cursor-position", &current_pos, NULL);
+
+	if (selection_bound == current_pos) {
+		gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+		cut_copy_entryW = NULL;
+	}
+	else {
+		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+		cut_copy_entryW = GTK_WIDGET(entry);
+	}
+
+}
+
+static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, gpointer data) {
+	fprintf(stdout, "Entering entry_focus_out_cb\n");
+	//deactivate cut and copy
+	gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+	cut_copy_entryW = NULL;
+	return FALSE;
+}
 
 
 
@@ -4424,7 +4570,7 @@ XMI_MAIN
 	GtkTextBuffer *commentsBuffer;
 	GtkTextIter tib, tie;
 	gint main_height=900;
-	gint main_width=900;
+	gint main_width=950;
 	gint main_temp;
 	GtkWidget *resultsPageW, *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
@@ -4894,6 +5040,9 @@ XMI_MAIN
 	gtk_tool_item_set_tooltip_text(saveT, "Save XMSI file");
 	undoT = gtk_tool_button_new_from_stock(GTK_STOCK_UNDO);
 	redoT = gtk_tool_button_new_from_stock(GTK_STOCK_REDO);
+	cutT = gtk_tool_button_new_from_stock(GTK_STOCK_CUT);
+	copyT = gtk_tool_button_new_from_stock(GTK_STOCK_COPY);
+	pasteT = gtk_tool_button_new_from_stock(GTK_STOCK_PASTE);
 	preferencesT = gtk_tool_button_new_from_stock(GTK_STOCK_PREFERENCES);
 	gtk_tool_item_set_tooltip_text(preferencesT, "Preferences");
 	tube_ebelT = gtk_tool_button_new_from_stock(XMI_STOCK_RADIATION_WARNING);
@@ -4907,23 +5056,35 @@ XMI_MAIN
 	gtk_widget_set_can_focus(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(undoT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(redoT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(cutT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(copyT),FALSE);
+	gtk_widget_set_can_focus(GTK_WIDGET(pasteT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(preferencesT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(tube_ebelT),FALSE);
 	gtk_widget_set_can_focus(GTK_WIDGET(batchmodeT),FALSE);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) 0);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) 1);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) 2);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveT,(gint) 3);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) 4);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) 5);
+	int tbcounter = 0;
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), newT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), openT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveasT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), saveT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), undoT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), redoT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), cutT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), copyT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), pasteT,(gint) tbcounter++);
 	GtkToolItem *separatorT = gtk_separator_tool_item_new();
 	gtk_separator_tool_item_set_draw(GTK_SEPARATOR_TOOL_ITEM(separatorT), FALSE);
 	gtk_tool_item_set_expand(separatorT, TRUE);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) 6);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), batchmodeT,(gint) 7);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) 8);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) 9);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separatorT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), batchmodeT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), tube_ebelT,(gint) tbcounter++);
+	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), preferencesT,(gint) tbcounter++);
 	gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+	//let's assume nothing is in focus at startup
+	gtk_widget_set_sensitive(GTK_WIDGET(cutT),FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyT),FALSE);
+	//to be set based on current clipboard contents
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),FALSE);
 	g_signal_connect(G_OBJECT(undoT),"clicked",G_CALLBACK(undo_menu_click),NULL);
@@ -4989,6 +5150,9 @@ XMI_MAIN
 	vc->check = &n_photons_intervalC;
 	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	g_signal_connect(G_OBJECT(text), "notify::cursor-position", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
+	g_signal_connect(G_OBJECT(text), "focus-out-event", G_CALLBACK(entry_focus_out_cb), NULL);
+	g_signal_connect(G_OBJECT(text), "focus-in-event", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
 	//n_photons_line
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);

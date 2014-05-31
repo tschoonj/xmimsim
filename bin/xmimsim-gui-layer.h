@@ -26,6 +26,7 @@ enum {
 struct layerWidget {
 	GtkWidget *window;
 	GtkListStore *store;
+	GtkTreeSelection *select;
 	struct xmi_layer ** my_layer;
 	GtkWidget *sumEntry;
 	GtkWidget *densityEntry;
