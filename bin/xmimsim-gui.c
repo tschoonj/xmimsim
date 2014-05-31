@@ -476,6 +476,9 @@ static gchar *get_message_string(int kind) {
 		case COMPOSITION_PASTE:
 			message = g_strdup("pasting of layer");
 			break;
+		case COMPOSITION_CUT:
+			message = g_strdup("cutting of layer");
+			break;
 		case D_SAMPLE_SOURCE:
 			message = g_strdup("change of sample-source distance");
 			break;
@@ -581,6 +584,9 @@ static gchar *get_message_string(int kind) {
 		case EXC_COMPOSITION_PASTE:
 			message = g_strdup("pasting of excitation absorber layer");
 			break;
+		case EXC_COMPOSITION_CUT:
+			message = g_strdup("cutting of excitation absorber layer");
+			break;
 		case EXC_COMPOSITION_EDIT:
 			message = g_strdup("editing of excitation absorber layer");
 			break;
@@ -596,6 +602,9 @@ static gchar *get_message_string(int kind) {
 		case DET_COMPOSITION_PASTE:
 			message = g_strdup("pasting of detector absorber layer");
 			break;
+		case DET_COMPOSITION_CUT:
+			message = g_strdup("cutting of detector absorber layer");
+			break;
 		case DET_COMPOSITION_EDIT:
 			message = g_strdup("editing of detector absorber layer");
 			break;
@@ -610,6 +619,9 @@ static gchar *get_message_string(int kind) {
 			break;
 		case CRYSTAL_COMPOSITION_PASTE:
 			message = g_strdup("pasting of crystal absorber layer");
+			break;
+		case CRYSTAL_COMPOSITION_CUT:
+			message = g_strdup("cutting of crystal absorber layer");
 			break;
 		case CRYSTAL_COMPOSITION_EDIT:
 			message = g_strdup("editing of crystal absorber layer");
@@ -1777,7 +1789,6 @@ static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *p
 void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
 	struct matrix_button *mb = (struct matrix_button *) user_data;
 	gint *indices;
-	gint depth;
 	struct xmi_composition *composition;
 	GtkTreeIter iter;
 
@@ -1785,13 +1796,10 @@ void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeV
 #if DEBUG == 1
 	fprintf(stdout,"row activation detected\n");
 #endif
-	//indices = gtk_tree_path_get_indices_with_depth(path,&depth);
 	indices = gtk_tree_path_get_indices(path);
-	depth = gtk_tree_path_get_depth(path);
 
 
 #if DEBUG == 1
-	fprintf(stdout,"depth: %i\n",depth);
 	fprintf(stdout,"indices: %i\n",indices[0]);
 #endif
 	composition = NULL;
@@ -1842,19 +1850,16 @@ struct clipboard_data {
 };
 
 static void clipboard_clear_layer_cb(GtkClipboard *clipboard, struct clipboard_data *cd) {
-	g_fprintf(stdout, "Entering clipboard_clear_layer_cb\n");
 	free(cd->data);
 	free(cd);
 	return;
 }
 
 static void clipboard_get_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, guint info, struct clipboard_data *data) {
-	g_fprintf(stdout, "Entering clipboard_get_layer_cb\n");
 	gtk_selection_data_set(selection_data, LayerAtom, 8, data->data, data->length);
 }
 
 static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, struct matrix_button *mb) {
-	g_fprintf(stdout, "Entering clipboard_receive_layer_cb\n");
 
 	const guchar *data = gtk_selection_data_get_data(selection_data);
 	struct xmi_layer *clipboard_layer = malloc(sizeof(struct xmi_layer));
@@ -1864,7 +1869,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 	memcpy(&clipboard_layer->density, data+sizeof(int)+(sizeof(int)+sizeof(double))*clipboard_layer->n_elements, sizeof(double));
 	memcpy(&clipboard_layer->thickness, data+sizeof(int)+(sizeof(int)+sizeof(double))*clipboard_layer->n_elements+sizeof(double), sizeof(double));
 
-	xmi_print_layer(stdout, clipboard_layer, 1);	
+	//xmi_print_layer(stdout, clipboard_layer, 1);	
 	
 	struct xmi_composition *composition = NULL;
 	GtkTreeIter iter;
@@ -1936,18 +1941,15 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 }
 
 static void layer_paste_cb(GtkWidget *button, struct matrix_button *mb) {
-	g_fprintf(stdout, "Paste layer activated!\n");
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 	gtk_clipboard_request_contents(clipboard, LayerAtom, (GtkClipboardReceivedFunc) clipboard_receive_layer_cb, mb);
 	return;
 }
 
 static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
-	g_fprintf(stdout, "Copy layer activated!\n");
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 	struct clipboard_data *cd = malloc(sizeof(struct clipboard_data));
 
-	//this needs to be in a common function for cut and copy!
 	GtkTreeModel *model;
 	GtkTreeIter iter,temp_iter;
 	GtkTreeView *tree;
@@ -1966,13 +1968,12 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 		composition = crystal_compositionS;
 
-	tree = gtk_tree_selection_get_tree_view(mb->select);
 	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 	gint *my_indices = gtk_tree_path_get_indices(path);
 	struct xmi_layer *clipboard_layer;
 	xmi_copy_layer(composition->layers+my_indices[0], &clipboard_layer);
 
-	xmi_print_layer(stdout, clipboard_layer, 1);	
+	//xmi_print_layer(stdout, clipboard_layer, 1);	
 
 	//create data for clipboard
 	cd->length = sizeof(int)+clipboard_layer->n_elements*(sizeof(double)+sizeof(int))+2*sizeof(double);
@@ -1987,12 +1988,86 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 	gtk_tree_path_free(path);
 	xmi_free_layer(clipboard_layer);
 	if (gtk_clipboard_set_with_data(clipboard, &LayerTE, 1, (GtkClipboardGetFunc) clipboard_get_layer_cb, (GtkClipboardClearFunc) clipboard_clear_layer_cb, (gpointer) cd)) {
-		g_fprintf(stdout, "Clipboard set\n");
+		//g_fprintf(stdout, "Clipboard set\n");
 	
 	}
 	else {
 		g_fprintf(stderr, "Could not set clipboard!!!\n");
 	}
+
+}
+
+static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
+	//cut is basically copying followed by deleting
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+
+	if (!gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
+		g_fprintf(stderr, "Nothing selected in layer_cut_cb->this should not occur!\n");
+		return;
+	}
+
+	//call my copy routine
+	layer_copy_cb(button, mb);
+
+	struct xmi_composition *composition = NULL;
+
+	if (mb->matrixKind == COMPOSITION)
+		composition = compositionS;
+	else if (mb->matrixKind == EXC_COMPOSITION)
+		composition = exc_compositionS;
+	else if (mb->matrixKind == DET_COMPOSITION)
+		composition = det_compositionS;
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		composition = crystal_compositionS;
+
+
+	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	gint *my_indices = gtk_tree_path_get_indices(path);
+	gint index = my_indices[0]; 
+	gint nindices = gtk_tree_model_iter_n_children(model, NULL);
+
+	//delete the selected line
+	//watch out for reference layer... for now... leave it to the user
+	//update composition
+	xmi_free_layer(composition->layers+index);
+	int i;
+	if (nindices > 1) {
+		for (i = index ;  i < nindices-1 ; i++)
+			composition->layers[i] = composition->layers[i+1];
+	}
+	composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+	composition->n_layers--;
+	gtk_list_store_remove(mb->store,&iter);
+	if (mb->matrixKind == COMPOSITION) {
+		//reference layer may have to be updated
+		if (nindices > 1) {
+			if (composition->reference_layer == index+1) {
+				//reference_layer was deleted -> only a problem if selected layer is the last one
+				if (index == nindices -1) {
+					composition->reference_layer--;
+					//get iter to last element
+					gchar *path_string = g_strdup_printf("%i",nindices-2);
+					gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(mb->store), &iter, path_string);
+					gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+					g_free(path_string);
+				}
+				else {
+					gtk_list_store_set(mb->store,&iter, REFERENCE_COLUMN, TRUE, -1);
+				}
+			}
+			else if (composition->reference_layer > index+1)
+				composition->reference_layer--;
+		}
+		update_undo_buffer(COMPOSITION_CUT, (GtkWidget*) mb->store);
+	}
+	else if (mb->matrixKind == EXC_COMPOSITION)
+		update_undo_buffer(EXC_COMPOSITION_CUT, (GtkWidget*) mb->store);
+	else if (mb->matrixKind == DET_COMPOSITION)
+		update_undo_buffer(DET_COMPOSITION_CUT, (GtkWidget*) mb->store);
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		update_undo_buffer(CRYSTAL_COMPOSITION_CUT, (GtkWidget*) mb->store);
+
 
 }
 
@@ -2011,7 +2086,7 @@ static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct mat
 	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT, NULL);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	if (cut_and_copy_and_delete) {
-		//g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
+		g_signal_connect(menuitem, "activate", G_CALLBACK(layer_cut_cb), mb);
 	}
 	else {
 		gtk_widget_set_sensitive(menuitem, FALSE);	
@@ -2419,6 +2494,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_ADD:
 		case COMPOSITION_EDIT:
 		case COMPOSITION_PASTE:
+		case COMPOSITION_CUT:
 			//clear list and repopulate
 			store = (GtkListStore *) (current)->widget;
 #if DEBUG == 1
@@ -2623,6 +2699,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case EXC_COMPOSITION_ADD:
 		case EXC_COMPOSITION_EDIT:
 		case EXC_COMPOSITION_PASTE:
+		case EXC_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = exc_compositionL;
 #if DEBUG == 1
@@ -2659,6 +2736,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DET_COMPOSITION_ADD:
 		case DET_COMPOSITION_EDIT:
 		case DET_COMPOSITION_PASTE:
+		case DET_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = det_compositionL;
 #if DEBUG == 1
@@ -2692,6 +2770,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case CRYSTAL_COMPOSITION_ADD:
 		case CRYSTAL_COMPOSITION_EDIT:
 		case CRYSTAL_COMPOSITION_PASTE:
+		case CRYSTAL_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = crystal_compositionL;
 #if DEBUG == 1
@@ -2949,6 +3028,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case COMPOSITION_ADD:
 		case COMPOSITION_EDIT:
 		case COMPOSITION_PASTE:
+		case COMPOSITION_CUT:
 			//clear list and repopulate
 			store = (GtkListStore *) (current+1)->widget;
 			gtk_list_store_clear(store);
@@ -3150,6 +3230,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case EXC_COMPOSITION_ADD:
 		case EXC_COMPOSITION_EDIT:
 		case EXC_COMPOSITION_PASTE:
+		case EXC_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = exc_compositionL;
 #if DEBUG == 1
@@ -3183,6 +3264,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DET_COMPOSITION_ADD:
 		case DET_COMPOSITION_EDIT:
 		case DET_COMPOSITION_PASTE:
+		case DET_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = det_compositionL;
 #if DEBUG == 1
@@ -3216,6 +3298,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case CRYSTAL_COMPOSITION_ADD:
 		case CRYSTAL_COMPOSITION_EDIT:
 		case CRYSTAL_COMPOSITION_PASTE:
+		case CRYSTAL_COMPOSITION_CUT:
 			//clear list and repopulate
 			store = crystal_compositionL;
 #if DEBUG == 1
@@ -3951,6 +4034,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case COMPOSITION_ADD:
 		case COMPOSITION_EDIT:
 		case COMPOSITION_PASTE:
+		case COMPOSITION_CUT:
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
 			last->widget = widget;
@@ -4160,6 +4244,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case EXC_COMPOSITION_DELETE:
 		case EXC_COMPOSITION_ADD:
 		case EXC_COMPOSITION_PASTE:
+		case EXC_COMPOSITION_CUT:
 		case EXC_COMPOSITION_EDIT:
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
@@ -4173,6 +4258,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case DET_COMPOSITION_DELETE:
 		case DET_COMPOSITION_ADD:
 		case DET_COMPOSITION_PASTE:
+		case DET_COMPOSITION_CUT:
 		case DET_COMPOSITION_EDIT:
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
@@ -4186,6 +4272,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case CRYSTAL_COMPOSITION_DELETE:
 		case CRYSTAL_COMPOSITION_ADD:
 		case CRYSTAL_COMPOSITION_PASTE:
+		case CRYSTAL_COMPOSITION_CUT:
 		case CRYSTAL_COMPOSITION_EDIT:
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
