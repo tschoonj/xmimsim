@@ -88,15 +88,15 @@ static GtkWidget *n_interactions_trajectoryW;
 GtkWidget *commentsW;
 static GtkWidget *undoW;
 static GtkWidget *redoW;
+static GtkWidget *cutW;
+static GtkWidget *copyW;
+static GtkWidget *pasteW;
 static GtkWidget *newW;
 static GtkWidget *openW;
 static GtkWidget *importW;
 static GtkWidget *preferencesW;
 static GtkWidget *tube_ebelW;
 static GtkWidget *batchmodeW;
-static GtkWidget *cutW;
-static GtkWidget *copyW;
-static GtkWidget *pasteW;
 
 
 GtkWidget *saveW;
@@ -283,7 +283,6 @@ static int detector_max_convolution_energyC;
 GdkAtom LayerAtom;
 GtkTargetEntry LayerTE = {"xmi-msim-layer", 0, 0};
 
-static GtkWidget *cut_copy_entryW = NULL;
 
 
 
@@ -418,6 +417,9 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 static void new_cb(GtkWidget *widget, gpointer data);
 static void import_cb(GtkWidget *widget, gpointer data);
+static void cut_button_clicked_cb(GtkWidget *widget, gpointer data);
+static void copy_button_clicked_cb(GtkWidget *widget, gpointer data);
+static void paste_button_clicked_cb(GtkWidget *widget, gpointer data);
 gboolean process_pre_file_operation (GtkWidget *window);
 static void geometry_help_clicked_cb(GtkWidget *window); 
 
@@ -1194,9 +1196,18 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 	char *elementString;
 	int i,j;
 	int updateKind;
+	GtkWidget *tree;
 
 	
 	
+	if (lw->matrixKind == COMPOSITION)
+		tree = compositionW;
+	else if (lw->matrixKind == EXC_COMPOSITION)
+		tree = exc_compositionW;
+	else if (lw->matrixKind == DET_COMPOSITION)
+		tree = det_compositionW;
+	else if (lw->matrixKind == CRYSTAL_COMPOSITION)
+		tree = crystal_compositionW;
 
 
 	if (*(lw->my_layer) != NULL) {
@@ -1322,14 +1333,15 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 	}
 	  	
 	//return focus to treeview!
-	gtk_widget_grab_focus(GTK_WIDGET(gtk_tree_selection_get_tree_view(lw->select)));
+	gtk_widget_grab_focus(tree);
 	//make sure a layer is selected
-	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(lw->select));
-	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(lw->select) == 0) {
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
+	GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(select) == 0) {
 		GtkTreeIter iter;
 		gtk_tree_model_get_iter_first(model, &iter);
 		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
-		gtk_tree_selection_select_path(lw->select, path);
+		gtk_tree_selection_select_path(select, path);
 		gtk_tree_path_free(path);
 	}
 
@@ -1537,6 +1549,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 		composition = crystal_compositionS;
 
+
 	if (mb->buttonKind == BUTTON_ADD) {
 		//add line... testing only for now...
 #if DEBUG == 1
@@ -1545,7 +1558,6 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		layer = NULL;
 		layerW->AddOrEdit = LW_ADD;
 		layerW->matrixKind = mb->matrixKind;
-		layerW->select= mb->select;
 		gtk_widget_show_all(layerW->window);
 #if DEBUG == 1
 		fprintf(stdout,"After widget show command\n" );
@@ -1731,7 +1743,6 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			xmi_copy_layer(composition->layers+index,&layer);
 			layerW->AddOrEdit = LW_EDIT;
 			layerW->matrixKind = mb->matrixKind;
-			layerW->select= mb->select;
 			layerW->layerNumber = index;
 			layerW->iter = iter;
 			gtk_widget_show_all(layerW->window);
@@ -1971,6 +1982,8 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 		gtk_tree_path_free(path);
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(cutW), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyW), TRUE);
 	}
 }
 
@@ -2106,6 +2119,8 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 	if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 	}
 	
 }
@@ -2191,11 +2206,20 @@ static gboolean layer_focus_in_cb(GtkTreeView *tree, GdkEvent *event, gpointer d
 
 	//count number of children
 	GtkTreeModel *model = gtk_tree_view_get_model(tree);
-	if (gtk_tree_model_iter_n_children(model, NULL) > 0) {
+	int children = gtk_tree_model_iter_n_children(model, NULL);
+	g_fprintf(stdout, "children: %i\n", children);
+	if (children > 0) {
 		//activate cut and copy
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(cutW), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyW), TRUE);
 	}
+	if (gtk_clipboard_wait_is_target_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), LayerAtom)) {
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
+	}
+
 	return FALSE;
 }
 
@@ -2206,6 +2230,10 @@ static gboolean layer_focus_out_cb(GtkTreeView *tree, GdkEvent *event, gpointer 
 	//deactivate cut and copy
 	gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteW), FALSE);
 	return FALSE;
 }
 
@@ -2980,6 +3008,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
 			gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 			gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 		}
 		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
 			GtkTreeIter iter;
@@ -2989,6 +3019,8 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_tree_path_free(path);
 			gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
 			gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutW), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyW), TRUE);
 		}
 
 	}
@@ -3530,6 +3562,8 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
 			gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 			gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 		}
 		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
 			GtkTreeIter iter;
@@ -3539,6 +3573,8 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_tree_path_free(path);
 			gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
 			gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(cutW), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(copyW), TRUE);
 		}
 
 	}
@@ -3771,11 +3807,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 }
 
 static void comments_changed(GtkWidget *widget, gpointer data) {
-	gtk_widget_set_sensitive(saveW,TRUE);
-	gtk_widget_set_sensitive(save_asW,TRUE);
-	gtk_widget_set_sensitive(GTK_WIDGET(saveT),TRUE);
-	gtk_widget_set_sensitive(GTK_WIDGET(saveasT),TRUE);
-	
+	adjust_save_buttons();
 	return;
 }
 
@@ -4501,8 +4533,20 @@ void comments_end(GtkTextBuffer *textbuffer, gpointer user_data){
 	return;
 }
 
+static void comments_buffer_notify_has_selection_cb(GtkTextBuffer *buffer, GParamSpec *pspec, gpointer data) {
+	gboolean has_selection = gtk_text_buffer_get_has_selection(buffer);
+	gtk_widget_set_sensitive(GTK_WIDGET(cutT), has_selection);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyT), has_selection);
+	gtk_widget_set_sensitive(GTK_WIDGET(cutW), has_selection);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyW), has_selection);
+}
+
 static void entry_notify_cursor_position_cb(GObject *entry, GParamSpec *pspec, gpointer data) {
-	fprintf(stdout, "Entering entry_notify_selection_bound_cb\n");
+	//fprintf(stdout, "Entering entry_notify_cursor_position_cb\n");
+	//ignore if not in focus
+	if (!gtk_widget_has_focus(GTK_WIDGET(entry))) {
+		return;
+	}
 
 	gint selection_bound;
 	gint current_pos;
@@ -4510,25 +4554,76 @@ static void entry_notify_cursor_position_cb(GObject *entry, GParamSpec *pspec, g
 	g_object_get(entry, "selection-bound", &selection_bound, "cursor-position", &current_pos, NULL);
 
 	if (selection_bound == current_pos) {
+		//fprintf(stdout, "No selection\n");
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
-		cut_copy_entryW = NULL;
+		gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 	}
 	else {
+		//fprintf(stdout, "With selection\n");
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(copyT), TRUE);
-		cut_copy_entryW = GTK_WIDGET(entry);
+		gtk_widget_set_sensitive(GTK_WIDGET(cutW), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(copyW), TRUE);
 	}
 
+}
+static gboolean comments_focus_out_cb(GtkTextView *comments, GdkEvent *event, gpointer data) {
+	GtkTextBuffer *commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (comments));
+	GtkTextIter start;
+	if (gtk_text_buffer_get_selection_bounds(commentsBuffer, &start, NULL)) {
+		gtk_text_buffer_select_range(commentsBuffer, &start, &start);
+	}
+	
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteW), FALSE);
+
+	return FALSE;
+}
+
+static gboolean comments_focus_in_cb(GtkTextView *comments, GdkEvent *event, gpointer data) {
+	if (gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
+	}
+
+	return FALSE;
 }
 
 static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, gpointer data) {
 	fprintf(stdout, "Entering entry_focus_out_cb\n");
+	//make sure possible selections are removed
+	gtk_editable_select_region(GTK_EDITABLE(entry), 0, 0);
+	
+
 	//deactivate cut and copy
 	gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
-	cut_copy_entryW = NULL;
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteT), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(pasteW), FALSE);
+
+
 	return FALSE;
+}
+
+static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, gpointer data) {
+	//fprintf(stdout, "Entering entry_focus_in_cb\n");
+	//entry_notify_cursor_position_cb(G_OBJECT(entry), NULL, NULL);
+	if (gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
+	}
+	return FALSE;
+}
+
+static void enable_entry_signals(GtkWidget *entry) {
+	g_signal_connect(G_OBJECT(entry), "notify::cursor-position", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
+	g_signal_connect(G_OBJECT(entry), "notify::selection-bound", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
+	g_signal_connect(G_OBJECT(entry), "focus-out-event", G_CALLBACK(entry_focus_out_cb), NULL);
+	g_signal_connect(G_OBJECT(entry), "focus-in-event", G_CALLBACK(entry_focus_in_cb), NULL);
 }
 
 
@@ -4859,6 +4954,7 @@ XMI_MAIN
 	g_signal_connect(theApp, "NSApplicationWillTerminate",G_CALLBACK(quit_program_cb),(gpointer)window);
 	g_signal_connect(theApp, "NSApplicationOpenFile", G_CALLBACK(load_from_file_osx_cb),(gpointer) window);
 #endif
+	g_signal_connect(G_OBJECT(newW),"activate",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(openW),"activate",G_CALLBACK(load_from_file_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveW),"activate",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(save_asW),"activate",G_CALLBACK(saveas_cb),(gpointer) window);
@@ -4869,6 +4965,12 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(undoW),"activate",G_CALLBACK(undo_menu_click),NULL);
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
+	cutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT,accel_group);
+	g_signal_connect(G_OBJECT(cutW),"activate",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
+	copyW = gtk_image_menu_item_new_from_stock(GTK_STOCK_COPY,accel_group);
+	g_signal_connect(G_OBJECT(copyW),"activate",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);
+	pasteW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PASTE,accel_group);
+	g_signal_connect(G_OBJECT(pasteW),"activate",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
 
 	//Tools
 	toolsmenu = gtk_menu_new();
@@ -4917,6 +5019,9 @@ XMI_MAIN
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),cutW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),copyW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),pasteW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),edit);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),tools);
 #ifndef MAC_INTEGRATION
@@ -4928,6 +5033,9 @@ XMI_MAIN
 	gtk_widget_set_sensitive(redoW,FALSE);
 	gtk_widget_set_sensitive(saveW,FALSE);
 	gtk_widget_set_sensitive(save_asW,FALSE);
+	gtk_widget_set_sensitive(copyW,FALSE);
+	gtk_widget_set_sensitive(cutW,FALSE);
+	gtk_widget_set_sensitive(pasteW,FALSE);
 
 	//add accelerators
 	gtk_widget_add_accelerator(newW, "activate", accel_group, GDK_n, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
@@ -4937,6 +5045,9 @@ XMI_MAIN
 	gtk_widget_add_accelerator(importW, "activate", accel_group, GDK_i, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(cutW, "activate", accel_group, GDK_x, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(copyW, "activate", accel_group, GDK_c, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(pasteW, "activate", accel_group, GDK_v, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 
 	GtkWidget *helpmenu, *help;
 #ifdef MAC_INTEGRATION
@@ -5097,6 +5208,9 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_tube_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(cutT),"clicked",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(copyT),"clicked",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(pasteT),"clicked",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), toolbar, FALSE, FALSE, 3);
 	gtk_widget_show_all(toolbar);
@@ -5150,9 +5264,10 @@ XMI_MAIN
 	vc->check = &n_photons_intervalC;
 	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
-	g_signal_connect(G_OBJECT(text), "notify::cursor-position", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
-	g_signal_connect(G_OBJECT(text), "focus-out-event", G_CALLBACK(entry_focus_out_cb), NULL);
-	g_signal_connect(G_OBJECT(text), "focus-in-event", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
+	//g_signal_connect(G_OBJECT(text), "notify::cursor-position", G_CALLBACK(entry_notify_cursor_position_cb), NULL);
+	//g_signal_connect(G_OBJECT(text), "focus-out-event", G_CALLBACK(entry_focus_out_cb), NULL);
+	//g_signal_connect(G_OBJECT(text), "focus-in-event", G_CALLBACK(entry_focus_in_cb), NULL);
+	enable_entry_signals(text);
 	//n_photons_line
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -5167,6 +5282,7 @@ XMI_MAIN
 	vc->check = &n_photons_lineC;
 	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	enable_entry_signals(text);
 	//n_interactions_trajectory
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -5181,6 +5297,7 @@ XMI_MAIN
 	vc->check = &n_interactions_trajectoryC;
 	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	enable_entry_signals(text);
 
 	//comments
 	hbox_text_label = gtk_hbox_new(FALSE,5);
@@ -5189,8 +5306,11 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	commentsW = gtk_text_view_new();	
 	gtk_container_set_border_width(GTK_CONTAINER(commentsW),2);
+	g_signal_connect(G_OBJECT(commentsW), "focus-out-event", G_CALLBACK(comments_focus_out_cb), NULL);
+	g_signal_connect(G_OBJECT(commentsW), "focus-in-event", G_CALLBACK(comments_focus_in_cb), NULL);
 
 	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
+	g_signal_connect(G_OBJECT(commentsBuffer), "notify::has-selection", G_CALLBACK(comments_buffer_notify_has_selection_cb), NULL);
 	//comments_beginG = g_signal_connect(G_OBJECT(commentsBuffer), "begin-user-action", G_CALLBACK(comments_begin), NULL);
 	//comments_endG = g_signal_connect(G_OBJECT(commentsBuffer), "end-user-action", G_CALLBACK(comments_end), NULL);
 	//gtk_text_buffer_get_bounds(commentsBuffer,&tib,&tie)
@@ -5261,6 +5381,7 @@ XMI_MAIN
 	d_sample_source_ebW = gtk_event_box_new();
 	gtk_container_add(GTK_CONTAINER(d_sample_source_ebW), hbox_text_label);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), d_sample_source_ebW, TRUE, FALSE, 3);
+	enable_entry_signals(d_sample_sourceW);
 
 	
 
@@ -5280,6 +5401,7 @@ XMI_MAIN
 	vc->kind = N_SAMPLE_ORIENTATION_Z;
 	vc->check = &n_sample_orientation_zC;
 	n_sample_orientation_zG = g_signal_connect(G_OBJECT(n_sample_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
+	enable_entry_signals(n_sample_orientation_zW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5291,6 +5413,7 @@ XMI_MAIN
 	vc->kind = N_SAMPLE_ORIENTATION_Y;
 	vc->check = &n_sample_orientation_yC;
 	n_sample_orientation_yG = g_signal_connect(G_OBJECT(n_sample_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(n_sample_orientation_yW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5302,6 +5425,7 @@ XMI_MAIN
 	vc->kind = N_SAMPLE_ORIENTATION_X;
 	vc->check = &n_sample_orientation_xC;
 	n_sample_orientation_xG = g_signal_connect(G_OBJECT(n_sample_orientation_xW),"changed",G_CALLBACK(double_changed),(gpointer) vc  );
+	enable_entry_signals(n_sample_orientation_xW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_sample_orientation_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5322,6 +5446,7 @@ XMI_MAIN
 	vc->kind = P_DETECTOR_WINDOW_Z;
 	vc->check = &p_detector_window_zC;
 	p_detector_window_zG = g_signal_connect(G_OBJECT(p_detector_window_zW),"changed",G_CALLBACK(double_changed), vc  );
+	enable_entry_signals(p_detector_window_zW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5333,6 +5458,7 @@ XMI_MAIN
 	vc->kind = P_DETECTOR_WINDOW_Y;
 	vc->check = &p_detector_window_yC;
 	p_detector_window_yG = g_signal_connect(G_OBJECT(p_detector_window_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
+	enable_entry_signals(p_detector_window_yW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5344,6 +5470,7 @@ XMI_MAIN
 	vc->kind = P_DETECTOR_WINDOW_X;
 	vc->check = &p_detector_window_xC;
 	p_detector_window_xG = g_signal_connect(G_OBJECT(p_detector_window_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
+	enable_entry_signals(p_detector_window_xW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), p_detector_window_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5364,6 +5491,7 @@ XMI_MAIN
 	vc->kind = N_DETECTOR_ORIENTATION_Z;
 	vc->check = &n_detector_orientation_zC ;
 	n_detector_orientation_zG = g_signal_connect(G_OBJECT(n_detector_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(n_detector_orientation_zW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_zW, FALSE, FALSE, 0);
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5375,6 +5503,7 @@ XMI_MAIN
 	vc->kind = N_DETECTOR_ORIENTATION_Y;
 	vc->check = &n_detector_orientation_yC ;
 	n_detector_orientation_yG = g_signal_connect(G_OBJECT(n_detector_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(n_detector_orientation_yW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5386,6 +5515,7 @@ XMI_MAIN
 	vc->kind = N_DETECTOR_ORIENTATION_X;
 	vc->check = &n_detector_orientation_xC ;
 	n_detector_orientation_xG = g_signal_connect(G_OBJECT(n_detector_orientation_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(n_detector_orientation_xW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), n_detector_orientation_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5406,6 +5536,7 @@ XMI_MAIN
 	vc->kind = AREA_DETECTOR;
 	vc->check = &area_detectorC;
 	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(area_detectorW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), area_detectorW, FALSE, FALSE, 0);
 
 	//collimator_height
@@ -5423,6 +5554,7 @@ XMI_MAIN
 	vc->kind = COLLIMATOR_HEIGHT;
 	vc->check = &collimator_heightC ;
 	collimator_heightG = g_signal_connect(G_OBJECT(collimator_heightW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(collimator_heightW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), collimator_heightW, FALSE, FALSE, 0);
 
 	//collimator_diameter
@@ -5440,6 +5572,7 @@ XMI_MAIN
 	vc->kind = COLLIMATOR_DIAMETER;
 	vc->check = &collimator_diameterC ;
 	collimator_diameterG = g_signal_connect(G_OBJECT(collimator_diameterW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(collimator_diameterW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), collimator_diameterW, FALSE, FALSE, 0);
 
 	//d_source_slit
@@ -5457,6 +5590,7 @@ XMI_MAIN
 	vc->kind = D_SOURCE_SLIT;
 	vc->check = &d_source_slitC ;
 	d_source_slitG = g_signal_connect(G_OBJECT(d_source_slitW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(d_source_slitW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), d_source_slitW, FALSE, FALSE, 0);
 
 	//slit sizes
@@ -5474,6 +5608,7 @@ XMI_MAIN
 	vc->kind = SLIT_SIZE_Y;
 	vc->check = &slit_size_yC;
 	slit_size_yG = g_signal_connect(G_OBJECT(slit_size_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(slit_size_yW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_yW, FALSE, FALSE, 0);
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5484,6 +5619,7 @@ XMI_MAIN
 	vc->kind = SLIT_SIZE_X;
 	vc->check = &slit_size_xC;
 	slit_size_xG = g_signal_connect(G_OBJECT(slit_size_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(slit_size_xW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), slit_size_xW, FALSE, FALSE, 0);
 	label = gtk_label_new("x:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
@@ -5582,6 +5718,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_LIVE_TIME;
 	vc->check = &detector_live_timeC;
 	detector_live_timeG = g_signal_connect(G_OBJECT(detector_live_timeW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_live_timeW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_live_timeW, FALSE, FALSE, 0);
 	
 	//gain
@@ -5596,6 +5733,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_GAIN;
 	vc->check = &detector_gainC;
 	detector_gainG = g_signal_connect(G_OBJECT(detector_gainW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_gainW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_gainW, FALSE, FALSE, 0);
 	
 	//zero
@@ -5610,6 +5748,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_ZERO;
 	vc->check = &detector_zeroC;
 	detector_zeroG = g_signal_connect(G_OBJECT(detector_zeroW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
+	enable_entry_signals(detector_zeroW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_zeroW, FALSE, FALSE, 0);
 
 	//fano
@@ -5624,6 +5763,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_FANO;
 	vc->check = &detector_fanoC;
 	detector_fanoG = g_signal_connect(G_OBJECT(detector_fanoW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_fanoW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_fanoW, FALSE, FALSE, 0);
 
 	//noise
@@ -5638,6 +5778,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_NOISE;
 	vc->check = &detector_noiseC;
 	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_noiseW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_noiseW, FALSE, FALSE, 0);
 
 	//pulse_width
@@ -5652,6 +5793,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_PULSE_WIDTH;
 	vc->check = &detector_pulse_widthC;
 	detector_pulse_widthG = g_signal_connect(G_OBJECT(detector_pulse_widthW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_pulse_widthW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_pulse_widthW, FALSE, FALSE, 0);
 	
 	//max_convolution_energy
@@ -5666,6 +5808,7 @@ XMI_MAIN
 	vc->kind = DETECTOR_MAX_CONVOLUTION_ENERGY;
 	vc->check = &detector_max_convolution_energyC;
 	detector_max_convolution_energyG = g_signal_connect(G_OBJECT(detector_max_convolution_energyW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_max_convolution_energyW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_max_convolution_energyW, FALSE, FALSE, 0);
 
 	//crystal
@@ -5807,6 +5950,7 @@ XMI_MAIN
 #endif
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 
+
 	xmimsim_notifications_init();
 
 	gtk_main();
@@ -5835,6 +5979,143 @@ static void change_all_values(struct xmi_input *new_input) {
 	change_all_values_detectorsettings(new_input);
 
 	return;
+}
+
+static void cut_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	//three possibilities:
+	//1) textview
+	//2) entry
+	//3) treeview
+
+	
+	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(data));
+
+	if (GTK_IS_TEXT_VIEW(focused)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "cut-clipboard", NULL);	
+	}
+	else if (GTK_IS_ENTRY(focused)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "cut-clipboard", NULL);	
+	}
+	else if (GTK_IS_TREE_VIEW(focused)) {
+		struct matrix_button *mb = g_malloc(sizeof(struct matrix_button));
+		mb->select= gtk_tree_view_get_selection(GTK_TREE_VIEW(focused));
+		if (focused == compositionW) {
+			mb->matrixKind = COMPOSITION;
+			mb->store = compositionL; 
+		}
+		else if (focused == exc_compositionW) {
+			mb->matrixKind = EXC_COMPOSITION;
+			mb->store = exc_compositionL; 
+		}
+		else if (focused == det_compositionW) {
+			mb->matrixKind = DET_COMPOSITION;
+			mb->store = det_compositionL; 
+		}
+		else if (focused == crystal_compositionW) {
+			mb->matrixKind = CRYSTAL_COMPOSITION;
+			mb->store = crystal_compositionL; 
+		}
+		else {
+			g_fprintf(stderr, "Could not match tree_view widget!\n");
+			return;
+		}
+
+		layer_cut_cb(NULL, mb);
+	}
+	else {
+		g_fprintf(stderr, "Invalid widget type detected in cut_button_clicked_cb\n!");
+		return;
+	}
+
+}
+static void copy_button_clicked_cb(GtkWidget *widget, gpointer data) {
+	//three possibilities:
+	//1) textview
+	//2) entry
+	//3) treeview
+
+	
+	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(data));
+
+	if (GTK_IS_TEXT_VIEW(focused)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "copy-clipboard", NULL);	
+	}
+	else if (GTK_IS_ENTRY(focused)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "copy-clipboard", NULL);	
+	}
+	else if (GTK_IS_TREE_VIEW(focused)) {
+		struct matrix_button *mb = g_malloc(sizeof(struct matrix_button));
+		mb->select= gtk_tree_view_get_selection(GTK_TREE_VIEW(focused));
+		if (focused == compositionW) {
+			mb->matrixKind = COMPOSITION;
+		}
+		else if (focused == exc_compositionW) {
+			mb->matrixKind = EXC_COMPOSITION;
+		}
+		else if (focused == det_compositionW) {
+			mb->matrixKind = DET_COMPOSITION;
+		}
+		else if (focused == crystal_compositionW) {
+			mb->matrixKind = CRYSTAL_COMPOSITION;
+		}
+		else {
+			g_fprintf(stderr, "Could not match tree_view widget!\n");
+			return;
+		}
+
+		layer_copy_cb(NULL, mb);
+	}
+	else {
+		g_fprintf(stderr, "Invalid widget type detected in copy_button_clicked_cb\n!");
+		return;
+	}
+
+}
+
+static void paste_button_clicked_cb(GtkWidget *widget, gpointer data) {
+
+	//three possibilities:
+	//1) textview
+	//2) entry
+	//3) treeview
+
+	
+	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(data));
+	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+
+	if (GTK_IS_TEXT_VIEW(focused) && gtk_clipboard_wait_is_text_available(clipboard)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "paste-clipboard", NULL);	
+	}
+	else if (GTK_IS_ENTRY(focused) && gtk_clipboard_wait_is_text_available(clipboard)) {
+		g_signal_emit_by_name(G_OBJECT(focused), "paste-clipboard", NULL);	
+	}
+	else if (GTK_IS_TREE_VIEW(focused) && gtk_clipboard_wait_is_target_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), LayerAtom)) {
+		struct matrix_button *mb = g_malloc(sizeof(struct matrix_button));
+		mb->select= gtk_tree_view_get_selection(GTK_TREE_VIEW(focused));
+		if (focused == compositionW) {
+			mb->matrixKind = COMPOSITION;
+		}
+		else if (focused == exc_compositionW) {
+			mb->matrixKind = EXC_COMPOSITION;
+		}
+		else if (focused == det_compositionW) {
+			mb->matrixKind = DET_COMPOSITION;
+		}
+		else if (focused == crystal_compositionW) {
+			mb->matrixKind = CRYSTAL_COMPOSITION;
+		}
+		else {
+			g_fprintf(stderr, "Could not match tree_view widget!\n");
+			return;
+		}
+
+		layer_paste_cb(NULL, mb);
+	}
+	else {
+		g_fprintf(stderr, "Invalid widget type detected in paste_button_clicked_cb\n!");
+		return;
+	}
+
 }
 
 static void import_cb(GtkWidget *widget, gpointer data) {
