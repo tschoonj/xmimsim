@@ -376,6 +376,8 @@ char *xmimsim_title_xmso = NULL;
 char *xmimsim_filename_xmsi = NULL;
 char *xmimsim_filename_xmso = NULL;
 
+struct control_widget *control_array = NULL;
+int control_array_elements = 0;
 
 
 struct read_xmsa_data {
@@ -429,6 +431,76 @@ struct import_undo_data {
 	int undo_rv;
 	char *filename;
 };
+
+struct control_widget {
+	GtkWidget *widget;
+	gboolean sensitivity;
+};
+
+static void get_control_widgets(GtkWidget *start_widget, struct control_widget **array, int *array_elements) {
+	//We need to fetch all:
+	//1) entries
+	//2) buttons
+	//3) textviews
+	//4) treeviews
+	//
+	//If it's a button, keep track of its sensitivity
+	
+	struct control_widget *local_array = *array;
+	int local_array_elements = *array_elements;
+
+	if (GTK_IS_ENTRY(start_widget) ||
+		GTK_IS_BUTTON(start_widget) ||
+		GTK_IS_TEXT_VIEW(start_widget) ||
+		GTK_IS_TREE_VIEW(start_widget) ||
+		GTK_IS_COMBO_BOX(start_widget)) {
+		local_array = g_realloc(local_array, sizeof(struct control_widget)*++local_array_elements);	
+		local_array[local_array_elements-1].widget = start_widget;
+			
+	}
+	else if (GTK_IS_BIN(start_widget)) {
+		get_control_widgets(gtk_bin_get_child(GTK_BIN(start_widget)), &local_array, &local_array_elements);
+	}
+	else if (GTK_IS_CONTAINER(start_widget)) {
+		GList *children = gtk_container_get_children(GTK_CONTAINER(start_widget));
+		GList *l;
+		for (l = children; l != NULL; l = l->next) {
+			get_control_widgets(l->data, &local_array, &local_array_elements);
+                }
+	}
+
+	*array = local_array;
+	*array_elements = local_array_elements;
+}
+
+static void add_to_control_widgets(GtkWidget *widget) {
+	//control_array = g_realloc(control_array, sizeof(struct control_widget)*++control_array_elements);	
+	//control_array[control_array_elements-1].widget = widget;
+	get_control_widgets(widget, &control_array, &control_array_elements);
+	
+}
+
+
+static void adjust_control_widgets(GtkWidget *widget, gboolean sensitivity) {
+
+	int i;
+
+
+	for (i = 0 ; i < control_array_elements ; i++) {
+		if (control_array[i].widget == widget)
+			continue;
+		if (sensitivity == FALSE && GTK_IS_BUTTON(control_array[i].widget)) {
+			control_array[i].sensitivity = gtk_widget_get_sensitive(control_array[i].widget);
+			gtk_widget_set_sensitive(control_array[i].widget, FALSE);
+		}	
+		else if (sensitivity == TRUE && GTK_IS_BUTTON(control_array[i].widget)) {
+			gtk_widget_set_sensitive(control_array[i].widget, control_array[i].sensitivity);
+		}
+		else {
+			gtk_widget_set_sensitive(control_array[i].widget, sensitivity);
+		}
+	}
+}
 
 #ifdef G_OS_UNIX
 void signal_handler(int sig) {
@@ -703,9 +775,6 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	struct xmi_input *xi;
 
 
-	g_fprintf(stdout, "chooser_activated_cb %s\n", filename);
-
-	
 	if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 			return;
@@ -816,6 +885,8 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 	return FALSE;
 }
 
+
+
 static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) {
 	char *max_version;
 
@@ -908,7 +979,6 @@ gboolean process_pre_file_operation (GtkWidget *window) {
 	if (dialog != NULL) {
 		dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
 		if (dialog_rv == GTK_RESPONSE_CANCEL || dialog_rv == GTK_RESPONSE_DELETE_EVENT) {
-			fprintf(stdout,"Cancel button clicked\n");
 			gtk_widget_destroy(dialog);
 			return FALSE;
 		}
@@ -1731,6 +1801,12 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
 				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
 			gtk_widget_grab_focus(GTK_WIDGET(gtk_tree_selection_get_tree_view(mb->select)));
+			if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(mb->store), NULL) == 0) {
+				gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(copyT), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(cutW), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
+			}
 		
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
@@ -1750,7 +1826,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 
 		else {
-			fprintf(stdout,"Unknown button clicked\n");
+			fprintf(stderr,"Unknown button clicked\n");
 			exit(1);
 		}
 
@@ -1793,7 +1869,7 @@ static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *p
 	
 	//convert path to iter
 	if (gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(rt->store), &iter, path) == FALSE) {
-		fprintf(stdout,"Error in reference_layer_toggled_cb\n");
+		fprintf(stderr,"Error in reference_layer_toggled_cb\n");
 		exit(1);
 	}
 
@@ -2202,12 +2278,12 @@ static gboolean layer_popup_menu_cb(GtkWidget *tree, struct matrix_button *mb) {
 
 static gboolean layer_focus_in_cb(GtkTreeView *tree, GdkEvent *event, gpointer data) {
 	static int counter = 0;
-	g_fprintf(stdout, "Entering layer_focus_in_cb: %i\n", counter++);
+	//g_fprintf(stdout, "Entering layer_focus_in_cb: %i\n", counter++);
 
 	//count number of children
 	GtkTreeModel *model = gtk_tree_view_get_model(tree);
 	int children = gtk_tree_model_iter_n_children(model, NULL);
-	g_fprintf(stdout, "children: %i\n", children);
+	//g_fprintf(stdout, "children: %i\n", children);
 	if (children > 0) {
 		//activate cut and copy
 		gtk_widget_set_sensitive(GTK_WIDGET(cutT), TRUE);
@@ -2225,7 +2301,7 @@ static gboolean layer_focus_in_cb(GtkTreeView *tree, GdkEvent *event, gpointer d
 
 static gboolean layer_focus_out_cb(GtkTreeView *tree, GdkEvent *event, gpointer data) {
 	static int counter = 0;
-	g_fprintf(stdout, "Entering layer_focus_out_cb: %i\n", counter++);
+	//g_fprintf(stdout, "Entering layer_focus_out_cb: %i\n", counter++);
 
 	//deactivate cut and copy
 	gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
@@ -3045,8 +3121,6 @@ static void email_click(GtkWidget *widget, char *url) {
 
 
 static void about_click(GtkWidget *widget, gpointer data) {
-	fprintf(stdout,"About clicked\n");
-
 	static const gchar * const authors[] = {
 		"Tom Schoonjans <Tom.Schoonjans@me.com>",
 		"Laszlo Vincze <Laszlo.Vincze@UGent.be>",
@@ -3695,6 +3769,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
 			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
+				adjust_control_widgets(widget, TRUE);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
@@ -3713,6 +3788,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			else {
 				//bad value
+				adjust_control_widgets(widget, FALSE);
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
@@ -3727,6 +3803,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case COLLIMATOR_DIAMETER:
 			if (lastPtr == endPtr && value >= 0.0 && strlen(textPtr) != 0) {
 				//ok
+				adjust_control_widgets(widget, TRUE);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
@@ -3745,6 +3822,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			else {
 				//bad value
+				adjust_control_widgets(widget, FALSE);
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
@@ -3767,6 +3845,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_ZERO:
 			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				//ok
+				adjust_control_widgets(widget, TRUE);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
@@ -3785,6 +3864,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			else {
 				//bad value
+				adjust_control_widgets(widget, FALSE);
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
@@ -3834,6 +3914,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
 				value = strtol(textPtr, NULL, 10);
+				adjust_control_widgets(widget, TRUE);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (pos_int_changed_current_check(kind,value))
@@ -3859,6 +3940,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_set_sensitive(undoW,FALSE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+				adjust_control_widgets(widget, FALSE);
 			}
 			break;
 		default:
@@ -3975,8 +4057,6 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	gchar *filename = old->path;
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(old->window));
 
-	fprintf(stdout,"load_from_file_osx_helper_cb called: %s\n",filename);
-
 	//bring window to front if necessary
 	if ([NSApp isHidden] == YES)
 		[NSApp unhide: nil];
@@ -4052,9 +4132,6 @@ static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpoin
 	old->path = g_strdup(path);
 
 	g_idle_add(load_from_file_osx_helper_cb, (gpointer) old);
-
-	g_fprintf(stdout,"OSX File open event: %s\n",path);
-
 
 	return TRUE;
 }
@@ -4592,7 +4669,6 @@ static gboolean comments_focus_in_cb(GtkTextView *comments, GdkEvent *event, gpo
 }
 
 static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, gpointer data) {
-	fprintf(stdout, "Entering entry_focus_out_cb\n");
 	//make sure possible selections are removed
 	gtk_editable_select_region(GTK_EDITABLE(entry), 0, 0);
 	
@@ -5950,8 +6026,9 @@ XMI_MAIN
 #endif
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 
-
+	
 	xmimsim_notifications_init();
+	add_to_control_widgets(superframe);
 
 	gtk_main();
 
@@ -7321,7 +7398,6 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 		return;
 	}
 	geometry_help_scale_factor = GEOMETRY_HELP_SCALE_FACTOR_DEFAULT;
-	g_fprintf(stdout,"Opening coordinate_system window\n");
 	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Hide geometry help");
 	cs_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_widget_modify_bg(cs_window, GTK_STATE_NORMAL, &white);
