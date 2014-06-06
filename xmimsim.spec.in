@@ -92,6 +92,7 @@ fi || :
 %{_bindir}/xmimsim-gui
 %{_bindir}/xmimsim-harvester
 %{_bindir}/xmimsim-db
+%{_bindir}/xmimsim-conv
 %{_bindir}/xmso2xmsi
 %{_bindir}/xmso2svg
 %{_bindir}/xmso2spe
