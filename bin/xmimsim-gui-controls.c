@@ -100,7 +100,7 @@ GtkWidget *image_escapeW;
 
 GtkWidget *nthreadsW;
 GtkObject *nthreadsA;
-GTimer *timer;
+GTimer *timer = NULL;
 
 GIOChannel *xmimsim_stdout;
 GIOChannel *xmimsim_stderr;
@@ -480,8 +480,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	if (nthreadsW != NULL)
 		gtk_widget_set_sensitive(nthreadsW,TRUE);	
 
-	g_timer_stop(timer);
-	g_timer_destroy(timer);
+	//g_timer_stop(timer);
+	//g_timer_destroy(timer);
 
 	if (!success) {
 		xmimsim_notifications_deliver("Simulation failed","Check error messages");
@@ -635,7 +635,10 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		gtk_widget_set_sensitive(nthreadsW,FALSE);	
 
 	reset_controls();
-	timer = g_timer_new();
+	if (timer == NULL)
+		timer = g_timer_new();
+	else
+		g_timer_start(timer);
 
 	arg_counter = 0;
 	argv = g_malloc(sizeof(gchar *)*++arg_counter);

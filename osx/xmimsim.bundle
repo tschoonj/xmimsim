@@ -19,12 +19,13 @@
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-pymca</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-db</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/bin/xmimsim-conv</binary>
 
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSA.icns</data>
-<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-3.4.tar.gz</data>
+<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-3.5.tar.gz</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/nsis/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
