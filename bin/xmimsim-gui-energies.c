@@ -1609,6 +1609,75 @@ void energy_edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+static void energy_right_click_menu_delete_cb(GtkWidget *button, gpointer kind) {
+	energy_delete_button_clicked_cb(NULL, kind);
+	return;
+}
+
+static void energy_right_click_menu_select_all_cb(GtkWidget *button, GtkWidget *tree) {
+	GtkTreeSelection *selection;
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	gtk_tree_selection_select_all(selection);	
+	return;
+}
+
+static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, gpointer kind) {
+	GtkWidget *menu, *menuitem;
+
+
+	menu = gtk_menu_new();
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_DELETE, NULL);
+	//count how many rows are selected
+	GtkTreeSelection *selection;
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	if (gtk_tree_selection_count_selected_rows(selection) == 0) {
+		gtk_widget_set_sensitive(menuitem, FALSE);
+	}
+	else {
+		g_signal_connect(menuitem, "activate", G_CALLBACK(energy_right_click_menu_delete_cb), kind);
+	}
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	menuitem = gtk_image_menu_item_new_from_stock(GTK_STOCK_SELECT_ALL, NULL);
+	//count how many rows are in the treeview
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
+	if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
+		gtk_widget_set_sensitive(menuitem, FALSE);
+	}
+	else {
+		g_signal_connect(menuitem, "activate", G_CALLBACK(energy_right_click_menu_select_all_cb), (gpointer) tree);
+	}
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	
+
+	gtk_widget_show_all(menu);
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event != NULL ? event->button : 0, gdk_event_get_time((GdkEvent *) event));
+}
+static gboolean energy_popup_menu_cb(GtkWidget *tree, gpointer kind) {
+	create_popup_menu(tree, NULL, kind);
+
+	return TRUE;
+}
+
+static gboolean energy_right_click_cb(GtkWidget *tree, GdkEventButton *event, gpointer kind) {
+	if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
+		//if clicked layer is not selected -> select it
+		GtkTreeSelection *selection;
+		selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+		GtkTreePath *path;
+		if (gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(tree), (gint) event->x, (gint) event->y, &path, NULL, NULL, NULL) &&
+		    !gtk_tree_selection_path_is_selected(selection, path)) {
+			gtk_tree_selection_select_path(selection, path);	
+			gtk_tree_path_free(path);
+		}
+		create_popup_menu(tree, event, kind);
+		return TRUE;
+	}
+	return FALSE;
+
+}
+
 struct energiesWidget *initialize_single_energies(void *energies, int n_energies, int kind, GtkWidget *main_window) {
 	GtkListStore *store;
 	GtkTreeIter iter;
@@ -1811,6 +1880,8 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	g_signal_connect(G_OBJECT(tree), "row-activated", G_CALLBACK(energy_row_activated_cb), GINT_TO_POINTER(kind));
 	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(energy_backspace_key_clicked), GINT_TO_POINTER(kind));
+	g_signal_connect(G_OBJECT(tree), "button-press-event", G_CALLBACK(energy_right_click_cb), GINT_TO_POINTER(kind));
+	g_signal_connect(G_OBJECT(tree), "popup-menu", G_CALLBACK(energy_popup_menu_cb), GINT_TO_POINTER(kind));
 
 
 	eb->editButton = editButton;

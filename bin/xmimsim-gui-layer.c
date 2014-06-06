@@ -184,8 +184,8 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 				-1
 			);
 		} 
-
-
+		gtk_widget_set_sensitive(lw->addToCatalogButton, TRUE);
+		gtk_widget_set_sensitive(lw->okButton, TRUE);
 	}
 	else {
 		//clear it
@@ -195,9 +195,9 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 		gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry),"");
 		gtk_widget_set_sensitive(lw->okButton, FALSE);
 		gtk_widget_set_sensitive(lw->addToCatalogButton, FALSE);
-		gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,NULL);
-		gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,NULL);
 	}
+	gtk_widget_modify_base(lw->densityEntry,GTK_STATE_NORMAL,NULL);
+	gtk_widget_modify_base(lw->thicknessEntry,GTK_STATE_NORMAL,NULL);
 
 	g_signal_handler_unblock(G_OBJECT(lw->densityEntry),lw->densityG);
 	g_signal_handler_unblock(G_OBJECT(lw->thicknessEntry),lw->thicknessG);

@@ -31,10 +31,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 struct undo_single {
 	struct xmi_input *xi;
-	char message[512];
+	gchar *message;
 	int kind;
 	GtkWidget *widget;
 	char *filename;
+	int *check;
 };
 
 /*
@@ -67,6 +68,8 @@ enum {
 	COMPOSITION_DELETE,
 	COMPOSITION_ADD,
 	COMPOSITION_EDIT,
+	COMPOSITION_CUT,
+	COMPOSITION_PASTE,
 	OPEN_FILE,
 	D_SAMPLE_SOURCE,
 	N_SAMPLE_ORIENTATION_X,
@@ -105,16 +108,22 @@ enum {
 	EXC_COMPOSITION_DELETE,
 	EXC_COMPOSITION_ADD,
 	EXC_COMPOSITION_EDIT,
+	EXC_COMPOSITION_CUT,
+	EXC_COMPOSITION_PASTE,
 	DET_COMPOSITION,
 	DET_COMPOSITION_ORDER,
 	DET_COMPOSITION_DELETE,
 	DET_COMPOSITION_ADD,
 	DET_COMPOSITION_EDIT,
+	DET_COMPOSITION_CUT,
+	DET_COMPOSITION_PASTE,
 	CRYSTAL_COMPOSITION,
 	CRYSTAL_COMPOSITION_ORDER,
 	CRYSTAL_COMPOSITION_DELETE,
 	CRYSTAL_COMPOSITION_ADD,
 	CRYSTAL_COMPOSITION_EDIT,
+	CRYSTAL_COMPOSITION_CUT,
+	CRYSTAL_COMPOSITION_PASTE,
 	DETECTOR_TYPE,
 	DETECTOR_GAIN,
 	DETECTOR_PULSE_WIDTH,
@@ -127,6 +136,7 @@ enum {
 };
 
 void update_undo_buffer(int kind, GtkWidget *widget);
+void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check);
 
 int check_changeables(void);
 

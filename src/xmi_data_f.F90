@@ -801,6 +801,7 @@ ALLOCATE(sumz(nintervals_theta-1))
 !$OMP DO
 
 Zloop:DO i=1,maxz 
+        WRITE (output_unit, '(A,I3)') 'Generating datasets for element ', i
         Eloop:DO j=1,nintervals_e
 
                 !
@@ -1243,9 +1244,13 @@ DO i=1,nintervals_phi
         phis(i)=0.0_C_DOUBLE+(2.0*PI-0.0_C_DOUBLE)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_phi-1.0)
 ENDDO
 
+WRITE (output_unit, '(A)') 'Generating element independent datasets'
+
 !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,cdfs)
 
 ALLOCATE(cdfs(nintervals_phi))
+
+
 
 !$OMP DO
 DO i=1,nintervals_theta2
