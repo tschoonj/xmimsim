@@ -35,6 +35,7 @@ struct undo_single {
 	int kind;
 	GtkWidget *widget;
 	char *filename;
+	int *check;
 };
 
 /*
@@ -135,6 +136,7 @@ enum {
 };
 
 void update_undo_buffer(int kind, GtkWidget *widget);
+void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check);
 
 int check_changeables(void);
 

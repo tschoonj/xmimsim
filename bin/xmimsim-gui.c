@@ -314,6 +314,7 @@ struct undo_single *current;
 static struct undo_single *last;
 struct undo_single *last_saved;
 static char *opened_file_name;
+static struct undo_single *undo_error = NULL;
 
 
 
@@ -453,7 +454,9 @@ static void get_control_widgets(GtkWidget *start_widget, struct control_widget *
 		GTK_IS_BUTTON(start_widget) ||
 		GTK_IS_TEXT_VIEW(start_widget) ||
 		GTK_IS_TREE_VIEW(start_widget) ||
-		GTK_IS_COMBO_BOX(start_widget)) {
+		GTK_IS_COMBO_BOX(start_widget) ||
+		GTK_IS_IMAGE_MENU_ITEM(start_widget) ||
+		GTK_IS_TOOL_BUTTON(start_widget)) {
 		local_array = g_realloc(local_array, sizeof(struct control_widget)*++local_array_elements);	
 		local_array[local_array_elements-1].widget = start_widget;
 			
@@ -2112,7 +2115,8 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 	xmi_free_layer(clipboard_layer);
 	if (gtk_clipboard_set_with_data(clipboard, &LayerTE, 1, (GtkClipboardGetFunc) clipboard_get_layer_cb, (GtkClipboardClearFunc) clipboard_clear_layer_cb, (gpointer) cd)) {
 		//g_fprintf(stdout, "Clipboard set\n");
-	
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	else {
 		g_fprintf(stderr, "Could not set clipboard!!!\n");
@@ -2612,8 +2616,217 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 
 
+void undo_menu_fix_after_error(void) {
+	char buffer[512];
+	//update undo
+	if (current != redo_buffer) {
+		g_sprintf(buffer,"Undo: %s",(current)->message);
+		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);		
+		gtk_tool_item_set_tooltip_text(undoT,buffer);
+	}
+	else {
+		g_sprintf(buffer,"Undo");
+		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);		
+		gtk_tool_item_set_tooltip_text(undoT,buffer);
+		gtk_widget_set_sensitive(undoW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+	}
 
+	//update redo
+	if (current == last) {
+		g_sprintf(buffer,"Redo");
+		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
+		gtk_tool_item_set_tooltip_text(redoT,buffer);
+		gtk_widget_set_sensitive(redoW,FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
+	}
+	else {
+		g_sprintf(buffer,"Redo: %s", (current+1)->message);
+		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);		
+		gtk_tool_item_set_tooltip_text(redoT,buffer);
+		gtk_widget_set_sensitive(redoW,TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+	}
 
+	gtk_widget_modify_base(undo_error->widget,GTK_STATE_NORMAL,NULL);
+	adjust_control_widgets(undo_error->widget, TRUE);
+	g_free(undo_error->message);
+	g_free(undo_error);
+	undo_error = NULL;
+
+	adjust_save_buttons();
+
+}
+
+void undo_menu_click_with_error(void) {
+	char buffer[512];
+
+	*(undo_error->check) = 1;
+
+	switch (undo_error->kind) {
+		case N_PHOTONS_INTERVAL:
+			g_sprintf(buffer,"%li",(current)->xi->general->n_photons_interval);
+#if DEBUG == 1
+			fprintf(stdout,"n_photons_interval undo to %s\n",buffer);
+#endif
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_photons_intervalG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_photons_intervalG);
+			break;
+		case N_PHOTONS_LINE:
+			g_sprintf(buffer,"%li",(current)->xi->general->n_photons_line);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_photons_lineG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_photons_lineG);
+			break;
+		case N_INTERACTIONS_TRAJECTORY:
+			g_sprintf(buffer,"%i",(current)->xi->general->n_interactions_trajectory);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_interactions_trajectoryG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_interactions_trajectoryG);
+			break;
+		case D_SAMPLE_SOURCE:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->d_sample_source);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), d_sample_sourceG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), d_sample_sourceG);
+			break;
+		case N_SAMPLE_ORIENTATION_X:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[0]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_xG);
+			break;
+		case N_SAMPLE_ORIENTATION_Y:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[1]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_yG);
+			break;
+		case N_SAMPLE_ORIENTATION_Z:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[2]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_zG);
+			break;
+		case P_DETECTOR_WINDOW_X:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[0]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_xG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_xG);
+			break;
+		case P_DETECTOR_WINDOW_Y:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[1]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_yG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_yG);
+			break;
+		case P_DETECTOR_WINDOW_Z:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[2]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_zG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_zG);
+			break;
+		case N_DETECTOR_ORIENTATION_X:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[0]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_xG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_xG);
+			break;
+		case N_DETECTOR_ORIENTATION_Y:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[1]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_yG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_yG);
+			break;
+		case N_DETECTOR_ORIENTATION_Z:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[2]);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_zG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_zG);
+			break;
+		case AREA_DETECTOR:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->area_detector);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), area_detectorG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), area_detectorG);
+			break;
+		case COLLIMATOR_HEIGHT:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->collimator_height);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), collimator_heightG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), collimator_heightG);
+			break;
+		case COLLIMATOR_DIAMETER:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->collimator_diameter);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), collimator_diameterG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), collimator_diameterG);
+			break;
+		case D_SOURCE_SLIT:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->d_source_slit);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), d_source_slitG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), d_source_slitG);
+			break;
+		case SLIT_SIZE_X:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->slit_size_x);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), slit_size_xG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), slit_size_xG);
+			break;
+		case SLIT_SIZE_Y:
+			g_sprintf(buffer,"%lg",(current)->xi->geometry->slit_size_y);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), slit_size_yG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), slit_size_yG);
+			break;
+		case DETECTOR_GAIN:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->gain);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_gainG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_gainG);
+			break;
+		case DETECTOR_LIVE_TIME:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->live_time);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_live_timeG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_live_timeG);
+			break;
+		case DETECTOR_PULSE_WIDTH:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->pulse_width);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_pulse_widthG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_pulse_widthG);
+			break;
+		case DETECTOR_ZERO:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->zero);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_zeroG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_zeroG);
+			break;
+		case DETECTOR_NOISE:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->noise);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_noiseG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_noiseG);
+			break;
+		case DETECTOR_FANO:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->fano);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_fanoG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_fanoG);
+			break;
+		case DETECTOR_MAX_CONVOLUTION_ENERGY:
+			g_sprintf(buffer,"%lg",(current)->xi->detector->max_convolution_energy);
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_max_convolution_energyG);
+			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_max_convolution_energyG);
+			break;
+	}
+
+	undo_menu_fix_after_error();
+}
 
 static void undo_menu_click(GtkWidget *widget, gpointer data) {
 	char buffer[512];
@@ -2622,13 +2835,20 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 	char *elementString;
 	int i,j;
 	int undo_rv;
-
+	struct undo_single *current_bkp, *current_min_one_bkp;
 
 	//restore previous state
 	//current-- && copy changes
 #if DEBUG == 1
 	fprintf(stdout,"Undo button clicked\n");
 #endif
+
+	//behavior changes when we're in error restoration mode
+	if (undo_error) {
+		undo_menu_click_with_error();
+		return;
+	}
+
 
 
 	switch (current->kind) {
@@ -3769,32 +3989,42 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_MAX_CONVOLUTION_ENERGY:
 			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
-				adjust_control_widgets(widget, TRUE);
+				if (undo_error) {
+					adjust_control_widgets(widget, TRUE);
+					//this means that we were in undo error mode
+					//cleanup needed
+					undo_menu_fix_after_error();
+				}
+				else {
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+						gtk_widget_set_sensitive(redoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+					}
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+						gtk_widget_set_sensitive(undoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+					}
+				}
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
 				else
 					adjust_save_buttons();
-				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
-					gtk_widget_set_sensitive(redoW,TRUE);
-					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
-				}
-				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
-					gtk_widget_set_sensitive(undoW,TRUE);
-					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
-				}
 				return;
 			}
 			else {
 				//bad value
-				adjust_control_widgets(widget, FALSE);
+				if (!undo_error) {
+					adjust_control_widgets(widget, FALSE);
+				}
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
-				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT), TRUE);
+				update_undo_buffer_with_error(kind, widget, check);
 			}
 			break;
 		//positive
@@ -3803,7 +4033,22 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case COLLIMATOR_DIAMETER:
 			if (lastPtr == endPtr && value >= 0.0 && strlen(textPtr) != 0) {
 				//ok
-				adjust_control_widgets(widget, TRUE);
+				if (undo_error) {
+					adjust_control_widgets(widget, TRUE);
+					//this means that we were in undo error mode
+					//cleanup needed
+					undo_menu_fix_after_error();
+				}
+				else {
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+						gtk_widget_set_sensitive(redoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+					}
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+						gtk_widget_set_sensitive(undoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+					}
+				}
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
@@ -3822,13 +4067,16 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			else {
 				//bad value
-				adjust_control_widgets(widget, FALSE);
+				if (!undo_error) {
+					adjust_control_widgets(widget, FALSE);
+				}
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
-				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				update_undo_buffer_with_error(kind, widget, check);
 			}
 			break;
 		
@@ -3845,7 +4093,22 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_ZERO:
 			if (lastPtr == endPtr && strlen(textPtr) != 0) {
 				//ok
-				adjust_control_widgets(widget, TRUE);
+				if (undo_error) {
+					adjust_control_widgets(widget, TRUE);
+					//this means that we were in undo error mode
+					//cleanup needed
+					undo_menu_fix_after_error();
+				}
+				else {
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+						gtk_widget_set_sensitive(redoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+					}
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+						gtk_widget_set_sensitive(undoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+					}
+				}
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
@@ -3864,13 +4127,16 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 			}
 			else {
 				//bad value
-				adjust_control_widgets(widget, FALSE);
+				if (!undo_error) {
+					adjust_control_widgets(widget, FALSE);
+				}
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
-				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				update_undo_buffer_with_error(kind, widget, check);
 			}
 			break;
 		default:
@@ -3913,22 +4179,29 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 			textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(widget));
 			if (g_regex_match(pos_int,textPtr,0,NULL) == TRUE ){
 				//ok
+				if (undo_error) {
+					adjust_control_widgets(widget, TRUE);
+					//this means that we were in undo error mode
+					//cleanup needed
+					undo_menu_fix_after_error();
+				}
+				else {
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
+						gtk_widget_set_sensitive(redoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
+					}
+					if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
+						gtk_widget_set_sensitive(undoW,TRUE);
+						gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+					}
+				}
 				value = strtol(textPtr, NULL, 10);
-				adjust_control_widgets(widget, TRUE);
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (pos_int_changed_current_check(kind,value))
 					update_undo_buffer(kind, widget);
 				else
 					adjust_save_buttons();
-				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
-					gtk_widget_set_sensitive(redoW,TRUE);
-					gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
-				}
-				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(undoW)), "Undo") != 0) {
-					gtk_widget_set_sensitive(undoW,TRUE);
-					gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
-				}
 					
 				return;
 			}
@@ -3937,10 +4210,13 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 				*check = 0;
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
 				gtk_widget_set_sensitive(redoW,FALSE);
-				gtk_widget_set_sensitive(undoW,FALSE);
+				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
-				gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
-				adjust_control_widgets(widget, FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
+				if (!undo_error) {
+					adjust_control_widgets(widget, FALSE);
+				}
+				update_undo_buffer_with_error(kind, widget, check);
 			}
 			break;
 		default:
@@ -4145,6 +4421,14 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 #endif
 
 
+	if (undo_error) {
+		g_free(undo_error->message);
+		g_free(undo_error);
+		gtk_widget_modify_base(undo_error->widget,GTK_STATE_NORMAL,NULL);
+		adjust_control_widgets(undo_error->widget, TRUE);
+		undo_error = NULL;
+	}
+
 	for (iter = redo_buffer ; iter <= current ; iter++) {
 		free(iter->filename);
 		if (iter->message)
@@ -4157,6 +4441,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	last = redo_buffer;
 	redo_buffer->filename = strdup(filename);
 	redo_buffer->xi = xi_new;
+	redo_buffer->message = NULL;
 	if (filename != NULL && strcmp(filename,UNLIKELY_FILENAME) != 0) {
 		if (last_saved != NULL) {
 			free(last_saved->filename);
@@ -4185,7 +4470,24 @@ void reset_undo_buffer(struct xmi_input *xi_new, char *filename) {
 	return;
 }
 
+void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
+	char buffer[512];
+	if (undo_error) {
+		//nothing changes while other invalid values are inserted
+		return;
+	}
 
+	undo_error = g_malloc(sizeof(struct undo_single));
+	undo_error->kind = kind;
+	undo_error->widget = widget;
+	undo_error->message = get_message_string(kind);
+	undo_error->check = check;
+
+	g_sprintf(buffer,"Undo: %s", undo_error->message);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
+	gtk_tool_item_set_tooltip_text(undoT,buffer);
+
+}
 
 void update_undo_buffer(int kind, GtkWidget *widget) {
 	char buffer[512];
@@ -5042,7 +5344,7 @@ XMI_MAIN
 	redoW = gtk_image_menu_item_new_from_stock(GTK_STOCK_REDO,accel_group);
 	g_signal_connect(G_OBJECT(redoW),"activate",G_CALLBACK(redo_menu_click),NULL);
 	cutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CUT,accel_group);
-	g_signal_connect(G_OBJECT(cutW),"activate",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(cutW),"activate",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);
 	copyW = gtk_image_menu_item_new_from_stock(GTK_STOCK_COPY,accel_group);
 	g_signal_connect(G_OBJECT(copyW),"activate",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);
 	pasteW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PASTE,accel_group);
@@ -6029,6 +6331,8 @@ XMI_MAIN
 	
 	xmimsim_notifications_init();
 	add_to_control_widgets(superframe);
+	add_to_control_widgets(GTK_WIDGET(tube_ebelT));
+	add_to_control_widgets(tube_ebelW);
 
 	gtk_main();
 
@@ -6069,9 +6373,13 @@ static void cut_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if (GTK_IS_TEXT_VIEW(focused)) {
 		g_signal_emit_by_name(G_OBJECT(focused), "cut-clipboard", NULL);	
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	else if (GTK_IS_ENTRY(focused)) {
 		g_signal_emit_by_name(G_OBJECT(focused), "cut-clipboard", NULL);	
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	else if (GTK_IS_TREE_VIEW(focused)) {
 		struct matrix_button *mb = g_malloc(sizeof(struct matrix_button));
@@ -6103,7 +6411,6 @@ static void cut_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		g_fprintf(stderr, "Invalid widget type detected in cut_button_clicked_cb\n!");
 		return;
 	}
-
 }
 static void copy_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//three possibilities:
@@ -6116,9 +6423,13 @@ static void copy_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if (GTK_IS_TEXT_VIEW(focused)) {
 		g_signal_emit_by_name(G_OBJECT(focused), "copy-clipboard", NULL);	
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	else if (GTK_IS_ENTRY(focused)) {
 		g_signal_emit_by_name(G_OBJECT(focused), "copy-clipboard", NULL);	
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	else if (GTK_IS_TREE_VIEW(focused)) {
 		struct matrix_button *mb = g_malloc(sizeof(struct matrix_button));
@@ -6486,7 +6797,6 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				update_xmimsim_title_xmsi(title, data, filename);
 				g_free(title);
 				adjust_save_buttons();
-				//update_undo_buffer(OPEN_FILE,(GtkWidget *) xi);	
 			}
 			else {
 				gtk_widget_destroy (dialog);
