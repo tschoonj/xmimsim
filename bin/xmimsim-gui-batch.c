@@ -4652,31 +4652,8 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		plot_ymin = 0.0;
 	}
 
-	/* need a clever algorithm here */
-	/* number of ticks should be at least 2 and at most 5 */
-	double tickstep = 1E-10;
-	double nticks = floor((plot_ymax-plot_ymin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = floor((plot_ymax-plot_ymin)/tickstep);
-	} 
-
-	if (nticks == 1.0) {
-		tickstep /= 5.0;
-	}
-
-	double tickstep2 = 1E-10;
-	double nticks2 = floor((plot_xmax-plot_xmin)/tickstep2);
-
-	while (nticks2 < 1 || nticks2 >= 10) {
-		tickstep2 *= 10.0;
-		nticks2 = floor((plot_xmax-plot_xmin)/tickstep2);
-	} 
-
-	if (nticks2 == 1.0) {
-		tickstep2 /= 5.0;
-	}
+	double tickstep = get_tickstep(plot_ymin, plot_ymax);
+	double tickstep2 = get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep2,5);
 
@@ -4965,6 +4942,9 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	GtkWidget *plot_window;
 
 	plot_window = gtk_plot_new_with_size(NULL,1,1);
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(apd->archive->start_value1, apd->archive->end_value1), 5);
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, get_tickstep(apd->archive->start_value2, apd->archive->end_value2), 5);
 	gtk_plot_set_range(GTK_PLOT(plot_window),apd->archive->start_value1, apd->archive->end_value1, apd->archive->start_value2, apd->archive->end_value2);
 	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
 	//gtk_plot_hide_legends(GTK_PLOT(plot_window));
@@ -5006,8 +4986,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
 
-	g_fprintf(stdout, "minz: %g\n", minz);
-	g_fprintf(stdout, "maxz: %g\n", maxz);
+	//g_fprintf(stdout, "minz: %g\n", minz);
+	//g_fprintf(stdout, "maxz: %g\n", maxz);
 
 	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 4, 4);
 	gtk_plot_data_set_gradient_outer_colors(GTK_PLOT_DATA(surface), &blue_plot, &red_plot);
