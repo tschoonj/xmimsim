@@ -12,5 +12,10 @@ int main(int argc, char *argv[]) {
 	else {
 		rv = xmi_db("xmimsimdata.h5");
 	}
-	return 0;
+	if (rv == 1)
+		rv = 0;
+	else if (rv == 0)
+		rv = 1;
+
+	return rv;
 }
