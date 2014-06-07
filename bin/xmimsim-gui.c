@@ -832,6 +832,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	}
 
 	g_free(filename);
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 }
 
 
@@ -2836,7 +2837,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 	char *elementString;
 	int i,j;
 	int undo_rv;
-	struct undo_single *current_bkp, *current_min_one_bkp;
 
 	//restore previous state
 	//current-- && copy changes
@@ -4358,7 +4358,6 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			update_xmimsim_title_xmsi(title,old->window,filename);
 			g_free(title);
 			adjust_save_buttons();
-			return FALSE;			
 		}
 		else {
 			dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
@@ -4378,7 +4377,6 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gchar *temp_base = g_path_get_basename(filename);
 			update_xmimsim_title_xmso(temp_base, old->window, filename);
 			g_free(temp_base);
-			return FALSE;			
 		}
 		else {
 			dialog = gtk_message_dialog_new (GTK_WINDOW(old->window),
@@ -4398,6 +4396,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		dialog_helper_xmsa_cb(my_data);
 	}
 
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),current_page));
 	return FALSE;
 }
 
@@ -6628,6 +6627,7 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 		if (undo_rv == 0) {
 			//nothing selected
 			gtk_widget_destroy(dialog);
+			gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 			return;
 		}
 		struct import_undo_data *iud = g_malloc(sizeof(struct import_undo_data));
@@ -6647,6 +6647,7 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 		
 	}
 	gtk_widget_destroy(dialog);
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	return;
 }
 
@@ -6666,6 +6667,7 @@ static void new_cb(GtkWidget *widget, gpointer data) {
 
 	update_xmimsim_title_xmsi("New file", data, NULL);
 	adjust_save_buttons();
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 
 	return;
 }
@@ -6841,6 +6843,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	}
 
 	gtk_widget_destroy (dialog);
+	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 }
 
 int check_changeables(void) {
