@@ -30,8 +30,8 @@ enum {
 
 
 
-int check_for_updates(char **max_version);
+int check_for_updates(char **max_version, char **message);
 
-int download_updates(GtkWidget *window, char *max_version);
+int download_updates(GtkWidget *window, char *max_version, char *message);
 
 #endif

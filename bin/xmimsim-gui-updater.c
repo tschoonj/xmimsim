@@ -58,7 +58,6 @@ struct MemoryStruct {
 struct DownloadVars {
 	gboolean started;
 	GtkWidget *progressbar;
-	GtkWidget *expander;
 	GtkWidget *update_dialog;
 	GtkWidget *button;
 	GtkWidget *label;
@@ -71,6 +70,54 @@ struct DownloadVars {
 	gchar *filename;
 };
 
+static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
+GtkTextIter iter, start;
+va_list args;
+GtkTextTag *tag;
+GtkTextMark *insert_mark;
+gint start_offset;
+
+g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
+g_return_if_fail(text != NULL);
+
+gchar *to_print = g_strdup_printf("%s\n", text);
+
+gtk_text_buffer_get_end_iter(buffer, &iter);
+
+start_offset = gtk_text_iter_get_offset(&iter);
+gtk_text_buffer_insert(buffer, &iter, to_print,len);
+
+	g_free(to_print);
+
+	if (first_tag == NULL) {
+		gtk_text_buffer_get_end_iter(buffer, &iter);
+		insert_mark = gtk_text_buffer_get_insert(buffer);
+		gtk_text_buffer_place_cursor(buffer,&iter);
+        	//gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	        //insert_mark, 0.0, FALSE, 0, 1.0);
+		return;
+	}
+
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
+
+	va_start(args, first_tag);
+	tag = first_tag;
+	while (tag) {
+		gtk_text_buffer_apply_tag(buffer, tag, &start, &iter);
+		tag = va_arg(args, GtkTextTag*);
+	}
+	va_end(args);
+	
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	insert_mark = gtk_text_buffer_get_insert(buffer);
+	gtk_text_buffer_place_cursor(buffer,&iter);
+       	//gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	//        insert_mark, 0.0, FALSE, 0, 1.0);
+
+	
+
+	return;
+}
 static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *window) {
 
 	union xmimsim_prefs_val prefs;
@@ -150,7 +197,6 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
 	dv->started=TRUE;
-	gtk_expander_set_expanded(GTK_EXPANDER(dv->expander), TRUE);
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0 %");
 	while(gtk_events_pending())
 	    gtk_main_iteration();
@@ -233,8 +279,13 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 
 
 
+struct json_loop_data {
+	char *max_version;
+	char *url;
+};
 
-static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, char **max_version) {
+
+static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, struct json_loop_data *jld) {
 	JsonObject *object = json_node_get_object(node);
 	if (!json_object_has_member(object,"ref")) {
 		return;
@@ -248,9 +299,12 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 
 	char *tag_version_str = strrchr(ref_string,'-')+1;
 	gdouble tag_version = g_ascii_strtod(tag_version_str,NULL);
-	if (tag_version > g_ascii_strtod(*max_version,NULL)) {
-		free(*max_version);
-		*max_version = strdup(tag_version_str);
+	if (tag_version > g_ascii_strtod(jld->max_version,NULL)) {
+		g_free(jld->max_version);
+		jld->max_version = g_strdup(tag_version_str);
+		g_free(jld->url);
+		JsonObject *urlObject = json_object_get_object_member(object, "object");
+		jld->url = g_strdup(json_object_get_string_member(urlObject, "url"));
 	}
 		
 	return;
@@ -283,8 +337,7 @@ static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double u
 	return 0;
 }
 
-
-int check_for_updates(char **max_version_rv) {
+int check_for_updates(char **max_version_rv, char **message) {
 	GError *error = NULL;
 	JsonParser *parser;
 	char curlerrors[CURL_ERROR_SIZE];
@@ -320,7 +373,6 @@ int check_for_updates(char **max_version_rv) {
 		fprintf(stderr,"check_for_updates: %s\n",curlerrors);
 		return XMIMSIM_UPDATES_ERROR;
 	}
-	curl_easy_cleanup(curl);
 
 
 
@@ -340,17 +392,55 @@ int check_for_updates(char **max_version_rv) {
 	JsonArray *rootArray = json_node_get_array(rootNode);
 	char *max_version = g_strdup(PACKAGE_VERSION);
 	char *current_version = g_strdup(max_version);
-	json_array_foreach_element(rootArray, (JsonArrayForeach) check_version_of_tag, &max_version);
+	struct json_loop_data *jld = g_malloc(sizeof(struct json_loop_data));
+	jld->max_version = max_version;
+	jld->url = NULL;
+	json_array_foreach_element(rootArray, (JsonArrayForeach) check_version_of_tag, jld);
 
+	free(chunk.memory);
 	int rv;
-	if (g_ascii_strtod(max_version, NULL) > g_ascii_strtod(current_version, NULL))
+	if (g_ascii_strtod(jld->max_version, NULL) > g_ascii_strtod(current_version, NULL)) {
 		rv = XMIMSIM_UPDATES_AVAILABLE;
-	else
-		rv = XMIMSIM_UPDATES_NONE;
+		//get tag message
+		g_object_unref(parser);
+		chunk.memory = malloc(1);
+		chunk.size = 0;
+		curl_easy_setopt(curl, CURLOPT_URL, jld->url);
+		res = curl_easy_perform(curl);
+		if (res != 0) {
+			fprintf(stderr,"check_for_updates: %s\n",curlerrors);
+			return XMIMSIM_UPDATES_ERROR;
+		}
+		parser = json_parser_new();
+		if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
+			if (error) {
+				fprintf(stderr,"check_for_updates: %s\n",error->message);
+				return XMIMSIM_UPDATES_ERROR;
+			}
+		}
+		rootNode = json_parser_get_root(parser);
+		JsonObject *object = json_node_get_object(rootNode);
+		if (!json_object_has_member(object,"message")) {
+			return XMIMSIM_UPDATES_ERROR;
+		}
+	
+		*message = g_strdup(json_object_get_string_member(object, "message"));
+		free(chunk.memory);
 
-	*max_version_rv = strdup(g_strstrip(max_version));	
+	}
+	else {
+		rv = XMIMSIM_UPDATES_NONE;
+	}
+
+	*max_version_rv = strdup(g_strstrip(jld->max_version));	
+	//g_fprintf(stdout, "tag url: %s\n", jld->url);
+	g_free(jld->max_version);
+	g_free(jld->url);
+	g_free(jld);
 
 	g_object_unref(parser);
+	curl_easy_cleanup(curl);
+	//fprintf(stdout, "message: %s\n", *message);
 	fprintf(stdout,"done checking for updates\n");
 
 	return rv;
@@ -358,7 +448,7 @@ int check_for_updates(char **max_version_rv) {
 
 
 
-int download_updates(GtkWidget *window, char *max_version) {
+int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	//should only be called when there is actually a new version available...
 	//so call check_for_updates before
@@ -393,25 +483,61 @@ int download_updates(GtkWidget *window, char *max_version) {
 	GtkWidget *button = gtk_button_new_with_label("Download");
 	gtk_box_pack_start(GTK_BOX(label_and_button_hbox), label, TRUE, TRUE, 1);
 	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(label_and_button_hbox), 8);
-	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, TRUE, FALSE, 5);
 	dv.label = label;
 
-	GtkWidget *expander = gtk_expander_new("Download progress");
-	gtk_container_set_border_width(GTK_CONTAINER(expander), 8);
-	gtk_expander_set_expanded(GTK_EXPANDER(expander),FALSE);
-	gtk_expander_set_spacing(GTK_EXPANDER(expander),3);
+	GtkWidget *messageBox = gtk_text_view_new();
+	gtk_widget_set_size_request(messageBox,300,150);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(messageBox),GTK_WRAP_WORD);
+	gtk_text_view_set_left_margin(GTK_TEXT_VIEW(messageBox),3);
+	GtkTextBuffer *textBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(messageBox));
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(messageBox),FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(messageBox),FALSE);
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), messageBox);
+	//gtk_text_buffer_set_text(textBuffer, message, -1);
+	gtk_box_pack_start(GTK_BOX(update_content),scrolled_window, TRUE, FALSE, 5);
+	//GtkTextIter begin, end;
+	//gtk_text_buffer_get_iter_at_line(textBuffer, &begin, 0);
+	//gtk_text_buffer_get_iter_at_line(textBuffer, &end, 1);
+	GtkTextTag *tag = gtk_text_buffer_create_tag(textBuffer, NULL, "font", "20", NULL);
+	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textBuffer, NULL, "font", "16", NULL);
+	//gtk_text_buffer_apply_tag(textBuffer, tag, &begin, &end);
+	int i;
+
+	gchar **splitted = g_strsplit_set(message, "\n", -1);
+	my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[0], -1, tag, NULL);
+	
+	for (i = 1 ; splitted[i] != NULL ; i++) {
+		if (g_ascii_strncasecmp(splitted[i], "Changes", strlen("Changes")) == 0 ||
+		   g_ascii_strncasecmp(splitted[i], "Bugfixes", strlen("Bugfixes")) == 0 ||
+		   g_ascii_strncasecmp(splitted[i], "New", strlen("New")) == 0 ||
+		   g_ascii_strncasecmp(splitted[i], "Checksum", strlen("Checksum")) == 0 ||
+		   g_ascii_strncasecmp(splitted[i], "Important", strlen("Important")) == 0 ||
+		   g_ascii_strncasecmp(splitted[i], "Note", strlen("Note")) == 0// ||
+		   //g_ascii_strncasecmp(splitted[i], "-----BEGIN PGP SIGNATURE-----", strlen("-----BEGIN PGP SIGNATURE-----")) == 0
+		) {
+			my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[i], -1, tag2, NULL);
+		}
+		else {
+			my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[i], -1, NULL);
+		}
+	}
+	g_strfreev(splitted);
+
+
+	label = gtk_label_new("Download progress");
+	gtk_box_pack_start(GTK_BOX(update_content), label, TRUE, FALSE, 2);
 	GtkWidget *progressbar = gtk_progress_bar_new();
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar), "Download not started");
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar), 0.0);
 
-	gtk_container_add(GTK_CONTAINER(expander), progressbar);
-
-	gtk_box_pack_start(GTK_BOX(update_content), expander, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(update_content), progressbar, TRUE, FALSE, 5);
 
 	//Check for updates on startup preference
 	GtkWidget *checkbutton = gtk_check_button_new_with_label("Check for updates on startup?");
-	gtk_box_pack_start(GTK_BOX(update_content), checkbutton, TRUE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(update_content), checkbutton, TRUE, FALSE, 5);
 	//get value from preferences
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
@@ -429,14 +555,13 @@ int download_updates(GtkWidget *window, char *max_version) {
 	//signal
 
 
-	gtk_container_set_border_width(GTK_CONTAINER(update_content), 8);
+	gtk_container_set_border_width(GTK_CONTAINER(update_dialog), 10);
 
 	gtk_widget_show_all(update_content);
 
 	dv.started = FALSE;
 	dv.progressbar = progressbar;
 	dv.button = button;
-	dv.expander = expander;
 	dv.update_dialog = update_dialog;
 	
 	dv.downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), &dv);

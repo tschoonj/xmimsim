@@ -861,12 +861,13 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 
 	gtk_widget_set_sensitive(updatesW,FALSE);
-	rv = check_for_updates(&max_version);
+	char *message = NULL;
+	rv = check_for_updates(&max_version, &message);
 	if (rv == XMIMSIM_UPDATES_ERROR) {
 		//do nothing
 	}
 	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
-		rv = download_updates(window, max_version);
+		rv = download_updates(window, max_version, message);
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
@@ -891,12 +892,12 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 
 static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) {
-	char *max_version;
+	char *max_version, *message = NULL;
 
 	int rv;
 	
 	gtk_widget_set_sensitive(updatesW,FALSE);
-	rv = check_for_updates(&max_version);
+	rv = check_for_updates(&max_version, &message);
 
 	if (rv == XMIMSIM_UPDATES_ERROR) {
 		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
@@ -905,7 +906,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 		gtk_widget_destroy(update_dialog);
 	}
 	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
-		rv = download_updates(window, max_version);
+		rv = download_updates(window, max_version, message);
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
