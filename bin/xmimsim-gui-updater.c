@@ -484,6 +484,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	gtk_box_pack_start(GTK_BOX(label_and_button_hbox), label, TRUE, TRUE, 1);
 	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, TRUE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), TRUE, FALSE, 5);
 	dv.label = label;
 
 	GtkWidget *messageBox = gtk_text_view_new();
@@ -498,6 +499,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	gtk_container_add(GTK_CONTAINER(scrolled_window), messageBox);
 	//gtk_text_buffer_set_text(textBuffer, message, -1);
 	gtk_box_pack_start(GTK_BOX(update_content),scrolled_window, TRUE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), TRUE, FALSE, 5);
 	//GtkTextIter begin, end;
 	//gtk_text_buffer_get_iter_at_line(textBuffer, &begin, 0);
 	//gtk_text_buffer_get_iter_at_line(textBuffer, &end, 1);
@@ -534,6 +536,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar), 0.0);
 
 	gtk_box_pack_start(GTK_BOX(update_content), progressbar, TRUE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), TRUE, FALSE, 5);
 
 	//Check for updates on startup preference
 	GtkWidget *checkbutton = gtk_check_button_new_with_label("Check for updates on startup?");
