@@ -71,21 +71,21 @@ struct DownloadVars {
 };
 
 static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
-GtkTextIter iter, start;
-va_list args;
-GtkTextTag *tag;
-GtkTextMark *insert_mark;
-gint start_offset;
+	GtkTextIter iter, start;
+	va_list args;
+	GtkTextTag *tag;
+	GtkTextMark *insert_mark;
+	gint start_offset;
 
-g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
-g_return_if_fail(text != NULL);
+	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
+	g_return_if_fail(text != NULL);
 
-gchar *to_print = g_strdup_printf("%s\n", text);
+	gchar *to_print = g_strdup_printf("%s\n", text);
 
-gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
 
-start_offset = gtk_text_iter_get_offset(&iter);
-gtk_text_buffer_insert(buffer, &iter, to_print,len);
+	start_offset = gtk_text_iter_get_offset(&iter);
+	gtk_text_buffer_insert(buffer, &iter, to_print,len);
 
 	g_free(to_print);
 
@@ -118,6 +118,7 @@ gtk_text_buffer_insert(buffer, &iter, to_print,len);
 
 	return;
 }
+
 static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *window) {
 
 	union xmimsim_prefs_val prefs;
@@ -185,19 +186,20 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 #endif
 	return;
 }
+
 static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	FILE *fp;
 	CURLcode res;
 	char curlerrors[CURL_ERROR_SIZE];
 
+	dv->started=TRUE;
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
 	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
 	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
-	dv->started=TRUE;
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0 %");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0.00 %%");
 	while(gtk_events_pending())
 	    gtk_main_iteration();
 
@@ -209,6 +211,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	}
 	
 	int i;
+	int rv;
 	for (i = 0 ; i < g_strv_length(prefs.ss) ; i++) {
 		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i],dv->filename);
 		curl_easy_setopt(dv->curl, CURLOPT_URL,url);
@@ -226,52 +229,61 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 
 		curl_easy_setopt(dv->curl, CURLOPT_WRITEDATA, fp);
 		res = curl_easy_perform(dv->curl);
+
 		switch (res) {
 		case CURLE_OK:
 			dv->started=FALSE;
 			fclose(fp);
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
-			while(gtk_events_pending())
-			    gtk_main_iteration();
-			curl_easy_cleanup(dv->curl);
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
 			gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
-			g_strfreev(prefs.ss);
-			return;
+			rv = 1;
+			break;
 		case CURLE_ABORTED_BY_CALLBACK:
 			//aborted
 			fclose(fp);
 			unlink(dv->download_location);
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download aborted");
-			while(gtk_events_pending())
-			    gtk_main_iteration();
-			curl_easy_cleanup(dv->curl);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gtk_widget_set_sensitive(dv->button, FALSE);
 			gtk_label_set_text(GTK_LABEL(dv->label),"Download aborted.\nTry again at a later time.");
-			g_strfreev(prefs.ss);
-			return;
+			rv = 0;
+			break;
 		default:
 			fprintf(stdout,"curl_easy_perform error code: %i\n", res);
 			fclose(fp);
 			unlink(dv->download_location);
-			
+			rv = -1;		
 
 		}
+		if (rv == 1 || rv == 0)
+			break;
 	}
-	//download failed
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download failed");
+
+	//if update_progressbar is still running somehow -> kill it
+	/*GSource *source = g_main_context_find_source_by_id(NULL, source_id);
+	if (source != NULL && !g_source_is_destroyed(source)) {
+		g_source_destroy(source);
+	}
+	*/
+
+	if (rv == -1) {
+		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download failed");
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
+		gtk_widget_set_sensitive(dv->button, FALSE);
+		gchar *text = g_strdup_printf("Download failed with error message: %s.", curl_easy_strerror(res));
+		gtk_label_set_text(GTK_LABEL(dv->label), text);
+		g_free(text);
+	}
+
+	g_strfreev(prefs.ss);
 	while(gtk_events_pending())
 	    gtk_main_iteration();
 	curl_easy_cleanup(dv->curl);
-	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
-	gtk_widget_set_sensitive(dv->button, FALSE);
-	gtk_label_set_text(GTK_LABEL(dv->label),"Download failed.\nTry again at a later time.");
-	g_strfreev(prefs.ss);
 	
 
 	return;
@@ -320,16 +332,16 @@ static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double u
 		return 0;
 
 	double ratio = dlnow/dltotal;
-	gchar buffer[10];
-	if (floor(ratio*100.0)/100.0 > floor(gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(dv->progressbar))*100.0)/100.0) {
+	gchar buffer[15];
+	if (floor(ratio*10000.0)/10000.0 > floor(gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(dv->progressbar))*10000.0)/10000.0) {
 		//update progress bar
-		g_sprintf(buffer,"%i %%",(int) floor(ratio*100.0));
+		g_sprintf(buffer,"%.2f %%",ratio*100.0);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),buffer);
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(dv->progressbar),ratio);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 	}
-
+	
 
 
 
