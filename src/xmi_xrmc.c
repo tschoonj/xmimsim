@@ -48,6 +48,11 @@ static char *xmi_convert_xrmc_path(char *path) {
 			strcat(new_path+j, "\\ ");
 			j += 2;
 		}
+		else if (path[i] == '\\') {
+			new_path = realloc(new_path, sizeof(char)*(j+3));
+			strcat(new_path+j, "\\\\");
+			j += 2;
+		}
 		else {
 			new_path = realloc(new_path, sizeof(char)*(j+2));
 			new_path[j] = path[i];
