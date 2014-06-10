@@ -98,6 +98,7 @@ fi || :
 %{_bindir}/xmso2spe
 %{_bindir}/xmso2csv
 %{_bindir}/xmso2htm
+%{_bindir}/xmsi2xrmc
 %{_prefix}/share/xmimsim/xmimsim-1.0.dtd
 %{_prefix}/share/xmimsim/xmso2xmsi.xml
 %{_prefix}/share/xmimsim/xmso2svg.xml
