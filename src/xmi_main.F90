@@ -2386,7 +2386,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         !update history
         photon%history(photon%n_interactions,1) = line 
         photon%history(photon%n_interactions,2) = photon%current_element 
-        photon%history(photon%n_interactions,3) = photon%current_element_index
+        photon%history(photon%n_interactions,3) = hdf5F%uniqZ(photon%current_element)
 
         IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
@@ -4410,8 +4410,8 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         shell_new1 = M5_SHELL
                         shell_new2 = Q2_SHELL
                 CASE(L3_M5Q3_AUGER)
-			shell_new1 = M5_SHELL
-			shell_new2 = Q3_SHELL
+                        shell_new1 = M5_SHELL
+                        shell_new2 = Q3_SHELL
         ENDSELECT
 
         !so now we have the shells involved...

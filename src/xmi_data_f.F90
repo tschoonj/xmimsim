@@ -335,6 +335,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         DO i=1,SIZE(uniqZ) 
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
+                xmi_hdf5F%uniqZ(uniqZ(i)) = i
 
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                 WRITE (output_unit,'(A,A)') 'Opening group ',elements(uniqZ(i))&
@@ -624,7 +625,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                                 .EQ. 0_C_INT) RETURN
                                 xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs(shell,j,:)=&
                                 precalc_xrf_cs_local
-
                         ENDDO
 
                         !close group
@@ -677,7 +677,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDDO
         ENDASSOCIATE
 #endif
-
 
         
         rv=1

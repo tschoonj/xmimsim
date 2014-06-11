@@ -64,6 +64,7 @@ TYPE :: xmi_hdf5
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: Phi_ICDF
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Thetas
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
+        INTEGER (C_INT), DIMENSION(94) :: uniqZ
 ENDTYPE
 
 TYPE :: xmi_hdf5_ZPtr

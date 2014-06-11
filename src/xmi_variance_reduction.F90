@@ -381,14 +381,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !      and finishing with FLUORESCENCE 
                 !
-#define precalc_xrf_cs_local inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(i)%Ptr%precalc_xrf_cs
+#define precalc_xrf_cs_local hdf5F%xmi_hdf5_Zs(hdf5F%uniqZ(layer%Z(i)))%precalc_xrf_cs
                 IF (photon%n_interactions .GT. 1 .AND. &
                 photon%history(photon%n_interactions-1,1).LT.0) THEN
 
                         PK = precalc_xrf_cs_local(K_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
-
+                        
                         PL1 = precalc_xrf_cs_local(L1_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
