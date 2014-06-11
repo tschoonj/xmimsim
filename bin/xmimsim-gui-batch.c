@@ -4990,8 +4990,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	//g_fprintf(stdout, "maxz: %g\n", maxz);
 
 	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 4, 4);
-	gtk_plot_data_set_gradient_outer_colors(GTK_PLOT_DATA(surface), &blue_plot, &red_plot);
-	gtk_plot_data_set_gradient_show_lt_gt(GTK_PLOT_DATA(surface), FALSE);
+	//gtk_plot_data_set_gradient_outer_colors(GTK_PLOT_DATA(surface), &blue_plot, &red_plot);
+	//gtk_plot_data_set_gradient_show_lt_gt(GTK_PLOT_DATA(surface), FALSE);
 	gtk_plot_surface_set_points(GTK_PLOT_SURFACE(surface), x, y, z, NULL, NULL, NULL, apd->archive->nsteps1+1, apd->archive->nsteps2+1);
 	gtk_plot_surface_set_xstep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value1 - apd->archive->start_value1)/apd->archive->nsteps1);
 	gtk_plot_surface_set_ystep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value2 - apd->archive->start_value2)/apd->archive->nsteps2);
