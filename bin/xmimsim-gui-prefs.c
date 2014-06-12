@@ -1408,6 +1408,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	//gtk_window_set_deletable(GTK_WINDOW(window), FALSE);
 
 	notebook = gtk_notebook_new();
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook), TRUE);
 	gtk_box_pack_start(GTK_BOX(master_box), notebook, TRUE,TRUE,1);
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_container_add(GTK_CONTAINER(window), master_box);
