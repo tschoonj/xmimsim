@@ -1420,6 +1420,7 @@ static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
 		gtk_tree_path_free(path);
 	}
 
+	g_signal_emit_by_name(G_OBJECT(select), "changed");	
 
 
 	return;
