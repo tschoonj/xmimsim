@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[4.0],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[4.1],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.67])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -100,8 +100,8 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 3.0.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.0.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 3.1.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.1.0)
 PKG_CHECK_MODULES([gsl],gsl >= 1.10)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
