@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Tom Schoonjans and Laszlo Vincze
+ * Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
@@ -25,6 +26,7 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 #include <xmi_aux.h>
+#include <xraylib.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
 #endif
@@ -441,24 +443,15 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
 	g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
 	g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
+	g_key_file_set_boolean(keyfile, "Ebel last used", "Logarithmic plot", FALSE);
+	g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", 100.0);
+	g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", FALSE);
+	g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
+	gchar **nuclides = GetRadioNuclideDataList(NULL);
+	g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[0]);
+	g_strfreev(nuclides);
 
-	g_key_file_set_double(keyfile, "Ebel default", "Tube voltage", 40.0);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube current", 1.0);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube solid angle", 1E-10);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube alpha", 60.0);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube beta", 60.0);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube interval width", 0.1);
-	g_key_file_set_integer(keyfile, "Ebel default", "Tube anode element", 47);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube anode density", 10.5);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube anode thickness", 0.0002);
-	g_key_file_set_integer(keyfile, "Ebel default", "Tube window element", 4);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube window density", 1.848);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube window thickness", 0.0125);
-	g_key_file_set_integer(keyfile, "Ebel default", "Tube filter element", 2);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube filter density", 0.000166);
-	g_key_file_set_double(keyfile, "Ebel default", "Tube filter thickness", 0);
-	g_key_file_set_boolean(keyfile, "Ebel default", "Tube transmission mode", FALSE);
-	g_key_file_set_string(keyfile, "Ebel default", "Tube transmission efficiency file", "(None)");
+
 
 
 
@@ -701,8 +694,9 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 		
 	//extract required information from keyfile
 	GError *error = NULL;
-	gchar *prefs_file_contents;
-	gboolean update_file;
+	gchar *prefs_file_contents, *unit, **nuclides, *nuclide;
+	int i, nNuclides;
+	gboolean update_file, matched;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
@@ -1033,6 +1027,15 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				error = NULL;
 				update_file = TRUE;
 			}
+			prefs->xep->log10_active = g_key_file_get_boolean(keyfile, "Ebel last used", "Logarithmic plot", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Ebel last used Logarithmic plot not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Ebel last used", "Logarithmic plot", FALSE);
+				prefs->xep->log10_active = FALSE;
+				error = NULL;
+				update_file = TRUE;
+			}
 			if (update_file) {
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -1042,168 +1045,88 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 
 			break;
-		case XMIMSIM_GUI_EBEL_DEFAULT:
+		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
 			update_file = FALSE;
-			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
-			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel default", "Tube voltage", &error);
+			prefs->xnp = g_malloc(sizeof(struct xmi_nuclide_parameters));
+
+			prefs->xnp->log10_active = g_key_file_get_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr, "Ebel default Tube voltage not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube voltage", 40.0);
-				prefs->xep->tube_voltage = 40.0;
+				fprintf(stderr, "Radionuclide last used Logarithmic plot not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", FALSE);
+				prefs->xnp->log10_active = FALSE;
 				error = NULL;
 				update_file = TRUE;
 			}
-			prefs->xep->tube_current = g_key_file_get_double(keyfile, "Ebel default", "Tube current", &error);
+
+			prefs->xnp->activity= g_key_file_get_double(keyfile, "Radionuclide last used", "Activity", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr, "Ebel default Tube current not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube current", 1.0);
-				prefs->xep->tube_current = 1.0;
+				fprintf(stderr, "Radionuclide last used Activity not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", 100.0);
+				prefs->xnp->activity = 100.0;
 				error = NULL;
 				update_file = TRUE;
 			}
-			prefs->xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel default", "Tube solid angle", &error);
+			unit = g_key_file_get_string(keyfile, "Radionuclide last used", "Unit", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr, "Ebel default Tube solid angle not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube solid angle", 1E-10);
-				prefs->xep->tube_solid_angle = 1E-10;
+				fprintf(stderr, "Radionuclide last used Unit not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
+				prefs->xnp->activityUnit = ACTIVITY_UNIT_mCi;
 				error = NULL;
 				update_file = TRUE;
 			}
-			prefs->xep->alpha = g_key_file_get_double(keyfile, "Ebel default", "Tube alpha", &error);
+			else {
+				matched = FALSE;
+				for (i = 0 ; i < ACTIVITY_UNIT_Bq ; i++) {
+					if (strcmp(activity_units[i], unit) == 0) {
+						prefs->xnp->activityUnit = i;
+						matched = TRUE;
+						break;
+					}
+				}
+				if (!matched) {
+					fprintf(stderr, "Could not find a match for Radionuclide last used Unit in preferences file\n");
+					return 0;
+				}
+				g_free(unit);
+			}
+
+			nuclides = GetRadioNuclideDataList(&nNuclides);
+			nuclide = g_key_file_get_string(keyfile, "Radionuclide last used", "Radionuclide", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr, "Ebel default Tube alpha not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube alpha", 60.0);
-				prefs->xep->alpha = 60.0;
+				fprintf(stderr, "Radionuclide last used Radionuclide not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[0]);
+				prefs->xnp->radioNuclide = 0;
 				error = NULL;
 				update_file = TRUE;
 			}
-			prefs->xep->beta = g_key_file_get_double(keyfile, "Ebel default", "Tube beta", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube beta not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube beta", 60.0);
-				prefs->xep->beta = 60.0;
-				error = NULL;
-				update_file = TRUE;
+			else {
+				matched = FALSE;
+				for (i = 0 ; i < nNuclides ; i++) {
+					if (strcmp(nuclides[i], nuclide) == 0) {
+						prefs->xnp->radioNuclide= i;
+						matched = TRUE;
+						break;
+					}
+				}
+				if (!matched) {
+					fprintf(stderr, "Could not find a match for Radionuclide last used Radionuclide in preferences file\n");
+					return 0;
+				}
+				g_free(nuclide);
 			}
-			prefs->xep->interval_width = g_key_file_get_double(keyfile, "Ebel default", "Tube interval width", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube interval width not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube interval width", 0.1);
-				prefs->xep->interval_width = 0.1;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube anode element", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube anode element not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Ebel default", "Tube anode element", 47);
-				prefs->xep->anode_Z = 47;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->anode_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube anode density", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube anode density not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube anode density", 10.5);
-				prefs->xep->anode_rho = 10.5;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube anode thickness", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube anode thickness not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube anode thickness", 0.0002);
-				prefs->xep->anode_thickness = 0.0002;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->window_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube window element", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube window element not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Ebel default", "Tube window element", 4);
-				prefs->xep->window_Z = 4;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->window_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube window density", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube window density not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube window density", 1.848);
-				prefs->xep->window_rho = 1.848;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->window_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube window thickness", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube window thickness not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube window thickness", 0.0125);
-				prefs->xep->window_thickness = 0.0125;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel default", "Tube filter element", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube filter element not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Ebel default", "Tube filter element", 2);
-				prefs->xep->filter_Z = 2;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->filter_rho = g_key_file_get_double(keyfile, "Ebel default", "Tube filter density", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube filter density not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube filter density", 0.000166);
-				prefs->xep->filter_rho = 0.000166;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel default", "Tube filter thickness", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube filter thickness not found in preferences file\n");
-				g_key_file_set_double(keyfile, "Ebel default", "Tube filter thickness", 0);
-				prefs->xep->filter_thickness = 0;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel default", "Tube transmission mode", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube transmission mode not found in preferences file\n");
-				g_key_file_set_boolean(keyfile, "Ebel default", "Tube transmission mode", FALSE);
-				prefs->xep->transmission_tube = FALSE;
-				error = NULL;
-				update_file = TRUE;
-			}
-			prefs->xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel default", "Tube transmission efficiency file", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr, "Ebel default Tube transmission efficiency file not found in preferences file\n");
-				g_key_file_set_string(keyfile, "Ebel default", "Tube transmission efficiency file", "(None)");
-				prefs->xep->transmission_efficiency_file = g_strdup("(None)");
-				error = NULL;
-				update_file = TRUE;
-			}
+			nuclides = GetRadioNuclideDataList(&nNuclides);
+
+
 			if (update_file) {
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);
+				g_free(prefs_file_contents);	
 			}
 
 			break;
@@ -1253,6 +1176,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
 			return 0;
 	}
+	
+	gchar **nuclides;
+	int nNuclides;
 
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
@@ -1313,7 +1239,20 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", prefs.xep->window_thickness);
 			g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", prefs.xep->transmission_tube);
 			g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", prefs.xep->transmission_efficiency_file);
+			g_key_file_set_boolean(keyfile, "Ebel last used", "Logarithmic plot", prefs.xep->log10_active);
 
+			break;
+		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
+			g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", prefs.xnp->activity);
+			g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", prefs.xnp->log10_active);
+			g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[prefs.xnp->activityUnit]);
+			nuclides = GetRadioNuclideDataList(&nNuclides);
+			if (prefs.xnp->radioNuclide < 0 || prefs.xnp->radioNuclide >= nNuclides) {
+				fprintf(stderr, "Invalid radioNuclide detected in xmimsim_gui_set_prefs\n");
+				return 0;
+			}
+			g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[prefs.xnp->radioNuclide]);
+			g_strfreev(nuclides);
 			break;
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");

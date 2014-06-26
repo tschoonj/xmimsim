@@ -22,7 +22,7 @@
 #include <config.h>
 #include <glib.h>
 #include <gtk/gtk.h>
-#include "xmimsim-gui-energies.h"
+#include "xmimsim-gui-sources.h"
 
 enum {
 	//gboolean
@@ -55,8 +55,8 @@ enum {
 #endif
 	//struct xmi_ebel_parameters*
 	XMIMSIM_GUI_EBEL_LAST_USED,
-	//struct xmi_ebel_parameters*
-	XMIMSIM_GUI_EBEL_DEFAULT,
+	//struct xmi_nuclide_parameters*
+	XMIMSIM_GUI_NUCLIDE_LAST_USED,
 };
 
 union xmimsim_prefs_val{
@@ -64,6 +64,7 @@ union xmimsim_prefs_val{
 	gint i;
 	gchar **ss;
 	struct xmi_ebel_parameters *xep;
+	struct xmi_nuclide_parameters *xnp;
 };
 
 //user defined layers manipulation
