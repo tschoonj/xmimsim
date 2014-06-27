@@ -57,6 +57,8 @@ enum {
 	XMIMSIM_GUI_EBEL_LAST_USED,
 	//struct xmi_nuclide_parameters*
 	XMIMSIM_GUI_NUCLIDE_LAST_USED,
+	//int
+	XMIMSIM_GUI_SOURCES_LAST_USED,
 };
 
 union xmimsim_prefs_val{

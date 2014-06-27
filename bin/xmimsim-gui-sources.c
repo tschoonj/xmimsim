@@ -365,6 +365,19 @@ static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	     	gtk_widget_destroy (dialog);
 	}
 	g_free(xpv.xnp);
+
+	xpv.i = gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Sources\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+
 	gtk_widget_destroy(gtk_widget_get_toplevel(GTK_WIDGET(button)));
 }
 
@@ -399,6 +412,18 @@ static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct 
 	     	gtk_widget_destroy (dialog);
 	}
 	g_free(xpv.xnp);
+
+	xpv.i = gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(gen->canvas_nuclide))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Sources\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
 
 	gtk_widget_destroy(widget);
 	return FALSE;
@@ -534,6 +559,18 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 			SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
 			-1);
 		}
+	}
+
+	xpv.i = gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Sources\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
 	}
 
 	
@@ -1400,6 +1437,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">X-ray tube</span>");
+	gtk_widget_show_all(mainHBox);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), mainHBox, label);
 
 	gen->tubeVoltageW = tubeVoltageW;
@@ -1545,6 +1583,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Radionuclide</span>");
+	gtk_widget_show_all(mainHBox);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), mainHBox, label);
 
 
@@ -1558,6 +1597,21 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	generate_nuclide_spectrum(gen);
 
 	gtk_container_add(GTK_CONTAINER(window), notebook);
+
+	
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, &xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error getting preferences for Sources last used\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+		return;
+	}
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), xpv.i);
+
 	gtk_widget_show_all(window);
 
 }
