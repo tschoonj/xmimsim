@@ -79,7 +79,27 @@ struct generate {
 	double plot_ymin_log10_nuclide;
 	GtkWidget *plot_window_nuclide;
 	GtkWidget *notebook;
+	GtkWidget *radioNuclideW;
+	GtkWidget *activityW;
+	GtkWidget *activityUnitW;
 };
+
+static struct xmi_nuclide_parameters *get_nuclide_parameters(struct generate *gen) {
+	struct xmi_nuclide_parameters *xnp = g_malloc(sizeof(struct xmi_nuclide_parameters));
+
+	xnp->radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->radioNuclideW));
+	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW)); 
+	xnp->log10_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->log10_nuclideW));
+
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(gen->activityW));
+	xnp->activity = strtod(text, NULL);	
+	if (xnp->activity <= 0.0) {
+		g_fprintf(stderr, "Warning: invalid activity in get_nuclide_parameters\n");
+		g_free(xnp);
+		return NULL;
+	}
+	return xnp;
+}
 
 static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
 	struct xmi_ebel_parameters *xep = g_malloc(sizeof(struct xmi_ebel_parameters));
@@ -233,13 +253,15 @@ static void transmissioneff_clicked_cb(GtkToggleButton *button, GtkWidget *filec
 	return;
 }
 static void generate_tube_spectrum(struct generate *gen);
+static void generate_nuclide_spectrum(struct generate *gen);
 
 static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
 		generate_tube_spectrum(gen);
 	}
-	/*else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
-	}*/
+	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
+		generate_nuclide_spectrum(gen);
+	}
 	
 }
 
@@ -313,6 +335,7 @@ static void slits_button_clicked_cb(GtkButton *button, GtkEntry *tubeSolidAngleW
 
 static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	union xmimsim_prefs_val xpv;
+
 	xpv.xep = get_ebel_parameters(gen);
 
 	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
@@ -329,6 +352,19 @@ static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		g_free(xpv.xep->transmission_efficiency_file);
 	g_free(xpv.xep);
 
+	xpv.xnp = get_nuclide_parameters(gen);
+
+	if (xpv.xnp != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_NUCLIDE_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Nuclide configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+	g_free(xpv.xnp);
 	gtk_widget_destroy(gtk_widget_get_toplevel(GTK_WIDGET(button)));
 }
 
@@ -349,6 +385,20 @@ static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct 
 	if (xpv.xep)
 		g_free(xpv.xep->transmission_efficiency_file);
 	g_free(xpv.xep);
+
+	xpv.xnp = get_nuclide_parameters(gen);
+
+	if (xpv.xnp != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_NUCLIDE_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(gen->canvas_nuclide))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Nuclide configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+	g_free(xpv.xnp);
 
 	gtk_widget_destroy(widget);
 	return FALSE;
@@ -372,8 +422,22 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		g_free(xpv.xep->transmission_efficiency_file);
 	g_free(xpv.xep);
 
+	xpv.xnp = get_nuclide_parameters(gen);
+
+	if (xpv.xnp != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_NUCLIDE_LAST_USED, xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error setting preferences for last used Nuclide configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+	}
+	g_free(xpv.xnp);
+
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
-		update_undo_buffer(EBEL_SPECTRUM_REPLACE, (gpointer) gen->excitation_tube);
+		update_undo_buffer(EBEL_SPECTRUM_REPLACE, (GtkWidget *) gen->excitation_tube);
 		gtk_list_store_clear(discWidget->store);
 		int i;
 		GtkTreeIter iter;
@@ -406,7 +470,70 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		}
 	}
 	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
-		//update_undo_buffer(EBEL_SPECTRUM_REPLACE, (gpointer) gen->excitation_nuclide);
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
+		gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
+		GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+		update_button_text(button, "Replace");
+		//this may not work on all platforms -> Mac OS X
+		gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
+		
+		int rv = gtk_dialog_run (GTK_DIALOG (dialog));
+		if (rv == GTK_RESPONSE_OK) {
+			//add	
+			int i;
+			if (current->xi->excitation->n_discrete > 0) {
+				for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
+					if (bsearch(gen->excitation_nuclide->discrete+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+						gtk_widget_destroy(dialog);
+						dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines."); 
+						gtk_dialog_run(GTK_DIALOG(dialog));
+						gtk_widget_destroy(dialog);
+						free(energy_disc);
+						energy_disc = NULL;
+						return;
+					}
+				}
+			}
+			update_undo_buffer(NUCLIDE_SPECTRUM_ADD, (GtkWidget *) gen->excitation_nuclide);
+		}
+		else if (rv == GTK_RESPONSE_CANCEL) {
+			//replace -> no need to check for duplicates here
+			update_undo_buffer(NUCLIDE_SPECTRUM_REPLACE, (GtkWidget *) gen->excitation_nuclide);
+		}
+		else {
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		gtk_list_store_clear(discWidget->store);
+		int i;
+		GtkTreeIter iter;
+		for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
+			gtk_list_store_append(discWidget->store, &iter);
+			gtk_list_store_set(discWidget->store, &iter,
+			ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+			SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
+			SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
+			SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
+			SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
+			-1);
+		}
+		gtk_list_store_clear(contWidget->store);
+		for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
+			gtk_list_store_append(contWidget->store, &iter);
+			gtk_list_store_set(contWidget->store, &iter,
+			ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+			SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
+			SIGMA_XP_COLUMN,(current)->xi->excitation->continuous[i].sigma_xp,
+			SIGMA_Y_COLUMN,(current)->xi->excitation->continuous[i].sigma_y,
+			SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
+			-1);
+		}
 	}
 
 	
@@ -789,6 +916,212 @@ static void generate_tube_spectrum(struct generate *gen) {
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
 
 }
+
+static void generate_nuclide_spectrum(struct generate *gen) {
+	gchar *text;
+	gchar *endPtr;
+	double activity;
+	GtkWidget *dialog;
+	int activityUnit, radioNuclide;
+
+	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->activityW));
+	activity = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || activity <= 0.0) {
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid activity: must be greater than zero");		
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW)); 
+
+	if (activityUnit == ACTIVITY_UNIT_mCi) {
+		activity *= 3.7E7;
+	}
+	else if (activityUnit == ACTIVITY_UNIT_Ci) {
+		activity *= 3.7E10;
+	}
+	else if (activityUnit == ACTIVITY_UNIT_GBq) {
+		activity *= 1E9;
+	}
+	else if (activityUnit == ACTIVITY_UNIT_Bq) {
+		//do nothing
+	}
+	radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->radioNuclideW));
+
+	GtkPlotCanvasChild *child;
+
+	GList *list;
+	list = GTK_PLOT_CANVAS(gen->canvas_nuclide)->childs;
+	while (list) {
+		child = GTK_PLOT_CANVAS_CHILD(list->data);
+		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(gen->canvas_nuclide), child);
+		list = GTK_PLOT_CANVAS(gen->canvas_nuclide)->childs;
+	}
+
+
+	struct radioNuclideData *rnd = GetRadioNuclideDataByIndex(radioNuclide);
+
+	int i;
+
+	gen->excitation_nuclide = malloc(sizeof(struct xmi_excitation));
+	gen->excitation_nuclide->n_continuous = 0;
+	gen->excitation_nuclide->continuous = NULL;
+	gen->excitation_nuclide->n_discrete= 0;
+	gen->excitation_nuclide->discrete= NULL;
+
+	double plot_xmax = 0.0;
+
+	for (i = 0 ; i < rnd->nXrays ; i++) {
+		double energy = LineEnergy(rnd->Z_xray, rnd->XrayLines[i]);
+		if (energy < 1.0 || energy > 200.0)
+			continue;
+
+		if (energy > plot_xmax)
+			plot_xmax = energy;
+
+		gen->excitation_nuclide->discrete = realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].energy = energy;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].horizontal_intensity =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].vertical_intensity =
+		rnd->XrayIntensities[i]*activity/2.0;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_x =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_xp =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_y =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_yp =
+		0.0;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].scale_parameter= 0.0;
+	}
+	for (i = 0 ; i < rnd->nGammas ; i++) {
+		double energy = rnd->GammaEnergies[i];
+		if (energy < 1.0 || energy > 200.0)
+			continue;
+
+		if (energy > plot_xmax)
+			plot_xmax = energy;
+
+		gen->excitation_nuclide->discrete = realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].energy = energy;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].horizontal_intensity =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].vertical_intensity =
+		rnd->GammaIntensities[i]*activity/2.0;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_x =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_xp =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_y =
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].sigma_yp =
+		0.0;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].scale_parameter= 0.0;
+	}
+	FreeRadioNuclideData(rnd);
+	
+	//add box with default settings
+	GtkWidget *plot_window;
+	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
+	gtk_plot_hide_legends(GTK_PLOT(plot_window));
+
+	double *bins = (double *) calloc(1000, sizeof(double));
+	
+	plot_xmax *= 1.2;
+
+	double *energies = (double *) malloc(sizeof(double) * 1000);
+	for (i=0 ; i < 1000 ; i++)
+		energies[i] = i*plot_xmax/999.0;
+
+	for (i = 0 ; i < gen->excitation_nuclide->n_discrete ; i++) {
+		int j = (int) floor(gen->excitation_nuclide->discrete[i].energy*999.0/plot_xmax);
+		//fprintf(stdout, "j : %i\n", j);
+		bins[j] += gen->excitation_nuclide->discrete[i].horizontal_intensity*2.0;
+	}
+
+
+
+	double plot_ymax = xmi_maxval_double(bins,1000)*1.2;
+	double plot_ymin_lin = 0.0;
+	double plot_xmin = 0.0;
+	//
+	//if logarithmic -> search for an appropriate minimum
+	double new_min = plot_ymax;
+	for (i = 0 ; i < 1000 ; i++) {
+		//printf("%f -> %f\n", energies[i], bins[i]);
+		if (bins[i] < new_min && bins[i] > 0.0)
+			new_min = bins[i];
+	}
+	double plot_ymin_log10 = MAX(new_min, plot_ymax*1E-5);
+	double plot_ymin;
+
+
+	gen->plot_xmin_nuclide = plot_xmin;
+	gen->plot_xmax_nuclide = plot_xmax;
+	gen->plot_ymax_nuclide = plot_ymax;
+	gen->plot_ymin_lin_nuclide = plot_ymin_lin;
+	gen->plot_ymin_log10_nuclide = plot_ymin_log10;
+	gen->plot_window_nuclide = plot_window;
+
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_nuclideW))) {	
+		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
+		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
+		plot_ymin = plot_ymin_lin;
+	}
+	else {
+		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
+		plot_ymin = plot_ymin_log10;
+	}
+	gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
+	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Intensity (photons/s)");
+	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Energy (keV)");
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",TUBE_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",TUBE_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	
+	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
+        gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,0);
+
+	if (plot_ymax < 10000.0 && plot_ymin >= 10.0) {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,0);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,0);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",RESULTS_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+	else {
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,1);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",TUBE_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
+		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",TUBE_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
+	}
+
+
+	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",TUBE_PLOT_LABELS_TP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",TUBE_PLOT_LABELS_TP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
+	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
+        gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
+	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
+        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(gen->canvas_nuclide), child, .15,.05,.90,.85);
+        gtk_widget_show(plot_window);
+
+
+	GtkPlotData *dataset;
+	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
+	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
+	gtk_plot_data_set_numpoints(dataset, 1000);
+	gtk_plot_data_set_x(dataset, energies);
+	gtk_plot_data_set_y(dataset, bins);
+	gtk_widget_show(GTK_WIDGET(dataset));
+	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
+	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas_nuclide));
+	gtk_widget_queue_draw(GTK_WIDGET(gen->canvas_nuclide));
+	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(gen->canvas_nuclide));
+	gtk_plot_paint(GTK_PLOT(plot_window));
+	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
+}
+
 void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1095,7 +1428,134 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 
 	//and now the radionuclides
+	mainVBox = gtk_vbox_new(FALSE, 2);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_NUCLIDE_LAST_USED, &xpv) == 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
+		GTK_DIALOG_DESTROY_WITH_PARENT,
+		GTK_MESSAGE_ERROR,
+		GTK_BUTTONS_CLOSE,
+		"Error getting preferences for last used radionuclide configuration\nFatal error."
+	       	);
+	     	gtk_dialog_run (GTK_DIALOG (dialog));
+	     	gtk_widget_destroy (dialog);
+		return;
+	}
 
+	struct xmi_nuclide_parameters *xnp = xpv.xnp;
+
+	GtkWidget *lilVBox = gtk_vbox_new(FALSE, 2);
+	hbox = gtk_hbox_new(FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Radionuclide"), FALSE, FALSE, 2);
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *radioNuclideW = gtk_combo_box_text_new();
+#else
+	GtkWidget *radioNuclideW = gtk_combo_box_new_text();
+#endif
+
+	gchar **nuclides;
+	int nNuclides;
+	nuclides = GetRadioNuclideDataList(&nNuclides);
+	for (i = 0 ; i < nNuclides ; i++) {
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(radioNuclideW), nuclides[i]);
+#else
+		gtk_combo_box_append_text(GTK_COMBO_BOX(radioNuclideW), nuclides[i]);
+#endif
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(radioNuclideW), xnp->radioNuclide);
+	g_strfreev(nuclides);
+	gtk_box_pack_end(GTK_BOX(hbox), radioNuclideW, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilVBox), hbox, FALSE, FALSE, 2);
+
+
+	hbox = gtk_hbox_new(FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Activity"), FALSE, FALSE, 2);
+	GtkWidget *activityW = gtk_entry_new();
+	sprintf(buf, "%g", xnp->activity);
+	gtk_entry_set_text(GTK_ENTRY(activityW), buf);
+
+#if GTK_CHECK_VERSION(2,24,0)
+	GtkWidget *activityUnitW= gtk_combo_box_text_new();
+#else
+	GtkWidget *activityUnitW = gtk_combo_box_new_text();
+#endif
+	for (i = 0 ; i < 4 ; i++) {
+#if GTK_CHECK_VERSION(2,24,0)
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(activityUnitW), activity_units[i]);
+#else
+		gtk_combo_box_append_text(GTK_COMBO_BOX(activityUnitW), activity_units[i]);
+#endif
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(activityUnitW), xnp->activityUnit);
+	gtk_box_pack_end(GTK_BOX(hbox), activityUnitW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), activityW, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilVBox), hbox, FALSE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), lilVBox, TRUE, FALSE, 2);
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
+
+	
+	linearW= gtk_radio_button_new_with_label_from_widget(NULL,"Linear scaling");
+	log10W = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(linearW), "Logarithmic scaling");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(log10W), xnp->log10_active);
+	gtk_box_pack_start(GTK_BOX(mainVBox), linearW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainVBox), log10W, FALSE, FALSE, 3);
+	g_signal_connect(G_OBJECT(linearW), "toggled",G_CALLBACK(linear_log10_toggled_cb), (gpointer) gen);
+	g_free(xnp);
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3); 
+
+	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
+	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+	generateButton = gtk_button_new_from_stock(GTK_STOCK_EXECUTE);
+	infoButton = gtk_button_new_from_stock(GTK_STOCK_ABOUT);
+	exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(cancel_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(okButton), "clicked", G_CALLBACK(ok_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) gen);
+	g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(ebel_delete_event_cb), (gpointer) gen);
+	update_button_text(generateButton, "Update spectrum");
+	update_button_text(exportButton, "Export spectrum");
+	update_button_text(imageButton, "Save image");
+	buttonbox = gtk_table_new(2, 3, TRUE);
+	gtk_table_set_col_spacings(GTK_TABLE(buttonbox), 2);
+	gtk_table_set_row_spacings(GTK_TABLE(buttonbox), 2);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , generateButton, 0, 1, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , exportButton, 1, 2, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , imageButton, 2, 3, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , okButton, 0, 1, 1, 2);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , cancelButton, 1, 2, 1, 2);
+	gtk_table_attach_defaults(GTK_TABLE(buttonbox) , infoButton, 2, 3, 1, 2);
+
+
+	gtk_box_pack_start(GTK_BOX(mainVBox), buttonbox, FALSE, FALSE, 2);
+
+	mainHBox = gtk_hbox_new(FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, TRUE, 1);
+	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);
+	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
+	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
+	gtk_box_pack_end(GTK_BOX(mainHBox),canvas,FALSE,FALSE,2);
+
+	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Radionuclide</span>");
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), mainHBox, label);
+
+
+	gen->radioNuclideW = radioNuclideW;
+	gen->activityW = activityW;
+	gen->activityUnitW = activityUnitW;
+	gen->linear_nuclideW = linearW;
+	gen->log10_nuclideW = log10W;
+	gen->canvas_nuclide = canvas;
+
+	generate_nuclide_spectrum(gen);
 
 	gtk_container_add(GTK_CONTAINER(window), notebook);
 	gtk_widget_show_all(window);

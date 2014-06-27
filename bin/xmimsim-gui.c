@@ -658,6 +658,12 @@ static gchar *get_message_string(int kind) {
 		case EBEL_SPECTRUM_REPLACE:
 			message = g_strdup("importing of Ebel X-ray tube spectrum");
 			break;
+		case NUCLIDE_SPECTRUM_REPLACE:
+			message = g_strdup("replacing with radionuclide spectrum");
+			break;
+		case NUCLIDE_SPECTRUM_ADD:
+			message = g_strdup("adding radionuclide spectrum");
+			break;
 		case EXC_COMPOSITION_ORDER:
 			message = g_strdup("change of excitation absorber ordering");
 			break;
@@ -3018,6 +3024,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
+		case NUCLIDE_SPECTRUM_ADD:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -3056,6 +3063,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		case EBEL_SPECTRUM_REPLACE:
+		case NUCLIDE_SPECTRUM_REPLACE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -3577,6 +3585,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
+		case NUCLIDE_SPECTRUM_ADD:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -3615,6 +3624,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			}
 			break;
 		case EBEL_SPECTRUM_REPLACE:
+		case NUCLIDE_SPECTRUM_REPLACE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -4534,6 +4544,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	xmi_copy_input(current->xi, &(last->xi));
 	last->kind = kind;
 	double value;
+	struct xmi_excitation *temp_exc;
 	if (kind != IMPORT_FROM_FILE)
 		last->message = get_message_string(kind);
 
@@ -4625,12 +4636,24 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
+		case NUCLIDE_SPECTRUM_ADD:
+			temp_exc = (struct xmi_excitation*) widget;
+			last->xi->excitation->n_discrete += temp_exc->n_discrete;
+			//realloc discrete energies
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			for (i = last->xi->excitation->n_discrete-temp_exc->n_discrete ; i < last->xi->excitation->n_discrete ; i++) {
+				last->xi->excitation->discrete[i] = temp_exc->discrete[i-last->xi->excitation->n_discrete+temp_exc->n_discrete];
+			}
+			qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			free(temp_exc);
+			
+			break;
 		case DISCRETE_ENERGY_IMPORT_ADD:
 			last->xi->excitation->n_discrete += GPOINTER_TO_INT(widget);
 			//realloc discrete energies
 			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
-			for (i = last->xi->excitation->n_discrete ; i < last->xi->excitation->n_discrete ; i++) {
-				last->xi->excitation->discrete[i] = energy_disc[i-last->xi->excitation->n_discrete];
+			for (i = last->xi->excitation->n_discrete-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_discrete ; i++) {
+				last->xi->excitation->discrete[i] = energy_disc[i-last->xi->excitation->n_discrete+GPOINTER_TO_INT(widget)];
 			}
 			free(energy_disc);
 			energy_disc = NULL;
@@ -4702,8 +4725,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
 			//realloc continuous energies
 			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
-			for (i = last->xi->excitation->n_continuous ; i < last->xi->excitation->n_continuous ; i++) {
-				last->xi->excitation->continuous[i] = energy_cont[i-last->xi->excitation->n_continuous];
+			for (i = last->xi->excitation->n_continuous-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i] = energy_cont[i-last->xi->excitation->n_continuous+GPOINTER_TO_INT(widget)];
 			}
 			free(energy_cont);
 			energy_cont = NULL;
@@ -4762,12 +4785,13 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			}
 			break;
 		case EBEL_SPECTRUM_REPLACE:
+		case NUCLIDE_SPECTRUM_REPLACE:
 			if (last->xi->excitation->n_continuous > 0)
 				free(last->xi->excitation->continuous);
 			if (last->xi->excitation->n_discrete > 0)
 				free(last->xi->excitation->discrete);
 			free(last->xi->excitation);
-			struct xmi_excitation *temp_exc = (struct xmi_excitation*) widget;
+			temp_exc = (struct xmi_excitation*) widget;
 			last->xi->excitation = temp_exc;
 			break;
 		case EXC_COMPOSITION_ORDER:
