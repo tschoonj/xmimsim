@@ -50,29 +50,8 @@ enum {
 	SCALE_PARAMETER_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
-void xray_tube_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
-void export_canvas_image (GtkWidget *canvas, gchar *title);
 void update_button_text(GtkWidget *button, gchar *text);
 
-struct xmi_ebel_parameters {
-	double tube_voltage;
-	double tube_current;
-	double tube_solid_angle;
-	double alpha;
-	double beta;
-	double interval_width;
-	int anode_Z;
-	double anode_rho;
-	double anode_thickness;
-	int window_Z;
-	double window_rho;
-	double window_thickness;
-	int filter_Z;
-	double filter_rho;
-	double filter_thickness;
-	gboolean transmission_tube;
-	gchar *transmission_efficiency_file;
-};
 
 
 #endif
