@@ -1084,6 +1084,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_widget_destroy (dialog);	
+		dialog = NULL;
 		int rv;
 		if (kind == DISCRETE)
     			rv = xmi_read_energies_from_ascii_file_discrete(filename, &energy_disc, start_line, nlines);
@@ -1196,7 +1197,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 				}
 			}
 			adjust_save_buttons();
-			gtk_widget_destroy(dialog);
+			if (dialog)
+				gtk_widget_destroy(dialog);
 			g_free (filename);
 
 			return;
@@ -1222,7 +1224,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 		g_free (filename);
 		gtk_dialog_run(GTK_DIALOG(dialog));
   	}
-	gtk_widget_destroy (dialog);	
+	if (dialog)
+		gtk_widget_destroy (dialog);	
 	if (kind == DISCRETE)
 		energy_disc = NULL;
 	else if (kind == CONTINUOUS)
