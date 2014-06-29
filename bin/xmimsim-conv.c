@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <string.h>
+#include <gmodule.h>
 
 
 
@@ -45,6 +46,7 @@ XMI_MAIN
 	gchar filename[512];
 
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
+	static gchar *custom_detector_convolute=NULL;
 	char *xmi_input_string;
 	FILE *outPtr;
 	GError *error = NULL;
@@ -59,6 +61,7 @@ XMI_MAIN
 		{"disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Disable escape peaks", NULL },
 		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+		{"custom-detector-convolute",0,0,G_OPTION_ARG_FILENAME,&custom_detector_convolute,"Use the supplied library for the detector convolution routine",NULL},
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
@@ -212,9 +215,35 @@ XMI_MAIN
 
 	double **channels_conv = malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
-	xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+	if (custom_detector_convolute == NULL)
+		xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+	else {
+		XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
+		GModule *module = NULL;
+		if (!g_module_supported()) {
+			fprintf(stderr,"No module support on this platform: cannot use custom detector convolution routine\n");
+			return 1;
+		}
+		module = g_module_open(custom_detector_convolute, 0);
+		if (!module) {
+			fprintf(stderr,"Could not open %s: %s\n", custom_detector_convolute, g_module_error());
+			return 1;
+		}
+		if (!g_module_symbol(module, "xmi_detector_convolute_all_custom", (gpointer *) &xmi_detector_convolute_all_custom)) {
+			fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", custom_detector_convolute, g_module_error());
+			return 1;
+		}
+		else if (options.verbose)
+			g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", custom_detector_convolute);
+		xmi_detector_convolute_all_custom(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+		if (!g_module_close(module)) {
+			fprintf(stderr,"Warning: could not close module %s: %s\n",custom_detector_convolute, g_module_error());
+		}
+	}
 
-	xmi_free_escape_ratios(escape_ratios_def);
+	if (options.use_escape_peaks) {
+		xmi_free_escape_ratios(escape_ratios_def);
+	}
 
 	xmso_out = malloc(sizeof(struct xmi_output));
 	xmso_out->inputfile = xmso_in->inputfile;

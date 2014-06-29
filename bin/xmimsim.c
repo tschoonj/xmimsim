@@ -470,7 +470,6 @@ XMI_MAIN
 
 #endif
 
-		GModule *module = NULL;
 		//read escape ratios
 		if (options.use_escape_peaks) {
 			if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
@@ -512,6 +511,7 @@ XMI_MAIN
 			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 		else {
 			XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
+			GModule *module = NULL;
 			if (!g_module_supported()) {
 				fprintf(stderr,"No module support on this platform: cannot use custom detector convolution routine\n");
 				return 1;
