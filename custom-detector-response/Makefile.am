@@ -1,4 +1,4 @@
-#Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+#Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -13,11 +13,19 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-SUBDIRS = src bin include xml etc nsis icons osx custom-detector-response
-ACLOCAL_AMFLAGS = -I m4
+xmimsimincludedir = ${includedir}/xmimsim
+xmimsimdir = $(datadir)/xmimsim
 
-pkgconfigdir=$(libdir)/pkgconfig
-pkgconfig_DATA=libxmimsim.pc
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_builddir}/src
 
-EXTRA_DIST = xmimsim.spec.in
-DISTCHECK_CONFIGURE_FLAGS = CC=llvm-gcc FC=gfortran-mp-4.7 
+plugindir = $(libdir)/xmimsim
+
+
+plugin_LTLIBRARIES = detector-response1.la
+detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@
+detector_response1_la_LIBADD = ../src/libxmimsim.la 
+detector_response1_la_SOURCES = detector-response1.F90
+detector_response1_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
+
+clean-local:
+	rm -f xmimsim_custom_response1.mod

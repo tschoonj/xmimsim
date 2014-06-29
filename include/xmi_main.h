@@ -36,6 +36,8 @@ void xmi_detector_convolute_all(xmi_inputFPtr inputFPtr, double **channels_nocon
 
 void xmi_deallocate(void *array);
 
+typedef void (*XmiDetectorConvoluteAll) (xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <hdf5.h>
 #include <glib.h>
+#include <gmodule.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
@@ -613,4 +614,24 @@ int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 	return 1;
 }
 
+int xmi_check_detector_convolute_plugin(char *dlm) {
+	XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
+	GModule *module;
+	if (!g_module_supported()) {
+		fprintf(stderr,"No module support on this platform: cannot use custom detector convolution routine\n");
+		return -1;
+	}
+	module = g_module_open(dlm, 0);
+	if (!module) {
+		fprintf(stderr,"Could not open %s: %s\n", dlm, g_module_error());
+		return 0;
+	}
+	if (!g_module_symbol(module, "xmi_detector_convolute_all_custom", (gpointer *) &xmi_detector_convolute_all_custom)) {
+		fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", dlm, g_module_error());
+	}
+	if (!g_module_close(module)) {
+		fprintf(stderr,"Warning: could not close module %s: %s\n",dlm, g_module_error());
+	}
+	return 1;	
+}
 

@@ -143,11 +143,13 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
+		 @gmodule_CFLAGS@ \
 		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
-		@GTK_MAC_LIBS@
+		@GTK_MAC_LIBS@ \
+		@gmodule_LIBS@
 xmimsim_LDFLAGS = $(AM_LDFLAGS)
 if !ENABLE_MAC_APP
 xmimsim_LDFLAGS += @OPENMPI_LDFLAGS@
