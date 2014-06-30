@@ -5724,7 +5724,7 @@ XMI_MAIN
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), commentsW);
 	gtk_widget_set_size_request(scrolled_window,700,100);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),scrolled_window,FALSE,FALSE,0);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),scrolled_window,TRUE,TRUE,0);
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 

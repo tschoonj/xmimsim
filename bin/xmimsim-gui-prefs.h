@@ -53,6 +53,8 @@ enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_NOTIFICATIONS,
 #endif
+	//gchar *
+	XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE,
 	//struct xmi_ebel_parameters*
 	XMIMSIM_GUI_EBEL_LAST_USED,
 	//struct xmi_nuclide_parameters*
@@ -65,6 +67,7 @@ union xmimsim_prefs_val{
 	gboolean b;
 	gint i;
 	gchar **ss;
+	gchar *s;
 	struct xmi_ebel_parameters *xep;
 	struct xmi_nuclide_parameters *xnp;
 };

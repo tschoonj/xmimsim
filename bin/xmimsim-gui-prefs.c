@@ -39,6 +39,9 @@ GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *escape_peaks_prefsW;
 GtkWidget *nchannels_prefsW;
+GtkWidget *custom_detector_response_prefsE;
+GtkWidget *custom_detector_response_prefsB;
+GtkWidget *custom_detector_response_prefsC;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *opencl_prefsW;
 #endif
@@ -63,6 +66,19 @@ const gchar * const xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
+
+
+static void custom_detector_response_toggled_cb(GtkToggleButton *button, gpointer data) {
+	if (gtk_toggle_button_get_active(button) == TRUE) {
+		gtk_widget_set_sensitive(custom_detector_response_prefsE, TRUE);
+		gtk_widget_set_sensitive(custom_detector_response_prefsB, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(custom_detector_response_prefsE, FALSE);
+		gtk_widget_set_sensitive(custom_detector_response_prefsB, FALSE);
+	}
+}
+
 
 static gboolean hdf5_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
@@ -400,6 +416,18 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		//abort	
 		preferences_error_handler(pa->window);
 	}
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC)) == TRUE &&
+		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE))) > 0) {
+		 xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
+	}
+	else 
+		xpv.s = NULL;
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
+
 	gtk_widget_destroy(pa->window);
 	return;
 }
@@ -425,6 +453,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
+	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
@@ -856,6 +885,27 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->i = 2048;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE: 
+			{
+			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Custom detector response", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Custom detector response not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->s = NULL;
+				break;
+			}
+			if (strcmp(temps, "None") == 0) 
+				prefs->s = NULL;
+			else
+				prefs->s = temps;
+			}
+			break;
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
@@ -1230,6 +1280,12 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_NCHANNELS: 
 			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
 			break;
+		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
+			if (prefs.s != NULL)
+				g_key_file_set_string(keyfile, "Preferences","Custom detector response", prefs.s);
+			else
+				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
+			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL: 
 			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
@@ -1360,7 +1416,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	master_box = gtk_vbox_new(FALSE,2);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
-	gtk_widget_set_size_request(window,450,450);
+	gtk_widget_set_size_request(window,500,500);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1483,6 +1539,35 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(hbox), nchannels_prefsW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	
+	hbox = gtk_hbox_new(FALSE, 0);
+	custom_detector_response_prefsC = gtk_check_button_new_with_label("Custom detector response");
+	gtk_widget_set_tooltip_text(custom_detector_response_prefsC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
+	g_signal_connect(G_OBJECT(custom_detector_response_prefsC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), NULL);
+	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_response_prefsC, FALSE, FALSE, 0);
+	custom_detector_response_prefsE = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(custom_detector_response_prefsE), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_response_prefsE, TRUE, TRUE, 3);
+	custom_detector_response_prefsB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	g_signal_connect(G_OBJECT(custom_detector_response_prefsB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), custom_detector_response_prefsE);
+	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_response_prefsB, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	if (xpv.s != NULL) {
+		gtk_widget_set_sensitive(custom_detector_response_prefsE, TRUE);
+		gtk_widget_set_sensitive(custom_detector_response_prefsB, TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC), TRUE);
+		gtk_entry_set_text(GTK_ENTRY(custom_detector_response_prefsE), xpv.s);
+	}
+	else {
+		gtk_widget_set_sensitive(custom_detector_response_prefsE, FALSE);
+		gtk_widget_set_sensitive(custom_detector_response_prefsB, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC), FALSE);
+	}
+	g_free(xpv.s);
+
 
 	//second page
 	superframe = gtk_vbox_new(FALSE,5);
@@ -1576,6 +1661,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
 	}	
 
+	g_strfreev(xpv.ss);
 	
 	gtk_box_pack_start(GTK_BOX(superframe), updatesboxW, FALSE, FALSE, 2);
 

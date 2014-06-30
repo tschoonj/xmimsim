@@ -23,8 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-notifications.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_detector.h"
 #include "xmi_data_structs.h"
 #include <glib.h>
+#include <gmodule.h>
 #include <string.h>
 #include <stdlib.h>
 #ifdef G_OS_UNIX
@@ -70,6 +72,10 @@ GtkWidget *escape_peaksW;
 GtkWidget *openclW;
 #endif
 GtkWidget *nchannelsW;
+GtkWidget *custom_detector_responseE;
+GtkWidget *custom_detector_responseB;
+GtkWidget *custom_detector_responseC;
+
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
@@ -113,6 +119,53 @@ static gboolean xmimsim_paused = FALSE;
 
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 void reset_controls(void);
+
+
+static void custom_detector_response_toggled_cb(GtkToggleButton *button, gpointer data) {
+	if (gtk_toggle_button_get_active(button) == TRUE) {
+		gtk_widget_set_sensitive(custom_detector_responseE, TRUE);
+		gtk_widget_set_sensitive(custom_detector_responseB, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(custom_detector_responseE, FALSE);
+		gtk_widget_set_sensitive(custom_detector_responseB, FALSE);
+	}
+}
+
+static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
+	GtkFileFilter *filter = gtk_file_filter_new();
+
+	gtk_file_filter_add_pattern(filter, "*." G_MODULE_SUFFIX);
+	if (gtk_file_filter_filter(filter, filter_info) == TRUE && xmi_check_detector_convolute_plugin((char *) filter_info->filename) == 1)
+		return TRUE;
+
+	return FALSE;
+}
+
+
+void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, detector_response_dlm_filter, NULL, NULL);
+	gtk_file_filter_set_name(filter,"Detector response DLM");
+	dialog = gtk_file_chooser_dialog_new ("Select detector response function DLM",
+		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(GTK_ENTRY(entry), filename);
+		g_free(filename);
+	}
+	gtk_widget_destroy(dialog);
+}
 
 void error_spinners(void) {
 	//check spinners
@@ -468,6 +521,10 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,TRUE);	
 #endif
+	gtk_widget_set_sensitive(custom_detector_responseE, TRUE);
+	gtk_widget_set_sensitive(custom_detector_responseB, TRUE);
+	gtk_widget_set_sensitive(custom_detector_responseC, TRUE);
+
 	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
@@ -622,6 +679,9 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
+	gtk_widget_set_sensitive(custom_detector_responseE, FALSE);
+	gtk_widget_set_sensitive(custom_detector_responseB, FALSE);
+	gtk_widget_set_sensitive(custom_detector_responseC, FALSE);
 	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
@@ -707,6 +767,12 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	else
 		argv[arg_counter-1] = g_strdup("--disable-opencl");
 #endif
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_responseC)) == TRUE &&
+		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))) > 0) {
+		argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+		argv[arg_counter-1] = g_strdup_printf("--custom_detector_convolute=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))); 
+	}
 
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
 	if (strlen(tmp_string) > 0) {
@@ -1515,6 +1581,34 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, FALSE, FALSE, 3);
 
+	hbox = gtk_hbox_new(FALSE, 0);
+	custom_detector_responseC = gtk_check_button_new_with_label("Custom detector response");
+	gtk_widget_set_tooltip_text(custom_detector_responseC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
+	g_signal_connect(G_OBJECT(custom_detector_responseC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), NULL);
+	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_responseC, FALSE, FALSE, 0);
+	custom_detector_responseE = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(custom_detector_responseE), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_responseE, TRUE, TRUE, 3);
+	custom_detector_responseB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	g_signal_connect(G_OBJECT(custom_detector_responseB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), custom_detector_responseE);
+	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_responseB, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, FALSE, FALSE, 3);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	if (xpv.s != NULL) {
+		gtk_widget_set_sensitive(custom_detector_responseE, TRUE);
+		gtk_widget_set_sensitive(custom_detector_responseB, TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_responseC), TRUE);
+		gtk_entry_set_text(GTK_ENTRY(custom_detector_responseE), xpv.s);
+	}
+	else {
+		gtk_widget_set_sensitive(custom_detector_responseE, FALSE);
+		gtk_widget_set_sensitive(custom_detector_responseB, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_responseC), FALSE);
+	}
+	g_free(xpv.s);
 
 
 

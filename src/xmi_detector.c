@@ -628,9 +628,11 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 	}
 	if (!g_module_symbol(module, "xmi_detector_convolute_all_custom", (gpointer *) &xmi_detector_convolute_all_custom)) {
 		fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", dlm, g_module_error());
+		return 0;
 	}
 	if (!g_module_close(module)) {
 		fprintf(stderr,"Warning: could not close module %s: %s\n",dlm, g_module_error());
+		return 0;
 	}
 	return 1;	
 }
