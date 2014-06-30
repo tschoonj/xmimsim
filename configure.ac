@@ -449,6 +449,13 @@ fi
 
 AM_CONDITIONAL([ENABLE_OPENCL], [test "x$no_cl" != "xyes"])
 
+AC_ARG_ENABLE([custom-detector-response],[AS_HELP_STRING([--enable-custom-detector-response],[compile and install the custom detector response plug-in])],[enable_custom_detector=$enableval],[enable_custom_detector=check])
+
+if test "x$enable_custom_detector" = xyes ; then
+	AC_MSG_NOTICE([Building custom detector response plug-in])
+fi
+
+AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
 
 AC_CONFIG_FILES([ 	Makefile
 			src/Makefile

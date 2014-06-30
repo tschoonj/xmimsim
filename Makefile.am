@@ -20,4 +20,4 @@ pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA=libxmimsim.pc
 
 EXTRA_DIST = xmimsim.spec.in
-DISTCHECK_CONFIGURE_FLAGS = CC=llvm-gcc FC=gfortran-mp-4.7 
+DISTCHECK_CONFIGURE_FLAGS = CC=llvm-gcc FC=gfortran-mp-4.7 --enable-custom-detector-response

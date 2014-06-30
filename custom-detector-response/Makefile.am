@@ -20,8 +20,9 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_builddir
 
 plugindir = $(libdir)/xmimsim
 
-
+if ENABLE_CUSTOM_DETECTOR
 plugin_LTLIBRARIES = detector-response1.la
+endif
 detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@
 detector_response1_la_LIBADD = ../src/libxmimsim.la 
 detector_response1_la_SOURCES = detector-response1.F90
