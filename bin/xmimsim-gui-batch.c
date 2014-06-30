@@ -68,6 +68,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
+#if LIBXML_VERSION < 20901
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
+xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
+
+#endif
+
+
+
 struct canvas_data {
 	double width;
 	double height;

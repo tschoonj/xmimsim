@@ -27,6 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_H
 #define XMIMSIM_GUI_H
 
+#if !GLIB_CHECK_VERSION (2, 28, 0)
+void g_list_free_full (GList *list, GDestroyNotify  free_func);
+#endif
 
 
 struct undo_single {
