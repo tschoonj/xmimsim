@@ -32,6 +32,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include <gtkosxapplication.h>
 #endif
 
+
+#ifdef G_OS_WIN32
+	#include <Shellapi.h>
+#endif
+
 /*
  *
  * This code allows for the checking of available updates by parsing the JSON output obtained
