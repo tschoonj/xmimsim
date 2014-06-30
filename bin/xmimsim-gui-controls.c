@@ -771,7 +771,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))) > 0) {
 		argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
-		argv[arg_counter-1] = g_strdup_printf("--custom_detector_convolute=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))); 
+		argv[arg_counter-1] = g_strdup_printf("--custom-detector-response=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))); 
 	}
 
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));

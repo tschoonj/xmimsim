@@ -419,7 +419,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE))) > 0) {
-		 xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
+		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
 	}
 	else 
 		xpv.s = NULL;

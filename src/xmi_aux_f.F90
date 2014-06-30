@@ -284,6 +284,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: omp_num_threads
         INTEGER (C_INT) :: extra_verbose
         INTEGER (C_INT) :: nchannels
+        TYPE (C_PTR) :: custom_detector_response
 ENDTYPE xmi_main_options
 !
 !

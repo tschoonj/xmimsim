@@ -104,7 +104,6 @@ XMI_MAIN
 	static gchar *svg_file_conv=NULL;
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
-	static gchar *custom_detector_convolute=NULL;
 	double zero_sum;
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
@@ -146,7 +145,7 @@ XMI_MAIN
 		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
 		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
 #endif
-		{"custom-detector-convolute",0,0,G_OPTION_ARG_FILENAME,&custom_detector_convolute,"Use the supplied library for the detector convolution routine",NULL},
+		{"custom-detector-response",0,0,G_OPTION_ARG_FILENAME,&options.custom_detector_response,"Use the supplied library for the detector response routine",NULL},
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
@@ -207,6 +206,7 @@ XMI_MAIN
 	options.extra_verbose = 0;
 	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.nchannels = 2048;
+	options.custom_detector_response= NULL;
 
 
 
@@ -507,7 +507,7 @@ XMI_MAIN
 			channels_def_ptrs[i] = channelsdef+i*options.nchannels;
 
 
-		if (custom_detector_convolute == NULL)
+		if (options.custom_detector_response == NULL)
 			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 		else {
 			XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
@@ -516,20 +516,20 @@ XMI_MAIN
 				fprintf(stderr,"No module support on this platform: cannot use custom detector convolution routine\n");
 				return 1;
 			}
-			module = g_module_open(custom_detector_convolute, 0);
+			module = g_module_open(options.custom_detector_response, 0);
 			if (!module) {
-				fprintf(stderr,"Could not open %s: %s\n", custom_detector_convolute, g_module_error());
+				fprintf(stderr,"Could not open %s: %s\n", options.custom_detector_response, g_module_error());
 				return 1;
 			}
 			if (!g_module_symbol(module, "xmi_detector_convolute_all_custom", (gpointer *) &xmi_detector_convolute_all_custom)) {
-				fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", custom_detector_convolute, g_module_error());
+				fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", options.custom_detector_response, g_module_error());
 				return 1;
 			}
 			else if (options.verbose)
-				g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", custom_detector_convolute);
+				g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", options.custom_detector_response);
 			xmi_detector_convolute_all_custom(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 			if (!g_module_close(module)) {
-				fprintf(stderr,"Warning: could not close module %s: %s\n",custom_detector_convolute, g_module_error());
+				fprintf(stderr,"Warning: could not close module %s: %s\n",options.custom_detector_response, g_module_error());
 			}
 		}
 

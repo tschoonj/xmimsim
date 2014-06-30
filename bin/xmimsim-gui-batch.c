@@ -82,6 +82,9 @@ struct options_widget {
 	GtkWidget *poisson_prefsW;
 	GtkWidget *escape_peaks_prefsW;
 	GtkWidget *nchannels_prefsW;
+	GtkWidget *custom_detector_response_prefsE;
+	GtkWidget *custom_detector_response_prefsB;
+	GtkWidget *custom_detector_response_prefsC;
 	GtkWidget *superframe;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	GtkWidget *opencl_prefsW;
@@ -149,6 +152,16 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 static struct options_widget *create_options_frame(GtkWidget *main_window);
 static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo, int *nfdo);
 
+static void custom_detector_response_toggled_cb(GtkToggleButton *button, struct options_widget *rv) {
+	if (gtk_toggle_button_get_active(button) == TRUE) {
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, TRUE);
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, FALSE);
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, FALSE);
+	}
+}
 
 
 struct wizard_range_data {
@@ -229,6 +242,12 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 
 	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ow->nchannels_prefsW));
 
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->custom_detector_response_prefsC)) == TRUE &&
+		strlen(gtk_entry_get_text(GTK_ENTRY(wacd->ow->custom_detector_response_prefsE))) > 0) {
+		wacd->xmo->custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(wacd->ow->custom_detector_response_prefsE)));
+	}
+	else 
+		wacd->xmo->custom_detector_response = NULL;
 	//range parameters
 	wacd->aod->start_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->start1Entry)), NULL);
 	wacd->aod->end_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->end1Entry)), NULL);
@@ -1085,6 +1104,10 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 		argv[arg_counter++] = g_strdup("--disable-opencl");
 	} 
 #endif
+	if (bwd->options[j].custom_detector_response != NULL) {
+		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
+		argv[arg_counter++] = g_strdup_printf("--custom-detector-response=%s", bwd->options[j].custom_detector_response); 
+	}
 	//number of threads
 	if (bwd->nthreadsW != NULL) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
@@ -1672,6 +1695,37 @@ static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(hbox), rv->nchannels_prefsW, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(rv->superframe), hbox, FALSE, FALSE, 3);
 
+
+	hbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(rv->superframe), hbox, FALSE, FALSE, 3);
+	rv->custom_detector_response_prefsC = gtk_check_button_new_with_label("Custom detector response");
+	gtk_widget_set_tooltip_text(rv->custom_detector_response_prefsC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
+	g_signal_connect(G_OBJECT(rv->custom_detector_response_prefsC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), rv);
+	gtk_box_pack_start(GTK_BOX(hbox), rv->custom_detector_response_prefsC, FALSE, FALSE, 0);
+	rv->custom_detector_response_prefsE = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(rv->custom_detector_response_prefsE), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), rv->custom_detector_response_prefsE, TRUE, TRUE, 3);
+	rv->custom_detector_response_prefsB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	g_signal_connect(G_OBJECT(rv->custom_detector_response_prefsB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), rv->custom_detector_response_prefsE);
+	gtk_box_pack_end(GTK_BOX(hbox), rv->custom_detector_response_prefsB, FALSE, FALSE, 0);
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	if (xpv.s != NULL) {
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, TRUE);
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->custom_detector_response_prefsC), TRUE);
+		gtk_entry_set_text(GTK_ENTRY(rv->custom_detector_response_prefsE), xpv.s);
+	}
+	else {
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, FALSE);
+		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->custom_detector_response_prefsC), FALSE);
+	}
+	g_free(xpv.s);
+
+
 	return rv;
 }
 
@@ -1736,6 +1790,12 @@ static void wizard_close(GtkAssistant *wizard, struct wizard_close_data *wcd) {
 #endif
 		wcd->options[i].nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wcd->ows[i]->nchannels_prefsW));
 			
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->custom_detector_response_prefsC)) == TRUE &&
+			strlen(gtk_entry_get_text(GTK_ENTRY(wcd->ows[i]->custom_detector_response_prefsE))) > 0) {
+			wcd->options[i].custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(wcd->ows[i]->custom_detector_response_prefsE)));
+		}
+		else 
+			wcd->options[i].custom_detector_response = NULL;
 	}
 	*(wcd->rv) = 1;
 	gtk_widget_destroy(GTK_WIDGET(wizard));
@@ -1869,6 +1929,13 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options *opti
 #endif
 
 		options->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ow->nchannels_prefsW));
+
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->custom_detector_response_prefsC)) == TRUE &&
+			strlen(gtk_entry_get_text(GTK_ENTRY(ow->custom_detector_response_prefsE))) > 0) {
+			options->custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(ow->custom_detector_response_prefsE)));
+		}
+		else 
+			options->custom_detector_response = NULL;
 	}
 	else {
 		gtk_widget_destroy(dialog);
