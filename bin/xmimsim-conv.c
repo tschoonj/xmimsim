@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 
 #include "xmi_main.h"
+#include "xmi_private.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_aux.h"

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"

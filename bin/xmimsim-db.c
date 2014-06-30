@@ -1,7 +1,8 @@
 #include "xmi_data.h"
 #include "xmi_aux.h"
+#include "xmi_private.h"
 
-int main(int argc, char *argv[]) {
+XMI_MAIN
 	int rv;
 
 	xmi_init_hdf5();
