@@ -267,6 +267,7 @@ TYPE :: xmi_input
        TYPE (xmi_excitation) :: excitation
        TYPE (xmi_absorbers) :: absorbers
        TYPE (xmi_detector) :: detector
+       TYPE (C_PTR) :: xmi_inputC
 ENDTYPE
 
 TYPE, BIND(C) :: xmi_main_options 
@@ -730,6 +731,18 @@ SUBROUTINE assign_interaction_prob(outvar,invar)
         RETURN
 ENDSUBROUTINE assign_interaction_prob
 
+SUBROUTINE xmi_input_F2C(xmi_inputFPtr, xmi_inputC_out) &
+        BIND(C, NAME='xmi_input_F2C')
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: xmi_inputFPtr
+        TYPE (xmi_input), POINTER :: xmi_inputF
+        TYPE (C_PTR), INTENT(OUT) :: xmi_inputC_out
+
+        CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
+        xmi_inputC_out = xmi_inputF%xmi_inputC
+
+ENDSUBROUTINE xmi_input_F2C
+
 !
 ! xmi_input_C2F creates a complete copy of the C structure!!!
 !
@@ -737,7 +750,7 @@ ENDSUBROUTINE assign_interaction_prob
 SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F')
         IMPLICIT NONE
         !pass by reference, no VALUE
-        TYPE (xmi_inputC), INTENT(IN) :: xmi_inputC_in
+        TYPE (xmi_inputC), INTENT(IN), TARGET :: xmi_inputC_in
         TYPE (C_PTR), INTENT(OUT) :: xmi_inputFPtr
         TYPE (xmi_input), POINTER :: xmi_inputF
 
@@ -769,6 +782,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !!
         !! associate xmi_general 
         !!
+        xmi_inputF%xmi_inputC = C_LOC(xmi_inputC_in)
         CALL C_F_POINTER (xmi_inputC_in%general, xmi_general_temp)
         xmi_inputF%general%version = xmi_general_temp%version
         xmi_inputF%general%n_photons_interval = xmi_general_temp%n_photons_interval

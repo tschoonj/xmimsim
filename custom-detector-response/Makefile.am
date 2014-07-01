@@ -21,12 +21,17 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_builddir
 plugindir = $(libdir)/xmimsim
 
 if ENABLE_CUSTOM_DETECTOR
-plugin_LTLIBRARIES = detector-response1.la
+plugin_LTLIBRARIES = detector-response1.la detector-response2.la
 endif
 detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@
 detector_response1_la_LIBADD = ../src/libxmimsim.la 
 detector_response1_la_SOURCES = detector-response1.F90
 detector_response1_la_LDFLAGS = -module -avoid-version -shared -export-dynamic $(LDFLAGS_XMIMSIM_LIB)
+
+detector_response2_la_CFLAGS = @gmodule_CFLAGS@
+detector_response2_la_LIBADD = ../src/libxmimsim.la 
+detector_response2_la_SOURCES = detector-response2.c
+detector_response2_la_LDFLAGS = -module -avoid-version -shared -export-dynamic $(LDFLAGS_XMIMSIM_LIB)
 
 clean-local:
 	rm -f xmimsim_custom_response1.mod

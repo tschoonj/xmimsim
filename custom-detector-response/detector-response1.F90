@@ -13,6 +13,16 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+!An example on how to produce a custom detector response function
+!Here I have essentially used the default code from xmi_detector_f.F90,
+!but the peak shaping is purely Gaussian, so no tailing or so.
+!Essentially I removed all the magic number stuff from He et al. for 
+!the purpose of demonstration.
+!Ensure that the xmi_detector_convolute_all_custom function is exported.
+!You can accomplish this with a linker option or by adding compiler-dependent 
+!directives.
+
+
 MODULE xmimsim_custom_response1
 
 USE :: xmimsim_detector
@@ -30,7 +40,8 @@ SUBROUTINE xmi_detector_convolute_all_custom(inputFPtr, channels_noconvPtr,&
 channels_convPtr, options, escape_ratiosCPtr, n_interactions_all,&
 zero_inter) BIND(C,NAME='xmi_detector_convolute_all_custom')
         IMPLICIT NONE
-!the following lines are necessary for Windows: support is added here for
+!the following lines may be necessary for Windows when not using libtool:
+!support is added here for
 !gfortran and intel fortran, however the latter is untested!!!
 !Keep in mind that you will need to recompile XMI-MSIM from scratch with the
 !intel compiler to get this working... which is extremely doubtful since it

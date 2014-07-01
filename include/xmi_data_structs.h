@@ -214,6 +214,9 @@ struct xmi_main_options {
 //these correspond in a more transparent way with the Fortran variables
 typedef void* xmi_inputFPtr;  
 
+
+
+
 #define XMI_CONFLICT_GENERAL 1
 #define XMI_CONFLICT_COMPOSITION 2
 #define XMI_CONFLICT_GEOMETRY 4
@@ -254,7 +257,8 @@ void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, st
 
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
-void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr );
+void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr);
+void xmi_input_F2C(xmi_inputFPtr Ptr, struct xmi_input **xmi_inputC);
 
 //Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
 void xmi_free_input_F(xmi_inputFPtr *inputFPtr);

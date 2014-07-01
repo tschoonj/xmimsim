@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <math.h>
 
-
 void xmi_free_layer (struct xmi_layer *layer) {
 	free(layer->Z);
 	free(layer->weight);
