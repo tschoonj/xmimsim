@@ -38,7 +38,6 @@ GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *escape_peaks_prefsW;
-GtkWidget *nchannels_prefsW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *opencl_prefsW;
 #endif
@@ -395,11 +394,6 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 #endif
 
-	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, xpv) == 0) {
-		//abort	
-		preferences_error_handler(pa->window);
-	}
 	gtk_widget_destroy(pa->window);
 	return;
 }
@@ -424,8 +418,6 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
-	g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
-
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
@@ -842,20 +834,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
-		case XMIMSIM_GUI_PREFS_NCHANNELS: 
-			prefs->i = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr,"Number of channels not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
-				//save file
-				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-					return 0;
-				g_free(prefs_file_contents);	
-				prefs->i = 2048;
-			}
-			break;
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
@@ -1227,9 +1205,6 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
 			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_NCHANNELS: 
-			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
-			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL: 
 			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
@@ -1466,24 +1441,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe),opencl_prefsW, FALSE, FALSE, 3);
 #endif
 
-	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
-	nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);
-	gtk_editable_set_editable(GTK_EDITABLE(nchannels_prefsW), TRUE);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannels_prefsW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannels_prefsW), TRUE);
-	gtk_entry_set_max_length(GTK_ENTRY(nchannels_prefsW), 7);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
-		//abort	
-		preferences_error_handler(main_window);
-	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannels_prefsW), (gdouble) xpv.i);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	label = gtk_label_new("Number of spectrum channels");
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), nchannels_prefsW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
-	
-
 	//second page
 	superframe = gtk_vbox_new(FALSE,5);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
@@ -1643,7 +1600,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 
 
-	hbox = gtk_hbox_new(FALSE,2);
+	GtkWidget *hbox = gtk_hbox_new(FALSE,2);
 	GtkWidget *button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
 	label = gtk_label_new("Remove the solid angles HDF5 file");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);

@@ -91,7 +91,6 @@ struct options_widget {
 	GtkWidget *pile_up_prefsW;
 	GtkWidget *poisson_prefsW;
 	GtkWidget *escape_peaks_prefsW;
-	GtkWidget *nchannels_prefsW;
 	GtkWidget *superframe;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	GtkWidget *opencl_prefsW;
@@ -236,8 +235,6 @@ static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_clo
 	else
 		wacd->xmo->use_opencl = 0;
 #endif
-
-	wacd->xmo->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wacd->ow->nchannels_prefsW));
 
 	//range parameters
 	wacd->aod->start_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->start1Entry)), NULL);
@@ -1001,8 +998,8 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else
 		j = 0;
 
-	int arg_counter = 10;
-	argv = (gchar **) g_malloc(sizeof(gchar *)*11);
+	int arg_counter = 9;
+	argv = (gchar **) g_malloc(sizeof(gchar *)*10);
 	argv[0] = g_strdup(xmimsim_executable);	
 
 	if (bwd->options[j].use_M_lines) {
@@ -1041,19 +1038,17 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else
 		argv[6] = g_strdup("--disable-poisson");
 
-	argv[7]	= g_strdup_printf("--set-channels=%i", bwd->options[j].nchannels); 
-
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(bwd->verboseW)) == 0) {
-		argv[8] = g_strdup("--verbose");
+		argv[7] = g_strdup("--verbose");
 	}
 	else {
-		argv[8] = g_strdup("--very-verbose");
+		argv[7] = g_strdup("--very-verbose");
 	} 
 	if (bwd->options[j].use_escape_peaks) {
-		argv[9] = g_strdup("--enable-escape-peaks");
+		argv[8] = g_strdup("--enable-escape-peaks");
 	}
 	else
-		argv[9] = g_strdup("--disable-escape-peaks");
+		argv[8] = g_strdup("--disable-escape-peaks");
 
 	char buffer[512];
 #ifdef G_OS_WIN32
@@ -1665,23 +1660,6 @@ static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->opencl_prefsW, FALSE, FALSE, 3);
 #endif
 
-	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
-	rv->nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);
-	gtk_editable_set_editable(GTK_EDITABLE(rv->nchannels_prefsW), TRUE);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(rv->nchannels_prefsW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(rv->nchannels_prefsW), TRUE);
-	gtk_entry_set_max_length(GTK_ENTRY(rv->nchannels_prefsW), 7);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
-		//abort	
-		preferences_error_handler(main_window);
-	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(rv->nchannels_prefsW), (gdouble) xpv.i);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	GtkWidget *label = gtk_label_new("Number of spectrum channels");
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), rv->nchannels_prefsW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(rv->superframe), hbox, FALSE, FALSE, 3);
-
 	return rv;
 }
 
@@ -1744,8 +1722,6 @@ static void wizard_close(GtkAssistant *wizard, struct wizard_close_data *wcd) {
 		else
 			wcd->options[i].use_opencl = 0;
 #endif
-		wcd->options[i].nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(wcd->ows[i]->nchannels_prefsW));
-			
 	}
 	*(wcd->rv) = 1;
 	gtk_widget_destroy(GTK_WIDGET(wizard));
@@ -1877,8 +1853,6 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options *opti
 		else
 			options->use_opencl = 0;
 #endif
-
-		options->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ow->nchannels_prefsW));
 	}
 	else {
 		gtk_widget_destroy(dialog);
@@ -3373,6 +3347,16 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 	g_free(buffer);
 	gtk_tree_store_append(model, &iter2, &iter1);
+	buffer = g_strdup_printf("%i", input->detector->nchannels);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "nchannels",
+		INPUT_VALUE_COLUMN, buffer,
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/nchannels",
+		-1
+	);
+	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
 	buffer = g_strdup_printf("%g", input->detector->gain);
 	gtk_tree_store_set(model, &iter2,
 		INPUT_PARAMETER_COLUMN, "gain",
@@ -3752,7 +3736,7 @@ static void roi_start_channel_changed_cb(GtkSpinButton *roi_start_channel_spinne
 	gint value_start = gtk_spin_button_get_value_as_int(roi_start_channel_spinnerW);
 
 	g_signal_handler_block(apd->roi_end_channel_spinnerW, apd->roi_end_channel_spinnerG);
-	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW), (double) value_start, (double) apd->archive->output[0][0]->nchannels-1);
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_channel_spinnerW), (double) value_start, (double) apd->archive->output[0][0]->input->detector->nchannels-1);
 	g_signal_handler_unblock(apd->roi_end_channel_spinnerW, apd->roi_end_channel_spinnerG);
 
 	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) apd);
@@ -3763,7 +3747,7 @@ static void roi_start_energy_changed_cb(GtkSpinButton *roi_start_energy_spinnerW
 	gint value_start = gtk_spin_button_get_value_as_int(roi_start_energy_spinnerW);
 
 	g_signal_handler_block(apd->roi_end_energy_spinnerW, apd->roi_end_energy_spinnerG);
-	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_energy_spinnerW), (double) value_start, (apd->archive->output[0][0]->nchannels-1)*(apd->archive->input[0][0]->detector->gain)+(apd->archive->input[0][0]->detector->zero));
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(apd->roi_end_energy_spinnerW), (double) value_start, (apd->archive->output[0][0]->input->detector->nchannels-1)*(apd->archive->input[0][0]->detector->gain)+(apd->archive->input[0][0]->detector->zero));
 	g_signal_handler_unblock(apd->roi_end_energy_spinnerW, apd->roi_end_energy_spinnerG);
 
 	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) apd);
@@ -4052,12 +4036,12 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_container_add(GTK_CONTAINER(roi_channel_radioW), tinyVBox);
 
 	tinyVBox = gtk_vbox_new(FALSE, 0);
-	roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->nchannels-2, 1);
+	roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, archive->output[0][0]->input->detector->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_channel_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_channel_spinnerW, FALSE, FALSE, 2);
-	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(1, archive->output[0][0]->nchannels-1, 1);
+	roi_end_channel_spinnerW = gtk_spin_button_new_with_range(1, archive->output[0][0]->input->detector->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), archive->output[0][0]->nchannels-1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_channel_spinnerW), archive->output[0][0]->input->detector->nchannels-1);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_end_channel_spinnerW, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(lilHBox), tinyVBox, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(lilVBox), align, FALSE, FALSE, 0);
@@ -4081,13 +4065,13 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 
 	tinyVBox = gtk_vbox_new(FALSE, 0);
 	double energy_min = 0.0; 
-	double energy_max = (archive->output[0][0]->nchannels-2)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
+	double energy_max = (archive->output[0][0]->input->detector->nchannels-2)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
 	roi_start_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(roi_start_energy_spinnerW), 2);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), roi_start_energy_spinnerW, FALSE, FALSE, 2);
 	energy_min = archive->input[0][0]->detector->gain;
-	energy_max = (archive->output[0][0]->nchannels-1)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
+	energy_max = (archive->output[0][0]->input->detector->nchannels-1)*(archive->input[0][0]->detector->gain)+(archive->input[0][0]->detector->zero); 
 	roi_end_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(roi_end_energy_spinnerW), energy_max);

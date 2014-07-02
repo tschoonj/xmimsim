@@ -50,7 +50,6 @@ XMI_MAIN
 	FILE *outPtr;
 	GError *error = NULL;
 	GOptionContext *context;
-	static int nchannels=2048;
 	static int version = 0;
 
 	static GOptionEntry entries[] = {
@@ -81,7 +80,6 @@ XMI_MAIN
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
 	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.nchannels = 2048;
 
 #if defined(G_OS_WIN32)
 	setlocale(LC_ALL,"English_United States");
@@ -209,8 +207,6 @@ XMI_MAIN
 		return 1;
 	}
 
-	options.nchannels = xmso_in->nchannels;
-
 	double **channels_conv = malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
 	xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
@@ -226,7 +222,6 @@ XMI_MAIN
 	xmso_out->nvar_red_history = xmso_in->nvar_red_history;
 	xmso_out->channels_conv = channels_conv;
 	xmso_out->channels_unconv = xmso_in->channels_unconv;
-	xmso_out->nchannels = xmso_in->nchannels;
 	xmso_out->use_zero_interactions = xmso_in->use_zero_interactions;
 
 	if (xmi_write_output_xml(new_xmsofile, xmso_out) == 0) {

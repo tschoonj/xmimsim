@@ -325,8 +325,6 @@ XMI_MAIN
 		if (options.verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
-		options.nchannels = xp->nchannels;
-
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
@@ -513,7 +511,7 @@ XMI_MAIN
 
 	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
 		rayleigh_channel = (int) ((xp->scatter_energy - xi->detector->zero)/xi->detector->gain);
-		if (rayleigh_channel > xp->nchannels) {
+		if (rayleigh_channel > xi->detector->nchannels) {
 			g_fprintf(stderr,"Channel of excitation energy is not included in spectrum from pymca\n");
 			return 1;
 		}
@@ -563,8 +561,6 @@ XMI_MAIN
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
-	options.nchannels = xp->nchannels;
-
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
 		xmi_deallocate(channels);
 		xmi_deallocate(brute_history);
@@ -594,17 +590,17 @@ XMI_MAIN
 #if DEBUG == 1
 		//write input structure
 		//xmi_print_input(stdout,xi);
-		zero_sum = xmi_sum_double(channels, xp->nchannels);
+		zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 		//convolute_spectrum
 		channels_conv_temp = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= xi->general->n_interactions_trajectory ; j++) {
-			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xp->nchannels, &channels_conv_temp2, xp->nchannels, options);
-			channels_conv_temp[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xp->nchannels);
+			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xi->detector->nchannels, &channels_conv_temp2, xi->detector->nchannels, options);
+			channels_conv_temp[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xi->detector->nchannels);
 		}
 		//write to xml outputfile
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
-		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xi->detector->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
 			return 1;
 		}
 
@@ -725,13 +721,13 @@ XMI_MAIN
 			if (options.verbose)
 				g_fprintf(stdout, "Scaling beam intensity according to Rayleigh signal\n");
 			for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
-				xi->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
-				xi->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
+				xi->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
+				xi->excitation->discrete[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
 			}
 
 			for (j = 0 ; j < xi->excitation->n_continuous ; j++) {
-				xi->excitation->continuous[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
-				xi->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xp->nchannels);
+				xi->excitation->continuous[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
+				xi->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
 			}
 			if (i > 1) {
 				//update concentrations in input	
@@ -746,7 +742,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xp->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
+				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xi->detector->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -801,13 +797,13 @@ single_run:
 	xmi_free_hdf5_F(&hdf5FPtr);
 
 
-	zero_sum = xmi_sum_double(channels, xp->nchannels);
+	zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 	//convolute_spectrum
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 	
 	double **channels_def_ptrs = malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
 	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
-		channels_def_ptrs[i] = channels+i*xp->nchannels;
+		channels_def_ptrs[i] = channels+i*xi->detector->nchannels;
 
 	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, xi->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 
@@ -818,7 +814,7 @@ single_run:
 	}
 
 	//write to xml outputfile
-	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, xp->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, argv[1], zero_sum > 0.0 ? 1 : 0);
 	if (xmi_write_output_xml(argv[2], output) == 0) {
 		return 1;
 	}
@@ -863,9 +859,9 @@ single_run:
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%g %g\n\n", xi->detector->zero, xi->detector->gain);
 			fprintf(outPtr,"$DATA:\n");
-			fprintf(outPtr,"0\t%i\n",xp->nchannels-1);
-			for (j=0 ; j < xp->nchannels ; j++) {
-				fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
+			fprintf(outPtr,"0\t%i\n",xi->detector->nchannels-1);
+			for (j=0 ; j < xi->detector->nchannels ; j++) {
+				fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xi->detector->nchannels));
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
 				}
@@ -887,8 +883,8 @@ single_run:
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
 			fprintf(outPtr,"$DATA:\n");
-			fprintf(outPtr,"1\t%i\n",xp->nchannels);
-			for (j=0 ; j < xp->nchannels ; j++) {
+			fprintf(outPtr,"1\t%i\n",xi->detector->nchannels);
+			for (j=0 ; j < xi->detector->nchannels ; j++) {
 				fprintf(outPtr,"%g",channels_conv[i][j]);
 				if ((j+1) % 8 == 0) {
 					fprintf(outPtr,"\n");
@@ -905,11 +901,11 @@ single_run:
 
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
-		for (j=0 ; j < xp->nchannels ; j++) {
+		for (j=0 ; j < xi->detector->nchannels ; j++) {
 			fprintf(csv_noconvPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
-				fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xp->nchannels));
+				fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xi->detector->nchannels));
 			}
 			fprintf(csv_noconvPtr,"\n");
 		}
@@ -918,7 +914,7 @@ single_run:
 
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
-		for (j=0 ; j < xp->nchannels ; j++) {
+		for (j=0 ; j < xi->detector->nchannels ; j++) {
 			fprintf(csv_convPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...

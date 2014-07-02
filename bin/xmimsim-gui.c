@@ -173,6 +173,7 @@ static GtkWidget *detector_zeroW;
 static GtkWidget *detector_fanoW;
 static GtkWidget *detector_noiseW;
 static GtkWidget *detector_max_convolution_energyW;
+static GtkWidget *detector_nchannelsW;
 
 GtkWidget *notebook;
 
@@ -218,6 +219,7 @@ static gulong detector_zeroG;
 static gulong detector_fanoG;
 static gulong detector_noiseG;
 static gulong detector_max_convolution_energyG;
+static gulong detector_nchannelsG;
 
 
 //notebook
@@ -724,6 +726,9 @@ static gchar *get_message_string(int kind) {
 			break;
 		case DETECTOR_GAIN: 
 			message = g_strdup("change of detector gain");
+			break;
+		case DETECTOR_NCHANNELS: 
+			message = g_strdup("change of detector number of channels");
 			break;
 		case DETECTOR_LIVE_TIME: 
 			message = g_strdup("change of live time");
@@ -2798,6 +2803,11 @@ void undo_menu_click_with_error(void) {
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_gainG);
 			break;
+		case DETECTOR_NCHANNELS:
+			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_nchannelsG);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(undo_error->widget), (double) (current)->xi->detector->nchannels);
+			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_nchannelsG);
+			break;
 		case DETECTOR_LIVE_TIME:
 			g_sprintf(buffer,"%lg",(current)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_live_timeG);
@@ -3214,6 +3224,11 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_gainG);
+			break;
+		case DETECTOR_NCHANNELS:
+			g_signal_handler_block(G_OBJECT((current)->widget), detector_nchannelsG);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON((current)->widget), (double) (current-1)->xi->detector->nchannels);
+			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_nchannelsG);
 			break;
 		case DETECTOR_LIVE_TIME:
 			g_sprintf(buffer,"%lg",(current-1)->xi->detector->live_time);
@@ -3764,6 +3779,11 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX((current+1)->widget),(current+1)->xi->detector->detector_type);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_typeG);
 			break;
+		case DETECTOR_NCHANNELS:
+			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_nchannelsG);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON((current+1)->widget), (double) (current+1)->xi->detector->nchannels);
+			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_nchannelsG);
+			break;
 		case DETECTOR_GAIN:
 			g_sprintf(buffer,"%lg",(current+1)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_gainG);
@@ -3889,6 +3909,17 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 }
 
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
+
+	//should always work out
+	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
+
+	return;
+}
+
+static void detector_nchannels_changed(GtkSpinButton *widget, gpointer data) {
+	//check if value is different
+	if (gtk_spin_button_get_value_as_int(widget) == current->xi->detector->nchannels)
+		return;
 
 	//should always work out
 	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
@@ -4839,6 +4870,10 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case DETECTOR_TYPE:
 			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+			last->widget = widget;
+			break;
+		case DETECTOR_NCHANNELS:
+			last->xi->detector->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
 			last->widget = widget;
 			break;
 		case DETECTOR_GAIN: 
@@ -6108,24 +6143,25 @@ XMI_MAIN
 	gtk_combo_box_append_text(GTK_COMBO_BOX(detector_typeW),"SDD");
 #endif
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),current->xi->detector->detector_type);
-	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE)  );
+	detector_typeG = g_signal_connect(G_OBJECT(detector_typeW),"changed",G_CALLBACK(detector_type_changed), GINT_TO_POINTER(DETECTOR_TYPE));
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_typeW, FALSE, FALSE, 0);
-	
-	//live time
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Live time (s)");
+
+	//channels
+	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
+	detector_nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
+	detector_nchannelsG = g_signal_connect(G_OBJECT(detector_nchannelsW), "value-changed", G_CALLBACK(detector_nchannels_changed), GINT_TO_POINTER(DETECTOR_NCHANNELS));
+	gtk_editable_set_editable(GTK_EDITABLE(detector_nchannelsW), TRUE);
+	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(detector_nchannelsW), GTK_UPDATE_IF_VALID);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(detector_nchannelsW), TRUE);
+	gtk_entry_set_max_length(GTK_ENTRY(detector_nchannelsW), 7);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(detector_nchannelsW), (gdouble) current->xi->detector->nchannels);
+	hbox_text_label = gtk_hbox_new(FALSE, 5);
+	label = gtk_label_new("Number of spectrum channels");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
-	detector_live_timeW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->live_time);
-	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
-	vc->kind = DETECTOR_LIVE_TIME;
-	vc->check = &detector_live_timeC;
-	detector_live_timeG = g_signal_connect(G_OBJECT(detector_live_timeW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
-	enable_entry_signals(detector_live_timeW);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_live_timeW, FALSE, FALSE, 0);
-	
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_nchannelsW, FALSE, FALSE, 0);
+	enable_entry_signals(detector_nchannelsW);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+
 	//gain
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -6186,6 +6222,21 @@ XMI_MAIN
 	enable_entry_signals(detector_noiseW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_noiseW, FALSE, FALSE, 0);
 
+	//live time
+	hbox_text_label = gtk_hbox_new(FALSE,5);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
+	label = gtk_label_new("Live time (s)");
+	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
+	detector_live_timeW = gtk_entry_new();
+	g_sprintf(buffer,"%lg",current->xi->detector->live_time);
+	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
+	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc->kind = DETECTOR_LIVE_TIME;
+	vc->check = &detector_live_timeC;
+	detector_live_timeG = g_signal_connect(G_OBJECT(detector_live_timeW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
+	enable_entry_signals(detector_live_timeW);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_live_timeW, FALSE, FALSE, 0);
+	
 	//pulse_width
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -7423,6 +7474,7 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
 	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
+	g_signal_handler_block(G_OBJECT(detector_nchannelsW), detector_nchannelsG);
 	
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
 	
@@ -7440,6 +7492,7 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
 	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
 	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(detector_nchannelsW), (double) new_input->detector->nchannels);
 
 	gtk_list_store_clear(crystal_compositionL);
 	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
@@ -7464,6 +7517,8 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	}
 	xmi_free_composition(crystal_compositionS);
 	xmi_copy_abs_or_crystal2composition(new_input->detector->crystal_layers, new_input->detector->n_crystal_layers,&crystal_compositionS);	
+
+	g_signal_handler_unblock(G_OBJECT(detector_nchannelsW), detector_nchannelsG);
 	g_signal_handler_unblock(G_OBJECT(detector_typeW), detector_typeG);
 	g_signal_handler_unblock(G_OBJECT(detector_gainW), detector_gainG);
 	g_signal_handler_unblock(G_OBJECT(detector_zeroW), detector_zeroG);

@@ -35,7 +35,6 @@ struct xmi_options {
 	char *html_uconv;
 	char *svg_conv;
 	char *svg_uconv;
-	int nchannels;
 	gboolean pile_up;
 };
 

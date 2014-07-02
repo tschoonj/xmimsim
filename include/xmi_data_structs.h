@@ -127,6 +127,7 @@ struct xmi_detector {
 	double fano;
 	double noise;
 	double max_convolution_energy;
+	int nchannels;
 	int n_crystal_layers;
 	struct xmi_layer *crystal_layers;
 };
@@ -170,7 +171,6 @@ struct xmi_output {
 	int nvar_red_history;
 	double **channels_conv;
 	double **channels_unconv;
-	int nchannels;
 	int ninteractions;
 	int use_zero_interactions;
 };
@@ -206,7 +206,6 @@ struct xmi_main_options {
 	int use_opencl;
 	int omp_num_threads;
 	int extra_verbose;
-	int nchannels;
 };
 
 //typedefs are clearer then using void *...
@@ -267,7 +266,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input);
 
 void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
 
-struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions );
+struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions );
 
 void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
 

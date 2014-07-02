@@ -1213,11 +1213,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
 	//calculate maximum x and y value
-	temp_channels = (double *) malloc(sizeof(double) * results->nchannels);
-	for (i=0 ; i < results->nchannels ; i++) {
+	temp_channels = (double *) malloc(sizeof(double) * results->input->detector->nchannels);
+	for (i=0 ; i < results->input->detector->nchannels ; i++) {
 		temp_channels[i] = results->channels_conv[results->ninteractions][i];
 	}
-	plot_ymax = xmi_maxval_double(temp_channels,results->nchannels)*1.2;
+	plot_ymax = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
 	free(temp_channels);
 	if (current_scale == GTK_PLOT_SCALE_LOG10) {
 		plot_ymin = 1.0;
@@ -1226,7 +1226,7 @@ int plot_spectra_from_file(char *xmsofile) {
 		plot_ymin = 0.0;
 	}
 	plot_xmin = 0.0;
-	plot_xmax = results->nchannels * results->input->detector->gain + results->input->detector->zero;
+	plot_xmax = results->input->detector->nchannels * results->input->detector->gain + results->input->detector->zero;
 
 	//x-axis number of ticks continues to be a problem
 	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
@@ -1271,8 +1271,8 @@ int plot_spectra_from_file(char *xmsofile) {
         gtk_widget_show(plot_window);
 	GTK_PLOT_CANVAS_SET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT );
 
-	temp_energies = (double *) malloc(sizeof(double)*results->nchannels);
-	for (i = 0 ; i < results->nchannels ; i++) {
+	temp_energies = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+	for (i = 0 ; i < results->input->detector->nchannels ; i++) {
 		temp_energies[i] = results->input->detector->gain * i + results->input->detector->zero;
 	}
 
@@ -1287,10 +1287,10 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
 		dataset = GTK_PLOT_DATA(gtk_plot_data_new());
 		gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-		gtk_plot_data_set_numpoints(dataset, results->nchannels);
+		gtk_plot_data_set_numpoints(dataset, results->input->detector->nchannels);
 		gtk_plot_data_set_x(dataset,temp_energies);
-		temp_channels = (double *) malloc(sizeof(double)*results->nchannels);
-		for (j = 0 ; j < results->nchannels ; j++)
+		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+		for (j = 0 ; j < results->input->detector->nchannels ; j++)
 			temp_channels[j]=results->channels_conv[i][j];
 
 		gtk_plot_data_set_y(dataset,temp_channels);

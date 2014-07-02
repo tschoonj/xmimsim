@@ -593,8 +593,8 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 	fprintf(filePtr, "ForceDetectFlag 1\n");
 	fprintf(filePtr, "PixelType 2\n");
 	fprintf(filePtr, "Emin %g\n", input->detector->zero);
-	fprintf(filePtr, "Emax %g\n", input->detector->zero + input->detector->gain*(options.nchannels-1));
-	fprintf(filePtr, "NBins %i\n", options.nchannels);
+	fprintf(filePtr, "Emax %g\n", input->detector->zero + input->detector->gain*(input->detector->nchannels-1));
+	fprintf(filePtr, "NBins %i\n", input->detector->nchannels);
 	fprintf(filePtr, "SaturateEmin 0\n");
 	fprintf(filePtr, "SaturateEmax 0\n");
 	fprintf(filePtr, "CrystalPhase Crystal\n");

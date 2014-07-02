@@ -59,7 +59,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 
 
 static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, int nchannels, double maximum); 
+static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
 static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg);
 static int xmi_write_default_comments(xmlTextWriterPtr writer);
 static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
@@ -176,22 +176,23 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 	xmlChar *txt;
 	xmlAttrPtr attr;
 	int i;
+	int nchannels;
 	
 
 	//count number of channels
-	output->nchannels = (int) xmlChildElementCount(spectrumPtr);
-	if (output->nchannels < 1 ) {
+	nchannels = (int) xmlChildElementCount(spectrumPtr);
+	if (nchannels < 1 ) {
 		fprintf(stderr,"readSpectrumXML: spectrum contains no channels\n");
 		return 0;
 	}
 	else {
 		//debug
-		//fprintf(stdout,"nchannels: %i\n", output->nchannels);
+		//fprintf(stdout,"nchannels: %i\n", nchannels);
 	}
 
 	channels_loc = (double **) malloc(sizeof(double *)* (output->ninteractions+1));
 	for (i = 0 ; i <= output->ninteractions ; i++)
-		channels_loc[i] = (double *) calloc(output->nchannels,sizeof(double));
+		channels_loc[i] = (double *) calloc(nchannels,sizeof(double));
 		
 	if (conv)
 		output->channels_conv = channels_loc;
@@ -996,6 +997,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 
 	(*detector)->n_crystal_layers = 0;
 	(*detector)->crystal_layers = NULL;
+	(*detector)->nchannels = 2048;
 
 	subnode = node->children;
 
@@ -1069,6 +1071,14 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 			txt = xmlNodeListGetString(doc,subnode->children,1);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->max_convolution_energy)) != 1) {
 				fprintf(stderr,"error reading in max_convolution_energy of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "nchannels")) {
+			txt = xmlNodeListGetString(doc,subnode->children,1);
+			if(sscanf((const char *)txt,"%i",&((*detector)->nchannels)) != 1) {
+				fprintf(stderr,"error reading in nchannels of xml file\n");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1434,7 +1444,7 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 		return 0;
 	}
 
-	for (j = 0 ; j < output->nchannels ; j++) {
+	for (j = 0 ; j < output->input->detector->nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
@@ -1486,7 +1496,7 @@ static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output 
 		return 0;
 	}
 
-	for (j = 0 ; j < output->nchannels ; j++) {
+	for (j = 0 ; j < output->input->detector->nchannels ; j++) {
 		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
 			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
 			return 0;
@@ -1732,7 +1742,7 @@ after_var_red_history:
 	maxima = (double *) malloc(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
 	maxima[0]=0.0;
 	for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
-		maxima[i]=xmi_maxval_double(output->channels_conv[i], output->nchannels);
+		maxima[i]=xmi_maxval_double(output->channels_conv[i], output->input->detector->nchannels);
 	}
 	gl_conv_max = xmi_maxval_double(maxima,output->input->general->n_interactions_trajectory+1);
         free(maxima); maxima = NULL;
@@ -1741,7 +1751,7 @@ after_var_red_history:
 	maxima = (double *) malloc(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
 	maxima[0]=0.0;
 	for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
-		maxima[i]=xmi_maxval_double(output->channels_unconv[i], output->nchannels);
+		maxima[i]=xmi_maxval_double(output->channels_unconv[i], output->input->detector->nchannels);
 	}
 	gl_unconv_max = xmi_maxval_double(maxima,output->input->general->n_interactions_trajectory+1);
 	free(maxima); maxima = NULL;
@@ -1752,14 +1762,14 @@ after_var_red_history:
 
 		//convoluted first
 	
-		if (xmi_write_input_xml_svg(writer, output->input, "convoluted", i, output->channels_conv[i], output->nchannels, gl_conv_max) == 0) {
+		if (xmi_write_input_xml_svg(writer, output->input, "convoluted", i, output->channels_conv[i], gl_conv_max) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
 
 		//unconvoluted second
 
-		if (xmi_write_input_xml_svg(writer, output->input, "unconvoluted", i, output->channels_unconv[i], output->nchannels, gl_unconv_max ) == 0) {
+		if (xmi_write_input_xml_svg(writer, output->input, "unconvoluted", i, output->channels_unconv[i], gl_unconv_max ) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
@@ -2188,6 +2198,10 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 		fprintf(stderr,"Error writing pulse_width\n");
 		return 0;
 	}
+	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nchannels","%i",input->detector->nchannels) < 0) {
+		fprintf(stderr,"Error writing nchannels\n");
+		return 0;
+	}
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%g",input->detector->gain) < 0) {
 		fprintf(stderr,"Error writing gain\n");
 		return 0;
@@ -2370,7 +2384,7 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 }
 
 static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, 
-double *channels, int nchannels, double maximum2 ) {
+double *channels, double maximum2 ) {
 	
 	double minimum;
 	double maximum;
@@ -2401,7 +2415,7 @@ double *channels, int nchannels, double maximum2 ) {
 
 
 	max_channel = 0;
-	for (i = nchannels-1 ; i >= 0 ; i--) {
+	for (i = input->detector->nchannels-1 ; i >= 0 ; i--) {
 		if (channels[i] >= 1) {
 		max_channel = i;
 		break;
@@ -2409,10 +2423,10 @@ double *channels, int nchannels, double maximum2 ) {
 	}
 
 
-	energies = xmi_dindgen(nchannels);
+	energies = xmi_dindgen(input->detector->nchannels);
 	//xmi_add_val_to_array_double(energies, nchannels, 1.0);
-	xmi_scale_double(energies, nchannels, input->detector->gain);
-	xmi_add_val_to_array_double(energies, nchannels, input->detector->zero);
+	xmi_scale_double(energies, input->detector->nchannels, input->detector->gain);
+	xmi_add_val_to_array_double(energies, input->detector->nchannels, input->detector->zero);
 
 	// start plot graphic
 	if(!error) error = write_start_element(writer, "graphic");
@@ -2832,7 +2846,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 			}
 			double sum = 0.0;
 			int i;
-			for (i = 0 ; i < op->nchannels ; i++)
+			for (i = 0 ; i < op->input->detector->nchannels ; i++)
 				sum += op->channels_conv[0][i];
 
 			if (sum == 0.0)

@@ -132,7 +132,6 @@ XMI_MAIN
 		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
 		{"htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL},
 		{"htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL},
-		{"set-channels",0,0,G_OPTION_ARG_INT,&options.nchannels,"Change number of channels (default=2048)",NULL},
 		{"enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
 		{"disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
@@ -204,8 +203,6 @@ XMI_MAIN
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
 	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.nchannels = 2048;
-
 
 
 	//parse options
@@ -248,7 +245,6 @@ XMI_MAIN
 		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
 #endif
 		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
-		g_fprintf(stdout,"Option number of channels: %i\n", options.nchannels);
 	}
 
 		
@@ -403,7 +399,7 @@ XMI_MAIN
 
 
 	if (rank == 0) {
-		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*options.nchannels,sizeof(double));
+		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*input->detector->nchannels,sizeof(double));
 		brute_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
 		if (options.use_variance_reduction == 1)
 			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
@@ -411,7 +407,7 @@ XMI_MAIN
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	//reduce channels
-	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*options.nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(channels, channelsdef,(1+input->general->n_interactions_trajectory)*input->detector->nchannels, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce brute_history
 	MPI_Reduce(brute_history, brute_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce var_red_history
@@ -451,7 +447,7 @@ XMI_MAIN
 
 #endif
 		//check sum of zero interaction... can only be different from zero if the detector is placed along the beam (which is probably not the smartest thing to do...)
-		zero_sum = xmi_sum_double(channelsdef, options.nchannels);
+		zero_sum = xmi_sum_double(channelsdef, input->detector->nchannels);
 
 #if DEBUG == 2
 		fprintf(stdout,"zero_sum: %g\n",zero_sum);
@@ -464,7 +460,7 @@ XMI_MAIN
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
-			fprintf(stdout,"channel 223 contents unspoiled: %g\n",channelsdef[i*options.nchannels+222]);
+			fprintf(stdout,"channel 223 contents unspoiled: %g\n",channelsdef[i*input->detector->nchannels+222]);
 
 #endif
 
@@ -502,7 +498,7 @@ XMI_MAIN
 
 		double **channels_def_ptrs = malloc(sizeof(double *) * (input->general->n_interactions_trajectory+1));
 		for (i = 0 ; i <= input->general->n_interactions_trajectory ; i++)
-			channels_def_ptrs[i] = channelsdef+i*options.nchannels;
+			channels_def_ptrs[i] = channelsdef+i*input->detector->nchannels;
 
 		xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 
@@ -546,9 +542,9 @@ XMI_MAIN
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
-				for (j=0 ; j < options.nchannels ; j++) {
-					fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
+				fprintf(outPtr,"0\t%i\n",input->detector->nchannels-1);
+				for (j=0 ; j < input->detector->nchannels ; j++) {
+					fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,input->detector->nchannels));
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
 					}
@@ -571,8 +567,8 @@ XMI_MAIN
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
 				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n",options.nchannels-1);
-				for (j=0 ; j < options.nchannels ; j++) {
+				fprintf(outPtr,"0\t%i\n", input->detector->nchannels-1);
+				for (j=0 ; j < input->detector->nchannels ; j++) {
 					fprintf(outPtr,"%g",channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
 						fprintf(outPtr,"\n");
@@ -588,11 +584,11 @@ XMI_MAIN
 
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
-			for (j=0 ; j < options.nchannels ; j++) {
+			for (j=0 ; j < input->detector->nchannels ; j++) {
 				fprintf(csv_noconvPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,options.nchannels));
+					fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1, input->detector->nchannels));
 				}
 				fprintf(csv_noconvPtr,"\n");
 			}
@@ -601,7 +597,7 @@ XMI_MAIN
 
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
-			for (j=0 ; j < options.nchannels ; j++) {
+			for (j=0 ; j < input->detector->nchannels ; j++) {
 				fprintf(csv_convPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
@@ -621,7 +617,7 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		struct xmi_output *output = xmi_output_raw2struct(input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, options.nchannels, argv[1], zero_sum > 0.0 ? 1 : 0);
+		struct xmi_output *output = xmi_output_raw2struct(input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
 		if (xmi_write_output_xml(input->general->outputfile, output) == 0) {
 			return 1;
 		}

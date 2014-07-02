@@ -366,6 +366,11 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_DETECTOR(noise)
 	XMI_IF_COMPARE_DETECTOR(max_convolution_energy)
 
+	if (A->detector->nchannels != B->detector->nchannels) {
+		rv |= XMI_CONFLICT_DETECTOR;
+		goto after_detector;
+	}
+
 	if (A->detector->n_crystal_layers != B->detector->n_crystal_layers) {
 		rv |= XMI_CONFLICT_DETECTOR;
 	}
@@ -534,6 +539,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->detector->fano = 0.12;
 	rv->detector->noise = 0.1;
 	rv->detector->max_convolution_energy = 40.0;
+	rv->detector->nchannels = 2048;
 	rv->detector->n_crystal_layers = 1;
 	rv->detector->crystal_layers = malloc(sizeof(struct xmi_layer));
 	rv->detector->crystal_layers[0].n_elements = 1;
@@ -898,6 +904,11 @@ after_absorbers:
 		goto after_detector;
 	}
 
+	if (a->detector->nchannels < 10) {
+		rv |= XMI_CONFLICT_DETECTOR;
+		goto after_detector;
+	}
+
 	for (i = 0 ; i < a->detector->n_crystal_layers ; i++) {
 		sum = 0.0;
 		for (j = 0 ; j < a->detector->crystal_layers[i].n_elements ; j++) {
@@ -1023,6 +1034,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "fano: %g\n", input->detector->fano);
 	fprintf(fPtr, "noise: %g\n", input->detector->noise);
 	fprintf(fPtr, "max_convolution_energy: %g\n", input->detector->max_convolution_energy);
+	fprintf(fPtr, "nchannels: %i\n", input->detector->nchannels);
 	fprintf(fPtr, "detector crystal\n");
 	xmi_print_layer(fPtr, input->detector->crystal_layers, input->detector->n_crystal_layers);
 	fprintf(fPtr, "\n");
@@ -1033,16 +1045,16 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
-struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, int nchannels, char *inputfile, int use_zero_interactions ) {
+struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions ) {
 
 	struct xmi_output* output = malloc(sizeof(struct xmi_output));
 	int i,j,k;
+	int nchannels = input->detector->nchannels;
 
 	//first the easy ones
 	output->input = input;
 	xmi_copy_input(input, &output->input);
 	output->inputfile = strdup(inputfile);
-	output->nchannels = nchannels;
 	output->use_zero_interactions = use_zero_interactions;
 	output->channels_conv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 	output->channels_unconv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
@@ -1278,15 +1290,14 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	xmi_copy_input(A->input, &C->input);
 	C->nbrute_force_history = A->nbrute_force_history;
 	C->nvar_red_history = A->nvar_red_history;
-	C->nchannels = A->nchannels;
 	C->ninteractions = A->ninteractions;
 	C->use_zero_interactions = A->use_zero_interactions;
 	int i, j;
 	C->channels_conv = malloc(sizeof(double *) * (C->ninteractions+1));
 	C->channels_unconv = malloc(sizeof(double *) * (C->ninteractions+1));
 	for (i = 0 ; i <= C->ninteractions ; i++) {
-		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->nchannels);
-		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->nchannels);
+		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
+		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
 	}
 
 	C->brute_force_history = xmi_memdup(A->brute_force_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nbrute_force_history);

@@ -1436,7 +1436,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 			return rv;
 		}
 	}
-	(*pymca_input)->nchannels = MAX(nchannels_xmax, nchannels_energy);
+	(*input)->detector->nchannels = MAX(nchannels_xmax, nchannels_energy);
 #if DEBUG == 1
 	fprintf(stdout,"nchannels: %i\n",(*pymca_input)->nchannels);
 	fprintf(stdout,"nchannels_xmax: %i\n", nchannels_xmax);

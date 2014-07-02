@@ -69,7 +69,6 @@ GtkWidget *escape_peaksW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *openclW;
 #endif
-GtkWidget *nchannelsW;
 GtkWidget *spe_convW;
 GtkWidget *spe_convB;
 GtkWidget *spe_uconvW;
@@ -468,7 +467,6 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,TRUE);	
 #endif
-	gtk_widget_set_sensitive(nchannelsW,TRUE);	
 	gtk_widget_set_sensitive(spe_convW,TRUE);	
 	gtk_widget_set_sensitive(csv_convW,TRUE);	
 	gtk_widget_set_sensitive(svg_convW,TRUE);	
@@ -622,7 +620,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
-	gtk_widget_set_sensitive(nchannelsW,FALSE);	
 	gtk_widget_set_sensitive(spe_convW,FALSE);	
 	gtk_widget_set_sensitive(csv_convW,FALSE);	
 	gtk_widget_set_sensitive(svg_convW,FALSE);	
@@ -692,9 +689,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-escape-peaks");
-
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
-	argv[arg_counter-1] = g_strdup_printf("--set-channels=%i", gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannelsW))); 
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[arg_counter-1] = g_strdup("--verbose");
@@ -1498,22 +1492,6 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(vbox_notebook),openclW, TRUE, FALSE, 3);
 #endif
 
-	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
-	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
-	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannelsW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannelsW), TRUE);
-	gtk_entry_set_max_length(GTK_ENTRY(nchannelsW), 7);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
-		//abort	
-		preferences_error_handler(window);
-	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannelsW), (gdouble) xpv.i);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	label = gtk_label_new("Number of spectrum channels");
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, FALSE, FALSE, 3);
 
 
 
