@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 
 #include "xmi_main.h"
+#include "xmi_private.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_aux.h"
@@ -50,7 +51,6 @@ XMI_MAIN
 	FILE *outPtr;
 	GError *error = NULL;
 	GOptionContext *context;
-	static int nchannels=2048;
 	static int version = 0;
 
 	static GOptionEntry entries[] = {
@@ -82,7 +82,6 @@ XMI_MAIN
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
 	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.nchannels = 2048;
 
 #if defined(G_OS_WIN32)
 	setlocale(LC_ALL,"English_United States");
@@ -210,8 +209,6 @@ XMI_MAIN
 		return 1;
 	}
 
-	options.nchannels = xmso_in->nchannels;
-
 	double **channels_conv = malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
 	if (options.custom_detector_response == NULL)
@@ -253,7 +250,6 @@ XMI_MAIN
 	xmso_out->nvar_red_history = xmso_in->nvar_red_history;
 	xmso_out->channels_conv = channels_conv;
 	xmso_out->channels_unconv = xmso_in->channels_unconv;
-	xmso_out->nchannels = xmso_in->nchannels;
 	xmso_out->use_zero_interactions = xmso_in->use_zero_interactions;
 
 	if (xmi_write_output_xml(new_xmsofile, xmso_out) == 0) {

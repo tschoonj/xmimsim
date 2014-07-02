@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <cairo-svg.h>
 #endif
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include "xmi_ebel.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui.h"

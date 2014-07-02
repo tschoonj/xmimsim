@@ -15,26 +15,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_AUX_X
-#define XMI_AUX_X
+#ifndef XMI_AUX_H
+#define XMI_AUX_H
 
-#include <config.h>
 #include <stddef.h>
 #include "xmi_data_structs.h"
-#include <glib.h>
 #include <stdio.h>
 #include <xraylib.h>
-#include <libxml/xmlversion.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-#ifndef HAVE_GETLINE
-#include <sys/types.h>
-ssize_t getline (char **lineptr, size_t *n, FILE *stream);
-#endif
 
 #define XMI_CASCADE_FULL 3
 #define XMI_CASCADE_RADIATIVE 2
@@ -95,47 +88,10 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b);
 int compare_string(const void *a, const void *b);
 
 
-#ifdef G_OS_WIN32
-  #include <windows.h>
-  #define XMI_ARGC_ORIG argc_orig
-  #define XMI_ARGV_ORIG argv_orig
-  #define XMI_ARGC argc
-  #define XMI_ARGV argv
-  #define XMI_MAIN int main(int argc_orig, char *argv_orig[]) {\
-	int argc;\
-	char **argv;\
-	int argc_counter;\
-	LPWSTR WinCommandLine = GetCommandLineW();\
-	gunichar2 **WinArgv = CommandLineToArgvW(WinCommandLine,&argc);\
-	argv = (char **) g_malloc(sizeof(char *)*argc);\
-	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++)\
-	  	argv[argc_counter] = g_utf16_to_utf8(WinArgv[argc_counter],-1, NULL, NULL, NULL);\
-	LocalFree(WinArgv);
-	
-#else
-  #define XMI_ARGC_ORIG argc
-  #define XMI_ARGV_ORIG argv
-  #define XMI_ARGC argc
-  #define XMI_ARGV argv
-  #define XMI_MAIN int main(int argc, char *argv[]) {
 
-#endif
-
-gchar *xmi_version_string();
+char *xmi_version_string();
 
 int xmi_omp_get_max_threads();
-
-#if LIBXML_VERSION < 20901
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
-xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
-
-#endif
-
-#if !GLIB_CHECK_VERSION (2, 28, 0)
-void g_list_free_full (GList *list, GDestroyNotify  free_func);
-#endif
 
 void xmi_init_hdf5(void);
 

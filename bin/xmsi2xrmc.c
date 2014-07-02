@@ -15,7 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "config.h"
+#include <config.h>
+#include "xmi_private.h"
 #include "xmi_msim.h"
 #include <string.h>
 #include <stdio.h>
@@ -55,7 +56,6 @@ XMI_MAIN
 		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{"set-channels",0,0,G_OPTION_ARG_INT,&options.nchannels,"Change number of channels (default=2048)",NULL},
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
 		{NULL}
 	};
@@ -73,7 +73,6 @@ XMI_MAIN
 	options.verbose = 0;
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
-	options.nchannels = 2048;
 
 	context = g_option_context_new ("XMSI_file");
 	GError *error = NULL;

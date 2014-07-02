@@ -182,7 +182,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
         brute_history = 0.0_C_DOUBLE
 
-        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:options%nchannels-1))
+        ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:inputF%detector%nchannels-1))
         channels = 0.0_C_DOUBLE
 
         IF (options%use_M_lines .EQ. 1) THEN 
@@ -456,7 +456,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                 channel = -1
                                         ENDIF
 
-                                        IF (channel .GE. 0 .AND. channel .LT. options%nchannels) THEN
+                                        IF (channel .GE. 0 .AND. channel .LT. inputF%detector%nchannels) THEN
 #if DEBUG == 1
 !$omp critical                        
                                         WRITE (*,'(A,I)') 'channel:'&
@@ -741,7 +741,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                 channel = -1
                                         ENDIF
 
-                                        IF (channel .GE. 0 .AND. channel .LT. options%nchannels) THEN
+                                        IF (channel .GE. 0 .AND. channel .LT. inputF%detector%nchannels) THEN
 #if DEBUG == 1
 !$omp critical                        
                                         WRITE (*,'(A,I)') 'channel:'&
@@ -889,7 +889,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         DEALLOCATE(precalc_mu_cs)
 
         !multiply with detector absorbers and detector crystal
-        DO i=0,options%nchannels-1
+        DO i=0,inputF%detector%nchannels-1
                 det_corr = 1.0_C_DOUBLE
                 DO j=1,inputF%absorbers%n_det_layers
                         det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
@@ -954,8 +954,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
 
-        ALLOCATE(channelsF(0:options%nchannels-1,0:inputF%general%n_interactions_trajectory))
-        channelsF = RESHAPE(channels, [options%nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
+        ALLOCATE(channelsF(0:inputF%detector%nchannels-1,0:inputF%general%n_interactions_trajectory))
+        channelsF = RESHAPE(channels, [inputF%detector%nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
         !multiply with live time
         channelsF = channelsF*inputF%detector%live_time
 

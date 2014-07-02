@@ -37,7 +37,6 @@ struct xmi_tools {
 	GtkWidget *xrmc_folderW;
 	GtkWidget *enable_pileupW;
 	GtkWidget *enable_poissonW;
-	GtkWidget *nchannelsW;
 };
 
 /*
@@ -48,7 +47,6 @@ static struct xmi_fluorescence_line_counts *var_red_history = NULL;
 static int nvar_red_history = 0;
 static double **channels_conv = NULL;
 static double **channels_unconv = NULL;
-static int nchannels = 0;
 static int ninteractions = 0;
 static char *inputfile = NULL;
 static int use_zero_interactions = 0;
@@ -381,7 +379,6 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	options.verbose = 0;
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
-	options.nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(xt->nchannelsW));
 
 	gchar *input_file = NULL;
 	gchar *source_file = NULL;
@@ -1220,7 +1217,7 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	GtkWidget *button;
 	GtkWidget *label;
 	GtkWidget *xmsi_fileW, *xrmc_folderW;
-	GtkWidget *enable_pileupW, *enable_poissonW, *nchannelsW;
+	GtkWidget *enable_pileupW, *enable_poissonW;
 	union xmimsim_prefs_val xpv;
 
 	master_box = gtk_vbox_new(FALSE,2);
@@ -1278,22 +1275,6 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(master_box),enable_poissonW, TRUE, FALSE, 3);
 
-	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
-	nchannelsW = gtk_spin_button_new(spinner_adj, 1, 0);
-	gtk_editable_set_editable(GTK_EDITABLE(nchannelsW), TRUE);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannelsW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannelsW), TRUE);
-	gtk_entry_set_max_length(GTK_ENTRY(nchannelsW), 7);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
-		//abort	
-		preferences_error_handler(window);
-	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannelsW), (gdouble) xpv.i);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	label = gtk_label_new("Number of spectrum channels");
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), nchannelsW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(master_box), hbox, FALSE, FALSE, 3);
 
 	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
 
@@ -1304,7 +1285,6 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	xi->xrmc_folderW = xrmc_folderW;
 	xi->enable_pileupW = enable_pileupW;
 	xi->enable_poissonW = enable_poissonW;
-	xi->nchannelsW = nchannelsW;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi2xrmc_apply_button_clicked_cb), xi);
 	
 	boxke = gtk_hbox_new(FALSE, 0);

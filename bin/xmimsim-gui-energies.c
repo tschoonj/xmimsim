@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <stdlib.h>
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include "xmi_ebel.h"
 #include <glib/gstdio.h>
 #include <string.h>

@@ -38,7 +38,6 @@ GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *escape_peaks_prefsW;
-GtkWidget *nchannels_prefsW;
 GtkWidget *custom_detector_response_prefsE;
 GtkWidget *custom_detector_response_prefsB;
 GtkWidget *custom_detector_response_prefsC;
@@ -411,12 +410,6 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 #endif
 
-	xpv.i = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(nchannels_prefsW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, xpv) == 0) {
-		//abort	
-		preferences_error_handler(pa->window);
-	}
-
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE))) > 0) {
 		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
@@ -452,7 +445,6 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
-	g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
@@ -871,20 +863,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
-		case XMIMSIM_GUI_PREFS_NCHANNELS: 
-			prefs->i = g_key_file_get_integer(keyfile, "Preferences", "Number of channels", &error);
-			if (error != NULL) {
-				//error
-				fprintf(stderr,"Number of channels not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Preferences","Number of channels", 2048);
-				//save file
-				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-					return 0;
-				g_free(prefs_file_contents);	
-				prefs->i = 2048;
-			}
-			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE: 
 			{
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Custom detector response", &error);
@@ -1277,9 +1255,6 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
 			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_NCHANNELS: 
-			g_key_file_set_integer(keyfile, "Preferences","Number of channels", prefs.i);
-			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
 			if (prefs.s != NULL)
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", prefs.s);
@@ -1436,7 +1411,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	
 	union xmimsim_prefs_val xpv;
 
-	GtkWidget *superframe = gtk_vbox_new(FALSE,5);
+	GtkWidget *superframe = gtk_vbox_new(TRUE,0);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -1455,7 +1430,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mlines_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, TRUE, FALSE, 0);
 
 	rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
@@ -1464,7 +1439,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, TRUE, FALSE, 0);
 
 	nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
@@ -1473,7 +1448,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, TRUE, FALSE, 0);
 
 	variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
@@ -1482,7 +1457,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, TRUE, FALSE, 0);
 
 	pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
@@ -1491,7 +1466,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, TRUE, FALSE, 0);
 
 	poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
 	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
@@ -1500,7 +1475,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, TRUE, FALSE, 0);
 
 	escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
 	gtk_widget_set_tooltip_text(escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
@@ -1509,7 +1484,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe), escape_peaks_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), escape_peaks_prefsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
@@ -1519,27 +1494,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(opencl_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),opencl_prefsW, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe),opencl_prefsW, TRUE, FALSE, 0);
 #endif
 
-	GtkAdjustment *spinner_adj = GTK_ADJUSTMENT(gtk_adjustment_new(2048.0, 10.0, 100000.0, 1.0, 10.0, 0.0));
-	nchannels_prefsW = gtk_spin_button_new(spinner_adj, 1, 0);
-	gtk_editable_set_editable(GTK_EDITABLE(nchannels_prefsW), TRUE);
-	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(nchannels_prefsW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(nchannels_prefsW), TRUE);
-	gtk_entry_set_max_length(GTK_ENTRY(nchannels_prefsW), 7);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NCHANNELS, &xpv) == 0) {
-		//abort	
-		preferences_error_handler(main_window);
-	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(nchannels_prefsW), (gdouble) xpv.i);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
-	label = gtk_label_new("Number of spectrum channels");
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(hbox), nchannels_prefsW, FALSE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
-	
-	hbox = gtk_hbox_new(FALSE, 0);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
 	custom_detector_response_prefsC = gtk_check_button_new_with_label("Custom detector response");
 	gtk_widget_set_tooltip_text(custom_detector_response_prefsC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
 	g_signal_connect(G_OBJECT(custom_detector_response_prefsC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), NULL);
@@ -1550,7 +1508,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	custom_detector_response_prefsB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	g_signal_connect(G_OBJECT(custom_detector_response_prefsB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), custom_detector_response_prefsE);
 	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_response_prefsB, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, TRUE, FALSE, 0);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
 		//abort	
 		preferences_error_handler(main_window);

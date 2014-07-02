@@ -281,7 +281,7 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 #include <json-glib/json-glib.h>
 #endif
 
-gchar *xmi_version_string() {
+char *xmi_version_string() {
 	gchar *string = g_malloc(sizeof(gchar)*5*1024);
 	gchar *temp;
 
@@ -560,16 +560,6 @@ xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPath
     return(xmlXPathEval(str, ctx));
 }
 
-#endif
-
-#if !GLIB_CHECK_VERSION (2, 28, 0)
-void
-g_list_free_full (GList          *list,
-                  GDestroyNotify  free_func)
-{
-  g_list_foreach (list, (GFunc) free_func, NULL);
-  g_list_free (list);
-}
 #endif
 
 static gboolean xmi_init_hdf5_done = FALSE;

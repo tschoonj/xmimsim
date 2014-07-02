@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include "xmi_aux.h"
+#include "xmi_private.h"
 
 
 
