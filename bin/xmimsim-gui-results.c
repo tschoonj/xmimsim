@@ -1075,17 +1075,17 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	countsTV = gtk_tree_view_new_with_model(GTK_TREE_MODEL(countsTS));
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Element", renderer, "text", ELEMENT_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("XRF line", renderer, "text", LINE_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column,"Energy");
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
@@ -1093,7 +1093,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_tree_view_column_set_cell_data_func(column, renderer, cell_print_double, GINT_TO_POINTER(ENERGY_COLUMN), NULL);
 
 	renderer = gtk_cell_renderer_toggle_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer),FALSE);
 	gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer),TRUE);
 	g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(cell_active_toggle), NULL);
@@ -1109,7 +1109,7 @@ GtkWidget *init_results(GtkWidget *window) {
 
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("# Interactions", renderer, "text", INTERACTION_COLUMN, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(countsTV), column);
 

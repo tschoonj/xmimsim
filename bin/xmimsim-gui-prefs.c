@@ -47,12 +47,14 @@ GtkWidget *opencl_prefsW;
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 GtkWidget *check_updates_prefsW;
+#include "xmimsim-gui-updater.h"
 #endif
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 GtkWidget *notifications_prefsW;
 #endif
 enum {
 	URL_COLUMN_PREFS,
+	STATUS_COLUMN_PREFS,
 	N_COLUMNS_PREFS
 };
 
@@ -240,6 +242,12 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 	GtkListStore *store_prefsL = (GtkListStore *) data;
 
 	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1); 
+	if (xmimsim_gui_check_download_url(new_text) == TRUE) {
+		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
+	}
+	else {
+		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+	}
 
 	return;
 }
@@ -251,6 +259,7 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	gtk_list_store_append(store_prefsL, &iter);
 	gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, "http://", -1);
+	gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
 
 	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
 	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);   
@@ -1571,16 +1580,31 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	GtkTreeViewColumn *column;
 	GtkTreeSelection *select;
 	GtkCellRenderer *renderer;
-	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING);
+	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING, G_TYPE_STRING);
 	GtkWidget *tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_prefsL));
+
 	renderer = gtk_cell_renderer_text_new();
 	g_signal_connect(renderer, "edited", G_CALLBACK(url_edited_cb), (gpointer) store_prefsL);
 	g_object_set(renderer, "editable", TRUE, NULL);
-	my_gtk_cell_renderer_set_alignment(renderer, 0., 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0., 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Website", renderer,"text",URL_COLUMN_PREFS,NULL);
-	gtk_tree_view_column_set_resizable(column,TRUE);
+	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_set_expand(column, TRUE);
+	
+	renderer = gtk_cell_renderer_pixbuf_new();
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	g_object_set(renderer, "stock-size", GTK_ICON_SIZE_SMALL_TOOLBAR, NULL);
+	column = gtk_tree_view_column_new_with_attributes("Status", renderer,"stock-id",STATUS_COLUMN_PREFS,NULL);
+	gtk_tree_view_column_set_resizable(column, FALSE);
+	gtk_tree_view_column_set_alignment(column, 0.5);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_column_set_expand(column, FALSE);
+
+
+
+
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
 	
@@ -1617,6 +1641,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
 		gtk_list_store_append(store_prefsL,&iter);
 		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
+		if (xmimsim_gui_check_download_url(xpv.ss[i]) == TRUE) {
+			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
+		}
+		else {
+			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+		}
 	}	
 
 	g_strfreev(xpv.ss);
@@ -1656,7 +1686,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	store_layersL = gtk_list_store_new(1, G_TYPE_STRING);
 	GtkWidget *tree_layers = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_layersL));
 	renderer_layers = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer_layers, 0., 0.5);
+	gtk_cell_renderer_set_alignment(renderer_layers, 0., 0.5);
 	column_layers = gtk_tree_view_column_new_with_attributes("Layer name", renderer_layers,"text",0,NULL);
 	gtk_tree_view_column_set_resizable(column_layers,TRUE);
 	gtk_tree_view_column_set_alignment(column_layers, 0.);

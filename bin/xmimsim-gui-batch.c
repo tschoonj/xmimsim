@@ -2554,7 +2554,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	int i,j,k;
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, NULL);
 	if (with_colors) {
 		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
@@ -2563,7 +2563,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, NULL);
 	if (with_colors) {
 		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);

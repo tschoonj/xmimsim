@@ -34,4 +34,6 @@ int check_for_updates(char **max_version, char **message);
 
 int download_updates(GtkWidget *window, char *max_version, char *message);
 
+gboolean xmimsim_gui_check_download_url(gchar *download_url);
+
 #endif

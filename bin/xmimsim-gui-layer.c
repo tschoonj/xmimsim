@@ -987,14 +987,14 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	HBox = gtk_hbox_new(FALSE,5);
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Element", renderer,"text",SYMBOL_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Weight fraction (%)", renderer,"text",WEIGHT_COLUMN,NULL);
 	gtk_tree_view_column_set_resizable(column,TRUE);
 	gtk_tree_view_column_set_alignment(column, 0.5);

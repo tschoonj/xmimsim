@@ -1065,7 +1065,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Energy (keV)", renderer,"text",ENERGY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Energy (keV)");
@@ -1076,7 +1076,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(ENERGY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Horizontal intensity (ph/s)", renderer,"text",HOR_INTENSITY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	if (kind == DISCRETE) 
@@ -1090,7 +1090,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(HOR_INTENSITY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Vertical intensity (ph/s)", renderer,"text",VER_INTENSITY_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	if (kind == DISCRETE) 
@@ -1104,7 +1104,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(VER_INTENSITY_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Sigma x (cm)", renderer,"text",SIGMA_X_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Sigma x (cm)");
@@ -1115,7 +1115,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_X_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Sigma y (cm)", renderer,"text",SIGMA_Y_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Sigma y (cm)");
@@ -1126,7 +1126,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_double, GINT_TO_POINTER(SIGMA_Y_COLUMN),NULL);
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Sigma xp (rad)", renderer,"text",SIGMA_XP_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Sigma xp (rad)");
@@ -1138,7 +1138,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 
 	renderer = gtk_cell_renderer_text_new();
-	my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	//column = gtk_tree_view_column_new_with_attributes("Sigma yp (rad)", renderer,"text",SIGMA_YP_COLUMN,NULL);
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, "Sigma yp (rad)");
@@ -1150,7 +1150,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	if (kind == DISCRETE) {
 		renderer = gtk_cell_renderer_text_new();
-		my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 		column = gtk_tree_view_column_new();
 		gtk_tree_view_column_set_title(column, "Distribution type");
 		gtk_tree_view_column_set_resizable(column,TRUE);
@@ -1160,7 +1160,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 		gtk_tree_view_column_set_cell_data_func(column, renderer, energy_print_distribution_type,NULL ,NULL);
 
 		renderer = gtk_cell_renderer_text_new();
-		my_gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+		gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 		column = gtk_tree_view_column_new();
 		gtk_tree_view_column_set_title(column, "Scale parameter (keV)");
 		gtk_tree_view_column_set_resizable(column,TRUE);
