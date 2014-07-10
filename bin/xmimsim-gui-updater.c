@@ -73,6 +73,9 @@ struct DownloadVars {
 	FILE *fp;
 	gchar *download_location;
 	gchar *filename;
+	GChecksum *md5sum_comp;
+	char md5sum_tag[32+1];
+
 };
 
 static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
@@ -156,9 +159,12 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 }
 
 
-static size_t WriteData(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+static size_t WriteData(void *ptr, size_t size, size_t nmemb, struct DownloadVars *dv) {
 	size_t written;
-	written = fwrite(ptr, size, nmemb, stream);
+	written = fwrite(ptr, size, nmemb, dv->fp);
+	if (dv->md5sum_comp != NULL) {
+		g_checksum_update(dv->md5sum_comp, ptr, size*nmemb);
+	}
 	return written;
 
 }
@@ -232,13 +238,27 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			return;
 		}
 
-		curl_easy_setopt(dv->curl, CURLOPT_WRITEDATA, fp);
 		res = curl_easy_perform(dv->curl);
 
 		switch (res) {
 		case CURLE_OK:
 			dv->started=FALSE;
 			fclose(fp);
+			//checksum check
+			if (dv->md5sum_comp != NULL && strcmp(g_checksum_get_string(dv->md5sum_comp), dv->md5sum_tag) != 0) {
+				//checksums don't match!
+				unlink(dv->download_location);
+				gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Checksum error");
+				gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
+				gtk_widget_set_sensitive(dv->button, FALSE);
+				gtk_label_set_text(GTK_LABEL(dv->label),"Checksum error.\nTry again at a later time.");
+				rv = 0;
+				g_checksum_free(dv->md5sum_comp);
+				break;	
+			}
+			else if (dv->md5sum_comp != NULL) {
+				g_checksum_free(dv->md5sum_comp);
+			}
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
@@ -490,9 +510,10 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
 		window != NULL ? GTK_DIALOG_MODAL : 0, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,NULL);
 
+
 	struct DownloadVars dv;
 
-	gtk_window_set_resizable(GTK_WINDOW(update_dialog), FALSE);
+	//gtk_window_set_resizable(GTK_WINDOW(update_dialog), FALSE);
 	GtkWidget *update_content = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
 	GtkWidget *label_and_button_hbox = gtk_hbox_new(FALSE,5);
 	gchar *label_text = g_strdup_printf("A new version of XMI-MSIM (%s) is available.\nYou are currently running version %s.",max_version, PACKAGE_VERSION);
@@ -543,7 +564,6 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 			my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[i], -1, NULL);
 		}
 	}
-	g_strfreev(splitted);
 
 
 	label = gtk_label_new("Download progress");
@@ -561,8 +581,8 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	//get value from preferences
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(update_dialog),
-			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		GtkWidget *dialog = gtk_message_dialog_new(window != NULL ? GTK_WINDOW(window): NULL,
+			window != NULL ? GTK_DIALOG_MODAL : 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 		exit(1);
@@ -624,9 +644,28 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	
 #endif
 
+	strcpy(dv.md5sum_tag, "none");
+	char *pattern = g_strdup_printf("MD5 (%s) = %%32s", filename);
+
+	for (i = 1 ; splitted[i] != NULL ; i++) {
+		if (sscanf(splitted[i], pattern, dv.md5sum_tag) > 0) {
+			break;
+		}
+
+	}
+	g_strfreev(splitted);
+	g_free(pattern);
+
+	if (strcmp(dv.md5sum_tag, "none") != 0) {
+		dv.md5sum_comp = g_checksum_new(G_CHECKSUM_MD5);
+	}
+	else {
+		dv.md5sum_comp = NULL;
+	}
 
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &dv);
 	char *user_agent = g_strdup_printf("XMI-MSIM %s updater using curl %i.%i.%i", PACKAGE_VERSION, LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
 	g_free(user_agent);
