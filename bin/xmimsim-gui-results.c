@@ -36,48 +36,58 @@ GdkColor yellow_plot;
 GdkColor pink_plot;
 
 
-struct xmi_output *results;
+static struct xmi_output *results;
 
-double plot_xmin, plot_xmax, plot_ymin, plot_ymax;
+static double plot_xmin, plot_xmax, plot_ymin, plot_ymax_conv, plot_ymax_unconv;
 
-GtkWidget *spectra_button_box; //VButtonBox
-GtkWidget *canvas;
-GtkWidget *plot_window;
-GtkWidget *magnifierW;
-gint canvas_height;
+static GtkWidget *spectra_button_box; //VButtonBox
+static GtkWidget *canvas;
+static GtkWidget *plot_window;
+static GtkWidget *magnifierW;
+static gint canvas_height;
 
-GtkWidget *spectra_propertiesW;
-GtkWidget *spectra_properties_linestyleW;
-GtkWidget *spectra_properties_widthW;
-GtkWidget *spectra_properties_colorW;
-GtkPlotData *spectra_properties_dataset_active;
+static GtkWidget *spectra_propertiesW;
+static GtkWidget *spectra_properties_linestyleW;
+static GtkWidget *spectra_properties_widthW;
+static GtkWidget *spectra_properties_colorW;
+static GtkPlotData *spectra_properties_dataset_active;
 
-gulong spectra_properties_linestyleG;
-gulong spectra_properties_widthG;
-gulong spectra_properties_colorG;
-gulong spectra_region_mouse_movedG;
-gulong spectra_region_changedG;
-gulong spectra_region_double_clickedG;
+static gulong spectra_properties_linestyleG;
+static gulong spectra_properties_widthG;
+static gulong spectra_properties_colorG;
+static gulong spectra_region_mouse_movedG;
+static gulong spectra_region_changedG;
+static gulong spectra_region_double_clickedG;
 
-gchar *xaxis_title = NULL;
-gchar *yaxis_title = NULL;
-int current_scale;
 
-GtkWidget *print_button;
-GtkPrintSettings *print_settings;
-GtkPageSetup *page_setup;
-GtkWidget *export_button;
-GtkWidget *settings_button;
+static gchar *xaxis_title = NULL;
+static gchar *yaxis_title = NULL;
+static int current_scale;
+static int current_conv;
 
-GtkTreeStore *countsTS;
-GtkWidget *countsTV;
+enum {
+	XMI_PLOT_CONVOLUTED,
+	XMI_PLOT_UNCONVOLUTED
+};
+
+static GtkWidget *print_button;
+static GtkPrintSettings *print_settings;
+static GtkPageSetup *page_setup;
+static GtkWidget *export_button;
+static GtkWidget *settings_button;
+
+static GtkTreeStore *countsTS;
+static GtkWidget *countsTV;
 
 
 struct spectra_data {
-	GtkPlotData *dataSet;
+	GtkPlotData *dataset_conv;
+	GtkPlotData *dataset_unconv;
 	GtkWidget *checkButton;
 	GtkWidget *button;
 };
+
+static struct spectra_data **sds = NULL;
 
 struct coords_data {
 	GtkWidget *xCoordW;
@@ -333,7 +343,8 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
         gtk_plot_get_point(GTK_PLOT(plot_window), px1, py1, &xmin, &ymax);
 	gtk_plot_get_point(GTK_PLOT(plot_window), px2, py2, &xmax, &ymin);
 
-
+	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
+	
 	xmin = MAX(xmin,plot_xmin);
 	xmax = MIN(xmax,plot_xmax);
 	ymin = MAX(ymin,plot_ymin);
@@ -398,6 +409,7 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 
 static void zoom_out(void) {
 	double tickstep = get_tickstep(plot_xmin, plot_xmax);
+	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		tickstep = get_tickstep(plot_ymin, plot_ymax);
@@ -542,6 +554,34 @@ static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_da
 	return;
 }
 
+static void radio_conv_changed_cb(GtkToggleButton *widget, gpointer data) {
+	int i;
+	if (gtk_toggle_button_get_active(widget) == TRUE) {
+		current_conv = XMI_PLOT_CONVOLUTED; 
+		for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
+			if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sds[i]->checkButton)) == TRUE) {
+				gtk_widget_hide(GTK_WIDGET(sds[i]->dataset_unconv));
+				gtk_widget_show(GTK_WIDGET(sds[i]->dataset_conv));
+			}
+		}
+	}
+	else {
+		current_conv = XMI_PLOT_UNCONVOLUTED; 
+		for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
+			if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sds[i]->checkButton)) == TRUE) {
+				gtk_widget_hide(GTK_WIDGET(sds[i]->dataset_conv));
+				gtk_widget_show(GTK_WIDGET(sds[i]->dataset_unconv));
+			}
+		}
+	}
+
+
+
+
+
+	zoom_out();
+}
+
 static void scale_combo_changed_cb(GtkComboBox *widget, gpointer user_data) {
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) == 0) {
 		current_scale = GTK_PLOT_SCALE_LINEAR;
@@ -665,7 +705,18 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(lilHBox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(lilHBox), scale_combo, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(vbox), lilHBox, FALSE, FALSE,2);
+	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE,2);
+	GtkWidget *radio_conv = gtk_radio_button_new_with_label_from_widget(NULL, "Use convoluted spectra");
+	GtkWidget *radio_unconv= gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio_conv), "Use unconvoluted spectra");
+	gtk_box_pack_start(GTK_BOX(vbox), radio_conv, FALSE, FALSE,2);
+	gtk_box_pack_start(GTK_BOX(vbox), radio_unconv, FALSE, FALSE,2);
 
+	if (current_conv == XMI_PLOT_CONVOLUTED) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_conv), TRUE);	
+	}
+	else if (current_conv == XMI_PLOT_UNCONVOLUTED) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_unconv), TRUE);	
+	}
 	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE,2);
 
 	lilHBox = gtk_hbox_new(FALSE, 2);
@@ -691,6 +742,7 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 	g_signal_connect(G_OBJECT(xaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), GINT_TO_POINTER(0));
 	g_signal_connect(G_OBJECT(yaxis_titleW), "changed", G_CALLBACK(axis_title_changed_cb), GINT_TO_POINTER(1));
 	g_signal_connect(G_OBJECT(scale_combo),"changed",G_CALLBACK(scale_combo_changed_cb),NULL);
+	g_signal_connect(G_OBJECT(radio_conv),"toggled",G_CALLBACK(radio_conv_changed_cb),NULL);
 
 	gtk_widget_show_all(vbox);
 
@@ -845,7 +897,7 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	g_signal_handler_block((gpointer) spectra_properties_colorW, spectra_properties_colorG);
 
 	//
-	spectra_properties_dataset_active = sd->dataSet;
+	spectra_properties_dataset_active = sd->dataset_conv;
 
 	//set properties
 	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
@@ -889,14 +941,23 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 
 static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer data) {
 	struct spectra_data *sd = (struct spectra_data *) data;
+	GtkPlotData *dataset;
+	
+
+	if (current_conv == XMI_PLOT_CONVOLUTED) {
+		dataset = sd->dataset_conv;
+	}
+	else {
+		dataset = sd->dataset_unconv;
+	}
 	
 
 	if (gtk_toggle_button_get_active(toggleButton) == TRUE) {
-		gtk_widget_show(GTK_WIDGET(sd->dataSet));
+		gtk_widget_show(GTK_WIDGET(dataset));
 		gtk_widget_set_sensitive(sd->button,TRUE);
 	}
 	else {
-		gtk_widget_hide(GTK_WIDGET(sd->dataSet));
+		gtk_widget_hide(GTK_WIDGET(dataset));
 		gtk_widget_set_sensitive(sd->button,FALSE);
 	}
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
@@ -946,6 +1007,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	xaxis_title = g_strdup("Energy (keV)");
 	yaxis_title = g_strdup("Intensity (counts/channel)");
 	current_scale = GTK_PLOT_SCALE_LOG10;
+	current_conv = XMI_PLOT_CONVOLUTED;
 
 
 
@@ -1165,7 +1227,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	double *temp_channels, *temp_energies;
 	double temp_energy;
 	GtkPlotCanvasChild *child;
-	GtkPlotData *dataset;
+	GtkPlotData *dataset_conv, *dataset_unconv;
 	GtkTreeIter iter1, iter2, iter3;
 	char *symbol;
 	gchar *txt;
@@ -1217,7 +1279,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	for (i=0 ; i < results->input->detector->nchannels ; i++) {
 		temp_channels[i] = results->channels_conv[results->ninteractions][i];
 	}
-	plot_ymax = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
+	plot_ymax_conv = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
+	for (i=0 ; i < results->input->detector->nchannels ; i++) {
+		temp_channels[i] = results->channels_unconv[results->ninteractions][i];
+	}
+	plot_ymax_unconv = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
 	free(temp_channels);
 	if (current_scale == GTK_PLOT_SCALE_LOG10) {
 		plot_ymin = 1.0;
@@ -1234,6 +1300,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	double tickstep = get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
+	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		tickstep = get_tickstep(plot_ymin, plot_ymax);
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
@@ -1277,6 +1344,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 
 	//fill it up again
+	
+	if (sds != NULL)
+		g_free(sds);
+	sds = g_malloc(sizeof(struct spectra_data*)*(results->ninteractions+1));
+
 	for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
 		
 		checkButton = gtk_check_button_new();	
@@ -1285,24 +1357,35 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_box_pack_start(GTK_BOX(spectrum_hbox),checkButton,FALSE,FALSE,1);
 		gtk_box_pack_end(GTK_BOX(spectrum_hbox),button,FALSE,FALSE,1);
 		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
-		dataset = GTK_PLOT_DATA(gtk_plot_data_new());
-		gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-		gtk_plot_data_set_numpoints(dataset, results->input->detector->nchannels);
-		gtk_plot_data_set_x(dataset,temp_energies);
+
+		dataset_conv = GTK_PLOT_DATA(gtk_plot_data_new());
+		gtk_plot_add_data(GTK_PLOT(plot_window),dataset_conv);
+		gtk_plot_data_set_numpoints(dataset_conv, results->input->detector->nchannels);
+		gtk_plot_data_set_x(dataset_conv, temp_energies);
 		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
 		for (j = 0 ; j < results->input->detector->nchannels ; j++)
 			temp_channels[j]=results->channels_conv[i][j];
+		gtk_plot_data_set_y(dataset_conv, temp_channels);
 
-		gtk_plot_data_set_y(dataset,temp_channels);
-		gtk_widget_show(GTK_WIDGET(dataset));
+		dataset_unconv = GTK_PLOT_DATA(gtk_plot_data_new());
+		gtk_plot_add_data(GTK_PLOT(plot_window),dataset_unconv);
+		gtk_plot_data_set_numpoints(dataset_unconv, results->input->detector->nchannels);
+		gtk_plot_data_set_x(dataset_unconv, temp_energies);
+		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+		for (j = 0 ; j < results->input->detector->nchannels ; j++)
+			temp_channels[j]=results->channels_unconv[i][j];
+		gtk_plot_data_set_y(dataset_unconv, temp_channels);
 
 		sd = (struct spectra_data *) malloc(sizeof(struct spectra_data));
+		sds[i] = sd;
 		sd->checkButton = checkButton;
 		sd->button = button;
-		sd->dataSet = dataset;
+		sd->dataset_conv = dataset_conv;
+		sd->dataset_unconv = dataset_unconv;
 		switch (i-(results->use_zero_interactions ? 0 : 1)) {
 			case 0: 
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",0);
 				}
@@ -1311,7 +1394,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 1:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&red_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&red_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&red_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",1);
 				}
@@ -1320,7 +1404,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 2:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&green_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&green_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&green_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",2);
 				}
@@ -1329,7 +1414,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 3:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&purple_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&purple_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&purple_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",3);
 				}
@@ -1338,7 +1424,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 4:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&yellow_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&yellow_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&yellow_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",4);
 				}
@@ -1347,7 +1434,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 5:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&pink_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&pink_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&pink_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",5);
 				}
@@ -1356,7 +1444,8 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			default:
-				gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
+				gtk_plot_data_set_line_attributes(dataset_conv,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
+				gtk_plot_data_set_line_attributes(dataset_unconv,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",i-(results->use_zero_interactions ? 0 : 1));
 				}
@@ -1365,6 +1454,13 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 		}
+		if (current_conv == XMI_PLOT_CONVOLUTED) {
+			gtk_widget_show(GTK_WIDGET(dataset_conv));
+		}
+		else {
+			gtk_widget_show(GTK_WIDGET(dataset_unconv));
+		}
+
 		gtk_button_set_label(GTK_BUTTON(checkButton),buffer);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkButton),TRUE);
 		g_signal_connect(G_OBJECT(button), "clicked",G_CALLBACK(spectrum_button_clicked_cb),sd);
@@ -1413,7 +1509,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				plot_data_x[0] = results->brute_force_history[i].lines[j].energy;
 				plot_data_x[1] = results->brute_force_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
-				plot_data_y[1] = plot_ymax;
+				plot_data_y[1] = plot_ymax_unconv;
 				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
 
 				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
@@ -1430,6 +1526,9 @@ int plot_spectra_from_file(char *xmsofile) {
 					CHILD_COLUMN, plot_data,	
 					COUNTS_COLUMN, results->brute_force_history[i].lines[j].total_counts,
 					-1);
+
+				
+
 				for (k = 0 ; k < results->brute_force_history[i].lines[j].n_interactions ; k++) {
 					gtk_tree_store_append(countsTS, &iter3, &iter2);
 					txt = g_strdup_printf("%i",results->brute_force_history[i].lines[j].interactions[k].interaction_number);
@@ -1468,7 +1567,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				plot_data_x[0] = results->var_red_history[i].lines[j].energy;
 				plot_data_x[1] = results->var_red_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
-				plot_data_y[1] = plot_ymax;
+				plot_data_y[1] = plot_ymax_unconv;
 				gtk_plot_data_set_line_attributes(plot_data,GTK_PLOT_LINE_SOLID,0,0,1,&black_plot);
 
 				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
@@ -1485,6 +1584,8 @@ int plot_spectra_from_file(char *xmsofile) {
 					CHILD_COLUMN, plot_data,	
 					COUNTS_COLUMN, results->var_red_history[i].lines[j].total_counts,
 					-1);
+
+
 				for (k = 0 ; k < results->var_red_history[i].lines[j].n_interactions ; k++) {
 					gtk_tree_store_append(countsTS, &iter3, &iter2);
 					txt = g_strdup_printf("%i",results->var_red_history[i].lines[j].interactions[k].interaction_number);
