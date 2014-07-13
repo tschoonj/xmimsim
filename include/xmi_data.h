@@ -41,7 +41,7 @@ void xmi_free_hdf5_F(xmi_hdf5FPtr *hdf5FPtr);
 int xmi_update_input_from_hdf5(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr);
 
 
-#define XMI_DATA_MIN_VERSION 3.3
+#define XMI_DATA_MIN_VERSION 4.2
 
 #ifdef __cplusplus
 }

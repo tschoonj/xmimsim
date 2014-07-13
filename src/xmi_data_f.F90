@@ -396,27 +396,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 .EQ. 0_C_INT) RETURN
 
 
-                !Read Doppler pz ICDF
-                IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                        WRITE (output_unit,'(A)') 'Opening dataset Doppler_pz_ICDF'
-                ENDIF
-                IF (xmi_db_open_dataset(hdf5_vars,&
-                        C_CHAR_'Doppler_pz_ICDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                        0_C_INT) RETURN
-                CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                IF (ndims .NE. 1_C_INT) THEN
-                        WRITE (error_unit,'(A)') &
-                        'Wrong dimensions found after opening dataset'
-                        RETURN
-                ENDIF
-                !read the dataset
-                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF(dims(1)))
-                NULLIFY(dims)
-                CALL xmi_free(dimsPtr)
-                IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF(1)))&
-                .EQ. 0_C_INT) RETURN
-
                 !Read corrected fluorescence yields
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening dataset corrected fluorescence yields'
@@ -708,7 +687,6 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt)
                 IF (ASSOCIATED(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)) DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs)
                 DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr)
-                DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%DopplerPz_ICDF)
         ENDDO
         DEALLOCATE(xmi_hdf5F%xmi_hdf5_Zs)
         DEALLOCATE(xmi_hdf5F)
@@ -717,27 +695,28 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
 ENDSUBROUTINE xmi_free_hdf5_F
 
 SUBROUTINE xmi_db_Z_specific(rayleigh_thetaPtr, compton_thetaPtr, energiesPtr, rsPtr,&
-doppler_pzPtr, fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip,&
-precalc_xrf_csPtr) &
+fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip,&
+precalc_xrf_csPtr, compton_profiles_Ptr, ncompton_profiles) &
 BIND(C,NAME='xmi_db_Z_specific')
 
 IMPLICIT NONE
 
 TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_thetaPtr, compton_thetaPtr, &
-energiesPtr, rsPtr, doppler_pzPtr, fluor_yield_corrPtr, ipPtr,&
-precalc_xrf_csPtr
+energiesPtr, rsPtr, fluor_yield_corrPtr, ipPtr,&
+precalc_xrf_csPtr, compton_profiles_Ptr
 INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_r, nintervals_e, maxz, &
-nintervals_e_ip
+nintervals_e_ip, ncompton_profiles
 
 REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER::&
 rayleigh_theta, compton_theta
 REAL (C_DOUBLE), DIMENSION(:,:,:,:,:), POINTER::&
 precalc_xrf_cs
 REAL (C_DOUBLE), DIMENSION(:), POINTER :: energies,rs
-REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: doppler_pz
 REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: fluor_yield_corr
 TYPE (interaction_probC), DIMENSION(:), POINTER :: ip
 TYPE (interaction_prob) :: ip_temp
+TYPE (compton_profilesC), DIMENSION(:), POINTER :: cp
+TYPE (compton_profiles) :: cp_temp
 
 INTEGER (8), PARAMETER :: nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
 nintervals_pz=1000000
@@ -749,11 +728,13 @@ REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
 temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
+REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs
 
 INTEGER :: stat,i,j,k,l,m,n,line
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
 REAL (KIND=C_DOUBLE) :: temp_energy,temp_total_cs,energy
-REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
+REAL (KIND=C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
+INTEGER (KIND=C_INT), ALLOCATABLE, DIMENSION(:) :: shell_indices, shell_indices_temp
 
 
 CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
@@ -762,17 +743,22 @@ CALL C_F_POINTER(compton_thetaPtr,compton_theta,[maxz, nintervals_e,&
 nintervals_r])
 CALL C_F_POINTER(energiesPtr,energies,[nintervals_e])
 CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
-CALL C_F_POINTER(doppler_pzPtr,doppler_pz,[maxz,nintervals_r])
 CALL C_F_POINTER(fluor_yield_corrPtr,fluor_yield_corr,[maxz,M5_SHELL+1])
 CALL C_F_POINTER(ipPtr, ip,[maxz])
 CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [maxz, 4, M5_SHELL+1, maxz, ABS(M5P5_LINE)])
+CALL C_F_POINTER(compton_profiles_Ptr, cp,[maxz])
 
 
 CALL SetErrorMessages(0)
 
 ALLOCATE(thetas(nintervals_theta), pzs(nintervals_pz))
+ALLOCATE(Qs(ncompton_profiles))
 
 !Fill up the energies and rs arrays...
+DO i=1,ncompton_profiles
+       Qs(i) = 100.0*(i-1.0)/(ncompton_profiles-1)
+ENDDO
+
 
 DO i=1,nintervals_e
         energies(i) = lowe + (maxe-lowe)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_e-1.0)
@@ -792,7 +778,8 @@ ENDDO
 
 !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,&
 !$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs,&
-!$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line)
+!$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line, cp_temp, shell_indices,&
+!$OMP shell_indices_temp)
 
 ALLOCATE(trapez(nintervals_theta-1))
 ALLOCATE(trapez2(nintervals_pz-1))
@@ -809,11 +796,11 @@ Zloop:DO i=1,maxz
 
                 thetaloop: DO k=1,nintervals_theta-1
                         trapez(k) = &
-(DCS_Rayl(i,energies(j),&
-thetas(k))*SIN(thetas(k))+&
-DCS_Rayl(i,energies(j),&
-thetas(k+1))*SIN(thetas(k+1)))&
-*(thetas(k+1)-thetas(k))/2.0
+                        (DCS_Rayl(i,energies(j),&
+                        thetas(k))*SIN(thetas(k))+&
+                        DCS_Rayl(i,energies(j),&
+                        thetas(k+1))*SIN(thetas(k+1)))&
+                        *(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop
                 !to avoid database conflicts -> calculate CS_Rayl yourself...
                 !trapez = trapez*2.0*PI/CS_Rayl(i,REAL(energies(j),KIND=C_FLOAT))
@@ -851,11 +838,11 @@ thetas(k+1))*SIN(thetas(k+1)))&
 
                 thetaloop2: DO k=1,nintervals_theta-1
                         trapez(k) = &
-(DCS_Compt(i,energies(j),&
-thetas(k))*SIN(thetas(k))+&
-DCS_Compt(i,energies(j),&
-thetas(k+1))&
-*SIN(thetas(k+1)))*(thetas(k+1)-thetas(k))/2.0
+                        (DCS_Compt(i,energies(j),&
+                        thetas(k))*SIN(thetas(k))+&
+                        DCS_Compt(i,energies(j),&
+                        thetas(k+1))&
+                        *SIN(thetas(k+1)))*(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop2
                 !trapez = trapez*2.0*PI/CS_Compt(i,REAL(energies(j),KIND=C_FLOAT))
                 trapez = trapez/SUM(trapez)
@@ -939,32 +926,47 @@ ENDIF
         !       Doppler broadening
         !
         !
-        DO j=1,nintervals_pz-1
-                trapez2(j) = &
-                (ComptonProfile(i, pzs(j))+&
-                ComptonProfile(i, pzs(j+1)))*&
-                (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(i,KIND=C_DOUBLE)
-                !divide by atomic number because we want an average value per
-                !electron
-        ENDDO
-        trapez2 = trapez2/SUM(trapez2)
-
-        temp_sum = 0.0_C_DOUBLE
-        l=1
-        m=1
-        DO
-                temp_sum = trapez2(l)+temp_sum
-                IF (temp_sum >= rs(m)) THEN
-                       doppler_pz(i,m) = pzs(l)
-                        IF (m == nintervals_r) EXIT
-                        m = m+1
+        ALLOCATE(shell_indices(1))
+        shell_indices(1) = K_SHELL
+        DO j=L1_SHELL,Q3_SHELL
+                IF(ElectronConfig_Biggs(i, j) .GT. 0) THEN
+                        ALLOCATE(shell_indices_temp(SIZE(shell_indices)+1))
+                        shell_indices_temp(1:SIZE(shell_indices)) = &
+                        shell_indices
+                        CALL MOVE_ALLOC(shell_indices_temp,&
+                        shell_indices)
+                        shell_indices(SIZE(shell_indices)) = j
                 ENDIF
-                IF (l == nintervals_pz-1) EXIT
-                l = l+1
         ENDDO
-        doppler_pz(i,nintervals_r) = maxpz
-        doppler_pz(i,1) = 0.0_C_DOUBLE
 
+        ALLOCATE(cp_temp%shell_indices(SIZE(shell_indices)))
+        cp_temp%shell_indices = shell_indices
+        ALLOCATE(cp_temp%profile_total_cdf(ncompton_profiles))
+        ALLOCATE(cp_temp%profile_partial_cdf(SIZE(shell_indices), ncompton_profiles))
+
+        cp(i)%shell_indices = C_LOC(cp_temp%shell_indices(1))
+        cp(i)%shell_indices_len = SIZE(shell_indices)
+        cp(i)%data_len = ncompton_profiles
+        cp(i)%Qs = C_LOC(Qs(1))
+        cp(i)%profile_total_cdf = C_LOC(cp_temp%profile_total_cdf(1))
+        cp(i)%profile_partial_cdf = C_LOC(cp_temp%profile_partial_cdf(1,1))
+
+       
+        cp_temp%profile_total_cdf(1) = 0.0
+        cp_temp%profile_partial_cdf(:,1) = 0.0
+        DO j=2,ncompton_profiles
+               cp_temp%profile_total_cdf(j) = cp_temp%profile_total_cdf(j-1)+&
+               (Qs(2)-Qs(1))*(ComptonProfile(i, Qs(j))+ComptonProfile(i,&
+               Qs(j-1)))*0.5_C_DOUBLE
+        ENDDO
+        DO k=1,SIZE(shell_indices)
+          DO j=2,ncompton_profiles
+               cp_temp%profile_partial_cdf(k,j) = cp_temp%profile_partial_cdf(k,j-1)+&
+               (Qs(2)-Qs(1))*(ComptonProfile_Partial(i, shell_indices(k), Qs(j))+&
+               ComptonProfile_Partial(i, shell_indices(k), Qs(j-1)))*0.5_C_DOUBLE
+          ENDDO
+        ENDDO
+        DEALLOCATE(shell_indices)
         !
         !
         !       Corrected fluorescence yields (in terms of the primary vacancy

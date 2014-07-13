@@ -38,6 +38,29 @@ TYPE, BIND(C) :: interaction_probC
         TYPE (C_PTR) :: energies
         TYPE (C_PTR) :: Rayl_and_Compt
 ENDTYPE
+
+!
+!
+!  Doppler broadening profiles
+!
+!
+TYPE :: compton_profiles
+        INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: shell_indices
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_total_cdf
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: profile_partial_cdf
+ENDTYPE
+
+TYPE, BIND(C) :: compton_profilesC
+        INTEGER (KIND=C_INT) :: shell_indices_len
+        INTEGER (KIND=C_INT) :: data_len
+        TYPE (C_PTR) :: shell_indices
+        TYPE (C_PTR) :: Qs 
+        TYPE (C_PTR) :: profile_total_cdf
+        TYPE (C_PTR) :: profile_partial_cdf
+ENDTYPE
+
+
 !
 !
 ! HDF5 data structures
@@ -52,6 +75,7 @@ TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
+        TYPE (compton_profiles) :: compton_profiles 
         INTEGER (C_INT) :: Z
         INTEGER (C_INT) :: Zindex
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: precalc_xrf_cs
