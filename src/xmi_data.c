@@ -41,6 +41,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_registry_win.h"
 #endif
 
+
+
+
 char *cascade_group_names[4] = {"No cascade effect", "Non-radiative cascade effect", "Radiative cascade effect", "Full cascade effect"};
 char *shell_names[9] = {"K shell", "L1 shell", "L2 shell", "L3 shell", "M1 shell", "M2 shell", "M3 shell", "M4 shell", "M5 shell"};
 
@@ -591,9 +594,9 @@ int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, in
 	return 1;
 }
 
-int xmi_db_read_dataset(struct hdf5_vars *hv, void *data) {
+int xmi_db_read_dataset(struct hdf5_vars *hv, void *data, int type) {
 	
-	H5Dread(hv->dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+	H5Dread(hv->dset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 	H5Sclose(hv->dspace_id);
 	H5Dclose(hv->dset_id);
 

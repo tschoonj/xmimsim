@@ -24,6 +24,9 @@ USE :: xmimsim_aux
 USE :: fgsl
 USE :: ISO_FORTRAN_ENV
 
+INTEGER (C_INT), BIND(C, NAME='XMI_H5T_NATIVE_DOUBLE') :: XMI_H5T_NATIVE_DOUBLE
+INTEGER (C_INT), BIND(C, NAME='XMI_H5T_NATIVE_INT') :: XMI_H5T_NATIVE_INT
+
 
 INTERFACE
         !wrappers in xmi_hdf5.c around hdf5 calls
@@ -67,13 +70,14 @@ INTERFACE
                 INTEGER (C_INT) :: rv
         ENDFUNCTION xmi_db_open_dataset
 
-        FUNCTION xmi_db_read_dataset(hdf5_vars, data)&
+        FUNCTION xmi_db_read_dataset(hdf5_vars, data, type)&
                 BIND(C,NAME='xmi_db_read_dataset')&
                 RESULT(rv)
                 USE, INTRINSIC :: ISO_C_BINDING
                 IMPLICIT NONE
                 TYPE (C_PTR), INTENT(IN), VALUE :: hdf5_vars
                 TYPE (C_PTR), INTENT(IN), VALUE :: data
+                INTEGER (C_INT), INTENT(IN), VALUE :: type
                 INTEGER (C_INT) :: rv
         ENDFUNCTION xmi_db_read_dataset
 
@@ -279,8 +283,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Phi_ICDF(1,1)))&
-                .EQ. 0_C_INT) RETURN
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Phi_ICDF(1,1)),&
+                XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
         !thetas
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -301,8 +305,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Thetas(1)))&
-                .EQ. 0_C_INT) RETURN
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%Thetas(1)),&
+                XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
         !random numbers
         IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -323,8 +327,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         NULLIFY(dims)
         CALL xmi_free(dimsPtr)
 
-        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RandomNumbers(1)))&
-                .EQ. 0_C_INT) RETURN
+        IF (xmi_db_read_dataset(hdf5_vars, C_LOC(xmi_hdf5F%RandomNumbers(1)),&
+                XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
         !close group
         IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
@@ -371,8 +375,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF(1,1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
                 
                 !Read Compton Theta ICDF
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -392,8 +396,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF(1,1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%ComptonTheta_ICDF(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
 
                 !Read corrected fluorescence yields
@@ -415,8 +419,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 CALL xmi_free(dimsPtr)
 
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr(0)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%FluorYieldsCorr(0)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
                 !Read energies
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -436,8 +440,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%Energies(1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%Energies(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
                 !Read random numbers
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -457,8 +461,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%RandomNumbers(1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%RandomNumbers(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
                 !close group
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -496,8 +500,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies(1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%energies(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
 
                 !Read Rayleigh and Compton probabilities
@@ -525,8 +529,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 NULLIFY(dims)
                 CALL xmi_free(dimsPtr)
                 IF (xmi_db_read_dataset(hdf5_vars, &
-                C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt(1,1)))&
-                .EQ. 0_C_INT) RETURN
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%interaction_probs%Rayl_and_Compt(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
                 !close group
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -534,6 +538,109 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                  C_CHAR_'Interaction probabilities'//C_NULL_CHAR
                 ENDIF
                 IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+
+
+                !Read Compton profiles
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Opening group ',&
+                 C_CHAR_'Compton profiles'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_open_group(hdf5_vars,&
+                        C_CHAR_'Compton profiles'//C_NULL_CHAR) &
+                        .EQ. 0_C_INT) RETURN
+
+                !Read Shell indices 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Shell indices'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Shell indices'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(1)),&
+                        XMI_H5T_NATIVE_INT) .EQ. 0_C_INT) RETURN
+
+                !Read Qs 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Qs'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Qs'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Total profile CDF
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Total profile CDF'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Total profile CDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_cdf(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_cdf(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Partial profile CDF
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Partial profile CDF'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Partial profile CDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 2_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(dims(1),dims(2)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !close group
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                WRITE (output_unit,'(A,A)') 'Closing group ',&
+                 C_CHAR_'Compton profiles'//C_NULL_CHAR
+                ENDIF
+                IF (xmi_db_close_group(hdf5_vars) .EQ. 0_C_INT) RETURN
+
+
 
                 !the rest of the loop is only useful when using variance
                 !reduction
@@ -600,7 +707,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                                 NULLIFY(dims)
                                 CALL xmi_free(dimsPtr)
                                 IF (xmi_db_read_dataset(hdf5_vars, &
-                                C_LOC(precalc_xrf_cs_local))&
+                                C_LOC(precalc_xrf_cs_local),&
+                                XMI_H5T_NATIVE_DOUBLE)&
                                 .EQ. 0_C_INT) RETURN
                                 xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs(shell,j,:)=&
                                 precalc_xrf_cs_local

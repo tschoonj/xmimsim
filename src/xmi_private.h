@@ -53,4 +53,7 @@ ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 
 #endif
 
+extern int XMI_H5T_NATIVE_DOUBLE;
+extern int XMI_H5T_NATIVE_INT;
+
 #endif
