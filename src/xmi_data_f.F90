@@ -735,6 +735,8 @@ REAL (KIND=C_DOUBLE) :: temp_sum,K0K
 REAL (KIND=C_DOUBLE) :: temp_energy,temp_total_cs,energy
 REAL (KIND=C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
 INTEGER (KIND=C_INT), ALLOCATABLE, DIMENSION(:) :: shell_indices, shell_indices_temp
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: electron_config,&
+electron_config_temp
 
 
 CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
@@ -779,7 +781,7 @@ ENDDO
 !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,&
 !$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs,&
 !$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line, cp_temp, shell_indices,&
-!$OMP shell_indices_temp)
+!$OMP shell_indices_temp, electron_config, electron_config_temp)
 
 ALLOCATE(trapez(nintervals_theta-1))
 ALLOCATE(trapez2(nintervals_pz-1))
@@ -926,8 +928,9 @@ ENDIF
         !       Doppler broadening
         !
         !
-        ALLOCATE(shell_indices(1))
+        ALLOCATE(shell_indices(1), electron_config(1))
         shell_indices(1) = K_SHELL
+        electron_config(1) = ElectronConfig_Biggs(i, K_SHELL)
         DO j=L1_SHELL,Q3_SHELL
                 IF(ElectronConfig_Biggs(i, j) .GT. 0) THEN
                         ALLOCATE(shell_indices_temp(SIZE(shell_indices)+1))
@@ -936,6 +939,12 @@ ENDIF
                         CALL MOVE_ALLOC(shell_indices_temp,&
                         shell_indices)
                         shell_indices(SIZE(shell_indices)) = j
+                        ALLOCATE(electron_config_temp(SIZE(electron_config)+1))
+                        electron_config_temp(1:SIZE(electron_config)) = &
+                        electron_config
+                        CALL MOVE_ALLOC(electron_config_temp,&
+                        electron_config)
+                        electron_config(SIZE(electron_config)) = ElectronConfig_Biggs(i,j)
                 ENDIF
         ENDDO
 
@@ -965,8 +974,13 @@ ENDIF
                (Qs(2)-Qs(1))*(ComptonProfile_Partial(i, shell_indices(k), Qs(j))+&
                ComptonProfile_Partial(i, shell_indices(k), Qs(j-1)))*0.5_C_DOUBLE
           ENDDO
+          cp_temp%profile_partial_cdf(k,:) =&
+          cp_temp%profile_partial_cdf(k,:)*0.5/cp_temp%profile_partial_cdf(k,ncompton_profiles)
         ENDDO
+        cp_temp%profile_total_cdf = &
+        MATMUL(electron_config,cp_temp%profile_partial_cdf)
         DEALLOCATE(shell_indices)
+        DEALLOCATE(electron_config)
         !
         !
         !       Corrected fluorescence yields (in terms of the primary vacancy
