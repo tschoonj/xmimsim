@@ -1239,7 +1239,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !
                 !
                 IF (photon%energy .LT. energy_threshold) THEN
-                        EXIT
+                        EXIT main
                 ENDIF
                 !Check in which layer it will interact
                 photon%inside = .FALSE.
@@ -2119,7 +2119,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        INTEGER (C_INT) :: rv, pos_1, pos_2
+        INTEGER (C_INT) :: rv, pos_1, pos_2, shell
         REAL (C_DOUBLE) :: theta_i, phi_i
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
@@ -2183,7 +2183,11 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !update energy of photon!!!
         !
         CALL xmi_update_photon_energy_compton(photon, theta_i, rng, inputF,&
-        hdf5f)
+        hdf5f, shell)
+        IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
+                rv = 1
+                RETURN
+        ENDIF
 
         !
         !update photon%theta and photon%phi
@@ -4779,76 +4783,169 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_radiative
 
-SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F) 
+SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F, shell) 
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
+        INTEGER (C_INT), INTENT(OUT) :: shell
 
-        REAL (C_DOUBLE) :: K0K,pz,r
-        INTEGER (C_INT) :: pos
-        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
-        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
-        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
-        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
-        REAL (C_DOUBLE) :: energy, sth2
-        INTEGER (C_INT) :: np
+        REAL (C_DOUBLE) :: energy, Qimax, Qimax_pos, r,&
+        cdf_sum, temp_sum, cdf, Q, cdf_pos
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs,&
+        electron_config
+        INTEGER (C_INT) :: i, pos
 
-!        ASSOCIATE (hdf5_Z => inputF%composition%layers&
-!                (photon%current_layer)%xmi_hdf5_Z_local&
-!                (photon%current_element_index)%Ptr)
+#if DEBUG == 0
+        !WRITE (*,'(A,I3)') 'element: ',photon%current_element
+#endif
  
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
+        ALLOCATE(cdfs(SIZE(hdf5_Z%compton_profiles%shell_indices)))
+        ALLOCATE(electron_config(SIZE(hdf5_Z%compton_profiles%shell_indices)))
 
-        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
-        
-        !convert to eV
-        energy = photon%energy*1000.0_C_DOUBLE
-        c_lamb0 = c/(energy)
-
-        sth2 = SIN(theta_i/2.0_C_DOUBLE)
-
-        DO
-                r = fgsl_rng_uniform(rng)
-                pos = findpos(hdf5_Z%&
-                RandomNumbers, r)
-
-                pz = interpolate_simple([&
-                hdf5_Z%&
-                RandomNumbers(pos),&
-                hdf5_Z%&
-                DopplerPz_ICDF(pos)]&
-                ,[hdf5_Z%&
-                RandomNumbers(pos+1),&
-                hdf5_Z%&
-                DopplerPz_ICDF(pos+1)], r)
-
-!                np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
-!                pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
-
-#if DEBUG == 2
-                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
-                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
-                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
-                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
-#endif
-
-                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
-
-                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
-                c_lamb = c_lamb0+dlamb
-                energy = c/c_lamb/1000.0_C_DOUBLE
-                IF (energy .LE. photon%energy ) EXIT
+        DO i=1,SIZE(electron_config)
+                electron_config(i) = &
+                ElectronConfig_Biggs(photon%current_element,&
+                hdf5_Z%compton_profiles%shell_indices(i))
+                Qimax = xmi_get_qimax(photon%energy, photon%current_element,&
+                hdf5_Z%compton_profiles%shell_indices(i), theta_i)
+                IF (Qimax .LT. -100.0) THEN
+                        !value too low
+                        cdfs(i) = 0.0_C_DOUBLE
+                ELSEIF (Qimax .GT. 100.0) THEN
+                        !value too high
+                        !WRITE (error_unit, '(A,F14.5)') 'Invalid Qimax: ', Qimax 
+                        !WRITE (error_unit, '(A,F14.5)') 'Energy: ',&
+                        !photon%energy 
+                        !WRITE (error_unit, '(A,I3)') 'Element: ',&
+                        !photon%current_element 
+                        !WRITE (error_unit, '(A,I3)') 'Shell index: ',&
+                        !hdf5_Z%compton_profiles%shell_indices(i) 
+                        !WRITE (error_unit, '(A,F14.5)') 'Theta: ',&
+                        !theta_i
+                        !CALL xmi_exit(1)
+                        cdfs(i) = 1.0_C_DOUBLE
+                ELSEIF (Qimax .LT. 0.0_C_DOUBLE) THEN
+                        !negative value
+                        Qimax_pos = -1.0_C_DOUBLE*Qimax
+                        pos = INT(Qimax_pos/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(i) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1)&
+                        ],Qimax_pos)
+                        cdfs(i) = 1.0_C_DOUBLE-(0.5_C_DOUBLE+cdfs(i))
+                ELSE
+                        !positive value
+                        pos = INT(Qimax/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(i) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1)&
+                        ],Qimax)
+                        cdfs(i) = 0.5_C_DOUBLE+cdfs(i)
+                ENDIF
         ENDDO
 
-        !photon%energy = &
-        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
+        cdf_sum = DOT_PRODUCT(electron_config, cdfs)
 
-        photon%energy = energy
+        IF (cdf_sum .EQ. 0.0_C_DOUBLE) THEN
+                !this would be an incredibly rare event
+                !but it has been known to happen
+                !if it does -> kill the photon
+                photon%energy = 0.0
+                photon%energy_changed = .TRUE.
+                RETURN
+        ENDIF
 
-#if DEBUG == 2
+        !get random number
+        r = fgsl_rng_uniform(rng)
+
+        temp_sum = 0.0_C_DOUBLE
+        i = 1
+
+        !sample the subshell
+        DO
+                temp_sum = temp_sum + electron_config(i)*cdfs(i)/cdf_sum
+                IF (r .LE. temp_sum) THEN
+                        shell = hdf5_Z%compton_profiles%shell_indices(i)
+#if DEBUG == 1
+        WRITE (*,'(A,I3)') 'selected shell: ',shell 
+#endif
+                        EXIT 
+                ENDIF
+                i = i + 1
+        ENDDO
+
+        !sample the energy of the scattered photon
+        r = fgsl_rng_uniform(rng)
+        cdf = r*cdfs(i)
+
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'cdf: ', cdf
+#endif
+        IF (cdf .LT. 0.5_C_DOUBLE) THEN
+                !negative Q
+                cdf_pos = 0.5_C_DOUBLE-cdf
+                pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                cdf_pos)
+                IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        WRITE (error_unit, '(A)')&
+                        'findpos error in xmi_update_photon_energy_compton'
+                        WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                        CALL xmi_exit(1)
+                ENDIF
+                Q = interpolate_simple([&
+                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                hdf5_Z%compton_profiles%Qs(pos)&
+                ],[&
+                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                hdf5_Z%compton_profiles%Qs(pos+1)&
+                ], cdf_pos)
+                Q = -1.0_C_DOUBLE*Q
+        ELSE
+                !positive Q
+                cdf_pos = cdf-0.5_C_DOUBLE
+                pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                cdf_pos)
+                IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        WRITE (error_unit, '(A)')&
+                        'findpos error in xmi_update_photon_energy_compton'
+                        WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                        CALL xmi_exit(1)
+                ENDIF
+                Q = interpolate_simple([&
+                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                hdf5_Z%compton_profiles%Qs(pos)&
+                ],[&
+                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                hdf5_Z%compton_profiles%Qs(pos+1)&
+                ], cdf_pos)
+        ENDIF
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'Q: ', Q
+#endif
+
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'old photon energy: ',photon%energy
+#endif
+        photon%energy_changed = .FALSE.
+        !translate Q into the corresponding energy
+        photon%energy = xmi_get_energy_from_q(photon%energy, Q, theta_i)
+        IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
+                RETURN
+        ENDIF
+
+#if DEBUG == 1
         WRITE (*,'(A,F12.5)') 'new photon energy: ',photon%energy
 #endif
         photon%energy_changed = .FALSE.

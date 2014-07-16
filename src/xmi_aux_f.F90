@@ -1905,4 +1905,121 @@ BIND(C,NAME='xmi_omp_get_max_threads')
         rv = INT(omp_get_max_threads(), KIND=C_INT)
 ENDFUNCTION xmi_omp_get_max_threads
 
+FUNCTION xmi_get_qimax(energy, element, shell, theta) RESULT(Qimax)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: energy, theta
+        INTEGER (C_INT), INTENT(IN) :: element, shell
+        REAL (C_DOUBLE) :: Qimax
+
+        REAL (C_DOUBLE) :: Ii, EminIi, costheta
+
+        !WRITE (output_unit, '(A)') 'Entering xmi_get_qimax'
+
+        !check what happens when zero is returned here...
+        Ii = EdgeEnergy(element, shell)
+        IF (Ii .EQ. 0.0_C_DOUBLE) THEN
+                !WRITE (output_unit,'(A)') 'Warning: EdgeEnergy equal to zero in xmi_get_qimax'
+                !WRITE (output_unit,'(A,I3,AI2)') 'Element: ',&
+                !element,' shell: ',shell
+        ELSEIF (energy .LT. Ii) THEN
+                Qimax = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+        EminIi = energy-Ii
+        costheta = COS(theta)
+        Qimax = 137.0_C_DOUBLE*(EminIi*energy*(1.0_C_DOUBLE-costheta)/MEC2-Ii)
+        Qimax = &
+        Qimax/SQRT(EminIi**2+energy**2-2.0_C_DOUBLE*EminIi*energy*costheta)
+
+ENDFUNCTION xmi_get_qimax
+
+FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: init_energy, Q, theta
+        REAL (C_DOUBLE) :: energy
+
+        REAL (C_DOUBLE) :: a, b, c, d 
+        REAL (C_DOUBLE) :: aq, bq, cq 
+        REAL (C_DOUBLE), PARAMETER :: onethreeseven = 137.0_C_DOUBLE
+        REAL (C_DOUBLE) :: E1, E2, Q1, Q2 
+        INTEGER (C_INT) :: rv
+
+        a = init_energy
+        b = MEC2
+        c = COS(theta)
+
+        IF (ABS(c-1.0_C_DOUBLE) .LT. 1E-8) THEN
+                !exception for theta very close to 0
+                energy = 0.0
+                RETURN
+        ENDIF
+
+        d = 1.0_C_DOUBLE + a/b - a*c/b
+
+        aq = onethreeseven**2*d**2 - Q**2
+        bq = -2.0_C_DOUBLE*onethreeseven**2*a*d + 2.0_C_DOUBLE*a*c*Q**2
+        cq = onethreeseven**2*a**2 - a**2*Q**2
+
+        rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2) 
+
+        IF (rv == 0_C_INT) THEN
+                WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
+                WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                WRITE (error_unit, '(A, F14.5)') 'Q:', Q
+                WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
+                WRITE (error_unit, '(A, F14.5)') 'theta:', theta
+                CALL xmi_exit(1)
+        ENDIF
+
+        !WRITE (output_unit,'(A, F14.5)') 'Energy1: ', E1
+        !WRITE (output_unit,'(A, F14.5)') 'Q1: ', Q1
+        !WRITE (output_unit,'(A, F14.5)') 'Energy2: ', E2
+        !WRITE (output_unit,'(A, F14.5)') 'Q2: ', Q2
+
+
+        !in order to know which energy to use
+        !calculate the corresponding Qs and see which one matches the input
+        Q1 = xmi_get_q_from_energy(init_energy, E1, theta)
+        Q2 = xmi_get_q_from_energy(init_energy, E2, theta)
+
+        IF (Q*Q1 .GT. 0.0) THEN
+                energy = E1
+        ELSEIF (Q*Q2 .GT. 0.0) THEN
+                energy = E2
+        ELSEIF (ABS(E1-E2) .LT. 1E-10 .OR. ABS(Q1-Q2) .LT. 1E-10) THEN
+                !Q is extremely close to zero -> math issues start to emerge
+                !should check for floating point exceptions and so
+                !anyway, in this case E1 and E2 are identical
+                energy = E1
+        ELSE
+                WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
+                WRITE (error_unit, '(A)') 'Invalid values for Q1 and Q2'
+                WRITE (error_unit, '(A, ES14.5)') 'Q1:', Q1
+                WRITE (error_unit, '(A, ES14.5)') 'Q2:', Q2
+                WRITE (error_unit, '(A, F14.5)') 'E1:', E1
+                WRITE (error_unit, '(A, F14.5)') 'E2:', E2
+                WRITE (error_unit, '(A, ES14.5)') 'Q:', Q
+                WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
+                WRITE (error_unit, '(A, F14.5)') 'theta:', theta
+                CALL xmi_exit(1)
+        ENDIF
+
+ENDFUNCTION xmi_get_energy_from_q
+
+FUNCTION xmi_get_q_from_energy(old_energy, new_energy, theta) RESULT(Q)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: old_energy, new_energy, theta
+        REAL (C_DOUBLE) :: Q
+
+        REAL (C_DOUBLE) :: costheta
+
+        costheta = COS(theta)
+        Q = 137.0_C_DOUBLE*(new_energy-old_energy+&
+        (1.0-costheta)*old_energy*new_energy/MEC2)
+        Q = Q/SQRT(new_energy**2+old_energy**2-&
+        2.0*old_energy*new_energy*costheta)
+
+
+ENDFUNCTION xmi_get_q_from_energy
+
 ENDMODULE 
