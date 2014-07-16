@@ -1953,6 +1953,11 @@ FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
                 energy = 0.0
                 RETURN
         ENDIF
+        IF (ABS(Q) .LT. 1E-4) THEN
+                !exception for Q very close to zero
+                energy = init_energy/(1.0 + init_energy*(1.0-c)/MEC2)
+                RETURN
+        ENDIF
 
         d = 1.0_C_DOUBLE + a/b - a*c/b
 

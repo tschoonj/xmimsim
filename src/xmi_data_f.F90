@@ -336,6 +336,8 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
         !read Z dependent part...
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
+        xmi_hdf5F%uniqZ = 0
+
         DO i=1,SIZE(uniqZ) 
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i

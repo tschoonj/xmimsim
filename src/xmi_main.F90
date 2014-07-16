@@ -4885,6 +4885,10 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
                 ENDIF
                 i = i + 1
         ENDDO
+        !if shell is K, L or M, we should create an offspring photon
+        !for the fluorescence that may be generated...
+
+
 
         !sample the energy of the scattered photon
         r = fgsl_rng_uniform(rng)
