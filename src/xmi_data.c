@@ -59,8 +59,9 @@ struct compton_profiles {
 	int data_len;
 	int *shell_indices;
 	double *Qs;
-	double *profile_total_cdf;
 	double *profile_partial_cdf;
+	double *profile_partial_cdf_inv;
+	double *Qs_inv;
 };
 
 struct hdf5_vars {
@@ -343,17 +344,24 @@ int xmi_db(char *filename) {
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
-		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
-		dset_id = H5Dcreate(group_id2, "Total profile CDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_total_cdf);	
-		H5Sclose(dspace_id);
-		H5Dclose(dset_id);
-
 		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Partial profile CDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf);	
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
+
+		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
+		dset_id = H5Dcreate(group_id2, "Partial profile CDF inverted",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf_inv);
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
+		dset_id = H5Dcreate(group_id2, "Qs inverted",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs_inv);
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
 
 		H5Gclose(group_id2);
 

@@ -593,27 +593,6 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(1)),&
                         XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
-                !Read Total profile CDF
-                IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                        WRITE (output_unit,'(A)') 'Opening Total profile CDF'
-                ENDIF
-                IF (xmi_db_open_dataset(hdf5_vars,&
-                        C_CHAR_'Total profile CDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                        0_C_INT) RETURN
-                CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                IF (ndims .NE. 1_C_INT) THEN
-                        WRITE (error_unit,'(A)') &
-                        'Wrong dimensions found after opening dataset'
-                        RETURN
-                ENDIF
-                !read the dataset
-                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_cdf(dims(1)))
-                NULLIFY(dims)
-                CALL xmi_free(dimsPtr)
-                IF (xmi_db_read_dataset(hdf5_vars, &
-                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_cdf(1)),&
-                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
                 !Read Partial profile CDF
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening Partial profile CDF'
@@ -634,6 +613,51 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 IF (xmi_db_read_dataset(hdf5_vars, &
                         C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(1,1)),&
                         XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Partial profile CDF inverted
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') &
+                        'Opening Partial profile CDF inverted'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Partial profile CDF inverted'//C_NULL_CHAR,&
+                        ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Qs inverted
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Qs inverted'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Qs inverted'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 2_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(dims(1),dims(2)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
 
                 !close group
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
@@ -829,16 +853,16 @@ TYPE (compton_profilesC), DIMENSION(:), POINTER :: cp
 TYPE (compton_profiles) :: cp_temp
 
 INTEGER (8), PARAMETER :: nintervals_theta=100000, nintervals_theta2=200,nintervals_phi=100000, &
-nintervals_pz=1000000
+nintervals_pz=10000000
 REAL (KIND=C_DOUBLE), PARAMETER :: maxe = 200.0, lowe = 0.1, &
-        PI = 3.14159265359,maxpz = 100.0
+        PI = 3.14159265359
 
-REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis,trapez2
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: trapez, thetas,sumz,phis
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET :: energies_flt,&
 temp_array
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: energies_dbl
-REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: pzs
-REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs
+REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs, profile_partial_cdf_inv
+REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: Qs_big, profile_partial_cdf_big
 
 INTEGER :: stat,i,j,k,l,m,n,line
 REAL (KIND=C_DOUBLE) :: temp_sum,K0K
@@ -847,6 +871,7 @@ REAL (KIND=C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
 INTEGER (KIND=C_INT), ALLOCATABLE, DIMENSION(:) :: shell_indices, shell_indices_temp
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: electron_config,&
 electron_config_temp
+INTEGER (KIND=C_INT) :: pos, old_pos
 
 
 CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
@@ -863,40 +888,50 @@ CALL C_F_POINTER(compton_profiles_Ptr, cp,[maxz])
 
 CALL SetErrorMessages(0)
 
-ALLOCATE(thetas(nintervals_theta), pzs(nintervals_pz))
+ALLOCATE(thetas(nintervals_theta))
 ALLOCATE(Qs(ncompton_profiles))
+ALLOCATE(profile_partial_cdf_inv(ncompton_profiles))
+ALLOCATE(Qs_big(nintervals_pz))
 
 !Fill up the energies and rs arrays...
 DO i=1,ncompton_profiles
-       Qs(i) = 100.0*(i-1.0)/(ncompton_profiles-1)
+       Qs(i) = &
+       100.0*(REAL(i,C_DOUBLE)-1.0)/(REAL(ncompton_profiles,C_DOUBLE)-1.0)
+       profile_partial_cdf_inv(i) = 0.5*(REAL(i,C_DOUBLE)-1.0)/&
+       (REAL(ncompton_profiles,C_DOUBLE)-1)
+ENDDO
+
+DO i=1,nintervals_pz
+        Qs_big(i) = 100.0*(REAL(i,C_DOUBLE)-1.0)/(REAL(nintervals_pz,C_DOUBLE)-1)
 ENDDO
 
 
 DO i=1,nintervals_e
-        energies(i) = lowe + (maxe-lowe)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_e-1.0)
-ENDDO
-
-DO i=1,nintervals_pz
-        pzs(i) = 0.0_C_DOUBLE + maxpz*(REAL(i,C_DOUBLE)-1.0)/(nintervals_pz-1.0)
+        energies(i) = lowe + (maxe-lowe)*(REAL(i,C_DOUBLE)-1.0)/&
+        (REAL(nintervals_e,C_DOUBLE)-1.0)
 ENDDO
 
 DO i=1,nintervals_r
-        rs(i) = (REAL(i,C_DOUBLE)-1.0)/(nintervals_r-1.0)
+        rs(i) = (REAL(i,C_DOUBLE)-1.0)/(REAL(nintervals_r,C_DOUBLE)-1.0)
 ENDDO
 
 DO i=1,nintervals_theta
-        thetas(i) = 0.0_C_DOUBLE+(PI)*(REAL(i,C_DOUBLE)-1.0)/(nintervals_theta-1.0)
+        thetas(i) = 0.0_C_DOUBLE+(PI)*(REAL(i,C_DOUBLE)-1.0)/&
+        (REAL(nintervals_theta,C_DOUBLE)-1.0)
 ENDDO
 
 !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j,k,l,m,trapez,temp_sum,sumz,energies_flt,&
-!$OMP temp_energy,trapez2,temp_array,ip_temp,temp_total_cs,&
+!$OMP temp_energy,temp_array,ip_temp,temp_total_cs,&
 !$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line, cp_temp, shell_indices,&
-!$OMP shell_indices_temp, electron_config, electron_config_temp)
+!$OMP shell_indices_temp, electron_config, electron_config_temp,&
+!$OMP profile_partial_cdf_big, pos)
 
 ALLOCATE(trapez(nintervals_theta-1))
-ALLOCATE(trapez2(nintervals_pz-1))
 ALLOCATE(sumz(nintervals_theta-1))
-!$OMP DO
+ALLOCATE(profile_partial_cdf_big(nintervals_pz))
+
+!$OMP DO &
+!$OMP SCHEDULE(dynamic,1)
 
 Zloop:DO i=1,maxz 
         WRITE (output_unit, '(A,I3)') 'Generating datasets for element ', i
@@ -986,8 +1021,8 @@ ENDIF
         !initializing with REAL... sorry Intel!
         ALLOCATE(energies_flt(nintervals_e_ip))
         DO j=1,nintervals_e_ip
-                energies_flt(j) = REAL(lowe + (maxe-lowe)*(REAL(j,C_DOUBLE)-1.0)&
-                /(nintervals_e_ip-1.0),KIND=C_DOUBLE)
+                energies_flt(j) = lowe + (maxe-lowe)*(REAL(j,C_DOUBLE)-1.0)&
+                /(REAL(nintervals_e_ip,C_DOUBLE)-1.0)
         ENDDO
 
         !add edge energies
@@ -1060,24 +1095,19 @@ ENDIF
 
         ALLOCATE(cp_temp%shell_indices(SIZE(shell_indices)))
         cp_temp%shell_indices = shell_indices
-        ALLOCATE(cp_temp%profile_total_cdf(ncompton_profiles))
         ALLOCATE(cp_temp%profile_partial_cdf(SIZE(shell_indices), ncompton_profiles))
+        ALLOCATE(cp_temp%Qs_inv(SIZE(shell_indices), ncompton_profiles))
 
         cp(i)%shell_indices = C_LOC(cp_temp%shell_indices(1))
         cp(i)%shell_indices_len = SIZE(shell_indices)
         cp(i)%data_len = ncompton_profiles
         cp(i)%Qs = C_LOC(Qs(1))
-        cp(i)%profile_total_cdf = C_LOC(cp_temp%profile_total_cdf(1))
+        cp(i)%profile_partial_cdf_inv = C_LOC(profile_partial_cdf_inv(1))
         cp(i)%profile_partial_cdf = C_LOC(cp_temp%profile_partial_cdf(1,1))
+        cp(i)%Qs_inv= C_LOC(cp_temp%Qs_inv(1,1))
 
        
-        cp_temp%profile_total_cdf(1) = 0.0
         cp_temp%profile_partial_cdf(:,1) = 0.0
-        DO j=2,ncompton_profiles
-               cp_temp%profile_total_cdf(j) = cp_temp%profile_total_cdf(j-1)+&
-               (Qs(2)-Qs(1))*(ComptonProfile(i, Qs(j))+ComptonProfile(i,&
-               Qs(j-1)))*0.5_C_DOUBLE
-        ENDDO
         DO k=1,SIZE(shell_indices)
           DO j=2,ncompton_profiles
                cp_temp%profile_partial_cdf(k,j) = cp_temp%profile_partial_cdf(k,j-1)+&
@@ -1086,9 +1116,39 @@ ENDIF
           ENDDO
           cp_temp%profile_partial_cdf(k,:) =&
           cp_temp%profile_partial_cdf(k,:)*0.5/cp_temp%profile_partial_cdf(k,ncompton_profiles)
+          !inverted
+          profile_partial_cdf_big(1) = 0.0
+          DO j=2,nintervals_pz
+                profile_partial_cdf_big(j) = profile_partial_cdf_big(j-1)+&
+               (Qs_big(2)-Qs_big(1))*(ComptonProfile_Partial(i, shell_indices(k), Qs_big(j))+&
+               ComptonProfile_Partial(i, shell_indices(k), Qs_big(j-1)))*0.5_C_DOUBLE
+          ENDDO
+          profile_partial_cdf_big = &
+          profile_partial_cdf_big*0.5/profile_partial_cdf_big(nintervals_pz)
+          cp_temp%Qs_inv(k,1) = 0.0
+          pos = 1
+          DO j=1,ncompton_profiles
+                IF (pos .GT.2) THEN
+                        pos = findpos(profile_partial_cdf_big,&
+                        profile_partial_cdf_inv(j), pos)
+                ELSE
+                        pos = findpos(profile_partial_cdf_big,&
+                        profile_partial_cdf_inv(j))
+                ENDIF
+                IF (pos .LT. 1 .OR. pos .GT. nintervals_pz-1) THEN
+                        WRITE (error_unit,'(A)') 'findpos error'
+                        CALL xmi_exit(1)
+                ENDIF
+                cp_temp%Qs_inv(k,j) = interpolate_simple([&
+                profile_partial_cdf_big(pos),&
+                Qs_big(pos)&
+                ],[&
+                profile_partial_cdf_big(pos+1),&
+                Qs_big(pos+1)&
+                ], profile_partial_cdf_inv(j))
+          ENDDO
+
         ENDDO
-        cp_temp%profile_total_cdf = &
-        MATMUL(electron_config,cp_temp%profile_partial_cdf)
         DEALLOCATE(shell_indices)
         DEALLOCATE(electron_config)
         !

@@ -4900,8 +4900,11 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
         IF (cdf .LT. 0.5_C_DOUBLE) THEN
                 !negative Q
                 cdf_pos = 0.5_C_DOUBLE-cdf
-                pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
-                cdf_pos)
+                pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(1)))+1
+                !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                !cdf_pos)
                 IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
                         WRITE (error_unit, '(A)')&
                         'findpos error in xmi_update_photon_energy_compton'
@@ -4909,18 +4912,28 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
                         CALL xmi_exit(1)
                 ENDIF
                 Q = interpolate_simple([&
-                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
-                hdf5_Z%compton_profiles%Qs(pos)&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos)&
                 ],[&
-                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
-                hdf5_Z%compton_profiles%Qs(pos+1)&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos+1)&
                 ], cdf_pos)
+                !Q = interpolate_simple([&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                !hdf5_Z%compton_profiles%Qs(pos)&
+                !],[&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                !hdf5_Z%compton_profiles%Qs(pos+1)&
+                !], cdf_pos)
                 Q = -1.0_C_DOUBLE*Q
         ELSE
                 !positive Q
                 cdf_pos = cdf-0.5_C_DOUBLE
-                pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
-                cdf_pos)
+                pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(1)))+1
+                !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                !cdf_pos)
                 IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
                         WRITE (error_unit, '(A)')&
                         'findpos error in xmi_update_photon_energy_compton'
@@ -4928,12 +4941,19 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
                         CALL xmi_exit(1)
                 ENDIF
                 Q = interpolate_simple([&
-                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
-                hdf5_Z%compton_profiles%Qs(pos)&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos)&
                 ],[&
-                hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
-                hdf5_Z%compton_profiles%Qs(pos+1)&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos+1)&
                 ], cdf_pos)
+                !Q = interpolate_simple([&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                !hdf5_Z%compton_profiles%Qs(pos)&
+                !],[&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                !hdf5_Z%compton_profiles%Qs(pos+1)&
+                !], cdf_pos)
         ENDIF
 #if DEBUG == 1
         WRITE (*,'(A,F12.5)') 'Q: ', Q

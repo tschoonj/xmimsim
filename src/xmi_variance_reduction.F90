@@ -837,39 +837,60 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
                         cdf_pos = 0.5_C_DOUBLE-cdf
                         !findpos is slooooowwwwwww -> need to come up with a
                         !solution for this
-                        pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
-                        cdf_pos)
-                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(1)))+1
+                        !WRITE (*,'(A,I7)') 'pos1: ' ,pos
+                        !WRITE (*,'(A,ES14.5)') 'val: ' ,&
+                        !hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos)
+
+                        !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
+                        !cdf_pos)
+                        !WRITE (*,'(A,I7)') 'pos2: ' ,pos
+                        !WRITE (*,'(A,ES14.5)') 'val: ' ,&
+                        !hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos)
+                        !CALL xmi_exit(1)
+                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv)-1) THEN
                                 WRITE (error_unit, '(A)')&
                                 'findpos error in xmi_compton_varred'
                                 WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                                WRITE (error_unit, '(A, ES14.5)') 'last value: ',&
+                                hdf5_Z%compton_profiles%profile_partial_cdf_inv(SIZE(&
+                                hdf5_Z%compton_profiles%profile_partial_cdf_inv))
+                                WRITE (error_unit, '(A, ES14.5)') 'cdf_pos: ',&
+                                cdf_pos
                                 CALL xmi_exit(1)
                         ENDIF
                         Q = interpolate_simple([&
-                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos),&
-                        hdf5_Z%compton_profiles%Qs(pos)&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos)&
                         ],[&
-                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos+1),&
-                        hdf5_Z%compton_profiles%Qs(pos+1)&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos+1)&
                         ], cdf_pos)
                         Q = -1.0_C_DOUBLE*Q
                 ELSE
                         !positive Q
                         cdf_pos = cdf-0.5_C_DOUBLE
-                        pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
-                        cdf_pos)
-                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(1)))+1
+                        !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
+                        !cdf_pos)
+                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv)-1) THEN
                                 WRITE (error_unit, '(A)')&
                                 'findpos error in xmi_compton_varred'
                                 WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
                                 CALL xmi_exit(1)
                         ENDIF
                         Q = interpolate_simple([&
-                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos),&
-                        hdf5_Z%compton_profiles%Qs(pos)&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos)&
                         ],[&
-                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos+1),&
-                        hdf5_Z%compton_profiles%Qs(pos+1)&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos+1)&
                         ], cdf_pos)
                 ENDIF
 

@@ -47,8 +47,9 @@ ENDTYPE
 TYPE :: compton_profiles
         INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: shell_indices
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs 
-        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_total_cdf
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: profile_partial_cdf
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_partial_cdf_inv
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Qs_inv 
 ENDTYPE
 
 TYPE, BIND(C) :: compton_profilesC
@@ -56,8 +57,9 @@ TYPE, BIND(C) :: compton_profilesC
         INTEGER (KIND=C_INT) :: data_len
         TYPE (C_PTR) :: shell_indices
         TYPE (C_PTR) :: Qs 
-        TYPE (C_PTR) :: profile_total_cdf
         TYPE (C_PTR) :: profile_partial_cdf
+        TYPE (C_PTR) :: profile_partial_cdf_inv
+        TYPE (C_PTR) :: Qs_inv 
 ENDTYPE
 
 
@@ -69,7 +71,6 @@ ENDTYPE
 TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighTheta_ICDF
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: ComptonTheta_ICDF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: DopplerPz_ICDF
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Energies
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
@@ -1290,23 +1291,29 @@ FUNCTION findpos_fast(array,searchvalue)
         RETURN
 ENDFUNCTION findpos_fast
 
-FUNCTION findpos(array, searchvalue)
+FUNCTION findpos(array, searchvalue, start_pos_arg)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
         REAL (C_DOUBLE) , INTENT(IN) :: searchvalue
-        INTEGER (C_INT) :: findpos, i
+        INTEGER (C_INT), INTENT(IN), OPTIONAL :: start_pos_arg
+        INTEGER (C_INT) :: findpos, i, start_pos
 
         findpos = -1
 
         !this would appear to be necessary... the rng generates exactly 0.0
         !sometimes...
-        IF (ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
+        IF (.NOT.PRESENT(start_pos_arg) .AND. ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos = 1
                 RETURN
         ENDIF
 
+        IF (PRESENT(start_pos_arg)) THEN
+                start_pos = start_pos_arg
+        ELSE
+                start_pos = LBOUND(array,DIM=1)+1
+        ENDIF
 
-        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
+        DO i=start_pos, UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
                         RETURN
@@ -1968,12 +1975,14 @@ FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
         rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2) 
 
         IF (rv == 0_C_INT) THEN
-                WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
-                WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
-                WRITE (error_unit, '(A, F14.5)') 'Q:', Q
-                WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
-                WRITE (error_unit, '(A, F14.5)') 'theta:', theta
-                CALL xmi_exit(1)
+                !WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
+                !WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                !WRITE (error_unit, '(A, F14.5)') 'Q:', Q
+                !WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
+                !WRITE (error_unit, '(A, F14.5)') 'theta:', theta
+                !CALL xmi_exit(1)
+                energy = 0.0
+                RETURN
         ENDIF
 
         !WRITE (output_unit,'(A, F14.5)') 'Energy1: ', E1
