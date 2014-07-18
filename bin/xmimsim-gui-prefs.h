@@ -44,6 +44,8 @@ enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_ESCAPE_PEAKS,
 	//gboolean
+	XMIMSIM_GUI_PREFS_ADVANCED_COMPTON,
+	//gboolean
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	XMIMSIM_GUI_PREFS_OPENCL,
 #endif
