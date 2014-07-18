@@ -125,12 +125,16 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	if (xmi_init_input_escape_ratios(&inputFPtr) == 0) {
 		exit(1);
 	}
-	
+
+
+	int use_advanced_compton = options.use_advanced_compton;
+	options.use_advanced_compton = 0;
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
-	}	
+	}
+	options.use_advanced_compton = use_advanced_compton;
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 

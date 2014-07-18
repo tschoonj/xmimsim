@@ -375,8 +375,13 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !       moving on with COMPTON
                 !
-                CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
-                distances, detector_solid_angle, step_do_max,step_do_dir)
+                IF (photon%options%use_advanced_compton .EQ. 1) THEN
+                        CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
+                        distances, detector_solid_angle, step_do_max,step_do_dir)
+                ELSE
+                        CALL xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
+                        distances, detector_solid_angle, step_do_max,step_do_dir)
+                ENDIF
 
                 !
                 !      and finishing with FLUORESCENCE 
@@ -936,4 +941,154 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
 #undef hdf5_Z
 
 ENDSUBROUTINE xmi_compton_varred
+
+SUBROUTINE xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
+        distances, detector_solid_angle, step_do_max,step_do_dir)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        INTEGER (C_INT), INTENT(IN) :: i
+        REAL (C_DOUBLE), INTENT(IN) :: theta, phi
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
+        REAL (C_DOUBLE), INTENT(IN) :: detector_solid_angle
+        INTEGER (C_INT), INTENT(IN) :: step_do_max, step_do_dir
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
+        REAL (C_DOUBLE) :: energy_compton, temp_murhod, Pesc_comp
+        REAL (C_DOUBLE) :: Pconv, Pdir
+        INTEGER (C_INT) :: j, comp
+        INTEGER (C_INT) :: channel
+        REAL (C_DOUBLE) :: temp_weight
+
+#define layer inputF%composition%layers(photon%current_layer)
+#define n_ia photon%n_interactions
+        ALLOCATE(mus(inputF%composition%n_layers))
+        DO comp=1,N_COMPTON_VARRED
+                CALL xmi_update_photon_energy_compton_var_red(photon, i,theta, rng,&
+                inputF, hdf5F, energy_compton)
+                mus=xmi_mu_calc(inputF%composition,&
+                energy_compton)
+                temp_murhod = 0.0_C_DOUBLE
+                DO j=photon%current_layer,step_do_max,step_do_dir
+                temp_murhod = temp_murhod + mus(j)*&
+                inputF%composition%layers(j)%density*distances(j)
+                ENDDO
+                Pesc_comp = EXP(-temp_murhod) 
+                Pconv = layer%weight(i)/photon%mus(photon%current_layer)
+                Pdir = detector_solid_angle&
+                *DCSP_Compt(layer%Z(i),photon%energy,&
+                theta,phi)
+
+                temp_weight = Pconv*Pdir*Pesc_comp*photon%weight/&
+                REAL(N_COMPTON_VARRED, KIND=C_DOUBLE)
+                photon%var_red_history(layer%Z(i),383+2,n_ia) =&
+                photon%var_red_history(layer%Z(i),383+2,n_ia)+temp_weight
+
+                IF (energy_compton .GE. energy_threshold) THEN
+                        channel = INT((energy_compton - &
+                        inputF%detector%zero)/inputF%detector%gain)
+                ELSE
+                        channel = -1
+                ENDIF
+
+                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
+                        photon%channels(n_ia:, channel) =&
+                        photon%channels(n_ia:, channel)+&
+                        temp_weight
+                ENDIF
+        ENDDO
+#undef layer
+#undef n_ia
+
+ENDSUBROUTINE xmi_compton_varred2
+
+SUBROUTINE xmi_update_photon_energy_compton_var_red(photon,current_element_index, theta_i, rng,&
+inputF, hdf5F, energy_new)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy_new
+        INTEGER (C_INT), INTENT(IN) :: current_element_index
+
+        REAL (C_DOUBLE) :: K0K,pz,r
+        INTEGER (C_INT) :: pos
+        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
+        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
+        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
+        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
+        REAL (C_DOUBLE) :: energy, sth2
+        INTEGER (C_INT) :: np
+        INTEGER :: i
+
+!        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+!                (photon%current_layer)%xmi_hdf5_Z_local&
+!                (current_element_index)%Ptr)
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(current_element_index)%Ptr
+
+        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+        
+        !convert to eV
+        !WRITE (*,'(A,F14.5)') 'photon energy: ',photon%energy
+        !WRITE (*,'(A,F14.5)') 'theta_i: ',theta_i
+        !WRITE (*,'(A,I)') 'current_element_index: ',current_element_index
+        energy = photon%energy*1000.0_C_DOUBLE
+        c_lamb0 = c/(energy)
+
+        sth2 = SIN(theta_i/2.0_C_DOUBLE)
+
+        i=0
+
+        DO
+                r = fgsl_rng_uniform(rng)
+                pos = INT(r/(hdf5_Z%compton_profiles%&
+                random_numbers(2)-&
+                hdf5_Z%compton_profiles%&
+                random_numbers(1)))+1 
+                pz = interpolate_simple([&
+                hdf5_Z%compton_profiles%&
+                random_numbers(pos),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos)]&
+                ,[hdf5_Z%compton_profiles%&
+                random_numbers(pos+1),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos+1)], r)
+
+#if DEBUG == 2
+                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
+                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
+                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
+                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+#endif
+
+                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+
+                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
+                c_lamb = c_lamb0+dlamb
+                energy = c/c_lamb/1000.0_C_DOUBLE
+                !WRITE (*,'(A,F14.5)') 'compton energy: ',energy
+                IF (energy .LE. photon%energy ) EXIT
+                IF (i .EQ. 100) THEN 
+                        WRITE (*,'(A)') 'Infinite loop in xmi_update_photon_energy_compton_var_red'
+                        WRITE (*,'(A,F12.5)') 'initial energy: ',photon%energy
+                        WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+                        CALL xmi_exit(1)
+                ENDIF
+                i = i+1
+        ENDDO
+
+        !photon%energy = &
+        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
+
+        energy_new = energy
+
+!        ENDASSOCIATE
+#undef hdf5_Z
+
+ENDSUBROUTINE xmi_update_photon_energy_compton_var_red
+
 ENDMODULE xmimsim_varred

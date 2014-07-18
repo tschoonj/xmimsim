@@ -55,6 +55,7 @@ struct interaction_prob {
 };
 
 struct compton_profiles {
+	//Fernandez and Scot
 	int shell_indices_len;
 	int data_len;
 	int *shell_indices;
@@ -62,6 +63,9 @@ struct compton_profiles {
 	double *profile_partial_cdf;
 	double *profile_partial_cdf_inv;
 	double *Qs_inv;
+	//Vincze
+	double *random_numbers;
+	double *profile_total_icdf;
 };
 
 struct hdf5_vars {
@@ -359,6 +363,18 @@ int xmi_db(char *filename) {
 		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Qs inverted",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs_inv);
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
+		dset_id = H5Dcreate(group_id2, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].random_numbers);
+		H5Sclose(dspace_id);
+		H5Dclose(dset_id);
+
+		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
+		dset_id = H5Dcreate(group_id2, "Total profile ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_total_icdf);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 

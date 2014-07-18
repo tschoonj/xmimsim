@@ -207,6 +207,7 @@ struct xmi_main_options {
 	int omp_num_threads;
 	int extra_verbose;
 	char *custom_detector_response;
+	int use_advanced_compton;
 };
 
 //typedefs are clearer then using void *...

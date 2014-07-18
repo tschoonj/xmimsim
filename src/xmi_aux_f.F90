@@ -45,11 +45,15 @@ ENDTYPE
 !
 !
 TYPE :: compton_profiles
+        !Fernandez and Scot method -> slow but very good simulation
         INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: shell_indices
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs 
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: profile_partial_cdf
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_partial_cdf_inv
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Qs_inv 
+        !Laszlo method -> fast but not as good
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: random_numbers 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_total_icdf
 ENDTYPE
 
 TYPE, BIND(C) :: compton_profilesC
@@ -60,6 +64,8 @@ TYPE, BIND(C) :: compton_profilesC
         TYPE (C_PTR) :: profile_partial_cdf
         TYPE (C_PTR) :: profile_partial_cdf_inv
         TYPE (C_PTR) :: Qs_inv 
+        TYPE (C_PTR) :: random_numbers 
+        TYPE (C_PTR) :: profile_total_icdf
 ENDTYPE
 
 
@@ -312,6 +318,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: omp_num_threads
         INTEGER (C_INT) :: extra_verbose
         TYPE (C_PTR) :: custom_detector_response
+        INTEGER (C_INT) :: use_advanced_compton
 ENDTYPE xmi_main_options
 !
 !

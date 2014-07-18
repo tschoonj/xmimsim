@@ -2182,8 +2182,16 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         !update energy of photon!!!
         !
-        CALL xmi_update_photon_energy_compton(photon, theta_i, rng, inputF,&
-        hdf5f, shell)
+        IF (photon%options%use_advanced_compton .EQ. 1) THEN
+                CALL xmi_update_photon_energy_compton(photon, theta_i,&
+                rng, inputF, hdf5f, shell)
+                !process shell further for Compton fluorescence
+        ELSE
+                CALL xmi_update_photon_energy_compton2(photon, theta_i,&
+                rng, inputF, hdf5f)
+
+        ENDIF
+        
         IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
                 rv = 1
                 RETURN
@@ -4983,6 +4991,92 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
         RETURN
 ENDSUBROUTINE xmi_update_photon_energy_compton
 
+SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F) 
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+
+        REAL (C_DOUBLE) :: K0K,pz,r
+        INTEGER (C_INT) :: pos
+        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
+        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
+        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
+        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
+        REAL (C_DOUBLE) :: energy, sth2
+        INTEGER (C_INT) :: np
+
+!        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+!                (photon%current_layer)%xmi_hdf5_Z_local&
+!                (photon%current_element_index)%Ptr)
+ 
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
+
+        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+        
+        !convert to eV
+        energy = photon%energy*1000.0_C_DOUBLE
+        c_lamb0 = c/(energy)
+
+        sth2 = SIN(theta_i/2.0_C_DOUBLE)
+
+        DO
+                r = fgsl_rng_uniform(rng)
+                pos = INT(r/(hdf5_Z%compton_profiles%&
+                random_numbers(2)-&
+                hdf5_Z%compton_profiles%&
+                random_numbers(1)))+1 
+                pz = interpolate_simple([&
+                hdf5_Z%compton_profiles%&
+                random_numbers(pos),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos)]&
+                ,[hdf5_Z%compton_profiles%&
+                random_numbers(pos+1),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos+1)], r)
+
+!                np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
+!                pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
+
+#if DEBUG == 2
+                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
+                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
+                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
+                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+#endif
+
+                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+
+                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
+                c_lamb = c_lamb0+dlamb
+                energy = c/c_lamb/1000.0_C_DOUBLE
+                IF (energy .LE. photon%energy ) EXIT
+        ENDDO
+
+        !photon%energy = &
+        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
+
+        photon%energy = energy
+
+#if DEBUG == 2
+        WRITE (*,'(A,F12.5)') 'new photon energy: ',photon%energy
+#endif
+        photon%energy_changed = .FALSE.
+        photon%mus = xmi_mu_calc(inputF%composition,&
+        photon%energy)
+
+
+!        ENDASSOCIATE
+#undef hdf5_Z
+
+        RETURN
+ENDSUBROUTINE xmi_update_photon_energy_compton2
+
+
+
 SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -5465,6 +5559,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         options%use_optimizations = 0
         options%use_sum_peaks = 0
         options%escape_ratios_mode = 1
+        options%use_advanced_compton = 0
 
         xmi_cascade_type = XMI_CASCADE_NONE
 
