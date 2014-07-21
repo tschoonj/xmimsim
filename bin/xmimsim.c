@@ -251,6 +251,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
 #endif
 		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
+		g_fprintf(stdout,"Option advanced Compton: %i\n", options.use_advanced_compton);
 	}
 
 		

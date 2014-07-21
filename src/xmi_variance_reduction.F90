@@ -58,6 +58,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight
+        REAL (C_DOUBLE), DIMENSION(K_SHELL:M5_SHELL) :: shell_weights
+        REAL (C_DOUBLE) :: mu_compt
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -375,9 +377,11 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !       moving on with COMPTON
                 !
+                shell_weights = 0.0_C_DOUBLE
                 IF (photon%options%use_advanced_compton .EQ. 1) THEN
                         CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
-                        distances, detector_solid_angle, step_do_max,step_do_dir)
+                        distances, detector_solid_angle, step_do_max,step_do_dir, shell_weights)
+                        mu_compt = CS_Compt(layer%Z(i), photon%energy) 
                 ELSE
                         CALL xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
                         distances, detector_solid_angle, step_do_max,step_do_dir)
@@ -430,143 +434,143 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         ENDIF
 #undef precalc_xrf_cs_local
                 ELSE
-                PK = 0.0_C_DOUBLE
-                PL1 = 0.0_C_DOUBLE
-                PL2 = 0.0_C_DOUBLE
-                PL3 = 0.0_C_DOUBLE
-                PM1 = 0.0_C_DOUBLE
-                PM2 = 0.0_C_DOUBLE
-                PM3 = 0.0_C_DOUBLE
-                PM4 = 0.0_C_DOUBLE
-                PM5 = 0.0_C_DOUBLE
+                        PK = 0.0_C_DOUBLE
+                        PL1 = 0.0_C_DOUBLE
+                        PL2 = 0.0_C_DOUBLE
+                        PL3 = 0.0_C_DOUBLE
+                        PM1 = 0.0_C_DOUBLE
+                        PM2 = 0.0_C_DOUBLE
+                        PM3 = 0.0_C_DOUBLE
+                        PM4 = 0.0_C_DOUBLE
+                        PM5 = 0.0_C_DOUBLE
 
-                IF (photon%energy .GE. EdgeEnergy(layer%Z(i),K_SHELL)) &
-                        PK = CS_Photo_Partial(layer%Z(i),K_SHELL,&
-                        photon%energy)
-
-                !set the XRF cross sections according to the options
-                SELECT CASE (photon%xmi_cascade_type)
-                        CASE(XMI_CASCADE_NONE)
-                        PL1 = PL1_pure_kissel(layer%Z(i),&
-                        photon%energy)
-                        PL2 = PL2_pure_kissel(layer%Z(i),&
-                        photon%energy,PL1)
-                        PL3 = PL3_pure_kissel(layer%Z(i),&
-                        photon%energy,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 = PM1_pure_kissel(layer%Z(i),&
+                        IF (photon%energy .GE. EdgeEnergy(layer%Z(i),K_SHELL)) &
+                                PK = CS_Photo_Partial(layer%Z(i),K_SHELL,&
                                 photon%energy)
-                                PM2 = &
-                                PM2_pure_kissel(layer%Z(i),&
-                                photon%energy,PM1)
-                                PM3 = &
-                                PM3_pure_kissel(layer%Z(i),&
-                                photon%energy,PM1,PM2)
-                                PM4 = &
-                                PM4_pure_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_pure_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PM1,PM2,PM3,PM4)
 
-                        ENDIF
-                        CASE(XMI_CASCADE_NONRADIATIVE)
-                        PL1 = PL1_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
-                        CASE(XMI_CASCADE_RADIATIVE)
-                        PL1 = PL1_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
-                        CASE(XMI_CASCADE_FULL)
-                        PL1 = PL1_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
+                        !set the XRF cross sections according to the options
+                        SELECT CASE (photon%xmi_cascade_type)
+                                CASE(XMI_CASCADE_NONE)
+                                PL1 = PL1_pure_kissel(layer%Z(i),&
+                                photon%energy)
+                                PL2 = PL2_pure_kissel(layer%Z(i),&
+                                photon%energy,PL1)
+                                PL3 = PL3_pure_kissel(layer%Z(i),&
+                                photon%energy,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 = PM1_pure_kissel(layer%Z(i),&
+                                        photon%energy)
+                                        PM2 = &
+                                        PM2_pure_kissel(layer%Z(i),&
+                                        photon%energy,PM1)
+                                        PM3 = &
+                                        PM3_pure_kissel(layer%Z(i),&
+                                        photon%energy,PM1,PM2)
+                                        PM4 = &
+                                        PM4_pure_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_pure_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PM1,PM2,PM3,PM4)
 
-                        CASE DEFAULT
-                                WRITE (*,'(A)') 'Unsupported cascade type'
-                                CALL xmi_exit(1)
-                ENDSELECT
+                                ENDIF
+                                CASE(XMI_CASCADE_NONRADIATIVE)
+                                PL1 = PL1_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+                                CASE(XMI_CASCADE_RADIATIVE)
+                                PL1 = PL1_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+                                CASE(XMI_CASCADE_FULL)
+                                PL1 = PL1_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+
+                                CASE DEFAULT
+                                        WRITE (*,'(A)') 'Unsupported cascade type'
+                                        CALL xmi_exit(1)
+                        ENDSELECT
                 ENDIF
 
 
@@ -577,80 +581,105 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         IF (energy_fluo .LT. energy_threshold) CYCLE
 
                         !Pconv calculation...
-                        !Pconv = &
-                        !layer%weight(i)*CS_FluorLine_Kissel_cascade&
-                        !(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
-                        !photon%mus(photon%current_layer)
-
+                        !Take into account compton contributions when
+                        !necessary!!!
+                        Pconv = 0.0_C_DOUBLE
                         SELECT CASE(line_new)
                                 CASE(KP5_LINE:KL1_LINE)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PK*FluorYield&
+                                Pconv = PK
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(K_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),K_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L1P5_LINE:L1M1_LINE)
                                 IF (PL1 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL1*FluorYield&
+                                Pconv = PL1
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L1_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L2Q1_LINE:L2M1_LINE)
                                 IF (PL2 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL2*FluorYield&
+                                Pconv = PL2
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L2_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L3Q1_LINE:L3M1_LINE)
                                 IF (PL3 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL3*FluorYield&
+                                Pconv = PL3
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L3_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M1P5_LINE:M1N1_LINE)
                                 IF (PM1 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM1*FluorYield&
+                                Pconv = PM1
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M1_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M2P5_LINE:M2N1_LINE)
                                 IF (PM2 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM2*FluorYield&
+                                Pconv = PM2
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M2_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M3Q1_LINE:M3N1_LINE)
                                 IF (PM3 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM3*FluorYield&
+                                Pconv = PM3
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M3_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M4P5_LINE:M4N1_LINE)
                                 IF (PM4 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM4*FluorYield&
+                                Pconv = PM4
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M4_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M4_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M5P5_LINE:M5N1_LINE)
                                 IF (PM5 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM5*FluorYield&
+                                Pconv = PM5
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M5_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M5_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE DEFAULT
                                 !other lines -> just cycle
                                 CYCLE
                         ENDSELECT
-
+                        IF (Pconv .EQ. 0.0) CYCLE
                         !mus=xmi_mu_calc(inputF%composition,&
                         !energy_fluo)
 
@@ -746,7 +775,8 @@ SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
 ENDSUBROUTINE xmi_fluorescence_yield_check_varred_optim
 
 SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
-        distances, detector_solid_angle, step_do_max,step_do_dir)
+        distances, detector_solid_angle, step_do_max,step_do_dir,&
+        shell_weights)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         INTEGER (C_INT), INTENT(IN) :: i
@@ -755,6 +785,8 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
+        REAL (C_DOUBLE), DIMENSION(K_SHELL:M5_SHELL), INTENT(INOUT) :: &
+        shell_weights
         REAL (C_DOUBLE), INTENT(IN) :: detector_solid_angle
         INTEGER (C_INT), INTENT(IN) :: step_do_max, step_do_dir
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
@@ -828,10 +860,9 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
                 shell_weight = electron_config(shell)*cdfs(shell)/cdf_sum
                 IF (shell_weight .EQ. 0.0_C_DOUBLE) CYCLE
 
-                !if shell is K, L or M, we should create an offspring photon
-                !for the fluorescence that may be generated...
-
-
+                IF (hdf5_Z%compton_profiles%shell_indices(shell) .LE. M5_SHELL)&
+                shell_weights(hdf5_Z%compton_profiles%shell_indices(shell)) =&
+                shell_weight
 
                 !sample the energy of the scattered photon
                 r = fgsl_rng_uniform(rng)
