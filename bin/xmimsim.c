@@ -374,8 +374,8 @@ XMI_MAIN
 		g_fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
-	
-	xmi_free_solid_angle(solid_angle_def);
+	if (solid_angle_def != NULL)	
+		xmi_free_solid_angle(solid_angle_def);
 	
 	if (options.verbose)
 		g_fprintf(stdout,"Interactions simulation finished\n");
