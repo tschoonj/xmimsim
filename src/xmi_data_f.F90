@@ -551,166 +551,161 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         C_CHAR_'Compton profiles'//C_NULL_CHAR) &
                         .EQ. 0_C_INT) RETURN
 
-                IF (options%use_advanced_compton .EQ. 1_C_INT) THEN
-                   !Fernandez and Scot
-                   !Read Shell indices 
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') 'Opening Shell indices'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Shell indices'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 1_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(dims(1)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(1)),&
-                           XMI_H5T_NATIVE_INT) .EQ. 0_C_INT) RETURN
-
-                   !Read Qs 
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') 'Opening Qs'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Qs'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 1_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(dims(1)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-                   !Read Partial profile CDF
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') 'Opening Partial profile CDF'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Partial profile CDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 2_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(dims(1),dims(2)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(1,1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-                   !Read Partial profile CDF inverted
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') &
-                           'Opening Partial profile CDF inverted'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Partial profile CDF inverted'//C_NULL_CHAR,&
-                           ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 1_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(dims(1)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-                   !Read Qs inverted
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') 'Opening Qs inverted'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Qs inverted'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 2_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(dims(1),dims(2)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(1,1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-
-                ELSE
-                   !Vincze style
-                   !Read Random numbers 
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') &
-                           'Opening Random numbers'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Random numbers'//C_NULL_CHAR,&
-                           ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 1_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%random_numbers(dims(1)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%random_numbers(1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-                   !Read Total profile ICDF 
-                   IF (options%extra_verbose .EQ. 1_C_INT) THEN
-                           WRITE (output_unit,'(A)') &
-                           'Opening Total profile ICDF'
-                   ENDIF
-                   IF (xmi_db_open_dataset(hdf5_vars,&
-                           C_CHAR_'Total profile ICDF'//C_NULL_CHAR,&
-                           ndims, dimsPtr) .EQ.&
-                           0_C_INT) RETURN
-                   CALL C_F_POINTER(dimsPtr, dims, [ndims])
-                   IF (ndims .NE. 1_C_INT) THEN
-                           WRITE (error_unit,'(A)') &
-                           'Wrong dimensions found after opening dataset'
-                           RETURN
-                   ENDIF
-                   !read the dataset
-                   ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_icdf(dims(1)))
-                   NULLIFY(dims)
-                   CALL xmi_free(dimsPtr)
-                   IF (xmi_db_read_dataset(hdf5_vars, &
-                           C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_icdf(1)),&
-                           XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-
-
+                !Fernandez and Scot
+                !Read Shell indices 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Shell indices'
                 ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Shell indices'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(1)),&
+                        XMI_H5T_NATIVE_INT) .EQ. 0_C_INT) RETURN
+
+                !Read Qs 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Qs'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Qs'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Partial profile CDF
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Partial profile CDF'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Partial profile CDF'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 2_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(dims(1),dims(2)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Partial profile CDF inverted
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') &
+                        'Opening Partial profile CDF inverted'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Partial profile CDF inverted'//C_NULL_CHAR,&
+                        ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_partial_cdf_inv(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Qs inverted
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') 'Opening Qs inverted'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Qs inverted'//C_NULL_CHAR, ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 2_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(dims(1),dims(2)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%Qs_inv(1,1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+
+                !Vincze style
+                !Read Random numbers 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') &
+                        'Opening Random numbers'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Random numbers'//C_NULL_CHAR,&
+                        ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%random_numbers(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%random_numbers(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
+
+                !Read Total profile ICDF 
+                IF (options%extra_verbose .EQ. 1_C_INT) THEN
+                        WRITE (output_unit,'(A)') &
+                        'Opening Total profile ICDF'
+                ENDIF
+                IF (xmi_db_open_dataset(hdf5_vars,&
+                        C_CHAR_'Total profile ICDF'//C_NULL_CHAR,&
+                        ndims, dimsPtr) .EQ.&
+                        0_C_INT) RETURN
+                CALL C_F_POINTER(dimsPtr, dims, [ndims])
+                IF (ndims .NE. 1_C_INT) THEN
+                        WRITE (error_unit,'(A)') &
+                        'Wrong dimensions found after opening dataset'
+                        RETURN
+                ENDIF
+                !read the dataset
+                ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_icdf(dims(1)))
+                NULLIFY(dims)
+                CALL xmi_free(dimsPtr)
+                IF (xmi_db_read_dataset(hdf5_vars, &
+                        C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%profile_total_icdf(1)),&
+                        XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
 
                 !close group
