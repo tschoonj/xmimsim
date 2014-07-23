@@ -334,6 +334,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
+                        photon%last_interaction=NO_INTERACTION
                         NULLIFY(photon%offspring)
                         
                         !Calculate energy with rng -> sample from trapezoidal distribution
@@ -611,6 +612,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
+                        photon%last_interaction=NO_INTERACTION
                         NULLIFY(photon%offspring)
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
@@ -1277,15 +1279,16 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 #if DEBUG == 1
                 WRITE (*,'(A)') 'Before do loop'
-                WRITE (*,'(A,I2)') 'optimizations: ',photon%options%use_optimizations
                 WRITE (*,'(A,3F12.4)') 'initial photon%coords:',photon%coords
                 WRITE (*,'(A,3F12.4)') 'initial photon%dirv:',photon%dirv
                 WRITE (*,'(A,I2)') 'step_do_dir: ',step_do_dir
 #endif
 
 !!old
-                IF (photon%options%use_optimizations .EQ. 0_C_INT .OR.&
-                photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+                IF ((photon%options%escape_ratios_mode .EQ. 1 .AND.&
+                    photon%n_interactions .EQ. 1) .OR. &
+                    (photon%options%use_variance_reduction .EQ. 0_C_INT .AND.&
+                    photon%options%escape_ratios_mode .EQ. 0_C_INT)) THEN
                         DO i=photon%current_layer,step_do_max, step_do_dir
                                 !calculate distance between current coords and
                                 !intersection with next layer
@@ -1422,7 +1425,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         !check if we are not leaving the system!
                                 ENDIF
                         ENDDO
-                ELSEIF (photon%options%use_optimizations .EQ. 1_C_INT) THEN
+                ELSE
                         !new version of stepsize selection!!!
                         !optimize by forcing interactions
                         IF(photon%n_interactions .EQ.&
@@ -1470,6 +1473,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !Pabs2 = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*Pabs)
                         Pabs2 = -1.0*expm1(-1.0_C_DOUBLE*Pabs)
                         photon%weight = photon%weight * Pabs2
+                        IF (photon%options%escape_ratios_mode .EQ. 1) THEN
+                                photon%weight_escape = photon%weight
+                        ENDIF
 
 
 
@@ -1535,13 +1541,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ENDIF
 
                 !update number of interactions
-                photon%n_interactions = photon%n_interactions + 1
 
-                IF(photon%n_interactions-1 .EQ.&
+                IF(photon%n_interactions .EQ.&
                 inputF%general%n_interactions_trajectory) THEN
                         EXIT main
                 ENDIF
                 
+                photon%n_interactions = photon%n_interactions + 1
+
                 !variance reduction
 #if DEBUG == 1
                 WRITE (6,'(A,I2)') 'current_layer:',photon%current_layer
@@ -1654,7 +1661,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
                 !abort if necessary
                 IF (rv_interaction /= 1) THEN
-                        RETURN
+                       EXIT main 
                 ENDIF
 
 #if DEBUG == 1
@@ -2312,8 +2319,9 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
 
         !first fluorescence yield check, then Coster-Kronig!!!
-        IF (photon%options%use_optimizations .EQ. 0_C_INT .OR. &
-        photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+        IF (photon%options%use_variance_reduction .EQ. 0_C_INT .AND.&
+            photon%options%escape_ratios_mode .EQ. 0_C_INT) THEN
+        !IF (photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                 !no optimizations // no variance reduction
                 IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&
                 (photon%current_layer)%xmi_hdf5_Z_local&
@@ -2323,6 +2331,9 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                                 CALL xmi_simulate_photon_cascade_auger(photon,shell&
                                 ,rng,inputF,hdf5F)
+                                rv = 1
+                        ELSE
+                                rv = 0
                         ENDIF
 #if DEBUG == 1
                         WRITE (*,'(A)') 'No fluorescence: Auger'
@@ -5566,7 +5577,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         options%use_cascade_auger = 0
         options%use_cascade_radiative = 0
         options%use_variance_reduction = 0
-        options%use_optimizations = 0
         options%use_sum_peaks = 0
         options%escape_ratios_mode = 1
         options%use_advanced_compton = 0
@@ -5672,6 +5682,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         photon)
                 
                         photon%weight = 1.0
+                        photon%weight_escape = photon%weight
                         theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
                         photon%elecv(1) = COS(theta_elecv)
                         photon%elecv(2) = SIN(theta_elecv)
@@ -5740,7 +5751,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                                 photon%history(k,1) .GE. L3P3_LINE) THEN
                                                         fluo_escape_ratios(element,line,i) = &
                                                         fluo_escape_ratios(element,line,i) + &
-                                                        photon%weight
+                                                        photon%weight_escape
                                                 ENDIF
                                 ENDSELECT
 
@@ -5771,9 +5782,14 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 compton_escape_ratios(i,:)=&
                 compton_escape_ratios(i,:)/photons_interacted
                 DEALLOCATE(initial_mus)
+                !WRITE (output_unit, '(A,F14.2)') &
+                !'photons_interacted',photons_interacted
+                !WRITE (output_unit, '(A,F14.2)') &
+                !'photons_no_interaction',photons_no_interaction
         ENDDO
 !$omp end do
 !$omp end parallel
+
 
 
 

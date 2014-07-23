@@ -153,7 +153,6 @@ XMI_MAIN
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
-	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
 	options.use_escape_peaks = 1;
 	options.use_poisson = 0;

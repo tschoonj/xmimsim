@@ -768,7 +768,11 @@ SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
         WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
 #endif
 
-        photon%weight = photon%weight * hdf5_Z%FluorYieldsCorr(shell)
+        IF (photon%options%escape_ratios_mode .EQ. 1) THEN
+                photon%weight_escape = photon%weight_escape * hdf5_Z%FluorYieldsCorr(shell)
+        ELSE
+                photon%weight = photon%weight * hdf5_Z%FluorYieldsCorr(shell)
+        ENDIF
 
 
         RETURN

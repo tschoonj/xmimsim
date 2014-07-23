@@ -308,7 +308,6 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_cascade_auger
         INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction
-        INTEGER (C_INT) :: use_optimizations
         INTEGER (C_INT) :: use_sum_peaks
         INTEGER (C_INT) :: use_escape_peaks
         INTEGER (C_INT) :: escape_ratios_mode
@@ -374,22 +373,6 @@ ENDTYPE xmi_escape_ratiosC
 
 !
 !
-!       xmi_var_red_layer: Datatype that will hold information about the
-!       variance reduction
-!
-!
-
-
-TYPE :: xmi_var_red_layer
-        !dimensions should be (n_elements, 383+1+1)
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: weight
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: energy 
-ENDTYPE xmi_var_red_layer
-
-
-
-!
-!
 !       xmi_precalc_mu_cs: contains precalculated absorption coefficients for
 !       XRF photons
 !
@@ -441,6 +424,10 @@ TYPE :: xmi_photon
         !weight of the photon
         REAL (C_DOUBLE) :: weight
 
+        !secondary weight of the photon for escape ratios mode
+        !this one will be used to calculated the fluo_escape_ratios 
+        REAL (C_DOUBLE) :: weight_escape
+
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 
@@ -471,9 +458,6 @@ TYPE :: xmi_photon
         !last shell -> debugging
         INTEGER (C_INT) :: last_shell
 
-        !variance reduction
-        !TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
-        
         !cascade type
         INTEGER (C_INT) :: xmi_cascade_type
 
