@@ -39,13 +39,13 @@ struct xmi_escape_ratios {
 };
 
 struct xmi_escape_ratios_options {
-	long n_input_energies;
-	long n_compton_output_energies;
-	long n_photons;
-	double input_energy_min;
-	double input_energy_delta;
-	double compton_output_energy_min;
-	double compton_output_energy_delta;
+	long n_input_energies; //default : 1990
+	long n_compton_output_energies; //default : 1999
+	long n_photons; //default : 500000
+	double input_energy_min; //default : 1.0 keV
+	double input_energy_delta; //default : 0.1 keV
+	double compton_output_energy_min; //default : 0.1 keV
+	double compton_output_energy_delta; //default : 0.1 keV
 };
 
 struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void);
