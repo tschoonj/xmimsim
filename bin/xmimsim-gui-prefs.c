@@ -239,6 +239,7 @@ static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, gpointer data) {
 	GtkListStore *store_prefsL = (GtkListStore *) data;
 
@@ -252,6 +253,7 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	return;
 }
+#endif
 
 static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
