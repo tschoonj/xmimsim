@@ -522,6 +522,21 @@ TYPE, PUBLIC :: xmi_ran_trap_workspace
         REAL (C_DOUBLE) :: y2
 ENDTYPE
 
+!
+!
+!       options for the escape ratios calculation
+!
+!
+TYPE, BIND(C) :: xmi_escape_ratios_options
+        INTEGER (C_LONG) :: n_input_energies = 1990
+        INTEGER (C_LONG) :: n_compton_output_energies = 1999
+        INTEGER (C_LONG) :: n_photons = 500000
+        REAL (C_DOUBLE) :: input_energy_min 
+        REAL (C_DOUBLE) :: input_energy_delta
+        REAL (C_DOUBLE) :: compton_output_energy_min 
+        REAL (C_DOUBLE) :: compton_output_energy_delta
+ENDTYPE
+
 
 
 INTERFACE

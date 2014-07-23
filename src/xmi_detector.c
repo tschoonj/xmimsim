@@ -37,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
-void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
+void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options, struct xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
@@ -90,7 +90,7 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	return 1;
 }
 
-void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options) {
+void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options, struct xmi_escape_ratios_options ero) {
 
 	struct xmi_input *esc_ratio_inputPtr;
 	xmi_inputFPtr inputFPtr;
@@ -139,7 +139,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, options);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, options, ero);
 
 }
 
@@ -641,3 +641,7 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 	return 1;	
 }
 
+struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {
+	struct xmi_escape_ratios_options rv = {1990, 1999, 500000, 1.0, 0.1, 0.1, 0.1};
+	return rv;
+}

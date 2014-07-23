@@ -5497,16 +5497,18 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
 ENDSUBROUTINE xmi_force_photon_to_detector
 
 SUBROUTINE xmi_escape_ratios_calculation(inputFPtr, hdf5FPtr, escape_ratiosPtr,&
-input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
+input_string,input_options, ero) &
+BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         TYPE (C_PTR), INTENT(INOUT) :: escape_ratiosPtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
+        TYPE (xmi_escape_ratios_options), VALUE, INTENT(IN) :: ero
 
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
         TYPE (xmi_main_options) :: options
         TYPE (xmi_escape_ratiosC), POINTER :: escape_ratios
         INTEGER (C_INT) :: xmi_cascade_type
@@ -5520,9 +5522,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon
         INTEGER, PARAMETER :: maxz = 94
-        INTEGER (C_LONG), PARAMETER :: n_input_energies = 1990
-        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 1999
-        INTEGER (C_LONG), PARAMETER :: n_photons = 500000
         !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
@@ -5553,21 +5552,23 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
 
-        ALLOCATE(input_energies(n_input_energies))
-        ALLOCATE(compton_escape_output_energies(n_compton_output_energies))
-        DO i=0,n_input_energies-1
-                input_energies(i+1) = 1.0+i*0.1
+        ALLOCATE(input_energies(ero%n_input_energies))
+        ALLOCATE(compton_escape_output_energies(ero%n_compton_output_energies))
+        DO i=0,ero%n_input_energies-1
+                input_energies(i+1) = &
+                ero%input_energy_min+i*ero%input_energy_delta
         ENDDO
 
-        DO i=0,n_compton_output_energies-1
-                compton_escape_output_energies(i+1) = 0.1+i*0.1
+        DO i=0,ero%n_compton_output_energies-1
+                compton_escape_output_energies(i+1) = &
+                ero%compton_output_energy_min+i*ero%compton_output_energy_delta
         ENDDO
 
         ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
         Z = hdf5F%xmi_hdf5_Zs(:)%Z
-        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),n_input_energies))
-        ALLOCATE(compton_escape_ratios(n_input_energies,&
-        n_compton_output_energies))
+        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),ero%n_input_energies))
+        ALLOCATE(compton_escape_ratios(ero%n_input_energies,&
+        ero%n_compton_output_energies))
 
         fluo_escape_ratios = 0.0_C_DOUBLE
         compton_escape_ratios = 0.0_C_DOUBLE
@@ -5618,7 +5619,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         !allocate the escape ratio arrays...
 
         n_photons_sim = 0_C_INT64_T
-        n_photons_tot = n_input_energies*n_photons/input_options%omp_num_threads
+        n_photons_tot = ero%n_input_energies*ero%n_photons/input_options%omp_num_threads
         n_photons_tot = n_photons_tot/100_C_INT64_T
         n_photons_tot = n_photons_tot*100_C_INT64_T
 
@@ -5639,7 +5640,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
 !$omp do schedule(dynamic)
-        DO i=1,n_input_energies
+        DO i=1,ero%n_input_energies
                 energy_disc%energy = input_energies(i)
                 energy_disc%sigma_x = 0.0
                 energy_disc%sigma_xp = 0.0
@@ -5657,7 +5658,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 photons_einstein= 0.0_C_DOUBLE
                 photons_interacted= 0.0_C_DOUBLE
 
-                DO j=1,n_photons
+                DO j=1,ero%n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
@@ -5728,10 +5729,12 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                         CASE (COMPTON_INTERACTION)
                                                 photons_compton = &
                                                 photons_compton + photon%weight  
-                                                compton_index=INT((photon%energy-0.1)/0.1)
+                                                compton_index=INT((photon%energy-&
+                                                ero%compton_output_energy_min)&
+                                                /ero%compton_output_energy_delta)+1
                                                 IF (compton_index .GE. 1 .AND.&
                                                 compton_index .LE. &
-                                                n_compton_output_energies)&
+                                                ero%n_compton_output_energies)&
                                                 compton_escape_ratios(i,compton_index)=&
                                                 compton_escape_ratios(i,compton_index)+&
                                                 photon%weight
@@ -5797,11 +5800,11 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)
         escape_ratios%n_fluo_input_energies =&
-        n_input_energies
+        ero%n_input_energies
         escape_ratios%n_compton_input_energies =&
-        n_input_energies
+        ero%n_input_energies
         escape_ratios%n_compton_output_energies =&
-        n_compton_output_energies
+        ero%n_compton_output_energies
         escape_ratios%Z=C_LOC(Z(1))
         escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios(1,1,1))
         escape_ratios%fluo_escape_input_energies=C_LOC(input_energies(1))
