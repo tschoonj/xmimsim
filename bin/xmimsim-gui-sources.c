@@ -599,7 +599,7 @@ static void info_button_clicked_cb(GtkWidget *button, struct generate *gen) {
 		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Radionuclide");
 		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), 
 		"The X-ray and gamma spectra of the provided radionuclides "
-		"has been obtained using the <a href='http://github.com/tschoonj/xraylib/wiki/The-xraylib-API-list-of-all-functions'>xraylib API</a> for radionuclides"
+		"has been obtained using the <a href='http://github.com/tschoonj/xraylib/wiki/The-xraylib-API-list-of-all-functions'>xraylib API</a> for radionuclides. "
 		"Follow the references in the xraylib documentation in "
 		"order to find the origin of the datasets."
 		);
