@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -127,19 +127,18 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	}
 
 
-	int use_advanced_compton = options.use_advanced_compton;
-	options.use_advanced_compton = 0;
+	struct xmi_main_options escape_main_options = {.omp_num_threads = options.omp_num_threads, .verbose = options.verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options.extra_verbose};
+
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, options) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, escape_main_options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
 	}
-	options.use_advanced_compton = use_advanced_compton;
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, options, ero);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, escape_main_options, ero);
 
 }
 
