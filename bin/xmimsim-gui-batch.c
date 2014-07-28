@@ -3466,16 +3466,6 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
-	gtk_tree_store_append(model, &iter2, &iter1);
-	buffer = g_strdup_printf("%g", input->detector->max_convolution_energy);
-	gtk_tree_store_set(model, &iter2,
-		INPUT_PARAMETER_COLUMN, "max_convolution_energy",
-		INPUT_VALUE_COLUMN, buffer,
-		INPUT_SELECTABLE_COLUMN, FALSE,
-		INPUT_XPATH_COLUMN, "/xmimsim/detector/max_convolution_energy",
-		-1
-	);
-	g_free(buffer);
 	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
 		buffer = g_strdup_printf("Crystal Layer %i", i+1);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]", i+1);

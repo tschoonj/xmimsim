@@ -1067,14 +1067,6 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "max_convolution_energy")) {
-			txt = xmlNodeListGetString(doc,subnode->children,1);
-			if(sscanf((const char *)txt,"%lg",&((*detector)->max_convolution_energy)) != 1) {
-				fprintf(stderr,"error reading in max_convolution_energy of xml file\n");
-				return 0;
-			}
-			xmlFree(txt);
-		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar*) "nchannels")) {
 			txt = xmlNodeListGetString(doc,subnode->children,1);
 			if(sscanf((const char *)txt,"%i",&((*detector)->nchannels)) != 1) {
@@ -2216,10 +2208,6 @@ static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *i
 	}
 	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "noise","%g",input->detector->noise) < 0) {
 		fprintf(stderr,"Error writing noise\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "max_convolution_energy","%g",input->detector->max_convolution_energy) < 0) {
-		fprintf(stderr,"Error writing max_convolution_energy\n");
 		return 0;
 	}
 	if (xmlTextWriterStartElement(writer, BAD_CAST "crystal") < 0) {

@@ -126,7 +126,6 @@ struct xmi_detector {
 	double zero;
 	double fano;
 	double noise;
-	double max_convolution_energy;
 	int nchannels;
 	int n_crystal_layers;
 	struct xmi_layer *crystal_layers;

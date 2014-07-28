@@ -106,7 +106,6 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"Detector zero: %lf\n",input->detector->zero);
 	fprintf(stdout,"Detector fanp: %lf\n",input->detector->fano);
 	fprintf(stdout,"Detector noise: %lf\n",input->detector->noise);
-	fprintf(stdout,"Detector max_convolution_energy: %lf\n",input->detector->max_convolution_energy);
 	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
 		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
 			fprintf(stdout,"Z: %i   weight: %lf\n",input->detector->crystal_layers[i].Z[j],input->detector->crystal_layers[i].weight[j]);

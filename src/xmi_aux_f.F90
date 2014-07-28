@@ -218,7 +218,6 @@ TYPE, BIND(C) :: xmi_detectorC
         REAL (C_DOUBLE) :: zero 
         REAL (C_DOUBLE) :: fano 
         REAL (C_DOUBLE) :: noise 
-        REAL (C_DOUBLE) :: max_convolution_energy
         INTEGER (C_INT) :: nchannels
         INTEGER (C_INT) :: n_crystal_layers
         TYPE (C_PTR) :: crystal_layers
@@ -232,7 +231,6 @@ TYPE :: xmi_detector
         REAL (C_DOUBLE) :: zero 
         REAL (C_DOUBLE) :: fano 
         REAL (C_DOUBLE) :: noise 
-        REAL (C_DOUBLE) :: max_convolution_energy
         INTEGER (C_INT) :: nchannels
         INTEGER (C_INT) :: n_crystal_layers
         TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: crystal_layers
@@ -949,7 +947,6 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%detector%fano= xmi_detector_temp%fano
         xmi_inputF%detector%noise= xmi_detector_temp%noise
         xmi_inputF%detector%nchannels = xmi_detector_temp%nchannels
-        xmi_inputF%detector%max_convolution_energy= xmi_detector_temp%max_convolution_energy
         xmi_inputF%detector%n_crystal_layers =&
         xmi_detector_temp%n_crystal_layers 
 

@@ -363,7 +363,6 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_DETECTOR(zero)
 	XMI_IF_COMPARE_DETECTOR(fano)
 	XMI_IF_COMPARE_DETECTOR(noise)
-	XMI_IF_COMPARE_DETECTOR(max_convolution_energy)
 
 	if (A->detector->nchannels != B->detector->nchannels) {
 		rv |= XMI_CONFLICT_DETECTOR;
@@ -537,7 +536,6 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->detector->zero = 0.0;
 	rv->detector->fano = 0.12;
 	rv->detector->noise = 0.1;
-	rv->detector->max_convolution_energy = 40.0;
 	rv->detector->nchannels = 2048;
 	rv->detector->n_crystal_layers = 1;
 	rv->detector->crystal_layers = malloc(sizeof(struct xmi_layer));
@@ -893,10 +891,6 @@ after_absorbers:
 		rv |= XMI_CONFLICT_DETECTOR;
 		goto after_detector;
 	}
-	if (a->detector->max_convolution_energy <= 0.0) {
-		rv |= XMI_CONFLICT_DETECTOR;
-		goto after_detector;
-	}
 
 	if (a->detector->n_crystal_layers < 1) {
 		rv |= XMI_CONFLICT_DETECTOR;
@@ -1032,7 +1026,6 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	fprintf(fPtr, "zero: %g\n", input->detector->zero);
 	fprintf(fPtr, "fano: %g\n", input->detector->fano);
 	fprintf(fPtr, "noise: %g\n", input->detector->noise);
-	fprintf(fPtr, "max_convolution_energy: %g\n", input->detector->max_convolution_energy);
 	fprintf(fPtr, "nchannels: %i\n", input->detector->nchannels);
 	fprintf(fPtr, "detector crystal\n");
 	xmi_print_layer(fPtr, input->detector->crystal_layers, input->detector->n_crystal_layers);

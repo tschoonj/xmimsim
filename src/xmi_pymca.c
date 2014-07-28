@@ -463,10 +463,6 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 		return rv;
 	}
 
-	//this should be calculated based on the maximum energy...
-	(*detector)->max_convolution_energy = 100.0;
-
-
 
 	rv = 1;
 	return rv;

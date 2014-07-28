@@ -172,7 +172,6 @@ static GtkWidget *detector_pulse_widthW;
 static GtkWidget *detector_zeroW;
 static GtkWidget *detector_fanoW;
 static GtkWidget *detector_noiseW;
-static GtkWidget *detector_max_convolution_energyW;
 static GtkWidget *detector_nchannelsW;
 
 GtkWidget *notebook;
@@ -218,7 +217,6 @@ static gulong detector_pulse_widthG;
 static gulong detector_zeroG;
 static gulong detector_fanoG;
 static gulong detector_noiseG;
-static gulong detector_max_convolution_energyG;
 static gulong detector_nchannelsG;
 
 
@@ -282,7 +280,6 @@ static int detector_pulse_widthC;
 static int detector_zeroC;
 static int detector_fanoC;
 static int detector_noiseC;
-static int detector_max_convolution_energyC;
 
 GdkAtom LayerAtom;
 GtkTargetEntry LayerTE = {"xmi-msim-layer", 0, 0};
@@ -744,9 +741,6 @@ static gchar *get_message_string(int kind) {
 			break;
 		case DETECTOR_FANO: 
 			message = g_strdup("change of detector Fano factor");
-			break;
-		case DETECTOR_MAX_CONVOLUTION_ENERGY: 
-			message = g_strdup("change of maximum convolution energy");
 			break;
 		default:
 			g_fprintf(stderr, "Invalid value in get_message_string. Fatal error\n");
@@ -2809,12 +2803,6 @@ void undo_menu_click_with_error(void) {
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_fanoG);
 			break;
-		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->max_convolution_energy);
-			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_max_convolution_energyG);
-			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
-			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_max_convolution_energyG);
-			break;
 	}
 
 	undo_menu_fix_after_error();
@@ -3230,12 +3218,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_fanoG);
-			break;
-		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->max_convolution_energy);
-			g_signal_handler_block(G_OBJECT((current)->widget), detector_max_convolution_energyG);
-			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
-			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_max_convolution_energyG);
 			break;
 		case IMPORT_FROM_FILE:
 			undo_rv = GPOINTER_TO_INT(current->widget);
@@ -3791,12 +3773,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_fanoG);
 			break;
-		case DETECTOR_MAX_CONVOLUTION_ENERGY:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->max_convolution_energy);
-			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
-			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
-			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_max_convolution_energyG);
-			break;
 		case IMPORT_FROM_FILE:
 			undo_rv = GPOINTER_TO_INT((current+1)->widget);
 			if (undo_rv & IMPORT_SELECT_COMPOSITION) {
@@ -3953,7 +3929,6 @@ static gboolean double_changed_current_check(int kind, double new_value) {
 		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_LIVE_TIME,detector->live_time)
 		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_FANO,detector->fano)
 		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_NOISE,detector->noise)
-		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_MAX_CONVOLUTION_ENERGY,detector->max_convolution_energy)
 		DOUBLE_CHANGED_CURRENT_CHECK(DETECTOR_PULSE_WIDTH,detector->pulse_width)
 		DOUBLE_CHANGED_CURRENT_CHECK(COLLIMATOR_HEIGHT,geometry->collimator_height)
 		DOUBLE_CHANGED_CURRENT_CHECK(COLLIMATOR_DIAMETER,geometry->collimator_diameter)
@@ -4002,7 +3977,6 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 		case DETECTOR_LIVE_TIME:
 		case DETECTOR_FANO:
 		case DETECTOR_NOISE:
-		case DETECTOR_MAX_CONVOLUTION_ENERGY:
 			if (lastPtr == endPtr && value > 0.0 && strlen(textPtr) != 0) {
 				//ok
 				if (undo_error) {
@@ -4871,10 +4845,6 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
 			last->widget = widget;
 			break;
-		case DETECTOR_MAX_CONVOLUTION_ENERGY: 
-			last->xi->detector->max_convolution_energy = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);	
-			last->widget = widget;
-			break;
 		case IMPORT_FROM_FILE:
 			iud = (struct import_undo_data *) widget;
 			last->message = g_strdup_printf("import from %s", g_path_get_basename(iud->filename));
@@ -5217,7 +5187,6 @@ XMI_MAIN
 	detector_zeroC = 1;
 	detector_fanoC = 1;
 	detector_noiseC = 1;
-	detector_max_convolution_energyC = 1;
 
 	//initialize regex patterns
 	/*
@@ -6223,21 +6192,6 @@ XMI_MAIN
 	enable_entry_signals(detector_pulse_widthW);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_pulse_widthW, FALSE, FALSE, 0);
 	
-	//max_convolution_energy
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
-	label = gtk_label_new("Max convolution energy (keV)");
-	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
-	detector_max_convolution_energyW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->max_convolution_energy);
-	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
-	vc->kind = DETECTOR_MAX_CONVOLUTION_ENERGY;
-	vc->check = &detector_max_convolution_energyC;
-	detector_max_convolution_energyG = g_signal_connect(G_OBJECT(detector_max_convolution_energyW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
-	enable_entry_signals(detector_max_convolution_energyW);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label), detector_max_convolution_energyW, FALSE, FALSE, 0);
-
 	//crystal
 	xmi_copy_abs_or_crystal2composition(current->xi->detector->crystal_layers, current->xi->detector->n_crystal_layers   ,&temp_composition);	
 	tempW = initialize_matrix(temp_composition  , CRYSTAL_COMPOSITION); 
@@ -6922,8 +6876,7 @@ int check_changeables(void) {
  detector_pulse_widthC &&
  detector_zeroC &&
  detector_fanoC &&
- detector_noiseC &&
- detector_max_convolution_energyC;
+ detector_noiseC;
 }
 
 
@@ -7435,7 +7388,6 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	detector_zeroC = 1;
 	detector_fanoC = 1;
 	detector_noiseC = 1;
-	detector_max_convolution_energyC = 1;
 
 	g_signal_handler_block(G_OBJECT(detector_typeW), detector_typeG);
 	g_signal_handler_block(G_OBJECT(detector_gainW), detector_gainG);
@@ -7444,7 +7396,6 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(detector_zeroW), detector_zeroG);
 	g_signal_handler_block(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_block(G_OBJECT(detector_fanoW), detector_fanoG);
-	g_signal_handler_block(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 	g_signal_handler_block(G_OBJECT(detector_nchannelsW), detector_nchannelsG);
 	
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
@@ -7457,8 +7408,6 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
 	g_sprintf(buffer,"%lg",new_input->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->max_convolution_energy);
-	gtk_entry_set_text(GTK_ENTRY(detector_max_convolution_energyW),buffer);
 	g_sprintf(buffer,"%lg",new_input->detector->live_time);
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
 	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
@@ -7497,7 +7446,6 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(detector_live_timeW), detector_live_timeG);
 	g_signal_handler_unblock(G_OBJECT(detector_noiseW), detector_noiseG);
 	g_signal_handler_unblock(G_OBJECT(detector_fanoW), detector_fanoG);
-	g_signal_handler_unblock(G_OBJECT(detector_max_convolution_energyW), detector_max_convolution_energyG);
 }
 
 #define GEOMETRY_HELP_SCALE_FACTOR_DEFAULT 3.0

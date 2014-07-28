@@ -70,7 +70,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT excitation_path (layer+)>
 <!ELEMENT detector_path (layer+)>
 
-<!ELEMENT detector (detector_type,live_time,pulse_width,nchannels?,gain,zero,fano,noise,max_convolution_energy,crystal)>
+<!ELEMENT detector (detector_type,live_time,pulse_width,nchannels?,gain,zero,fano,noise,max_convolution_energy?,crystal)>
 <!ELEMENT detector_type (#PCDATA)>
 <!ELEMENT gain (#PCDATA)>
 <!ELEMENT live_time (#PCDATA)>
