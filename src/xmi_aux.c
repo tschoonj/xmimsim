@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_linalg.h>
 #include <glib/gstdio.h>
 #include <hdf5.h>
+#include "xmi_private.h"
 
 
 
@@ -580,6 +581,8 @@ void xmi_init_hdf5(void) {
 	//disable HDF5's error messages -> could be a bad idea!
 	H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
+	XMI_H5T_NATIVE_DOUBLE = H5T_NATIVE_DOUBLE;
+	XMI_H5T_NATIVE_INT = H5T_NATIVE_INT;
 
 }
 

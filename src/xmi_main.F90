@@ -334,6 +334,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
+                        photon%last_interaction=NO_INTERACTION
                         NULLIFY(photon%offspring)
                         
                         !Calculate energy with rng -> sample from trapezoidal distribution
@@ -611,6 +612,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
                         photon%history(1,1)=NO_INTERACTION
                         photon%n_interactions=0
+                        photon%last_interaction=NO_INTERACTION
                         NULLIFY(photon%offspring)
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
@@ -1239,7 +1241,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !
                 !
                 IF (photon%energy .LT. energy_threshold) THEN
-                        EXIT
+                        EXIT main
                 ENDIF
                 !Check in which layer it will interact
                 photon%inside = .FALSE.
@@ -1277,15 +1279,16 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 #if DEBUG == 1
                 WRITE (*,'(A)') 'Before do loop'
-                WRITE (*,'(A,I2)') 'optimizations: ',photon%options%use_optimizations
                 WRITE (*,'(A,3F12.4)') 'initial photon%coords:',photon%coords
                 WRITE (*,'(A,3F12.4)') 'initial photon%dirv:',photon%dirv
                 WRITE (*,'(A,I2)') 'step_do_dir: ',step_do_dir
 #endif
 
 !!old
-                IF (photon%options%use_optimizations .EQ. 0_C_INT .OR.&
-                photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+                IF ((photon%options%escape_ratios_mode .EQ. 1 .AND.&
+                    photon%n_interactions .EQ. 1) .OR. &
+                    (photon%options%use_variance_reduction .EQ. 0_C_INT .AND.&
+                    photon%options%escape_ratios_mode .EQ. 0_C_INT)) THEN
                         DO i=photon%current_layer,step_do_max, step_do_dir
                                 !calculate distance between current coords and
                                 !intersection with next layer
@@ -1422,7 +1425,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         !check if we are not leaving the system!
                                 ENDIF
                         ENDDO
-                ELSEIF (photon%options%use_optimizations .EQ. 1_C_INT) THEN
+                ELSE
                         !new version of stepsize selection!!!
                         !optimize by forcing interactions
                         IF(photon%n_interactions .EQ.&
@@ -1470,6 +1473,9 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !Pabs2 = 1.0_C_DOUBLE - EXP(-1.0_C_DOUBLE*Pabs)
                         Pabs2 = -1.0*expm1(-1.0_C_DOUBLE*Pabs)
                         photon%weight = photon%weight * Pabs2
+                        IF (photon%options%escape_ratios_mode .EQ. 1) THEN
+                                photon%weight_escape = photon%weight
+                        ENDIF
 
 
 
@@ -1535,13 +1541,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ENDIF
 
                 !update number of interactions
-                photon%n_interactions = photon%n_interactions + 1
 
-                IF(photon%n_interactions-1 .EQ.&
+                IF(photon%n_interactions .EQ.&
                 inputF%general%n_interactions_trajectory) THEN
                         EXIT main
                 ENDIF
                 
+                photon%n_interactions = photon%n_interactions + 1
+
                 !variance reduction
 #if DEBUG == 1
                 WRITE (6,'(A,I2)') 'current_layer:',photon%current_layer
@@ -1654,7 +1661,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
                 !abort if necessary
                 IF (rv_interaction /= 1) THEN
-                        RETURN
+                       EXIT main 
                 ENDIF
 
 #if DEBUG == 1
@@ -2119,7 +2126,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (fgsl_rng), INTENT(IN) :: rng
-        INTEGER (C_INT) :: rv, pos_1, pos_2
+        INTEGER (C_INT) :: rv, pos_1, pos_2, shell
         REAL (C_DOUBLE) :: theta_i, phi_i
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
@@ -2182,8 +2189,24 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         !update energy of photon!!!
         !
-        CALL xmi_update_photon_energy_compton(photon, theta_i, rng, inputF,&
-        hdf5f)
+        IF (photon%options%use_advanced_compton .EQ. 1) THEN
+                CALL xmi_update_photon_energy_compton(photon, theta_i,&
+                rng, inputF, hdf5F, shell)
+                !process shell further for Compton fluorescence:
+                !basically a radiative cascade event
+                IF (photon%options%use_variance_reduction .EQ. 0)&
+                CALL xmi_simulate_photon_cascade_radiative(photon, shell,&
+                rng, inputF, hdf5F)
+        ELSE
+                CALL xmi_update_photon_energy_compton2(photon, theta_i,&
+                rng, inputF, hdf5f)
+
+        ENDIF
+        
+        IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
+                rv = 1
+                RETURN
+        ENDIF
 
         !
         !update photon%theta and photon%phi
@@ -2239,7 +2262,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         REAL (C_DOUBLE) :: photo_total 
         REAL (C_DOUBLE) :: sumz
-        INTEGER (C_INT) :: shell,line_first, line_last, line
+        INTEGER (C_INT) :: shell,line_first, line_last, line, shell_new
         REAL (C_DOUBLE) :: r
         REAL (C_DOUBLE) :: theta_i, phi_i
 
@@ -2296,8 +2319,9 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 #endif
 
         !first fluorescence yield check, then Coster-Kronig!!!
-        IF (photon%options%use_optimizations .EQ. 0_C_INT .OR. &
-        photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
+        IF (photon%options%use_variance_reduction .EQ. 0_C_INT .AND.&
+            photon%options%escape_ratios_mode .EQ. 0_C_INT) THEN
+        !IF (photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                 !no optimizations // no variance reduction
                 IF (xmi_fluorescence_yield_check(rng, shell, inputF%composition%layers&
                 (photon%current_layer)%xmi_hdf5_Z_local&
@@ -2307,6 +2331,9 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
                                 CALL xmi_simulate_photon_cascade_auger(photon,shell&
                                 ,rng,inputF,hdf5F)
+                                rv = 1
+                        ELSE
+                                rv = 0
                         ENDIF
 #if DEBUG == 1
                         WRITE (*,'(A)') 'No fluorescence: Auger'
@@ -2390,8 +2417,74 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
-                CALL xmi_simulate_photon_cascade_radiative(photon,shell,line&
-                ,rng,inputF,hdf5F)
+
+                IF (shell .EQ. K_SHELL) THEN
+                        SELECT CASE (line)
+                                CASE (KL1_LINE)
+                                        shell_new = L1_SHELL
+                                CASE (KL2_LINE)
+                                        shell_new = L2_SHELL
+                                CASE (KL3_LINE)
+                                        shell_new = L3_SHELL
+                                CASE (KM1_LINE)
+                                        shell_new = M1_SHELL
+                                CASE (KM2_LINE)
+                                        shell_new = M2_SHELL
+                                CASE (KM3_LINE)
+                                        shell_new = M3_SHELL
+                                CASE (KM4_LINE)
+                                        shell_new = M4_SHELL
+                                CASE (KM5_LINE)
+                                        shell_new = M5_SHELL
+                                CASE DEFAULT
+                                        shell_new = -1_C_INT
+                        ENDSELECT
+                        
+
+
+                ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
+                L3_SHELL) .AND. photon%options%use_M_lines .EQ. 1_C_INT) THEN
+                        SELECT CASE (line)
+                                CASE (L1M1_LINE)
+                                        shell_new = M1_SHELL
+                                CASE (L1M2_LINE)
+                                        shell_new = M2_SHELL
+                                CASE (L1M3_LINE)
+                                        shell_new = M3_SHELL
+                                CASE (L1M4_LINE)
+                                        shell_new = M4_SHELL
+                                CASE (L1M5_LINE)
+                                        shell_new = M5_SHELL
+                                CASE (L2M1_LINE)
+                                        shell_new = M1_SHELL
+                                CASE (L2M2_LINE)
+                                        shell_new = M2_SHELL
+                                CASE (L2M3_LINE)
+                                        shell_new = M3_SHELL
+                                CASE (L2M4_LINE)
+                                        shell_new = M4_SHELL
+                                CASE (L2M5_LINE)
+                                        shell_new = M5_SHELL
+                                CASE (L3M1_LINE)
+                                        shell_new = M1_SHELL
+                                CASE (L3M2_LINE)
+                                        shell_new = M2_SHELL
+                                CASE (L3M3_LINE)
+                                        shell_new = M3_SHELL
+                                CASE (L3M4_LINE)
+                                        shell_new = M4_SHELL
+                                CASE (L3M5_LINE)
+                                        shell_new = M5_SHELL
+                                CASE DEFAULT
+                                        shell_new = -1_C_INT
+                        ENDSELECT 
+                ELSE
+                        !nothing to do... probably an M-line
+                        shell_new = -1_C_INT
+                ENDIF
+
+                CALL xmi_simulate_photon_cascade_radiative(photon,shell_new,&
+                rng,inputF,hdf5F)
         ENDIF
 
 #if DEBUG == 1
@@ -4462,6 +4555,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%detector_hit2 = .FALSE.
                         photon%options%use_cascade_radiative = 0_C_INT
                         photon%options%use_cascade_auger = 0_C_INT
+                        photon%options%use_advanced_compton = 0_C_INT
                         photon%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
                         photon%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%dirv(1) = SIN(photon%theta)*COS(photon%phi)
@@ -4544,6 +4638,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%options%use_cascade_auger = 0_C_INT
                         photon%offspring%options%use_cascade_radiative = 0_C_INT
                         photon%offspring%options%use_variance_reduction = 0_C_INT
+                        photon%offspring%options%use_advanced_compton = 0_C_INT
                         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
                         photon%offspring%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%offspring%dirv(1) = SIN(photon%offspring%theta)*COS(photon%offspring%phi)
@@ -4590,13 +4685,13 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_auger
 
-SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,hdf5F)
+SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,hdf5F)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-        INTEGER (C_INT), INTENT(IN) :: shell, line
+        INTEGER (C_INT), INTENT(INOUT) :: shell_new
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        INTEGER (C_INT) :: shell_new, line_new
+        INTEGER (C_INT) :: line_new
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
         
@@ -4615,72 +4710,8 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         !
         !
 
-        IF (shell .EQ. K_SHELL) THEN
-                SELECT CASE (line)
-                        CASE (KL1_LINE)
-                                shell_new = L1_SHELL
-                        CASE (KL2_LINE)
-                                shell_new = L2_SHELL
-                        CASE (KL3_LINE)
-                                shell_new = L3_SHELL
-                        CASE (KM1_LINE)
-                                shell_new = M1_SHELL
-                        CASE (KM2_LINE)
-                                shell_new = M2_SHELL
-                        CASE (KM3_LINE)
-                                shell_new = M3_SHELL
-                        CASE (KM4_LINE)
-                                shell_new = M4_SHELL
-                        CASE (KM5_LINE)
-                                shell_new = M5_SHELL
-                        CASE DEFAULT
-                                shell_new = -1_C_INT
-                ENDSELECT
-                
-
-
-        ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
-        L3_SHELL) .AND. photon%options%use_M_lines .EQ. 1_C_INT) THEN
-                SELECT CASE (line)
-                        CASE (L1M1_LINE)
-                                shell_new = M1_SHELL
-                        CASE (L1M2_LINE)
-                                shell_new = M2_SHELL
-                        CASE (L1M3_LINE)
-                                shell_new = M3_SHELL
-                        CASE (L1M4_LINE)
-                                shell_new = M4_SHELL
-                        CASE (L1M5_LINE)
-                                shell_new = M5_SHELL
-                        CASE (L2M1_LINE)
-                                shell_new = M1_SHELL
-                        CASE (L2M2_LINE)
-                                shell_new = M2_SHELL
-                        CASE (L2M3_LINE)
-                                shell_new = M3_SHELL
-                        CASE (L2M4_LINE)
-                                shell_new = M4_SHELL
-                        CASE (L2M5_LINE)
-                                shell_new = M5_SHELL
-                        CASE (L3M1_LINE)
-                                shell_new = M1_SHELL
-                        CASE (L3M2_LINE)
-                                shell_new = M2_SHELL
-                        CASE (L3M3_LINE)
-                                shell_new = M3_SHELL
-                        CASE (L3M4_LINE)
-                                shell_new = M4_SHELL
-                        CASE (L3M5_LINE)
-                                shell_new = M5_SHELL
-                        CASE DEFAULT
-                                shell_new = -1_C_INT
-                ENDSELECT 
-        ELSE
-                !nothing to do... probably an M-line
-                RETURN
-        ENDIF
         
-        IF (shell_new .EQ. -1_C_INT) RETURN
+        IF (shell_new .LT. K_SHELL .OR. shell_new .GT. M5_SHELL) RETURN
         !exit if an M shell was found while not allowed
         IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&
         photon%options%use_M_lines .EQ. 0) RETURN
@@ -4718,9 +4749,11 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%options = photon%options
         photon%options%use_cascade_auger = 0_C_INT
         photon%options%use_cascade_radiative = 0_C_INT
+        photon%options%use_advanced_compton = 0_C_INT
         photon%offspring%options%use_cascade_auger = 0_C_INT
         photon%offspring%options%use_cascade_radiative = 0_C_INT
         photon%offspring%options%use_variance_reduction = 0_C_INT
+        photon%offspring%options%use_advanced_compton = 0_C_INT
         photon%offspring%weight = photon%weight
         photon%offspring%coords = photon%coords
         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
@@ -4779,7 +4812,207 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_radiative
 
-SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F) 
+SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F, shell) 
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        INTEGER (C_INT), INTENT(OUT) :: shell
+
+        REAL (C_DOUBLE) :: energy, Qimax, Qimax_pos, r,&
+        cdf_sum, temp_sum, cdf, Q, cdf_pos
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs,&
+        electron_config
+        INTEGER (C_INT) :: i, pos
+
+#if DEBUG == 0
+        !WRITE (*,'(A,I3)') 'element: ',photon%current_element
+#endif
+ 
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
+        ALLOCATE(cdfs(SIZE(hdf5_Z%compton_profiles%shell_indices)))
+        ALLOCATE(electron_config(SIZE(hdf5_Z%compton_profiles%shell_indices)))
+
+        DO i=1,SIZE(electron_config)
+                electron_config(i) = &
+                ElectronConfig_Biggs(photon%current_element,&
+                hdf5_Z%compton_profiles%shell_indices(i))
+                Qimax = xmi_get_qimax(photon%energy, photon%current_element,&
+                hdf5_Z%compton_profiles%shell_indices(i), theta_i)
+                IF (Qimax .LT. -100.0) THEN
+                        !value too low
+                        cdfs(i) = 0.0_C_DOUBLE
+                ELSEIF (Qimax .GT. 100.0) THEN
+                        !value too high
+                        !WRITE (error_unit, '(A,F14.5)') 'Invalid Qimax: ', Qimax 
+                        !WRITE (error_unit, '(A,F14.5)') 'Energy: ',&
+                        !photon%energy 
+                        !WRITE (error_unit, '(A,I3)') 'Element: ',&
+                        !photon%current_element 
+                        !WRITE (error_unit, '(A,I3)') 'Shell index: ',&
+                        !hdf5_Z%compton_profiles%shell_indices(i) 
+                        !WRITE (error_unit, '(A,F14.5)') 'Theta: ',&
+                        !theta_i
+                        !CALL xmi_exit(1)
+                        cdfs(i) = 1.0_C_DOUBLE
+                ELSEIF (Qimax .LT. 0.0_C_DOUBLE) THEN
+                        !negative value
+                        Qimax_pos = -1.0_C_DOUBLE*Qimax
+                        pos = INT(Qimax_pos/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(i) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1)&
+                        ],Qimax_pos)
+                        cdfs(i) = 1.0_C_DOUBLE-(0.5_C_DOUBLE+cdfs(i))
+                ELSE
+                        !positive value
+                        pos = INT(Qimax/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(i) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1)&
+                        ],Qimax)
+                        cdfs(i) = 0.5_C_DOUBLE+cdfs(i)
+                ENDIF
+        ENDDO
+
+        cdf_sum = DOT_PRODUCT(electron_config, cdfs)
+
+        IF (cdf_sum .EQ. 0.0_C_DOUBLE) THEN
+                !this would be an incredibly rare event
+                !but it has been known to happen
+                !if it does -> kill the photon
+                photon%energy = 0.0
+                photon%energy_changed = .TRUE.
+                RETURN
+        ENDIF
+
+        !get random number
+        r = fgsl_rng_uniform(rng)
+
+        temp_sum = 0.0_C_DOUBLE
+        i = 1
+
+        !sample the subshell
+        DO
+                temp_sum = temp_sum + electron_config(i)*cdfs(i)/cdf_sum
+                IF (r .LE. temp_sum) THEN
+                        shell = hdf5_Z%compton_profiles%shell_indices(i)
+#if DEBUG == 1
+        WRITE (*,'(A,I3)') 'selected shell: ',shell 
+#endif
+                        EXIT 
+                ENDIF
+                i = i + 1
+        ENDDO
+        !if shell is K, L or M, we should create an offspring photon
+        !for the fluorescence that may be generated...
+
+
+
+        !sample the energy of the scattered photon
+        r = fgsl_rng_uniform(rng)
+        cdf = r*cdfs(i)
+
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'cdf: ', cdf
+#endif
+        IF (cdf .LT. 0.5_C_DOUBLE) THEN
+                !negative Q
+                cdf_pos = 0.5_C_DOUBLE-cdf
+                pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(1)))+1
+                !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                !cdf_pos)
+                IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        WRITE (error_unit, '(A)')&
+                        'findpos error in xmi_update_photon_energy_compton'
+                        WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                        CALL xmi_exit(1)
+                ENDIF
+                Q = interpolate_simple([&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos)&
+                ],[&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos+1)&
+                ], cdf_pos)
+                !Q = interpolate_simple([&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                !hdf5_Z%compton_profiles%Qs(pos)&
+                !],[&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                !hdf5_Z%compton_profiles%Qs(pos+1)&
+                !], cdf_pos)
+                Q = -1.0_C_DOUBLE*Q
+        ELSE
+                !positive Q
+                cdf_pos = cdf-0.5_C_DOUBLE
+                pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                profile_partial_cdf_inv(1)))+1
+                !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(i,:),&
+                !cdf_pos)
+                IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%Qs)-1) THEN
+                        WRITE (error_unit, '(A)')&
+                        'findpos error in xmi_update_photon_energy_compton'
+                        WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                        CALL xmi_exit(1)
+                ENDIF
+                Q = interpolate_simple([&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos)&
+                ],[&
+                hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                hdf5_Z%compton_profiles%Qs_inv(i,pos+1)&
+                ], cdf_pos)
+                !Q = interpolate_simple([&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos),&
+                !hdf5_Z%compton_profiles%Qs(pos)&
+                !],[&
+                !hdf5_Z%compton_profiles%profile_partial_cdf(i,pos+1),&
+                !hdf5_Z%compton_profiles%Qs(pos+1)&
+                !], cdf_pos)
+        ENDIF
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'Q: ', Q
+#endif
+
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'old photon energy: ',photon%energy
+#endif
+        photon%energy_changed = .FALSE.
+        !translate Q into the corresponding energy
+        photon%energy = xmi_get_energy_from_q(photon%energy, Q, theta_i)
+        IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
+                RETURN
+        ENDIF
+
+#if DEBUG == 1
+        WRITE (*,'(A,F12.5)') 'new photon energy: ',photon%energy
+#endif
+        photon%energy_changed = .FALSE.
+        photon%mus = xmi_mu_calc(inputF%composition,&
+        photon%energy)
+
+
+!        ENDASSOCIATE
+#undef hdf5_Z
+
+        RETURN
+ENDSUBROUTINE xmi_update_photon_energy_compton
+
+SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F) 
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
@@ -4812,18 +5045,19 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
 
         DO
                 r = fgsl_rng_uniform(rng)
-                pos = findpos(hdf5_Z%&
-                RandomNumbers, r)
-
+                pos = INT(r/(hdf5_Z%compton_profiles%&
+                random_numbers(2)-&
+                hdf5_Z%compton_profiles%&
+                random_numbers(1)))+1 
                 pz = interpolate_simple([&
-                hdf5_Z%&
-                RandomNumbers(pos),&
-                hdf5_Z%&
-                DopplerPz_ICDF(pos)]&
-                ,[hdf5_Z%&
-                RandomNumbers(pos+1),&
-                hdf5_Z%&
-                DopplerPz_ICDF(pos+1)], r)
+                hdf5_Z%compton_profiles%&
+                random_numbers(pos),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos)]&
+                ,[hdf5_Z%compton_profiles%&
+                random_numbers(pos+1),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos+1)], r)
 
 !                np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
 !                pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
@@ -4860,7 +5094,9 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F)
 #undef hdf5_Z
 
         RETURN
-ENDSUBROUTINE xmi_update_photon_energy_compton
+ENDSUBROUTINE xmi_update_photon_energy_compton2
+
+
 
 SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
         IMPLICIT NONE
@@ -5261,16 +5497,18 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
 ENDSUBROUTINE xmi_force_photon_to_detector
 
 SUBROUTINE xmi_escape_ratios_calculation(inputFPtr, hdf5FPtr, escape_ratiosPtr,&
-input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
+input_string,input_options, ero) &
+BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         TYPE (C_PTR), INTENT(INOUT) :: escape_ratiosPtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
+        TYPE (xmi_escape_ratios_options), VALUE, INTENT(IN) :: ero
 
 
         TYPE (xmi_hdf5), POINTER :: hdf5F
         TYPE (xmi_input), POINTER :: inputF
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
         TYPE (xmi_main_options) :: options
         TYPE (xmi_escape_ratiosC), POINTER :: escape_ratios
         INTEGER (C_INT) :: xmi_cascade_type
@@ -5284,9 +5522,6 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon
         INTEGER, PARAMETER :: maxz = 94
-        INTEGER (C_LONG), PARAMETER :: n_input_energies = 1990
-        INTEGER (C_LONG), PARAMETER :: n_compton_output_energies = 1999
-        INTEGER (C_LONG), PARAMETER :: n_photons = 500000
         !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
@@ -5317,21 +5552,23 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F) 
 
-        ALLOCATE(input_energies(n_input_energies))
-        ALLOCATE(compton_escape_output_energies(n_compton_output_energies))
-        DO i=0,n_input_energies-1
-                input_energies(i+1) = 1.0+i*0.1
+        ALLOCATE(input_energies(ero%n_input_energies))
+        ALLOCATE(compton_escape_output_energies(ero%n_compton_output_energies))
+        DO i=0,ero%n_input_energies-1
+                input_energies(i+1) = &
+                ero%input_energy_min+i*ero%input_energy_delta
         ENDDO
 
-        DO i=0,n_compton_output_energies-1
-                compton_escape_output_energies(i+1) = 0.1+i*0.1
+        DO i=0,ero%n_compton_output_energies-1
+                compton_escape_output_energies(i+1) = &
+                ero%compton_output_energy_min+i*ero%compton_output_energy_delta
         ENDDO
 
         ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
         Z = hdf5F%xmi_hdf5_Zs(:)%Z
-        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),n_input_energies))
-        ALLOCATE(compton_escape_ratios(n_input_energies,&
-        n_compton_output_energies))
+        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),ero%n_input_energies))
+        ALLOCATE(compton_escape_ratios(ero%n_input_energies,&
+        ero%n_compton_output_energies))
 
         fluo_escape_ratios = 0.0_C_DOUBLE
         compton_escape_ratios = 0.0_C_DOUBLE
@@ -5341,9 +5578,9 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         options%use_cascade_auger = 0
         options%use_cascade_radiative = 0
         options%use_variance_reduction = 0
-        options%use_optimizations = 0
         options%use_sum_peaks = 0
         options%escape_ratios_mode = 1
+        options%use_advanced_compton = 0
 
         xmi_cascade_type = XMI_CASCADE_NONE
 
@@ -5382,7 +5619,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         !allocate the escape ratio arrays...
 
         n_photons_sim = 0_C_INT64_T
-        n_photons_tot = n_input_energies*n_photons/input_options%omp_num_threads
+        n_photons_tot = ero%n_input_energies*ero%n_photons/input_options%omp_num_threads
         n_photons_tot = n_photons_tot/100_C_INT64_T
         n_photons_tot = n_photons_tot*100_C_INT64_T
 
@@ -5403,7 +5640,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL fgsl_rng_set(rng,seeds(thread_num+1))
 
 !$omp do schedule(dynamic)
-        DO i=1,n_input_energies
+        DO i=1,ero%n_input_energies
                 energy_disc%energy = input_energies(i)
                 energy_disc%sigma_x = 0.0
                 energy_disc%sigma_xp = 0.0
@@ -5421,7 +5658,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 photons_einstein= 0.0_C_DOUBLE
                 photons_interacted= 0.0_C_DOUBLE
 
-                DO j=1,n_photons
+                DO j=1,ero%n_photons
                         !Allocate the photon
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
@@ -5446,6 +5683,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         photon)
                 
                         photon%weight = 1.0
+                        photon%weight_escape = photon%weight
                         theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
                         photon%elecv(1) = COS(theta_elecv)
                         photon%elecv(2) = SIN(theta_elecv)
@@ -5491,10 +5729,12 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                         CASE (COMPTON_INTERACTION)
                                                 photons_compton = &
                                                 photons_compton + photon%weight  
-                                                compton_index=INT((photon%energy-0.1)/0.1)
+                                                compton_index=INT((photon%energy-&
+                                                ero%compton_output_energy_min)&
+                                                /ero%compton_output_energy_delta)+1
                                                 IF (compton_index .GE. 1 .AND.&
                                                 compton_index .LE. &
-                                                n_compton_output_energies)&
+                                                ero%n_compton_output_energies)&
                                                 compton_escape_ratios(i,compton_index)=&
                                                 compton_escape_ratios(i,compton_index)+&
                                                 photon%weight
@@ -5514,7 +5754,7 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                                 photon%history(k,1) .GE. L3P3_LINE) THEN
                                                         fluo_escape_ratios(element,line,i) = &
                                                         fluo_escape_ratios(element,line,i) + &
-                                                        photon%weight
+                                                        photon%weight_escape
                                                 ENDIF
                                 ENDSELECT
 
@@ -5545,6 +5785,10 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 compton_escape_ratios(i,:)=&
                 compton_escape_ratios(i,:)/photons_interacted
                 DEALLOCATE(initial_mus)
+                !WRITE (output_unit, '(A,F14.2)') &
+                !'photons_interacted',photons_interacted
+                !WRITE (output_unit, '(A,F14.2)') &
+                !'photons_no_interaction',photons_no_interaction
         ENDDO
 !$omp end do
 !$omp end parallel
@@ -5552,14 +5796,15 @@ input_string,input_options) BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 
 
+
         ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)
         escape_ratios%n_fluo_input_energies =&
-        n_input_energies
+        ero%n_input_energies
         escape_ratios%n_compton_input_energies =&
-        n_input_energies
+        ero%n_input_energies
         escape_ratios%n_compton_output_energies =&
-        n_compton_output_energies
+        ero%n_compton_output_energies
         escape_ratios%Z=C_LOC(Z(1))
         escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios(1,1,1))
         escape_ratios%fluo_escape_input_energies=C_LOC(input_energies(1))

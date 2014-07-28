@@ -72,6 +72,7 @@ libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 		 	@gtk3extra_CFLAGS@ \
 			@JsonGlib_CFLAGS@ \
 		      	@libcurl_CFLAGS@ \
+			@gmodule_CFLAGS@ \
 			-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 			-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
 			-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
@@ -94,12 +95,11 @@ libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@H5CC_STATIC@ \
 			@fgsl_LIBS@ \
 			@glib2_LIBS@ \
+			@gmodule_LIBS@ \
 			@GTK_MAC_LIBS@
 
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
-libxmimsim_la_CFLAGS += @gmodule_CFLAGS@ 
-libxmimsim_la_LIBADD += @gmodule_LIBS@ 
 xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
 xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include -DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\"
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la

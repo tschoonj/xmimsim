@@ -68,6 +68,7 @@ GtkWidget *variance_reductionW;
 GtkWidget *pile_upW;
 GtkWidget *poissonW;
 GtkWidget *escape_peaksW;
+GtkWidget *advanced_comptonW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *openclW;
 #endif
@@ -516,6 +517,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(pile_upW,TRUE);	
 	gtk_widget_set_sensitive(poissonW,TRUE);	
 	gtk_widget_set_sensitive(escape_peaksW,TRUE);	
+	gtk_widget_set_sensitive(advanced_comptonW,TRUE);	
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,TRUE);	
 #endif
@@ -673,6 +675,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(pile_upW,FALSE);	
 	gtk_widget_set_sensitive(poissonW,FALSE);	
 	gtk_widget_set_sensitive(escape_peaksW,FALSE);	
+	gtk_widget_set_sensitive(advanced_comptonW,FALSE);	
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
@@ -748,6 +751,15 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-escape-peaks");
+
+	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_comptonW)) == TRUE) {
+		argv[arg_counter-1] = g_strdup("--enable-advanced-compton");
+	}
+	else
+		argv[arg_counter-1] = g_strdup("--disable-advanced-compton");
+
+
 
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[arg_counter-1] = g_strdup("--verbose");
@@ -1545,6 +1557,15 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaksW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), escape_peaksW, TRUE, FALSE, 0);
+
+	advanced_comptonW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
+	gtk_widget_set_tooltip_text(advanced_comptonW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_comptonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), advanced_comptonW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	openclW = gtk_check_button_new_with_label("Enable OpenCL");

@@ -38,6 +38,37 @@ TYPE, BIND(C) :: interaction_probC
         TYPE (C_PTR) :: energies
         TYPE (C_PTR) :: Rayl_and_Compt
 ENDTYPE
+
+!
+!
+!  Doppler broadening profiles
+!
+!
+TYPE :: compton_profiles
+        !Fernandez and Scot method -> slow but very good simulation
+        INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: shell_indices
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: profile_partial_cdf
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_partial_cdf_inv
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Qs_inv 
+        !Laszlo method -> fast but not as good
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: random_numbers 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_total_icdf
+ENDTYPE
+
+TYPE, BIND(C) :: compton_profilesC
+        INTEGER (KIND=C_INT) :: shell_indices_len
+        INTEGER (KIND=C_INT) :: data_len
+        TYPE (C_PTR) :: shell_indices
+        TYPE (C_PTR) :: Qs 
+        TYPE (C_PTR) :: profile_partial_cdf
+        TYPE (C_PTR) :: profile_partial_cdf_inv
+        TYPE (C_PTR) :: Qs_inv 
+        TYPE (C_PTR) :: random_numbers 
+        TYPE (C_PTR) :: profile_total_icdf
+ENDTYPE
+
+
 !
 !
 ! HDF5 data structures
@@ -46,12 +77,12 @@ ENDTYPE
 TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: RayleighTheta_ICDF
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: ComptonTheta_ICDF
-        REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: DopplerPz_ICDF
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: Energies
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: RandomNumbers
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
+        TYPE (compton_profiles) :: compton_profiles 
         INTEGER (C_INT) :: Z
         INTEGER (C_INT) :: Zindex
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: precalc_xrf_cs
@@ -275,7 +306,6 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_cascade_auger
         INTEGER (C_INT) :: use_cascade_radiative
         INTEGER (C_INT) :: use_variance_reduction
-        INTEGER (C_INT) :: use_optimizations
         INTEGER (C_INT) :: use_sum_peaks
         INTEGER (C_INT) :: use_escape_peaks
         INTEGER (C_INT) :: escape_ratios_mode
@@ -285,6 +315,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: omp_num_threads
         INTEGER (C_INT) :: extra_verbose
         TYPE (C_PTR) :: custom_detector_response
+        INTEGER (C_INT) :: use_advanced_compton
 ENDTYPE xmi_main_options
 !
 !
@@ -340,22 +371,6 @@ ENDTYPE xmi_escape_ratiosC
 
 !
 !
-!       xmi_var_red_layer: Datatype that will hold information about the
-!       variance reduction
-!
-!
-
-
-TYPE :: xmi_var_red_layer
-        !dimensions should be (n_elements, 383+1+1)
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: weight
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE :: energy 
-ENDTYPE xmi_var_red_layer
-
-
-
-!
-!
 !       xmi_precalc_mu_cs: contains precalculated absorption coefficients for
 !       XRF photons
 !
@@ -407,6 +422,10 @@ TYPE :: xmi_photon
         !weight of the photon
         REAL (C_DOUBLE) :: weight
 
+        !secondary weight of the photon for escape ratios mode
+        !this one will be used to calculated the fluo_escape_ratios 
+        REAL (C_DOUBLE) :: weight_escape
+
         !mus
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
 
@@ -437,9 +456,6 @@ TYPE :: xmi_photon
         !last shell -> debugging
         INTEGER (C_INT) :: last_shell
 
-        !variance reduction
-        !TYPE(xmi_var_red_layer), DIMENSION(:,:), ALLOCATABLE :: variance_reduction
-        
         !cascade type
         INTEGER (C_INT) :: xmi_cascade_type
 
@@ -502,6 +518,21 @@ TYPE, PUBLIC :: xmi_ran_trap_workspace
         REAL (C_DOUBLE) :: x2
         REAL (C_DOUBLE) :: y1
         REAL (C_DOUBLE) :: y2
+ENDTYPE
+
+!
+!
+!       options for the escape ratios calculation
+!
+!
+TYPE, BIND(C) :: xmi_escape_ratios_options
+        INTEGER (C_LONG) :: n_input_energies = 1990
+        INTEGER (C_LONG) :: n_compton_output_energies = 1999
+        INTEGER (C_LONG) :: n_photons = 500000
+        REAL (C_DOUBLE) :: input_energy_min 
+        REAL (C_DOUBLE) :: input_energy_delta
+        REAL (C_DOUBLE) :: compton_output_energy_min 
+        REAL (C_DOUBLE) :: compton_output_energy_delta
 ENDTYPE
 
 
@@ -1263,23 +1294,29 @@ FUNCTION findpos_fast(array,searchvalue)
         RETURN
 ENDFUNCTION findpos_fast
 
-FUNCTION findpos(array, searchvalue)
+FUNCTION findpos(array, searchvalue, start_pos_arg)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
         REAL (C_DOUBLE) , INTENT(IN) :: searchvalue
-        INTEGER (C_INT) :: findpos, i
+        INTEGER (C_INT), INTENT(IN), OPTIONAL :: start_pos_arg
+        INTEGER (C_INT) :: findpos, i, start_pos
 
         findpos = -1
 
         !this would appear to be necessary... the rng generates exactly 0.0
         !sometimes...
-        IF (ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
+        IF (.NOT.PRESENT(start_pos_arg) .AND. ABS(searchvalue-array(LBOUND(array,DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
                 findpos = 1
                 RETURN
         ENDIF
 
+        IF (PRESENT(start_pos_arg)) THEN
+                start_pos = start_pos_arg
+        ELSE
+                start_pos = LBOUND(array,DIM=1)+1
+        ENDIF
 
-        DO i=LBOUND(array,DIM=1), UBOUND(array,DIM=1)
+        DO i=start_pos, UBOUND(array,DIM=1)
                 IF (searchvalue .LE. array(i)) THEN
                         findpos = i-1
                         RETURN
@@ -1877,5 +1914,129 @@ BIND(C,NAME='xmi_omp_get_max_threads')
 
         rv = INT(omp_get_max_threads(), KIND=C_INT)
 ENDFUNCTION xmi_omp_get_max_threads
+
+FUNCTION xmi_get_qimax(energy, element, shell, theta) RESULT(Qimax)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: energy, theta
+        INTEGER (C_INT), INTENT(IN) :: element, shell
+        REAL (C_DOUBLE) :: Qimax
+
+        REAL (C_DOUBLE) :: Ii, EminIi, costheta
+
+        !WRITE (output_unit, '(A)') 'Entering xmi_get_qimax'
+
+        !check what happens when zero is returned here...
+        Ii = EdgeEnergy(element, shell)
+        IF (Ii .EQ. 0.0_C_DOUBLE) THEN
+                !WRITE (output_unit,'(A)') 'Warning: EdgeEnergy equal to zero in xmi_get_qimax'
+                !WRITE (output_unit,'(A,I3,AI2)') 'Element: ',&
+                !element,' shell: ',shell
+        ELSEIF (energy .LT. Ii) THEN
+                Qimax = 0.0_C_DOUBLE
+                RETURN
+        ENDIF
+        EminIi = energy-Ii
+        costheta = COS(theta)
+        Qimax = 137.0_C_DOUBLE*(EminIi*energy*(1.0_C_DOUBLE-costheta)/MEC2-Ii)
+        Qimax = &
+        Qimax/SQRT(EminIi**2+energy**2-2.0_C_DOUBLE*EminIi*energy*costheta)
+
+ENDFUNCTION xmi_get_qimax
+
+FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: init_energy, Q, theta
+        REAL (C_DOUBLE) :: energy
+
+        REAL (C_DOUBLE) :: a, b, c, d 
+        REAL (C_DOUBLE) :: aq, bq, cq 
+        REAL (C_DOUBLE), PARAMETER :: onethreeseven = 137.0_C_DOUBLE
+        REAL (C_DOUBLE) :: E1, E2, Q1, Q2 
+        INTEGER (C_INT) :: rv
+
+        a = init_energy
+        b = MEC2
+        c = COS(theta)
+
+        IF (ABS(c-1.0_C_DOUBLE) .LT. 1E-8) THEN
+                !exception for theta very close to 0
+                energy = 0.0
+                RETURN
+        ENDIF
+        IF (ABS(Q) .LT. 1E-4) THEN
+                !exception for Q very close to zero
+                energy = init_energy/(1.0 + init_energy*(1.0-c)/MEC2)
+                RETURN
+        ENDIF
+
+        d = 1.0_C_DOUBLE + a/b - a*c/b
+
+        aq = onethreeseven**2*d**2 - Q**2
+        bq = -2.0_C_DOUBLE*onethreeseven**2*a*d + 2.0_C_DOUBLE*a*c*Q**2
+        cq = onethreeseven**2*a**2 - a**2*Q**2
+
+        rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2) 
+
+        IF (rv == 0_C_INT) THEN
+                !WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
+                !WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                !WRITE (error_unit, '(A, F14.5)') 'Q:', Q
+                !WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
+                !WRITE (error_unit, '(A, F14.5)') 'theta:', theta
+                !CALL xmi_exit(1)
+                energy = 0.0
+                RETURN
+        ENDIF
+
+        !WRITE (output_unit,'(A, F14.5)') 'Energy1: ', E1
+        !WRITE (output_unit,'(A, F14.5)') 'Q1: ', Q1
+        !WRITE (output_unit,'(A, F14.5)') 'Energy2: ', E2
+        !WRITE (output_unit,'(A, F14.5)') 'Q2: ', Q2
+
+
+        !in order to know which energy to use
+        !calculate the corresponding Qs and see which one matches the input
+        Q1 = xmi_get_q_from_energy(init_energy, E1, theta)
+        Q2 = xmi_get_q_from_energy(init_energy, E2, theta)
+
+        IF (Q*Q1 .GT. 0.0) THEN
+                energy = E1
+        ELSEIF (Q*Q2 .GT. 0.0) THEN
+                energy = E2
+        ELSEIF (ABS(E1-E2) .LT. 1E-10 .OR. ABS(Q1-Q2) .LT. 1E-10) THEN
+                !Q is extremely close to zero -> math issues start to emerge
+                !should check for floating point exceptions and so
+                !anyway, in this case E1 and E2 are identical
+                energy = E1
+        ELSE
+                WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
+                WRITE (error_unit, '(A)') 'Invalid values for Q1 and Q2'
+                WRITE (error_unit, '(A, ES14.5)') 'Q1:', Q1
+                WRITE (error_unit, '(A, ES14.5)') 'Q2:', Q2
+                WRITE (error_unit, '(A, F14.5)') 'E1:', E1
+                WRITE (error_unit, '(A, F14.5)') 'E2:', E2
+                WRITE (error_unit, '(A, ES14.5)') 'Q:', Q
+                WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
+                WRITE (error_unit, '(A, F14.5)') 'theta:', theta
+                CALL xmi_exit(1)
+        ENDIF
+
+ENDFUNCTION xmi_get_energy_from_q
+
+FUNCTION xmi_get_q_from_energy(old_energy, new_energy, theta) RESULT(Q)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: old_energy, new_energy, theta
+        REAL (C_DOUBLE) :: Q
+
+        REAL (C_DOUBLE) :: costheta
+
+        costheta = COS(theta)
+        Q = 137.0_C_DOUBLE*(new_energy-old_energy+&
+        (1.0-costheta)*old_energy*new_energy/MEC2)
+        Q = Q/SQRT(new_energy**2+old_energy**2-&
+        2.0*old_energy*new_energy*costheta)
+
+
+ENDFUNCTION xmi_get_q_from_energy
 
 ENDMODULE 

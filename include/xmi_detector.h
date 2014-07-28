@@ -38,9 +38,21 @@ struct xmi_escape_ratios {
 	char *xmi_input_string;
 };
 
+struct xmi_escape_ratios_options {
+	long n_input_energies; //default : 1990
+	long n_compton_output_energies; //default : 1999
+	long n_photons; //default : 500000
+	double input_energy_min; //default : 1.0 keV
+	double input_energy_delta; //default : 0.1 keV
+	double compton_output_energy_min; //default : 0.1 keV
+	double compton_output_energy_delta; //default : 0.1 keV
+};
+
+struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void);
+
 int xmi_get_escape_ratios_file(char **file, int create_file);
 
-void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options);
+void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options, struct xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file);
 
@@ -58,7 +70,7 @@ int xmi_init_input_escape_ratios(xmi_inputFPtr *inputFPtr);
 
 int xmi_check_detector_convolute_plugin(char *dlm);
 
-#define XMI_ESCAPE_RATIOS_MIN_VERSION 3.1
+#define XMI_ESCAPE_RATIOS_MIN_VERSION 4.2
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[4.1],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[4.2],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.67])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -107,6 +107,7 @@ PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 PKG_CHECK_MODULES([fgsl],fgsl >= 1.0.0)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
+PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
@@ -440,7 +441,6 @@ if test "x$enable_opencl" != xno ; then
 		AC_MSG_ERROR([no OpenCL implementation found])
 		fi
 	else
-		PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 		AC_MSG_NOTICE([OpenCL implementation found])
 		AC_SUBST(CPPFLAGS_CL)
 		AC_SUBST(LIBS_CL)

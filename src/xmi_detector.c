@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
-void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options);
+void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options, struct xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
@@ -90,7 +90,7 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	return 1;
 }
 
-void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options) {
+void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options, struct xmi_escape_ratios_options ero) {
 
 	struct xmi_input *esc_ratio_inputPtr;
 	xmi_inputFPtr inputFPtr;
@@ -125,17 +125,20 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	if (xmi_init_input_escape_ratios(&inputFPtr) == 0) {
 		exit(1);
 	}
-	
+
+
+	struct xmi_main_options escape_main_options = {.omp_num_threads = options.omp_num_threads, .verbose = options.verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options.extra_verbose};
+
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, options) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, escape_main_options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
-	}	
+	}
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, options);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, escape_main_options, ero);
 
 }
 
@@ -637,3 +640,7 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 	return 1;	
 }
 
+struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {
+	struct xmi_escape_ratios_options rv = {1990, 1999, 500000, 1.0, 0.1, 0.1, 0.1};
+	return rv;
+}

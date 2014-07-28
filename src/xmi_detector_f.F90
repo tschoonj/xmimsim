@@ -469,8 +469,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
-                                WRITE (6,*) 'findpos returns low index'
-                                CALL xmi_exit(1)
+                                CYCLE
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -509,8 +508,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
-                                WRITE (6,*) 'findpos returns low index'
-                                CALL xmi_exit(1)
+                                CYCLE
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -550,8 +548,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
-                                WRITE (6,*) 'findpos returns low index'
-                                CALL xmi_exit(1)
+                                CYCLE
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)
@@ -591,8 +588,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
                                 channel_e)   
                                 IF (pos .LT. 1) THEN
-                                WRITE (6,*) 'findpos returns low index'
-                                CALL xmi_exit(1)
+                                CYCLE
                                 ENDIF
                                 !fluo_energies =>&
                                 !escape_ratios%fluo_escape_input_energies(pos:pos+1)

@@ -196,7 +196,6 @@ struct xmi_main_options {
 	int use_cascade_auger;
 	int use_cascade_radiative;
 	int use_variance_reduction;
-	int use_optimizations;
 	int use_sum_peaks;
 	int use_escape_peaks;
 	int escape_ratios_mode;
@@ -206,6 +205,7 @@ struct xmi_main_options {
 	int omp_num_threads;
 	int extra_verbose;
 	char *custom_detector_response;
+	int use_advanced_compton;
 };
 
 //typedefs are clearer then using void *...

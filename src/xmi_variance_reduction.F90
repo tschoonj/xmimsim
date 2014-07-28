@@ -58,6 +58,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: PK, PL1, PL2, PL3, PM1, PM2, PM3, PM4, PM5
         INTEGER (C_INT) :: channel
         REAL (C_DOUBLE) :: temp_weight
+        REAL (C_DOUBLE), DIMENSION(K_SHELL:M5_SHELL) :: shell_weights
+        REAL (C_DOUBLE) :: mu_compt
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -375,8 +377,15 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 !
                 !       moving on with COMPTON
                 !
-                CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
-                distances, detector_solid_angle, step_do_max,step_do_dir)
+                shell_weights = 0.0_C_DOUBLE
+                IF (photon%options%use_advanced_compton .EQ. 1) THEN
+                        CALL xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
+                        distances, detector_solid_angle, step_do_max,step_do_dir, shell_weights)
+                        mu_compt = CS_Compt(layer%Z(i), photon%energy) 
+                ELSE
+                        CALL xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
+                        distances, detector_solid_angle, step_do_max,step_do_dir)
+                ENDIF
 
                 !
                 !      and finishing with FLUORESCENCE 
@@ -425,143 +434,143 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         ENDIF
 #undef precalc_xrf_cs_local
                 ELSE
-                PK = 0.0_C_DOUBLE
-                PL1 = 0.0_C_DOUBLE
-                PL2 = 0.0_C_DOUBLE
-                PL3 = 0.0_C_DOUBLE
-                PM1 = 0.0_C_DOUBLE
-                PM2 = 0.0_C_DOUBLE
-                PM3 = 0.0_C_DOUBLE
-                PM4 = 0.0_C_DOUBLE
-                PM5 = 0.0_C_DOUBLE
+                        PK = 0.0_C_DOUBLE
+                        PL1 = 0.0_C_DOUBLE
+                        PL2 = 0.0_C_DOUBLE
+                        PL3 = 0.0_C_DOUBLE
+                        PM1 = 0.0_C_DOUBLE
+                        PM2 = 0.0_C_DOUBLE
+                        PM3 = 0.0_C_DOUBLE
+                        PM4 = 0.0_C_DOUBLE
+                        PM5 = 0.0_C_DOUBLE
 
-                IF (photon%energy .GE. EdgeEnergy(layer%Z(i),K_SHELL)) &
-                        PK = CS_Photo_Partial(layer%Z(i),K_SHELL,&
-                        photon%energy)
-
-                !set the XRF cross sections according to the options
-                SELECT CASE (photon%xmi_cascade_type)
-                        CASE(XMI_CASCADE_NONE)
-                        PL1 = PL1_pure_kissel(layer%Z(i),&
-                        photon%energy)
-                        PL2 = PL2_pure_kissel(layer%Z(i),&
-                        photon%energy,PL1)
-                        PL3 = PL3_pure_kissel(layer%Z(i),&
-                        photon%energy,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 = PM1_pure_kissel(layer%Z(i),&
+                        IF (photon%energy .GE. EdgeEnergy(layer%Z(i),K_SHELL)) &
+                                PK = CS_Photo_Partial(layer%Z(i),K_SHELL,&
                                 photon%energy)
-                                PM2 = &
-                                PM2_pure_kissel(layer%Z(i),&
-                                photon%energy,PM1)
-                                PM3 = &
-                                PM3_pure_kissel(layer%Z(i),&
-                                photon%energy,PM1,PM2)
-                                PM4 = &
-                                PM4_pure_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_pure_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PM1,PM2,PM3,PM4)
 
-                        ENDIF
-                        CASE(XMI_CASCADE_NONRADIATIVE)
-                        PL1 = PL1_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_auger_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
-                        CASE(XMI_CASCADE_RADIATIVE)
-                        PL1 = PL1_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_rad_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
-                        CASE(XMI_CASCADE_FULL)
-                        PL1 = PL1_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK)
-                        PL2 = PL2_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,PK,PL1)
-                        PL3 = PL3_full_cascade_kissel(layer%Z(i),&
-                        photon%energy,&
-                        PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                                PM1 =&
-                                PM1_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK, PL1, PL2, PL3)
-                                PM2 = &
-                                PM2_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1)
-                                PM3 = &
-                                PM3_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2)
-                                PM4 = &
-                                PM4_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3)
-                                PM5 = &
-                                PM5_full_cascade_kissel(layer%Z(i),&
-                                photon%energy,&
-                                PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        ENDIF
+                        !set the XRF cross sections according to the options
+                        SELECT CASE (photon%xmi_cascade_type)
+                                CASE(XMI_CASCADE_NONE)
+                                PL1 = PL1_pure_kissel(layer%Z(i),&
+                                photon%energy)
+                                PL2 = PL2_pure_kissel(layer%Z(i),&
+                                photon%energy,PL1)
+                                PL3 = PL3_pure_kissel(layer%Z(i),&
+                                photon%energy,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 = PM1_pure_kissel(layer%Z(i),&
+                                        photon%energy)
+                                        PM2 = &
+                                        PM2_pure_kissel(layer%Z(i),&
+                                        photon%energy,PM1)
+                                        PM3 = &
+                                        PM3_pure_kissel(layer%Z(i),&
+                                        photon%energy,PM1,PM2)
+                                        PM4 = &
+                                        PM4_pure_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_pure_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PM1,PM2,PM3,PM4)
 
-                        CASE DEFAULT
-                                WRITE (*,'(A)') 'Unsupported cascade type'
-                                CALL xmi_exit(1)
-                ENDSELECT
+                                ENDIF
+                                CASE(XMI_CASCADE_NONRADIATIVE)
+                                PL1 = PL1_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_auger_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+                                CASE(XMI_CASCADE_RADIATIVE)
+                                PL1 = PL1_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_rad_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+                                CASE(XMI_CASCADE_FULL)
+                                PL1 = PL1_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK)
+                                PL2 = PL2_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,PK,PL1)
+                                PL3 = PL3_full_cascade_kissel(layer%Z(i),&
+                                photon%energy,&
+                                PK,PL1,PL2)
+                                IF (photon%options%use_M_lines .EQ. 1) THEN 
+                                        PM1 =&
+                                        PM1_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK, PL1, PL2, PL3)
+                                        PM2 = &
+                                        PM2_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1)
+                                        PM3 = &
+                                        PM3_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2)
+                                        PM4 = &
+                                        PM4_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3)
+                                        PM5 = &
+                                        PM5_full_cascade_kissel(layer%Z(i),&
+                                        photon%energy,&
+                                        PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
+                                ENDIF
+
+                                CASE DEFAULT
+                                        WRITE (*,'(A)') 'Unsupported cascade type'
+                                        CALL xmi_exit(1)
+                        ENDSELECT
                 ENDIF
 
 
@@ -572,80 +581,105 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         IF (energy_fluo .LT. energy_threshold) CYCLE
 
                         !Pconv calculation...
-                        !Pconv = &
-                        !layer%weight(i)*CS_FluorLine_Kissel_cascade&
-                        !(layer%Z(i),line_new,REAL(photon%energy,KIND=C_FLOAT))/&
-                        !photon%mus(photon%current_layer)
-
+                        !Take into account compton contributions when
+                        !necessary!!!
+                        Pconv = 0.0_C_DOUBLE
                         SELECT CASE(line_new)
                                 CASE(KP5_LINE:KL1_LINE)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PK*FluorYield&
+                                Pconv = PK
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(K_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),K_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L1P5_LINE:L1M1_LINE)
                                 IF (PL1 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL1*FluorYield&
+                                Pconv = PL1
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L1_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L2Q1_LINE:L2M1_LINE)
                                 IF (PL2 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL2*FluorYield&
+                                Pconv = PL2
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L2_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(L3Q1_LINE:L3M1_LINE)
                                 IF (PL3 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PL3*FluorYield&
+                                Pconv = PL3
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(L3_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),L3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M1P5_LINE:M1N1_LINE)
                                 IF (PM1 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM1*FluorYield&
+                                Pconv = PM1
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M1_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M1_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M2P5_LINE:M2N1_LINE)
                                 IF (PM2 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM2*FluorYield&
+                                Pconv = PM2
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M2_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M2_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M3Q1_LINE:M3N1_LINE)
                                 IF (PM3 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM3*FluorYield&
+                                Pconv = PM3
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M3_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M3_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M4P5_LINE:M4N1_LINE)
                                 IF (PM4 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM4*FluorYield&
+                                Pconv = PM4
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M4_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M4_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE(M5P5_LINE:M5N1_LINE)
                                 IF (PM5 .EQ. 0.0_C_DOUBLE) CYCLE
-                                Pconv = &
-                                layer%weight(i)*PM5*FluorYield&
+                                Pconv = PM5
+                                IF (photon%options%use_advanced_compton .EQ. 1)&
+                                Pconv = Pconv + mu_compt*shell_weights(M5_SHELL)
+                                Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),M5_SHELL)*&
                                 RadRate(layer%Z(i),line_new)/&
                                 photon%mus(photon%current_layer)
+
                                 CASE DEFAULT
                                 !other lines -> just cycle
                                 CYCLE
                         ENDSELECT
-
+                        IF (Pconv .EQ. 0.0) CYCLE
                         !mus=xmi_mu_calc(inputF%composition,&
                         !energy_fluo)
 
@@ -720,95 +754,6 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         RETURN
 ENDSUBROUTINE xmi_variance_reduction
 
-SUBROUTINE xmi_update_photon_energy_compton_var_red(photon,current_element_index, theta_i, rng,&
-inputF, hdf5F, energy_new)
-        IMPLICIT NONE
-        TYPE (xmi_photon), INTENT(INOUT) :: photon
-        REAL (C_DOUBLE), INTENT(IN) :: theta_i
-        TYPE (fgsl_rng), INTENT(IN) :: rng
-        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
-        TYPE (xmi_input), INTENT(IN) :: inputF
-        REAL (C_DOUBLE), INTENT(INOUT) :: energy_new
-        INTEGER (C_INT), INTENT(IN) :: current_element_index
-
-        REAL (C_DOUBLE) :: K0K,pz,r
-        INTEGER (C_INT) :: pos
-        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
-        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
-        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
-        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
-        REAL (C_DOUBLE) :: energy, sth2
-        INTEGER (C_INT) :: np
-        INTEGER :: i
-
-!        ASSOCIATE (hdf5_Z => inputF%composition%layers&
-!                (photon%current_layer)%xmi_hdf5_Z_local&
-!                (current_element_index)%Ptr)
-#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(current_element_index)%Ptr
-
-        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
-        
-        !convert to eV
-        !WRITE (*,'(A,F14.5)') 'photon energy: ',photon%energy
-        !WRITE (*,'(A,F14.5)') 'theta_i: ',theta_i
-        !WRITE (*,'(A,I)') 'current_element_index: ',current_element_index
-        energy = photon%energy*1000.0_C_DOUBLE
-        c_lamb0 = c/(energy)
-
-        sth2 = SIN(theta_i/2.0_C_DOUBLE)
-
-        i=0
-
-        DO
-                r = fgsl_rng_uniform(rng)
-                !pos = findpos(hdf5_Z%RandomNumbers, r)
-
-                pos = INT(r/(&
-                hdf5_Z%RandomNumbers(2)&
-                -hdf5_Z%RandomNumbers(1)))+1
-
-                pz = interpolate_simple([&
-                hdf5_Z%RandomNumbers(pos),&
-                hdf5_Z%DopplerPz_ICDF(pos)],&
-                [hdf5_Z%RandomNumbers(pos+1),&
-                hdf5_Z%&
-                DopplerPz_ICDF(pos+1)], r)
-                !np = INT(r*(SIZE(hdf5_Z%RandomNumbers)-1))+1
-                !pz = hdf5_Z%DopplerPz_ICDF(np)+(hdf5_Z%DopplerPz_ICDF(np+1)-hdf5_Z%DopplerPz_ICDF(np))*SIZE(hdf5_Z%RandomNumbers)*(r - REAL(np)/REAL(SIZE(hdf5_Z%RandomNumbers)))
-
-#if DEBUG == 2
-                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
-                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
-                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
-                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
-#endif
-
-                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
-
-                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
-                c_lamb = c_lamb0+dlamb
-                energy = c/c_lamb/1000.0_C_DOUBLE
-                !WRITE (*,'(A,F14.5)') 'compton energy: ',energy
-                IF (energy .LE. photon%energy ) EXIT
-                IF (i .EQ. 100) THEN 
-                        WRITE (*,'(A)') 'Infinite loop in xmi_update_photon_energy_compton_var_red'
-                        WRITE (*,'(A,F12.5)') 'initial energy: ',photon%energy
-                        WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
-                        CALL xmi_exit(1)
-                ENDIF
-                i = i+1
-        ENDDO
-
-        !photon%energy = &
-        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
-
-        energy_new = energy
-
-!        ENDASSOCIATE
-#undef hdf5_Z
-
-ENDSUBROUTINE xmi_update_photon_energy_compton_var_red
-
 SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
@@ -823,13 +768,216 @@ SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
         WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
 #endif
 
-        photon%weight = photon%weight * hdf5_Z%FluorYieldsCorr(shell)
+        IF (photon%options%escape_ratios_mode .EQ. 1) THEN
+                photon%weight_escape = photon%weight_escape * hdf5_Z%FluorYieldsCorr(shell)
+        ELSE
+                photon%weight = photon%weight * hdf5_Z%FluorYieldsCorr(shell)
+        ENDIF
 
 
         RETURN
 ENDSUBROUTINE xmi_fluorescence_yield_check_varred_optim
 
 SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
+        distances, detector_solid_angle, step_do_max,step_do_dir,&
+        shell_weights)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        INTEGER (C_INT), INTENT(IN) :: i
+        REAL (C_DOUBLE), INTENT(IN) :: theta, phi
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
+        REAL (C_DOUBLE), DIMENSION(K_SHELL:M5_SHELL), INTENT(INOUT) :: &
+        shell_weights
+        REAL (C_DOUBLE), INTENT(IN) :: detector_solid_angle
+        INTEGER (C_INT), INTENT(IN) :: step_do_max, step_do_dir
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: mus
+        REAL (C_DOUBLE) :: energy_compton, temp_murhod, Pesc_comp
+        REAL (C_DOUBLE) :: Pconv, Pdir
+        INTEGER (C_INT) :: j, comp, pos
+        INTEGER (C_INT) :: channel, shell
+        REAL (C_DOUBLE) :: temp_weight, shell_weight, cdf, Q, Qimax, r,&
+        Qimax_pos, cdf_pos, cdf_sum
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: cdfs,&
+        electron_config
+
+#define layer inputF%composition%layers(photon%current_layer)
+#define n_ia photon%n_interactions
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(i)%Ptr
+        ALLOCATE(mus(inputF%composition%n_layers))
+        ALLOCATE(cdfs(SIZE(hdf5_Z%compton_profiles%shell_indices)))
+        ALLOCATE(electron_config(SIZE(hdf5_Z%compton_profiles%shell_indices)))
+
+        DO shell=1,SIZE(electron_config)
+                electron_config(shell) = &
+                ElectronConfig_Biggs(layer%Z(i),&
+                hdf5_Z%compton_profiles%shell_indices(shell))
+                Qimax = xmi_get_qimax(photon%energy, layer%Z(i),&
+                hdf5_Z%compton_profiles%shell_indices(shell), theta)
+                IF (Qimax .LT. -100.0) THEN
+                        !value too low
+                        cdfs(shell) = 0.0_C_DOUBLE
+                ELSEIF (Qimax .GT. 100.0) THEN
+                        !value too high
+                        cdfs(shell) = 1.0_C_DOUBLE
+                ELSEIF (Qimax .LT. 0.0_C_DOUBLE) THEN
+                        !negative value
+                        Qimax_pos = -1.0_C_DOUBLE*Qimax
+                        pos = INT(Qimax_pos/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(shell) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos+1)&
+                        ],Qimax_pos)
+                        cdfs(shell) = 1.0_C_DOUBLE-(0.5_C_DOUBLE+cdfs(shell))
+                ELSE
+                        !positive value
+                        pos = INT(Qimax/(hdf5_Z%compton_profiles%Qs(2)-&
+                        hdf5_Z%compton_profiles%Qs(1)))+1
+                        cdfs(shell) = interpolate_simple([&
+                        hdf5_Z%compton_profiles%Qs(pos),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%Qs(pos+1),&
+                        hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos+1)&
+                        ],Qimax)
+                        cdfs(shell) = 0.5_C_DOUBLE+cdfs(shell)
+                ENDIF
+        ENDDO
+
+        cdf_sum = DOT_PRODUCT(electron_config, cdfs)
+
+        IF (cdf_sum .EQ. 0.0_C_DOUBLE) THEN
+                !this is a pretty rare event
+                !but it happens every now and then...
+                !if it does -> assume no compton is produced 
+                RETURN
+        ENDIF
+
+        DO shell=1,SIZE(electron_config)
+                !weight of each shell
+                shell_weight = electron_config(shell)*cdfs(shell)/cdf_sum
+                IF (shell_weight .EQ. 0.0_C_DOUBLE) CYCLE
+
+                IF (hdf5_Z%compton_profiles%shell_indices(shell) .LE. M5_SHELL)&
+                shell_weights(hdf5_Z%compton_profiles%shell_indices(shell)) =&
+                shell_weight
+
+                !sample the energy of the scattered photon
+                r = fgsl_rng_uniform(rng)
+                cdf = r*cdfs(shell)
+
+                IF (cdf .LT. 0.5_C_DOUBLE) THEN
+                        !negative Q
+                        cdf_pos = 0.5_C_DOUBLE-cdf
+                        !findpos is slooooowwwwwww -> need to come up with a
+                        !solution for this
+                        pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(1)))+1
+                        !WRITE (*,'(A,I7)') 'pos1: ' ,pos
+                        !WRITE (*,'(A,ES14.5)') 'val: ' ,&
+                        !hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos)
+
+                        !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
+                        !cdf_pos)
+                        !WRITE (*,'(A,I7)') 'pos2: ' ,pos
+                        !WRITE (*,'(A,ES14.5)') 'val: ' ,&
+                        !hdf5_Z%compton_profiles%profile_partial_cdf(shell,pos)
+                        !CALL xmi_exit(1)
+                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv)-1) THEN
+                                WRITE (error_unit, '(A)')&
+                                'findpos error in xmi_compton_varred'
+                                WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                                WRITE (error_unit, '(A, ES14.5)') 'last value: ',&
+                                hdf5_Z%compton_profiles%profile_partial_cdf_inv(SIZE(&
+                                hdf5_Z%compton_profiles%profile_partial_cdf_inv))
+                                WRITE (error_unit, '(A, ES14.5)') 'cdf_pos: ',&
+                                cdf_pos
+                                CALL xmi_exit(1)
+                        ENDIF
+                        Q = interpolate_simple([&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos+1)&
+                        ], cdf_pos)
+                        Q = -1.0_C_DOUBLE*Q
+                ELSE
+                        !positive Q
+                        cdf_pos = cdf-0.5_C_DOUBLE
+                        pos = INT(cdf_pos/(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(2)-hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv(1)))+1
+                        !pos = findpos(hdf5_Z%compton_profiles%profile_partial_cdf(shell,:),&
+                        !cdf_pos)
+                        IF (pos .LT. 1 .OR. pos .GT. SIZE(hdf5_Z%compton_profiles%&
+                        profile_partial_cdf_inv)-1) THEN
+                                WRITE (error_unit, '(A)')&
+                                'findpos error in xmi_compton_varred'
+                                WRITE (error_unit, '(A, I7)') 'findpos result: ',pos
+                                CALL xmi_exit(1)
+                        ENDIF
+                        Q = interpolate_simple([&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos)&
+                        ],[&
+                        hdf5_Z%compton_profiles%profile_partial_cdf_inv(pos+1),&
+                        hdf5_Z%compton_profiles%Qs_inv(shell,pos+1)&
+                        ], cdf_pos)
+                ENDIF
+
+                !translate Q into the corresponding energy
+                energy_compton = xmi_get_energy_from_q(photon%energy, Q, theta)
+                IF (energy_compton .EQ. 0.0_C_DOUBLE) THEN
+                       CYCLE 
+                ENDIF
+
+                mus=xmi_mu_calc(inputF%composition,&
+                energy_compton)
+                temp_murhod = 0.0_C_DOUBLE
+                DO j=photon%current_layer,step_do_max,step_do_dir
+                temp_murhod = temp_murhod + mus(j)*&
+                inputF%composition%layers(j)%density*distances(j)
+                ENDDO
+                Pesc_comp = EXP(-temp_murhod) 
+                Pconv = layer%weight(i)/photon%mus(photon%current_layer)
+                Pdir = detector_solid_angle&
+                *DCSP_Compt(layer%Z(i),photon%energy,&
+                theta,phi)
+
+                temp_weight = Pconv*Pdir*Pesc_comp*photon%weight*&
+                shell_weight
+                photon%var_red_history(layer%Z(i),383+2,n_ia) =&
+                photon%var_red_history(layer%Z(i),383+2,n_ia)+temp_weight
+
+                IF (energy_compton .GE. energy_threshold) THEN
+                        channel = INT((energy_compton - &
+                        inputF%detector%zero)/inputF%detector%gain)
+                ELSE
+                        channel = -1
+                ENDIF
+
+                IF (channel .GE. 0 .AND. channel .LE. UBOUND(photon%channels,DIM=2)) THEN
+                        photon%channels(n_ia:, channel) =&
+                        photon%channels(n_ia:, channel)+&
+                        temp_weight
+                ENDIF
+        ENDDO
+#undef layer
+#undef n_ia
+#undef hdf5_Z
+
+ENDSUBROUTINE xmi_compton_varred
+
+SUBROUTINE xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
         distances, detector_solid_angle, step_do_max,step_do_dir)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -888,5 +1036,94 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
 #undef layer
 #undef n_ia
 
-ENDSUBROUTINE xmi_compton_varred
+ENDSUBROUTINE xmi_compton_varred2
+
+SUBROUTINE xmi_update_photon_energy_compton_var_red(photon,current_element_index, theta_i, rng,&
+inputF, hdf5F, energy_new)
+        IMPLICIT NONE
+        TYPE (xmi_photon), INTENT(INOUT) :: photon
+        REAL (C_DOUBLE), INTENT(IN) :: theta_i
+        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
+        TYPE (xmi_input), INTENT(IN) :: inputF
+        REAL (C_DOUBLE), INTENT(INOUT) :: energy_new
+        INTEGER (C_INT), INTENT(IN) :: current_element_index
+
+        REAL (C_DOUBLE) :: K0K,pz,r
+        INTEGER (C_INT) :: pos
+        REAL (C_DOUBLE), PARAMETER :: c = 1.2399E-6
+        REAL (C_DOUBLE), PARAMETER :: c0 = 4.85E-12
+        REAL (C_DOUBLE), PARAMETER :: c1 = 1.456E-2
+        REAL (C_DOUBLE) :: c_lamb0, dlamb, c_lamb
+        REAL (C_DOUBLE) :: energy, sth2
+        INTEGER (C_INT) :: np
+        INTEGER :: i
+
+!        ASSOCIATE (hdf5_Z => inputF%composition%layers&
+!                (photon%current_layer)%xmi_hdf5_Z_local&
+!                (current_element_index)%Ptr)
+#define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(current_element_index)%Ptr
+
+        !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
+        
+        !convert to eV
+        !WRITE (*,'(A,F14.5)') 'photon energy: ',photon%energy
+        !WRITE (*,'(A,F14.5)') 'theta_i: ',theta_i
+        !WRITE (*,'(A,I)') 'current_element_index: ',current_element_index
+        energy = photon%energy*1000.0_C_DOUBLE
+        c_lamb0 = c/(energy)
+
+        sth2 = SIN(theta_i/2.0_C_DOUBLE)
+
+        i=0
+
+        DO
+                r = fgsl_rng_uniform(rng)
+                pos = INT(r/(hdf5_Z%compton_profiles%&
+                random_numbers(2)-&
+                hdf5_Z%compton_profiles%&
+                random_numbers(1)))+1 
+                pz = interpolate_simple([&
+                hdf5_Z%compton_profiles%&
+                random_numbers(pos),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos)]&
+                ,[hdf5_Z%compton_profiles%&
+                random_numbers(pos+1),&
+                hdf5_Z%compton_profiles%&
+                profile_total_icdf(pos+1)], r)
+
+#if DEBUG == 2
+                WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
+                WRITE (*,'(A,F12.5)') 'selected pz: ',pz
+                WRITE (*,'(A,F12.5)') 'K0K: ',K0K
+                WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+#endif
+
+                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+
+                dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
+                c_lamb = c_lamb0+dlamb
+                energy = c/c_lamb/1000.0_C_DOUBLE
+                !WRITE (*,'(A,F14.5)') 'compton energy: ',energy
+                IF (energy .LE. photon%energy ) EXIT
+                IF (i .EQ. 100) THEN 
+                        WRITE (*,'(A)') 'Infinite loop in xmi_update_photon_energy_compton_var_red'
+                        WRITE (*,'(A,F12.5)') 'initial energy: ',photon%energy
+                        WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
+                        CALL xmi_exit(1)
+                ENDIF
+                i = i+1
+        ENDDO
+
+        !photon%energy = &
+        !photon%energy/(K0K-2.0_C_DOUBLE*pz*SIN(theta_i/2.0_C_DOUBLE)*XMI_MOM_MEC)
+
+        energy_new = energy
+
+!        ENDASSOCIATE
+#undef hdf5_Z
+
+ENDSUBROUTINE xmi_update_photon_energy_compton_var_red
+
 ENDMODULE xmimsim_varred

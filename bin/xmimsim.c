@@ -133,8 +133,6 @@ XMI_MAIN
 		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
 		{"htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL},
 		{"htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL},
-		{"enable-optimizations", 0, 0, G_OPTION_ARG_NONE, &(options.use_optimizations), "Enable optimizations (default)", NULL },
-		{"disable-optimizations", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_optimizations), "Disable optimizations", NULL },
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
 		{"enable-escape-peaks", 0, 0, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Enable escape peaks (default)", NULL },
@@ -142,14 +140,16 @@ XMI_MAIN
 		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
 		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
-		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
+		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL", NULL },
+		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL (default)", NULL },
 #endif
+		{"enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Enable advanced yet slower Compton simulation", NULL },
+		{"disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Disable advanced yet slower Compton simulation (default)", NULL },
 		{"custom-detector-response",0,0,G_OPTION_ARG_FILENAME,&options.custom_detector_response,"Use the supplied library for the detector response routine",NULL},
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
-		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
 		{ NULL }
 	};
 
@@ -197,7 +197,6 @@ XMI_MAIN
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
 	options.use_variance_reduction = 1;
-	options.use_optimizations = 1;
 	options.use_sum_peaks = 0;
 	options.use_escape_peaks = 1;
 	options.use_poisson = 0;
@@ -205,7 +204,8 @@ XMI_MAIN
 	options.use_opencl = 0;
 	options.extra_verbose = 0;
 	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.custom_detector_response= NULL;
+	options.custom_detector_response = NULL;
+	options.use_advanced_compton = 0;
 
 
 	//parse options
@@ -248,6 +248,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
 #endif
 		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
+		g_fprintf(stdout,"Option advanced Compton: %i\n", options.use_advanced_compton);
 	}
 
 		
@@ -486,7 +487,7 @@ XMI_MAIN
 				if (xmi_write_input_xml_to_string(&xmi_input_string,input) == 0) {
 					return 1;
 				}
-				xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options);
+				xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
 				//update hdf5 file
 				if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 					return 1;

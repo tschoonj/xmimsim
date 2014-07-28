@@ -38,6 +38,7 @@ GtkWidget *variance_reduction_prefsW;
 GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *escape_peaks_prefsW;
+GtkWidget *advanced_compton_prefsW;
 GtkWidget *custom_detector_response_prefsE;
 GtkWidget *custom_detector_response_prefsB;
 GtkWidget *custom_detector_response_prefsC;
@@ -238,6 +239,7 @@ static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, gpointer data) {
 	GtkListStore *store_prefsL = (GtkListStore *) data;
 
@@ -251,6 +253,7 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	return;
 }
+#endif
 
 static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
@@ -402,6 +405,11 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		preferences_error_handler(pa->window);
 	}
 
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
+		//abort	
+		preferences_error_handler(pa->window);
+	}
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
@@ -452,6 +460,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
@@ -848,6 +857,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				//error
 				fprintf(stderr,"Escape peaks not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);	
+				prefs->b = TRUE;
+			}
+			break;
+		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON: 
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Advanced Compton", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Advanced Compton not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
@@ -1264,6 +1287,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
 			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
 			break;
+		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON: 
+			g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", prefs.b);
+			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
 			if (prefs.s != NULL)
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", prefs.s);
@@ -1494,6 +1520,15 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe), escape_peaks_prefsW, TRUE, FALSE, 0);
+
+	advanced_compton_prefsW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
+	gtk_widget_set_tooltip_text(advanced_compton_prefsW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
+		//abort	
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), advanced_compton_prefsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
