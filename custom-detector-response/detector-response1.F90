@@ -143,8 +143,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         ALLOCATE(channels_temp(0:inputF%detector%nchannels-1))
         ALLOCATE(channels_conv(0:inputF%detector%nchannels-1))
         !
-        nlim = INT(inputF%detector%max_convolution_energy/inputF%detector%gain)
-        IF (nlim .GE. inputF%detector%nchannels) nlim = inputF%detector%nchannels-1
+        nlim = inputF%detector%nchannels-1
 
 
         a = inputF%detector%noise**2
