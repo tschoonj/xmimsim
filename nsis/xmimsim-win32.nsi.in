@@ -24,8 +24,8 @@
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !define MY_HOME "C:\msys\1.0\home\schoon\"
 !define MY_MINGW "C:\MinGW32\"
-!define XRAYLIB_VERSION "3.0.0"
-!define XRAYLIB_VERSION_MIN "3.0.0"
+!define XRAYLIB_VERSION "3.1.0"
+!define XRAYLIB_VERSION_MIN "3.1.0"
 ;!define WITH_XRAYLIB
 !define WITH_DATA
 
@@ -326,9 +326,20 @@ FileClose $9
 ;AccessControl::GrantOnFile "$APPDATA\xmimsim\xmimsim-escape-ratios.h5" "(S-1-5-32-545)" "GenericRead + GenericWrite" 
 
 ;copy source tarball
-;DetailPrint "Copying xmimsim sources"
+DetailPrint "Copying XMI-MSIM sources"
 SetOutPath "$INSTDIR\Sources"
 File "${MY_HOME}github\xmimsim\build\xmimsim-${VERSION}.tar.gz"
+
+DetailPrint "Installing XMI-MSIM example files"
+SetOutPath "$INSTDIR\Examples"
+File "${MY_HOME}github\xmimsim\examples\srm1155.xmsi"
+File "${MY_HOME}github\xmimsim\examples\srm1132.xmsi"
+File "${MY_HOME}github\xmimsim\examples\srm1412.xmsi"
+File "${MY_HOME}github\xmimsim\examples\In.xmsi"
+File "${MY_HOME}github\xmimsim\examples\srm1155.xmso"
+File "${MY_HOME}github\xmimsim\examples\srm1132.xmso"
+File "${MY_HOME}github\xmimsim\examples\srm1412.xmso"
+File "${MY_HOME}github\xmimsim\examples\In.xmso"
 
 ;path modification
 ;${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR\Bin"
@@ -505,6 +516,19 @@ RMDir "$INSTDIR\Share"
 DetailPrint "Deleting Sources"
 Delete "$INSTDIR\Sources\xmimsim-${VERSION}.tar.gz"
 RMDir "$INSTDIR\Sources"
+
+
+DetailPrint "Deleting XMI-MSIM example files"
+Delete "$INSTDIR\Examples\srm1155.xmsi"
+Delete "$INSTDIR\Examples\srm1132.xmsi"
+Delete "$INSTDIR\Examples\srm1412.xmsi"
+Delete "$INSTDIR\Examples\In.xmsi"
+Delete "$INSTDIR\Examples\srm1155.xmso"
+Delete "$INSTDIR\Examples\srm1132.xmso"
+Delete "$INSTDIR\Examples\srm1412.xmso"
+Delete "$INSTDIR\Examples\In.xmso"
+RMDir "$INSTDIR\Examples"
+
 
 Delete "$INSTDIR\Uninstall.exe"
 RMDir "$INSTDIR"
