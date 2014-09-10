@@ -43,14 +43,22 @@ export LD_LIBRARY_PATH=`pwd`/src/.libs
 make
 
 #create database file
-./bin/xmimsim-db
+#./bin/xmimsim-db
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 libtool --finish $RPM_BUILD_ROOT%{_libdir}
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
-mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
+#mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
+
+cp /media/sf_schoon/github/xraylib-web/xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
+chmod 644 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/xmimsimdata.h5
+
+#pushd $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
+#wget http://lvserver.ugent.be/~schoon/xmimsimdata.h5
+#popd
+
 
 desktop-file-install --dir=$RPM_BUILD_ROOT%{_datadir}/applications \
 	--delete-original \

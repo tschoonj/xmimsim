@@ -17,7 +17,6 @@ xmimsim_exampledir = $(datadir)/examples/xmimsim
 
 dist_xmimsim_example_DATA = In.xmsi \
 			    In.xmso \
-			    Makefile.am \
 			    srm1132.xmsi \
 			    srm1132.xmso \
 			    srm1155.xmsi \
