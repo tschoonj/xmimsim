@@ -56,4 +56,13 @@ ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 extern int XMI_H5T_NATIVE_DOUBLE;
 extern int XMI_H5T_NATIVE_INT;
 
+
+#include <libxml/xmlversion.h>
+#if LIBXML_VERSION < 20901
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
+xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
+
+#endif
 #endif

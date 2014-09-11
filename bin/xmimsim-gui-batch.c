@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_lines.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_private.h"
 #include <gtkextra/gtkextra.h>
 #include "xmimsim-gui-results.h"
 #include <math.h>

@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_aux.h"
 #include "xmi_lines.h"
+#include "xmi_private.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>

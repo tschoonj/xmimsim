@@ -31,8 +31,11 @@ XMI-MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 %if 0%{?rhel} == 6
 ##problem with gfortran 4.4 when using optimization 
 export RPM_OPT_FLAGS="-O0"
-export CFLAGS=$RPM_OPT_FLAGS
+export CFLAGS=$RPM_OPT_FLAGS -Werror-implicit-function-declaration
 export FCFLAGS=$RPM_OPT_FLAGS
+%else
+export CFLAGS=$RPM_OPT_FLAGS -Werror-implicit-function-declaration
+
 %endif
 
 %configure --enable-gui --disable-mpi --disable-updater --disable-opencl CPPFLAGS="-DRPM_BUILD"
