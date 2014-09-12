@@ -460,7 +460,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
-	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
@@ -876,7 +876,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);	
-				prefs->b = TRUE;
+				prefs->b = FALSE;
 			}
 			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
