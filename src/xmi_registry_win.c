@@ -47,8 +47,8 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_DATA:
 			strcat(stringkey,"data");
 			break;
-		case XMI_REGISTRY_WIN_CATALOG:
-			strcat(stringkey,"catalog");
+		case XMI_REGISTRY_WIN_SHARE:
+			strcat(stringkey,"share");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2XMSI:
 			strcat(stringkey,"xmso2xmsi");

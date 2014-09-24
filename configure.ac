@@ -36,12 +36,14 @@ fi
 
 #are we dealing with windows?
 OS_WINDOWS=0
+OS_WINDOWS_32=0
+OS_WINDOWS_64=0
 LDFLAGS_XMIMSIM_LIB=""
 LDFLAGS_XMIMSIM_CL=""
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
-		LDFLAGS_XMIMSIM_LIB+="-no-undefined"
+		LDFLAGS_XMIMSIM_LIB+="-no-undefined -Wl,--output-def,libxmimsim-0.def"
 		LDFLAGS_XMIMSIM_CL+="-no-undefined -export-dynamic"
 		;;
 esac
@@ -50,9 +52,11 @@ WINDRES_ARCH=
 case "$host" in
 	i686-*mingw*)
 		WINDRES_ARCH="pe-i386"
+		OS_WINDOWS_32=1
 		;;
 	x86_64-*mingw*)
 		WINDRES_ARCH="pe-x86-64"
+		OS_WINDOWS_64=1
 		;;
 esac
 
@@ -60,6 +64,10 @@ AC_SUBST(WINDRES_ARCH)
 
 AC_SUBST(OS_WINDOWS)
 AM_CONDITIONAL([OS_WINDOWS],[test x$OS_WINDOWS = x1])
+AC_SUBST(OS_WINDOWS_32)
+AM_CONDITIONAL([OS_WINDOWS_32],[test x$OS_WINDOWS_32 = x1])
+AC_SUBST(OS_WINDOWS_64)
+AM_CONDITIONAL([OS_WINDOWS_64],[test x$OS_WINDOWS_64 = x1])
 
 
 
@@ -476,5 +484,21 @@ AC_CONFIG_FILES([ 	Makefile
 			examples/Makefile
 		])
 AC_CONFIG_HEADERS([config.h])
+
+if test x$OS_WINDOWS = "x1" ; then
+	abs_top_builddir_win=`pwd -W`
+	AC_SUBST(abs_top_builddir_win)
+	abs_top_srcdir_win=`AS_DIRNAME([$0])`
+	cd $abs_top_srcdir_win
+	abs_top_srcdir_win=`pwd -W`
+	cd $abs_top_builddir_win
+	AC_SUBST(abs_top_srcdir_win)
+	cd
+	abs_homedir_win=`pwd -W`
+	AC_SUBST(abs_homedir_win)
+	cd $abs_top_builddir_win
+fi
+
+
 
 AC_OUTPUT

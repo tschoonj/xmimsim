@@ -84,24 +84,38 @@ static gboolean xml_catalog_loaded = FALSE;
 #include "xmi_registry_win.h"
 
 int xmi_xmlLoadCatalog() {
-	char *catalog;
+	char *share;
 	int rv;
 	
 	if (xml_catalog_loaded)
 		return 1;
 
-	if (xmi_registry_win_query(XMI_REGISTRY_WIN_CATALOG,&catalog) == 0) {
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SHARE,&share) == 0) {
 		return 0;
 	}
 
-	if (xmlLoadCatalog((gchar *) catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",(gchar *) catalog);
-		rv=0;
+	share = (gchar *) g_realloc(share,sizeof(gchar *)*(strlen(share)+2));
+	strcat(share,"/");
+
+	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
+	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(share,NULL,NULL);
+	
+
+	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
+		fprintf(stderr,"Could not add catalog\n");
+		rv = 0;
 	}
-	else {
-		rv=1;
-		free(catalog);
+	else
+		rv =1;
+
+	if (xmlCatalogAdd(BAD_CAST "rewriteURI",uriStartString,rewritePrefix) == -1) {
+		fprintf(stderr,"Could not add catalog rewriteURI\n");
+		rv = 0;
 	}
+	else
+		rv =1;
+
+	g_free(share);
 
 	xml_catalog_loaded = TRUE;
 
@@ -119,8 +133,8 @@ int xmi_xmlLoadCatalog() {
 
 	gchar *resource_path;
 	resource_path = gtkosx_application_get_resource_path();
-	resource_path = (gchar *) realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
-	strcat(resource_path,"/");
+	resource_path = (gchar *) g_realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
+	strcat(resource_path,"\\");
 
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
 	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path,NULL,NULL);
@@ -140,7 +154,7 @@ int xmi_xmlLoadCatalog() {
 	else
 		rv =1;
 
-	free(resource_path);
+	g_free(resource_path);
 
 
 	xml_catalog_loaded = TRUE;

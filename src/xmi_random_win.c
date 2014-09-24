@@ -43,7 +43,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 	 *
 	 *This works perfect on Windows 
 	 *
-	 *
+	 */
 	long int i;
 	unsigned int number;
 	errno_t err;
@@ -56,8 +56,8 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		}
 		numbers[i] = number;
 	}
-*/		
-
+		
+	/*
 	long int i;
 	guint32 result;
 	unsigned long int result2;
@@ -69,7 +69,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		result = g_rand_int(rng);
 		numbers[i] = result;
 		g_rand_free(rng);
- 	}
+ 	}*/
 
 	return 1;
 }
