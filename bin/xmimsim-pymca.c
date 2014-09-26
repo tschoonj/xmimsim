@@ -89,6 +89,9 @@ XMI_MAIN
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	double sum_roi;
 	static int version = 0;
+	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
+	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
+	gchar *hdf5_file_utf8 = NULL;
 	
 	
 	static GOptionEntry entries[] = {
@@ -163,6 +166,23 @@ XMI_MAIN
 	options.use_advanced_compton = 0;
 	options.custom_detector_response = NULL;
 
+#ifdef G_OS_WIN32
+	gchar *equalsignchar;
+	for (i = 0 ; i < argc ; i++) {
+		if (strncmp(argv[i], "--with-solid-angles-data=", strlen("--with-solid-angles-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			xmimsim_hdf5_solid_angles_utf8 = g_strdup(equalsignchar+1);
+		}
+		else if (strncmp(argv[i], "--with-escape-ratios-data=", strlen("--with-escape-ratios-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			xmimsim_hdf5_escape_ratios_utf8 = g_strdup(equalsignchar+1);
+		}
+		else if (strncmp(argv[i], "--with-hdf5-data=", strlen("--with-hdf5-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			hdf5_file_utf8 = g_strdup(equalsignchar+1);
+		}
+	}
+#endif
 
 	//parse options
 	context = g_option_context_new ("inputfile outputfile");

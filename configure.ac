@@ -473,8 +473,6 @@ AC_CONFIG_FILES([ 	Makefile
 			etc/Makefile
 			etc/be.ugent.xmi.harvester.plist
 			nsis/Makefile
-			nsis/xmimsim-win32.nsi
-			nsis/xmimsim-win64.nsi
 			xmimsim.spec
 			icons/Makefile
 			libxmimsim.pc

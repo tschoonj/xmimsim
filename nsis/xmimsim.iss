@@ -63,6 +63,7 @@ ChangesAssociations=yes
 SetupIconFile="{#MY_HOME}github\xmimsim\icons\Logo_xmi_msim_Win7.ico"
 ;minimum version must be vista!
 MinVersion=6.0
+VersionInfoVersion={#MyAppVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

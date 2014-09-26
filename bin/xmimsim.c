@@ -79,7 +79,6 @@ XMI_MAIN
 
 
 	//general variables
-	static char *xmimsim_hdf5_solid_angles = NULL;
 	struct xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
@@ -109,7 +108,11 @@ XMI_MAIN
 	struct xmi_solid_angle *solid_angle_def=NULL;
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
+	static char *xmimsim_hdf5_solid_angles = NULL;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
+	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
+	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
+	gchar *hdf5_file_utf8 = NULL;
 	static int version = 0;
 
 
@@ -207,6 +210,24 @@ XMI_MAIN
 	options.custom_detector_response = NULL;
 	options.use_advanced_compton = 0;
 
+#ifdef G_OS_WIN32
+	gchar *equalsignchar;
+	for (i = 0 ; i < argc ; i++) {
+		if (strncmp(argv[i], "--with-solid-angles-data=", strlen("--with-solid-angles-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			xmimsim_hdf5_solid_angles_utf8 = g_strdup(equalsignchar+1);
+		}
+		else if (strncmp(argv[i], "--with-escape-ratios-data=", strlen("--with-escape-ratios-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			xmimsim_hdf5_escape_ratios_utf8 = g_strdup(equalsignchar+1);
+		}
+		else if (strncmp(argv[i], "--with-hdf5-data=", strlen("--with-hdf5-data=")) == 0) {
+			equalsignchar = strchr(argv[i], '=');
+			hdf5_file_utf8 = g_strdup(equalsignchar+1);
+		}
+	}
+#endif
+
 
 	//parse options
 	context = g_option_context_new ("inputfile");
@@ -216,6 +237,13 @@ XMI_MAIN
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
 	}
+
+	if (hdf5_file_utf8)
+		hdf5_file = hdf5_file_utf8;
+	if (xmimsim_hdf5_solid_angles_utf8)
+		xmimsim_hdf5_solid_angles = xmimsim_hdf5_solid_angles_utf8;
+	if (xmimsim_hdf5_escape_ratios_utf8)
+		xmimsim_hdf5_escape_ratios = xmimsim_hdf5_escape_ratios_utf8;
 
 	if (version) {
 		g_fprintf(stdout,"%s",xmi_version_string());	

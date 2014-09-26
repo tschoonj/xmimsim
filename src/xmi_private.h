@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_PRIVATE_H
 
 #include <config.h>
+#include <glib.h>
 
 #ifndef HAVE_GETLINE
 #include <sys/types.h>

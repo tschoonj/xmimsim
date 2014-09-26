@@ -6,21 +6,21 @@
 /*id ICON "../../icons/Logo_xmi_msim.ico"*/
 
 1 VERSIONINFO
-FILEVERSION 0,1,0,0
-PRODUCTVERSION 0,1,0,0
+FILEVERSION 5,0,0,0
+PRODUCTVERSION 5,0,0,0
 BEGIN
 	BLOCK "StringFileInfo"
 	BEGIN
 		BLOCK "040904E4"
 		BEGIN
 			VALUE "CompanyName", "Ghent University"
-			VALUE "FileDescription", "Tool to generate XRF spectra through Monte-Carlo simulations"
-			VALUE "FileVersion", "3.0"
+			VALUE "FileDescription", "XMI-MSIM: a tool to generate XRF spectra through Monte-Carlo simulations"
+			VALUE "FileVersion", "5.0"
 			VALUE "InternalName", "xmimsim-gui"
 			VALUE "LegalCopyright", "Distributed under GPLv3"
 			VALUE "OriginalFilename", "xmimsim-gui.exe"
 			VALUE "ProductName", "XMI-MSIM"
-			VALUE "ProductVersion", "3.0" 
+			VALUE "ProductVersion", "5.0" 
 		END
 	END
 	BLOCK "VarFileInfo"
