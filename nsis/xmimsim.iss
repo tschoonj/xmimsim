@@ -22,7 +22,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk2-runtime-2.22.1-2014-02-01-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.24-2014-09-28-ts-win64.exe"
   #define MY_MINGW "C:\TDM-GCC-64\"
 #else
   #define MyAppName "XMI-MSIM 32-bit"
@@ -85,7 +85,6 @@ Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxml2-2.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 #ifdef XMI_MSIM64
