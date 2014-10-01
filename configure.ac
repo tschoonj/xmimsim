@@ -245,6 +245,9 @@ AC_CHECK_FUNC(getpid,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(mkfifo,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(setuid,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(getuid,,[AC_MSG_ERROR([Required libc function not found])])
+else
+AC_CHECK_FUNCS(rand_s)
+
 fi
 AC_CHECK_FUNC(strlen,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(strrchr,,[AC_MSG_ERROR([Required libc function not found])])

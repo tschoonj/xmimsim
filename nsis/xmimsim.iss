@@ -61,8 +61,11 @@ ChangesEnvironment=yes
 SetupLogging=yes
 ChangesAssociations=yes
 SetupIconFile="{#MY_HOME}github\xmimsim\icons\Logo_xmi_msim_Win7.ico"
-;minimum version must be vista!
+#ifdef XMI_MSIM64
 MinVersion=6.0
+#else
+MinVersion=5.1
+#endif
 VersionInfoVersion={#MyAppVersion}
 
 [Languages]
