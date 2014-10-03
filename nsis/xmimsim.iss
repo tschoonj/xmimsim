@@ -98,9 +98,11 @@ Source: "{#MY_MINGW}\bin\libgomp_64-1.dll" ; DestDir: "{app}\Lib" ; Components: 
 #else
 Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgcc_s_dw2-1.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgcc_s_sjlj-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\pthreadGC2.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libxml2-2.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 #endif
 Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -164,7 +166,7 @@ Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Addi
 
 [Run]
 Filename: "{tmp}\{#GTK_INSTALLER_EXE}" ; Parameters: "/sideeffects=no /dllpath=root /translations=no /S /D={app}\GTK2" ; StatusMsg: "Installing GTK2 runtime libraries..." ; Components: core
-Filename: "{tmp}\xraylib-{#XRAYLIB_VERSION}.exe" ; Parameters: "/VERYSILENT /SP-" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
+Filename: "{tmp}\xraylib-{#XRAYLIB_VERSION}.exe" ; Parameters: "/VERYSILENT /SP- /SUPPRESSMSGBOXES" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
 ;Filename: "{app}\Bin\xmimsim-gui.exe"; Description: "Launch XMI-MSIM"; Flags: postinstall nowait skipifsilent 
 
 [UninstallRun]
@@ -318,22 +320,22 @@ begin
 
 end;
 
-function GetUninstallString(): String;
+function GetUninstallString(const RootKey: Integer): String;
 var
   sUnInstPath: String;
   sUnInstallString: String;
 begin
   sUnInstallString := '';
   sUnInstPath := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\XMI-MSIM_is1');
-  if not RegQueryStringValue(HKLM, sUnInstPath, 'UninstallString', sUnInstallString) then
+  if not RegQueryStringValue(RootKey, sUnInstPath, 'UninstallString', sUnInstallString) then
     begin
     sUnInstPath := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\XMI-MSIM');
-    RegQueryStringValue(HKLM, sUnInstPath, 'QuietUninstallString', sUnInstallString);
+    RegQueryStringValue(RootKey, sUnInstPath, 'QuietUninstallString', sUnInstallString);
   end
   else
   begin
 	//innosetups QuietUninstallString is not as silent as I would like...
-	sUnInstallString := sUnInstallString + ' /VERYSILENT';
+	sUnInstallString := sUnInstallString + ' /VERYSILENT /SUPPRESSMSGBOXES';
   end;
   Log('QuietUninstallString: '+ sUnInstallString);
   Result := sUnInstallString;
@@ -343,12 +345,12 @@ end;
 /////////////////////////////////////////////////////////////////////
 function IsUpgrade(): Boolean;
 begin
-  Result := (GetUninstallString() <> '');
+  Result := (GetUninstallString(HKLM) <> '');
 end;
 
 
 /////////////////////////////////////////////////////////////////////
-function UnInstallOldVersion(): Integer;
+function UnInstallOldVersion(const RootKey: Integer): Integer;
 var
   sUnInstallString: String;
   iResultCode: Integer;
@@ -362,7 +364,7 @@ begin
   Result := 0;
 
   // get the uninstall string of the old app
-  sUnInstallString := GetUninstallString();
+  sUnInstallString := GetUninstallString(RootKey);
   if sUnInstallString <> '' then begin
     //sUnInstallString := RemoveQuotes(sUnInstallString);
     if Exec('>',sUnInstallString,'', SW_HIDE, ewWaitUntilTerminated, iResultCode) then
@@ -377,19 +379,67 @@ function InitializeSetup(): Boolean;
 
 begin
   Result := True;
+
+#ifdef XMI_MSIM64
+  //check if the 32-bit version is installed
+      if (GetUninstallString(HKLM32) <> '') then
+      begin
+      if (WizardSilent()) then
+      begin
+        UnInstallOldVersion(HKLM32);
+      end
+      else
+      begin
+	//display msgbox
+	if (MsgBox('A previously installed 32-bit version of XMI-MSIM was found on the system. It has to be uninstalled before the installation can proceed.', mbConfirmation, MB_OKCANCEL)) = IDOK then
+	begin
+        	UnInstallOldVersion(HKLM32);
+	end
+	else
+	begin
+  		Result := False;
+		Exit;
+	end;
+      end;
+      end;
+#else
+  //check if the 64-bit version is installed
+      if (IsWin64 and (GetUninstallString(HKLM64) <> '')) then
+      begin
+      if (WizardSilent()) then
+      begin
+        UnInstallOldVersion(HKLM64);
+      end
+      else
+      begin
+	//display msgbox
+	if (MsgBox('A previously installed 64-bit version of XMI-MSIM was found on the system. It has to be uninstalled before the installation can proceed.', mbConfirmation, MB_OKCANCEL)) = IDOK then
+	begin
+        	UnInstallOldVersion(HKLM64);
+	end
+	else
+	begin
+  		Result := False;
+		Exit;
+	end;
+      end;
+      end;
+#endif
+  
+
   if (IsUpgrade()) then
   begin
     //launch dialog when not operating in silent mode
       if (WizardSilent()) then
       begin
-        UnInstallOldVersion();
+        UnInstallOldVersion(HKLM);
       end
       else
       begin
 	//display msgbox
 	if (MsgBox('A previously installed version of XMI-MSIM was found on the system. It has to be uninstalled before the installation can proceed.', mbConfirmation, MB_OKCANCEL)) = IDOK then
 	begin
-        	UnInstallOldVersion();
+        	UnInstallOldVersion(HKLM);
 	end
 	else
 	begin
