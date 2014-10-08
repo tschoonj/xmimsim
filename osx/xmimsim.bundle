@@ -26,7 +26,7 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSA.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-4.2.tar.gz</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/nsis/License.rtf</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.png</data>
@@ -54,6 +54,5 @@
 <!--<data dest="${bundle}/Contents/Resources">${prefix:macports}/share/strings</data>-->
 <translations name="gtk20">${prefix:macports}/share/local</translations>
 
-<icon-theme icons='all'>Tango</icon-theme>
 <icon-theme icons='all'>hicolor</icon-theme>
 </app-bundle>

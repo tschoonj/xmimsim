@@ -134,7 +134,7 @@ int xmi_xmlLoadCatalog() {
 	gchar *resource_path;
 	resource_path = gtkosx_application_get_resource_path();
 	resource_path = (gchar *) g_realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
-	strcat(resource_path,"\\");
+	strcat(resource_path,"/");
 
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
 	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path,NULL,NULL);

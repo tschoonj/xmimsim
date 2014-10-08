@@ -46,4 +46,4 @@ iss:
 	iscc.exe "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dXMI_MSIM64" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "$(srcdir)/xmimsim.iss"
 endif
 
-EXTRA_DIST = xmimsim.iss GPLv3.rtf License.rtf
+EXTRA_DIST = xmimsim.iss GPLv3.rtf

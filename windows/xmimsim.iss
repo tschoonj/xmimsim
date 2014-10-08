@@ -47,7 +47,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile={#srcdir}\nsis\License.rtf
+LicenseFile={#srcdir}\License.rtf
 OutputDir={#builddir}\nsis
 #ifdef XMI_MSIM64
 OutputBaseFilename={#MyAppId}-{#MyAppVersion}-win64

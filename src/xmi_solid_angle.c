@@ -43,7 +43,9 @@ struct xmi_solid_angles_data{
   #include "xmi_xml.h"
   #include <sys/stat.h>
   #include <xraylib.h>
-  #include "windows.h"
+  #ifdef G_OS_WIN32
+  	#include "windows.h"
+  #endif
   #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 	#include "xmi_resources_mac.h"

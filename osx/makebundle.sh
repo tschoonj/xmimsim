@@ -1,6 +1,6 @@
 rm -rf .xmimsim-gui.app 
 gtk-mac-bundler xmimsim.bundle || exit 1
-#find XMI-MSIM.app -name '*.svg' | xargs rm
+find XMI-MSIM.app -name '*.svg' | xargs rm
 gtk-update-icon-cache --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/hicolor
 gtk-update-icon-cache --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/Tango
 update-mime-database XMI-MSIM.app/Contents/Resources/share/mime
