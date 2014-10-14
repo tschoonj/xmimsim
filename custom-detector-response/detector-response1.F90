@@ -46,10 +46,12 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all_custom')
 !Keep in mind that you will need to recompile XMI-MSIM from scratch with the
 !intel compiler to get this working... which is extremely doubtful since it
 !doesn't integrate at all with the buildscripts...
+#ifdef _WIN32
 #ifdef __GFORTRAN__
 !GCC$ ATTRIBUTES DLLEXPORT:: xmi_detector_convolute_all_custom
 #elif defined(__INTEL_COMPILER)
 !DEC$ ATTRIBUTES DLLEXPORT:: xmi_detector_convolute_all_custom
+#endif
 #endif
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr
         TYPE (C_PTR), INTENT(IN), VALUE :: channels_noconvPtr
