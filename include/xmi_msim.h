@@ -26,10 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-#define XMI_MSIM_VERSION_MAJOR 4
+#define XMI_MSIM_VERSION_MAJOR 5
 #define XMI_MSIM_VERSION_MINOR 0
 
-#include <glib.h>
 #include "xmi_data_structs.h"
 #include "xmi_detector.h"
 #include "xmi_main.h"
@@ -50,7 +49,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 #include "xmi_registry_win.h"
 #endif
 

@@ -15,9 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gmodule.h>
 #include "xmi_main.h"
-#include "xmi_data_structs.h"
 #include <stdio.h>
 
 /* Another example of how to use a custom detector response function,
@@ -28,8 +26,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * as shown here.
  */
 
-
-G_MODULE_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction) {
+#ifdef _WIN32
+#  define       XMI_EXPORT         __declspec(dllexport)
+#else 
+#  define       XMI_EXPORT
+#endif
+XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction) {
 
 	int i;
 	struct xmi_input *input;

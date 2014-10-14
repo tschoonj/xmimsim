@@ -38,6 +38,7 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/threefry.h</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/xmi_kernels.cl</data>
 <data dest="${bundle}/Contents/Resources">${prefix:install}/lib/xmimsim/xmimsim-cl.so</data>
+<data dest="${bundle}/Contents/Resources/include/xmimsim">${prefix:install}/include/*</data>
 
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/engines/*.so</binary>
 <binary>${prefix:macports}/lib/gtk-2.0/modules/*.so</binary>
@@ -55,4 +56,5 @@
 <translations name="gtk20">${prefix:macports}/share/local</translations>
 
 <icon-theme icons='all'>hicolor</icon-theme>
+<icon-theme icons='all'>Tango</icon-theme>
 </app-bundle>

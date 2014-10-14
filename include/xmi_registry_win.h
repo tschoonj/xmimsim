@@ -23,9 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-#include <glib.h>
-
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 
 enum xmi_registry_win {
 	XMI_REGISTRY_WIN_DATA,
