@@ -48,7 +48,7 @@ DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile={#srcdir}\License.rtf
-OutputDir={#builddir}\nsis
+OutputDir={#builddir}\windows
 #ifdef XMI_MSIM64
 OutputBaseFilename={#MyAppId}-{#MyAppVersion}-win64
 ArchitecturesInstallIn64BitMode=x64
@@ -83,7 +83,7 @@ Name: "examples" ; Description: "Examples" ; Types: full
 Name: "source" ; Description: "Source code" ; Types: full
 
 [Files]
-Source: "{#srcdir}\nsis\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
+Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -153,10 +153,10 @@ Source: "{#MY_HOME}\github\xmimsim\examples\srm1132.xmso" ; DestDir: "{app}\Exam
 Source: "{#MY_HOME}\github\xmimsim\examples\srm1412.xmso" ; DestDir: "{app}\Examples" ; Components: examples
 Source: "{#MY_HOME}\github\xmimsim\examples\In.xmso" ; DestDir: "{app}\Examples" ; Components: examples
 
-Source: "{#builddir}\nsis\xmi*.h" ; DestDir: "{app}\SDK\Include" ; Components: sdk
+Source: "{#builddir}\windows\xmi*.h" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\xmimsim*mod" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\.libs\libxmimsim.dll.a" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
-Source: "{#builddir}\nsis\libxmimsim-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
+Source: "{#builddir}\windows\libxmimsim-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 
 [Icons]
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"

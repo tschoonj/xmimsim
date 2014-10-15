@@ -464,6 +464,13 @@ AC_ARG_ENABLE([custom-detector-response],[AS_HELP_STRING([--enable-custom-detect
 
 if test "x$enable_custom_detector" = xyes ; then
 	AC_MSG_NOTICE([Building custom detector response plug-in])
+	if test "x$OS_WINDOWS" = x1 ; then
+		AC_MSG_CHECKING([for full path to C compiler])
+		CC_FULL=`which $CC`
+		CC_DIR=`AS_DIRNAME([$CC_FULL])`
+		AC_SUBST(CC_DIR)
+		AC_MSG_RESULT($CC_DIR)
+	fi
 fi
 
 AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
