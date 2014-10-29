@@ -48,24 +48,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SVG_INTENSITY_TO_SVG_COORDS(intensity) ((SVG_DEFAULT_BOX_OFFSET_Y+SVG_DEFAULT_BOX_HEIGHT-2)+(5+2-SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity)-minimum_log)/(maximum_log-minimum_log)) 
 
-static int readLayerXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
-static int readGeneralXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
-static int readCompositionXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition);
-static int readGeometryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry);
-static int readExcitationXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
-static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
-static int readDetectorXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
-static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv);
-static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
+int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
+int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
+int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition);
+int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry);
+int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
+int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
+int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
+int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv);
+int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
 
-static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg);
-static int xmi_write_default_comments(xmlTextWriterPtr writer);
-static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
-static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int *step1, int *step2);
-static int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers);
+int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
+int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
+int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg);
+int xmi_write_default_comments(xmlTextWriterPtr writer);
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
+int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int *step1, int *step2);
+int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers);
 
 
 static int write_start_element(xmlTextWriterPtr writer, char *element);
@@ -183,7 +183,7 @@ int xmi_xmlLoadCatalog() {
 }
 #endif
 
-static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
+int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
 	double **channels_loc;
 	int channel_loc;
 	xmlNodePtr channelPtr, countsPtr;
@@ -197,7 +197,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 	//count number of channels
 	nchannels = (int) xmlChildElementCount(spectrumPtr);
 	if (nchannels < 1 ) {
-		fprintf(stderr,"readSpectrumXML: spectrum contains no channels\n");
+		fprintf(stderr,"xmi_read_input_spectrum: spectrum contains no channels\n");
 		return 0;
 	}
 	else {
@@ -221,7 +221,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 		if (!xmlStrcmp(channelPtr->name,(const xmlChar *) "channel")) {
 			n_interactions_loc = (int) xmlChildElementCount(channelPtr);
 			if (n_interactions_loc < 3) {
-				fprintf(stderr,"readSpectrumXML: channel contains less than three entities\n");	
+				fprintf(stderr,"xmi_read_input_spectrum: channel contains less than three entities\n");	
 				return 0;
 			}
 			countsPtr = channelPtr->children;
@@ -234,7 +234,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 					xmlFree(txt);
 					txt = xmlNodeListGetString(doc,countsPtr->children,1);	
 					if (sscanf((const char*) txt, "%lg", &(channels_loc[interaction_loc][channel_loc])) !=1) {
-						fprintf(stderr,"readSpectrumXML: could not read counts\n");
+						fprintf(stderr,"xmi_read_input_spectrum: could not read counts\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -249,7 +249,7 @@ static int readSpectrumXML(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_out
 	return 1;
 }
 
-static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
+int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
 
 	//assume history will be a NULL terminated array...
 	//count children
@@ -282,7 +282,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 			if (!xmlStrcmp(attr->name,(const xmlChar *) "atomic_number")) {
 				txt =xmlNodeListGetString(doc,attr->children,1);
 				if(sscanf((const char *)txt,"%i",&(history_loc[counter].atomic_number)) != 1) {
-					fprintf(stderr,"readHistoryXML: error reading in atomic_number\n");
+					fprintf(stderr,"xmi_read_input_history: error reading in atomic_number\n");
 					return 0;
 				}
 				xmlFree(txt);
@@ -290,7 +290,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 			else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 				txt =xmlNodeListGetString(doc,attr->children,1);
 				if(sscanf((const char *)txt,"%lg",&(history_loc[counter].total_counts)) != 1) {
-					fprintf(stderr,"readHistoryXML: error reading in total_counts\n");
+					fprintf(stderr,"xmi_read_input_history: error reading in total_counts\n");
 					return 0;
 				}
 				xmlFree(txt);
@@ -312,7 +312,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				if (!xmlStrcmp(attr->name,(const xmlChar *) "type")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
 					if(sscanf((const char *)txt,"%s",history_loc[counter].lines[counter2].line_type) != 1) {
-						fprintf(stderr,"readHistoryXML: error reading in line_type\n");
+						fprintf(stderr,"xmi_read_input_history: error reading in line_type\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -320,7 +320,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
 					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].energy)) != 1) {
-						fprintf(stderr,"readHistoryXML: error reading in energy\n");
+						fprintf(stderr,"xmi_read_input_history: error reading in energy\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -328,7 +328,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
 					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
-						fprintf(stderr,"readHistoryXML: error reading in total_counts lvl2\n");
+						fprintf(stderr,"xmi_read_input_history: error reading in total_counts lvl2\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -347,7 +347,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 					if (!xmlStrcmp(attr->name,(const xmlChar *) "interaction_number")) {
 					txt =xmlNodeListGetString(doc,attr->children,1);
 					if(sscanf((const char *)txt,"%i",&(history_loc[counter].lines[counter2].interactions[counter3].interaction_number)) != 1) {
-						fprintf(stderr,"readHistoryXML: error reading in interaction_number\n");
+						fprintf(stderr,"xmi_read_input_history: error reading in interaction_number\n");
 						return 0;
 					}
 					xmlFree(txt);
@@ -357,7 +357,7 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 				}
 				txt = xmlNodeListGetString(doc,subcountsPtr->children,1);	
 				if (sscanf((const char*) txt, "%lg",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
-					fprintf(stderr,"readHistoryXML: could not read counts\n");
+					fprintf(stderr,"xmi_read_input_history: could not read counts\n");
 					return 0;
 				}
 				xmlFree(txt);
@@ -376,7 +376,8 @@ static int readHistoryXML(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluoresc
 
 	return 1;
 }
-static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
+
+int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -456,8 +457,7 @@ static int readGeneralXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **g
 
 }
 
-
-static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
+int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 
@@ -473,7 +473,7 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "layer")){
 			(*composition)->layers = (struct xmi_layer *) realloc((*composition)->layers,sizeof(struct xmi_layer)*++((*composition)->n_layers)); 
 			//long live C and its deliciously complicated syntax :-)
-			if (readLayerXML(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
+			if (xmi_read_input_layer(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
 				return 0;
 			}	
 		}
@@ -495,7 +495,7 @@ static int readCompositionXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_composi
 	return 1;
 }
 
-static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
+int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	
@@ -664,7 +664,7 @@ static int readGeometryXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry *
 	return 1;
 }
 
-static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
+int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -953,7 +953,7 @@ static int readExcitationXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitati
 }
 
 
-static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
+int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
 
 	xmlNodePtr subnode,subsubnode;
 
@@ -974,7 +974,7 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*absorbers)->exc_layers = realloc((*absorbers)->exc_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_exc_layers);
-					if (readLayerXML(doc, subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -986,7 +986,7 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*absorbers)->det_layers = realloc((*absorbers)->det_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_det_layers);
-					if (readLayerXML(doc, subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -1002,7 +1002,7 @@ static int readAbsorbersXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers
 
 
 
-static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
+int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
@@ -1095,7 +1095,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*detector)->crystal_layers = realloc((*detector)->crystal_layers,sizeof(struct xmi_layer)*++(*detector)->n_crystal_layers);
-					if (readLayerXML(doc, subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -1110,12 +1110,7 @@ static int readDetectorXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector *
 	return 1;
 }
 
-
-
-
-
-
-static int readLayerXML(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
+int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	int n_elements, *Z,i;
@@ -1401,7 +1396,7 @@ int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
 }
 
 
-static int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg) {
+int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg) {
 
 	char detector_type[20];
 	int i,j,k;
@@ -1850,7 +1845,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_output *output) {
 }
 
 
-static int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
+int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
 	int i,j;
 	char detector_type[20];
 
@@ -2334,42 +2329,42 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
-			if (readGeneralXML(doc, subroot, &((**input).general)) == 0) {
+			if (xmi_read_input_general(doc, subroot, &((**input).general)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
-			if (readCompositionXML(doc, subroot, &((**input).composition)) == 0) {
+			if (xmi_read_input_composition(doc, subroot, &((**input).composition)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
-			if (readGeometryXML(doc, subroot, &((**input).geometry)) == 0) {
+			if (xmi_read_input_geometry(doc, subroot, &((**input).geometry)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
-			if (readExcitationXML(doc, subroot, &((**input).excitation)) == 0) {
+			if (xmi_read_input_excitation(doc, subroot, &((**input).excitation)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (readAbsorbersXML(doc, subroot, &((**input).absorbers)) == 0) {
+			if (xmi_read_input_absorbers(doc, subroot, &((**input).absorbers)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (readDetectorXML(doc, subroot, &((**input).detector)) == 0) {
+			if (xmi_read_input_detector(doc, subroot, &((**input).detector)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
@@ -2386,7 +2381,7 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 }
 
-static int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, 
+int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, 
 double *channels, double maximum2 ) {
 	
 	double minimum;
@@ -2676,41 +2671,41 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output) {
 	return 1;
 }
 
-static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
-			if (readGeneralXML(doc, subroot, &(input->general)) == 0) {
+			if (xmi_read_input_general(doc, subroot, &(input->general)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
-			if (readCompositionXML(doc, subroot, &(input->composition)) == 0) {
+			if (xmi_read_input_composition(doc, subroot, &(input->composition)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
-			if (readGeometryXML(doc, subroot, &(input->geometry)) == 0) {
+			if (xmi_read_input_geometry(doc, subroot, &(input->geometry)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
-			if (readExcitationXML(doc, subroot, &(input->excitation)) == 0) {
+			if (xmi_read_input_excitation(doc, subroot, &(input->excitation)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (readAbsorbersXML(doc, subroot, &(input->absorbers)) == 0) {
+			if (xmi_read_input_absorbers(doc, subroot, &(input->absorbers)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (readDetectorXML(doc, subroot, &(input->detector)) == 0) {
+			if (xmi_read_input_detector(doc, subroot, &(input->detector)) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}	
@@ -2721,7 +2716,7 @@ static int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi
 	return 1;
 }
 
-static int xmi_write_default_comments(xmlTextWriterPtr writer) {
+int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	gchar *timestring;
 
 	//start off with some comments about user, time, date, hostname...
@@ -2771,7 +2766,7 @@ static int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	return 1;
 }
 	
-static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2) {
+int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2) {
 	xmlNodePtr subroot, subsubroot;
 	xmlChar *txt;
 
@@ -2843,7 +2838,7 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
 			//convoluted spectrum
-			if (readSpectrumXML(doc,subroot, op, 1) == 0) {
+			if (xmi_read_input_spectrum(doc,subroot, op, 1) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}
@@ -2859,19 +2854,19 @@ static int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_o
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_unconv")) {
 			//unconvoluted spectrum
-			if (readSpectrumXML(doc,subroot, op, 0) == 0) {
+			if (xmi_read_input_spectrum(doc,subroot, op, 0) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "brute_force_history")) {
-			if (readHistoryXML(doc,subroot, &op->brute_force_history, &op->nbrute_force_history) == 0) {
+			if (xmi_read_input_history(doc,subroot, &op->brute_force_history, &op->nbrute_force_history) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "variance_reduction_history")) {
-			if (readHistoryXML(doc,subroot, &op->var_red_history, &op->nvar_red_history) == 0) {
+			if (xmi_read_input_history(doc,subroot, &op->var_red_history, &op->nvar_red_history) == 0) {
 				xmlFreeDoc(doc);
 				return 0;
 			}
@@ -3135,7 +3130,7 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 	return 1;
 }
 
-static int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers) {
+int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers) {
 	int i, j;
 
 	for (i = 0 ; i < n_layers ; i++) {
