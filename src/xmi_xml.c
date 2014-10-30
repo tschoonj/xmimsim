@@ -49,6 +49,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SVG_INTENSITY_TO_SVG_COORDS(intensity) ((SVG_DEFAULT_BOX_OFFSET_Y+SVG_DEFAULT_BOX_HEIGHT-2)+(5+2-SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity)-minimum_log)/(maximum_log-minimum_log)) 
 
 
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition);
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry);
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
+static int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv);
+static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
+
 static int write_start_element(xmlTextWriterPtr writer, char *element);
 static int write_end_element(xmlTextWriterPtr writer, char *element);
 static int write_value_element(xmlTextWriterPtr writer, char *element, float parm);
@@ -164,7 +174,7 @@ int xmi_xmlLoadCatalog() {
 }
 #endif
 
-int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
+static int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
 	double **channels_loc;
 	int channel_loc;
 	xmlNodePtr channelPtr, countsPtr;
@@ -230,7 +240,7 @@ int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_ou
 	return 1;
 }
 
-int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
+static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
 
 	//assume history will be a NULL terminated array...
 	//count children
@@ -358,7 +368,7 @@ int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluores
 	return 1;
 }
 
-int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -438,7 +448,7 @@ int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **
 
 }
 
-int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 
@@ -476,7 +486,7 @@ int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_compos
 	return 1;
 }
 
-int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	
@@ -645,7 +655,7 @@ int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry 
 	return 1;
 }
 
-int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -934,7 +944,7 @@ int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitat
 }
 
 
-int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
 
 	xmlNodePtr subnode,subsubnode;
 
@@ -983,7 +993,7 @@ int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorber
 
 
 
-int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
@@ -1091,7 +1101,7 @@ int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector 
 	return 1;
 }
 
-int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	int n_elements, *Z,i;
