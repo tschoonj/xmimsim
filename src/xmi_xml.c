@@ -276,6 +276,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 					fprintf(stderr,"xmi_read_input_history: error reading in atomic_number\n");
 					return 0;
 				}
+				fprintf(stdout, "atomic_number: %s\n", txt);
 				xmlFree(txt);
 			}
 			else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
@@ -284,6 +285,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 					fprintf(stderr,"xmi_read_input_history: error reading in total_counts\n");
 					return 0;
 				}
+				fprintf(stdout, "total_counts: %s\n", txt);
 				xmlFree(txt);
 			}
 
@@ -306,6 +308,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 						fprintf(stderr,"xmi_read_input_history: error reading in line_type\n");
 						return 0;
 					}
+					fprintf(stdout, "type: %s\n", txt);
 					xmlFree(txt);
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "energy")) {
@@ -314,6 +317,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 						fprintf(stderr,"xmi_read_input_history: error reading in energy\n");
 						return 0;
 					}
+					fprintf(stdout, "energy: %s\n", txt);
 					xmlFree(txt);
 				}
 				else if (!xmlStrcmp(attr->name,(const xmlChar *) "total_counts")) {
@@ -322,6 +326,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 						fprintf(stderr,"xmi_read_input_history: error reading in total_counts lvl2\n");
 						return 0;
 					}
+					fprintf(stdout, "total_counts: %s\n", txt);
 					xmlFree(txt);
 				}
 			
@@ -341,6 +346,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 						fprintf(stderr,"xmi_read_input_history: error reading in interaction_number\n");
 						return 0;
 					}
+					fprintf(stdout, "interaction_number: %s\n", txt);
 					xmlFree(txt);
 					}
 
@@ -351,6 +357,7 @@ static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_
 					fprintf(stderr,"xmi_read_input_history: could not read counts\n");
 					return 0;
 				}
+				fprintf(stdout, "counts: %s\n", txt);
 				xmlFree(txt);
 
 
