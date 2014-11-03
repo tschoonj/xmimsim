@@ -103,6 +103,8 @@ xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
 		    @gthread2_LIBS@ \
+		    @xml2_LIBS@ \
+		    @gsl_LIBS@ \
 		    @libnotify_LIBS@
 if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
@@ -149,7 +151,8 @@ xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
 		@GTK_MAC_LIBS@ \
-		@gmodule_LIBS@
+		@gmodule_LIBS@ \
+		@xraylib_LIBS@
 xmimsim_LDFLAGS = $(AM_LDFLAGS)
 if !ENABLE_MAC_APP
 xmimsim_LDFLAGS += @OPENMPI_LDFLAGS@
@@ -165,7 +168,7 @@ xmimsim_cli_LDFLAGS = @OPENMPI_LDFLAGS@
 
 xmimsim_conv_SOURCES = xmimsim-conv.c
 xmimsim_conv_CFLAGS = $(xmimsim_CFLAGS) 
-xmimsim_conv_LDADD = $(xmimsim_LDADD) 
+xmimsim_conv_LDADD = $(xmimsim_LDADD)
 #xmimsim_test_alloc_SOURCES = xmimsim-test-alloc.F90
 #xmimsim_test_alloc_FCFLAGS = @fgsl_CFLAGS@ @xraylib_f2003_CFLAGS@ @H5FC_INCLUDE@ @OPENMP_FCFLAGS@
 ##xmimsim_db_LDADD = ../src/libxmimsim.la @H5FC_LINKER@ @H5FC_STATIC@
