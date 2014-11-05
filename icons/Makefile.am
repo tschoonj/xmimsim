@@ -31,6 +31,7 @@ icons128dir = $(iconsdatadir)/128x128/apps/
 icons256dir = $(iconsdatadir)/256x256/apps/
 #iconsscalabledir = $(iconsdatadir)/scalable/apps/
 
+if ENABLE_GUI
 dist_appdata_DATA = xmimsim.desktop
 dist_icons16_DATA = 16x16/Logo_xmi_msim.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSI.png \
@@ -67,7 +68,7 @@ dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 xmimsimdir = $(datadir)/xmimsim
 #used from within the About screen -> not working in the Mac App version starting with ML...
 dist_xmimsim_DATA = Logo_xmi_msim.png
-
+endif
 all:
 
 convert_radiation_warning_symbol:
