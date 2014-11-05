@@ -175,13 +175,14 @@ fi
 
 AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL_FOUND" = xyes])
 
+AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--disable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=check])
 
 GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 	#check for quartz backend
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
-	if test "x$_gdk_tgt" = xquartz; then 
+	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" != xno ; then 
 		
 	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.5,[
 			GTK_MAC_INTEGRATION_FOUND=yes
@@ -192,8 +193,9 @@ if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
+AC_ARG_ENABLE([libnotify],[AS_HELP_STRING([--disable-libnotify],[build without libnotify])],[enable_libnotify=$enableval],[enable_libnotify=check])
 LIBNOTIFY_FOUND=no
-if test "x$GTK_MAC_INTEGRATION_FOUND" = xno ; then
+if test "x$GTK_MAC_INTEGRATION_FOUND" = xno && test "x$enable_libnotify" != xno ; then
 	#libnotify
 	PKG_CHECK_MODULES([libnotify], [libnotify >= 0.7.0], [
 		LIBNOTIFY_FOUND=yes
