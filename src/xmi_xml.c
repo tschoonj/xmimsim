@@ -757,7 +757,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 								distribution_type = XMI_DISCRETE_GAUSSIAN;
 								xmlFree(txt);
 								//read scale_parameter value
-								txt = xmlNodeListGetString(doc, xmlFirstElementChild(subsubnode),1);
+								txt = xmlNodeListGetString(doc, subsubnode->children, 1);
 								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
@@ -768,7 +768,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 								distribution_type = XMI_DISCRETE_LORENTZIAN;
 								xmlFree(txt);
 								//read scale_parameter value
-								txt = xmlNodeListGetString(doc, xmlFirstElementChild(subsubnode),1);
+								txt = xmlNodeListGetString(doc, subsubnode->children, 1);
 								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
 									return 0;
@@ -2922,7 +2922,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value1")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children, 1);	
 			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
 				return 0;
@@ -2930,7 +2930,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value1")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children, 1);	
 			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
 				return 0;
@@ -2938,7 +2938,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps1")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children, 1);	
 			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps1\n");
 				return 0;
@@ -2951,12 +2951,12 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			ar->outputfiles = malloc(sizeof(char**)*(ar->nsteps1+1));	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children,1);	
 			ar->xpath1 = strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children,1);	
 			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
 				return 0;
@@ -2964,7 +2964,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value2")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children,1);	
 			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
 				return 0;
@@ -2972,7 +2972,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps2")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children,1);	
 			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps2\n");
 				return 0;
@@ -2980,7 +2980,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath2")) {
-			txt = xmlNodeListGetString(doc, xmlFirstElementChild(subroot),1);	
+			txt = xmlNodeListGetString(doc, subroot->children,1);	
 			ar->xpath2 = strdup((char*) txt);
 			xmlFree(txt);
 		}
