@@ -629,7 +629,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subnode->name,(const xmlChar *) "slit_size")) {
-			subsubnode = xmlNextElementSibling(subnode);
+			subsubnode = xmlFirstElementChild(subnode);	
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "slit_size_x")) {
 					txt = xmlNodeListGetString(doc, subsubnode->children,1);
