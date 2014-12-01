@@ -57,6 +57,18 @@ AC_DEFUN([AX_HAVE_OPENCL],
 	HAVE_CL_H="yes"
 	AC_DEFINE([HAVE_CL_CL_H])
 	CPPFLAGS_CL="-I/usr/local/cuda/include"
+      elif test -d /usr/local/cuda-6.5/include/CL ; then
+	HAVE_CL_H="yes"
+	AC_DEFINE([HAVE_CL_CL_H])
+	CPPFLAGS_CL="-I/usr/local/cuda-6.5/include"
+      elif test -d /usr/local/cuda-6.0/include/CL ; then
+	HAVE_CL_H="yes"
+	AC_DEFINE([HAVE_CL_CL_H])
+	CPPFLAGS_CL="-I/usr/local/cuda-6.0/include"
+      elif test -d /usr/local/cuda-5.5/include/CL ; then
+	HAVE_CL_H="yes"
+	AC_DEFINE([HAVE_CL_CL_H])
+	CPPFLAGS_CL="-I/usr/local/cuda-5.5/include"
       fi
       AC_MSG_RESULT([$HAVE_CL_H])
     fi
