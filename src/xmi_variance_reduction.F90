@@ -589,6 +589,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 IF (PK .EQ. 0.0_C_DOUBLE) CYCLE
                                 Pconv = PK
                                 IF (photon%options%use_advanced_compton .EQ. 1)&
+                                !FIXME: shell_weights does not take into account
+                                !coster-kronig!!!
                                 Pconv = Pconv + mu_compt*shell_weights(K_SHELL)
                                 Pconv = Pconv*layer%weight(i)*FluorYield&
                                 (layer%Z(i),K_SHELL)*&
