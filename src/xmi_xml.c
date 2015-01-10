@@ -49,15 +49,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SVG_INTENSITY_TO_SVG_COORDS(intensity) ((SVG_DEFAULT_BOX_OFFSET_Y+SVG_DEFAULT_BOX_HEIGHT-2)+(5+2-SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity)-minimum_log)/(maximum_log-minimum_log)) 
 
 
-static int xmi_read_input_layer(xmlNodePtr nodePtr, struct xmi_layer *layer);
-static int xmi_read_input_general(xmlNodePtr nodePtr, struct xmi_general **general);
-static int xmi_read_input_composition(xmlNodePtr nodePtr, struct xmi_composition **composition);
-static int xmi_read_input_geometry(xmlNodePtr nodePtr, struct xmi_geometry **geometry);
-static int xmi_read_input_excitation(xmlNodePtr nodePtr, struct xmi_excitation **excitation);
-static int xmi_read_input_absorbers(xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
-static int xmi_read_input_detector(xmlNodePtr nodePtr, struct xmi_detector **detector);
-static int xmi_read_input_spectrum(xmlNodePtr nodePtr, struct xmi_output *output, int conv);
-static int xmi_read_input_history(xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer);
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general);
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition);
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry);
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation);
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers);
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector);
+static int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv);
+static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
 static int write_start_element(xmlTextWriterPtr writer, char *element);
 static int write_end_element(xmlTextWriterPtr writer, char *element);
@@ -174,7 +174,7 @@ int xmi_xmlLoadCatalog() {
 }
 #endif
 
-static int xmi_read_input_spectrum(xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
+static int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv) {
 	double **channels_loc;
 	int channel_loc;
 	xmlNodePtr channelPtr, countsPtr;
@@ -240,7 +240,7 @@ static int xmi_read_input_spectrum(xmlNodePtr spectrumPtr, struct xmi_output *ou
 	return 1;
 }
 
-static int xmi_read_input_history(xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
+static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory) {
 
 	//assume history will be a NULL terminated array...
 	//count children
@@ -368,7 +368,7 @@ static int xmi_read_input_history(xmlNodePtr nodePtr, struct xmi_fluorescence_li
 	return 1;
 }
 
-static int xmi_read_input_general(xmlNodePtr node, struct xmi_general **general) {
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -448,7 +448,7 @@ static int xmi_read_input_general(xmlNodePtr node, struct xmi_general **general)
 
 }
 
-static int xmi_read_input_composition(xmlNodePtr node, struct xmi_composition **composition) {
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 
@@ -464,7 +464,7 @@ static int xmi_read_input_composition(xmlNodePtr node, struct xmi_composition **
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "layer")){
 			(*composition)->layers = (struct xmi_layer *) realloc((*composition)->layers,sizeof(struct xmi_layer)*++((*composition)->n_layers)); 
 			//long live C and its deliciously complicated syntax :-)
-			if (xmi_read_input_layer(subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
+			if (xmi_read_input_layer(doc, subnode, (*composition)->layers+(*composition)->n_layers-1) == 0) {
 				return 0;
 			}	
 		}
@@ -486,7 +486,7 @@ static int xmi_read_input_composition(xmlNodePtr node, struct xmi_composition **
 	return 1;
 }
 
-static int xmi_read_input_geometry(xmlNodePtr node, struct xmi_geometry **geometry) {
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	
@@ -655,7 +655,7 @@ static int xmi_read_input_geometry(xmlNodePtr node, struct xmi_geometry **geomet
 	return 1;
 }
 
-static int xmi_read_input_excitation(xmlNodePtr node, struct xmi_excitation **excitation) {
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -944,7 +944,7 @@ static int xmi_read_input_excitation(xmlNodePtr node, struct xmi_excitation **ex
 }
 
 
-static int xmi_read_input_absorbers(xmlNodePtr node, struct xmi_absorbers **absorbers) {
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers) {
 
 	xmlNodePtr subnode,subsubnode;
 
@@ -965,7 +965,7 @@ static int xmi_read_input_absorbers(xmlNodePtr node, struct xmi_absorbers **abso
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*absorbers)->exc_layers = realloc((*absorbers)->exc_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_exc_layers);
-					if (xmi_read_input_layer(subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -977,7 +977,7 @@ static int xmi_read_input_absorbers(xmlNodePtr node, struct xmi_absorbers **abso
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*absorbers)->det_layers = realloc((*absorbers)->det_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_det_layers);
-					if (xmi_read_input_layer(subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -993,7 +993,7 @@ static int xmi_read_input_absorbers(xmlNodePtr node, struct xmi_absorbers **abso
 
 
 
-static int xmi_read_input_detector(xmlNodePtr node, struct xmi_detector **detector) {
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
@@ -1086,7 +1086,7 @@ static int xmi_read_input_detector(xmlNodePtr node, struct xmi_detector **detect
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
 					(*detector)->crystal_layers = realloc((*detector)->crystal_layers,sizeof(struct xmi_layer)*++(*detector)->n_crystal_layers);
-					if (xmi_read_input_layer(subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1) == 0) {
+					if (xmi_read_input_layer(doc, subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1) == 0) {
 						return 0;
 					}
 				}
@@ -1101,7 +1101,7 @@ static int xmi_read_input_detector(xmlNodePtr node, struct xmi_detector **detect
 	return 1;
 }
 
-static int xmi_read_input_layer(xmlNodePtr node, struct xmi_layer *layer) {
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	int n_elements, *Z,i;
@@ -1242,11 +1242,8 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 	*input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
 
 
-	if (xmi_read_input_xml_body(doc, subroot, *input) == 0) {
-		xmlFreeParserCtxt(ctx);
-		xmlFreeDoc(doc);
+	if (xmi_read_input_xml_body(doc, subroot, *input) == 0)
 		return 0;
-	}
 
 
 	if (xmi_validate_input(*input) != 0) {
@@ -2323,42 +2320,42 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
-			if (xmi_read_input_general(subroot, &((**input).general)) == 0) {
+			if (xmi_read_input_general(doc, subroot, &((**input).general)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
-			if (xmi_read_input_composition(subroot, &((**input).composition)) == 0) {
+			if (xmi_read_input_composition(doc, subroot, &((**input).composition)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
-			if (xmi_read_input_geometry(subroot, &((**input).geometry)) == 0) {
+			if (xmi_read_input_geometry(doc, subroot, &((**input).geometry)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
-			if (xmi_read_input_excitation(subroot, &((**input).excitation)) == 0) {
+			if (xmi_read_input_excitation(doc, subroot, &((**input).excitation)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (xmi_read_input_absorbers(subroot, &((**input).absorbers)) == 0) {
+			if (xmi_read_input_absorbers(doc, subroot, &((**input).absorbers)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (xmi_read_input_detector(subroot, &((**input).detector)) == 0) {
+			if (xmi_read_input_detector(doc, subroot, &((**input).detector)) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
 				return 0;
@@ -2666,36 +2663,41 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output) {
 }
 
 int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
-	//the doc is pointless here but this is mostly not to break API. It may become necessary later anyway
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
-			if (xmi_read_input_general(subroot, &(input->general)) == 0) {
+			if (xmi_read_input_general(doc, subroot, &(input->general)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
-			if (xmi_read_input_composition(subroot, &(input->composition)) == 0) {
+			if (xmi_read_input_composition(doc, subroot, &(input->composition)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
-			if (xmi_read_input_geometry(subroot, &(input->geometry)) == 0) {
+			if (xmi_read_input_geometry(doc, subroot, &(input->geometry)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
-			if (xmi_read_input_excitation(subroot, &(input->excitation)) == 0) {
+			if (xmi_read_input_excitation(doc, subroot, &(input->excitation)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (xmi_read_input_absorbers(subroot, &(input->absorbers)) == 0) {
+			if (xmi_read_input_absorbers(doc, subroot, &(input->absorbers)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (xmi_read_input_detector(subroot, &(input->detector)) == 0) {
+			if (xmi_read_input_detector(doc, subroot, &(input->detector)) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}	
 		}
@@ -2803,10 +2805,8 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 
 	op->input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
 
-	if (xmi_read_input_xml_body(doc, xmlFirstElementChild(xpathObj->nodesetval->nodeTab[0]), op->input) == 0) {
-		xmlFreeDoc(doc);
+	if (xmi_read_input_xml_body(doc, xmlFirstElementChild(xpathObj->nodesetval->nodeTab[0]), op->input) == 0)
 		return 0;
-	}
 
 	if (xmi_validate_input(op->input) != 0) {
 		xmlFreeDoc(doc);
@@ -2829,7 +2829,8 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
 			//convoluted spectrum
-			if (xmi_read_input_spectrum(subroot, op, 1) == 0) {
+			if (xmi_read_input_spectrum(doc,subroot, op, 1) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}
 			double sum = 0.0;
@@ -2844,17 +2845,20 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_unconv")) {
 			//unconvoluted spectrum
-			if (xmi_read_input_spectrum(subroot, op, 0) == 0) {
+			if (xmi_read_input_spectrum(doc,subroot, op, 0) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "brute_force_history")) {
-			if (xmi_read_input_history(subroot, &op->brute_force_history, &op->nbrute_force_history) == 0) {
+			if (xmi_read_input_history(doc,subroot, &op->brute_force_history, &op->nbrute_force_history) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "variance_reduction_history")) {
-			if (xmi_read_input_history(subroot, &op->var_red_history, &op->nvar_red_history) == 0) {
+			if (xmi_read_input_history(doc,subroot, &op->var_red_history, &op->nvar_red_history) == 0) {
+				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
@@ -2921,7 +2925,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2930,7 +2933,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2939,7 +2941,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps1\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2958,7 +2959,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2967,7 +2967,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2976,7 +2975,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			txt = xmlNodeGetContent(subroot->children);	
 			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps2\n");
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			xmlFree(txt);
@@ -2990,7 +2988,6 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 			struct xmi_output *output = malloc(sizeof(struct xmi_output));
 			step1 = step2 = 0;
 			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 			if (step2 == 0) {
