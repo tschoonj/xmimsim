@@ -22,8 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_private.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
-#include <libxml/xmlwriter.h>
 #include <libxml/catalog.h>
+#include <libxml/globals.h>
 #include <string.h>
 #include <math.h>
 #include <glib.h>
@@ -59,15 +59,11 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 static int xmi_read_input_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv);
 static int xmi_read_input_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory);
 
-static int write_start_element(xmlTextWriterPtr writer, char *element);
-static int write_end_element(xmlTextWriterPtr writer, char *element);
-static int write_value_element(xmlTextWriterPtr writer, char *element, float parm);
-static int write_value_element_int(xmlTextWriterPtr writer, char *element, int parm);
-static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm);
 static float e2c(double energy, double * channels, double * energies, int nchannels );
 static float i2c(double intensity, double maximum_log, double minimum_log);
 
-
+static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
+static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
 
 static gboolean xml_catalog_loaded = FALSE;
 
@@ -1260,11 +1256,9 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 }
 
 int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
-	xmlTextWriterPtr writer;
-	xmlDocPtr doc;
-	char version[100];
-	int i,j;
-	char buffer[1024];
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlDtdPtr dtd = NULL;
 	int xmlstringlength;
 
 
@@ -1272,464 +1266,184 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 	LIBXML_TEST_VERSION
 
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
-		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
+		fprintf(stderr,"Error calling xmlNewDoc\n");
 		return 0;
 	}
-	xmlTextWriterSetIndent(writer,2);
-	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
-		return 0;
-	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
-		fprintf(stderr,"Error starting DTD\n");
+	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
+		fprintf(stderr,"Error creating DTD\n");
 		return 0;
 	}
 
-	if (xmlTextWriterEndDTD(writer) < 0) {
-		fprintf(stderr,"Error ending DTD\n");
-		return 0;
-	}
+	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim");
+	xmlDocSetRootElement(doc, root_node);
 
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
-		fprintf(stderr,"Error writing xmimsimtag\n");
-		return 0;
-	}
-
-	if (xmi_write_input_xml_body(writer, input) == 0)
+	if (xmi_write_input_xml_body(doc, root_node, input) == 0)
 		return 0;
 	
-	
-	//end it
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndDocument(writer) < 0) {
-		fprintf(stderr,"Error ending document\n");
-		return 0;
-	}
-
-	xmlFreeTextWriter(writer);
 	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, &xmlstringlength);
 	xmlFreeDoc(doc);
 
 	return 1;
-
 }
 
 int xmi_write_input_xml(char *xmlfile, struct xmi_input *input) {
-
-	xmlTextWriterPtr writer;
-	xmlDocPtr doc;
-	char version[100];
-	int i,j;
-	char buffer[1024];
-
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlDtdPtr dtd = NULL;
 
 
 	LIBXML_TEST_VERSION
 
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
-		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
+		fprintf(stderr,"Error calling xmlNewDoc\n");
 		return 0;
 	}
-	xmlTextWriterSetIndent(writer,2);
-	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
-		return 0;
-	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
-		fprintf(stderr,"Error starting DTD\n");
+	xmlThrDefIndentTreeOutput(2);
+	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
+		fprintf(stderr,"Error creating DTD\n");
 		return 0;
 	}
 
-	if (xmlTextWriterEndDTD(writer) < 0) {
-		fprintf(stderr,"Error ending DTD\n");
+	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim");
+	xmlDocSetRootElement(doc, root_node);
+
+	if (xmi_write_default_comments(doc, root_node) == 0) {
 		return 0;
 	}
 
-	if (xmi_write_default_comments(writer) == 0) {
-		return 0;
-	}
-
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim") < 0) {
-		fprintf(stderr,"Error writing xmimsimtag\n");
-		return 0;
-	}
-
-	if (xmi_write_input_xml_body(writer, input) == 0)
+	if (xmi_write_input_xml_body(doc, root_node, input) == 0)
 		return 0;
 	
-	
-	//end it
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndDocument(writer) < 0) {
-		fprintf(stderr,"Error ending document\n");
-		return 0;
-	}
-
-	xmlFreeTextWriter(writer);
-	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
-		fprintf(stderr,"Could not write to %s\n",xmlfile);
+	if (xmlSaveFormatFileEnc(xmlfile, doc, NULL, 1) == -1) {
+		fprintf(stderr,"Could not write to %s\n", xmlfile);
 		return 0;
 	}
 	xmlFreeDoc(doc);
 
 	return 1;
-
 }
 
 
-int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg) {
-
-	char detector_type[20];
+int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int step1, int step2, int with_svg) {
 	int i,j,k;
-	char buffer[1024];
 	double *maxima;
 	double gl_conv_max;
 	double gl_unconv_max;
-	double counts_sum, counts_temp;
+	xmlNodePtr nodePtr1, nodePtr2, nodePtr3, nodePtr4;
 
 
 
 	LIBXML_TEST_VERSION
 
 
-
-
-
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-results") < 0) {
-		fprintf(stderr,"Error writing xmimsim-results tag\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "version","%.1f",output->input->general->version) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
-		return 0;
-	}
+	xmi_new_prop_printf(subroot, BAD_CAST "version", "%.1f", output->input->general->version);
 
 	if (step1 != -1 && step2 != -1) {
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "step1","%i", step1) < 0) {
-			fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "step2","%i", step2) < 0) {
-			fprintf(stderr,"Error at xmlTextWriterWriteFormatAttribute\n");
-			return 0;
-		}
+		xmi_new_prop_printf(subroot, BAD_CAST "version", "%.1f", output->input->general->version);
+		xmi_new_prop_printf(subroot, BAD_CAST "step1", "%i", step1);
+		xmi_new_prop_printf(subroot, BAD_CAST "step2", "%i", step2);
 	}
 
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "inputfile","%s",output->inputfile) < 0) {
-		fprintf(stderr,"Error writing inputfile\n");
-		return 0;
-	}
+	xmlNewChild(subroot, NULL, BAD_CAST "inputfile", BAD_CAST output->inputfile);
 
 	//spectrum convoluted
-	if (xmlTextWriterStartElement(writer, BAD_CAST "spectrum_conv") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement spectrum_conv\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "spectrum_conv", NULL);
 
 	for (j = 0 ; j < output->input->detector->nchannels ; j++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j) < 0) {
-			fprintf(stderr,"Error writing channelnr\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%g",output->input->detector->gain*j+output->input->detector->zero) < 0) {
-			fprintf(stderr,"Error writing energy\n");
-			return 0;
-		}
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "channel", NULL);
+		xmi_new_child_printf(nodePtr2, BAD_CAST "channelnr", "%i", j);
+		xmi_new_child_printf(nodePtr2, BAD_CAST "energy", "%g", output->input->detector->gain*j+output->input->detector->zero);
 
 		for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
-
-			if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",i) < 0) {
-				fprintf(stderr,"Error writing interaction_number attribute\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatString(writer,"%g",output->channels_conv[i][j]) < 0) {
-				fprintf(stderr,"Error writing counts\n");
-				return 0;
-			}
-
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error ending counts\n");
-				return 0;
-			}
-		}
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error ending channel\n");
-			return 0;
+			nodePtr3 = xmi_new_child_printf(nodePtr2, BAD_CAST "counts", "%g", output->channels_conv[i][j]);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "interaction_number", "%i", i);
 		}
 	}	
-
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending spectrum_conv\n");
-		return 0;
-	}
 
 	//spectrum unconvoluted
-	if (xmlTextWriterStartElement(writer, BAD_CAST "spectrum_unconv") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement spectrum_unconv\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "spectrum_unconv", NULL);
 
 	for (j = 0 ; j < output->input->detector->nchannels ; j++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "channel") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement channel\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "channelnr","%i",j) < 0) {
-			fprintf(stderr,"Error writing channelnr\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%g",output->input->detector->gain*j+output->input->detector->zero) < 0) {
-			fprintf(stderr,"Error writing energy\n");
-			return 0;
-		}
-		for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",i) < 0) {
-				fprintf(stderr,"Error writing interaction_number attribute\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatString(writer,"%g",output->channels_unconv[i][j]) < 0) {
-				fprintf(stderr,"Error writing counts\n");
-				return 0;
-			}
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "channel", NULL);
+		xmi_new_child_printf(nodePtr2, BAD_CAST "channelnr", "%i", j);
+		xmi_new_child_printf(nodePtr2, BAD_CAST "energy", "%g", output->input->detector->gain*j+output->input->detector->zero);
 
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error ending counts\n");
-				return 0;
-			}
-		}
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error ending channel\n");
-			return 0;
+		for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
+			nodePtr3 = xmi_new_child_printf(nodePtr2, BAD_CAST "counts", "%g", output->channels_unconv[i][j]);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "interaction_number", "%i", i);
 		}
 	}	
 
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending spectrum_unconv\n");
-		return 0;
-	}
-
-	if (xmlTextWriterStartElement(writer, BAD_CAST "brute_force_history") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement brute_force_history\n");
-		return 0;
-	}
-
+	//brute force
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "brute_force_history", NULL);
 	char *symbol;
 	//Z loop
 	for (i = 0 ; i < output->nbrute_force_history; i++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-			return 0;
-		}
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "fluorescence_line_counts", NULL);
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "atomic_number", "%i", output->brute_force_history[i].atomic_number);
 		//two attributes: atomic_number and element
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",output->brute_force_history[i].atomic_number) < 0) {
-			fprintf(stderr,"Error writing atomic_number\n");
-			return 0;
-		}
 		symbol = AtomicNumberToSymbol(output->brute_force_history[i].atomic_number);
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s",symbol) < 0) {
-       			fprintf(stderr,"Error writing symbol\n");                     
-			return 0;
-		} 
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "symbol", "%s", symbol);
 		xrlFree(symbol);
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g", output->brute_force_history[i].total_counts) < 0) {
-       			fprintf(stderr,"Error writing total_counts\n");                     
-			return 0;
-		} 
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "total_counts", "%g", output->brute_force_history[i].total_counts);
 		//start with the different lines
 		//line loop
 		for (j = 0 ; j < output->brute_force_history[i].n_lines ; j++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "type","%s", output->brute_force_history[i].lines[j].line_type) < 0) {
-				fprintf(stderr,"Error writing type\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%g",output->brute_force_history[i].lines[j].energy) < 0) {
-				fprintf(stderr,"Error writing energy\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g",output->brute_force_history[i].lines[j].total_counts) < 0) {
-       				fprintf(stderr,"Error writing total_counts\n");                     
-				return 0;
-			} 
+			nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "fluorescence_line", NULL);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "type", "%s", output->brute_force_history[i].lines[j].line_type);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "energy", "%g", output->brute_force_history[i].lines[j].energy);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "total_counts", "%g", output->brute_force_history[i].lines[j].total_counts);
 			//interactions loop
 			for (k = 0 ; k < output->brute_force_history[i].lines[j].n_interactions ; k++) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",output->brute_force_history[i].lines[j].interactions[k].interaction_number) < 0) {
-					fprintf(stderr,"Error writing interaction_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatString(writer,"%g",output->brute_force_history[i].lines[j].interactions[k].counts) < 0) {
-					fprintf(stderr,"Error writing counts\n");
-					return 0;
-				}
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error ending counts\n");
-					return 0;
-				}
-			}//interactions loop
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error ending fluorescence_line\n");
-				return 0;
+				nodePtr4 = xmi_new_child_printf(nodePtr3, BAD_CAST "counts", "%g", output->brute_force_history[i].lines[j].interactions[k].counts);
+				xmi_new_prop_printf(nodePtr4, BAD_CAST "interaction_number", "%i", output->brute_force_history[i].lines[j].interactions[k].interaction_number);
 			}
-	
-		}//line loop
-	
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error ending fluorescence_line_counts\n");
-			return 0;
 		}
-	
-	}//Z loop
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending brute_force_history\n");
-		return 0;
 	}
 
-
 	//variance reduction history
-	if (xmlTextWriterStartElement(writer, BAD_CAST "variance_reduction_history") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement variance_reduction_history\n");
-		return 0;
-		}
-
 	if (output->var_red_history == NULL)
 		goto after_var_red_history;
 
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "variance_reduction_history", NULL);
 	//Z loop
 	for (i = 0 ; i < output->nvar_red_history; i++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line_counts") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line_counts\n");
-			return 0;
-		}
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "fluorescence_line_counts", NULL);
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "atomic_number", "%i", output->var_red_history[i].atomic_number);
 		//two attributes: atomic_number and element
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "atomic_number","%i",output->var_red_history[i].atomic_number) < 0) {
-			fprintf(stderr,"Error writing atomic_number\n");
-			return 0;
-		}
 		symbol = AtomicNumberToSymbol(output->var_red_history[i].atomic_number);
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "symbol","%s", symbol) < 0) {
-       			fprintf(stderr,"Error writing symbol\n");                     
-			return 0;
-		} 
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "symbol", "%s", symbol);
 		xrlFree(symbol);
-		if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g", output->var_red_history[i].total_counts) < 0) {
-       			fprintf(stderr,"Error writing total_counts\n");                     
-			return 0;
-		} 
+		xmi_new_prop_printf(nodePtr2, BAD_CAST "total_counts", "%g", output->var_red_history[i].total_counts);
 		//start with the different lines
 		//line loop
 		for (j = 0 ; j < output->var_red_history[i].n_lines ; j++) {
-			if (xmlTextWriterStartElement(writer, BAD_CAST "fluorescence_line") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement fluorescence_line\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "type","%s", output->var_red_history[i].lines[j].line_type) < 0) {
-				fprintf(stderr,"Error writing type\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "energy","%g",output->var_red_history[i].lines[j].energy) < 0) {
-				fprintf(stderr,"Error writing energy\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "total_counts","%g",output->var_red_history[i].lines[j].total_counts) < 0) {
-       				fprintf(stderr,"Error writing total_counts\n");                     
-				return 0;
-			} 
+			nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "fluorescence_line", NULL);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "type", "%s", output->var_red_history[i].lines[j].line_type);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "energy", "%g", output->var_red_history[i].lines[j].energy);
+			xmi_new_prop_printf(nodePtr3, BAD_CAST "total_counts", "%g", output->var_red_history[i].lines[j].total_counts);
 			//interactions loop
 			for (k = 0 ; k < output->var_red_history[i].lines[j].n_interactions ; k++) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "counts") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement counts\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatAttribute(writer,BAD_CAST "interaction_number","%i",output->var_red_history[i].lines[j].interactions[k].interaction_number) < 0) {
-					fprintf(stderr,"Error writing interaction_number\n");
-					return 0;
-				}
-				if (xmlTextWriterWriteFormatString(writer,"%g",output->var_red_history[i].lines[j].interactions[k].counts) < 0) {
-					fprintf(stderr,"Error writing counts\n");
-					return 0;
-				}
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error ending counts\n");
-					return 0;
-				}
-			}//interactions loop
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error ending fluorescence_line\n");
-				return 0;
+				nodePtr4 = xmi_new_child_printf(nodePtr3, BAD_CAST "counts", "%g", output->var_red_history[i].lines[j].interactions[k].counts);
+				xmi_new_prop_printf(nodePtr4, BAD_CAST "interaction_number", "%i", output->var_red_history[i].lines[j].interactions[k].interaction_number);
 			}
-	
-		}//line loop
-	
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error ending fluorescence_line_counts\n");
-			return 0;
 		}
-	
-	}//Z loop
+	}
 
 after_var_red_history:
 	
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending variance_reduction_history\n");
-		return 0;
-	}
-
-	//write inputfile
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-input") < 0) {
-		fprintf(stderr,"Error writing xmimsim tag\n");
-		return 0;
-	}
-
-	if (xmi_write_input_xml_body(writer, output->input) == 0)
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "xmimsim-input", NULL);
+	if (xmi_write_input_xml_body(doc, nodePtr1, output->input) == 0)
 		return 0;
 
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim-input\n");
-		return 0;
-	}
 	if (with_svg == 0) {
 		goto after_svg;
 	}
 	
-
-
 	//write svg stuff
-	if (xmlTextWriterStartElement(writer, BAD_CAST "svg_graphs") < 0) {
-		fprintf(stderr,"Error writing svg_graphs tag\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "svg_graphs", NULL);
 
         // calculate global channel max for conv
 	maxima = (double *) malloc(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
@@ -1755,422 +1469,167 @@ after_var_red_history:
 
 		//convoluted first
 	
-		if (xmi_write_input_xml_svg(writer, output->input, "convoluted", i, output->channels_conv[i], gl_conv_max) == 0) {
+		if (xmi_write_input_xml_svg(doc, nodePtr1, output->input, "convoluted", i, output->channels_conv[i], gl_conv_max) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
 
 		//unconvoluted second
 
-		if (xmi_write_input_xml_svg(writer, output->input, "unconvoluted", i, output->channels_unconv[i], gl_unconv_max ) == 0) {
+		if (xmi_write_input_xml_svg(doc, nodePtr1, output->input, "unconvoluted", i, output->channels_unconv[i], gl_unconv_max ) == 0) {
 			fprintf(stderr,"Error in xmi_write_input_xml_svg\n");
 			return 0;
 		}
 
 	}
 
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending svg_graphs tag\n");
-		return 0;
-	}
-
 	//end it
 after_svg:
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim-results\n");
-		return 0;
-	}
 
 	return 1;
 }
 
 int xmi_write_output_xml(char *xmlfile, struct xmi_output *output) {
-	xmlDocPtr doc;
-	xmlTextWriterPtr writer;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlDtdPtr dtd = NULL;
 
 
 	LIBXML_TEST_VERSION
 
-	if ((writer = xmlNewTextWriterDoc(&doc,0)) == NULL) {
-		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+
+	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
+		fprintf(stderr,"Error calling xmlNewDoc\n");
 		return 0;
 	}
-	xmlTextWriterSetIndent(writer,2);
-	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
-		return 0;
-	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-results", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
-		fprintf(stderr,"Error starting DTD\n");
+	xmlThrDefIndentTreeOutput(2);
+	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-results", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
+		fprintf(stderr,"Error creating DTD\n");
 		return 0;
 	}
 
-	if (xmlTextWriterEndDTD(writer) < 0) {
-		fprintf(stderr,"Error ending DTD\n");
+	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim-results");
+	xmlDocSetRootElement(doc, root_node);
+
+	if (xmi_write_default_comments(doc, root_node) == 0) {
+		return 0;
+	}
+
+	if(xmi_write_output_xml_body(doc, root_node, output, -1, -1, 1) == 0){
 		return 0;
 	}
 	
-	if (xmi_write_default_comments(writer) == 0) {
-		return 0;
-	}
-
-	if(xmi_write_output_xml_body(writer, output, -1, -1, 1) == 0){
-		return 0;
-	}
-
-	if (xmlTextWriterEndDocument(writer) < 0) {
-		fprintf(stderr,"Error ending document\n");
-		return 0;
-	}
-
-	xmlFreeTextWriter(writer);
-
-	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
-		fprintf(stderr,"Could not write to %s\n",xmlfile);
+	if (xmlSaveFormatFileEnc(xmlfile, doc, NULL, 1) == -1) {
+		fprintf(stderr,"Could not write to %s\n", xmlfile);
 		return 0;
 	}
 	xmlFreeDoc(doc);
 
 	return 1;
-
 }
 
 
-int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
-	int i,j;
+int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
+	int i;
 	char detector_type[20];
+	xmlNodePtr nodePtr1, nodePtr2, nodePtr3;
 
 
 	//general
-	if (xmlTextWriterStartElement(writer, BAD_CAST "general") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "version", "%.1f",input->general->version) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "outputfile","%s",(xmlChar *) input->general->outputfile) < 0) {
-		fprintf(stderr,"Error writing outputfile\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_photons_interval","%li",input->general->n_photons_interval) < 0) {
-		fprintf(stderr,"Error writing n_photons_interval\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_photons_line","%li",input->general->n_photons_line) < 0) {
-		fprintf(stderr,"Error writing n_photons_line\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "n_interactions_trajectory","%i",input->general->n_interactions_trajectory) < 0) {
-		fprintf(stderr,"Error writing n_interactions_trajectory\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "comments","%s",(xmlChar *) input->general->comments) < 0) {
-		fprintf(stderr,"Error writing comments\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for general\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "general", NULL);
+	xmi_new_prop_printf(nodePtr1, BAD_CAST "version", "%.1f", input->general->version);
+	xmlNewChild(nodePtr1, NULL, BAD_CAST "outputfile", BAD_CAST input->general->outputfile);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "n_photons_interval", "%li", input->general->n_photons_interval);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "n_photons_line", "%li", input->general->n_photons_line);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "n_interactions_trajectory", "%i", input->general->n_interactions_trajectory);
+	xmlNewChild(nodePtr1, NULL, BAD_CAST "comments", BAD_CAST input->general->comments);
 
 	//composition
-	if (xmlTextWriterStartElement(writer, BAD_CAST "composition") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "composition", NULL);
 
-	if (xmi_write_layer_xml_body(writer, input->composition->layers, input->composition->n_layers) == 0)
+	if (xmi_write_layer_xml_body(doc, nodePtr1, input->composition->layers, input->composition->n_layers) == 0)
 		return 0;
 
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "reference_layer","%i",input->composition->reference_layer) < 0) {
-		fprintf(stderr,"Error writing reference_layer\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for composition\n");
-		return 0;
-	}
+	xmi_new_child_printf(nodePtr1, BAD_CAST "reference_layer", "%i", input->composition->reference_layer);
 
 	//geometry
-	if (xmlTextWriterStartElement(writer, BAD_CAST "geometry") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_sample_source","%g",input->geometry->d_sample_source) < 0) {
-		fprintf(stderr,"Error writing d_sample_source\n");
-		return 0;
-	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "n_sample_orientation") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%g",input->geometry->n_sample_orientation[0]) < 0) {
-		fprintf(stderr,"Error writing n_sample_orientation[0]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%g",input->geometry->n_sample_orientation[1]) < 0) {
-		fprintf(stderr,"Error writing n_sample_orientation[1]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%g",input->geometry->n_sample_orientation[2]) < 0) {
-		fprintf(stderr,"Error writing n_sample_orientation[2]\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for n_sample_orientation\n");
-		return 0;
-	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "p_detector_window") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%g",input->geometry->p_detector_window[0]) < 0) {
-		fprintf(stderr,"Error writing p_detector_window[0]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%g",input->geometry->p_detector_window[1]) < 0) {
-		fprintf(stderr,"Error writing p_detector_window[1]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%g",input->geometry->p_detector_window[2]) < 0) {
-		fprintf(stderr,"Error writing p_detector_window[2]\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for p_detector_window\n");
-		return 0;
-	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "n_detector_orientation") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "x","%g",input->geometry->n_detector_orientation[0]) < 0) {
-		fprintf(stderr,"Error writing n_detector_orientation[0]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "y","%g",input->geometry->n_detector_orientation[1]) < 0) {
-		fprintf(stderr,"Error writing n_detector_orientation[1]\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "z","%g",input->geometry->n_detector_orientation[2]) < 0) {
-		fprintf(stderr,"Error writing n_detector_orientation[2]\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for n_detector_orientation\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "area_detector","%g",input->geometry->area_detector) < 0) {
-		fprintf(stderr,"Error writing area_detector\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_height","%g",input->geometry->collimator_height) < 0) {
-		fprintf(stderr,"Error writing collimator_height\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "collimator_diameter","%g",input->geometry->collimator_diameter) < 0) {
-		fprintf(stderr,"Error writing collimator_diameter\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "d_source_slit","%g",input->geometry->d_source_slit) < 0) {
-		fprintf(stderr,"Error writing d_source_slit\n");
-		return 0;
-	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "slit_size") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_x","%g",input->geometry->slit_size_x) < 0) {
-		fprintf(stderr,"Error writing slit_size_x\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "slit_size_y","%g",input->geometry->slit_size_y) < 0) {
-		fprintf(stderr,"Error writing slit_size_y\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for slit_size\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error calling xmlTextWriterEndElement for geometry\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "geometry", NULL);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "d_sample_source", "%g", input->geometry->d_sample_source);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "n_sample_orientation", NULL);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "x", "%g", input->geometry->n_sample_orientation[0]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "y", "%g", input->geometry->n_sample_orientation[1]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "z", "%g", input->geometry->n_sample_orientation[2]);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "p_detector_window", NULL);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "x", "%g", input->geometry->p_detector_window[0]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "y", "%g", input->geometry->p_detector_window[1]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "z", "%g", input->geometry->p_detector_window[2]);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "n_detector_orientation", NULL);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "x", "%g", input->geometry->n_detector_orientation[0]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "y", "%g", input->geometry->n_detector_orientation[1]);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "z", "%g", input->geometry->n_detector_orientation[2]);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "area_detector", "%g", input->geometry->area_detector);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "collimator_height", "%g", input->geometry->collimator_height);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "collimator_diameter", "%g", input->geometry->collimator_diameter);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "d_source_slit", "%g", input->geometry->d_source_slit);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "slit_size", NULL);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "slit_size_x", "%g", input->geometry->slit_size_x);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "slit_size_y", "%g", input->geometry->slit_size_y);
 
 	//excitation
-	if (xmlTextWriterStartElement(writer, BAD_CAST "excitation") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "excitation", NULL);
 	if (input->excitation->n_discrete > 0) {
 		for (i = 0 ; i < input->excitation->n_discrete ; i++) { 
-			if (xmlTextWriterStartElement(writer, BAD_CAST "discrete") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%g",input->excitation->discrete[i].energy) < 0) {
-				fprintf(stderr,"Error writing energy\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%g",input->excitation->discrete[i].horizontal_intensity) < 0) {
-				fprintf(stderr,"Error writing horizontal_intensity\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%g",input->excitation->discrete[i].vertical_intensity) < 0) {
-				fprintf(stderr,"Error writing vertical_intensity\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%g",input->excitation->discrete[i].sigma_x) < 0) {
-				fprintf(stderr,"Error writing sigma_x\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%g",input->excitation->discrete[i].sigma_xp) < 0) {
-				fprintf(stderr,"Error writing sigma_xp\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%g",input->excitation->discrete[i].sigma_y) < 0) {
-				fprintf(stderr,"Error writing sigma_y\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%g",input->excitation->discrete[i].sigma_yp) < 0) {
-				fprintf(stderr,"Error writing sigma_yp\n");
-				return 0;
-			}
+			nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "discrete", NULL);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "energy", "%g", input->excitation->discrete[i].energy);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "horizontal_intensity", "%g", input->excitation->discrete[i].horizontal_intensity);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "vertical_intensity", "%g", input->excitation->discrete[i].vertical_intensity);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_x", "%g", input->excitation->discrete[i].sigma_x);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_xp", "%g", input->excitation->discrete[i].sigma_xp);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_y", "%g", input->excitation->discrete[i].sigma_y);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_yp", "%g", input->excitation->discrete[i].sigma_yp);
 			//only write scale_parameter if distribution type is not monochromatic
 			//this is done to keep the file backwards compatible
 			if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
-				if (xmlTextWriterStartElement(writer, BAD_CAST "scale_parameter") < 0) {
-					fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-					return 0;
-				}
+				nodePtr3 = xmi_new_child_printf(nodePtr2, BAD_CAST "scale_parameter", "%g", input->excitation->discrete[i].scale_parameter);
 				if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) {
-					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", BAD_CAST "gaussian") <0) {
-						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
-						return 0;
-					}
+					xmi_new_prop_printf(nodePtr3, BAD_CAST "distribution_type", "%s", "gaussian");
 				}
 				else if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_LORENTZIAN) {
-					if (xmlTextWriterWriteAttribute(writer, BAD_CAST "distribution_type", BAD_CAST "lorentzian") <0) {
-						fprintf(stderr,"Error at xmlTextWriterWriteAttribute\n");
-						return 0;
-					}
+					xmi_new_prop_printf(nodePtr3, BAD_CAST "distribution_type", "%s", "lorentzian");
 				}
-				if (xmlTextWriterWriteFormatString(writer, "%g", input->excitation->discrete[i].scale_parameter) < 0) {
-					fprintf(stderr,"Error at xmlTextWriterWriteFormatString\n");
-					return 0;
-				
-				}	
-				if (xmlTextWriterEndElement(writer) < 0) {
-					fprintf(stderr,"Error calling xmlTextWriterEndElement for scale_parameter\n");
-					return 0;
-				}
-			}
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for discrete\n");
-				return 0;
 			}
 		}
 	}
 	if (input->excitation->n_continuous > 0) {
 		for (i = 0 ; i < input->excitation->n_continuous ; i++) { 
-			if (xmlTextWriterStartElement(writer, BAD_CAST "continuous") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "energy","%g",input->excitation->continuous[i].energy) < 0) {
-				fprintf(stderr,"Error writing energy\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "horizontal_intensity","%g",input->excitation->continuous[i].horizontal_intensity) < 0) {
-				fprintf(stderr,"Error writing horizontal_intensity\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "vertical_intensity","%g",input->excitation->continuous[i].vertical_intensity) < 0) {
-				fprintf(stderr,"Error writing vertical_intensity\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_x","%g",input->excitation->continuous[i].sigma_x) < 0) {
-				fprintf(stderr,"Error writing sigma_x\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_xp","%g",input->excitation->continuous[i].sigma_xp) < 0) {
-				fprintf(stderr,"Error writing sigma_xp\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_y","%g",input->excitation->continuous[i].sigma_y) < 0) {
-				fprintf(stderr,"Error writing sigma_y\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "sigma_yp","%g",input->excitation->continuous[i].sigma_yp) < 0) {
-				fprintf(stderr,"Error writing sigma_yp\n");
-				return 0;
-			}
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for continuous\n");
-				return 0;
-			}
+			nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "continuous", NULL);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "energy", "%g", input->excitation->continuous[i].energy);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "horizontal_intensity", "%g", input->excitation->continuous[i].horizontal_intensity);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "vertical_intensity", "%g", input->excitation->continuous[i].vertical_intensity);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_x", "%g", input->excitation->continuous[i].sigma_x);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_xp", "%g", input->excitation->continuous[i].sigma_xp);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_y", "%g", input->excitation->continuous[i].sigma_y);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_yp", "%g", input->excitation->continuous[i].sigma_yp);
 		}
 	}
 
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending excitation\n");
-		return 0;
-	}
 	//absorbers
-	if (xmlTextWriterStartElement(writer, BAD_CAST "absorbers") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "absorbers", NULL);
 	if (input->absorbers->n_exc_layers > 0) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "excitation_path") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "excitation_path", NULL);
+		if (xmi_write_layer_xml_body(doc, nodePtr2, input->absorbers->exc_layers, input->absorbers->n_exc_layers) == 0) {
 			return 0;
 		}
-		if (xmi_write_layer_xml_body(writer, input->absorbers->exc_layers, input->absorbers->n_exc_layers) == 0) {
-			return 0;
-		}
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error calling xmlTextWriterEndElement for excitation_path\n");
-			return 0;
-		}
-		
 	}
 	if (input->absorbers->n_det_layers > 0) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "detector_path") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
+		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "detector_path", NULL);
+		if (xmi_write_layer_xml_body(doc, nodePtr2, input->absorbers->det_layers, input->absorbers->n_det_layers) == 0) {
 			return 0;
 		}
-		if (xmi_write_layer_xml_body(writer, input->absorbers->det_layers, input->absorbers->n_det_layers) == 0) {
-			return 0;
-		}
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error calling xmlTextWriterEndElement for detector_path\n");
-			return 0;
-		}
-		
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending absorbers\n");
-		return 0;
 	}
 
 	//detector
-	if (xmlTextWriterStartElement(writer, BAD_CAST "detector") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "detector", NULL);
 	if (input->detector->detector_type == XMI_DETECTOR_SILI)
 		strcpy(detector_type,"SiLi");
 	else if (input->detector->detector_type == XMI_DETECTOR_GE)
@@ -2178,52 +1637,16 @@ int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
 	else if (input->detector->detector_type == XMI_DETECTOR_SI_SDD)
 		strcpy(detector_type,"Si_SDD");
 
-
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "detector_type","%s",detector_type) < 0) {
-		fprintf(stderr,"Error writing detector_type\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "live_time","%g",input->detector->live_time) < 0) {
-		fprintf(stderr,"Error writing live_time\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "pulse_width","%g",input->detector->pulse_width) < 0) {
-		fprintf(stderr,"Error writing pulse_width\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nchannels","%i",input->detector->nchannels) < 0) {
-		fprintf(stderr,"Error writing nchannels\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "gain","%g",input->detector->gain) < 0) {
-		fprintf(stderr,"Error writing gain\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "zero","%g",input->detector->zero) < 0) {
-		fprintf(stderr,"Error writing zero\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "fano","%g",input->detector->fano) < 0) {
-		fprintf(stderr,"Error writing fano\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "noise","%g",input->detector->noise) < 0) {
-		fprintf(stderr,"Error writing noise\n");
-		return 0;
-	}
-	if (xmlTextWriterStartElement(writer, BAD_CAST "crystal") < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-		return 0;
-	}
-	if (xmi_write_layer_xml_body(writer, input->detector->crystal_layers, input->detector->n_crystal_layers) == 0) {
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending crystal\n");
-		return 0;
-	}
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending detector\n");
+	xmlNewChild(nodePtr1, NULL, BAD_CAST "detector_type", BAD_CAST detector_type);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "live_time", "%g", input->detector->live_time);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "pulse_width", "%g", input->detector->pulse_width);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "nchannels", "%i", input->detector->nchannels);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "gain", "%g", input->detector->gain);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "zero", "%g", input->detector->zero);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "fano", "%g", input->detector->fano);
+	xmi_new_child_printf(nodePtr1, BAD_CAST "noise", "%g", input->detector->noise);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "crystal", NULL);
+	if (xmi_write_layer_xml_body(doc, nodePtr2, input->detector->crystal_layers, input->detector->n_crystal_layers) == 0) {
 		return 0;
 	}
 	
@@ -2234,10 +1657,8 @@ int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input) {
 int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength) {
 
 	xmlDocPtr doc;
-	xmlNodePtr root, subroot;
+	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	int buffersize;
-
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -2372,7 +1793,7 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 }
 
-int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction, 
+int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input, char *name, int interaction, 
 double *channels, double maximum2 ) {
 	
 	double minimum;
@@ -2382,14 +1803,11 @@ double *channels, double maximum2 ) {
 	int i;
 	double energy;
 	double intensity;
-	int intensity_int;
-	int energy_pos;
-	int error = 0;
 	int width = SVG_DEFAULT_BOX_WIDTH;
 	int height = SVG_DEFAULT_BOX_HEIGHT;
  	int energy_step = 5.0;
 	int max_channel;
-	char line[100];
+	xmlNodePtr nodePtr1, nodePtr2, nodePtr3, nodePtr4;
 
 
 
@@ -2418,48 +1836,36 @@ double *channels, double maximum2 ) {
 	xmi_add_val_to_array_double(energies, input->detector->nchannels, input->detector->zero);
 
 	// start plot graphic
-	if(!error) error = write_start_element(writer, "graphic");
-
-       	if(!error) error = write_start_element(writer,  "id");
-
-	if(!error) error = write_char_element(writer, "name", name);
-	if(!error) error = write_value_element_int(writer,  "interaction", interaction);
-
-       	if(!error) error = write_end_element(writer,  "id");
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "graphic", NULL);
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "id", NULL);
+	xmlNewChild(nodePtr2, NULL, BAD_CAST "name", BAD_CAST name);
+	xmi_new_child_printf(nodePtr2, BAD_CAST "interaction", "%i", interaction);
 
         //create box
-        if(!error) error = write_start_element(writer, "rect");
-	
-       	if(!error) error = write_start_element(writer, "view");
-       	if(!error) error = write_end_element(writer, "view");
-
-
-       	if(!error) error = write_start_element(writer, "size");
-		if(!error) error = write_value_element(writer, "width", (int) width);
-		if(!error) error = write_value_element(writer, "height", (int) height);
-		if(!error) error = write_value_element(writer, "min_energy", energies[0]);
-		if(!error) error = write_value_element(writer, "max_energy", energies[max_channel-1]);
-       	if(!error) error = write_end_element(writer, "size");
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "rect", NULL);
+	xmlNewChild(nodePtr2, NULL, BAD_CAST "view", NULL);
+	nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "size", NULL);
+	xmi_new_child_printf(nodePtr3, BAD_CAST "width", "%i", width);
+	xmi_new_child_printf(nodePtr3, BAD_CAST "height", "%i", height);
+	xmi_new_child_printf(nodePtr3, BAD_CAST "min_energy", "%g", energies[0]);
+	xmi_new_child_printf(nodePtr3, BAD_CAST "max_energy", "%g", energies[max_channel-1]);
 
 	// x-axis
-      	if(!error) error = write_start_element(writer, "x-axis");
-        if(!error) error = write_char_element(writer, "name", "Energy (keV)");
+	nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "x-axis", NULL);
+	xmlNewChild(nodePtr3, NULL, BAD_CAST "name", BAD_CAST "Energy (keV)");
 	//for now print energy every 5 keV on X-axis
 	energy = 0.0;
 	while (energy <= energies[max_channel]) {
-		if(!error) error = write_start_element(writer, "index");
-		if(!error) error = write_value_element(writer,  "value", e2c(energy, channels, energies, max_channel));
-                sprintf(line, "%.1f", energy);
-		if(!error) error = write_char_element(writer,  "name", line);
-		if(!error) error = write_end_element(writer,"index");
-	energy += energy_step;
+		nodePtr4 = xmlNewChild(nodePtr3, NULL, BAD_CAST "index", NULL);
+		xmi_new_child_printf(nodePtr4, BAD_CAST "value", "%g", e2c(energy, channels, energies, max_channel));
+		xmi_new_child_printf(nodePtr4, BAD_CAST "name", "%.1f", energy);
+		energy += energy_step;
 	} 
-	if(!error) error = write_end_element(writer,"x-axis");
 	// end x-axis
 
         // start y-axis
-       	if(!error) error = write_start_element(writer, "y-axis");
- 	if(!error) error = write_char_element(writer, "name", "Intensity (counts)");
+	nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "y-axis", NULL);
+	xmlNewChild(nodePtr3, NULL, BAD_CAST "name", BAD_CAST "Intensity (counts)");
 
 	if (minimum_log < 0.0) {
 		minimum_log = 0.0;
@@ -2471,110 +1877,29 @@ double *channels, double maximum2 ) {
 			intensity *= 10.0;
 			continue;
 		}
-
-		if(!error) error = write_start_element(writer, "index");
-		if(!error) error = write_value_element(writer,  "value", i2c(intensity, maximum_log, minimum_log));
-		sprintf(line, "%.0f", intensity);
-		if(!error) error = write_char_element(writer,  "name", line);
-		if(!error) error = write_end_element(writer,"index");
-
+		nodePtr4 = xmlNewChild(nodePtr3, NULL, BAD_CAST "index", NULL);
+		xmi_new_child_printf(nodePtr4, BAD_CAST "value", "%g", i2c(intensity, maximum_log, minimum_log));
+		xmi_new_child_printf(nodePtr4, BAD_CAST "name", "%.0f", intensity);
 		intensity *= 10.0;
 	}      	
-       	if(!error) error = write_end_element(writer, "y-axis");
-	// end y-axis
-
-       	if(!error) error = write_end_element(writer, "rect");
-	// end create box
        	
         //loop grafic
-	if(!error) error = write_start_element(writer,  "points");
-  	if(!error) error = write_char_element(writer, "color", "blue");
+	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "points", NULL);
+	xmlNewChild(nodePtr2, NULL, BAD_CAST "color", BAD_CAST "blue");
 
 	//loop point			
 	for (i = 0 ; i <= max_channel ; i++) {
-		if(!error) error = write_start_element(writer,  "point");
-		if(!error) error = write_value_element(writer,  "x", e2c(energies[i], channels, energies, max_channel));
-		if(!error) error = write_value_element(writer,  "y", i2c(channels[i], maximum_log, minimum_log));
-		if(!error) error = write_end_element(writer,  "point");	       
-		}
+		nodePtr3 = xmlNewChild(nodePtr2, NULL, BAD_CAST "point", NULL);
+		xmi_new_child_printf(nodePtr3, BAD_CAST "x", "%g", e2c(energies[i], channels, energies, max_channel));
+		xmi_new_child_printf(nodePtr3, BAD_CAST "y", "%g", i2c(channels[i], maximum_log, minimum_log));
+	}
 	//end loop point
-
-       	if(!error) error = write_end_element(writer,  "points");		
-
-       	if(!error) error = write_end_element(writer,  "graphic");
         //end loop
 
 	free(energies);
 
-        if(error)
-		return 0;
-	else
-		return 1;
-
-
+	return 1;
 } 
-
-
-static int write_start_element(xmlTextWriterPtr writer, char *element){
- 	int error;
-	 error = 0;
-
- 	if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {
-		fprintf(stderr,"Error starting svg element %s \n", element);
-		error = 1;
-		}
-         
-	return error;
-}
-
-static int write_end_element(xmlTextWriterPtr writer, char *element){
- 	int error;
-	 error = 0;
-
- 	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error starting svg element %s \n", element);
-		error = 1;
-		}
-         
-	return error;
-}
-
-static int write_value_element(xmlTextWriterPtr writer, char *element, float parm){
- 	int error;
-	error = 0;
-
-        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
-        if (!error){if (xmlTextWriterWriteFormatString(writer,"%g", parm ) < 0 ) {error = 1;}}
-        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
-
-        if (error) fprintf(stderr,"Error parameter svg element %s %g \n", element, parm);         
-	return error;
-}
-
-static int write_value_element_int(xmlTextWriterPtr writer, char *element, int parm){
- 	int error;
-	error = 0;
-
-        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
-        if (!error){if (xmlTextWriterWriteFormatString(writer,"%i", parm ) < 0 ) {error = 1;}}
-        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
-
-        if (error) fprintf(stderr,"Error parameter svg element %s %i \n", element, parm);         
-	return error;
-}
-
-static int write_char_element(xmlTextWriterPtr writer, char *element, char *parm){
- 	int error;
-	error = 0;
-
-        if (xmlTextWriterStartElement(writer, BAD_CAST element) < 0) {error = 1;}		
-        if (!error){if (xmlTextWriterWriteFormatString(writer,"%s", parm ) < 0 ) {error = 1;}}
-        if (!error){if (xmlTextWriterEndElement(writer) < 0) {error = 1;}}
-
-        if (error)fprintf(stderr,"Error parameter svg element %s %s \n", element, parm);
-	return error;
-}
-
 
 static float e2c(double energy, double * channels, double * energies, int nchannels ){ 
 	float xval;
@@ -2707,19 +2032,9 @@ int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input 
 	return 1;
 }
 
-int xmi_write_default_comments(xmlTextWriterPtr writer) {
+int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node) {
 	gchar *timestring;
-
-	//start off with some comments about user, time, date, hostname...
-	if (xmlTextWriterStartComment(writer) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
-	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Creator","%s (%s)",g_get_real_name(),g_get_user_name()) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
+	gchar *text;
 
 #if GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 26
 	GDateTime *time = g_date_time_new_now_local();
@@ -2729,36 +2044,20 @@ int xmi_write_default_comments(xmlTextWriterPtr writer) {
 	GTimeVal time;
 	g_get_current_time(&time);
         timestring = g_time_val_to_iso8601(&time);
-
 #endif
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Timestamp","%s",timestring) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
+	text = g_strdup_printf(" <Creator>%s (%s)</Creator>\n <Timestamp>%s</Timestamp>\n <Hostname>%s</Hostname>", g_get_real_name(),g_get_user_name(),  timestring, g_get_host_name());
+
+	xmlNodePtr cur_node = xmlAddPrevSibling(root_node, xmlNewComment(BAD_CAST text));
+	xmlAddNextSibling(cur_node, xmlNewComment(BAD_CAST "DO NOT MODIFY THIS FILE UNLESS YOU KNOW WHAT YOU ARE DOING!"));
+
 	g_free(timestring);
-
-	
-	if (xmlTextWriterWriteFormatElement(writer, BAD_CAST "Hostname","%s",g_get_host_name()) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
-
-	if (xmlTextWriterEndComment(writer) < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
-
-	if (xmlTextWriterWriteComment(writer, BAD_CAST "DO NOT MODIFY THIS FILE UNLESS YOU KNOW WHAT YOU ARE DOING!") < 0) {
-		fprintf(stderr,"Error writing comment\n");
-		return 0;
-	}
-
+	g_free(text);
 
 	return 1;
 }
 	
 int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2) {
-	xmlNodePtr subroot, subsubroot;
+	xmlNodePtr subroot;
 	xmlChar *txt;
 
 	//read step1 and step2 if necessary
@@ -2908,7 +2207,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		return 0;
 	}
 
-	xmlNodePtr subroot, subsubroot;
+	xmlNodePtr subroot;
 	xmlChar *txt;
 
 	subroot = xmlFirstElementChild(root);
@@ -3020,97 +2319,54 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 }
 
 int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
-	xmlDocPtr doc;
-	xmlTextWriterPtr writer;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlDtdPtr dtd = NULL;
+	xmlNodePtr nodePtr1;
 
 
 	LIBXML_TEST_VERSION
 
-	if ((writer = xmlNewTextWriterDoc(&doc,9)) == NULL) {
-		fprintf(stderr,"Error calling xmlNewTextWriterDoc\n");
+	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
+		fprintf(stderr,"Error calling xmlNewDoc\n");
 		return 0;
 	}
-	xmlTextWriterSetIndent(writer,2);
-	if (xmlTextWriterStartDocument(writer, NULL, NULL, NULL) < 0) {
-		fprintf(stderr,"Error at xmlTextWriterStartDocument\n");
-		return 0;
-	}
-	if (xmlTextWriterStartDTD(writer,BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd") < 0 ) {
-		fprintf(stderr,"Error starting DTD\n");
+	xmlThrDefIndentTreeOutput(2);
+	xmlSetDocCompressMode(doc, 9);
+
+	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
+		fprintf(stderr,"Error creating DTD\n");
 		return 0;
 	}
 
-	if (xmlTextWriterEndDTD(writer) < 0) {
-		fprintf(stderr,"Error ending DTD\n");
-		return 0;
-	}
-	
-	if (xmi_write_default_comments(writer) == 0) {
+	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim-archive");
+	xmlDocSetRootElement(doc, root_node);
+
+	if (xmi_write_default_comments(doc, root_node) == 0) {
 		return 0;
 	}
 
 	//body
-	if (xmlTextWriterStartElement(writer,BAD_CAST "xmimsim-archive") < 0) {
-		fprintf(stderr,"Error writing xmimsim-archive tag\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value1","%g", archive->start_value1) < 0) {
-		fprintf(stderr,"Error writing start_value1\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value1","%g", archive->end_value1) < 0) {
-		fprintf(stderr,"Error writing end_value1\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps1","%i", archive->nsteps1) < 0) {
-		fprintf(stderr,"Error writing nsteps1\n");
-		return 0;
-	}
-	if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath1","%s", archive->xpath1) < 0) {
-		fprintf(stderr,"Error writing xpath1\n");
-		return 0;
-	}
+	xmi_new_child_printf(root_node, BAD_CAST "start_value1", "%g", archive->start_value1);
+	xmi_new_child_printf(root_node, BAD_CAST "end_value1", "%g", archive->end_value1);
+	xmi_new_child_printf(root_node, BAD_CAST "nsteps1", "%i", archive->nsteps1);
+	xmi_new_child_printf(root_node, BAD_CAST "xpath1", "%s", archive->xpath1);
 	if (archive->nsteps2 > 0) {
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "start_value2","%g", archive->start_value2) < 0) {
-			fprintf(stderr,"Error writing start_value2\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "end_value2","%g", archive->end_value2) < 0) {
-			fprintf(stderr,"Error writing end_value2\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "nsteps2","%i", archive->nsteps2) < 0) {
-				fprintf(stderr,"Error writing nsteps2\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "xpath2","%s", archive->xpath2) < 0) {
-			fprintf(stderr,"Error writing xpath2\n");
-			return 0;
-		}
+		xmi_new_child_printf(root_node, BAD_CAST "start_value2", "%g", archive->start_value2);
+		xmi_new_child_printf(root_node, BAD_CAST "end_value2", "%g", archive->end_value2);
+		xmi_new_child_printf(root_node, BAD_CAST "nsteps2", "%i", archive->nsteps2);
+		xmi_new_child_printf(root_node, BAD_CAST "xpath2", "%s", archive->xpath2);
 	}
 	int i,j;
 
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			if (xmi_write_output_xml_body(writer, archive->output[i][j], i, j, 0) == 0) {
+			nodePtr1 = xmlNewChild(root_node, NULL, BAD_CAST "xmimsim-results", NULL);
+			if (xmi_write_output_xml_body(doc, nodePtr1, archive->output[i][j], i, j, 0) == 0) {
 				return 0;
 			}
 		}
 	}
-
-
-	if (xmlTextWriterEndElement(writer) < 0) {
-		fprintf(stderr,"Error ending xmimsim-archive\n");
-		return 0;
-	}
-	//endbody
-
-	if (xmlTextWriterEndDocument(writer) < 0) {
-		fprintf(stderr,"Error ending document\n");
-		return 0;
-	}
-
-	xmlFreeTextWriter(writer);
 
 	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
 		fprintf(stderr,"Could not write to %s\n",xmlfile);
@@ -3121,49 +2377,52 @@ int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 	return 1;
 }
 
-int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers) {
+int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_layer *layers, int n_layers) {
+	xmlNodePtr nodePtr1, nodePtr2;
 	int i, j;
 
 	for (i = 0 ; i < n_layers ; i++) {
-		if (xmlTextWriterStartElement(writer, BAD_CAST "layer") < 0) {
-			fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-			return 0;
-		}
+		nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "layer", NULL);
 		for (j = 0 ; j < layers[i].n_elements ; j++) {
 			//skip if weight fraction is equal to zero
 			if (fabs(layers[i].weight[j]) < 1E-20)
 				continue;
-			if (xmlTextWriterStartElement(writer, BAD_CAST "element") < 0) {
-				fprintf(stderr,"Error at xmlTextWriterStartElement\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "atomic_number","%i",layers[i].Z[j]) < 0) {
-				fprintf(stderr,"Error writing atomic_number\n");
-				return 0;
-			}
-			if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "weight_fraction","%g",layers[i].weight[j]*100.0) < 0) {
-				fprintf(stderr,"Error writing weight_number\n");
-				return 0;
-			}
-			if (xmlTextWriterEndElement(writer) < 0) {
-				fprintf(stderr,"Error calling xmlTextWriterEndElement for element\n");
-				return 0;
-			}
+			nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "element", NULL);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "atomic_number", "%i", layers[i].Z[j]);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "weight_fraction", "%g", layers[i].weight[j]*100.0);
 		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "density","%g",layers[i].density) < 0) {
-			fprintf(stderr,"Error writing density\n");
-			return 0;
-		}
-		if (xmlTextWriterWriteFormatElement(writer,BAD_CAST "thickness","%g",layers[i].thickness) < 0) {
-			fprintf(stderr,"Error writing thickness\n");
-			return 0;
-		}
-	
-		if (xmlTextWriterEndElement(writer) < 0) {
-			fprintf(stderr,"Error calling xmlTextWriterEndElement for layer\n");
-			return 0;
-		}
+		xmi_new_child_printf(nodePtr1, BAD_CAST "density", "%g", layers[i].density);
+		xmi_new_child_printf(nodePtr1, BAD_CAST "thickness", "%g", layers[i].thickness);
 	}
 
 	return 1;
+}
+
+static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) {
+	//we'll be mixing some glib and libxml strings here, but that should be ok
+	gchar *msg = NULL;
+	va_list args;
+	xmlNodePtr rv = NULL;
+
+	if (message_format) {
+		va_start(args, message_format);
+		msg = g_strdup_vprintf(message_format, args);
+		va_end(args);
+		rv = xmlNewChild(nodePtr, NULL, node_name, BAD_CAST msg);
+		g_free(msg);
+	}
+	return rv;
+}
+
+static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, const gchar *message_format, ...) {
+	gchar *msg = NULL;
+	va_list args;
+
+	if (message_format) {
+		va_start(args, message_format);
+		msg = g_strdup_vprintf(message_format, args);
+		va_end(args);
+		xmlNewProp(nodePtr, prop_name, BAD_CAST msg);
+		g_free(msg);
+	}
 }

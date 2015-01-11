@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
-#include <libxml/xmlwriter.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,13 +42,13 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output);
 int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive);
 int xmi_write_archive_xml(char *xmsafile, struct xmi_archive *archive);
 
-int xmi_write_input_xml_body(xmlTextWriterPtr writer, struct xmi_input *input); 
-int xmi_write_input_xml_svg(xmlTextWriterPtr writer, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
-int xmi_write_output_xml_body(xmlTextWriterPtr writer, struct xmi_output *output, int step1, int step2, int with_svg);
-int xmi_write_default_comments(xmlTextWriterPtr writer);
-int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input);
-int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int *step1, int *step2);
-int xmi_write_layer_xml_body(xmlTextWriterPtr writer, struct xmi_layer *layers, int n_layers);
+int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input); 
+int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
+int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_output *output, int step1, int step2, int with_svg);
+int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node);
+int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layers, int n_layers);
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input);
+int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_output *output, int *step1, int *step2);
 
 #ifdef __cplusplus
 }
