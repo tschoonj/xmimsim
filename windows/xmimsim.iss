@@ -22,7 +22,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.24-2014-09-28-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.25-2015-01-21-ts-win64.exe"
   #define MY_MINGW "C:\TDM-GCC-64\"
 #else
   #define MyAppName "XMI-MSIM 32-bit"
