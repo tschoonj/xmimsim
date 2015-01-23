@@ -1322,6 +1322,10 @@ void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B) {
 } 
 
 void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
 	*B = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
 	(*B)->n_discrete = A->n_discrete;
 	(*B)->n_continuous = A->n_continuous;
@@ -1375,6 +1379,8 @@ void xmi_free_geometry(struct xmi_geometry *A) {
 }
 
 void xmi_free_excitation(struct xmi_excitation *A) {
+	if (A == NULL)
+		return;
 	if (A->n_discrete > 0)
 		free(A->discrete);
 
