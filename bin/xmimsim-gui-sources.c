@@ -746,7 +746,10 @@ static void generate_tube_spectrum(struct generate *gen) {
 		return;
 	}
 
-
+	//ebel main function
+	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation_tube);
+	
+	
 	//read transmission efficiency file if appropriate
 	double *eff_x = NULL;
 	double *eff_y = NULL;
@@ -768,7 +771,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 			return;
 			
 		}
-		char *line;
+		char *line = NULL;
 		double energy, efficiency;
 		ssize_t linelen;
 		size_t linecap = 0;
@@ -778,7 +781,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 				continue;
 			}
 			values = sscanf(line,"%lg %lg", &energy, &efficiency);
-			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy < 1.0)) {
+			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy >= 1.0)) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
@@ -791,6 +794,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 			eff_x[n_eff-1] = energy;
 			eff_y[n_eff-1] = efficiency;
 			g_fprintf(stdout,"Efficiency: %f -> %f\n",energy,efficiency);
+			free(line);
+			line = NULL;
 		}
 		fclose(fp);
 		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
@@ -814,9 +819,6 @@ static void generate_tube_spectrum(struct generate *gen) {
 		list = GTK_PLOT_CANVAS(gen->canvas_tube)->childs;
 	}
 
-	//ebel main function
-	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation_tube);
-	
 	//apply transmission efficiencies if required
 	int i,j;
 	if (n_eff > 0) {
@@ -843,6 +845,11 @@ static void generate_tube_spectrum(struct generate *gen) {
 		gsl_spline_free (spline);
 		gsl_interp_accel_free (acc);
 	}
+
+
+	//let's clean up the data a bit here...
+	//we could be dealing with zeroes and/or ridiculously small intensities,
+	//especially when using the transmission data efficiency
 
 
 	//add box with default settings
@@ -1463,7 +1470,6 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gen->linear_tubeW = linearW;
 	gen->log10_tubeW = log10W;
 
-	generate_tube_spectrum(gen);
 
 
 	//and now the radionuclides
@@ -1595,7 +1601,6 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gen->log10_nuclideW = log10W;
 	gen->canvas_nuclide = canvas;
 
-	generate_nuclide_spectrum(gen);
 
 	gtk_container_add(GTK_CONTAINER(window), notebook);
 
@@ -1615,6 +1620,8 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_widget_show_all(window);
 
+	generate_tube_spectrum(gen);
+	generate_nuclide_spectrum(gen);
 }
 
 void export_canvas_image (GtkWidget *canvas, gchar *title) {
