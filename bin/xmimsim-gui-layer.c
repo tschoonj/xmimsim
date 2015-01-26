@@ -794,11 +794,29 @@ void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer da
 				(*(cw->lw->my_layer))->thickness = 0.0;
 				(*(cw->lw->my_layer))->density = 0.0;
 				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);	
+				if ((*(cw->lw->my_layer))->n_elements == 1) {
+					double density = ElementDensity((*(cw->lw->my_layer))->Z[0]);
+					gchar *buffer = g_strdup_printf("%f", density);
+					g_signal_handler_block(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
+					gtk_entry_set_text(GTK_ENTRY(cw->lw->densityEntry), buffer);
+					g_signal_handler_unblock(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
+					(*(cw->lw->my_layer))->density = 0.0;
+					g_free(buffer);
+				}
 			}
 			else if ((*(cw->lw->my_layer))->n_elements == 0) {
 				free( *(cw->lw->my_layer));
 				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
 				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);	
+				if ((*(cw->lw->my_layer))->n_elements == 1) {
+					double density = ElementDensity((*(cw->lw->my_layer))->Z[0]);
+					gchar *buffer = g_strdup_printf("%f", density);
+					g_signal_handler_block(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
+					gtk_entry_set_text(GTK_ENTRY(cw->lw->densityEntry), buffer);
+					g_signal_handler_unblock(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
+					(*(cw->lw->my_layer))->density = 0.0;
+					g_free(buffer);
+				}
 			}
 			else {
 				fprintf(stdout,"error in dialog_buttons_clicked_cb\n");
