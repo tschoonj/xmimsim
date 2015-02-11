@@ -30,14 +30,15 @@
 	<array>
 		<string>x86_64</string>
 	</array>
-	<!--<key>LSEnvironment</key>
-		<key>LANG</key>-->
 	<key>LSMinimumSystemVersion</key>
 	<string>10.6.8</string>
-
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>be.ugent.xmi.xmi-msim.xmsi</string>
+			</array>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>xmsi</string>
@@ -45,13 +46,19 @@
 			<key>CFBundleTypeName</key>
 			<string>XMI-MSIM Input File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>Logo_xmi_msim_MacOSX_XMSI</string>
+			<string>Logo_xmi_msim_MacOSX_XMSI.icns</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
 		</dict>
 		<dict>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>be.ugent.xmi.xmi-msim.xmso</string>
+			</array>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>xmso</string>
@@ -59,13 +66,19 @@
 			<key>CFBundleTypeName</key>
 			<string>XMI-MSIM Output File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>Logo_xmi_msim_MacOSX_XMSO</string>
+			<string>Logo_xmi_msim_MacOSX_XMSO.icns</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
 		</dict>
 		<dict>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>be.ugent.xmi.xmi-msim.xmsa</string>
+			</array>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>xmsa</string>
@@ -73,15 +86,89 @@
 			<key>CFBundleTypeName</key>
 			<string>XMI-MSIM Archive File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>Logo_xmi_msim_MacOSX_XMSA</string>
+			<string>Logo_xmi_msim_MacOSX_XMSA.icns</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
 		</dict>
 	</array>
 	<key>NSHighResolutionCapable</key>
 	<true/>
-
+	<key>UTExportedTypeDeclarations</key>
+        <array>
+                <dict>
+                        <key>UTTypeConformsTo</key>
+                        <array>
+                                <string>public.xml</string>
+				<string>public.item</string>
+                        </array>
+                        <key>UTTypeDescription</key>
+                        <string>XMI-MSIM Input File</string>
+                        <key>UTTypeIconFile</key>
+                        <string>Logo_xmi_msim_MacOSX_XMSI.icns</string>
+                        <key>UTTypeIdentifier</key>
+                        <string>be.ugent.xmi.xmi-msim.xmsi</string>
+                        <key>UTTypeTagSpecification</key>
+                        <dict>
+                                <key>public.filename-extension</key>
+				<array>
+                                        <string>xmsi</string>
+				</array>
+                        </dict>
+                </dict>
+                <dict>
+                        <key>UTTypeConformsTo</key>
+                        <array>
+                                <string>public.xml</string>
+				<string>public.item</string>
+                        </array>
+                        <key>UTTypeDescription</key>
+                        <string>XMI-MSIM Output File</string>
+                        <key>UTTypeIdentifier</key>
+                        <string>be.ugent.xmi.xmi-msim.xmso</string>
+                        <key>UTTypeIconFile</key>
+                        <string>Logo_xmi_msim_MacOSX_XMSO.icns</string>
+                        <key>UTTypeTagSpecification</key>
+                        <dict>
+                                <key>public.filename-extension</key>
+				<array>
+                                        <string>xmso</string>
+				</array>
+                        </dict>
+                </dict>
+                <dict>
+                        <key>UTTypeConformsTo</key>
+                        <array>
+                                <string>org.gnu.gnu-zip-archive</string>
+				<string>public.item</string>
+                        </array>
+                        <key>UTTypeDescription</key>
+                        <string>XMI-MSIM Archive File</string>
+                        <key>UTTypeIdentifier</key>
+                        <string>be.ugent.xmi.xmi-msim.xmsa</string>
+                        <key>UTTypeIconFile</key>
+                        <string>Logo_xmi_msim_MacOSX_XMSA.icns</string>
+                        <key>UTTypeTagSpecification</key>
+                        <dict>
+                                <key>public.filename-extension</key>
+				<array>
+                                        <string>xmsa</string>
+				</array>
+                        </dict>
+                </dict>
+	</array>
+	<key>NSExportableTypes</key>
+	<array>
+		<string>be.ugent.xmi.xmi-msim.xmsi</string>
+		<string>be.ugent.xmi.xmi-msim.xmso</string>
+		<string>be.ugent.xmi.xmi-msim.xmsa</string>
+		<string>public.png</string>
+		<string>com.adobe.pdf</string>
+		<string>public.html</string>
+		<string>com.adobe.encapsulated-postscript</string>
+	</array>
 </dict>
 </plist>
