@@ -19,7 +19,8 @@ dist_xmimsim_DATA = xmimsim-1.0.dtd \
 		    xmso2svg.xml \
 		    xmso2spe.xml \
 		    xmso2csv.xml \
-		    xmso2htm.xml
+		    xmso2htm.xml \
+		    xmsa2xmso.xml
 xmimsim_DATA = xmimsim_cat.xml
 
 

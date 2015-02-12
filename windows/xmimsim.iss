@@ -130,6 +130,7 @@ Source: "{#MY_HOME}\github\xmimsim\xml\xmso2spe.xml" ; DestDir: "{app}\Share" ; 
 Source: "{#MY_HOME}\github\xmimsim\xml\xmso2csv.xml" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\xml\xmso2svg.xml" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\xml\xmso2htm.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#MY_HOME}\github\xmimsim\xml\xmsa2xmso.xml" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\src\array.h" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\src\compilerfeatures.h" ; DestDir: "{app}\Share" ; Components: core
@@ -188,6 +189,7 @@ Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2spe" ; ValueType: string ; ValueName
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2csv" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2csv.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2xmsi" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2xmsi.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2htm" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2htm.xml"
+Root: HKLM; Subkey: "Software\XMI-MSIM\xmsa2xmso" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmsa2xmso.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\icon" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\Logo_xmi_msim.png"
 Root: HKLM; Subkey: "Software\XMI-MSIM\openclcode" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
 Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"

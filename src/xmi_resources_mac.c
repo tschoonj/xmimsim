@@ -63,6 +63,9 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 		case XMI_RESOURCES_MAC_OPENCL_LIB:
 			temp = g_strdup_printf("%s",resource_path);	
 			break;
+		case XMI_RESOURCES_MAC_XMSA2XMSO:
+			temp = g_strdup_printf("%s/xmsa2xmso.xml",resource_path);	
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_resources_mac_query\n");
 			return 0;

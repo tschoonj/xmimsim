@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
-#include <libxml/catalog.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 #include <glib.h>
@@ -139,9 +138,6 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const char *params[3];
-	char catalog[] = XMI_CATALOG;
-	xmlXPathContextPtr xpathCtx; 
-	xmlXPathObjectPtr xpathObj;
 
 	char parm_name[] = "type1";
         char s_convoluted[] = "'convoluted'";
@@ -225,9 +221,6 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const char *params[5];
-	char catalog[] = XMI_CATALOG;
-	xmlXPathContextPtr xpathCtx; 
-	xmlXPathObjectPtr xpathObj;
 
 	char parm_name1[] = "type";
 	char parm_name2[] = "interaction";
@@ -317,9 +310,6 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const char *params[3];
-	char catalog[] = XMI_CATALOG;
-	xmlXPathContextPtr xpathCtx; 
-	xmlXPathObjectPtr xpathObj;
 
 	char parm_name[] = "type";
         char s_convoluted[] = "'spectrum_conv'";
@@ -403,9 +393,6 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const char *params[3];
-	char catalog[] = XMI_CATALOG;
-	xmlXPathContextPtr xpathCtx; 
-	xmlXPathObjectPtr xpathObj;
 
 	char parm_name[] = "type1";
         char s_convoluted[] = "'convoluted'";
@@ -480,5 +467,87 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         xsltCleanupGlobals();
 
 	return 1;
+
+}
+
+int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) {
+	xsltStylesheetPtr cur = NULL;
+	xmlDocPtr doc, res;
+	xmlParserCtxtPtr ctx;
+	const gchar **params;
+
+
+#ifdef G_OS_WIN32
+	xmlChar *xsltfile;
+
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSA2XMSO,(char **) &xsltfile) == 0)
+		return 0;
+#elif defined(MAC_INTEGRATION)
+	xmlChar *xsltfile;
+
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSA2XMSO,(char **) &xsltfile) == 0)
+		return 0;
+#else
+	const xmlChar xsltfile[] = XMI_XMSA2XMSO_XSLT;
+#endif
+
+
+
+	xsltInit();
+
+	params = g_malloc(sizeof(gchar *)*5);
+	params[0] = g_strdup("step1");
+        params[1] = g_strdup_printf("'%i'", step1);
+	params[2] = g_strdup("step2");
+        params[3] = g_strdup_printf("'%i'", step2);
+        params[4] = NULL;
+
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+	//fprintf(stdout, "parm 1 = %s \n", params[1] );
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+
+	cur = xsltParseStylesheetFile(xsltfile);
+	if (cur == NULL)
+		return 0;
+
+#if defined(G_OS_WIN32) || defined (MAC_INTEGRATION)
+	free(xsltfile);
+#endif
+
+
+	if ((ctx=xmlNewParserCtxt()) == NULL) {
+		fprintf(stderr,"xmlNewParserCtxt error\n");
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx,xmsafile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsafile);
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}	
+
+	if (ctx->valid == 0) {
+		fprintf(stderr,"Error validating %s\n",xmsafile);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
+
+	res = xsltApplyStylesheet(cur, doc, params);
+	if (res == NULL)
+		return 0;
+
+	xsltSaveResultToFilename(xmsofile, res, cur, 0);
+
+	xsltFreeStylesheet(cur);
+	xmlFreeDoc(res);
+	xmlFreeDoc(doc);
+
+	g_strfreev((gchar **) params);
+
+        xsltCleanupGlobals();
+
+	return 1;
+
 
 }
