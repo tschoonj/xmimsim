@@ -121,6 +121,7 @@ Source: "{#MY_HOME}\bin\xmso2svg.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#MY_HOME}\bin\xmso2spe.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#MY_HOME}\bin\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#MY_HOME}\bin\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#MY_HOME}\bin\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\build\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
 
@@ -176,6 +177,7 @@ Filename: "{app}\GTK2\gtk2_runtime_uninst.exe" ; Parameters: "/remove_config=yes
 
 [UninstallDelete]
 Type: filesandordirs ; Name: "{app}\GTK2"
+Type: files ; Name: "{app}\Bin\set_xmi_msim_path.bat"
 Type: dirifempty ; Name: "{app}"
 
 [Registry]
@@ -452,19 +454,23 @@ begin
   end;
 end;
 
-//procedure CurStepChanged(CurStep: TSetupStep);
+procedure CurStepChanged(CurStep: TSetupStep);
 
-//begin
+begin
 //  if (CurStep=ssInstall) then
 //  begin
 //	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', '', ExpandConstant('{app}\Bin\xmimsim-gui.exe'));	
 //	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', 'Path', ExpandConstant('{app}\Bin;{app}\Lib;{app}\GTK2'));	
 //  end;
-//end;
+    if (CurStep=ssPostInstall) then
+    begin
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH=%PATH%;{app}\Bin;{app}\Lib;{app}\GTK2'), False);
+    end;
+end;
 
 //procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 //begin
-//  if (CurUninstallStep = usPostUninstall) then
+//  if (CurUninstallStep = usUninstall) then
 //  begin
 //	RegDeleteKeyIncludingSubkeys(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe');
 //  end;
