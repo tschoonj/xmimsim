@@ -110,12 +110,14 @@ fi || :
 %{_bindir}/xmso2csv
 %{_bindir}/xmso2htm
 %{_bindir}/xmsi2xrmc
+%{_bindir}/xmsa2xmso
 %{_prefix}/share/xmimsim/xmimsim-1.0.dtd
 %{_prefix}/share/xmimsim/xmso2xmsi.xml
 %{_prefix}/share/xmimsim/xmso2svg.xml
 %{_prefix}/share/xmimsim/xmso2csv.xml
 %{_prefix}/share/xmimsim/xmso2spe.xml
 %{_prefix}/share/xmimsim/xmso2htm.xml
+%{_prefix}/share/xmimsim/xmsa2xmso.xml
 %{_prefix}/share/xmimsim/xmimsim_cat.xml
 %{_prefix}/share/xmimsim/Logo_xmi_msim.png
 %{_datadir}/examples/xmimsim/*xmsi
@@ -150,6 +152,8 @@ fi || :
 
 
 %changelog
+* Thu Feb 12 2015 Tom Schoonjans
+- xmsa2xmso added
 * Tue Sep 9 2014 Tom Schoonjans
 - xraylib version requirement updated
 - added examples
