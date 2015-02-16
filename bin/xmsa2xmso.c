@@ -29,19 +29,21 @@ XMI_MAIN
 	GError *error = NULL;
 	static int version = 0;
 	static int step1 = 0, step2 = 0;
+	static gboolean all = FALSE;
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-		{"step1",'1',0,G_OPTION_ARG_INT,&step1,"step1",NULL},
-		{"step2",'2',0,G_OPTION_ARG_INT,&step2,"step2",NULL},
-		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"step1"  , '1', 0, G_OPTION_ARG_INT,  &step1,   "Extract data for parameter 1 after N1 steps",        "N1"},
+		{"step2"  , '2', 0, G_OPTION_ARG_INT,  &step2,   "Extract data for parameter 2 after N2 steps",        "N2"},
+		{"all"    , 'a', 0, G_OPTION_ARG_NONE, &all,     "Extract all data. XMSO_file will be used as prefix", NULL},
+		{"version",  0,  0, G_OPTION_ARG_NONE, &version, "Display version information",                        NULL },
 		{NULL}
 	};
 
 	//parse options
 	context = g_option_context_new ("XMSA_file XMSO_file");
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_set_summary(context, "xmsa2xmso: a utility for the extraction of XMSO output-files from an XMSA archive file\n\nUse the step1 and step2 options to select which simulation is required. Default: step1 = step2 = 0!");
+	g_option_context_set_summary(context, "xmsa2xmso: a utility for the extraction of XMSO output-files from an XMSA archive file\n\nUse either the all option or the step1 and step2 options to select which simulation(s) are required. Default: step1 = step2 = 0!");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
@@ -63,6 +65,10 @@ XMI_MAIN
 	if (step1 < 0 || step2 < 0) {
 		g_fprintf(stderr, "step1 and step2 must be greater or equal to zero\n");
 		return 1;
+	}
+
+	if (all) {
+		step1 = step2 = -1;
 	}
 
 	//load xml catalog

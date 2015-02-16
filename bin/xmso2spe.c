@@ -35,9 +35,9 @@ XMI_MAIN
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-           	{ "unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &use_unconvoluted, "Use unconvoluted data", NULL },
-		{ "interaction-number", 'i', 0, G_OPTION_ARG_INT, &interaction_number, "Spectrum after n interactions"},
-		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+           	{"unconvoluted", 'u', 0, G_OPTION_ARG_NONE, &use_unconvoluted, "Use unconvoluted data", NULL},
+		{"interaction-number", 'i', 0, G_OPTION_ARG_INT, &interaction_number, "Spectrum after N interactions", "N"},
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL},
 		{NULL}
 	};
 

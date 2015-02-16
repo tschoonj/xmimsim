@@ -126,7 +126,7 @@ XMI_MAIN
 		{"override-excitation",0,0,G_OPTION_ARG_FILENAME,&excitation_file, "Override excitation from XMSI file",NULL},
 		{"override-detector",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Override detector from XMSI file",NULL},
 		{"override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL},
-		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Set the number of threads (default=max)",NULL},
+		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Sets the number of threads to NTHREADS (default=max)", "NTHREADS"},
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
 		{NULL}

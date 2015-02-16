@@ -517,13 +517,6 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 
 	xsltInit();
 
-	params = g_malloc(sizeof(gchar *)*5);
-	params[0] = g_strdup("step1");
-        params[1] = g_strdup_printf("'%i'", step1);
-	params[2] = g_strdup("step2");
-        params[3] = g_strdup_printf("'%i'", step2);
-        params[4] = NULL;
-
        	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
@@ -562,8 +555,8 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	xmlFreeParserCtxt(ctx);
 
 	//check if step1 and step2 are valid values
-	int nsteps1, nsteps2;
-	xmlChar *nsteps1_string, *nsteps2_string;
+	int nsteps1 = 0, nsteps2 = 0;
+	xmlChar *nsteps1_string = NULL, *nsteps2_string = NULL;
 
     	xpathCtx = xmlXPathNewContext(doc);
        	if(xpathCtx == NULL) {
@@ -637,26 +630,63 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	xmlXPathFreeContext(xpathCtx); 
 	
 
+	if (step1 == -1 && step2 == -1) {
+		for (step1 = 0 ; step1 <= nsteps1 ; step1++) {
+			for (step2 = 0 ; step2 <= nsteps2 ; step2++) {
+				fprintf(stdout, "Processing %i %i\n", step1, step2);
+				gchar *xmsofilenew;
 
-	res = xsltApplyStylesheet(cur, doc, params);
-	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsafile);
-		xsltFreeStylesheet(cur);
-		xmlFreeDoc(doc);
-		return 0;
+				params = g_malloc(sizeof(gchar *)*5);
+				params[0] = g_strdup("step1");
+        			params[1] = g_strdup_printf("'%i'", step1);
+				params[2] = g_strdup("step2");
+        			params[3] = g_strdup_printf("'%i'", step2);
+        			params[4] = NULL;
+
+				res = xsltApplyStylesheet(cur, doc, params);
+				g_strfreev((gchar **) params);
+				if (res == NULL) {
+					fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsafile);
+					xsltFreeStylesheet(cur);
+					xmlFreeDoc(doc);
+					return 0;
+				}
+
+				if (nsteps2 == 0)
+					xmsofilenew = g_strdup_printf("%s_%i.xmso", xmsofile, step1);
+				else
+					xmsofilenew = g_strdup_printf("%s_%i_%i.xmso", xmsofile, step1, step2);
+
+				xsltSaveResultToFilename(xmsofilenew, res, cur, 0);
+				g_free(xmsofilenew);
+				xmlFreeDoc(res);
+			}
+		}
+	}
+	else {
+		params = g_malloc(sizeof(gchar *)*5);
+		params[0] = g_strdup("step1");
+        	params[1] = g_strdup_printf("'%i'", step1);
+		params[2] = g_strdup("step2");
+        	params[3] = g_strdup_printf("'%i'", step2);
+        	params[4] = NULL;
+
+		res = xsltApplyStylesheet(cur, doc, params);
+		g_strfreev((gchar **) params);
+		if (res == NULL) {
+			fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsafile);
+			xsltFreeStylesheet(cur);
+			xmlFreeDoc(doc);
+			return 0;
+		}
+		xsltSaveResultToFilename(xmsofile, res, cur, 0);
+		xmlFreeDoc(res);
 	}
 
-	xsltSaveResultToFilename(xmsofile, res, cur, 0);
-
 	xsltFreeStylesheet(cur);
-	xmlFreeDoc(res);
 	xmlFreeDoc(doc);
-
-	g_strfreev((gchar **) params);
 
         xsltCleanupGlobals();
 
 	return 1;
-
-
 }
