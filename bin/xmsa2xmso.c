@@ -58,6 +58,13 @@ XMI_MAIN
 		return 1;
 	}
 
+	g_option_context_free(context);
+
+	if (step1 < 0 || step2 < 0) {
+		g_fprintf(stderr, "step1 and step2 must be greater or equal to zero\n");
+		return 1;
+	}
+
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
