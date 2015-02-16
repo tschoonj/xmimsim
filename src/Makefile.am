@@ -73,6 +73,7 @@ libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			@JsonGlib_CFLAGS@ \
 		      	@libcurl_CFLAGS@ \
 			@gmodule_CFLAGS@ \
+			@OPENMP_CFLAGS@ \
 			-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 			-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
 			-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
