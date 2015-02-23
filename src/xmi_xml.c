@@ -1232,15 +1232,11 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 		return 0;
 	}
 
-	subroot = xmlFirstElementChild(root);
-
 	//allocate memory for input
 	*input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
 
-
-	if (xmi_read_input_xml_body(doc, subroot, *input) == 0)
+	if (xmi_read_input_xml_body(doc, root, *input) == 0)
 		return 0;
-
 
 	if (xmi_validate_input(*input) != 0) {
 		xmlFreeParserCtxt(ctx);
@@ -1987,7 +1983,8 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output) {
 	return 1;
 }
 
-int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_input *input) {
+	xmlNodePtr subroot = xmlFirstElementChild(root);
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
@@ -2104,7 +2101,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 
 	op->input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
 
-	if (xmi_read_input_xml_body(doc, xmlFirstElementChild(xpathObj->nodesetval->nodeTab[0]), op->input) == 0)
+	if (xmi_read_input_xml_body(doc, xpathObj->nodesetval->nodeTab[0], op->input) == 0)
 		return 0;
 
 	if (xmi_validate_input(op->input) != 0) {
