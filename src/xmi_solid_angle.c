@@ -148,7 +148,6 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 	hid_t root_group_id;	
 	hid_t attribute_id;
 	hid_t dataspace_id;
-	herr_t status;
 
 	double version = g_ascii_strtod(VERSION, NULL);
 	
@@ -189,7 +188,7 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
 
 	/* Terminate access to the file. */
-	status = H5Fclose(file_id); 
+	H5Fclose(file_id); 
 	return 1;
 }
 
@@ -202,7 +201,6 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	hid_t dset_id;
 	hsize_t dims[2]; 
 	hsize_t xmi_input_strlen;
-	int i;
 	gchar *timestring;
 	GTimeVal time;
 
@@ -296,7 +294,7 @@ struct multiple_solid_angles {
 
 
 static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
-	hid_t dset_id, dapl_id, dspace_id;
+	hid_t dset_id, dspace_id;
 	hsize_t dims[2], dims_string[1]; 
 	hid_t group_id;
 	char *xmi_input_string;
@@ -972,13 +970,19 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 		fprintf(stderr,"No OpenCL platform detected\n");
 		return 0;
 	}
-	
-	status = clGetPlatformInfo(platforms[0], CL_PLATFORM_VERSION, info_size, info, NULL);
-	OPENCL_ERROR(clGetPlatformInfo)
-	//fprintf(stdout,"OpenCL platform version %s\n", info);
+
+	int i, j;
+
+	/*for (i = 0 ; i < numPlatforms ; i++) {
+		status = clGetPlatformInfo(platforms[i], CL_PLATFORM_VERSION, info_size, info, NULL);
+		OPENCL_ERROR(clGetPlatformInfo)
+		fprintf(stdout,"OpenCL platform version %s\n", info);
+	}*/
+
 
 	cl_uint numDevices = 0;
 	cl_device_id *devices = NULL;
+	cl_device_id device;
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
 	OPENCL_ERROR(clGetDeviceIDs)
 
@@ -991,16 +995,39 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
 	OPENCL_ERROR(clGetDeviceIDs)
 
-	//fprintf(stdout,"Number of devices found: %i\n", numDevices);
+	size_t max_work_group_size = 0;
 
-	//check implementation... should be 1.1
-	status = clGetDeviceInfo(devices[0], CL_DEVICE_VERSION, info_size, info, NULL);
-	OPENCL_ERROR(clGetDeviceInfo)
-	//parse string;
-	int cl_minor, cl_major;
-	sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
-	if (!(cl_major >= XMI_OPENCL_MAJOR && cl_minor >= XMI_OPENCL_MINOR)) {
-		fprintf(stderr, "OpenCL device version must be at least 1.1\n");
+	//fprintf(stdout,"Number of devices found: %i\n", numDevices);
+	for (i = 0 ; i < numDevices ; i++) {
+		//check implementation... should be 1.1
+		status = clGetDeviceInfo(devices[i], CL_DEVICE_VERSION, info_size, info, NULL);
+		OPENCL_ERROR(clGetDeviceInfo)
+
+		//parse string;
+		int cl_minor, cl_major;
+		
+		sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
+		
+		if (!(cl_major >= XMI_OPENCL_MAJOR && cl_minor >= XMI_OPENCL_MINOR)) {
+			continue;
+		}
+
+		status = clGetDeviceInfo(devices[i], CL_DEVICE_NAME, info_size, info, NULL);
+		OPENCL_ERROR(clGetDeviceInfo)
+		fprintf(stdout,"OpenCL device %i name %s\n", i, info);
+
+		size_t max_work_group_size_temp;
+		status = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size_temp, NULL);
+		OPENCL_ERROR(clGetDeviceInfo)
+		fprintf(stdout,"OpenCL device %i max_work_group_size %i\n", i, max_work_group_size_temp);
+		if (max_work_group_size_temp > max_work_group_size) {
+			device = devices[i];
+			max_work_group_size = max_work_group_size_temp;
+		}
+	}
+
+	if (max_work_group_size == 0) {
+		fprintf(stderr, "No suitable OpenCL GPU devices detected\n");
 		return 0;
 	}
 
@@ -1010,7 +1037,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	OPENCL_ERROR(clCreateContext)
 
 	cl_command_queue cmdQueue;
-	cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
+	cmdQueue = clCreateCommandQueue(context, device, 0, &status);
 	OPENCL_ERROR(clCreateCommandQueue)
 
 	//start assembling our input
@@ -1037,7 +1064,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 	float *grid_dims_r_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_r_n);
 	float *grid_dims_theta_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_theta_n);
-	int i,j;
 
 	for (i = 0 ; i < sa->grid_dims_r_n ; i++)
 		grid_dims_r_vals_float[i] = (float) sa->grid_dims_r_vals[i];
@@ -1050,7 +1076,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 	//check device constant memory
 	cl_ulong constant_buffer_memory;
-	status = clGetDeviceInfo(devices[0], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constant_buffer_memory, NULL);
+	status = clGetDeviceInfo(device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &constant_buffer_memory, NULL);
 	OPENCL_ERROR(clGetDeviceInfo)
 	//fprintf(stdout,"Max constant buffer size: %lu\n", constant_buffer_memory);
 	if (constant_buffer_memory < (sizeof(float)*sa->grid_dims_r_n+sizeof(float)*sa->grid_dims_theta_n)) {
@@ -1060,7 +1086,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 //#define DEBUG
 
-	cl_event writeEventA, writeEventB;
+	cl_event writeEventA = 0, writeEventB = 0;
 	cl_event eventlist[2] = {writeEventA, writeEventB};
 #ifndef DEBUG
 	cl_mem grid_dims_r_vals_cl = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float)*sa->grid_dims_r_n, NULL, &status);
@@ -1190,20 +1216,20 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i", RANGE_DIVIDER);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
 	g_free(build_options);
-	//OPENCL_ERROR(clBuildProgram)
+	OPENCL_ERROR(clBuildProgram)
 
 	if (status == CL_BUILD_PROGRAM_FAILURE) {
 		fprintf(stderr,"build failure\n");
 		// Determine the size of the log
 		size_t log_size;
-		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+		status = clGetProgramBuildInfo(myprog, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 		OPENCL_ERROR(clGetProgramBuildInfo)
 	
 		// Allocate memory for the log
 		char *my_log = (char *) malloc(log_size+1);
 		
 	        // Get the log
-		status = clGetProgramBuildInfo(myprog, devices[0], CL_PROGRAM_BUILD_LOG, log_size, my_log, NULL);
+		status = clGetProgramBuildInfo(myprog, device, CL_PROGRAM_BUILD_LOG, log_size, my_log, NULL);
 		OPENCL_ERROR(clGetProgramBuildInfo)
 		
 		// Print the log
@@ -1242,7 +1268,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	//fprintf(stdout,"after setting the kernel args\n");
 
 	size_t globalws[2] = {sa->grid_dims_r_n/RANGE_DIVIDER, sa->grid_dims_theta_n/RANGE_DIVIDER};
-	size_t localws[2] = {16, 16};
+	//size_t localws[2] = {16, 16};
 	//size_t globalws[2] = {1,1};
 	
 	

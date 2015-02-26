@@ -2194,6 +2194,9 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
                 rng, inputF, hdf5F, shell)
                 !process shell further for Compton fluorescence:
                 !basically a radiative cascade event
+                !FIXME: wrong here
+                !corresponds to a situation identical to what happens after
+                !photoelectric effect
                 IF (photon%options%use_variance_reduction .EQ. 0)&
                 CALL xmi_simulate_photon_cascade_radiative(photon, shell,&
                 rng, inputF, hdf5F)

@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!--
+Copyright (C) 2015 Tom Schoonjans and Laszlo Vincze
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xsl:stylesheet version="1.0"
+xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+<xsl:output doctype-system="http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd" indent="yes"/> 
+
+<xsl:param name="step1" select="'0'"></xsl:param>
+<xsl:param name="step2" select="'0'"></xsl:param>
+
+<xsl:attribute-set name="resultsAttrs">
+	<xsl:attribute name="version">1.0</xsl:attribute>
+</xsl:attribute-set>
+
+<xsl:template match="/xmimsim-archive">
+  <xsl:choose>
+    <xsl:when test="xpath2">
+      <xsl:element name="xmimsim-results" use-attribute-sets="resultsAttrs">
+        <xsl:copy-of select="xmimsim-results[@step1=$step1 and @step2=$step2]/*"/>
+      </xsl:element>
+    </xsl:when>
+    <xsl:otherwise>
+      <xsl:element name="xmimsim-results" use-attribute-sets="resultsAttrs">
+        <xsl:copy-of select="xmimsim-results[@step1=$step1 and @step2='0']/*"/>
+      </xsl:element>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+</xsl:stylesheet>

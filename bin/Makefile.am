@@ -31,7 +31,8 @@ bin_PROGRAMS =  xmimsim \
 		xmso2htm \
 		xmso2xmsi \
 		xmsi2xrmc \
-		xmimsim-conv
+		xmimsim-conv \
+		xmsa2xmso
 
 #bin_PROGRAMS += xmimsim-test-ebel \
 #		xmimsim-test-boone1 \
@@ -243,6 +244,14 @@ xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
 		    @xraylib_CFLAGS@ 
 		
+xmsa2xmso_SOURCES = xmsa2xmso.c
+xmsa2xmso_LDADD = ../src/libxmimsim.la \
+		  @GTK_MAC_LIBS@ \
+		  @glib2_LIBS@
+xmsa2xmso_CFLAGS = @glib2_CFLAGS@ \
+		   @xml2_CFLAGS@ \
+		   @xraylib_CFLAGS@ 
+
 #xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
 #xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
 

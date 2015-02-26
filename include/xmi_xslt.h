@@ -28,6 +28,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *svgfile, unsigned convoluted);
 int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int interaction_number);
 int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted);
 int xmi_xmso_to_htm_xslt(char *xmsofile, char *htmlfile, unsigned convoluted);
+int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsifile, int step1, int step2);
 
 #ifdef __cplusplus
 }

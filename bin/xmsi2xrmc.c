@@ -56,7 +56,7 @@ XMI_MAIN
 		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
 		{NULL}
 	};
 

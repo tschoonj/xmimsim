@@ -32,8 +32,8 @@ XMI_MAIN
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
-		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"XMSI outputfile",NULL},
-		{ "version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL },
+		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"Use FILE as new XMSI outputfile", "FILE"},
+		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL},
 		{NULL}
 	};
 

@@ -462,7 +462,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	}
 	g_free(xpv.xnp);
 
-	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
+	if (gen->excitation_tube && gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
 		update_undo_buffer(EBEL_SPECTRUM_REPLACE, (GtkWidget *) gen->excitation_tube);
 		gtk_list_store_clear(discWidget->store);
 		int i;
@@ -495,7 +495,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 			-1);
 		}
 	}
-	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
+	else if (gen->excitation_nuclide && gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add radionuclide emission spectrum to current spectrum or replace it completely?");
 		gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
 		GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
@@ -746,7 +746,15 @@ static void generate_tube_spectrum(struct generate *gen) {
 		return;
 	}
 
+	//TODO: make a copy here of the existing excitation_tube and set it back if there errors from here onwards
+	struct xmi_excitation *excitation_tube_old;
+	xmi_copy_excitation(gen->excitation_tube, &excitation_tube_old);
 
+
+	//ebel main function
+	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation_tube);
+	
+	
 	//read transmission efficiency file if appropriate
 	double *eff_x = NULL;
 	double *eff_y = NULL;
@@ -758,6 +766,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");		
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
+			xmi_free_excitation(gen->excitation_tube);
+			gen->excitation_tube = excitation_tube_old;
 			return;
 		}
 		FILE *fp;
@@ -765,10 +775,12 @@ static void generate_tube_spectrum(struct generate *gen) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for reading.", filename);		
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
+			xmi_free_excitation(gen->excitation_tube);
+			gen->excitation_tube = excitation_tube_old;
 			return;
 			
 		}
-		char *line;
+		char *line = NULL;
 		double energy, efficiency;
 		ssize_t linelen;
 		size_t linecap = 0;
@@ -778,10 +790,12 @@ static void generate_tube_spectrum(struct generate *gen) {
 				continue;
 			}
 			values = sscanf(line,"%lg %lg", &energy, &efficiency);
-			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy < 1.0)) {
+			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy >= 1.0)) {
 				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
+				xmi_free_excitation(gen->excitation_tube);
+				gen->excitation_tube = excitation_tube_old;
 				return;
 				
 			} 
@@ -791,6 +805,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 			eff_x[n_eff-1] = energy;
 			eff_y[n_eff-1] = efficiency;
 			g_fprintf(stdout,"Efficiency: %f -> %f\n",energy,efficiency);
+			free(line);
+			line = NULL;
 		}
 		fclose(fp);
 		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
@@ -798,6 +814,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
+			xmi_free_excitation(gen->excitation_tube);
+			gen->excitation_tube = excitation_tube_old;
 			return;
 		}
 	}
@@ -814,13 +832,12 @@ static void generate_tube_spectrum(struct generate *gen) {
 		list = GTK_PLOT_CANVAS(gen->canvas_tube)->childs;
 	}
 
-	//ebel main function
-	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation_tube);
-	
 	//apply transmission efficiencies if required
 	int i,j;
 	if (n_eff > 0) {
 		//use some gsl tricks
+		//TODO: use gsl interp API to catch errors?
+		//there shouldnt be any though
 		gsl_interp_accel *acc = gsl_interp_accel_alloc();
 		gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, n_eff);
 		gsl_spline_init(spline, eff_x, eff_y, n_eff);
@@ -843,6 +860,11 @@ static void generate_tube_spectrum(struct generate *gen) {
 		gsl_spline_free (spline);
 		gsl_interp_accel_free (acc);
 	}
+
+
+	//TODO:let's clean up the data a bit here...
+	//we could be dealing with zeroes and/or ridiculously small intensities,
+	//especially when using the transmission data efficiency or when using filters
 
 
 	//add box with default settings
@@ -952,7 +974,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(gen->canvas_tube));
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-
+	xmi_free_excitation(excitation_tube_old);
 }
 
 static void generate_nuclide_spectrum(struct generate *gen) {
@@ -1382,6 +1404,8 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	//buttons	
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
 	gen->notebook = notebook;
+	gen->excitation_tube = NULL;
+	gen->excitation_nuclide = NULL;
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 	
@@ -1463,7 +1487,6 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gen->linear_tubeW = linearW;
 	gen->log10_tubeW = log10W;
 
-	generate_tube_spectrum(gen);
 
 
 	//and now the radionuclides
@@ -1595,7 +1618,6 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gen->log10_nuclideW = log10W;
 	gen->canvas_nuclide = canvas;
 
-	generate_nuclide_spectrum(gen);
 
 	gtk_container_add(GTK_CONTAINER(window), notebook);
 
@@ -1615,6 +1637,8 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_widget_show_all(window);
 
+	generate_tube_spectrum(gen);
+	generate_nuclide_spectrum(gen);
 }
 
 void export_canvas_image (GtkWidget *canvas, gchar *title) {
