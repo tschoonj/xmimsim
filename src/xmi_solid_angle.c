@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_solid_angle.h"
 #include "xmi_data_structs.h"
+#include "xmi_main.h"
 #include <glib.h>
 #include <string.h>
 #include <math.h>

@@ -152,6 +152,7 @@ XMI_MAIN
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
+	/*
 	options.use_M_lines = 1;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
@@ -165,6 +166,8 @@ XMI_MAIN
 	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.use_advanced_compton = 0;
 	options.custom_detector_response = NULL;
+	*/
+	options = xmi_get_default_main_options();
 
 #ifdef G_OS_WIN32
 	gchar *equalsignchar;

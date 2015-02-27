@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-
 struct xmi_general {
 	float version;
 	char *outputfile;
@@ -132,6 +131,7 @@ struct xmi_detector {
 };
 
 
+
 struct xmi_input {
 	struct xmi_general *general;
 	struct xmi_composition *composition;
@@ -145,6 +145,8 @@ struct xmi_counts {
 	double counts;
 	int interaction_number;
 };
+
+struct xmi_main_options;
 
 struct xmi_fluorescence_line {
 	char line_type[10];
@@ -191,27 +193,10 @@ struct xmi_archive {
 	char ***outputfiles;
 };
 
-struct xmi_main_options {
-	int use_M_lines;
-	int use_cascade_auger;
-	int use_cascade_radiative;
-	int use_variance_reduction;
-	int use_sum_peaks;
-	int use_escape_peaks;
-	int escape_ratios_mode;
-	int verbose;
-	int use_poisson;
-	int use_opencl;
-	int omp_num_threads;
-	int extra_verbose;
-	char *custom_detector_response;
-	int use_advanced_compton;
-};
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
 typedef void* xmi_inputFPtr;  
-
 
 
 

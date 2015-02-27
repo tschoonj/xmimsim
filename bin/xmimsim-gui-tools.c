@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include "xmi_xrmc.h"
+#include "xmi_main.h"
 #include <stdlib.h>
 
 struct xmi_tools {

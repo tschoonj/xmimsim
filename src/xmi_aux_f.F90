@@ -302,20 +302,20 @@ TYPE :: xmi_input
 ENDTYPE
 
 TYPE, BIND(C) :: xmi_main_options 
-        INTEGER (C_INT) :: use_M_lines
-        INTEGER (C_INT) :: use_cascade_auger
-        INTEGER (C_INT) :: use_cascade_radiative
-        INTEGER (C_INT) :: use_variance_reduction
-        INTEGER (C_INT) :: use_sum_peaks
-        INTEGER (C_INT) :: use_escape_peaks
-        INTEGER (C_INT) :: escape_ratios_mode
-        INTEGER (C_INT) :: verbose 
-        INTEGER (C_INT) :: use_poisson
-        INTEGER (C_INT) :: use_opencl
+        INTEGER (C_INT) :: use_M_lines = 1_C_INT
+        INTEGER (C_INT) :: use_cascade_auger = 1_C_INT
+        INTEGER (C_INT) :: use_cascade_radiative = 1_C_INT
+        INTEGER (C_INT) :: use_variance_reduction = 1_C_INT
+        INTEGER (C_INT) :: use_sum_peaks = 0_C_INT
+        INTEGER (C_INT) :: use_escape_peaks = 1_C_INT
+        INTEGER (C_INT) :: escape_ratios_mode = 0_C_INT
+        INTEGER (C_INT) :: verbose = 0_C_INT
+        INTEGER (C_INT) :: use_poisson = 0_C_INT
+        INTEGER (C_INT) :: use_opencl = 0_C_INT
         INTEGER (C_INT) :: omp_num_threads
-        INTEGER (C_INT) :: extra_verbose
-        TYPE (C_PTR) :: custom_detector_response
-        INTEGER (C_INT) :: use_advanced_compton
+        INTEGER (C_INT) :: extra_verbose = 0_C_INT
+        TYPE (C_PTR) :: custom_detector_response = C_NULL_PTR
+        INTEGER (C_INT) :: use_advanced_compton = 0_C_INT
 ENDTYPE xmi_main_options
 !
 !
@@ -2038,5 +2038,17 @@ FUNCTION xmi_get_q_from_energy(old_energy, new_energy, theta) RESULT(Q)
 
 
 ENDFUNCTION xmi_get_q_from_energy
+
+FUNCTION xmi_get_default_main_options() &
+BIND(C,NAME='xmi_get_default_main_options') &
+RESULT(rv)
+        IMPLICIT NONE
+        TYPE (xmi_main_options) :: rv
+        
+        !set the number of threads right
+        rv%omp_num_threads = xmi_omp_get_max_threads()
+
+        RETURN
+ENDFUNCTION xmi_get_default_main_options
 
 ENDMODULE 

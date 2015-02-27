@@ -195,7 +195,7 @@ XMI_MAIN
 	//1) use M-lines
 	//3) use cascade effect
 	//4) use variance reduction
-
+	/*
 	options.use_M_lines = 1;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
@@ -209,6 +209,9 @@ XMI_MAIN
 	options.omp_num_threads = xmi_omp_get_max_threads();
 	options.custom_detector_response = NULL;
 	options.use_advanced_compton = 0;
+	*/
+
+	options = xmi_get_default_main_options();
 
 #ifdef G_OS_WIN32
 	gchar *equalsignchar;
