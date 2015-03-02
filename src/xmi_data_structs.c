@@ -1287,7 +1287,7 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	int i, j;
 	C->channels_conv = malloc(sizeof(double *) * (C->ninteractions+1));
 	C->channels_unconv = malloc(sizeof(double *) * (C->ninteractions+1));
-	for (i = 0 ; i <= C->ninteractions ; i++) {
+	for (i = (C->use_zero_interactions ? 0 : 1) ; i <= C->ninteractions ; i++) {
 		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
 		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
 	}
