@@ -138,7 +138,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, input_string, escape_main_options, ero);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, strdup(input_string), escape_main_options, ero);
 
 }
 
@@ -563,7 +563,7 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 		xmi_deallocate(escape_ratios->fluo_escape_input_energies);
 		xmi_deallocate(escape_ratios->compton_escape_ratios);
 		xmi_deallocate(escape_ratios->compton_escape_output_energies);
-		xmi_deallocate(escape_ratios->xmi_input_string);
+		free(escape_ratios->xmi_input_string);
 		xmi_deallocate(escape_ratios);
 	}
 }

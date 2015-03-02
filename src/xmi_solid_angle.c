@@ -121,7 +121,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			goto fallback;
 		}
 		if (xmi_solid_angle_calculation_cl != NULL) {
-			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, input_string, xmo);
+			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, strdup(input_string), xmo);
 			if (rv == 0) {
 				fprintf(stderr,"OpenCL calculation failed: fallback to Fortran implementation\n");
 				goto fallback;
@@ -139,7 +139,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 	}
 fallback:
 #endif
-	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, input_string, xmo);
+	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, strdup(input_string), xmo);
 }
 
 
