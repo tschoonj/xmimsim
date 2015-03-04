@@ -106,6 +106,9 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 
 int xmi_get_hdf5_kind(char *name);
 
+//wrapper around free -> necessary to avoid trouble on Windows and perhaps with C++ too
+void xmi_free(void *ptr);
+
 #ifdef __cplusplus
 }
 #endif

@@ -13,11 +13,16 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-SUBDIRS = src bin include xml etc windows icons osx custom-detector-response examples
+SUBDIRS = src bin include xml etc windows icons osx custom-detector-response examples .
 ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA=libxmimsim.pc
+
+#libtool archives are evil
+install-exec-hook:
+	rm -f $(libdir)/libxmimsim.la
+	rm -f $(plugindir)/xmimsim-cl.la
 
 EXTRA_DIST = xmimsim.spec.in License.rtf
 DISTCHECK_CONFIGURE_FLAGS = CC="clang" LIBS="-L/opt/local/lib/gcc49" FC=gfortran-mp-4.9 --enable-custom-detector-response
