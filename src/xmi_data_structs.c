@@ -1198,7 +1198,8 @@ void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *hist
 }
 
 void xmi_free_output(struct xmi_output *output) {
-	free(output->inputfile);
+	if (output->inputfile)
+		free(output->inputfile);
 	int i;
 
 	for (i = (output->use_zero_interactions ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
