@@ -5023,17 +5023,18 @@ XMI_MAIN
 	GtkWidget *convertW;
 	GtkWidget *convertXMSIW;
 	GtkWidget *convertXMSOW;
-	//GtkWidget *convertXMSAW;
+	GtkWidget *convertXMSAW;
 	GtkWidget *convertmenu;
 	GtkWidget *convertmenuXMSI;
 	GtkWidget *convertmenuXMSO;
-	//GtkWidget *convertmenuXMSA;
+	GtkWidget *convertmenuXMSA;
 	GtkWidget *xmso2xmsiW;
 	GtkWidget *xmso2csvW;
 	GtkWidget *xmso2htmlW;
 	GtkWidget *xmso2svgW;
 	GtkWidget *xmso2speW;
 	GtkWidget *xmsi2xrmcW;
+	GtkWidget *xmsa2xmsoW;
 
 	GtkWidget *frame;
 	GtkWidget *superframe;
@@ -5396,17 +5397,23 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
 
 
+	convertmenuXMSA = gtk_menu_new();
+	xmsa2xmsoW = gtk_menu_item_new_with_label("XMSO");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSA), xmsa2xmsoW);
+	g_signal_connect(G_OBJECT(xmsa2xmsoW), "activate", G_CALLBACK(xmimsim_gui_xmsa2xmso), (gpointer) window);
 
 
 	convertmenu = gtk_menu_new();
 	convertXMSIW = gtk_menu_item_new_with_label("XMSI to");
 	convertXMSOW = gtk_menu_item_new_with_label("XMSO to");
-	//convertXMSAW = gtk_menu_item_new_with_label("XMSA");
+	convertXMSAW = gtk_menu_item_new_with_label("XMSA to");
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSIW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSOW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSAW);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSIW), convertmenuXMSI);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSOW), convertmenuXMSO);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSAW), convertmenuXMSA);
 
 
 
