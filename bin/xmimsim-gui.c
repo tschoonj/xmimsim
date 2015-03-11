@@ -5021,7 +5021,13 @@ XMI_MAIN
 	GtkWidget *toolsmenu;
 	GtkWidget *tools;
 	GtkWidget *convertW;
+	GtkWidget *convertXMSIW;
+	GtkWidget *convertXMSOW;
+	//GtkWidget *convertXMSAW;
 	GtkWidget *convertmenu;
+	GtkWidget *convertmenuXMSI;
+	GtkWidget *convertmenuXMSO;
+	//GtkWidget *convertmenuXMSA;
 	GtkWidget *xmso2xmsiW;
 	GtkWidget *xmso2csvW;
 	GtkWidget *xmso2htmlW;
@@ -5360,34 +5366,47 @@ XMI_MAIN
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
 	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
-	xmsi2xrmcW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
-	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
-	gtk_menu_item_set_label(GTK_MENU_ITEM(xmsi2xrmcW), "Convert XMSI file to XRMC");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), xmsi2xrmcW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
+
+	convertmenuXMSI = gtk_menu_new();
+	xmsi2xrmcW = gtk_menu_item_new_with_label("XRMC input-files");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSI), xmsi2xrmcW);
 	g_signal_connect(G_OBJECT(xmsi2xrmcW), "activate", G_CALLBACK(xmimsim_gui_xmsi2xrmc), (gpointer) window);
 
-	convertmenu = gtk_menu_new();
+	convertmenuXMSO = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
 	xmso2csvW = gtk_menu_item_new_with_label("CSV");
 	xmso2svgW = gtk_menu_item_new_with_label("SVG");
 	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
 	xmso2speW = gtk_menu_item_new_with_label("SPE");
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2xmsiW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2csvW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2svgW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2htmlW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2speW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2xmsiW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2csvW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2svgW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2htmlW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2speW);
 	g_signal_connect(G_OBJECT(xmso2xmsiW), "activate", G_CALLBACK(xmimsim_gui_xmso2xmsi), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2csvW), "activate", G_CALLBACK(xmimsim_gui_xmso2csv), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2svgW), "activate", G_CALLBACK(xmimsim_gui_xmso2svg), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2htmlW), "activate", G_CALLBACK(xmimsim_gui_xmso2html), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
+
+
+
+
+	convertmenu = gtk_menu_new();
+	convertXMSIW = gtk_menu_item_new_with_label("XMSI to");
+	convertXMSOW = gtk_menu_item_new_with_label("XMSO to");
+	//convertXMSAW = gtk_menu_item_new_with_label("XMSA");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSIW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSOW);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSIW), convertmenuXMSI);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSOW), convertmenuXMSO);
 
 
 
