@@ -895,7 +895,7 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label, *text;
 	struct xmi_tools *xt1, *xt2, *xt3, *xt4;
@@ -905,11 +905,13 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 	xt3 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(6, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	xt4->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSO to XMSI");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_widget_set_size_request(window,450,250);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -918,25 +920,21 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 
 	GtkWidget *frame = gtk_frame_new(NULL);
-	label = gtk_label_new("This tool allows for the extraction of an XMI-MSIM inputfile (XMSI) from an XMI-MSIM outputfile. It is possible to change the name of the outputfile in the extracted XMSI file");
+	label = gtk_label_new("This tool allows for the extraction of an XMI-MSIM inputfile (XMSI) from an XMI-MSIM outputfile (XMSO). It is possible to change the name of the outputfile in the extracted XMSI file");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 
-	GtkWidget *table = gtk_table_new(3, 3, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
@@ -944,47 +942,38 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 
 	label = gtk_label_new("XMSI file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 
 	label = gtk_label_new("New XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 2, 3);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(text), "(optional)");
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 2, 3);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 2, 3);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_save_button_clicked_cb), xt3);
 	xt3->window = window;
 	xt3->entry = text;
 	xt4->entry3 = text;
 
-	gtk_box_pack_start(GTK_BOX(master_box), table, FALSE ,FALSE,2);
-
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2xmsi_apply_button_clicked_cb), xt4);
-	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 5, 6, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
@@ -993,7 +982,7 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
 
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label, *text;
 	struct xmi_tools *xt1, *xt2, *xt4;
@@ -1003,11 +992,13 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
 	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(7, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	xt4->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSO to CSV");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_widget_set_size_request(window,450,250);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1020,60 +1011,49 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
-	GtkWidget *table = gtk_table_new(2, 3, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("CSV file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(csv_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 	
-	gtk_box_pack_start(GTK_BOX(master_box), table, FALSE ,FALSE,2);
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button1, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button1 = button1;	
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button2, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button2 = button2;	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2csv_apply_button_clicked_cb), xt4);
-	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
@@ -1081,7 +1061,7 @@ void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
 
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label, *text;
 	struct xmi_tools *xt1, *xt2, *xt4;
@@ -1091,11 +1071,13 @@ void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
 	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(7, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	xt4->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSO to HTML");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_widget_set_size_request(window,450,250);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1108,60 +1090,49 @@ void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
-	GtkWidget *table = gtk_table_new(2, 3, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("HTML file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(html_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 	
-	gtk_box_pack_start(GTK_BOX(master_box), table, FALSE ,FALSE,2);
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button1, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button1 = button1;	
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button2, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button2 = button2;	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2html_apply_button_clicked_cb), xt4);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
@@ -1169,7 +1140,7 @@ void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
 
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label, *text;
 	struct xmi_tools *xt1, *xt2, *xt4;
@@ -1179,11 +1150,13 @@ void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
 	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(7, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	xt4->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSO to SVG");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_widget_set_size_request(window,450,250);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1196,67 +1169,56 @@ void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
-	GtkWidget *table = gtk_table_new(2, 3, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("SVG file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(svg_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 	
-	gtk_box_pack_start(GTK_BOX(master_box), table, FALSE ,FALSE,2);
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button1, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button1 = button1;	
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button2, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button2 = button2;	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2svg_apply_button_clicked_cb), xt4);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
 void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label, *text;
 	struct xmi_tools *xt1, *xt2, *xt4;
@@ -1267,11 +1229,13 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(8, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	xt4->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSO to SPE");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_widget_set_size_request(window,450, 300);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1284,45 +1248,38 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
-	GtkWidget *table = gtk_table_new(2, 3, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 0, 1);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 0, 1);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_full_open_button_clicked_cb), xt1);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("SPE file");
-	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),60);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach_defaults(GTK_TABLE(table), text, 1, 2, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 1, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(spe_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 	
-	gtk_box_pack_start(GTK_BOX(master_box), table, FALSE ,FALSE,2);
-
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button1, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button1 = button1;	
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_box_pack_start(GTK_BOX(master_box), button2, FALSE, FALSE,3);
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xt4->button2 = button2;	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
@@ -1335,23 +1292,16 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_set_sensitive(spinner, FALSE);
 	xt1->spinner = spinner;
 	xt4->spinner = spinner;
+	gtk_table_attach(GTK_TABLE(table), hbox, 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 
-	gtk_box_pack_start(GTK_BOX(master_box), hbox, FALSE, FALSE,2);
-
-
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 6, 7, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2spe_apply_button_clicked_cb), xt4);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 7, 8, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
@@ -1361,17 +1311,19 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	GtkWidget *main_window = (GtkWidget *) data;
 	GtkWidget *window;
-	GtkWidget *master_box, *boxke;
+	GtkWidget *table;
 	GtkWidget *button;
 	GtkWidget *label;
 	GtkWidget *xmsi_fileW, *xrmc_folderW;
 	GtkWidget *enable_pileupW, *enable_poissonW;
 	union xmimsim_prefs_val xpv;
 
-	master_box = gtk_vbox_new(FALSE,2);
+	table = gtk_table_new(7, 2, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table), 3);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSI to XRMC");
-	//gtk_widget_set_size_request(window,450,250);
+	gtk_window_set_title(GTK_WINDOW(window), "Convert XMSI to XRMC inputfiles");
+	gtk_widget_set_size_request(window,450,250);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1379,33 +1331,27 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	gtk_container_set_border_width(GTK_CONTAINER(window), 3);
 
 	GtkWidget *frame = gtk_frame_new(NULL);
-	label = gtk_label_new("Convert XMI-MSIM input-files to the corresponding XRMC input-files. Running these new files requires XRMC's XMI-MSIM plug-in.");
+	label = gtk_label_new("Convert XMI-MSIM input-files to the corresponding XRMC input-files. Running these new files requires XRMC's XMI-MSIM plug-in. If a collimator was defined in XMI-MSIM, then an equivalent object will be present in the XRMC input-files too. Its default composition will be Pb: change this in the XRMC input-files if necessary.");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
-	gtk_box_pack_start(GTK_BOX(master_box), frame, FALSE,FALSE,1);
+	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 2, 0, 1);
 
-	boxke = gtk_hbox_new(FALSE, 0);
 	label = gtk_label_new("XMSI file");
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xmsi_fileW = gtk_file_chooser_button_new("Select an XMI-MSIM input-file", GTK_FILE_CHOOSER_ACTION_OPEN);
+	gtk_table_attach(GTK_TABLE(table), xmsi_fileW, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	GtkFileFilter *filter;
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(xmsi_fileW), filter);
-	gtk_box_pack_start(GTK_BOX(boxke), label, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(boxke), xmsi_fileW, TRUE, TRUE, 2);
-	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON(xmsi_fileW), 60);
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE,FALSE,1);
 	
-	boxke = gtk_hbox_new(FALSE, 0);
 	label = gtk_label_new("XRMC folder");
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	xrmc_folderW = gtk_file_chooser_button_new("Select a folder in which the XRMC files will be stored", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-	gtk_box_pack_start(GTK_BOX(boxke), label, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(boxke), xrmc_folderW, TRUE, TRUE, 2);
-	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON(xrmc_folderW), 60);
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE,FALSE,1);
+	gtk_table_attach(GTK_TABLE(table), xrmc_folderW, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 
 	enable_pileupW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
@@ -1413,7 +1359,7 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_pileupW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(master_box),enable_pileupW, TRUE, FALSE, 3);
+	gtk_table_attach(GTK_TABLE(table), enable_pileupW, 0, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 
 	enable_poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
@@ -1421,10 +1367,10 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(master_box),enable_poissonW, TRUE, FALSE, 3);
+	gtk_table_attach(GTK_TABLE(table), enable_poissonW, 0, 2, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 
 
-	gtk_box_pack_start(GTK_BOX(master_box), gtk_hseparator_new(), FALSE, FALSE, 2);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 2, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	struct xmi_tools *xi = malloc(sizeof(struct xmi_tools));
@@ -1434,14 +1380,9 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	xi->enable_pileupW = enable_pileupW;
 	xi->enable_poissonW = enable_poissonW;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi2xrmc_apply_button_clicked_cb), xi);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 2, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
 	
-	boxke = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(boxke), button, TRUE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(master_box), boxke, FALSE, FALSE,2);
-
-	gtk_container_add(GTK_CONTAINER(window), master_box);
-
+	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
 }
