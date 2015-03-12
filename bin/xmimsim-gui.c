@@ -416,6 +416,7 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 static void new_cb(GtkWidget *widget, gpointer data);
+static void switch_tab_click(GtkWidget *widget, gpointer data);
 static void import_cb(GtkWidget *widget, gpointer data);
 static void cut_button_clicked_cb(GtkWidget *widget, gpointer data);
 static void copy_button_clicked_cb(GtkWidget *widget, gpointer data);
@@ -5061,6 +5062,9 @@ XMI_MAIN
 	GtkWidget *github_wikiW;
 	GtkWidget *report_bugW;
 	GtkWidget *request_featureW;
+	GtkWidget *tab1W;
+	GtkWidget *tab2W;
+	GtkWidget *tab3W;
 	GOptionContext *context;
 	GError *error = NULL;
 	static int version = 0;
@@ -5453,12 +5457,30 @@ XMI_MAIN
 	gtk_widget_add_accelerator(copyW, "activate", accel_group, GDK_c, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(pasteW, "activate", accel_group, GDK_v, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 
-	GtkWidget *helpmenu, *help;
+	GtkWidget *helpmenu, *helpitem;
+	GtkWidget *windowmenu, *windowitem;
+	windowmenu = gtk_menu_new();
+	windowitem = gtk_menu_item_new_with_label("Window");
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),windowitem);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(windowitem), windowmenu);
+	tab1W= gtk_menu_item_new_with_label("Input parameters");
+	tab2W= gtk_menu_item_new_with_label("Simulation controls");
+	tab3W= gtk_menu_item_new_with_label("Results");
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab1W);
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab2W);
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab3W);
+	g_signal_connect(G_OBJECT(tab1W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(0));
+	g_signal_connect(G_OBJECT(tab2W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(1));
+	g_signal_connect(G_OBJECT(tab3W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(2));
+	gtk_widget_add_accelerator(tab1W, "activate", accel_group, GDK_1, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab2W, "activate", accel_group, GDK_2, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab3W, "activate", accel_group, GDK_3, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+
 #ifdef MAC_INTEGRATION
 	helpmenu = gtk_menu_new();
-	help = gtk_menu_item_new_with_label("Help");
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
+	helpitem = gtk_menu_item_new_with_label("Help");
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),helpitem);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helpitem), helpmenu);
 	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
 	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
 	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
@@ -5475,6 +5497,7 @@ XMI_MAIN
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
 	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
 	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
+
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
@@ -5492,15 +5515,15 @@ XMI_MAIN
 	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
 	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 2);
   #endif
-	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(help));
-	gtkosx_application_set_window_menu(theApp, NULL);
+	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(helpitem));
+	gtkosx_application_set_window_menu(theApp, GTK_MENU_ITEM(windowitem));
 #else
 	helpmenu = gtk_menu_new();
-	help = gtk_menu_item_new_with_label("Help");
+	helpitem = gtk_menu_item_new_with_label("Help");
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helpitem),helpmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),helpitem);
 	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
 	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
 	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
@@ -6675,6 +6698,10 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_destroy(dialog);
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	return;
+}
+
+static void switch_tab_click(GtkWidget *widget, gpointer data) {
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), GPOINTER_TO_INT(data));
 }
 
 static void new_cb(GtkWidget *widget, gpointer data) {
