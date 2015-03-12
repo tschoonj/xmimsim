@@ -5651,11 +5651,10 @@ XMI_MAIN
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	g_signal_connect(G_OBJECT(label),"clicked",G_CALLBACK(select_outputfile_cb), (gpointer) window);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),80);
 	outputfileW = text;
 	gtk_entry_set_text(GTK_ENTRY(text),current->xi->general->outputfile);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,TRUE,TRUE,0);
 	//n_photons_interval
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
