@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-tools.h"
+#include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
 #include <string.h>
 #include "xmi_xslt.h"
@@ -43,19 +44,17 @@ struct xmi_tools {
 	GtkWidget *label2;
 };
 
-/*
-static struct xmi_input *input = NULL;
-static struct xmi_fluorescence_line_counts *brute_force_history = NULL;
-static int nbrute_force_history = 0;
-static struct xmi_fluorescence_line_counts *var_red_history = NULL;
-static int nvar_red_history = 0;
-static double **channels_conv = NULL;
-static double **channels_unconv = NULL;
-static int ninteractions = 0;
-static char *inputfile = NULL;
-static int use_zero_interactions = 0;
-*/
 
+struct xmsa_to_xmso_data {
+	gchar *xmsafile;
+	gchar *xmsofile;
+	int step1;	
+	int step2;	
+};
+
+static gpointer xmsa_to_xmso_thread(struct xmsa_to_xmso_data *xtxd) {
+	return GINT_TO_POINTER(xmi_xmsa_to_xmso_xslt(xtxd->xmsafile, xtxd->xmsofile, xtxd->step1, xtxd->step2));
+}
 static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	
 	GtkWidget *dialog;
@@ -109,7 +108,6 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		//read the file
 		if (xmi_read_output_xml(filename, &output) == 0) {
 			gtk_widget_destroy(dialog);
@@ -132,6 +130,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		//free everything
 		xmi_free_output(output);
 	
+		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
@@ -153,7 +152,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_WINDOW(xt->window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL
 	);
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
@@ -161,9 +160,9 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
+		gtk_widget_destroy(dialog);
 		//read the file
-		if (xmi_read_archive_xml(filename, &archive) == 0) {
+		/*if (xmi_read_archive_xml(filename, &archive) == 0) {
 			gtk_widget_destroy(dialog);
 			dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -175,7 +174,44 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 			gtk_widget_destroy(dialog);
 			return ;
 
+		}*/
+		dialog = long_job_dialog(xt->window, "<b>Reading XMSA file</b>");
+		gtk_widget_show_all(dialog);
+		GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
+		gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+
+		while(gtk_events_pending())
+			gtk_main_iteration();
+
+		struct read_xmsa_data *rxd = g_malloc(sizeof(struct read_xmsa_data));	
+		rxd->filename = filename;
+		rxd->archive = &archive;
+#if GLIB_CHECK_VERSION (2, 32, 0)
+		//new API
+		GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) read_xmsa_thread, (gpointer) rxd);
+#else
+		//old API
+		GThread *xmsa_thread = g_thread_create((GThreadFunc) read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
+#endif
+		while(gtk_events_pending())
+			gtk_main_iteration();
+
+		int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
+		g_free(rxd);
+		gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
+		if (!xmsa_thread_rv) {
+			gtk_widget_destroy(dialog);
+			dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+				GTK_BUTTONS_CLOSE,
+				"Could not read file %s", filename
+			);
+	    		gtk_dialog_run (GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			return ;
 		}
+
 		//set the spinner
 		gtk_widget_set_sensitive(xt->spinner1, TRUE);
 		GtkObject *adj = gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0);
@@ -203,6 +239,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	
 		//free everything
 		xmi_free_archive(archive);
+		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 	
 		g_free(filename);
 	}
@@ -864,7 +901,36 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
-	if (!xmi_xmsa_to_xmso_xslt(xmsafile, xmsofile, step1, step2)) {
+	dialog = long_job_dialog(xt->window, "<b>Converting XMSA file</b>");
+	gtk_widget_show_all(dialog);
+	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
+	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+
+	while(gtk_events_pending())
+		gtk_main_iteration();
+
+	struct xmsa_to_xmso_data *xtxd = g_malloc(sizeof(struct xmsa_to_xmso_data));	
+	xtxd->xmsafile = xmsafile;
+	xtxd->xmsofile = xmsofile;
+	xtxd->step1 = step1;
+	xtxd->step2 = step2;
+
+#if GLIB_CHECK_VERSION (2, 32, 0)
+	//new API
+	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmsa_to_xmso_thread, (gpointer) xtxd);
+#else
+	//old API
+	GThread *xmsa_thread = g_thread_create((GThreadFunc) xmsa_to_xmso_thread, (gpointer) xtxd, TRUE, NULL);
+#endif
+	while(gtk_events_pending())
+		gtk_main_iteration();
+
+	int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
+	g_free(xtxd);
+	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
+	gtk_widget_destroy(dialog);
+
+	if (!xmsa_thread_rv) {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 	       		GTK_MESSAGE_ERROR,
@@ -887,6 +953,8 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
 		
 	}
+	
+
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button2))) {
 		g_free(xmsofile);
 	}
