@@ -2607,7 +2607,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), treeview);
 
-	GtkTreeIter iter1, iter2, iter3, iter4;
+	GtkTreeIter iter1, iter2, iter3, iter4, iter5;
 
 
 	//general
@@ -2682,7 +2682,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	);
 
 	for (i = 0 ; i < input->composition->n_layers ; i++) {
-		buffer = g_strdup_printf("Layer %i", i+1);
+		buffer = g_strdup_printf("layer %i", i+1);
 		buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]", i+1);
 		gtk_tree_store_append(model, &iter2, &iter1);
 		gtk_tree_store_set(model, &iter2,
@@ -2695,15 +2695,17 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer2);
 
 		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
+			buffer = g_strdup_printf("element %i", j+1);
 			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]", i+1, j+1);
 			gtk_tree_store_append(model, &iter3, &iter2);
 			gtk_tree_store_set(model, &iter3,
-				INPUT_PARAMETER_COLUMN, "element",
+				INPUT_PARAMETER_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
 				-1
 			);
 			g_free(buffer2);
+			g_free(buffer);
 			buffer = AtomicNumberToSymbol(input->composition->layers[i].Z[j]);
 			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]/atomic_number", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
@@ -3230,11 +3232,18 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		INPUT_XPATH_COLUMN, "/xmimsim/absorbers",
 		-1
 	);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "excitation_path",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/absorbers/excitation_path",
+		-1
+	);
 	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
-		buffer = g_strdup_printf("Excitation Layer %i", i+1);
+		buffer = g_strdup_printf("layer %i", i+1);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]", i+1);
-		gtk_tree_store_append(model, &iter2, &iter1);
-		gtk_tree_store_set(model, &iter2,
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
 			INPUT_XPATH_COLUMN, buffer2,
@@ -3244,19 +3253,21 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer2);
 
 		for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
+			buffer = g_strdup_printf("element %i", j+1);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]", i+1, j+1);
-			gtk_tree_store_append(model, &iter3, &iter2);
-			gtk_tree_store_set(model, &iter3,
-				INPUT_PARAMETER_COLUMN, "element",
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
 				-1
 			);
 			g_free(buffer2);
+			g_free(buffer);
 			buffer = AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j]);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "atomic_number",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
@@ -3267,8 +3278,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 			buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->absorbers->exc_layers[i].n_elements > 1 ? TRUE : FALSE,
@@ -3282,8 +3293,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/density", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
@@ -3296,8 +3307,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->absorbers->exc_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/thickness", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
@@ -3308,11 +3319,18 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 	}
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "detector_path",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/absorbers/detector_path",
+		-1
+	);
 	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
-		buffer = g_strdup_printf("Detector Layer %i", i+1);
+		buffer = g_strdup_printf("layer %i", i+1);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]", i+1);
-		gtk_tree_store_append(model, &iter2, &iter1);
-		gtk_tree_store_set(model, &iter2,
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
 			INPUT_XPATH_COLUMN, buffer2,
@@ -3322,10 +3340,11 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer2);
 
 		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
+			buffer = g_strdup_printf("element %i", j+1);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]", i+1, j+1);
-			gtk_tree_store_append(model, &iter3, &iter2);
-			gtk_tree_store_set(model, &iter3,
-				INPUT_PARAMETER_COLUMN, "element",
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
 				-1
@@ -3333,8 +3352,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 			buffer = AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j]);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "atomic_number",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
@@ -3345,8 +3364,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 			buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->absorbers->det_layers[i].n_elements > 1 ? TRUE : FALSE,
@@ -3360,8 +3379,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/density", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
@@ -3374,8 +3393,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->absorbers->det_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/thickness", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
@@ -3498,11 +3517,18 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		-1
 	);
 	g_free(buffer);
+	gtk_tree_store_append(model, &iter2, &iter1);
+	gtk_tree_store_set(model, &iter2,
+		INPUT_PARAMETER_COLUMN, "crystal",
+		INPUT_SELECTABLE_COLUMN, FALSE,
+		INPUT_XPATH_COLUMN, "/xmimsim/detector/crystal",
+		-1
+	);
 	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
-		buffer = g_strdup_printf("Crystal Layer %i", i+1);
+		buffer = g_strdup_printf("layer %i", i+1);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]", i+1);
-		gtk_tree_store_append(model, &iter2, &iter1);
-		gtk_tree_store_set(model, &iter2,
+		gtk_tree_store_append(model, &iter3, &iter2);
+		gtk_tree_store_set(model, &iter3,
 			INPUT_PARAMETER_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, FALSE,
 			INPUT_XPATH_COLUMN, buffer2,
@@ -3512,19 +3538,21 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer2);
 
 		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++) {
+			buffer = g_strdup_printf("element %i", j+1);
 			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]", i+1, j+1);
-			gtk_tree_store_append(model, &iter3, &iter2);
-			gtk_tree_store_set(model, &iter3,
-				INPUT_PARAMETER_COLUMN, "element",
+			gtk_tree_store_append(model, &iter4, &iter3);
+			gtk_tree_store_set(model, &iter4,
+				INPUT_PARAMETER_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
 				-1
 			);
 			g_free(buffer2);
+			g_free(buffer);
 			buffer = AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j]);
 			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/atomic_number", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "atomic_number",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, FALSE,
@@ -3535,8 +3563,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 			g_free(buffer2);
 			buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].weight[j]*100.0);
 			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/weight_fraction", i+1, j+1);
-			gtk_tree_store_append(model, &iter4, &iter3);
-			gtk_tree_store_set(model, &iter4,
+			gtk_tree_store_append(model, &iter5, &iter4);
+			gtk_tree_store_set(model, &iter5,
 				INPUT_PARAMETER_COLUMN, "weight_fraction",
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->detector->crystal_layers[i].n_elements > 1 ? TRUE : FALSE,
@@ -3550,8 +3578,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].density);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/density", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "density",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
@@ -3564,8 +3592,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 
 		buffer = g_strdup_printf("%g", input->detector->crystal_layers[i].thickness);
 		buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/thickness", i+1);
-		gtk_tree_store_append(model, &iter3, &iter2);
-		gtk_tree_store_set(model, &iter3,
+		gtk_tree_store_append(model, &iter4, &iter3);
+		gtk_tree_store_set(model, &iter4,
 			INPUT_PARAMETER_COLUMN, "thickness",
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,

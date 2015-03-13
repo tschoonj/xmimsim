@@ -212,5 +212,13 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 
 int kill_current_job(void);
 
+struct read_xmsa_data {
+	gchar *filename;
+	struct xmi_archive **archive;
+};
+
+gpointer read_xmsa_thread(struct read_xmsa_data *rxd);
+
+GtkWidget *long_job_dialog(GtkWidget *parent, gchar *message_with_markup);
 
 #endif

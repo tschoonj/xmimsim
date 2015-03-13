@@ -656,8 +656,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	GError *spawn_error = NULL;
 	char buffer[512];
 	const gchar *encoding = NULL;
-	gint i;
-	gboolean omp_found=FALSE;
 	struct child_data *cd;
 
 	fprintf(stdout,"Entering start_job\n");
@@ -968,7 +966,6 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//UNIX -> send sigkill signal
 	//Windows -> TerminateProcess
 	char buffer[512];
-	gboolean spinning;
 
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	if (pauseButton)
@@ -1470,7 +1467,6 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	xmimsim_executable = g_find_program_in_path("xmimsim");
 #endif
 	executableW = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(executableW),80);
 	if (xmimsim_executable == NULL) {
 		//bad...
 		gtk_entry_set_text(GTK_ENTRY(executableW),"xmimsim");
@@ -1479,7 +1475,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 		gtk_entry_set_text(GTK_ENTRY(executableW),xmimsim_executable);
 	}
 	gtk_editable_set_editable(GTK_EDITABLE(executableW), FALSE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableW,FALSE,FALSE,0);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),executableW, TRUE, TRUE,0);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
@@ -1622,93 +1618,87 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Export results</span>");
 
 
-	vbox_notebook = gtk_vbox_new(FALSE,5);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox_notebook),10);
+	GtkWidget *table_notebook = gtk_table_new(4, 3, FALSE);
+	gtk_table_set_row_spacings(GTK_TABLE(table_notebook), 3);
+	gtk_table_set_col_spacings(GTK_TABLE(table_notebook), 3);
+	gtk_container_set_border_width(GTK_CONTAINER(table_notebook),10);
 	//hdf5 file??? too advanced
 	//SPE file
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("SPE file prefix");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
-	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
 	spe_convB = button;
 	spe_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(spe_convW),"Setting the prefix will result in the generation of SPE type files containing the spectral data. Compatible with PyMca and AXIL. One file is generated per interaction order.");
-	gtk_entry_set_width_chars(GTK_ENTRY(spe_convW),60);
 	we = (struct window_entry *) malloc(sizeof(struct window_entry));
 	we->entry = spe_convW;
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(spe_convW), TRUE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),spe_convW,FALSE,FALSE,0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label, 0, 1, 0, 1, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), spe_convW, 1, 2, 0, 1, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), spe_convB, 2, 3, 0, 1, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 
 	//SVG files
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Scalable Vector Graphics (SVG) file");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Export the spectra as Scalable Vector Graphics.");
-	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Scalable Vector Graphics.");
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
 	svg_convB = button;
 	svg_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(svg_convW),"Export the spectra as Scalable Vector Graphics.");
-	gtk_entry_set_width_chars(GTK_ENTRY(svg_convW),60);
 	we = (struct window_entry *) malloc(sizeof(struct window_entry));
 	we->entry = svg_convW;
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(svg_convW), TRUE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),svg_convW,FALSE,FALSE,0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 1, 2, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), svg_convW, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), svg_convB, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	
 	//CSV files
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Comma Separated Values (CSV) file");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
-	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
 	csv_convB = button;
 	csv_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(csv_convW),"Export the spectra as Comma Separated Values files. Readable by Microsoft Excel and other programs.");
-	gtk_entry_set_width_chars(GTK_ENTRY(csv_convW),60);
 	we = (struct window_entry *) malloc(sizeof(struct window_entry));
 	we->entry = csv_convW;
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(csv_convW), TRUE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),csv_convW,FALSE,FALSE,0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 2, 3, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), csv_convW, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), csv_convB, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	
 	//html files
-	hbox_text_label = gtk_hbox_new(FALSE,5);
-	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
 	label = gtk_label_new("Report HTML file");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(label),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
-	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(button),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),button,FALSE,FALSE,0);
 	html_convB = button;
 	html_convW = gtk_entry_new();
 	gtk_widget_set_tooltip_text(GTK_WIDGET(html_convW),"Produces an interactive HTML file containing an overview of all the results produced by the simulation: spectra and tables of all the individual XRF lines. Readable with recent versions of Firefox, Chrome and Safari.");
-	gtk_entry_set_width_chars(GTK_ENTRY(html_convW),60);
 	we = (struct window_entry *) malloc(sizeof(struct window_entry));
 	we->entry = html_convW;
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(html_convW), TRUE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),html_convW,FALSE,FALSE,0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label     , 0, 1, 3, 4, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), html_convW, 1, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), html_convB, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	
 
 
 
-	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
+	gtk_container_add(GTK_CONTAINER(frame), table_notebook);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
 
@@ -1729,7 +1719,6 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 }
 
 void reset_controls(void) {
-	char buffer[512];
 	GtkTextIter start, end;
 
 	//set progressbars to 0 %

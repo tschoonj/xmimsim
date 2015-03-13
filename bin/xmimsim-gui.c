@@ -382,10 +382,6 @@ struct control_widget *control_array = NULL;
 int control_array_elements = 0;
 
 
-struct read_xmsa_data {
-	gchar *filename;
-	struct xmi_archive **archive;
-};
 
 gpointer read_xmsa_thread(struct read_xmsa_data *rxd) {
 	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));	
@@ -420,6 +416,7 @@ gboolean quit_blocker_mac_cb(GtkosxApplication *app, gpointer data);
 void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 static void new_cb(GtkWidget *widget, gpointer data);
+static void switch_tab_click(GtkWidget *widget, gpointer data);
 static void import_cb(GtkWidget *widget, gpointer data);
 static void cut_button_clicked_cb(GtkWidget *widget, gpointer data);
 static void copy_button_clicked_cb(GtkWidget *widget, gpointer data);
@@ -4245,35 +4242,37 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
-static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
-	struct xmi_archive *archive;
+GtkWidget *long_job_dialog(GtkWidget *parent, gchar *message_with_markup) {
 	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(data->window));
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	//gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
 	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
 	GtkWidget *label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label),"<b>Reading XMSA file</b>");
+	gtk_label_set_markup(GTK_LABEL(label), message_with_markup);
 	gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
-	gtk_widget_show(label);
 	label = gtk_label_new("This may take a while...");
 	gtk_box_pack_start(GTK_BOX(main_vbox), label, FALSE, FALSE, 10);
-	gtk_widget_show(label);
-	gtk_widget_show(main_vbox);
 	gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
 	gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
 	gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
+
+	return dialog;
+}  
+
+
+static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
+	struct xmi_archive *archive;
+	GtkWidget *dialog = long_job_dialog(data->window, "<b>Reading XMSA file</b>");
 	gtk_widget_show_all(dialog);
 	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
 	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+
 	while(gtk_events_pending())
 	    gtk_main_iteration();
-
-
 
 	struct read_xmsa_data *rxd = g_malloc(sizeof(struct read_xmsa_data));	
 	rxd->filename = data->filename;
@@ -5021,13 +5020,20 @@ XMI_MAIN
 	GtkWidget *toolsmenu;
 	GtkWidget *tools;
 	GtkWidget *convertW;
+	GtkWidget *convertXMSIW;
+	GtkWidget *convertXMSOW;
+	GtkWidget *convertXMSAW;
 	GtkWidget *convertmenu;
+	GtkWidget *convertmenuXMSI;
+	GtkWidget *convertmenuXMSO;
+	GtkWidget *convertmenuXMSA;
 	GtkWidget *xmso2xmsiW;
 	GtkWidget *xmso2csvW;
 	GtkWidget *xmso2htmlW;
 	GtkWidget *xmso2svgW;
 	GtkWidget *xmso2speW;
 	GtkWidget *xmsi2xrmcW;
+	GtkWidget *xmsa2xmsoW;
 
 	GtkWidget *frame;
 	GtkWidget *superframe;
@@ -5056,6 +5062,9 @@ XMI_MAIN
 	GtkWidget *github_wikiW;
 	GtkWidget *report_bugW;
 	GtkWidget *request_featureW;
+	GtkWidget *tab1W;
+	GtkWidget *tab2W;
+	GtkWidget *tab3W;
 	GOptionContext *context;
 	GError *error = NULL;
 	static int version = 0;
@@ -5360,34 +5369,53 @@ XMI_MAIN
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
 	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
-	xmsi2xrmcW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
-	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert XMSO file to");
-	gtk_menu_item_set_label(GTK_MENU_ITEM(xmsi2xrmcW), "Convert XMSI file to XRMC");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(tools), toolsmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), convertW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), xmsi2xrmcW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), tube_ebelW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
+
+	convertmenuXMSI = gtk_menu_new();
+	xmsi2xrmcW = gtk_menu_item_new_with_label("XRMC input-files");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSI), xmsi2xrmcW);
 	g_signal_connect(G_OBJECT(xmsi2xrmcW), "activate", G_CALLBACK(xmimsim_gui_xmsi2xrmc), (gpointer) window);
 
-	convertmenu = gtk_menu_new();
+	convertmenuXMSO = gtk_menu_new();
 	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
 	xmso2csvW = gtk_menu_item_new_with_label("CSV");
 	xmso2svgW = gtk_menu_item_new_with_label("SVG");
 	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
 	xmso2speW = gtk_menu_item_new_with_label("SPE");
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2xmsiW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2csvW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2svgW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2htmlW);
-	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), xmso2speW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2xmsiW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2csvW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2svgW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2htmlW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2speW);
 	g_signal_connect(G_OBJECT(xmso2xmsiW), "activate", G_CALLBACK(xmimsim_gui_xmso2xmsi), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2csvW), "activate", G_CALLBACK(xmimsim_gui_xmso2csv), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2svgW), "activate", G_CALLBACK(xmimsim_gui_xmso2svg), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2htmlW), "activate", G_CALLBACK(xmimsim_gui_xmso2html), (gpointer) window);
 	g_signal_connect(G_OBJECT(xmso2speW), "activate", G_CALLBACK(xmimsim_gui_xmso2spe), (gpointer) window);
+
+
+	convertmenuXMSA = gtk_menu_new();
+	xmsa2xmsoW = gtk_menu_item_new_with_label("XMSO");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSA), xmsa2xmsoW);
+	g_signal_connect(G_OBJECT(xmsa2xmsoW), "activate", G_CALLBACK(xmimsim_gui_xmsa2xmso), (gpointer) window);
+
+
+	convertmenu = gtk_menu_new();
+	convertXMSIW = gtk_menu_item_new_with_label("XMSI to");
+	convertXMSOW = gtk_menu_item_new_with_label("XMSO to");
+	convertXMSAW = gtk_menu_item_new_with_label("XMSA to");
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSIW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSOW);
+	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSAW);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertW), convertmenu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSIW), convertmenuXMSI);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSOW), convertmenuXMSO);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(convertXMSAW), convertmenuXMSA);
 
 
 
@@ -5429,12 +5457,30 @@ XMI_MAIN
 	gtk_widget_add_accelerator(copyW, "activate", accel_group, GDK_c, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(pasteW, "activate", accel_group, GDK_v, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 
-	GtkWidget *helpmenu, *help;
+	GtkWidget *helpmenu, *helpitem;
+	GtkWidget *windowmenu, *windowitem;
+	windowmenu = gtk_menu_new();
+	windowitem = gtk_menu_item_new_with_label("Window");
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),windowitem);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(windowitem), windowmenu);
+	tab1W= gtk_menu_item_new_with_label("Input parameters");
+	tab2W= gtk_menu_item_new_with_label("Simulation controls");
+	tab3W= gtk_menu_item_new_with_label("Results");
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab1W);
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab2W);
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu),tab3W);
+	g_signal_connect(G_OBJECT(tab1W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(0));
+	g_signal_connect(G_OBJECT(tab2W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(1));
+	g_signal_connect(G_OBJECT(tab3W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(2));
+	gtk_widget_add_accelerator(tab1W, "activate", accel_group, GDK_1, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab2W, "activate", accel_group, GDK_2, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab3W, "activate", accel_group, GDK_3, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+
 #ifdef MAC_INTEGRATION
 	helpmenu = gtk_menu_new();
-	help = gtk_menu_item_new_with_label("Help");
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
+	helpitem = gtk_menu_item_new_with_label("Help");
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),helpitem);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helpitem), helpmenu);
 	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
 	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
 	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
@@ -5451,6 +5497,7 @@ XMI_MAIN
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
 	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
 	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
+
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
 	gtk_widget_hide(menubar);
@@ -5468,15 +5515,15 @@ XMI_MAIN
 	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
 	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 2);
   #endif
-	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(help));
-	gtkosx_application_set_window_menu(theApp, NULL);
+	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(helpitem));
+	gtkosx_application_set_window_menu(theApp, GTK_MENU_ITEM(windowitem));
 #else
 	helpmenu = gtk_menu_new();
-	help = gtk_menu_item_new_with_label("Help");
+	helpitem = gtk_menu_item_new_with_label("Help");
 	aboutW = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT,NULL);
 	g_signal_connect(G_OBJECT(aboutW),"activate",G_CALLBACK(about_click),window);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(help),helpmenu);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),help);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helpitem),helpmenu);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),helpitem);
 	userguideW= gtk_menu_item_new_with_label("Visit XMI-MSIM User guide");
 	github_rootW= gtk_menu_item_new_with_label("Visit XMI-MSIM Github repository");
 	github_wikiW= gtk_menu_item_new_with_label("Visit XMI-MSIM Wiki");
@@ -5625,11 +5672,10 @@ XMI_MAIN
 	gtk_box_pack_end(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	g_signal_connect(G_OBJECT(label),"clicked",G_CALLBACK(select_outputfile_cb), (gpointer) window);
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars(GTK_ENTRY(text),80);
 	outputfileW = text;
 	gtk_entry_set_text(GTK_ENTRY(text),current->xi->general->outputfile);
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,FALSE,FALSE,0);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label),text,TRUE,TRUE,0);
 	//n_photons_interval
 	hbox_text_label = gtk_hbox_new(FALSE,5);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox_text_label, TRUE, FALSE, 3);
@@ -6652,6 +6698,10 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_destroy(dialog);
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	return;
+}
+
+static void switch_tab_click(GtkWidget *widget, gpointer data) {
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), GPOINTER_TO_INT(data));
 }
 
 static void new_cb(GtkWidget *widget, gpointer data) {
