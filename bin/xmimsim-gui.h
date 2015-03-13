@@ -203,6 +203,12 @@ void adjust_save_buttons(void);
 #define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
 #define XMI_STOCK_LOGO "Logo_xmi_msim"
 
+//<div>Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0">CC BY 3.0</a></div>
+
+//<div>Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0">CC BY 3.0</a></div>
+
+
+
 
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkosxApplication *app, gpointer data);

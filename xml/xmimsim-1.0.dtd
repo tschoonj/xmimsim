@@ -139,3 +139,4 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT end_value2 (#PCDATA)>
 <!ELEMENT nsteps2 (#PCDATA)>
 <!ELEMENT xpath2 (#PCDATA)>
+<!ATTLIST xpath2 coupled (true|false) "false">

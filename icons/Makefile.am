@@ -15,10 +15,12 @@
 
 #
 #
-# Logo created by Jan Garrevoet (thx!)
+# XMI-MSIM logos created by Jan Garrevoet (thx!)
 # Radiation warning symbol taken from wikipedia: http://en.wikipedia.org/wiki/File:Radiation_warning_symbol.svg
 # NOT COPYRIGHTED!
 #
+# broken23.svg and link71.svg taken from 
+#<div>Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0">CC BY 3.0</a></div>
 
 
 appdatadir = $(datadir)/applications
@@ -37,33 +39,45 @@ dist_icons16_DATA = 16x16/Logo_xmi_msim.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSI.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSO.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSA.png \
-		    16x16/Radiation_warning_symbol.png
+		    16x16/Radiation_warning_symbol.png \
+		    16x16/broken23.png \
+		    16x16/link71.png
 dist_icons32_DATA = 32x32/Logo_xmi_msim.png \
  		    32x32/Logo_xmi_msim_Gnome_XMSI.png \
 		    32x32/Logo_xmi_msim_Gnome_XMSO.png \
 		    32x32/Logo_xmi_msim_Gnome_XMSA.png \
-		    32x32/Radiation_warning_symbol.png
+		    32x32/Radiation_warning_symbol.png \
+		    32x32/broken23.png \
+		    32x32/link71.png
 dist_icons64_DATA = 64x64/Logo_xmi_msim.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSI.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSO.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSA.png \
-		    64x64/Radiation_warning_symbol.png
+		    64x64/Radiation_warning_symbol.png \
+		    64x64/broken23.png \
+		    64x64/link71.png
 dist_icons128_DATA = 128x128/Logo_xmi_msim.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSI.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSO.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSA.png \
-		     128x128/Radiation_warning_symbol.png
+		     128x128/Radiation_warning_symbol.png \
+		     128x128/broken23.png \
+		     128x128/link71.png
 dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSI.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSO.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSA.png \
-		     256x256/Radiation_warning_symbol.png
+		     256x256/Radiation_warning_symbol.png \
+		     256x256/broken23.png \
+		     256x256/link71.png
 #if !ENABLE_MAC_APP
 #dist_iconsscalable_DATA = Logo_xmi_msim.svg \
 #			  Logo_xmi_msim_Gnome_XMSI.svg \
 #			  Logo_xmi_msim_Gnome_XMSO.svg \
 #			  Logo_xmi_msim_Gnome_XMSA.svg \
-#			  Radiation_warning_symbol.svg
+#			  Radiation_warning_symbol.svg \
+#			  broken23.svg \
+#			  link71.svg
 #endif
 xmimsimdir = $(datadir)/xmimsim
 #used from within the About screen -> not working in the Mac App version starting with ML...
@@ -78,7 +92,19 @@ convert_radiation_warning_symbol:
 	convert ${srcdir}/Radiation_warning_symbol.svg -resize 128x128 ${srcdir}/128x128/Radiation_warning_symbol.png
 	convert ${srcdir}/Radiation_warning_symbol.svg -resize 256x256 ${srcdir}/256x256/Radiation_warning_symbol.png
 
+link71:
+	convert ${srcdir}/link71.svg -resize 16x16 -transparent white ${srcdir}/16x16/link71.png
+	convert ${srcdir}/link71.svg -resize 32x32 -transparent white ${srcdir}/32x32/link71.png
+	convert ${srcdir}/link71.svg -resize 64x64 -transparent white ${srcdir}/64x64/link71.png
+	convert ${srcdir}/link71.svg -resize 128x128 -transparent white ${srcdir}/128x128/link71.png
+	convert ${srcdir}/link71.svg -resize 256x256 -transparent white ${srcdir}/256x256/link71.png
 
+broken23:
+	convert ${srcdir}/broken23.svg -resize 16x16 -transparent white ${srcdir}/16x16/broken23.png
+	convert ${srcdir}/broken23.svg -resize 32x32 -transparent white ${srcdir}/32x32/broken23.png
+	convert ${srcdir}/broken23.svg -resize 64x64 -transparent white ${srcdir}/64x64/broken23.png
+	convert ${srcdir}/broken23.svg -resize 128x128 -transparent white ${srcdir}/128x128/broken23.png
+	convert ${srcdir}/broken23.svg -resize 256x256 -transparent white ${srcdir}/256x256/broken23.png
 
 convert_linux:
 	convert ${srcdir}/Logo_xmi_msim.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim.png
