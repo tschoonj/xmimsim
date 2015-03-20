@@ -20,9 +20,14 @@ pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA=libxmimsim.pc
 
 #libtool archives are evil
+if ENABLE_OPENCL
 install-exec-hook:
 	rm -f $(libdir)/libxmimsim.la
-	rm -f $(plugindir)/xmimsim-cl.la
+	rm -f $(libdir)/xmimsim/xmimsim-cl.la
+else
+install-exec-hook:
+	rm -f $(libdir)/libxmimsim.la
+endif
 
 EXTRA_DIST = xmimsim.spec.in License.rtf
-DISTCHECK_CONFIGURE_FLAGS = CC="clang" LIBS="-L/opt/local/lib/gcc49" FC=gfortran-mp-4.9 --enable-custom-detector-response
+#DISTCHECK_CONFIGURE_FLAGS = CC="clang" LIBS="-L/opt/local/lib/gcc49" FC=gfortran-mp-4.9 --enable-custom-detector-response
