@@ -32,7 +32,7 @@ int xmi_tube_boone_1661(struct xmi_layer *tube_window, struct xmi_layer *tube_fi
 enum {
 	XMI_TUBE_BOONE_MOLYBDENUM,
 	XMI_TUBE_BOONE_RHODIUM,
-	XMI_TUBE_BOONE_TUNGSTEN,
+	XMI_TUBE_BOONE_TUNGSTEN
 };
 
 int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
