@@ -93,18 +93,18 @@ convert_radiation_warning_symbol:
 	convert ${srcdir}/Radiation_warning_symbol.svg -resize 256x256 ${srcdir}/256x256/Radiation_warning_symbol.png
 
 link71:
-	convert ${srcdir}/link71.svg -resize 16x16 -transparent white ${srcdir}/16x16/link71.png
-	convert ${srcdir}/link71.svg -resize 32x32 -transparent white ${srcdir}/32x32/link71.png
-	convert ${srcdir}/link71.svg -resize 64x64 -transparent white ${srcdir}/64x64/link71.png
-	convert ${srcdir}/link71.svg -resize 128x128 -transparent white ${srcdir}/128x128/link71.png
-	convert ${srcdir}/link71.svg -resize 256x256 -transparent white ${srcdir}/256x256/link71.png
+	convert ${srcdir}/link71.svg -resize 16x16 -flip ${srcdir}/16x16/link71.png
+	convert ${srcdir}/link71.svg -resize 32x32 -flip ${srcdir}/32x32/link71.png
+	convert ${srcdir}/link71.svg -resize 64x64 -flip ${srcdir}/64x64/link71.png
+	convert ${srcdir}/link71.svg -resize 128x128 -flip ${srcdir}/128x128/link71.png
+	convert ${srcdir}/link71.svg -resize 256x256 -flip ${srcdir}/256x256/link71.png
 
 broken23:
-	convert ${srcdir}/broken23.svg -resize 16x16 -transparent white ${srcdir}/16x16/broken23.png
-	convert ${srcdir}/broken23.svg -resize 32x32 -transparent white ${srcdir}/32x32/broken23.png
-	convert ${srcdir}/broken23.svg -resize 64x64 -transparent white ${srcdir}/64x64/broken23.png
-	convert ${srcdir}/broken23.svg -resize 128x128 -transparent white ${srcdir}/128x128/broken23.png
-	convert ${srcdir}/broken23.svg -resize 256x256 -transparent white ${srcdir}/256x256/broken23.png
+	convert ${srcdir}/broken23.svg -resize 16x16 ${srcdir}/16x16/broken23.png
+	convert ${srcdir}/broken23.svg -resize 32x32 ${srcdir}/32x32/broken23.png
+	convert ${srcdir}/broken23.svg -resize 64x64 ${srcdir}/64x64/broken23.png
+	convert ${srcdir}/broken23.svg -resize 128x128 ${srcdir}/128x128/broken23.png
+	convert ${srcdir}/broken23.svg -resize 256x256 ${srcdir}/256x256/broken23.png
 
 convert_linux:
 	convert ${srcdir}/Logo_xmi_msim.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim.png
