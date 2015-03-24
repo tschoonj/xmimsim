@@ -34,26 +34,36 @@ icons256dir = $(iconsdatadir)/256x256/apps/
 if ENABLE_GUI
 dist_appdata_DATA = xmimsim.desktop
 dist_icons16_DATA = 16x16/Logo_xmi_msim.png \
+		    16x16/Logo_xmi_msim_red.png \
+		    16x16/Logo_xmi_msim_archive.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSI.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSO.png \
 		    16x16/Logo_xmi_msim_Gnome_XMSA.png \
 		    16x16/Radiation_warning_symbol.png
 dist_icons32_DATA = 32x32/Logo_xmi_msim.png \
+		    32x32/Logo_xmi_msim_red.png \
+		    32x32/Logo_xmi_msim_archive.png \
  		    32x32/Logo_xmi_msim_Gnome_XMSI.png \
 		    32x32/Logo_xmi_msim_Gnome_XMSO.png \
 		    32x32/Logo_xmi_msim_Gnome_XMSA.png \
 		    32x32/Radiation_warning_symbol.png
 dist_icons64_DATA = 64x64/Logo_xmi_msim.png \
+		    64x64/Logo_xmi_msim_red.png \
+		    64x64/Logo_xmi_msim_archive.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSI.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSO.png \
 		    64x64/Logo_xmi_msim_Gnome_XMSA.png \
 		    64x64/Radiation_warning_symbol.png
 dist_icons128_DATA = 128x128/Logo_xmi_msim.png \
+		     128x128/Logo_xmi_msim_red.png \
+		     128x128/Logo_xmi_msim_archive.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSI.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSO.png \
 		     128x128/Logo_xmi_msim_Gnome_XMSA.png \
 		     128x128/Radiation_warning_symbol.png
 dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
+		     256x256/Logo_xmi_msim_red.png \
+		     256x256/Logo_xmi_msim_archive.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSI.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSO.png \
 		     256x256/Logo_xmi_msim_Gnome_XMSA.png \
@@ -67,7 +77,7 @@ dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 #endif
 xmimsimdir = $(datadir)/xmimsim
 #used from within the About screen -> not working in the Mac App version starting with ML...
-dist_xmimsim_DATA = Logo_xmi_msim.png
+dist_xmimsim_DATA = Logo_xmi_msim.png Logo_xmi_msim_red.png Logo_xmi_msim_archive.png
 endif
 all:
 
@@ -86,6 +96,16 @@ convert_linux:
 	convert ${srcdir}/Logo_xmi_msim.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim.png
 	convert ${srcdir}/Logo_xmi_msim.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim.png
 	convert ${srcdir}/Logo_xmi_msim.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim.png
+	convert ${srcdir}/Logo_xmi_msim_red.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim_red.png
+	convert ${srcdir}/Logo_xmi_msim_red.png -resize 32x32 ${srcdir}/32x32/Logo_xmi_msim_red.png
+	convert ${srcdir}/Logo_xmi_msim_red.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim_red.png
+	convert ${srcdir}/Logo_xmi_msim_red.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim_red.png
+	convert ${srcdir}/Logo_xmi_msim_red.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim_red.png
+	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim_archive.png
+	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 32x32 ${srcdir}/32x32/Logo_xmi_msim_archive.png
+	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim_archive.png
+	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 128x128 ${srcdir}/128x128/Logo_xmi_msim_archive.png
+	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 256x256 ${srcdir}/256x256/Logo_xmi_msim_archive.png
 	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 16x16 ${srcdir}/16x16/Logo_xmi_msim_Gnome_XMSI.png
 	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 32x32 ${srcdir}/32x32/Logo_xmi_msim_Gnome_XMSI.png
 	convert ${srcdir}/Logo_xmi_msim_Gnome_XMSI.png -resize 64x64 ${srcdir}/64x64/Logo_xmi_msim_Gnome_XMSI.png
