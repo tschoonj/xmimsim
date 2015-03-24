@@ -109,6 +109,10 @@ int xmi_get_hdf5_kind(char *name);
 //wrapper around free -> necessary to avoid trouble on Windows and perhaps with C++ too
 void xmi_free(void *ptr);
 
+//similar for malloc and realloc
+void *xmi_malloc(size_t size);
+void *xmi_realloc(void *ptr, size_t size);
+
 #ifdef __cplusplus
 }
 #endif
