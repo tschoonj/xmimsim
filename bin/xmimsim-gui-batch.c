@@ -4612,26 +4612,28 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	}
 	else {
 		//XRF mode
-		gboolean var_red;
 		struct xmi_fluorescence_line_counts **history = NULL; 
 		int *nhistory = NULL;
 
 		nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
 		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
-		if (apd->archive->output[0][0]->nvar_red_history > 0) {
-			var_red = TRUE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			if (apd->archive->output[i][0]->nvar_red_history > 0) {
 				history[i] = apd->archive->output[i][0]->var_red_history;
 				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
 			}
-		}
-		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
-			var_red = FALSE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			else if (apd->archive->output[i][0]->nbrute_force_history > 0) {
 				history[i] = apd->archive->output[i][0]->brute_force_history;
 				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
 			}
+			else {
+				history[i] = NULL;
+				nhistory[i] = 0;
+			}
 		}
+
+
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
 		gchar *line_type = NULL;
 		int atomic_number_index;
@@ -4913,34 +4915,29 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	}
 	else {
 		//XRF mode
-		gboolean var_red;
 		struct xmi_fluorescence_line_counts ***history = NULL; 
 		int **nhistory = NULL;
 
 		nhistory = g_malloc(sizeof(int*)*(apd->archive->nsteps1+1)); 
 		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts **)*(apd->archive->nsteps1+1));
-		if (apd->archive->output[0][0]->nvar_red_history > 0) {
-			var_red = TRUE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
-				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
-				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				if (apd->archive->output[i][i2]->nvar_red_history > 0) {
 					history[i][i2] = apd->archive->output[i][i2]->var_red_history;
 					nhistory[i][i2] = apd->archive->output[i][i2]->nvar_red_history;
 				}
-			}
-		}
-		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
-			var_red = FALSE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
-				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
-				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				else if (apd->archive->output[i][i2]->nbrute_force_history > 0) {
 					history[i][i2] = apd->archive->output[i][i2]->brute_force_history;
 					nhistory[i][i2] = apd->archive->output[i][i2]->nbrute_force_history;
 				}
+				else {
+					history[i][i2] = NULL;
+					nhistory[i][i2] = 0;
+				}
 			}
 		}
+
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
 		gchar *line_type = NULL;
 		int atomic_number_index;
@@ -4960,41 +4957,26 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
 
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
-			double zval = 0.0;
-			if (atomic_number_index == -1) {
-				//Element = All
-				//XRF line = All
-				if (cumulative) {
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-								if (history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction)
-									zval += history[i][i2][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-				else {
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-								if (history[i][i2][j].lines[k].interactions[l].interaction_number == interaction)
-									zval += history[i][i2][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-			}
-			else {
-				//specific element selected
-				if (line_type == NULL) {
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				double zval = 0.0;
+				if (atomic_number_index == -1) {
+					//Element = All
 					//XRF line = All
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+					if (cumulative) {
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
 							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
 								for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-									if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+									if (history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction)
+										zval += history[i][i2][j].lines[k].interactions[l].counts;
+								}
+							}
+						}
+					}
+					else {
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+								for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+									if (history[i][i2][j].lines[k].interactions[l].interaction_number == interaction)
 										zval += history[i][i2][j].lines[k].interactions[l].counts;
 								}
 							}
@@ -5002,11 +4984,12 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 					}
 				}
 				else {
-					//XRF line = specific
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
-							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-								if (strcmp(history[i][i2][j].lines[k].line_type, line_type) == 0) {
+					//specific element selected
+					if (line_type == NULL) {
+						//XRF line = All
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+								for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
 									for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
 										if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
 											zval += history[i][i2][j].lines[k].interactions[l].counts;
@@ -5015,14 +4998,28 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 							}
 						}
 					}
-				}	
+					else {
+						//XRF line = specific
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+								for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+									if (strcmp(history[i][i2][j].lines[k].line_type, line_type) == 0) {
+										for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+											if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+												zval += history[i][i2][j].lines[k].interactions[l].counts;
+										}
+									}
+								}
+							}
+						}
+					}	
+				}
+				if (zval > 0.0 && zval < minval)
+					minval = zval;
+				z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 			}
-			if (zval > 0.0 && zval < minval)
-				minval = zval;
-			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
-		}
-		g_free(nhistory[i]);
-		g_free(history[i]);
+			g_free(nhistory[i]);
+			g_free(history[i]);
 		}
 		g_free(nhistory);
 		g_free(history);
