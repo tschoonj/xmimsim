@@ -5240,18 +5240,24 @@ XMI_MAIN
 
 #ifdef G_OS_WIN32
 	GdkPixbuf *pixbuf;
-	pixbuf = gdk_pixbuf_from_pixdata(&Radiation_warning_symbol_pixbuf, TRUE, NULL);
-	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
-	g_object_unref(pixbuf);
-	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
-	gtk_icon_set_unref (iconset);
+/*#define ADD_ICON(name_macro, name_pixbuf) pixbuf = gdk_pixbuf_from_pixdata(&name_pixbuf, TRUE, NULL);\
+					  iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+					  g_object_unref(pixbuf); \
+					  gtk_icon_factory_add (factory, name_macro, iconset);\
+					  gtk_icon_set_unref (iconset)
+*/		
+#define ADD_ICON(name) pixbuf = gdk_pixbuf_from_pixdata(&name ## _pixbuf, TRUE, NULL);\
+					  iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+					  g_object_unref(pixbuf); \
+					  gtk_icon_factory_add (factory, name, iconset);\
+					  gtk_icon_set_unref (iconset)
 
-	pixbuf = gdk_pixbuf_from_pixdata(&Logo_xmi_msim_pixbuf, TRUE, NULL);
-	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
-	g_object_unref(pixbuf);
-	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
-	gtk_icon_set_unref (iconset);
-
+	ADD_ICON(XMI_STOCK_RADIATION_WARNING);
+	ADD_ICON(XMI_STOCK_LOGO);
+	ADD_ICON(XMI_STOCK_LOGO_RED);
+	ADD_ICON(XMI_STOCK_LOGO_ARCHIVE);
+	
+#undef ADD_ICON
 #else
 #define ADD_ICON(name) source = gtk_icon_source_new (); \
 			gtk_icon_source_set_icon_name (source, name); \

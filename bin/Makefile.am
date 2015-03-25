@@ -278,6 +278,8 @@ xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
 	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
 	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
+	"Logo_xmi_msim_pixbuf_red" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_red.png" \
+	"Logo_xmi_msim_pixbuf_archive" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_archive.png" \
 	> xmimsim-gui-icons.h
 
 else
