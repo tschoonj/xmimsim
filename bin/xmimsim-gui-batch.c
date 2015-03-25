@@ -4587,25 +4587,21 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 			double yval = 0.0;
-			if (cumulative) {
-				for (j = apd->archive->output[i][0]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							yval += apd->archive->output[i][0]->channels_conv[j][k];
-						else
-							yval += apd->archive->output[i][0]->channels_unconv[j][k];
-					}
+			//the spectra are already stored cumulative
+			for (k = start_channel ; k <= end_channel ; k++) {
+				if (convoluted) {
+					yval += apd->archive->output[i][0]->channels_conv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][0]->use_zero_interactions ? 0 : 1))
+						yval -= apd->archive->output[i][0]->channels_conv[interaction-1][k];
+				}
+				else {
+					yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][0]->use_zero_interactions ? 0 : 1))
+						yval -= apd->archive->output[i][0]->channels_unconv[interaction-1][k];
 				}
 			}
-			else {
-				for (k = start_channel ; k <= end_channel ; k++) {
-					if (convoluted)
-						yval += apd->archive->output[i][0]->channels_conv[interaction][k];
-					else
-						yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
-				}
-			}
-			y[i] = yval;	
+
+			y[i] = MAX(yval, 0);	
 			if (yval > 0.0 && yval < minval)
 				minval = yval;
 		}
@@ -4878,38 +4874,23 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
 			double zval = 0.0;
-			if (cumulative) {
-				//for (j = apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-				j = interaction;
-				for (k = start_channel ; k <= end_channel ; k++) {
-					if (convoluted)
-						zval += apd->archive->output[i][i2]->channels_conv[j][k];
-					else
-						zval += apd->archive->output[i][i2]->channels_unconv[j][k];
-				}
-				//}
-			}
-			else {
-				if ((apd->archive->output[i][i2]->use_zero_interactions == 1 && interaction == 0) || (apd->archive->output[i][i2]->use_zero_interactions == 0 && interaction == 1)) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
-						else
-							zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
-					}
+			//the spectra are already stored cumulative
+			for (k = start_channel ; k <= end_channel ; k++) {
+				if (convoluted) {
+					zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
+						zval -= apd->archive->output[i][i2]->channels_conv[interaction-1][k];
 				}
 				else {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							zval += MAX(apd->archive->output[i][i2]->channels_conv[interaction][k]-apd->archive->output[i][i2]->channels_conv[interaction-1][k],0);
-						else
-							zval += MAX(apd->archive->output[i][i2]->channels_unconv[interaction][k]-apd->archive->output[i][i2]->channels_unconv[interaction-1][k],0);
-					}
+					zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
+						zval -= apd->archive->output[i][i2]->channels_unconv[interaction-1][k];
 				}
 			}
+
+			z[i*(apd->archive->nsteps2+1)+i2] = MAX(zval, 0);	
 			if (zval > 0.0 && zval < minval)
 				minval = zval;
-			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 		}
 		}
 	}
@@ -4922,6 +4903,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts **)*(apd->archive->nsteps1+1));
 
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1)); 
+			history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
 			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
 				if (apd->archive->output[i][i2]->nvar_red_history > 0) {
 					history[i][i2] = apd->archive->output[i][i2]->var_red_history;
