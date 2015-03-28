@@ -1146,8 +1146,6 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 						weight = realloc(weight, sizeof(double)*n_elements);
 						break;
 					}
-					//divide weight by 100 to get rid of the percentages
-					weight[n_elements-1] /= 100.0;
 					xmlFree(txt);
 				}
 				subsubnode = xmlNextElementSibling(subsubnode);
@@ -1182,6 +1180,8 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 		layer->Z[i] = Z[sorted_Z_ind[i]];
 		layer->weight[i] = weight[sorted_Z_ind[i]];
 	}
+	//normalize and divide weight by 100 to get rid of the percentages
+	xmi_scale_double(layer->weight, layer->n_elements, 1.0/xmi_sum_double(layer->weight, layer->n_elements));
 
 	free(sorted_Z_ind);
 	free(Z);
@@ -2380,14 +2380,18 @@ int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_layer
 
 	for (i = 0 ; i < n_layers ; i++) {
 		nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "layer", NULL);
+		//normalize weights
+		double *weight = xmi_memdup(layers[i].weight, layers[i].n_elements * sizeof(double));
+		xmi_scale_double(weight, layers[i].n_elements, 1.0/xmi_sum_double(weight, layers[i].n_elements));
 		for (j = 0 ; j < layers[i].n_elements ; j++) {
 			//skip if weight fraction is equal to zero
 			if (fabs(layers[i].weight[j]) < 1E-20)
 				continue;
 			nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "element", NULL);
 			xmi_new_child_printf(nodePtr2, BAD_CAST "atomic_number", "%i", layers[i].Z[j]);
-			xmi_new_child_printf(nodePtr2, BAD_CAST "weight_fraction", "%g", layers[i].weight[j]*100.0);
+			xmi_new_child_printf(nodePtr2, BAD_CAST "weight_fraction", "%g", weight[j]*100.0);
 		}
+		free(weight);
 		xmi_new_child_printf(nodePtr1, BAD_CAST "density", "%g", layers[i].density);
 		xmi_new_child_printf(nodePtr1, BAD_CAST "thickness", "%g", layers[i].thickness);
 	}

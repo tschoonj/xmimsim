@@ -404,6 +404,18 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	double *Z_coord_begin_a, *Z_coord_begin_b;
 	double *Z_coord_end_a, *Z_coord_end_b;
 
+//#define DEBUG 1
+
+#ifdef DEBUG
+	fprintf(stdout, "Old HDF5 file:\n");
+	xmi_print_input(stdout, A);
+	fprintf(stdout, "\n\n");
+	fprintf(stdout, "NewHDF5 file:\n");
+	xmi_print_input(stdout, B);
+	fprintf(stdout, "\n\n");
+#endif
+
+
 	//composition
 	//new approach: compare extremes of the layer system
 	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
@@ -646,18 +658,6 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	fprintf(stderr, "Z_coord_begin_a: %lg\n", Z_coord_begin_a[0]);
 #endif
 
-
-	//if (Z_coord_end_a[A->composition->n_layers-1] - Z_coord_end_b[B->composition->n_layers-1] < -0.0001 || Z_coord_begin_a[0] - Z_coord_begin_b[0] > 0.0001) {
-	if (S2_a - S2_b < -0.0001 || S1_a - S1_b > 0.0001) {
-		free(thickness_along_Z_a);
-		free(thickness_along_Z_b);
-		free(Z_coord_begin_a);
-		free(Z_coord_end_a);
-		free(Z_coord_begin_b);
-		free(Z_coord_end_b);
-		return 0;
-	}
-
 	free(thickness_along_Z_a);
 	free(thickness_along_Z_b);
 	free(Z_coord_begin_a);
@@ -665,6 +665,13 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	free(Z_coord_begin_b);
 	free(Z_coord_end_b);
 
+	if (S2_a - S2_b < -0.0001 || S1_a - S1_b > 0.0001) {
+		return 0;
+	}
+
+#ifdef DEBUG
+	fprintf(stdout, "after layer thickness comparison\n");
+#endif
 
 	//geometry
 #define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/A->geometry->a > XMI_COMPARE_THRESHOLD){\
@@ -679,20 +686,37 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[1])
 	//XMI_IF_COMPARE_GEOMETRY2(n_sample_orientation[2])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
+#ifdef DEBUG
+	fprintf(stdout, "after p_detector_window comparison[0]\n");
+	fprintf(stdout, "A p_detector_window[1]: %20.15g\n", A->geometry->p_detector_window[1]);
+	fprintf(stdout, "B p_detector_window[1]: %20.15g\n", B->geometry->p_detector_window[1]);
+#endif
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
+#ifdef DEBUG
+	fprintf(stdout, "after p_detector_window comparison[1]\n");
+#endif
 	if (fabsl((A->geometry->p_detector_window[2]-A->geometry->d_sample_source)-(B->geometry->p_detector_window[2]-B->geometry->d_sample_source)) > XMI_COMPARE_THRESHOLD)
 		return 0;
+#ifdef DEBUG
+	fprintf(stdout, "after p_detector_window comparison[2]\n");
+#endif
 	//should compare normalized orientations...
 	xmi_normalize_vector_double(A->geometry->n_detector_orientation, 3);	
 	xmi_normalize_vector_double(B->geometry->n_detector_orientation, 3);	
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[0])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[1])
 	XMI_IF_COMPARE_GEOMETRY2(n_detector_orientation[2])
+#ifdef DEBUG
+	fprintf(stdout, "after n_detector_orientation comparison\n");
+#endif
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
 	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
 	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
 
-
+#ifdef DEBUG
+	fprintf(stdout, "after remaining comparisons\n");
+#endif
+#undef DEBUG
 	return 1;
 }
 

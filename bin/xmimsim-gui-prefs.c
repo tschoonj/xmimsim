@@ -633,6 +633,8 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 	layer->n_elements = (int) Zlen;
 	layer->Z = xmi_memdup(Z, sizeof(int)*Zlen);
 	layer->weight = xmi_memdup(weight, sizeof(double)*Zlen);
+	//scale
+	xmi_scale_double(layer->weight, layer->n_elements, 1.0/xmi_sum_double(layer->weight, layer->n_elements));
 	layer->density = density;
 	layer->thickness = thickness;
 	g_free(Z);
@@ -690,7 +692,11 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_nam
 	}
 
 	g_key_file_set_integer_list(keyfile, layer_name, "Z", layer->Z, (gsize) layer->n_elements);
-	g_key_file_set_double_list(keyfile, layer_name, "weight", layer->weight, (gsize) layer->n_elements);
+	//make sure the weights are scaled
+	double *weight = xmi_memdup(layer->weight, sizeof(double)*layer->n_elements);
+	xmi_scale_double(weight, layer->n_elements, 1.0/xmi_sum_double(weight, layer->n_elements));
+	g_key_file_set_double_list(keyfile, layer_name, "weight", weight, (gsize) layer->n_elements);
+	free(weight);
 	g_key_file_set_double(keyfile, layer_name, "density", layer->density);
 	g_key_file_set_double(keyfile, layer_name, "thickness", layer->thickness);
 
