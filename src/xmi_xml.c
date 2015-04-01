@@ -1334,10 +1334,9 @@ int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_outp
 	LIBXML_TEST_VERSION
 
 
-	xmi_new_prop_printf(subroot, BAD_CAST "version", "%.1f", output->input->general->version);
+	xmi_new_prop_printf(subroot, BAD_CAST "version", "%s", VERSION);
 
 	if (step1 != -1 && step2 != -1) {
-		xmi_new_prop_printf(subroot, BAD_CAST "version", "%.1f", output->input->general->version);
 		xmi_new_prop_printf(subroot, BAD_CAST "step1", "%i", step1);
 		xmi_new_prop_printf(subroot, BAD_CAST "step2", "%i", step2);
 	}
@@ -1533,7 +1532,7 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input
 
 	//general
 	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "general", NULL);
-	xmi_new_prop_printf(nodePtr1, BAD_CAST "version", "%.1f", input->general->version);
+	xmi_new_prop_printf(nodePtr1, BAD_CAST "version", "%s", VERSION);
 	xmlNewChild(nodePtr1, NULL, BAD_CAST "outputfile", BAD_CAST input->general->outputfile);
 	xmi_new_child_printf(nodePtr1, BAD_CAST "n_photons_interval", "%li", input->general->n_photons_interval);
 	xmi_new_child_printf(nodePtr1, BAD_CAST "n_photons_line", "%li", input->general->n_photons_line);
@@ -2057,9 +2056,22 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 	xmlNodePtr subroot;
 	xmlChar *txt;
 
+	xmlAttrPtr attr = root->properties;
+
+	while (attr != NULL) {
+		if (!xmlStrcmp(attr->name,(const xmlChar *) "version")) {
+			txt =xmlNodeGetContent(attr->children);
+			if(sscanf((const char *)txt,"%f",&op->version) != 1) {
+				fprintf(stderr,"error reading in version of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		attr=attr->next;
+	}
 	//read step1 and step2 if necessary
 	if (step1 != NULL || step2 != NULL) {
-		xmlAttrPtr attr = root->properties;
+		attr = root->properties;
 		while (attr != NULL) {
 			if (xmlStrcmp(attr->name, BAD_CAST "step1") == 0) {
 				txt = xmlNodeGetContent(attr->children);
@@ -2204,8 +2216,24 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		return 0;
 	}
 
-	xmlNodePtr subroot;
+	xmlAttrPtr attr = root->properties;
 	xmlChar *txt;
+
+	//in case it's not there, make sure the version is 0
+	ar->version = 0.0;
+	while (attr != NULL) {
+		if (!xmlStrcmp(attr->name,(const xmlChar *) "version")) {
+			txt =xmlNodeGetContent(attr->children);
+			if(sscanf((const char *)txt,"%f",&ar->version) != 1) {
+				fprintf(stderr,"error reading in version of xml file\n");
+				return 0;
+			}
+			xmlFree(txt);
+		}
+		attr=attr->next;
+	}
+
+	xmlNodePtr subroot;
 
 	subroot = xmlFirstElementChild(root);
 

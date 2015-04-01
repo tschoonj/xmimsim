@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+//for g_ascii_strtod
+#include <glib.h>
 
 void xmi_free_layer (struct xmi_layer *layer) {
 	free(layer->Z);
@@ -462,7 +464,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 
 	//general
 	rv->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
-	rv->general->version = 1.0;
+	rv->general->version = g_ascii_strtod(VERSION, NULL);
 	rv->general->outputfile = strdup("");
 	rv->general->comments= strdup("");
 	rv->general->n_photons_interval = 10000;
@@ -1042,6 +1044,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	int nchannels = input->detector->nchannels;
 
 	//first the easy ones
+	output->version = g_ascii_strtod(VERSION, NULL);
 	output->input = input;
 	xmi_copy_input(input, &output->input);
 	output->inputfile = strdup(inputfile);
@@ -1239,6 +1242,7 @@ void xmi_free_archive(struct xmi_archive *archive) {
 
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
 	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));	
+	archive->version = g_ascii_strtod(VERSION, NULL);
 	archive->start_value1 = start_value1;
 	archive->end_value1 = end_value1;
 	archive->nsteps1 = nsteps1;
@@ -1277,6 +1281,7 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 
 void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	struct xmi_output *C = malloc(sizeof(struct xmi_output));
+	C->version = A->version;
 	C->inputfile = strdup(A->inputfile);
 	xmi_copy_input(A->input, &C->input);
 	C->nbrute_force_history = A->nbrute_force_history;

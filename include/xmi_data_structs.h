@@ -164,6 +164,7 @@ struct xmi_fluorescence_line_counts {
 };
 
 struct xmi_output {
+	float version;
 	char *inputfile;
 	struct xmi_input *input;
 	struct xmi_fluorescence_line_counts *brute_force_history;
@@ -177,6 +178,7 @@ struct xmi_output {
 };
 
 struct xmi_archive {
+	float version;
 	double start_value1;
 	double end_value1;
 	int nsteps1;
