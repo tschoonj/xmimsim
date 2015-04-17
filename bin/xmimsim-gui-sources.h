@@ -49,6 +49,7 @@ struct xmi_nuclide_parameters {
 	int radioNuclide;
 	int activityUnit;
 	double activity;
+	double nuclide_solid_angle;
 	gboolean log10_active;
 };
 
