@@ -1398,11 +1398,12 @@ int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_outp
 		}
 	}
 
+	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "variance_reduction_history", NULL);
+
 	//variance reduction history
 	if (output->var_red_history == NULL)
 		goto after_var_red_history;
 
-	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "variance_reduction_history", NULL);
 	//Z loop
 	for (i = 0 ; i < output->nvar_red_history; i++) {
 		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "fluorescence_line_counts", NULL);
