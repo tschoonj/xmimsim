@@ -58,7 +58,6 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	int *rv;
 	int *array_copy;
 	int i,j;
-	int *res;
 
 	if (n_elements < 1) {
 		rv = (int *) malloc(sizeof(int));
@@ -160,7 +159,6 @@ void xmi_determinant_matrix(double x[3], double y[3], double z[3]) {
 	gsl_matrix *m = gsl_matrix_alloc(3,3);
 	gsl_permutation *p = gsl_permutation_calloc(3);
 	int signum;
-	int i,j,k;
 	double det;
 	gsl_matrix_set(m,0,0, x[0]);
 	gsl_matrix_set(m,1,0, x[1]);

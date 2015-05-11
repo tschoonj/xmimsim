@@ -117,6 +117,27 @@ PKG_CHECK_MODULES([fgsl],fgsl >= 1.0.0)
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
+
+#libcurl is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)
+LIBCURL_FOUND=no
+PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2, 
+[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
+
+if test "x$LIBCURL_FOUND" = xyes ; then
+	#test if HTTPS is supported
+	AC_MSG_CHECKING([whether libcurl has https support])
+	CURL_SUPPORT=`$PKG_CONFIG --variable=supported_protocols libcurl`
+	case "$CURL_SUPPORT" in
+		*HTTPS*)
+		AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
+		AC_MSG_RESULT(yes)
+		;;
+		*)
+		LIBCURL_FOUND=no
+		AC_MSG_RESULT(no)
+		;;
+	esac
+fi
 GTKEXTRA3_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
@@ -138,30 +159,12 @@ fi
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes])
 
 JSONGLIB_FOUND=no
-LIBCURL_FOUND=no
+
 AC_ARG_ENABLE([updater],[AS_HELP_STRING([--disable-updater],[build without updater])],[enable_updater=$enableval],[enable_updater=check])
 if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes && test "x$enable_updater" != xno ; then
 	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8, 
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
-	PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2, 
-	[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
-
-	if test "x$LIBCURL_FOUND" = xyes ; then
-		#test if HTTPS is supported
-		AC_MSG_CHECKING([whether libcurl has https support])
-		CURL_SUPPORT=`$PKG_CONFIG --variable=supported_protocols libcurl`
-		case "$CURL_SUPPORT" in
-			*HTTPS*)
-			AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
-			AC_MSG_RESULT(yes)
-			;;
-			*)
-			LIBCURL_FOUND=no
-			AC_MSG_RESULT(no)
-			;;
-		esac
-	fi
 
 	if test "x$enable_updater" = "xyes" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
 		AC_MSG_ERROR([no Json-Glib and/or no libcurl were found on the system, which are required to compile the updater routines])
@@ -492,6 +495,7 @@ AC_CONFIG_FILES([ 	Makefile
 			osx/Info.plist
 			custom-detector-response/Makefile
 			examples/Makefile
+			tests/Makefile
 		])
 AC_CONFIG_HEADERS([config.h])
 

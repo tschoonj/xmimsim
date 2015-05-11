@@ -61,8 +61,6 @@ void xmi_free_input(struct xmi_input *input) {
 
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
-	int i;
-
 	//allocate space for B
 	*B = (struct xmi_input *) malloc(sizeof(struct xmi_input));
 
@@ -951,7 +949,7 @@ void xmi_print_layer(FILE *fPtr ,struct xmi_layer *layer, int n_layers) {
 }
 
 void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
-	int i, j;
+	int i;
 
 	//general
 	fprintf(fPtr, "general\n");
@@ -1183,7 +1181,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 }
 
 void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory) {
-	int i,j,k;
+	int i,j;
 
 	if (history == NULL)
 		return;

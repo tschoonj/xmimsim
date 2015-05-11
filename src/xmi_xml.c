@@ -1194,7 +1194,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 
 	xmlDocPtr doc;
-	xmlNodePtr root, subroot;
+	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
 
 	LIBXML_TEST_VERSION
