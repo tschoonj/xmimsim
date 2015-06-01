@@ -94,7 +94,25 @@ int main(int argc, char *argv[]) {
 	g_assert_cmpint(1, ==, input->absorbers->det_layers[0].n_elements);
 	g_assert_cmpint(4, ==, input->absorbers->det_layers[0].Z[0]);
 	g_assert(fabs(1.0 - input->absorbers->det_layers[0].weight[0]) < 1E-10);
-	g_assert(fabs(1. - input->absorbers->det_layers[0].weight[0]) < 1E-10);
+	g_assert(fabs(1.85 - input->absorbers->det_layers[0].density) < 1E-10);
+	g_assert(fabs(0.002 - input->absorbers->det_layers[0].thickness) < 1E-10);
+
+	//detector
+	g_assert_cmpint(XMI_DETECTOR_SILI, ==, input->detector->detector_type);
+	g_assert(fabs(1. - input->detector->live_time) < 1E-10);
+	g_assert(fabs(1e-05 - input->detector->pulse_width) < 1E-10);
+	g_assert_cmpint(2048, ==, input->detector->nchannels);
+	g_assert(fabs(0.02 - input->detector->gain) < 1E-10);
+	g_assert(fabs(0. - input->detector->zero) < 1E-10);
+	g_assert(fabs(0.12 - input->detector->fano) < 1E-10);
+	g_assert(fabs(0.1 - input->detector->noise) < 1E-10);
+	g_assert_cmpint(1, ==, input->detector->n_crystal_layers);
+	g_assert_cmpint(1, ==, input->detector->crystal_layers[0].n_elements);
+	g_assert_cmpint(14, ==, input->detector->crystal_layers[0].Z[0]);
+	g_assert(fabs(1.0 - input->detector->crystal_layers[0].weight[0]) < 1E-10);
+	g_assert(fabs(2.33 - input->detector->crystal_layers[0].density) < 1E-10);
+	g_assert(fabs(0.5 - input->detector->crystal_layers[0].thickness) < 1E-10);
+
 
 	//make a copy
 	xmi_copy_input(input, &input_copy);
