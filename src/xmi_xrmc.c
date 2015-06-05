@@ -109,7 +109,7 @@ static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_composition
 	return 1;
 }
 
-static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *input) {
+static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *input, double rotate_angle_z) {
 	FILE *filePtr;
 
 	if ((filePtr = fopen(xrmc_sourcefile, "w")) == NULL) {
@@ -122,6 +122,13 @@ static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *in
 	fprintf(filePtr, "X 0.0 0.0 0.0\n");
 	fprintf(filePtr, "uk 0.0 1.0 0.0\n");
 	fprintf(filePtr, "ui 1.0 0.0 0.0\n");
+	if (rotate_angle_z != 0.0) {
+		fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
+		0.0, input->geometry->d_sample_source, 0.0, //point on rotation axis
+		0.0, 0.0, 1.0, //rotation axis vector
+		rotate_angle_z
+		);
+	}
 	double div_x, div_y;
 	div_x = atan(input->geometry->slit_size_y/2.0/input->geometry->d_source_slit);
 	div_y = atan(input->geometry->slit_size_x/2.0/input->geometry->d_source_slit);
@@ -210,7 +217,7 @@ static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *in
 	return 1;
 }
 
-static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *input) {
+static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *input, double rotate_angle_z) {
 	FILE *filePtr;
 	int i;
 
@@ -310,6 +317,13 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		temp_point[1] += 1E-7;
 		counter++;
 	}
+	if (rotate_angle_z != 0.0) {
+		fprintf(filePtr, "RotateAll %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
+		0.0, input->geometry->d_sample_source, 0.0, //point on rotation axis
+		0.0, 0.0, 1.0, //rotation axis vector
+		rotate_angle_z
+		);
+	}
 
 	//so there is a collimator
 	if (input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0) {
@@ -367,63 +381,70 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		if (rot_angle >= 0.000001) fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n", input->geometry->p_detector_window[1], \
 				input->geometry->p_detector_window[2],\
 				input->geometry->p_detector_window[0],\
-				rot_axis[0], rot_axis[1], rot_axis[2], rot_angle);
+				rot_axis[0], rot_axis[1], rot_axis[2], rot_angle); \
+		if (rotate_angle_z != 0.0) { \
+			fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n", \
+			0.0, input->geometry->d_sample_source, 0.0, \
+			0.0, 0.0, 1.0, \
+			rotate_angle_z \
+			); \
+		} 
 
 		//InnerCone
-		fprintf(filePtr, "Quadric InnerCone\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Quadric InnerCone BlockTransformAll\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCone
-		fprintf(filePtr, "Quadric OuterCone\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
+		fprintf(filePtr, "Quadric OuterCone BlockTransformAll\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
 		fprintf(filePtr, "Translate %.10g 0 0\n", -1.0*collim_thickness);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCone_BasePlane
-		fprintf(filePtr, "Plane OuterCone_BasePlane\n");
+		fprintf(filePtr, "Plane OuterCone_BasePlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//InnerCone_BasePlane
-		fprintf(filePtr, "Plane InnerCone_BasePlane\n");
+		fprintf(filePtr, "Plane InnerCone_BasePlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-2.0*SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCone_TopPlane
-		fprintf(filePtr, "Plane OuterCone_TopPlane\n");
+		fprintf(filePtr, "Plane OuterCone_TopPlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height);
 		TRANSLATE_AND_ROTATE
 
 		//InnerCone_TopPlane
-		fprintf(filePtr, "Plane InnerCone_TopPlane\n");
+		fprintf(filePtr, "Plane InnerCone_TopPlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height+SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCyl_BasePlane
-		fprintf(filePtr, "Plane OuterCyl_BasePlane\n");
+		fprintf(filePtr, "Plane OuterCyl_BasePlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//InnerCyl_BasePlane
-		fprintf(filePtr, "Plane InnerCyl_BasePlane\n");
+		fprintf(filePtr, "Plane InnerCyl_BasePlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+neck_height-2.0*SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCyl_TopPlane
-		fprintf(filePtr, "Plane OuterCyl_TopPlane\n");
+		fprintf(filePtr, "Plane OuterCyl_TopPlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height);
 		TRANSLATE_AND_ROTATE
 
 		//InnerCyl_TopPlane
-		fprintf(filePtr, "Plane InnerCyl_TopPlane\n");
+		fprintf(filePtr, "Plane InnerCyl_TopPlane BlockTransformAll\n");
 		fprintf(filePtr, "%.10g 0.0 0.0 -1.0 0.0 0.0\n", detarea_radius/tan_alpha-collim_height+SMALL_VALUE);
 		TRANSLATE_AND_ROTATE
 
 		//InnerCyl
-		fprintf(filePtr, "CylinderX InnerCyl\n0 0 %.10g %.10g\n", collim_radius, collim_radius);
+		fprintf(filePtr, "CylinderX InnerCyl BlockTransformAll\n0 0 %.10g %.10g\n", collim_radius, collim_radius);
 		TRANSLATE_AND_ROTATE
 
 		//OuterCyl
-		fprintf(filePtr, "CylinderX OuterCyl\n0 0 %.10g %.10g\n", collim_radius+collim_thickness, collim_radius+collim_thickness);
+		fprintf(filePtr, "CylinderX OuterCyl BlockTransformAll\n0 0 %.10g %.10g\n", collim_radius+collim_thickness, collim_radius+collim_thickness);
 		TRANSLATE_AND_ROTATE
 
 	}
@@ -563,7 +584,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	return 1;
 }
 
-static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input *input, struct xmi_main_options options) {
+static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input *input, struct xmi_main_options options, double rotate_angle_z) {
 	FILE *filePtr;
 
 	if ((filePtr = fopen(xrmc_detectorfile, "w")) == NULL) {
@@ -584,6 +605,13 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 					 input->geometry->n_detector_orientation[2],
 					 input->geometry->n_detector_orientation[0]);
 	fprintf(filePtr, "ui %g %g %g\n", 0.0, 0.0, 0.0); 
+	if (rotate_angle_z != 0.0) {
+		fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
+		0.0, input->geometry->d_sample_source, 0.0, //point on rotation axis
+		0.0, 0.0, 1.0, //rotation axis vector
+		rotate_angle_z
+		);
+	}
 	fprintf(filePtr, "ExpTime %g\n", input->detector->live_time); 
 	fprintf(filePtr, "PhotonNum %i\n", 100000); 
 	fprintf(filePtr, "RandomPixelFlag 1\n");
@@ -619,13 +647,13 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 	return 1;
 }
 
-int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator, struct xmi_main_options options) {
+int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator, struct xmi_main_options options, double rotate_angle_z) {
 	
 	if (xmi_write_xrmc_inputfile(xrmc_inputfile, xrmc_compositionfile, xrmc_detectorfile, xrmc_geom3dfile, xrmc_quadricfile, xrmc_samplefile, xrmc_sourcefile, xrmc_spectrumfile, xrmc_convolutedspectrumfile, xrmc_unconvolutedspectrumfile) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_inputfile: Aborting\n");
 		return 0;
 	}
-	if (xmi_write_xrmc_sourcefile(xrmc_sourcefile, input) == 0) {
+	if (xmi_write_xrmc_sourcefile(xrmc_sourcefile, input, rotate_angle_z) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_sourcefile: Aborting\n");
 		return 0;
 	}
@@ -637,7 +665,7 @@ int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *
 		fprintf(stderr, "Error in xmi_write_xrmc_samplefile: Aborting\n");
 		return 0;
 	}
-	if (xmi_write_xrmc_quadricfile(xrmc_quadricfile, input) == 0) {
+	if (xmi_write_xrmc_quadricfile(xrmc_quadricfile, input, rotate_angle_z) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_quadricfile: Aborting\n");
 		return 0;
 	}
@@ -649,7 +677,7 @@ int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *
 		fprintf(stderr, "Error in xmi_write_xrmc_compositionfile: Aborting\n");
 		return 0;
 	}
-	if (xmi_write_xrmc_detectorfile(xrmc_detectorfile, input, options) == 0) {
+	if (xmi_write_xrmc_detectorfile(xrmc_detectorfile, input, options, rotate_angle_z) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_detectorfile: Aborting\n");
 		return 0;
 	}
