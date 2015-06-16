@@ -584,7 +584,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	}
 	nsteps1_string = xmlNodeListGetString(doc, xpathObj->nodesetval->nodeTab[0]->children, 1);
 	xmlXPathFreeObject(xpathObj);
-	sscanf(nsteps1_string, "%i", &nsteps1);
+	sscanf((const char *) nsteps1_string, "%i", &nsteps1);
 	xmlFree(nsteps1_string);
 
 	if (step1 > nsteps1) {
@@ -616,7 +616,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	}
 	else {
 		nsteps2_string = xmlNodeListGetString(doc, xpathObj->nodesetval->nodeTab[0]->children, 1);
-		sscanf(nsteps2_string, "%i", &nsteps2);
+		sscanf((const char *) nsteps2_string, "%i", &nsteps2);
 		xmlFree(nsteps2_string);
 		if (step2 > nsteps2) {
 			fprintf(stderr, "Error: step2 cannot be greater than %i in this archive\n", nsteps2);

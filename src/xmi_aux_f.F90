@@ -1211,12 +1211,10 @@ ENDFUNCTION cross_product
 SUBROUTINE normalize_vector(a)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(3), INTENT(INOUT) :: a
-        REAL (C_DOUBLE) :: norm
 
-        norm = SQRT(DOT_PRODUCT(a,a))
+        a = a/norm(a)
 
-        a = a/norm
-
+        RETURN
 ENDSUBROUTINE normalize_vector
 
 FUNCTION norm(a)

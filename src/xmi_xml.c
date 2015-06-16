@@ -648,6 +648,11 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 		}
 		subnode = xmlNextElementSibling(subnode);
 	}
+
+	//normalize vectors to avoid problems later on...
+	xmi_normalize_vector_double((*geometry)->n_sample_orientation, 3);
+	xmi_normalize_vector_double((*geometry)->n_detector_orientation, 3);
+
 	return 1;
 }
 

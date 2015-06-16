@@ -132,6 +132,7 @@ xmimsim_varred.mod: libxmimsim.la
 
 xmimsim_detector.mod: libxmimsim.la
 
+#I delete the libtool archives on installation, so this step is necessary to ensure the libraries are uninstalled
 uninstall-local:
 	rm -rf $(DESTDIR)/$(libdir)/libxmimsim*
 	rm -rf $(DESTDIR)/$(plugindir)/xmimsim-cl*

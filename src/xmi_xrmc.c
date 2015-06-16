@@ -221,27 +221,6 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	FILE *filePtr;
 	int i;
 
-	double upper_normal[3], lower_normal[3], left_normal[3], right_normal[3], upside_normal[3], downside_normal[3];
-
-	upper_normal[0] = input->geometry->n_sample_orientation[1];
-	upper_normal[1] = input->geometry->n_sample_orientation[2];
-	upper_normal[2] = input->geometry->n_sample_orientation[0];
-	lower_normal[0] = -1.0*upper_normal[0];
-	lower_normal[1] = -1.0*upper_normal[1];
-	lower_normal[2] = -1.0*upper_normal[2];
-	left_normal[0] = -1.0*fabs(upper_normal[1]);
-	left_normal[1] = upper_normal[0];
-	left_normal[2] = 0.0;
-	right_normal[0] = fabs(upper_normal[1]);
-	right_normal[1] = -1.0*upper_normal[0];
-	right_normal[2] = 0.0;
-	upside_normal[0] = 0.0;
-	upside_normal[1] = 0.0;
-	upside_normal[2] = 1.0;
-	downside_normal[0] = 0.0;
-	downside_normal[1] = 0.0;
-	downside_normal[2] = -1.0;
-
 	if ((filePtr = fopen(xrmc_quadricfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_quadricfile);
 		return 0;
@@ -251,13 +230,13 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 
 	//planes shared by all boxes
 	fprintf(filePtr, "Plane Upside\n");
-	fprintf(filePtr, "0 0 10000 %g %g %g\n", upside_normal[0], upside_normal[1], upside_normal[2]);
+	fprintf(filePtr, "0 0 10000 0 0 1\n");
 	fprintf(filePtr, "Plane Downside\n");
-	fprintf(filePtr, "0 0 -10000 %g %g %g\n", downside_normal[0], downside_normal[1], downside_normal[2]);
+	fprintf(filePtr, "0 0 -10000 0 0 -1\n");
 	fprintf(filePtr, "Plane Rightside\n");
-	fprintf(filePtr, "10000 0 0 %g %g %g\n", right_normal[0], right_normal[1], right_normal[2]);
+	fprintf(filePtr, "10000 0 0 1 0 0\n");
 	fprintf(filePtr, "Plane Leftside\n");
-	fprintf(filePtr, "-10000 0 0 %g %g %g\n", left_normal[0], left_normal[1], left_normal[2]);
+	fprintf(filePtr, "-10000 0 0 -1 0 0 \n");
 
 
 	//reference layer
@@ -265,58 +244,50 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	int counter = 0;
 
 	fprintf(filePtr, "Plane Lower_%i\n", counter);
-	fprintf(filePtr, "0 %g 0 %g %g %g\n", input->geometry->d_sample_source, lower_normal[0], lower_normal[1], lower_normal[2]);
+	fprintf(filePtr, "0 %.10g 0 0 -1 0\n", input->geometry->d_sample_source);
 	fprintf(filePtr, "Plane Higher_%i\n", counter);
-	fprintf(filePtr, "%g %g %g %g %g %g\n", input->composition->layers[reference_layer].thickness*upper_normal[0],	
-	input->geometry->d_sample_source+input->composition->layers[reference_layer].thickness*upper_normal[1],
-	input->composition->layers[reference_layer].thickness*upper_normal[2],
-	upper_normal[0], upper_normal[1], upper_normal[2]);
+	fprintf(filePtr, "0 %.10g 0 0 1 0\n", input->geometry->d_sample_source+input->composition->layers[reference_layer].thickness - SMALL_VALUE);
 	counter++;
 
-	double temp_point[3];
-	temp_point[0] = 0.0;
-	temp_point[1] = input->geometry->d_sample_source;
-	temp_point[2] = 0.0;
-
-
 	//before the reference_layer
+	double thickness_sum = input->geometry->d_sample_source;
 	for (i = reference_layer-1 ; i >= 0 ; i--) {
-		temp_point[0] += input->composition->layers[i].thickness*lower_normal[0];
-		temp_point[1] += input->composition->layers[i].thickness*lower_normal[1]-1E-7;
-		temp_point[2] += input->composition->layers[i].thickness*lower_normal[2];
+		thickness_sum -= input->composition->layers[i].thickness;
 		fprintf(filePtr, "Plane Lower_%i\n", counter);
-		fprintf(filePtr, "%g %g %g %g %g %g\n",
-		temp_point[0], temp_point[1], temp_point[2],
-		lower_normal[0], lower_normal[1], lower_normal[2]);
+		fprintf(filePtr, "0 %.10g 0 0 -1 0\n", thickness_sum);
 		fprintf(filePtr, "Plane Higher_%i\n", counter);
-		fprintf(filePtr, "%g %g %g %g %g %g\n",
-		temp_point[0] + input->composition->layers[i].thickness*upper_normal[0],
-		temp_point[1] + input->composition->layers[i].thickness*upper_normal[1],
-		temp_point[2] + input->composition->layers[i].thickness*upper_normal[2],
-		upper_normal[0], upper_normal[1], upper_normal[2]);
+		fprintf(filePtr, "0 %.10g 0 0 1 0\n", thickness_sum + input->composition->layers[i].thickness - SMALL_VALUE);
 		counter++;
 	}
 
 	//behind the reference_layer
-	temp_point[0] = input->composition->layers[reference_layer].thickness*upper_normal[0];
-	temp_point[1] = input->composition->layers[reference_layer].thickness*upper_normal[1]+1E-7;
-	temp_point[2] = input->composition->layers[reference_layer].thickness*upper_normal[2];
+	thickness_sum = input->geometry->d_sample_source + input->composition->layers[reference_layer].thickness;
 	for (i = reference_layer +1 ; i < input->composition->n_layers ; i++) {
 		fprintf(filePtr, "Plane Lower_%i\n", counter);
-		fprintf(filePtr, "%g %g %g %g %g %g\n",
-		temp_point[0], temp_point[1], temp_point[2],
-		lower_normal[0], lower_normal[1], lower_normal[2]);
-
-		temp_point[0] += input->composition->layers[i].thickness*upper_normal[0];
-		temp_point[1] += input->composition->layers[i].thickness*upper_normal[1];
-		temp_point[2] += input->composition->layers[i].thickness*upper_normal[2];
+		fprintf(filePtr, "0 %.10g 0 0 -1 0\n", thickness_sum);
 		fprintf(filePtr, "Plane Higher_%i\n", counter);
-		fprintf(filePtr, "%g %g %g %g %g %g\n",
-		temp_point[0], temp_point[1], temp_point[2],
-		upper_normal[0], upper_normal[1], upper_normal[2]);
-		temp_point[1] += 1E-7;
+		fprintf(filePtr, "0 %.10g 0 0 1 0\n", thickness_sum + input->composition->layers[i].thickness - SMALL_VALUE);
 		counter++;
 	}
+
+	//now do the initial rotation in order to match the n_sample_orientation
+	double rot_angle = acos(input->geometry->n_sample_orientation[2]);
+	if (fabs(rot_angle) > SMALL_VALUE) {
+		//get axis
+		double rot_axis[3];
+		double start_axis[3] = {0.0, 1.0, 0.0}, end_axis[3];
+		end_axis[0] = input->geometry->n_sample_orientation[1]; 
+		end_axis[1] = input->geometry->n_sample_orientation[2];
+		end_axis[2] = input->geometry->n_sample_orientation[0];
+		sarrus_rule(end_axis, start_axis, rot_axis);
+		xmi_normalize_vector_double(rot_axis, 3);
+		fprintf(filePtr, "RotateAll 0.0 %.10g 0.0 %.10g %.10g %.10g %.10g\n", input->geometry->d_sample_source,
+			rot_axis[0], rot_axis[1], rot_axis[2],
+			rot_angle * 180.0/M_PI
+		);
+	}
+
+	//optional additional rotation for dmeshes and dscans and so...
 	if (rotate_angle_z != 0.0) {
 		fprintf(filePtr, "RotateAll %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
 		0.0, input->geometry->d_sample_source, 0.0, //point on rotation axis
