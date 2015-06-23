@@ -1,6 +1,7 @@
 #include <config.h>
 #include "libxmimsim-test.h"
 #include "xmi_msim.h"
+#include "xmi_aux.h"
 #include <glib.h>
 #include <math.h>
 
@@ -60,16 +61,22 @@ int main(int argc, char *argv[]) {
 	g_assert_cmpint(2, ==, input->composition->reference_layer);
 
 	//geometry
+	double n_sample_orientation_ref[3] = {0, 0.707107, 0.707107};
+	xmi_normalize_vector_double(n_sample_orientation_ref, 3);
 	g_assert(fabs(100 - input->geometry->d_sample_source) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_sample_orientation[0]) < 1E-10);
-	g_assert(fabs(0.707107 - input->geometry->n_sample_orientation[1]) < 1E-10);
-	g_assert(fabs(0.707107 - input->geometry->n_sample_orientation[2]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[0] - input->geometry->n_sample_orientation[0]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[1] - input->geometry->n_sample_orientation[1]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[2] - input->geometry->n_sample_orientation[2]) < 1E-10);
+
 	g_assert(fabs(0 - input->geometry->p_detector_window[0]) < 1E-10);
 	g_assert(fabs(-1 - input->geometry->p_detector_window[1]) < 1E-10);
 	g_assert(fabs(100 - input->geometry->p_detector_window[2]) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_detector_orientation[0]) < 1E-10);
-	g_assert(fabs(1 - input->geometry->n_detector_orientation[1]) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_detector_orientation[2]) < 1E-10);
+
+	double n_detector_orientation_ref[3] = {0, 1, 0};
+	xmi_normalize_vector_double(n_detector_orientation_ref, 3);
+	g_assert(fabs(n_detector_orientation_ref[0] - input->geometry->n_detector_orientation[0]) < 1E-10);
+	g_assert(fabs(n_detector_orientation_ref[1] - input->geometry->n_detector_orientation[1]) < 1E-10);
+	g_assert(fabs(n_detector_orientation_ref[2] - input->geometry->n_detector_orientation[2]) < 1E-10);
 	g_assert(fabs(0.3 - input->geometry->area_detector) < 1E-10);
 	g_assert(fabs(0 - input->geometry->collimator_height) < 1E-10);
 	g_assert(fabs(0 - input->geometry->collimator_diameter) < 1E-10);

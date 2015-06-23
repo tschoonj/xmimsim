@@ -192,7 +192,6 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	}	
 
 	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
-	//should compare normalized orientations...
 	temparr1 = (double *) xmi_memdup(A->geometry->n_sample_orientation,sizeof(double)*3);
 	temparr2 = (double *) xmi_memdup(B->geometry->n_sample_orientation,sizeof(double)*3);
 	xmi_normalize_vector_double(temparr1, 3);
@@ -203,19 +202,22 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
 	free(temparr1);
 	free(temparr2);
+
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
-	//should compare normalized orientations...
+
 	temparr1 = (double *) xmi_memdup(A->geometry->n_detector_orientation,sizeof(double)*3);
 	temparr2 = (double *) xmi_memdup(B->geometry->n_detector_orientation,sizeof(double)*3);
 	xmi_normalize_vector_double(temparr1, 3);
 	xmi_normalize_vector_double(temparr2, 3);
+
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[0],temparr2[0])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[1],temparr2[1])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
 	free(temparr1);
 	free(temparr2);
+
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
 	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
 	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
