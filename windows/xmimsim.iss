@@ -22,7 +22,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.25-2015-01-21-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.28-2015-06-23-ts-win64.exe"
   #define MY_MINGW "C:\TDM-GCC-64\"
 #else
   #define MyAppName "XMI-MSIM 32-bit"
@@ -88,7 +88,6 @@ Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 #ifdef XMI_MSIM64
 Source: "{#MY_MINGW}\bin\libgfortran_64-3.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -104,9 +103,10 @@ Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: cor
 Source: "{#MY_HOME}\bin\libxml2-2.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 #endif
 Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgtkextra-win32-3.0-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 
