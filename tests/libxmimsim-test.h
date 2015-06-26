@@ -17,6 +17,8 @@
 #define TEST_XMSA_2 "CaSO4_28keV_pol_2D.xmsa"
 #define TEST_XMSA_COPY_2 "CaSO4_28keV_pol_2D_copy.xmsa"
 
+#define TEST_CSV "test.csv"
+
 int test_download_file(char *file);
 int test_init();
 
