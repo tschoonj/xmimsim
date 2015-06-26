@@ -1,7 +1,11 @@
 check_LTLIBRARIES = libxmimsim-test.la
-check_PROGRAMS = test-read-xmsi$(EXEEXT) \
-                 test-read-xmso$(EXEEXT) \
-                 test-read-xmsa$(EXEEXT)
+check_PROGRAMS = \
+		 test-read-xmsi \
+                 test-read-xmso \
+                 test-read-xmsa \
+		 test-write-xmsi \
+                 test-write-xmso \
+                 test-write-xmsa
 
 TESTS = $(check_PROGRAMS)
 
@@ -31,6 +35,24 @@ test_read_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_read_xmsa_LDADD = libxmimsim-test.la 
+
+test_write_xmsi_SOURCES = test-write-xmsi.c
+test_write_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ \
+			@xraylib_CFLAGS@
+test_write_xmsi_LDADD = libxmimsim-test.la 
+
+test_write_xmso_SOURCES = test-write-xmso.c
+test_write_xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ \
+			@xraylib_CFLAGS@
+test_write_xmso_LDADD = libxmimsim-test.la 
+
+test_write_xmsa_SOURCES = test-write-xmsa.c
+test_write_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ \
+			@xraylib_CFLAGS@
+test_write_xmsa_LDADD = libxmimsim-test.la 
 
 
 clean-local:

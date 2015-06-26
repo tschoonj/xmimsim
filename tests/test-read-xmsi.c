@@ -5,9 +5,6 @@
 #include <glib.h>
 #include <math.h>
 
-#define TEST_XMSI_URL "http://github.com/tschoonj/xmimsim/wiki/test.xmsi"
-#define TEST_XMSI "test.xmsi"
-
 
 int main(int argc, char *argv[]) {
 	struct xmi_input *input = NULL;

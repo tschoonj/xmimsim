@@ -216,6 +216,12 @@ void xmi_free_input(struct xmi_input *);
 //returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
 
+//returns 0 when identical, returns 1 if not identical
+int xmi_compare_output(struct xmi_output *A, struct xmi_output *B);
+
+//returns 0 when identical, returns 1 if not identical
+int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B);
+
 //returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
 int xmi_validate_input(struct xmi_input *);
 

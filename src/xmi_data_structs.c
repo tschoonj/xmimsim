@@ -74,7 +74,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 
 	//composition
 	xmi_copy_composition(A->composition, &((*B)->composition));
-	
+
 	//geometry
 	xmi_copy_geometry(A->geometry, &((*B)->geometry));
 
@@ -87,7 +87,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	//detector
 	xmi_copy_detector(A->detector, &((*B)->detector));
 
-	
+
 	return;
 }
 
@@ -97,17 +97,18 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	int i,j;
 	double *temparr1;
 	double *temparr2;
-	
+
 	//Yes, I know every textbook on programming says not to use the goto construct but I'm going to do it anyway :-)
 	//Don't try this at home though!
-	
+
 	rv = 0;
 
 	//general
-	if (A->general->version != B->general->version) {
+	//let's ignore the version check for now shall we...
+	/*if (A->general->version != B->general->version) {
 		rv |= XMI_CONFLICT_GENERAL;
 		goto after_general;
-	}
+	}*/
 
 	if (strcmp(A->general->outputfile,B->general->outputfile) != 0) {
 		rv |= XMI_CONFLICT_GENERAL;
@@ -155,13 +156,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
 					if (A->composition->layers[i].Z[j] != B->composition->layers[i].Z[j]) {
 						rv |= XMI_CONFLICT_COMPOSITION;
-						goto after_composition;	
-					}	
+						goto after_composition;
+					}
 					else if (fabsl(A->composition->layers[i].weight[j]- B->composition->layers[i].weight[j])/A->composition->layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_COMPOSITION;
-						goto after_composition;	
-					}	
-				} 
+						goto after_composition;
+					}
+				}
 				if (fabsl(A->composition->layers[i].density - B->composition->layers[i].density)/A->composition->layers[i].density > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_COMPOSITION;
 					break;
@@ -180,16 +181,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 #define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/fabs(A->geometry->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
-	}	
+	}
 #define XMI_IF_COMPARE_GEOMETRY2(a) if (fabsl(A->geometry->a - B->geometry->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
-	}	
+	}
 
 #define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabsl(a - b) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
-	}	
+	}
 
 	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
 	temparr1 = (double *) xmi_memdup(A->geometry->n_sample_orientation,sizeof(double)*3);
@@ -255,7 +256,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				}
 			}
 		}
-	}	
+	}
 
 #define XMI_IF_COMPARE_EXCITATION_CONTINUOUS(a) if (fabsl(A->excitation->continuous[i].a-B->excitation->continuous[i].a)/A->excitation->continuous[i].a > XMI_COMPARE_THRESHOLD) {\
 					rv |= XMI_CONFLICT_EXCITATION;\
@@ -276,7 +277,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_yp)
 			}
 		}
-	}	
+	}
 
 	//absorbers
 	if (A->absorbers->n_exc_layers > 0 || B->absorbers->n_exc_layers > 0) {
@@ -293,13 +294,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 					for (j = 0 ; j < A->absorbers->exc_layers[i].n_elements ; j++) {
 						if (A->absorbers->exc_layers[i].Z[j] != B->absorbers->exc_layers[i].Z[j]) {
 							rv |= XMI_CONFLICT_ABSORBERS;
-							goto after_absorbers;	
-						}	
+							goto after_absorbers;
+						}
 						else if (fabsl(A->absorbers->exc_layers[i].weight[j]- B->absorbers->exc_layers[i].weight[j])/A->absorbers->exc_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 							rv |= XMI_CONFLICT_ABSORBERS;
-							goto after_absorbers;	
-						}	
-					} 
+							goto after_absorbers;
+						}
+					}
 					if (fabsl(A->absorbers->exc_layers[i].density - B->absorbers->exc_layers[i].density)/A->absorbers->exc_layers[i].density > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
@@ -326,13 +327,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 					for (j = 0 ; j < A->absorbers->det_layers[i].n_elements ; j++) {
 						if (A->absorbers->det_layers[i].Z[j] != B->absorbers->det_layers[i].Z[j]) {
 							rv |= XMI_CONFLICT_ABSORBERS;
-							goto after_absorbers;	
-						}	
+							goto after_absorbers;
+						}
 						else if (fabsl(A->absorbers->det_layers[i].weight[j]- B->absorbers->det_layers[i].weight[j])/A->absorbers->det_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 							rv |= XMI_CONFLICT_ABSORBERS;
-							goto after_absorbers;	
-						}	
-					} 
+							goto after_absorbers;
+						}
+					}
 					if (fabsl(A->absorbers->det_layers[i].density - B->absorbers->det_layers[i].density)/A->absorbers->det_layers[i].density > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
@@ -384,13 +385,13 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 				for (j = 0 ; j < A->detector->crystal_layers[i].n_elements ; j++) {
 					if (A->detector->crystal_layers[i].Z[j] != B->detector->crystal_layers[i].Z[j]) {
 						rv |= XMI_CONFLICT_DETECTOR;
-						goto after_detector;	
-					}	
+						goto after_detector;
+					}
 					else if (fabsl(A->detector->crystal_layers[i].weight[j]- B->detector->crystal_layers[i].weight[j])/A->detector->crystal_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_DETECTOR;
-						goto after_detector;	
-					}	
-				} 
+						goto after_detector;
+					}
+				}
 				if (fabsl(A->detector->crystal_layers[i].density - B->detector->crystal_layers[i].density)/A->detector->crystal_layers[i].density > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_DETECTOR;
 					break;
@@ -415,9 +416,9 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 void xmi_free_composition(struct xmi_composition *composition) {
 	int i;
 
-	for (i = 0 ; i < composition->n_layers ; i++) 
+	for (i = 0 ; i < composition->n_layers ; i++)
 		xmi_free_layer(composition->layers+i);
-	 
+
 	free(composition->layers);
 
 	free(composition);
@@ -560,7 +561,7 @@ void xmi_free_exc_absorbers(struct xmi_absorbers *A) {
 	int i;
 
 	if (A->n_exc_layers > 0) {
-		for (i = 0 ; i < A->n_exc_layers ; i++) 
+		for (i = 0 ; i < A->n_exc_layers ; i++)
 			xmi_free_layer(A->exc_layers+i);
 		free(A->exc_layers);
 	}
@@ -572,7 +573,7 @@ void xmi_free_det_absorbers(struct xmi_absorbers *A) {
 	int i;
 
 	if (A->n_det_layers > 0) {
-		for (i = 0 ; i < A->n_det_layers ; i++) 
+		for (i = 0 ; i < A->n_det_layers ; i++)
 			xmi_free_layer(A->det_layers+i);
 		free(A->det_layers);
 	}
@@ -623,18 +624,18 @@ void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers,
 	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
 	(*composition)->n_layers = n_layers;
 	if (n_layers > 0) {
-		(*composition)->layers = (struct xmi_layer *) malloc(sizeof(struct xmi_layer)*n_layers); 
-		for (i = 0 ; i < n_layers ; i++) 
+		(*composition)->layers = (struct xmi_layer *) malloc(sizeof(struct xmi_layer)*n_layers);
+		for (i = 0 ; i < n_layers ; i++)
 			xmi_copy_layer2(layers+i,(*composition)->layers+i);
 	}
-	else 
+	else
 		(*composition)->layers = NULL;
 
 }
 
 void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers) {
 	int i;
-	
+
 	*n_layers = composition->n_layers;
 
 	if (*n_layers > 0) {
@@ -1033,9 +1034,8 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 	xmi_print_layer(fPtr, input->detector->crystal_layers, input->detector->n_crystal_layers);
 	fprintf(fPtr, "\n");
 
-
 	return;
-} 
+}
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
@@ -1081,7 +1081,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			if (found == 0) {
 				//enlarge uniqZ
 				uniqZ = (int *) realloc(uniqZ, sizeof(int)*++nuniqZ);
-				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j]; 
+				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j];
 			}
 		}
 	}
@@ -1090,7 +1090,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	output->nvar_red_history = 0;
 	output->brute_force_history = NULL;
 	output->var_red_history = NULL;
-	
+
 	for (i = 0 ; i < nuniqZ ; i++) {
 		//start by checking total number of counts for this element
 		double counts_sum = 0.0;
@@ -1098,7 +1098,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
 			}
-		}	
+		}
 		if (counts_sum == 0.0)
 			continue;
 
@@ -1112,7 +1112,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			counts_sum = 0.0;
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				counts_sum += ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
-			}	
+			}
 			if (counts_sum == 0.0)
 				continue;
 			output->brute_force_history[output->nbrute_force_history-1].lines = realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
@@ -1145,7 +1145,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
 			}
-		}	
+		}
 		if (counts_sum == 0.0)
 			continue;
 
@@ -1159,7 +1159,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			counts_sum = 0.0;
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				counts_sum += ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
-			}	
+			}
 			if (counts_sum == 0.0)
 				continue;
 			output->var_red_history[output->nvar_red_history-1].lines = realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
@@ -1215,7 +1215,7 @@ void xmi_free_output(struct xmi_output *output) {
 	xmi_free_fluorescence_line_counts(output->var_red_history, output->nvar_red_history);
 
 	xmi_free_input(output->input);
-	free(output);	
+	free(output);
 
 	return;
 }
@@ -1243,7 +1243,7 @@ void xmi_free_archive(struct xmi_archive *archive) {
 }
 
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
-	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));	
+	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));
 	archive->version = g_ascii_strtod(VERSION, NULL);
 	archive->start_value1 = start_value1;
 	archive->end_value1 = end_value1;
@@ -1325,7 +1325,7 @@ void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B) {
 	*B = (struct xmi_geometry *) xmi_memdup(A,sizeof(struct xmi_geometry));
 
 	return;
-} 
+}
 
 void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 	if (A == NULL) {
@@ -1339,13 +1339,13 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 	if ((*B)->n_discrete > 0) {
 		(*B)->discrete = (struct xmi_energy_discrete *) xmi_memdup(A->discrete,A->n_discrete*sizeof(struct xmi_energy_discrete));
 	}
-	else 
+	else
 		(*B)->discrete = NULL;
 	if ((*B)->n_continuous > 0) {
 		(*B)->continuous = (struct xmi_energy_continuous *) xmi_memdup(A->continuous,A->n_continuous*sizeof(struct xmi_energy_continuous));
 
 	}
-	else 
+	else
 		(*B)->continuous = NULL;
 
 	return;
@@ -1368,7 +1368,7 @@ void xmi_free_detector(struct xmi_detector *A) {
 	int i;
 
 	if (A->n_crystal_layers > 0) {
-		for (i = 0 ; i < A->n_crystal_layers ; i++) 
+		for (i = 0 ; i < A->n_crystal_layers ; i++)
 			xmi_free_layer(A->crystal_layers+i);
 		free(A->crystal_layers);
 	}
@@ -1396,4 +1396,204 @@ void xmi_free_excitation(struct xmi_excitation *A) {
 	free(A);
 
 	return;
+}
+
+int xmi_compare_output(struct xmi_output *A, struct xmi_output *B) {
+
+	// lets say the version may differ since it became only recently meaningful
+	// obviously also the inputfile may differ
+
+	if (xmi_compare_input(A->input, B->input) != 0) {
+		return 1;
+	}
+
+	if (A->ninteractions != B->ninteractions) {
+		return 1;
+	}
+
+	if (A->use_zero_interactions != B->use_zero_interactions) {
+		return 1;
+	}
+
+	int i,j,k;
+
+	if (A->nbrute_force_history != B->nbrute_force_history) {
+		return 1;
+	}
+
+	for (i = 0 ; i < A->nbrute_force_history ; i++) {
+		if (A->brute_force_history[i].atomic_number !=
+		    B->brute_force_history[i].atomic_number) {
+			return 1;
+		}
+
+		if (A->brute_force_history[i].total_counts !=
+		    B->brute_force_history[i].total_counts) {
+			return 1;
+		}
+
+		if (A->brute_force_history[i].n_lines !=
+		    B->brute_force_history[i].n_lines) {
+			return 1;
+		}
+
+		for (j = 0 ; j < A->brute_force_history[i].n_lines ; j++) {
+			if (strcmp(A->brute_force_history[i].lines[j].line_type,
+			           B->brute_force_history[i].lines[j].line_type) != 0) {
+				return 1;
+			}
+
+			if (A->brute_force_history[i].lines[j].energy !=
+			    B->brute_force_history[i].lines[j].energy) {
+				return 1;
+			}
+
+			if (A->brute_force_history[i].lines[j].total_counts !=
+			    B->brute_force_history[i].lines[j].total_counts) {
+				return 1;
+			}
+
+			if (A->brute_force_history[i].lines[j].n_interactions !=
+			    B->brute_force_history[i].lines[j].n_interactions) {
+				return 1;
+			}
+			for (k = 0 ; k < A->brute_force_history[i].lines[j].n_interactions ; k++) {
+				if (A->brute_force_history[i].lines[j].interactions[k].counts !=
+				    B->brute_force_history[i].lines[j].interactions[k].counts){
+				    	return 1;
+				}
+
+				if (A->brute_force_history[i].lines[j].interactions[k].interaction_number !=
+				    B->brute_force_history[i].lines[j].interactions[k].interaction_number){
+				    	return 1;
+				}
+			}
+		}
+	}
+
+	if (A->nvar_red_history != B->nvar_red_history) {
+		return 1;
+	}
+
+	for (i = 0 ; i < A->nvar_red_history ; i++) {
+		if (A->var_red_history[i].atomic_number !=
+		    B->var_red_history[i].atomic_number) {
+			return 1;
+		}
+
+		if (A->var_red_history[i].total_counts !=
+		    B->var_red_history[i].total_counts) {
+			return 1;
+		}
+
+		if (A->var_red_history[i].n_lines !=
+		    B->var_red_history[i].n_lines) {
+			return 1;
+		}
+
+		for (j = 0 ; j < A->var_red_history[i].n_lines ; j++) {
+			if (strcmp(A->var_red_history[i].lines[j].line_type,
+			           B->var_red_history[i].lines[j].line_type) != 0) {
+				return 1;
+			}
+
+			if (A->var_red_history[i].lines[j].energy !=
+			    B->var_red_history[i].lines[j].energy) {
+				return 1;
+			}
+
+			if (A->var_red_history[i].lines[j].total_counts !=
+			    B->var_red_history[i].lines[j].total_counts) {
+				return 1;
+			}
+
+			if (A->var_red_history[i].lines[j].n_interactions !=
+			    B->var_red_history[i].lines[j].n_interactions) {
+				return 1;
+			}
+			for (k = 0 ; k < A->var_red_history[i].lines[j].n_interactions ; k++) {
+				if (A->var_red_history[i].lines[j].interactions[k].counts !=
+				    B->var_red_history[i].lines[j].interactions[k].counts){
+				    	return 1;
+				}
+
+				if (A->var_red_history[i].lines[j].interactions[k].interaction_number !=
+				    B->var_red_history[i].lines[j].interactions[k].interaction_number){
+				    	return 1;
+				}
+			}
+		}
+	}
+
+	for (i = (A->use_zero_interactions ? 0 : 1) ; i <= A->input->general->n_interactions_trajectory ; i++) {
+		for (j = 0 ; j < A->input->detector->nchannels ; j++) {
+			if (A->channels_conv[i][j] !=
+			    B->channels_conv[i][j]) {
+				return 1;
+			}
+			if (A->channels_unconv[i][j] !=
+			    B->channels_unconv[i][j]) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B) {
+
+	if (A->start_value1 != B->start_value1) {
+		return 1;
+	}
+
+	if (A->end_value1 != B->end_value1) {
+		return 1;
+	}
+
+	if (strcmp(A->xpath1, B->xpath1) != 0) {
+		return 1;
+	}
+
+	if (A->nsteps1 != B->nsteps1) {
+		return 1;
+	}
+
+	if (A->nsteps2 != B->nsteps2) {
+		return 1;
+	}
+
+	if (A->xpath2 != NULL) {
+		if (B->xpath2 == NULL) {
+			return 1;
+		}
+
+		if (A->start_value2 != B->start_value2) {
+			return 1;
+		}
+
+		if (A->end_value2 != B->end_value2) {
+			return 1;
+		}
+
+		if (strcmp(A->xpath2, B->xpath2) != 0) {
+			return 1;
+		}
+	}
+	else if (B->xpath2 != NULL) {
+		return 1;
+	}
+
+	int i,j;
+
+	for (i = 0 ; i <= A->nsteps1 ; i++) {
+		for (j = 0 ; j <= A->nsteps2 ; j++) {
+			if (xmi_compare_output(A->output[i][j],
+			                       B->output[i][j]) != 0) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
 }

@@ -6,12 +6,6 @@
 #include <math.h>
 
 
-#define TEST_XMSA_URL_1 "http://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_1D.xmsa"
-#define TEST_XMSA_1 "CaSO4_28keV_pol_1D.xmsa"
-
-#define TEST_XMSA_URL_2 "http://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_2D.xmsa"
-#define TEST_XMSA_2 "CaSO4_28keV_pol_2D.xmsa"
-
 int main(int argc, char *argv[]) {
 	struct xmi_archive *archive = NULL;
 	int i,j;

@@ -4,7 +4,7 @@
 #include "xmi_aux.h"
 #include <glib.h>
 #include <math.h>
-
+#include <unistd.h>
 
 
 int main(int argc, char *argv[]) {
@@ -13,23 +13,25 @@ int main(int argc, char *argv[]) {
 
 	//init test
 	g_assert(test_init() == 1);
-	
-	//download file
-	g_assert(test_download_file(TEST_XMSO_URL) == 1);
 
 	//read the file
 	g_assert(xmi_read_output_xml(TEST_XMSO, &output) == 1);
 
-	//validate the input
-	g_assert(xmi_validate_input(output->input) == 0);
+	//copy to a new file
+	g_assert(xmi_write_output_xml(TEST_XMSO_COPY, output) == 1);
 
-	//make a copy
-	xmi_copy_output(output, &output_copy);
-	g_assert(xmi_validate_input(output_copy->input) == 0);
-	g_assert(xmi_compare_input(output->input, output_copy->input) == 0);
-	
+	//read the copy
+	g_assert(xmi_read_output_xml(TEST_XMSO_COPY, &output_copy) == 1);
+
+	//ensure they are identical
+	g_assert(xmi_compare_output(output, output_copy) == 0);
+
 	xmi_free_output(output);
 	xmi_free_output(output_copy);
 
+	//delete the file
+	unlink(TEST_XMSO_COPY);
+
 	return 0;
 }
+
