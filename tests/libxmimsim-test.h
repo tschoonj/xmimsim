@@ -1,6 +1,8 @@
 #ifndef LIBXMIMSIM_TEST_H
 #define LIBXMIMSIM_TEST_H
 
+#include <string.h>
+
 #define TEST_XMSI_URL "http://github.com/tschoonj/xmimsim/wiki/test.xmsi"
 #define TEST_XMSI "test.xmsi"
 #define TEST_XMSI_COPY "test-copy.xmsi"
@@ -18,6 +20,7 @@
 #define TEST_XMSA_COPY_2 "CaSO4_28keV_pol_2D_copy.xmsa"
 
 #define TEST_CSV "test.csv"
+#define TEST_SVG "test.csv"
 
 int test_download_file(char *file);
 int test_init();
