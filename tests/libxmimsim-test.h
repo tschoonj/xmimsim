@@ -21,6 +21,7 @@
 
 #define TEST_CSV "test.csv"
 #define TEST_SVG "test.csv"
+#define TEST_HTM "test.htm"
 
 int test_download_file(char *file);
 int test_init();
