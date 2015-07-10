@@ -7,7 +7,8 @@ check_PROGRAMS = \
      test-write-xmso \
      test-write-xmsa \
 		 test-xmso2csv \
-     test-xmso2htm
+     test-xmso2htm \
+		 test-xmso2spe
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
@@ -74,9 +75,13 @@ test_xmso2svg_LDADD = libxmimsim-test.la @gtk2_LIBS@
 
 test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@ @gtk2_CFLAGS@
-test_xmso2htm_LDADD = libxmimsim-test.la @gtk2_LIBS@
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_xmso2htm_LDADD = libxmimsim-test.la
+
+test_xmso2spe_SOURCES = test-xmso2spe.c
+test_xmso2spe_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_xmso2spe_LDADD = libxmimsim-test.la
 
 
 clean-local:

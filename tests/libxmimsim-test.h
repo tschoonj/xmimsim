@@ -22,8 +22,20 @@
 #define TEST_CSV "test.csv"
 #define TEST_SVG "test.csv"
 #define TEST_HTM "test.htm"
+#define TEST_SPE "test.spe"
 
 int test_download_file(char *file);
 int test_init();
+
+struct spe_data {
+  unsigned int channel_first;
+  unsigned int channel_last;
+  unsigned int nchannels;
+  double *data;
+};
+
+struct spe_data * read_spe(const char *filename);
+
+void free_spe_data(struct spe_data *);
 
 #endif
