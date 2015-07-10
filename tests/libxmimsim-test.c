@@ -41,6 +41,14 @@ int test_init () {
 		fprintf(stderr, "xmlCatalogAdd error: rewriteURI\n");
 		return 0;
 	}
+
+	g_assert(g_setenv("XMI_XMSO2XMSI_XSLT", XMI_XMSO2XMSI_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2SVG_XSLT", XMI_XMSO2SVG_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2SPE_XSLT", XMI_XMSO2SPE_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2CSV_XSLT", XMI_XMSO2CSV_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2HTM_XSLT", XMI_XMSO2HTM_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSA2XMSO_XSLT", XMI_XMSA2XMSO_XSLT, TRUE) == TRUE);
+
 	return 1;
 }
 

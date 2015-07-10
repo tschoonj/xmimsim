@@ -22,7 +22,13 @@ libxmimsim_test_la_SOURCES = \
 libxmimsim_test_la_CFLAGS = @glib2_CFLAGS@ @libcurl_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
 			    @xraylib_CFLAGS@ \
-			    -DCATALOGPATH=\"$(abs_top_srcdir)/xml/\"
+			    -DCATALOGPATH=\"$(abs_top_srcdir)/xml/\" \
+			    -DXMI_XMSO2XMSI_XSLT=\"$(abs_top_srcdir)/xml/xmso2xmsi.xml\" \
+			    -DXMI_XMSO2SVG_XSLT=\"$(abs_top_srcdir)/xml/xmso2svg.xml\" \
+			    -DXMI_XMSO2SPE_XSLT=\"$(abs_top_srcdir)/xml/xmso2spe.xml\" \
+			    -DXMI_XMSO2CSV_XSLT=\"$(abs_top_srcdir)/xml/xmso2csv.xml\" \
+			    -DXMI_XMSO2HTM_XSLT=\"$(abs_top_srcdir)/xml/xmso2htm.xml\" \
+			    -DXMI_XMSA2XMSO_XSLT=\"$(abs_top_srcdir)/xml/xmsa2xmso.xml\"
 libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libcurl_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c
