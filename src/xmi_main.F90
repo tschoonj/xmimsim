@@ -1602,25 +1602,25 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 !                (photon%current_element_index)%Ptr)
 
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
-        pos = findpos_fast(hdf5_Z%&
-                interaction_probs%energies, photon%energy)
+                pos = findpos_fast(hdf5_Z%&
+                  interaction_probs%energies, photon%energy)
                 IF (pos .LT. 1_C_INT) THEN
-                        WRITE (error_unit,'(A)') &
-                        'Invalid result for findpos interaction type'
-                        WRITE (error_unit,'(A,F12.6)') 'photon%energy: ',photon%energy
-                        WRITE (error_unit,'(A,F12.6)') 'lowval: ',&
-                        hdf5_Z%&
-                        interaction_probs%energies(1)
-                        WRITE (error_unit,'(A,F12.6)') 'highval: ',&
-                        hdf5_Z%&
-                        interaction_probs%energies(SIZE(&
-                        hdf5_Z%&
-                        interaction_probs%energies))
+                  WRITE (error_unit,'(A)') &
+                    'Invalid result for findpos interaction type'
+                  WRITE (error_unit,'(A,F20.12)') 'photon%energy: ',photon%energy
+                  WRITE (error_unit,'(A,F20.12)') 'lowval: ',&
+                    hdf5_Z%&
+                    interaction_probs%energies(1)
+                  WRITE (error_unit,'(A,F20.12)') 'highval: ',&
+                    hdf5_Z%&
+                    interaction_probs%energies(SIZE(&
+                    hdf5_Z%&
+                    interaction_probs%energies))
 #if DEBUG == 1
-                        WRITE (*,'(A,I2)') 'last interaction type: '&
-                        ,photon%last_interaction
+                  WRITE (*,'(A,I2)') 'last interaction type: '&
+                    ,photon%last_interaction
 #endif
-                        CALL xmi_exit(1)
+                  CALL xmi_exit(1)
                 ENDIF
 
 #if DEBUG == 2

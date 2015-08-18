@@ -351,7 +351,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 
         DO I0=0,nlim
                 E0 = inputF%detector%zero + inputF%detector%gain*I0
-                IF (E0 .LT. 1.0_C_DOUBLE) CYCLE
+                IF (E0 .LT. energy_threshold) CYCLE
                 FWHM = SQRT(a+b*E0)
                 B0=C*FWHM
                 A0 = 1.0_C_DOUBLE/(B0*M_SQRTPI)

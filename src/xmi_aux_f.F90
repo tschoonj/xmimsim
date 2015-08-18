@@ -672,7 +672,7 @@ INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_GAUSSIAN = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_LORENTZIAN = 2
 
 !threshold is 1 keV
-REAL (C_DOUBLE), PARAMETER :: energy_threshold = 1.0_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: energy_threshold = 0.1_C_DOUBLE
 REAL (C_DOUBLE), PARAMETER :: energy_max = 200.0_C_DOUBLE
 
 CONTAINS
@@ -1273,6 +1273,11 @@ FUNCTION interpolate_simple(a,b,c) RESULT(rv)
         RETURN
 ENDFUNCTION interpolate_simple
 
+!
+!
+!  findpos_fast should only ever be used for interaction_probs%energies!
+!
+!
 FUNCTION findpos_fast(array,searchvalue)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(:), INTENT(IN) :: array
@@ -1281,7 +1286,7 @@ FUNCTION findpos_fast(array,searchvalue)
 
         findpos_fast = -1
 
-        IF (ABS(searchvalue-array(LBOUND(array, DIM=1))) .LT. 1E-10_C_DOUBLE) THEN
+        IF (ABS(searchvalue-array(LBOUND(array, DIM=1))) .LT. 1E-8_C_DOUBLE) THEN
                 findpos_fast = 1
                 RETURN
         ENDIF

@@ -641,6 +641,6 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 }
 
 struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {
-	struct xmi_escape_ratios_options rv = {1990, 1999, 500000, 1.0, 0.1, 0.1, 0.1};
+	struct xmi_escape_ratios_options rv = {1999, 1999, 500000, 0.1, 0.1, 0.1, 0.1};
 	return rv;
 }
