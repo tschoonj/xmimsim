@@ -1499,6 +1499,12 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         inputF%composition%n_layers) THEN
                           WRITE(error_unit,'(A)') 'Invalid current_layer detected'
                           WRITE(error_unit,'(A,I3)') 'current_layer: ', my_index
+                          WRITE(error_unit,'(A,I3)') 'n_interactions: ', photon%n_interactions
+                          WRITE(error_unit,'(A,F30.20)') 'negln: ', negln 
+                          DO i=photon%current_layer,step_do_max, step_do_dir
+                            WRITE(error_unit,'(A,I3)') 'distances: ', i 
+                            WRITE(error_unit,'(F30.20)') distances(i) 
+                          ENDDO
                           CALL xmi_exit(1)
                         ENDIF
 
