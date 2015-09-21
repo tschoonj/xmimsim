@@ -191,17 +191,17 @@ void error_spinners(void) {
 		//should query status of progressbar
 	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
 		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_solidW);
 	}
 	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
 		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_mainW);
 	}
 	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
 		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_escapeW);
 	}
 #endif
@@ -218,7 +218,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 
 	//solid angles
 	if(strncmp(string,"Solid angle grid already present in ",strlen("Solid angle grid already present in ")) == 0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_solidW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid loaded from file");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
@@ -227,7 +227,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(strncmp(string, "Operating in brute-force mode: solid angle grid is redundant", strlen("Operating in brute-force mode: solid angle grid is redundant")) == 0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_solidW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid redundant");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
@@ -236,7 +236,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(strncmp(string, "No escape peaks requested: escape peak calculation is redundant", strlen("No escape peaks requested: escape peak calculation is redundant")) == 0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_escapeW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peaks redundant");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
@@ -270,7 +270,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_solidW);
 #else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_solidW);
 #endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid calculated");
@@ -306,7 +306,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_mainW);
 #else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_mainW);
 #endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Interactions simulated");
@@ -317,7 +317,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 	}
 	//escape ratios
 	else if(strncmp(string,"Escape peak ratios already present in ",strlen("Escape peak ratios already present in ")) == 0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_escapeW);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios loaded from file");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
@@ -343,7 +343,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 		return 0;
-	}	
+	}
 	else if(strncmp(string,"Escape peak ratios calculation finished",strlen("Escape peak ratios calculation finished")) == 0) {
 #if GTK_CHECK_VERSION(2,20,0)
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
@@ -351,7 +351,7 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_escapeW);
 #else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);	
+		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
 		gtk_widget_show_all(image_escapeW);
 #endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios calculated");
@@ -379,7 +379,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	if (condition & (G_IO_IN|G_IO_PRI)) {
 		/*while (gtk_events_pending ())
 		        gtk_main_iteration ();*/
-		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
+		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
@@ -417,7 +417,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	if (condition & (G_IO_IN|G_IO_PRI)) {
 		/*while (gtk_events_pending ())
 		        gtk_main_iteration ();*/
-		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);	
+		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			sprintf(buffer,"%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
@@ -508,43 +508,43 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	gtk_widget_set_sensitive(playButton,TRUE);
 	//make sensitive again
-	gtk_widget_set_sensitive(executableW,TRUE);	
-	gtk_widget_set_sensitive(executableB,TRUE);	
-	gtk_widget_set_sensitive(MlinesW,TRUE);	
-	gtk_widget_set_sensitive(rad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);	
-	gtk_widget_set_sensitive(variance_reductionW,TRUE);	
-	gtk_widget_set_sensitive(pile_upW,TRUE);	
-	gtk_widget_set_sensitive(poissonW,TRUE);	
-	gtk_widget_set_sensitive(escape_peaksW,TRUE);	
-	gtk_widget_set_sensitive(advanced_comptonW,TRUE);	
+	gtk_widget_set_sensitive(executableW,TRUE);
+	gtk_widget_set_sensitive(executableB,TRUE);
+	gtk_widget_set_sensitive(MlinesW,TRUE);
+	gtk_widget_set_sensitive(rad_cascadeW,TRUE);
+	gtk_widget_set_sensitive(nonrad_cascadeW,TRUE);
+	gtk_widget_set_sensitive(variance_reductionW,TRUE);
+	gtk_widget_set_sensitive(pile_upW,TRUE);
+	gtk_widget_set_sensitive(poissonW,TRUE);
+	gtk_widget_set_sensitive(escape_peaksW,TRUE);
+	gtk_widget_set_sensitive(advanced_comptonW,TRUE);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	gtk_widget_set_sensitive(openclW,TRUE);	
+	gtk_widget_set_sensitive(openclW,TRUE);
 #endif
 	gtk_widget_set_sensitive(custom_detector_responseE, TRUE);
 	gtk_widget_set_sensitive(custom_detector_responseB, TRUE);
 	gtk_widget_set_sensitive(custom_detector_responseC, TRUE);
 
-	gtk_widget_set_sensitive(spe_convW,TRUE);	
-	gtk_widget_set_sensitive(csv_convW,TRUE);	
-	gtk_widget_set_sensitive(svg_convW,TRUE);	
-	gtk_widget_set_sensitive(html_convW,TRUE);	
-	gtk_widget_set_sensitive(spe_convB,TRUE);	
-	gtk_widget_set_sensitive(csv_convB,TRUE);	
-	gtk_widget_set_sensitive(svg_convB,TRUE);	
-	gtk_widget_set_sensitive(html_convB,TRUE);	
+	gtk_widget_set_sensitive(spe_convW,TRUE);
+	gtk_widget_set_sensitive(csv_convW,TRUE);
+	gtk_widget_set_sensitive(svg_convW,TRUE);
+	gtk_widget_set_sensitive(html_convW,TRUE);
+	gtk_widget_set_sensitive(spe_convB,TRUE);
+	gtk_widget_set_sensitive(csv_convB,TRUE);
+	gtk_widget_set_sensitive(svg_convB,TRUE);
+	gtk_widget_set_sensitive(html_convB,TRUE);
 	if (nthreadsW != NULL)
-		gtk_widget_set_sensitive(nthreadsW,TRUE);	
+		gtk_widget_set_sensitive(nthreadsW,TRUE);
 
 	//g_timer_stop(timer);
 	//g_timer_destroy(timer);
 
-	if (!success) {
+	if (success == 0) {
 		xmimsim_notifications_deliver("Simulation failed","Check error messages");
 		//if something is spinning, make it stop and make it red
 		error_spinners();
 
-		return; 
+		return;
 	}
 	else {
 		gchar *my_basename = g_path_get_basename(cd->outputfile);
@@ -571,10 +571,10 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	                );
 	     	gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
-	
+
 	}
 
-	
+
 #ifdef MAC_INTEGRATION
 	gtkosx_application_attention_request(g_object_new(GTKOSX_TYPE_APPLICATION, NULL), CRITICAL_REQUEST);
 #endif
@@ -629,14 +629,14 @@ void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const 
 		tag = va_arg(args, GtkTextTag*);
 	}
 	va_end(args);
-	
+
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	insert_mark = gtk_text_buffer_get_insert(buffer);
 	gtk_text_buffer_place_cursor(buffer,&iter);
        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
 	        insert_mark, 0.0, FALSE, 0, 1.0);
 
-	
+
 
 	return;
 }
@@ -664,32 +664,32 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
-	gtk_widget_set_sensitive(executableW,FALSE);	
-	gtk_widget_set_sensitive(executableB,FALSE);	
-	gtk_widget_set_sensitive(MlinesW,FALSE);	
-	gtk_widget_set_sensitive(rad_cascadeW,FALSE);	
-	gtk_widget_set_sensitive(nonrad_cascadeW,FALSE);	
-	gtk_widget_set_sensitive(variance_reductionW,FALSE);	
-	gtk_widget_set_sensitive(pile_upW,FALSE);	
-	gtk_widget_set_sensitive(poissonW,FALSE);	
-	gtk_widget_set_sensitive(escape_peaksW,FALSE);	
-	gtk_widget_set_sensitive(advanced_comptonW,FALSE);	
+	gtk_widget_set_sensitive(executableW,FALSE);
+	gtk_widget_set_sensitive(executableB,FALSE);
+	gtk_widget_set_sensitive(MlinesW,FALSE);
+	gtk_widget_set_sensitive(rad_cascadeW,FALSE);
+	gtk_widget_set_sensitive(nonrad_cascadeW,FALSE);
+	gtk_widget_set_sensitive(variance_reductionW,FALSE);
+	gtk_widget_set_sensitive(pile_upW,FALSE);
+	gtk_widget_set_sensitive(poissonW,FALSE);
+	gtk_widget_set_sensitive(escape_peaksW,FALSE);
+	gtk_widget_set_sensitive(advanced_comptonW,FALSE);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
 	gtk_widget_set_sensitive(custom_detector_responseE, FALSE);
 	gtk_widget_set_sensitive(custom_detector_responseB, FALSE);
 	gtk_widget_set_sensitive(custom_detector_responseC, FALSE);
-	gtk_widget_set_sensitive(spe_convW,FALSE);	
-	gtk_widget_set_sensitive(csv_convW,FALSE);	
-	gtk_widget_set_sensitive(svg_convW,FALSE);	
-	gtk_widget_set_sensitive(html_convW,FALSE);	
-	gtk_widget_set_sensitive(spe_convB,FALSE);	
-	gtk_widget_set_sensitive(csv_convB,FALSE);	
-	gtk_widget_set_sensitive(svg_convB,FALSE);	
-	gtk_widget_set_sensitive(html_convB,FALSE);	
+	gtk_widget_set_sensitive(spe_convW,FALSE);
+	gtk_widget_set_sensitive(csv_convW,FALSE);
+	gtk_widget_set_sensitive(svg_convW,FALSE);
+	gtk_widget_set_sensitive(html_convW,FALSE);
+	gtk_widget_set_sensitive(spe_convB,FALSE);
+	gtk_widget_set_sensitive(csv_convB,FALSE);
+	gtk_widget_set_sensitive(svg_convB,FALSE);
+	gtk_widget_set_sensitive(html_convB,FALSE);
 	if (nthreadsW != NULL)
-		gtk_widget_set_sensitive(nthreadsW,FALSE);	
+		gtk_widget_set_sensitive(nthreadsW,FALSE);
 
 	reset_controls();
 	if (timer == NULL)
@@ -699,8 +699,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	arg_counter = 0;
 	argv = g_malloc(sizeof(gchar *)*++arg_counter);
-	argv[arg_counter-1] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));	
-	
+	argv[arg_counter-1] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));
+
 	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-M-lines");
@@ -774,7 +774,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))) > 0) {
 		argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
-		argv[arg_counter-1] = g_strdup_printf("--custom-detector-response=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))); 
+		argv[arg_counter-1] = g_strdup_printf("--custom-detector-response=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE)));
 	}
 
 	tmp_string = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(spe_convW))));
@@ -813,12 +813,12 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	//set solid angles and escape ratios files ourself!
 	char *xmimsim_hdf5_solid_angles = NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
-	
+
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
-		return;	
+		return;
 	}
 	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
 	argv[arg_counter] = g_strdup_printf("--with-solid-angles-data=%s",xmimsim_hdf5_solid_angles);
@@ -828,7 +828,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
-		return;	
+		return;
 	}
 	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
 	argv[arg_counter] = g_strdup_printf("--with-escape-ratios-data=%s",xmimsim_hdf5_escape_ratios);
@@ -885,7 +885,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 #endif
 
 	g_child_watch_add(xmimsim_pid,(GChildWatchFunc) xmimsim_child_watcher_cb, (gpointer) cd);
-	
+
 
 	g_get_charset(&encoding);
 
@@ -903,12 +903,12 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	//while (gtk_events_pending ())
 	//        gtk_main_iteration ();
 
-	
+
 }
 
 static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//UNIX only
-	
+
 	int kill_rv;
 	char buffer[512];
 	gboolean spinning;
@@ -957,7 +957,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		gtk_widget_set_sensitive(pauseButton,TRUE);
 		gtk_widget_set_sensitive(stopButton,TRUE);
 	}
-	
+
 
 }
 
@@ -979,7 +979,7 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	xmimsim_paused = FALSE;
 #ifdef G_OS_UNIX
 	int kill_rv;
-	
+
 	fprintf(stdout,"stop_button_clicked_cb entered\n");
 	kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
 #if !GLIB_CHECK_VERSION (2, 35, 0)
@@ -1038,7 +1038,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if (pauseButton && xmimsim_paused == TRUE) {
 		gtk_widget_set_sensitive(playButton,FALSE);
-		//send SIGCONT	
+		//send SIGCONT
 		int kill_rv;
 		char buffer[512];
 		gboolean spinning;
@@ -1096,7 +1096,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	     	gtk_dialog_run (GTK_DIALOG (dialog));
 	     	gtk_widget_destroy (dialog);
 	     	return;
-	
+
 	}
 
 	check_rv = check_changes_saved(&check_status);
@@ -1237,7 +1237,7 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
-	
+
 }
 
 static void select_extra_output_cb(GtkButton *button, gpointer data) {
@@ -1270,7 +1270,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 		gtk_file_filter_set_name(filter,"Hypertext Markup Language");
 		strcpy(title,"Select the name of the HTML report file");
 	}
-	
+
 	dialog = gtk_file_chooser_dialog_new(title,
 		GTK_WINDOW(we->window),
 		GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -1279,7 +1279,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	);
 	if (filter)
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog),filter);
-	
+
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -1302,7 +1302,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 				strcat(filename,".html");
 			}
 		}
-			
+
 		gtk_entry_set_text(GTK_ENTRY(we->entry),filename);
 		g_free(filename);
 
@@ -1343,7 +1343,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	stopButton = gtk_button_new();
 	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
 	g_signal_connect(G_OBJECT(stopButton), "clicked",G_CALLBACK(stop_button_clicked_cb), window);
-#ifdef G_OS_WIN32 
+#ifdef G_OS_WIN32
 	HMODULE ntdll = LoadLibrary( "ntdll.dll" );
 	if (ntdll) {
 		NtSuspendProcess = (pNtSuspendProcess)GetProcAddress(ntdll, "NtSuspendProcess" );
@@ -1354,7 +1354,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 			pauseButton = gtk_button_new();
 			gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
 			g_signal_connect(G_OBJECT(pauseButton), "clicked",G_CALLBACK(pause_button_clicked_cb), window);
-#ifdef G_OS_WIN32 
+#ifdef G_OS_WIN32
 		}
 	}
 #endif
@@ -1373,7 +1373,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 		cpuBox = gtk_vbox_new(FALSE,1);
 		cpuLabel = gtk_label_new("CPUs");
 		nthreadsA = gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0);
-		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));	
+		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
 		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
 		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_RIGHT);
@@ -1382,12 +1382,12 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 		gtk_box_pack_start(GTK_BOX(cpuBox), nthreadsW, TRUE, TRUE,2);
 		gtk_box_pack_start(GTK_BOX(hbox_controls), cpuBox, FALSE, FALSE, 10);
 	}
-	else 
+	else
 		nthreadsW = NULL;
 
 	progressbox = gtk_vbox_new(TRUE,5);
 
-	image_solidW = gtk_alignment_new(0.5,0.5,0,0); 
+	image_solidW = gtk_alignment_new(0.5,0.5,0,0);
 	gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_solidW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_solidW,-1,30);
@@ -1462,7 +1462,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 #ifdef MAC_INTEGRATION
 	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
 		xmimsim_executable = NULL;
-	}	
+	}
 #else
 	xmimsim_executable = g_find_program_in_path("xmimsim");
 #endif
@@ -1494,7 +1494,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	MlinesW = gtk_check_button_new_with_label("Simulate M-lines");
 	gtk_widget_set_tooltip_text(MlinesW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(MlinesW),xpv.b);
@@ -1503,7 +1503,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascadeW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascadeW),xpv.b);
@@ -1512,7 +1512,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascadeW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW),xpv.b);
@@ -1521,7 +1521,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reductionW), xpv.b);
@@ -1530,7 +1530,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_upW),xpv.b);
@@ -1539,7 +1539,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
 	gtk_widget_set_tooltip_text(poissonW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poissonW),xpv.b);
@@ -1548,7 +1548,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	escape_peaksW = gtk_check_button_new_with_label("Enable escape peaks support");
 	gtk_widget_set_tooltip_text(escape_peaksW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaksW),xpv.b);
@@ -1557,7 +1557,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	advanced_comptonW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
 	gtk_widget_set_tooltip_text(advanced_comptonW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_comptonW),xpv.b);
@@ -1567,7 +1567,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	openclW = gtk_check_button_new_with_label("Enable OpenCL");
 	gtk_widget_set_tooltip_text(openclW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(openclW),xpv.b);
@@ -1588,7 +1588,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_responseB, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), hbox, TRUE, FALSE, 3);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	if (xpv.s != NULL) {
@@ -1658,7 +1658,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 1, 2, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), svg_convW, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), svg_convB, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	
+
 	//CSV files
 	label = gtk_label_new("Comma Separated Values (CSV) file");
 	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
@@ -1676,7 +1676,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 2, 3, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), csv_convW, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), csv_convB, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	
+
 	//html files
 	label = gtk_label_new("Report HTML file");
 	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
@@ -1694,7 +1694,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_table_attach(GTK_TABLE(table_notebook), label     , 0, 1, 3, 4, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), html_convW, 1, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
 	gtk_table_attach(GTK_TABLE(table_notebook), html_convB, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	
+
 
 
 
@@ -1725,7 +1725,7 @@ void reset_controls(void) {
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid: 0 %");
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Simulating interactions: 0 %");
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios: 0 %");
-	
+
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),0.0);
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),0.0);
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),0.0);
@@ -1740,15 +1740,12 @@ void reset_controls(void) {
 	gtk_widget_show_all(image_solidW);
 	gtk_widget_show_all(image_mainW);
 	gtk_widget_show_all(image_escapeW);
-	
+
 
 	//clear textbuffer
-	gtk_text_buffer_get_start_iter (controlsLogB,&start); 
-	gtk_text_buffer_get_end_iter (controlsLogB,&end); 
-	gtk_text_buffer_delete (controlsLogB,&start,&end); 
+	gtk_text_buffer_get_start_iter (controlsLogB,&start);
+	gtk_text_buffer_get_end_iter (controlsLogB,&end);
+	gtk_text_buffer_delete (controlsLogB,&start,&end);
 
 	xmimsim_paused = FALSE;
 }
-
-
-

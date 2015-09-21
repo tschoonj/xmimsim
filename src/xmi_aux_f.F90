@@ -47,12 +47,12 @@ ENDTYPE
 TYPE :: compton_profiles
         !Fernandez and Scot method -> slow but very good simulation
         INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: shell_indices
-        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: Qs
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: profile_partial_cdf
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_partial_cdf_inv
-        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Qs_inv 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:,:) :: Qs_inv
         !Laszlo method -> fast but not as good
-        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: random_numbers 
+        REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: random_numbers
         REAL (KIND=C_DOUBLE), POINTER, DIMENSION(:) :: profile_total_icdf
 ENDTYPE
 
@@ -60,11 +60,11 @@ TYPE, BIND(C) :: compton_profilesC
         INTEGER (KIND=C_INT) :: shell_indices_len
         INTEGER (KIND=C_INT) :: data_len
         TYPE (C_PTR) :: shell_indices
-        TYPE (C_PTR) :: Qs 
+        TYPE (C_PTR) :: Qs
         TYPE (C_PTR) :: profile_partial_cdf
         TYPE (C_PTR) :: profile_partial_cdf_inv
-        TYPE (C_PTR) :: Qs_inv 
-        TYPE (C_PTR) :: random_numbers 
+        TYPE (C_PTR) :: Qs_inv
+        TYPE (C_PTR) :: random_numbers
         TYPE (C_PTR) :: profile_total_icdf
 ENDTYPE
 
@@ -82,7 +82,7 @@ TYPE :: xmi_hdf5_Z
         REAL (C_DOUBLE), POINTER, DIMENSION(:)   :: FluorYieldsCorr
         !interaction_probs ...
         TYPE (interaction_prob) :: interaction_probs
-        TYPE (compton_profiles) :: compton_profiles 
+        TYPE (compton_profiles) :: compton_profiles
         INTEGER (C_INT) :: Z
         INTEGER (C_INT) :: Zindex
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: precalc_xrf_cs
@@ -157,13 +157,13 @@ ENDTYPE
 TYPE, BIND(C) :: xmi_compositionC
         INTEGER (C_INT) :: n_layers
         TYPE (C_PTR) :: layers
-        INTEGER (C_INT) :: reference_layer 
+        INTEGER (C_INT) :: reference_layer
 ENDTYPE
 
 TYPE :: xmi_composition
         INTEGER (C_INT) :: n_layers
         TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: layers
-        INTEGER (C_INT) :: reference_layer 
+        INTEGER (C_INT) :: reference_layer
 ENDTYPE
 
 !  xmi_geometry
@@ -243,12 +243,12 @@ ENDTYPE
 
 TYPE, BIND(C) :: xmi_detectorC
         INTEGER (C_INT) :: detector_type
-        REAL (C_DOUBLE) :: live_time 
+        REAL (C_DOUBLE) :: live_time
         REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain
-        REAL (C_DOUBLE) :: zero 
-        REAL (C_DOUBLE) :: fano 
-        REAL (C_DOUBLE) :: noise 
+        REAL (C_DOUBLE) :: zero
+        REAL (C_DOUBLE) :: fano
+        REAL (C_DOUBLE) :: noise
         INTEGER (C_INT) :: nchannels
         INTEGER (C_INT) :: n_crystal_layers
         TYPE (C_PTR) :: crystal_layers
@@ -256,12 +256,12 @@ ENDTYPE
 
 TYPE :: xmi_detector
         INTEGER (C_INT) :: detector_type
-        REAL (C_DOUBLE) :: live_time 
+        REAL (C_DOUBLE) :: live_time
         REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain
-        REAL (C_DOUBLE) :: zero 
-        REAL (C_DOUBLE) :: fano 
-        REAL (C_DOUBLE) :: noise 
+        REAL (C_DOUBLE) :: zero
+        REAL (C_DOUBLE) :: fano
+        REAL (C_DOUBLE) :: noise
         INTEGER (C_INT) :: nchannels
         INTEGER (C_INT) :: n_crystal_layers
         TYPE (xmi_layer), ALLOCATABLE, DIMENSION(:) :: crystal_layers
@@ -284,11 +284,11 @@ ENDTYPE
 
 TYPE, BIND(C) :: xmi_inputC
         TYPE (C_PTR) :: general
-        TYPE (C_PTR) :: composition 
-        TYPE (C_PTR) :: geometry 
-        TYPE (C_PTR) :: excitation 
-        TYPE (C_PTR) :: absorbers 
-        TYPE (C_PTR) :: detector 
+        TYPE (C_PTR) :: composition
+        TYPE (C_PTR) :: geometry
+        TYPE (C_PTR) :: excitation
+        TYPE (C_PTR) :: absorbers
+        TYPE (C_PTR) :: detector
 ENDTYPE
 
 TYPE :: xmi_input
@@ -301,7 +301,7 @@ TYPE :: xmi_input
        TYPE (C_PTR) :: xmi_inputC
 ENDTYPE
 
-TYPE, BIND(C) :: xmi_main_options 
+TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: use_M_lines = 1_C_INT
         INTEGER (C_INT) :: use_cascade_auger = 1_C_INT
         INTEGER (C_INT) :: use_cascade_radiative = 1_C_INT
@@ -342,12 +342,12 @@ TYPE :: xmi_escape_ratios
         INTEGER (C_INT) :: n_compton_output_energies
         !dimension of Z is (n_elements)
         INTEGER (C_INT), DIMENSION(:), POINTER :: Z
-        !dimension of fluo_escape_ratios is (n_elements,KL1_LINE-L3P3_LINE,n_fluo_input_energies) 
+        !dimension of fluo_escape_ratios is (n_elements,KL1_LINE-L3P3_LINE,n_fluo_input_energies)
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: fluo_escape_ratios
         !dimension of fluo_escape_input_energies is n_fluo_input_energies
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: fluo_escape_input_energies
         !dimension of compton_escape_ratios is
-        !(n_compton_input_energies,n_compton_output_energies) 
+        !(n_compton_input_energies,n_compton_output_energies)
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: compton_escape_ratios
         !dimension of compton_escape_input_energies is n_compton_input_energies
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: compton_escape_input_energies
@@ -414,7 +414,7 @@ TYPE :: xmi_photon
         REAL (C_DOUBLE) :: theta
 
         !azimuthal angle
-        REAL (C_DOUBLE) :: phi 
+        REAL (C_DOUBLE) :: phi
 
         !energy changed from initial
         LOGICAL :: energy_changed
@@ -423,7 +423,7 @@ TYPE :: xmi_photon
         REAL (C_DOUBLE) :: weight
 
         !secondary weight of the photon for escape ratios mode
-        !this one will be used to calculated the fluo_escape_ratios 
+        !this one will be used to calculated the fluo_escape_ratios
         REAL (C_DOUBLE) :: weight_escape
 
         !mus
@@ -467,7 +467,7 @@ TYPE :: xmi_photon
 
         !xmi_precalc_mu_cs
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), POINTER :: precalc_mu_cs
-        
+
         !variance reduction history
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_history
 
@@ -497,12 +497,12 @@ ENDTYPE xmi_photon
 
 TYPE :: xmi_line
         REAL (C_DOUBLE), DIMENSION(3) :: point
-        REAL (C_DOUBLE), DIMENSION(3) :: dirv 
+        REAL (C_DOUBLE), DIMENSION(3) :: dirv
 ENDTYPE
 
 TYPE :: xmi_plane
         REAL (C_DOUBLE), DIMENSION(3) :: point
-        REAL (C_DOUBLE), DIMENSION(3) :: normv 
+        REAL (C_DOUBLE), DIMENSION(3) :: normv
 ENDTYPE
 
 !
@@ -529,9 +529,9 @@ TYPE, BIND(C) :: xmi_escape_ratios_options
         INTEGER (C_LONG) :: n_input_energies = 1990
         INTEGER (C_LONG) :: n_compton_output_energies = 1999
         INTEGER (C_LONG) :: n_photons = 500000
-        REAL (C_DOUBLE) :: input_energy_min 
+        REAL (C_DOUBLE) :: input_energy_min
         REAL (C_DOUBLE) :: input_energy_delta
-        REAL (C_DOUBLE) :: compton_output_energy_min 
+        REAL (C_DOUBLE) :: compton_output_energy_min
         REAL (C_DOUBLE) :: compton_output_energy_delta
 ENDTYPE
 
@@ -662,14 +662,14 @@ INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_RADIATIVE = 3
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONRADIATIVE = 2
 INTEGER (C_INT), PARAMETER ::  XMI_CASCADE_NONE = 1
 
-INTEGER (C_INT), PARAMETER ::  XMI_NO_INTERSECTION = 0 
+INTEGER (C_INT), PARAMETER ::  XMI_NO_INTERSECTION = 0
 INTEGER (C_INT), PARAMETER ::  XMI_COLLIMATOR_INTERSECTION = 1
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_INTERSECTION = 2
 INTEGER (C_INT), PARAMETER ::  XMI_DETECTOR_BAD_INTERSECTION = 3
 
 INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_MONOCHROMATIC = 0
-INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_GAUSSIAN = 1 
-INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_LORENTZIAN = 2 
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_GAUSSIAN = 1
+INTEGER (C_INT), PARAMETER ::  XMI_DISCRETE_LORENTZIAN = 2
 
 !threshold is 1 keV
 REAL (C_DOUBLE), PARAMETER :: energy_threshold = 1.0_C_DOUBLE
@@ -810,7 +810,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
 
 
         !!
-        !! associate xmi_general 
+        !! associate xmi_general
         !!
         xmi_inputF%xmi_inputC = C_LOC(xmi_inputC_in)
         CALL C_F_POINTER (xmi_inputC_in%general, xmi_general_temp)
@@ -819,14 +819,14 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%general%n_photons_line = xmi_general_temp%n_photons_line
         xmi_inputF%general%n_interactions_trajectory = &
                 xmi_general_temp%n_interactions_trajectory
-        !todo is outputfile... not so important actually  
-        
+        !todo is outputfile... not so important actually
+
 #if DEBUG == 1
         WRITE (*,'(A)') 'xmi_general ok'
 #endif
 
         !!
-        !! associate xmi_composition 
+        !! associate xmi_composition
         !!
         CALL C_F_POINTER (xmi_inputC_in%composition , xmi_composition_temp)
         xmi_inputF%composition%n_layers = xmi_composition_temp%n_layers
@@ -881,7 +881,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         IF (xmi_inputF%excitation%n_discrete .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%discrete,&
                 xmi_energy_temp_disc,&
-                [xmi_inputF%excitation%n_discrete]) 
+                [xmi_inputF%excitation%n_discrete])
                 ALLOCATE(xmi_inputF%excitation%discrete(xmi_inputF%excitation%n_discrete))
                 xmi_inputF%excitation%discrete = xmi_energy_temp_disc
         ENDIF
@@ -889,7 +889,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         IF (xmi_inputF%excitation%n_continuous .GT. 0) THEN
                 CALL C_F_POINTER (xmi_excitation_temp%continuous,&
                 xmi_energy_temp_cont,&
-                [xmi_inputF%excitation%n_continuous]) 
+                [xmi_inputF%excitation%n_continuous])
                 ALLOCATE(xmi_inputF%excitation%continuous(xmi_inputF%excitation%n_continuous))
                 xmi_inputF%excitation%continuous = xmi_energy_temp_cont
         ENDIF
@@ -970,7 +970,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         !! associate xmi_detector
         !!
         CALL C_F_POINTER (xmi_inputC_in%detector,xmi_detector_temp)
-        xmi_inputF%detector%detector_type = xmi_detector_temp%detector_type 
+        xmi_inputF%detector%detector_type = xmi_detector_temp%detector_type
         xmi_inputF%detector%pulse_width= xmi_detector_temp%pulse_width
         xmi_inputF%detector%live_time= xmi_detector_temp%live_time
         xmi_inputF%detector%gain= xmi_detector_temp%gain
@@ -979,7 +979,7 @@ SUBROUTINE xmi_input_C2F(xmi_inputC_in,xmi_inputFPtr) BIND(C,NAME='xmi_input_C2F
         xmi_inputF%detector%noise= xmi_detector_temp%noise
         xmi_inputF%detector%nchannels = xmi_detector_temp%nchannels
         xmi_inputF%detector%n_crystal_layers =&
-        xmi_detector_temp%n_crystal_layers 
+        xmi_detector_temp%n_crystal_layers
 
         IF (xmi_inputF%detector%n_crystal_layers .GT. 0) THEN
                 ALLOCATE(xmi_inputF%detector%crystal_layers(xmi_inputF%detector%n_crystal_layers))
@@ -1079,7 +1079,7 @@ SUBROUTINE xmi_free_input_F(xmi_inputFPtr)  BIND(C,NAME='xmi_free_input_F')
                 ENDDO
                 DEALLOCATE(xmi_inputF%absorbers%det_layers)
         ENDIF
-        
+
         !free detector
         IF (xmi_inputF%detector%n_crystal_layers .GT. 0) THEN
                 DO i=1,xmi_inputF%detector%n_crystal_layers
@@ -1113,7 +1113,7 @@ FUNCTION xmi_mu_calc_xmi_composition_single_energy(composition, energy) RESULT(r
 
         DO i=1,composition%n_layers
                 rv(i) = &
-                xmi_mu_calc_xmi_layer_single_energy(& 
+                xmi_mu_calc_xmi_layer_single_energy(&
                 composition%layers(i),energy)
         ENDDO
 
@@ -1122,7 +1122,7 @@ ENDFUNCTION xmi_mu_calc_xmi_composition_single_energy
 
 FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
         IMPLICIT NONE
-        TYPE (xmi_layer), INTENT(IN) :: layer 
+        TYPE (xmi_layer), INTENT(IN) :: layer
         REAL (C_DOUBLE), INTENT(IN) :: energy
         REAL (C_DOUBLE) :: rv
         INTEGER (C_INT) :: i
@@ -1133,7 +1133,7 @@ FUNCTION xmi_mu_calc_xmi_layer_single_energy(layer, energy) RESULT(rv)
                 rv = rv + CS_Total_Kissel(layer%Z(i),&
                 energy)*layer%weight(i)
         ENDDO
-                 
+
 
         RETURN
 ENDFUNCTION
@@ -1171,12 +1171,20 @@ FUNCTION xmi_distance_two_points(point1, point2) RESULT(rv)
         IMPLICIT NONE
         REAL (C_DOUBLE), INTENT(IN), DIMENSION(3) :: point1, point2
         REAL (C_DOUBLE) :: rv
-        
+        INTEGER :: i
+
         rv = SQRT((point1(1)-point2(1))**2 + &
                 (point1(2)-point2(2))**2 + &
                 (point1(3)-point2(3))**2)
 
-        RETURN 
+        IF (rv .EQ. 0.0_C_DOUBLE) THEN
+          WRITE (error_unit,'(A)') 'xmi_distance_two_points: SQRT is zero'
+          WRITE (error_unit,'(A,3ES30.20)') 'point1:', (point1(i),i=1,3)
+          WRITE (error_unit,'(A,3ES30.20)') 'point2:', (point2(i),i=1,3)
+          CALL xmi_exit(1)
+        ENDIF
+
+        RETURN
 ENDFUNCTION xmi_distance_two_points
 
 SUBROUTINE xmi_move_photon_with_dist(photon, dist)
@@ -1223,7 +1231,7 @@ FUNCTION norm(a)
         REAL (C_DOUBLE) :: norm
 
         norm = SQRT(DOT_PRODUCT(a,a))
-        
+
         RETURN
 ENDFUNCTION norm
 
@@ -1257,11 +1265,11 @@ ENDFUNCTION xmi_norm_double
 FUNCTION interpolate_simple(a,b,c) RESULT(rv)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(2), INTENT(IN) :: a,b
-        REAL (C_DOUBLE), INTENT(IN) :: c 
+        REAL (C_DOUBLE), INTENT(IN) :: c
         REAL (C_DOUBLE) :: rv
 
         rv = a(2) + ((b(2)-a(2))*(c-a(1))/(b(1)-a(1)))
-         
+
         RETURN
 ENDFUNCTION interpolate_simple
 
@@ -1279,7 +1287,7 @@ FUNCTION findpos_fast(array,searchvalue)
         ENDIF
 
         guess = INT((searchvalue-0.1_C_DOUBLE)*(10000.0_C_DOUBLE-1.0_C_DOUBLE)/&
-                (100.0_C_DOUBLE-0.1_C_DOUBLE)+1.0_C_DOUBLE,KIND=C_INT) 
+                (100.0_C_DOUBLE-0.1_C_DOUBLE)+1.0_C_DOUBLE,KIND=C_INT)
 
 
         DO i=guess, UBOUND(array,DIM=1)
@@ -1288,7 +1296,7 @@ FUNCTION findpos_fast(array,searchvalue)
                         RETURN
                 ENDIF
         ENDDO
-        
+
         RETURN
 ENDFUNCTION findpos_fast
 
@@ -1320,7 +1328,7 @@ FUNCTION findpos(array, searchvalue, start_pos_arg)
                         RETURN
                 ENDIF
         ENDDO
-        
+
         RETURN
 ENDFUNCTION findpos
 
@@ -1362,7 +1370,7 @@ RESULT(rv)
 
         !get positions
         IF (pos_1 == 0_C_INT .AND. pos_2 == 0_C_INT) THEN
-                pos_1 = findpos(array1D_1, x_1)        
+                pos_1 = findpos(array1D_1, x_1)
                 IF (pos_1 .LT. 1_C_INT) THEN
                         WRITE (error_unit,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_1: ',&
@@ -1374,7 +1382,7 @@ RESULT(rv)
                         CALL xmi_exit(1)
                 ENDIF
 
-                pos_2 = findpos(array1D_2, x_2)        
+                pos_2 = findpos(array1D_2, x_2)
                 IF (pos_2 .LT. 1_C_INT) THEN
                         WRITE (error_unit,'(A,I5)') &
                         'Invalid result for findpos bilinear interpolation -> pos_2: ',&
@@ -1475,7 +1483,7 @@ SUBROUTINE xmi_scale_double(array, n_elements,scale_factor) BIND(C, NAME='xmi_sc
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
 
         CALL C_F_POINTER(array, arrayF, [n_elements])
-        
+
         arrayF = scale_factor*arrayF
 
         RETURN
@@ -1490,11 +1498,11 @@ BIND(C, NAME='xmi_add_val_to_array_double')
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
 
         CALL C_F_POINTER(array, arrayF, [n_elements])
-        
+
         arrayF = arrayF+increment
 
         RETURN
-ENDSUBROUTINE xmi_add_val_to_array_double 
+ENDSUBROUTINE xmi_add_val_to_array_double
 
 
 
@@ -1509,7 +1517,7 @@ x_2, x_3) RESULT(rv)
         REAL (C_DOUBLE), INTENT(IN) :: x_2
         REAL (C_DOUBLE), INTENT(IN) :: x_3
         REAL (C_DOUBLE) :: rv
-        REAL (C_DOUBLE) :: bi_rv_1, bi_rv_2 
+        REAL (C_DOUBLE) :: bi_rv_1, bi_rv_2
 
         INTEGER (C_INT) :: pos_1, pos_2, pos_3
 
@@ -1525,7 +1533,7 @@ x_2, x_3) RESULT(rv)
         ENDIF
 
         !get positions
-        pos_3 = findpos(array1D_3, x_3)        
+        pos_3 = findpos(array1D_3, x_3)
         IF (pos_3 .LT. 1_C_INT) THEN
                 WRITE (error_unit,'(A)') &
                 'Invalid result for findpos trilinear interpolation'
@@ -1569,7 +1577,7 @@ FUNCTION xmi_dindgen(n) RESULT(rv)
         DO i=0_C_INT,n-1
                 rv(i+1) = REAL(i,KIND=C_DOUBLE)
         ENDDO
-        
+
         RETURN
 ENDFUNCTION xmi_dindgen
 
@@ -1605,7 +1613,7 @@ BIND(C,NAME='xmi_minval_double')
 ENDFUNCTION xmi_minval_double
 
 FUNCTION xmi_check_detector_intersection&
-(inputF,begin_coords,end_coords) RESULT(rv) 
+(inputF,begin_coords,end_coords) RESULT(rv)
         IMPLICIT NONE
         REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) ::&
         begin_coords, end_coords
@@ -1620,9 +1628,9 @@ FUNCTION xmi_check_detector_intersection&
         REAL (C_DOUBLE), DIMENSION(3) :: intersection
         REAL (C_DOUBLE), DIMENSION(3) :: delta,dM,deltaM,X1,X2
         REAL (C_DOUBLE) :: c0, c1, c2,cos2theta,disc,t1,t2,t_begin,t_end
-        REAL (C_DOUBLE), DIMENSION(3,3) :: M 
+        REAL (C_DOUBLE), DIMENSION(3,3) :: M
         INTEGER (C_INT) :: n_valid_t
-        
+
 
 
         !convert lab coordinates to detector coordinate system
@@ -1753,7 +1761,7 @@ FUNCTION xmi_check_detector_intersection&
                         IF (norm(intersection) .LE. inputF%detector%&
                         detector_radius .AND. xmi_distance_two_points(&
                         begin_coords_det,intersection) .LE.&
-                        xmi_distance_two_points(begin_coords_det,end_coords_det)) THEN 
+                        xmi_distance_two_points(begin_coords_det,end_coords_det)) THEN
                                 IF (DOT_PRODUCT(line%dirv,plane%normv&
                                 ) .GE. 0.0_C_DOUBLE) THEN
                                         rv = XMI_DETECTOR_BAD_INTERSECTION
@@ -1779,7 +1787,7 @@ FUNCTION xmi_check_detector_intersection&
                         IF (norm(intersection) .LE. inputF%detector%&
                         detector_radius .AND. xmi_distance_two_points(&
                         begin_coords_det,intersection) .LE.&
-                        xmi_distance_two_points(begin_coords_det,end_coords_det)) THEN 
+                        xmi_distance_two_points(begin_coords_det,end_coords_det)) THEN
                                 IF (DOT_PRODUCT(line%dirv,plane%normv&
                                 ) .GE. 0.0_C_DOUBLE) THEN
                                         rv = XMI_DETECTOR_BAD_INTERSECTION
@@ -1807,7 +1815,7 @@ FUNCTION xmi_check_detector_intersection&
                                 rv = XMI_COLLIMATOR_INTERSECTION
                                 RETURN
                         ENDIF
-                        !no collimator intersection -> detector cannot be hit 
+                        !no collimator intersection -> detector cannot be hit
                         rv = XMI_NO_INTERSECTION
                 ELSE
                         WRITE (error_unit,'(A)') 'should never appear...'
@@ -1946,10 +1954,10 @@ FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
         REAL (C_DOUBLE), INTENT(IN) :: init_energy, Q, theta
         REAL (C_DOUBLE) :: energy
 
-        REAL (C_DOUBLE) :: a, b, c, d 
-        REAL (C_DOUBLE) :: aq, bq, cq 
+        REAL (C_DOUBLE) :: a, b, c, d
+        REAL (C_DOUBLE) :: aq, bq, cq
         REAL (C_DOUBLE), PARAMETER :: onethreeseven = 137.0_C_DOUBLE
-        REAL (C_DOUBLE) :: E1, E2, Q1, Q2 
+        REAL (C_DOUBLE) :: E1, E2, Q1, Q2
         INTEGER (C_INT) :: rv
 
         a = init_energy
@@ -1973,7 +1981,7 @@ FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
         bq = -2.0_C_DOUBLE*onethreeseven**2*a*d + 2.0_C_DOUBLE*a*c*Q**2
         cq = onethreeseven**2*a**2 - a**2*Q**2
 
-        rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2) 
+        rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2)
 
         IF (rv == 0_C_INT) THEN
                 !WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
@@ -2042,11 +2050,11 @@ BIND(C,NAME='xmi_get_default_main_options') &
 RESULT(rv)
         IMPLICIT NONE
         TYPE (xmi_main_options) :: rv
-        
+
         !set the number of threads right
         rv%omp_num_threads = xmi_omp_get_max_threads()
 
         RETURN
 ENDFUNCTION xmi_get_default_main_options
 
-ENDMODULE 
+ENDMODULE
