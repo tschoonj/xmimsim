@@ -1177,12 +1177,12 @@ FUNCTION xmi_distance_two_points(point1, point2) RESULT(rv)
                 (point1(2)-point2(2))**2 + &
                 (point1(3)-point2(3))**2)
 
-        IF (rv .EQ. 0.0_C_DOUBLE) THEN
-          WRITE (error_unit,'(A)') 'xmi_distance_two_points: SQRT is zero'
-          WRITE (error_unit,'(A,3ES30.20)') 'point1:', (point1(i),i=1,3)
-          WRITE (error_unit,'(A,3ES30.20)') 'point2:', (point2(i),i=1,3)
-          CALL xmi_exit(1)
-        ENDIF
+        !IF (rv .EQ. 0.0_C_DOUBLE) THEN
+        !  WRITE (error_unit,'(A)') 'xmi_distance_two_points: SQRT is zero'
+        !  WRITE (error_unit,'(A,3ES30.20)') 'point1:', (point1(i),i=1,3)
+        !  WRITE (error_unit,'(A,3ES30.20)') 'point2:', (point2(i),i=1,3)
+        !  CALL xmi_exit(1)
+        !ENDIF
 
         RETURN
 ENDFUNCTION xmi_distance_two_points
