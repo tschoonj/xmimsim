@@ -131,6 +131,8 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!-- archive -->
 <!ELEMENT xmimsim-archive (start_value1, end_value1, nsteps1, xpath1, start_value2?, end_value2?, nsteps2?, xpath2?, xmimsim-results+)>
+<!-- version attribute was added only quite late so it is optional -->
+<!ATTLIST xmimsim-archive version CDATA #IMPLIED>
 <!ELEMENT start_value1 (#PCDATA)>
 <!ELEMENT end_value1 (#PCDATA)>
 <!ELEMENT nsteps1 (#PCDATA)>

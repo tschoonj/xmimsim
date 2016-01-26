@@ -4373,13 +4373,13 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 
 	lilHBox = gtk_hbox_new(TRUE, 2);
 	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
-	gtk_box_pack_start(GTK_BOX(lilHBox), okButton, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilHBox), okButton, TRUE, TRUE, 2);
 	imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	gtk_box_pack_start(GTK_BOX(lilHBox), imageButton, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilHBox), imageButton, TRUE, TRUE, 2);
 	exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	update_button_text(exportButton, "Export as CSV");
 	update_button_text(imageButton, "Save image");
-	gtk_box_pack_start(GTK_BOX(lilHBox), exportButton, FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(lilHBox), exportButton, TRUE, TRUE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 4);
 
@@ -4587,51 +4587,49 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 			double yval = 0.0;
-			if (cumulative) {
-				for (j = apd->archive->output[i][0]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							yval += apd->archive->output[i][0]->channels_conv[j][k];
-						else
-							yval += apd->archive->output[i][0]->channels_unconv[j][k];
-					}
+			//the spectra are already stored cumulative
+			for (k = start_channel ; k <= end_channel ; k++) {
+				if (convoluted) {
+					yval += apd->archive->output[i][0]->channels_conv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][0]->use_zero_interactions ? 0 : 1))
+						yval -= apd->archive->output[i][0]->channels_conv[interaction-1][k];
+				}
+				else {
+					yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][0]->use_zero_interactions ? 0 : 1))
+						yval -= apd->archive->output[i][0]->channels_unconv[interaction-1][k];
 				}
 			}
-			else {
-				for (k = start_channel ; k <= end_channel ; k++) {
-					if (convoluted)
-						yval += apd->archive->output[i][0]->channels_conv[interaction][k];
-					else
-						yval += apd->archive->output[i][0]->channels_unconv[interaction][k];
-				}
-			}
-			y[i] = yval;	
+
+			y[i] = MAX(yval, 0);	
 			if (yval > 0.0 && yval < minval)
 				minval = yval;
 		}
 	}
 	else {
 		//XRF mode
-		gboolean var_red;
 		struct xmi_fluorescence_line_counts **history = NULL; 
 		int *nhistory = NULL;
 
 		nhistory = g_malloc(sizeof(int)*(apd->archive->nsteps1+1)); 
 		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps1+1));
-		if (apd->archive->output[0][0]->nvar_red_history > 0) {
-			var_red = TRUE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			if (apd->archive->output[i][0]->nvar_red_history > 0) {
 				history[i] = apd->archive->output[i][0]->var_red_history;
 				nhistory[i] = apd->archive->output[i][0]->nvar_red_history;
 			}
-		}
-		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
-			var_red = FALSE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			else if (apd->archive->output[i][0]->nbrute_force_history > 0) {
 				history[i] = apd->archive->output[i][0]->brute_force_history;
 				nhistory[i] = apd->archive->output[i][0]->nbrute_force_history;
 			}
+			else {
+				history[i] = NULL;
+				nhistory[i] = 0;
+			}
 		}
+
+
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
 		gchar *line_type = NULL;
 		int atomic_number_index;
@@ -4786,7 +4784,7 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_2D_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	
-	if (plot_ymax <= 10000.0 && plot_ymin >= -1.0) {
+	if (fabs(plot_ymax) <= 1000.0 && fabs(plot_ymin) >= 0.1) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
@@ -4799,15 +4797,15 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
 	}
 
-	if (plot_xmax <= 10000.0 && plot_xmin >= -10000) {
+	if (fabs(plot_xmax) <= 1000.0 && fabs(plot_xmin) >= 0.01) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,2);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_2D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	}
 	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,1);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,2);
+        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_2D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	}
@@ -4876,71 +4874,53 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
 			double zval = 0.0;
-			if (cumulative) {
-				//for (j = apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1 ; j <= interaction ; j++) {
-				j = interaction;
-				for (k = start_channel ; k <= end_channel ; k++) {
-					if (convoluted)
-						zval += apd->archive->output[i][i2]->channels_conv[j][k];
-					else
-						zval += apd->archive->output[i][i2]->channels_unconv[j][k];
-				}
-				//}
-			}
-			else {
-				if ((apd->archive->output[i][i2]->use_zero_interactions == 1 && interaction == 0) || (apd->archive->output[i][i2]->use_zero_interactions == 0 && interaction == 1)) {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
-						else
-							zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
-					}
+			//the spectra are already stored cumulative
+			for (k = start_channel ; k <= end_channel ; k++) {
+				if (convoluted) {
+					zval += apd->archive->output[i][i2]->channels_conv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
+						zval -= apd->archive->output[i][i2]->channels_conv[interaction-1][k];
 				}
 				else {
-					for (k = start_channel ; k <= end_channel ; k++) {
-						if (convoluted)
-							zval += MAX(apd->archive->output[i][i2]->channels_conv[interaction][k]-apd->archive->output[i][i2]->channels_conv[interaction-1][k],0);
-						else
-							zval += MAX(apd->archive->output[i][i2]->channels_unconv[interaction][k]-apd->archive->output[i][i2]->channels_unconv[interaction-1][k],0);
-					}
+					zval += apd->archive->output[i][i2]->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (apd->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
+						zval -= apd->archive->output[i][i2]->channels_unconv[interaction-1][k];
 				}
 			}
+
+			z[i*(apd->archive->nsteps2+1)+i2] = MAX(zval, 0);	
 			if (zval > 0.0 && zval < minval)
 				minval = zval;
-			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 		}
 		}
 	}
 	else {
 		//XRF mode
-		gboolean var_red;
 		struct xmi_fluorescence_line_counts ***history = NULL; 
 		int **nhistory = NULL;
 
 		nhistory = g_malloc(sizeof(int*)*(apd->archive->nsteps1+1)); 
 		history = g_malloc(sizeof(struct xmi_fluorescence_line_counts **)*(apd->archive->nsteps1+1));
-		if (apd->archive->output[0][0]->nvar_red_history > 0) {
-			var_red = TRUE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
-				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
-				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+
+		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
+			nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1)); 
+			history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				if (apd->archive->output[i][i2]->nvar_red_history > 0) {
 					history[i][i2] = apd->archive->output[i][i2]->var_red_history;
 					nhistory[i][i2] = apd->archive->output[i][i2]->nvar_red_history;
 				}
-			}
-		}
-		else if (apd->archive->output[0][0]->nbrute_force_history > 0) {
-			var_red = FALSE;
-			for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-				nhistory[i] = g_malloc(sizeof(int)*(apd->archive->nsteps2+1));
-				history[i] = g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(apd->archive->nsteps2+1));
-				for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				else if (apd->archive->output[i][i2]->nbrute_force_history > 0) {
 					history[i][i2] = apd->archive->output[i][i2]->brute_force_history;
 					nhistory[i][i2] = apd->archive->output[i][i2]->nbrute_force_history;
 				}
+				else {
+					history[i][i2] = NULL;
+					nhistory[i][i2] = 0;
+				}
 			}
 		}
+
 		gboolean cumulative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_cumulative_radioW));
 		gchar *line_type = NULL;
 		int atomic_number_index;
@@ -4960,41 +4940,26 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(apd->xrf_element_comboW))-1;
 
 		for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
-		for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
-			double zval = 0.0;
-			if (atomic_number_index == -1) {
-				//Element = All
-				//XRF line = All
-				if (cumulative) {
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-								if (history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction)
-									zval += history[i][i2][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-				else {
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-							for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-								if (history[i][i2][j].lines[k].interactions[l].interaction_number == interaction)
-									zval += history[i][i2][j].lines[k].interactions[l].counts;
-							}
-						}
-					}
-				}
-			}
-			else {
-				//specific element selected
-				if (line_type == NULL) {
+			for (i2 = 0 ; i2 <= apd->archive->nsteps2 ; i2++) {
+				double zval = 0.0;
+				if (atomic_number_index == -1) {
+					//Element = All
 					//XRF line = All
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+					if (cumulative) {
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
 							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
 								for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
-									if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+									if (history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction)
+										zval += history[i][i2][j].lines[k].interactions[l].counts;
+								}
+							}
+						}
+					}
+					else {
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+								for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+									if (history[i][i2][j].lines[k].interactions[l].interaction_number == interaction)
 										zval += history[i][i2][j].lines[k].interactions[l].counts;
 								}
 							}
@@ -5002,11 +4967,12 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 					}
 				}
 				else {
-					//XRF line = specific
-					for (j = 0 ; j < nhistory[i][i2] ; j++) {
-						if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
-							for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
-								if (strcmp(history[i][i2][j].lines[k].line_type, line_type) == 0) {
+					//specific element selected
+					if (line_type == NULL) {
+						//XRF line = All
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+								for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
 									for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
 										if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
 											zval += history[i][i2][j].lines[k].interactions[l].counts;
@@ -5015,14 +4981,28 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 							}
 						}
 					}
-				}	
+					else {
+						//XRF line = specific
+						for (j = 0 ; j < nhistory[i][i2] ; j++) {
+							if (history[i][i2][j].atomic_number == apd->fd[atomic_number_index].atomic_number) {
+								for (k = 0 ; k < history[i][i2][j].n_lines ; k++) {
+									if (strcmp(history[i][i2][j].lines[k].line_type, line_type) == 0) {
+										for (l = 0 ; l < history[i][i2][j].lines[k].n_interactions ; l++) {
+											if ((!cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number == interaction) || (cumulative && history[i][i2][j].lines[k].interactions[l].interaction_number <= interaction))
+												zval += history[i][i2][j].lines[k].interactions[l].counts;
+										}
+									}
+								}
+							}
+						}
+					}	
+				}
+				if (zval > 0.0 && zval < minval)
+					minval = zval;
+				z[i*(apd->archive->nsteps2+1)+i2] = zval;	
 			}
-			if (zval > 0.0 && zval < minval)
-				minval = zval;
-			z[i*(apd->archive->nsteps2+1)+i2] = zval;	
-		}
-		g_free(nhistory[i]);
-		g_free(history[i]);
+			g_free(nhistory[i]);
+			g_free(history[i]);
 		}
 		g_free(nhistory);
 		g_free(history);
@@ -5065,7 +5045,7 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_3D_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_3D_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 
-	if (apd->archive->end_value2 <= 10000.0 &&  apd->archive->start_value2 >= -10000.0) {
+	if (fabs(apd->archive->end_value2) <= 1000.0 && fabs(apd->archive->start_value2) >= 0.01) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,2);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
@@ -5078,7 +5058,7 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
 	}
 
-	if (apd->archive->end_value1 <= 10000.0 &&  apd->archive->start_value1 >= -10000.0) {
+	if (fabs(apd->archive->end_value1) <= 1000.0 && fabs(apd->archive->start_value1) >= 0.01) {
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,2);
         	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
 		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_3D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);

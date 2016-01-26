@@ -202,6 +202,8 @@ void adjust_save_buttons(void);
 
 #define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
 #define XMI_STOCK_LOGO "Logo_xmi_msim"
+#define XMI_STOCK_LOGO_RED "Logo_xmi_msim_red"
+#define XMI_STOCK_LOGO_ARCHIVE "Logo_xmi_msim_archive"
 
 
 #ifdef MAC_INTEGRATION

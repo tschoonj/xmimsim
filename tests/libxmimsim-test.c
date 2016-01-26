@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <curl/curl.h>
 #include <stdio.h>
 #include <glib.h>
+#include <stdlib.h>
 #include "libxml/catalog.h"
 
 
@@ -40,6 +41,14 @@ int test_init () {
 		fprintf(stderr, "xmlCatalogAdd error: rewriteURI\n");
 		return 0;
 	}
+
+	g_assert(g_setenv("XMI_XMSO2XMSI_XSLT", XMI_XMSO2XMSI_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2SVG_XSLT", XMI_XMSO2SVG_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2SPE_XSLT", XMI_XMSO2SPE_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2CSV_XSLT", XMI_XMSO2CSV_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSO2HTM_XSLT", XMI_XMSO2HTM_XSLT, TRUE) == TRUE);
+	g_assert(g_setenv("XMI_XMSA2XMSO_XSLT", XMI_XMSA2XMSO_XSLT, TRUE) == TRUE);
+
 	return 1;
 }
 
@@ -49,7 +58,7 @@ int test_download_file(char *url) {
 	char curlerrors[CURL_ERROR_SIZE];
 
 	gchar *outputfile = g_path_get_basename(url);
-	
+
 	CURL *curl = curl_easy_init();
 
 	if (curl) {
@@ -78,4 +87,51 @@ int test_download_file(char *url) {
 
 	g_free(outputfile);
 	return 1;
+}
+
+struct spe_data * read_spe(const char *filename) {
+	FILE *spePtr = NULL;
+	struct spe_data *rv = NULL;
+	char buffer[1024];
+
+	spePtr = fopen(filename, "r");
+	if (spePtr == NULL) {
+		fprintf(stderr, "Could not open %s for reading\n", filename);
+		return NULL;
+	}
+
+	rv = malloc(sizeof(struct spe_data));
+
+	do {
+		if (fgets(buffer, 1024, spePtr) == NULL) {
+			fprintf(stderr,"An error occurred while reading %s...\nAre you sure this is an SPE file?\n",filename);
+			return NULL;
+		}
+	} while (strstr(buffer,"$DATA:") == NULL);
+
+	fscanf(spePtr,"%u %u",&(rv->channel_first),&(rv->channel_last));
+
+	rv->nchannels = rv->channel_last - rv->channel_first + 1;
+
+	rv->data = malloc(sizeof(double) * rv->nchannels);
+
+	unsigned int i;
+
+	for (i = 0 ; i < rv->nchannels ; i++) {
+    if (fscanf(spePtr, "%lf", rv->data + i) != 1) {
+      fprintf(stderr,"Error reading DATA segment of %s at position %i\n",filename,i);
+      return NULL;
+    }
+  }
+
+	return rv;
+}
+
+void free_spe_data(struct spe_data *sd) {
+	g_assert(sd != NULL);
+	g_assert(sd->data != NULL);
+	free(sd->data);
+	free(sd);
+
+	return;
 }

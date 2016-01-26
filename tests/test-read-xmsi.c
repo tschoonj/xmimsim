@@ -1,11 +1,9 @@
 #include <config.h>
 #include "libxmimsim-test.h"
 #include "xmi_msim.h"
+#include "xmi_aux.h"
 #include <glib.h>
 #include <math.h>
-
-#define TEST_XMSI_URL "http://github.com/tschoonj/xmimsim/wiki/test.xmsi"
-#define TEST_XMSI "test.xmsi"
 
 
 int main(int argc, char *argv[]) {
@@ -60,16 +58,22 @@ int main(int argc, char *argv[]) {
 	g_assert_cmpint(2, ==, input->composition->reference_layer);
 
 	//geometry
+	double n_sample_orientation_ref[3] = {0, 0.707107, 0.707107};
+	xmi_normalize_vector_double(n_sample_orientation_ref, 3);
 	g_assert(fabs(100 - input->geometry->d_sample_source) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_sample_orientation[0]) < 1E-10);
-	g_assert(fabs(0.707107 - input->geometry->n_sample_orientation[1]) < 1E-10);
-	g_assert(fabs(0.707107 - input->geometry->n_sample_orientation[2]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[0] - input->geometry->n_sample_orientation[0]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[1] - input->geometry->n_sample_orientation[1]) < 1E-10);
+	g_assert(fabs(n_sample_orientation_ref[2] - input->geometry->n_sample_orientation[2]) < 1E-10);
+
 	g_assert(fabs(0 - input->geometry->p_detector_window[0]) < 1E-10);
 	g_assert(fabs(-1 - input->geometry->p_detector_window[1]) < 1E-10);
 	g_assert(fabs(100 - input->geometry->p_detector_window[2]) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_detector_orientation[0]) < 1E-10);
-	g_assert(fabs(1 - input->geometry->n_detector_orientation[1]) < 1E-10);
-	g_assert(fabs(0 - input->geometry->n_detector_orientation[2]) < 1E-10);
+
+	double n_detector_orientation_ref[3] = {0, 1, 0};
+	xmi_normalize_vector_double(n_detector_orientation_ref, 3);
+	g_assert(fabs(n_detector_orientation_ref[0] - input->geometry->n_detector_orientation[0]) < 1E-10);
+	g_assert(fabs(n_detector_orientation_ref[1] - input->geometry->n_detector_orientation[1]) < 1E-10);
+	g_assert(fabs(n_detector_orientation_ref[2] - input->geometry->n_detector_orientation[2]) < 1E-10);
 	g_assert(fabs(0.3 - input->geometry->area_detector) < 1E-10);
 	g_assert(fabs(0 - input->geometry->collimator_height) < 1E-10);
 	g_assert(fabs(0 - input->geometry->collimator_diameter) < 1E-10);
@@ -94,7 +98,25 @@ int main(int argc, char *argv[]) {
 	g_assert_cmpint(1, ==, input->absorbers->det_layers[0].n_elements);
 	g_assert_cmpint(4, ==, input->absorbers->det_layers[0].Z[0]);
 	g_assert(fabs(1.0 - input->absorbers->det_layers[0].weight[0]) < 1E-10);
-	g_assert(fabs(1. - input->absorbers->det_layers[0].weight[0]) < 1E-10);
+	g_assert(fabs(1.85 - input->absorbers->det_layers[0].density) < 1E-10);
+	g_assert(fabs(0.002 - input->absorbers->det_layers[0].thickness) < 1E-10);
+
+	//detector
+	g_assert_cmpint(XMI_DETECTOR_SILI, ==, input->detector->detector_type);
+	g_assert(fabs(1. - input->detector->live_time) < 1E-10);
+	g_assert(fabs(1e-05 - input->detector->pulse_width) < 1E-10);
+	g_assert_cmpint(2048, ==, input->detector->nchannels);
+	g_assert(fabs(0.02 - input->detector->gain) < 1E-10);
+	g_assert(fabs(0. - input->detector->zero) < 1E-10);
+	g_assert(fabs(0.12 - input->detector->fano) < 1E-10);
+	g_assert(fabs(0.1 - input->detector->noise) < 1E-10);
+	g_assert_cmpint(1, ==, input->detector->n_crystal_layers);
+	g_assert_cmpint(1, ==, input->detector->crystal_layers[0].n_elements);
+	g_assert_cmpint(14, ==, input->detector->crystal_layers[0].Z[0]);
+	g_assert(fabs(1.0 - input->detector->crystal_layers[0].weight[0]) < 1E-10);
+	g_assert(fabs(2.33 - input->detector->crystal_layers[0].density) < 1E-10);
+	g_assert(fabs(0.5 - input->detector->crystal_layers[0].thickness) < 1E-10);
+
 
 	//make a copy
 	xmi_copy_input(input, &input_copy);

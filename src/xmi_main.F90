@@ -55,7 +55,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts
-        INTEGER (C_INT) :: rv 
+        INTEGER (C_INT) :: rv
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         TYPE (C_PTR), INTENT(INOUT) :: brute_historyPtr, channelsPtr,&
         var_red_historyPtr
@@ -82,7 +82,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         comptons, einsteins,detector_hits2
         REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: initial_mus
         INTEGER (C_INT) :: channel,line
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels 
+        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: brute_historyF
         !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
@@ -96,7 +96,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: theta_i_s, phi_i_s
         INTEGER (C_INT), DIMENSION(:), ALLOCATABLE :: theta_i_hist, phi_i_hist
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
@@ -112,7 +112,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
         TYPE (xmi_ran_trap_workspace) :: workspace
 
-        
+
         CALL SetErrorMessages(0)
 
 
@@ -147,8 +147,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
-        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
-       
+        CALL C_F_POINTER(hdf5FPtr, hdf5F)
+
         IF (options%use_variance_reduction .EQ. 1) THEN
                 !ALLOCATE(solid_angles)
                 solid_angles%grid_dims_r_n = solid_anglesCPtr%grid_dims_r_n
@@ -179,16 +179,16 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
 
-        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory)) 
+        ALLOCATE(brute_history(100,383+2,inputF%general%n_interactions_trajectory))
         brute_history = 0.0_C_DOUBLE
 
         ALLOCATE(channels(0:inputF%general%n_interactions_trajectory,0:inputF%detector%nchannels-1))
         channels = 0.0_C_DOUBLE
 
-        IF (options%use_M_lines .EQ. 1) THEN 
-                line_last = M5P5_LINE 
+        IF (options%use_M_lines .EQ. 1) THEN
+                line_last = M5P5_LINE
                 shell_last = M5_SHELL
-        ELSE 
+        ELSE
                 line_last = L3Q1_LINE
                 shell_last = L3_SHELL
         ENDIF
@@ -214,7 +214,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 inputF%absorbers%det_layers(j)%density*&
                                 inputF%absorbers%det_layers(j)%thickness*&
                                 xmi_mu_calc(inputF%absorbers%det_layers(j),&
-                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))) 
+                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))))
                         ENDDO
                         DO j=1,inputF%detector%n_crystal_layers
                                 det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
@@ -241,7 +241,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 DO l=1,maxz
                         DO m=KL1_LINE,M5P5_LINE,-1
                                precalc_mu_cs(k)%mu(l,ABS(m))=xmi_mu_calc(inputF%composition%layers(k),&
-                               LineEnergies(INT(l,C_INT),ABS(INT(m,C_INT)))) 
+                               LineEnergies(INT(l,C_INT),ABS(INT(m,C_INT))))
                         ENDDO
                 ENDDO
 
@@ -251,7 +251,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !because it's unsure how openmp reduction will work with unallocated
         !variables... just allocate it anyway..
         !IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
-                ALLOCATE(var_red_history(100,383+2,inputF%general%n_interactions_trajectory)) 
+                ALLOCATE(var_red_history(100,383+2,inputF%general%n_interactions_trajectory))
                 var_red_history = 0.0_C_DOUBLE
         !ENDIF
 
@@ -327,7 +327,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
                         IF (options%use_variance_reduction .EQ. 1) THEN
-                                photon%solid_angle => solid_angles 
+                                photon%solid_angle => solid_angles
                                 photon%detector_solid_angle_not_found = 0
                                 photon%var_red_history => var_red_history
                                 photon%channels => channels
@@ -336,7 +336,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%n_interactions=0
                         photon%last_interaction=NO_INTERACTION
                         NULLIFY(photon%offspring)
-                        
+
                         !Calculate energy with rng -> sample from trapezoidal distribution
                         photon%energy = &
                         xmi_ran_trap(rng,workspace)
@@ -381,7 +381,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         !Calculate its weight and electric field...
                         IF (fgsl_rng_uniform(rng) .LE. hor_ver_ratio) THEN
                                 !horizontal
-                                photon%weight = weight 
+                                photon%weight = weight
                                 photon%elecv(1) = 0.0_C_DOUBLE
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -390,7 +390,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #endif
                         ELSE
                                 !vertical
-                                photon%weight = weight 
+                                photon%weight = weight
                                 photon%elecv(1) = 1.0_C_DOUBLE
                                 photon%elecv(2) = 0.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -424,7 +424,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
 
                         photon_temp => photon
-                        photon_eval_cont:DO 
+                        photon_eval_cont:DO
 
                                 photons_simulated = photons_simulated + 1
 
@@ -459,7 +459,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                                         IF (channel .GE. 0 .AND. channel .LT. inputF%detector%nchannels) THEN
 #if DEBUG == 1
-!$omp critical                        
+!$omp critical
                                         WRITE (*,'(A,I)') 'channel:'&
                                         ,channel
                                         WRITE (*,'(A,ES14.4)') &
@@ -494,7 +494,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         ABS(photon_temp%history(k,1)),k) + &
                                                         photon_temp%weight*det_corr_all&
                                                         (element,ABS(photon_temp%history(k,1)))
-                                                         
+
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
                                                         !rayleigh
@@ -525,7 +525,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 ELSE
                                         NULLIFY(photon_temp2)
                                 ENDIF
-                               
+
                                 IF (options%use_variance_reduction&
                                 .EQ. 1) THEN
                                         detector_solid_angle_not_found =&
@@ -605,7 +605,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ALLOCATE(photon)
                         ALLOCATE(photon%history(inputF%general%n_interactions_trajectory,3))
                         IF (options%use_variance_reduction .EQ. 1) THEN
-                                photon%solid_angle => solid_angles 
+                                photon%solid_angle => solid_angles
                                 photon%detector_solid_angle_not_found = 0
                                 photon%var_red_history => var_red_history
                                 photon%channels => channels
@@ -638,7 +638,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 photon%energy)
                         ELSE
                                 !monochromatic case
-                                photon%energy = exc%discrete(i)%energy 
+                                photon%energy = exc%discrete(i)%energy
                                 photon%mus = initial_mus
                         ENDIF
 #if DEBUG == 1
@@ -667,7 +667,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         !Calculate its weight and electric field...
                         IF (j .LE. hor_ver_ratio) THEN
                                 !horizontal
-                                photon%weight = weight 
+                                photon%weight = weight
                                 photon%elecv(1) = 0.0_C_DOUBLE
                                 photon%elecv(2) = 1.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -676,7 +676,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #endif
                         ELSE
                                 !vertical
-                                photon%weight = weight 
+                                photon%weight = weight
                                 photon%elecv(1) = 1.0_C_DOUBLE
                                 photon%elecv(2) = 0.0_C_DOUBLE
                                 photon%elecv(3) = 0.0_C_DOUBLE
@@ -710,7 +710,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDIF
 
                         photon_temp => photon
-                        photon_eval_disc:DO 
+                        photon_eval_disc:DO
 
                                 photons_simulated = photons_simulated + 1
 
@@ -745,7 +745,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                                         IF (channel .GE. 0 .AND. channel .LT. inputF%detector%nchannels) THEN
 #if DEBUG == 1
-!$omp critical                        
+!$omp critical
                                         WRITE (*,'(A,I)') 'channel:'&
                                         ,channel
                                         WRITE (*,'(A,ES14.4)') &
@@ -780,7 +780,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         ABS(photon_temp%history(k,1)),k) + &
                                                         photon_temp%weight*det_corr_all&
                                                         (element,ABS(photon_temp%history(k,1)))
-                                                         
+
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
                                                         !rayleigh
@@ -811,7 +811,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 ELSE
                                         NULLIFY(photon_temp2)
                                 ENDIF
-                               
+
                                 IF (options%use_variance_reduction&
                                 .EQ. 1) THEN
                                         detector_solid_angle_not_found =&
@@ -844,7 +844,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                           ENDIF
                         ENDIF
                 ENDDO photons_disc
-        ENDDO disc 
+        ENDDO disc
 
 #undef exc
  !       ENDASSOCIATE
@@ -898,7 +898,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         inputF%absorbers%det_layers(j)%density*&
                         inputF%absorbers%det_layers(j)%thickness*&
                         xmi_mu_calc(inputF%absorbers%det_layers(j),&
-                        i*inputF%detector%gain+inputF%detector%zero)) 
+                        i*inputF%detector%gain+inputF%detector%zero))
                 ENDDO
                 DO j=1,inputF%detector%n_crystal_layers
                         det_corr = -1.0*det_corr * expm1(-1.0_C_DOUBLE*&
@@ -909,7 +909,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 ENDDO
                 channels(:,i) = channels(:,i)*det_corr
         ENDDO
-        
+
 #if DEBUG == 1
         OPEN(UNIT=500,FILE='rayleigh_theta_hist.txt',STATUS='replace',ACTION='write')
         WRITE (500,'(I5)') 1000
@@ -927,7 +927,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #endif
 
 
-        
+
         !now we can access the history in C using the same indices...
         ALLOCATE(brute_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
         brute_historyF = RESHAPE(brute_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
@@ -941,7 +941,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #if DEBUG == 1
         WRITE (6,'(A,ES14.5)') 'zero_sum:' ,SUM(channels(0,:))
 #endif
-       
+
         IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
                 ALLOCATE(var_red_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
                 var_red_historyF = RESHAPE(var_red_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
@@ -968,7 +968,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 ENDFUNCTION xmi_main_msim
 
 
-SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon) 
+SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_discrete), INTENT(IN) :: energy
@@ -993,9 +993,9 @@ SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
                 CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
         ENDIF
 
-        !photon%dirv(1) = SIN(x1) 
-        !photon%dirv(2) = SIN(y1) 
-        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+        !photon%dirv(1) = SIN(x1)
+        !photon%dirv(2) = SIN(y1)
+        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2)
 
         photon%dirv(1) = TAN(x1)
         photon%dirv(2) = TAN(y1)
@@ -1019,14 +1019,14 @@ SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
 #endif
          !       photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
         !ENDIF
-        
+
         photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
-        
+
         RETURN
 
 ENDSUBROUTINE xmi_coords_dir_disc
 
-SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon) 
+SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_continuous), INTENT(IN) :: energy
@@ -1052,9 +1052,9 @@ SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
                 CALL xmi_coords_gaussian(rng, energy, geometry, photon, x1, y1)
         ENDIF
 
-        !photon%dirv(1) = SIN(x1) 
-        !photon%dirv(2) = SIN(y1) 
-        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2) 
+        !photon%dirv(1) = SIN(x1)
+        !photon%dirv(2) = SIN(y1)
+        !photon%dirv(3) = SQRT(1.0_C_DOUBLE - photon%dirv(1)**2-photon%dirv(2)**2)
 
         photon%dirv(1) = TAN(x1)
         photon%dirv(2) = TAN(y1)
@@ -1078,14 +1078,14 @@ SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
 #endif
         !        photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
         !ENDIF
-        
+
         photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
-        
+
         RETURN
 
 ENDSUBROUTINE xmi_coords_dir_cont
 
-SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1) 
+SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_geometry), INTENT(IN) :: geometry
@@ -1101,15 +1101,15 @@ SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1)
         x1_max = ATAN(geometry%slit_size_x/geometry%d_source_slit/2.0_C_DOUBLE)
         y1_max = ATAN(geometry%slit_size_y/geometry%d_source_slit/2.0_C_DOUBLE)
 
-        x1 = x1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE) 
-        y1 = y1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE) 
+        x1 = x1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
+        y1 = y1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
 
         photon%coords(1:3) = 0.0_C_DOUBLE
 
         RETURN
 ENDSUBROUTINE xmi_coords_point
 
-SUBROUTINE xmi_coords_gaussian_disc(rng, energy, geometry, photon, x1, y1) 
+SUBROUTINE xmi_coords_gaussian_disc(rng, energy, geometry, photon, x1, y1)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_discrete), INTENT(IN) :: energy
@@ -1123,13 +1123,13 @@ SUBROUTINE xmi_coords_gaussian_disc(rng, energy, geometry, photon, x1, y1)
 
         photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
                 geometry%d_source_slit*SIN(x1)
-        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - & 
+        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
                 geometry%d_source_slit*SIN(y1)
         photon%coords(3) = 0.0_C_DOUBLE
 
 ENDSUBROUTINE xmi_coords_gaussian_disc
 
-SUBROUTINE xmi_coords_gaussian_cont(rng, energy, geometry, photon, x1, y1) 
+SUBROUTINE xmi_coords_gaussian_cont(rng, energy, geometry, photon, x1, y1)
         IMPLICIT NONE
         TYPE (fgsl_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_continuous), INTENT(IN) :: energy
@@ -1143,7 +1143,7 @@ SUBROUTINE xmi_coords_gaussian_cont(rng, energy, geometry, photon, x1, y1)
 
         photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
                 geometry%d_source_slit*SIN(x1)
-        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - & 
+        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
                 geometry%d_source_slit*SIN(y1)
         photon%coords(3) = 0.0_C_DOUBLE
 
@@ -1256,7 +1256,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         photon%energy)
                         photon%energy_changed = .FALSE.
                 ENDIF
-        
+
                 IF (DOT_PRODUCT(photon%dirv,inputF%geometry%&
                 n_sample_orientation) .GT. 0.0_C_DOUBLE) THEN
                         !moving towards higher layers
@@ -1264,7 +1264,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         step_do_dir = 1
                 ELSE
                         !moving towards lower layers
-                        step_do_max = 1 
+                        step_do_max = 1
                         step_do_dir = -1
                 ENDIF
 
@@ -1300,7 +1300,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         photon%last_interaction
                                         WRITE (*,'(A,3F12.5)') 'photon%coords: ', photon%coords
                                         WRITE (*,'(A,I2)') 'step_do_dir: ', step_do_dir
-        
+
                                 ENDIF
 #endif
                                 line%point = photon%coords
@@ -1317,7 +1317,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         WRITE (error_unit,'(A)') 'in xmi_simulate_photon'
                                         CALL xmi_exit(1)
                                 ENDIF
-                        
+
                                 dist = xmi_distance_two_points(photon%coords,intersect)
 #if DEBUG == 1
                                 WRITE (6,'(A,F12.6)') 'dist:',dist
@@ -1345,12 +1345,12 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                 photon%mus(i)
                                 tempexp = EXP(temp_prod)
 
-                                min_random_layer = max_random_layer 
+                                min_random_layer = max_random_layer
                                 max_random_layer = max_random_layer - blbs*expm1(temp_prod)
 
                                 !dist here must be total dist: from previous interaction
                                 !until current layer
-                       
+
 #if DEBUG == 1
                                 WRITE (6,'(A,F12.4)') 'tempexp: ',tempexp
                                 WRITE (6,'(A,F12.4)') 'min_random_layer: ',min_random_layer
@@ -1382,7 +1382,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         CALL xmi_move_photon_with_dist(photon,dist)
                                         IF (photon%options%escape_ratios_mode .NE. 1) THEN
                                           rv_check=xmi_check_detector_intersection&
-                                          (inputF,temp_coords,photon%coords) 
+                                          (inputF,temp_coords,photon%coords)
                                           IF (rv_check .EQ.&
                                           XMI_COLLIMATOR_INTERSECTION .OR.&
                                           rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
@@ -1401,14 +1401,14 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         !update current_layer
                                         photon%current_layer = i
                                         photon%inside = .TRUE.
-                                        !exit loop 
+                                        !exit loop
                                         EXIT
                                 ELSE
                                         !goto next layer
                                         !coordinates equal to layer boundaries
                                         IF (photon%options%escape_ratios_mode .NE. 1) THEN
                                           rv_check=xmi_check_detector_intersection&
-                                          (inputF,photon%coords,intersect) 
+                                          (inputF,photon%coords,intersect)
                                           IF (rv_check .EQ.&
                                           XMI_COLLIMATOR_INTERSECTION .OR.&
                                           rv_check.EQ.XMI_DETECTOR_BAD_INTERSECTION) THEN
@@ -1454,7 +1454,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                                         WRITE (error_unit,'(A)') 'in xmi_photon_shift_first_layer'
                                         CALL xmi_exit(1)
                                 ENDIF
-                                
+
                                 distances(i) = xmi_distance_two_points(line%point,intersect)
                                 line%point = intersect
 #if DEBUG == 1
@@ -1481,7 +1481,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
                         negln = -1.0_C_DOUBLE*log1p(-1.0*interactionR*Pabs2)
 
-                        my_index = 0
+                        my_index = photon%current_layer
                         my_sum = 0.0_C_DOUBLE
                         DO i=photon%current_layer,step_do_max, step_do_dir
                                 my_sum = my_sum+photon%mus(i)*inputF%composition%layers(i)%density*distances(i)
@@ -1499,6 +1499,12 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         inputF%composition%n_layers) THEN
                           WRITE(error_unit,'(A)') 'Invalid current_layer detected'
                           WRITE(error_unit,'(A,I3)') 'current_layer: ', my_index
+                          WRITE(error_unit,'(A,I3)') 'n_interactions: ', photon%n_interactions
+                          WRITE(error_unit,'(A,F30.20)') 'negln: ', negln
+                          DO i=photon%current_layer,step_do_max, step_do_dir
+                            WRITE(error_unit,'(A,I3)') 'distances: ', i
+                            WRITE(error_unit,'(F30.20)') distances(i)
+                          ENDDO
                           CALL xmi_exit(1)
                         ENDIF
 
@@ -1546,7 +1552,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 inputF%general%n_interactions_trajectory) THEN
                         EXIT main
                 ENDIF
-                
+
                 photon%n_interactions = photon%n_interactions + 1
 
                 !variance reduction
@@ -1558,7 +1564,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 ENDIF
 
 
- 
+
 
                 !selection of atom type
                 !get a new random number
@@ -1585,7 +1591,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 
                 !selection of interaction type
-                interactionR = fgsl_rng_uniform(rng)                
+                interactionR = fgsl_rng_uniform(rng)
 
 #if DEBUG == 2
                 WRITE (*,'(A,I)') 'random number interactionprob: ',interactionR
@@ -1634,7 +1640,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         !we've got Rayleigh
                         photon%last_interaction = RAYLEIGH_INTERACTION
                         rv_interaction = xmi_simulate_photon_rayleigh(photon,&
-                        inputF, hdf5F, rng) 
+                        inputF, hdf5F, rng)
                 ELSEIF (interactionR .LT. interpolate_simple([&
                         hdf5_Z%&
                         interaction_probs%energies(pos),&
@@ -1645,10 +1651,10 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                         hdf5_Z%&
                         interaction_probs%Rayl_and_Compt(pos+1,2)],&
                         photon%energy)) THEN
-                        !we've got Compton 
+                        !we've got Compton
                         photon%last_interaction = COMPTON_INTERACTION
                         rv_interaction = xmi_simulate_photon_compton(photon,&
-                        inputF, hdf5F, rng) 
+                        inputF, hdf5F, rng)
                 ELSE
                         !we've got photoelectric
 #if DEBUG == 1
@@ -1656,12 +1662,12 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 #endif
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
                         rv_interaction = xmi_simulate_photon_fluorescence(photon,&
-                        inputF, hdf5F, rng) 
+                        inputF, hdf5F, rng)
                 ENDIF
 
                 !abort if necessary
                 IF (rv_interaction /= 1) THEN
-                       EXIT main 
+                       EXIT main
                 ENDIF
 
 #if DEBUG == 1
@@ -1681,8 +1687,8 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 
 #if DEBUG == 2
-                EXIT main       
-#endif  
+                EXIT main
+#endif
 
                 !ENDASSOCIATE
 #undef hdf5_Z
@@ -1701,7 +1707,7 @@ BIND(C,NAME='xmi_init_input_escape_ratios') RESULT(rv)
 
         TYPE (C_PTR) :: inversePtr
         TYPE (xmi_input), POINTER :: inputF
-        REAL (C_DOUBLE) :: distance_sample_detector,half_apex 
+        REAL (C_DOUBLE) :: distance_sample_detector,half_apex
         REAL (C_DOUBLE), ALLOCATABLE, TARGET, DIMENSION(:) :: &
         n_detector_orientation_new_x,&
         n_detector_orientation_new_y, n_detector_orientation_new_z
@@ -1760,7 +1766,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
 
         TYPE (C_PTR) :: inversePtr
         TYPE (xmi_input), POINTER :: inputF
-        REAL (C_DOUBLE) :: distance_sample_detector,half_apex 
+        REAL (C_DOUBLE) :: distance_sample_detector,half_apex
         REAL (C_DOUBLE), ALLOCATABLE, TARGET, DIMENSION(:) :: &
         n_detector_orientation_new_x,&
         n_detector_orientation_new_y, n_detector_orientation_new_z
@@ -1773,7 +1779,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         !geometry normalizations
         CALL normalize_vector(inputF%geometry%n_sample_orientation)
         IF (inputF%geometry%n_sample_orientation(3) .LT. 0.0) THEN
-             inputF%geometry%n_sample_orientation=-1.0*inputF%geometry%n_sample_orientation   
+             inputF%geometry%n_sample_orientation=-1.0*inputF%geometry%n_sample_orientation
         ENDIF
         CALL normalize_vector(inputF%geometry%n_detector_orientation)
 
@@ -1784,11 +1790,11 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         inputF%detector%detector_radius = SQRT(inputF%geometry%area_detector/M_PI)
         !IF (inputF%geometry%acceptance_detector .GE. M_PI) THEN
         !        inputF%detector%collimator_present = .FALSE.
-        !        inputF%detector%collimator_height = 0.0_C_DOUBLE 
+        !        inputF%detector%collimator_height = 0.0_C_DOUBLE
         !ELSE
         !        inputF%detector%collimator_present = .TRUE.
         !        inputF%detector%collimator_height = inputF%detector%detector_radius&
-        !        *2.0_C_DOUBLE/TAN(inputF%geometry%acceptance_detector/2.0_C_DOUBLE) 
+        !        *2.0_C_DOUBLE/TAN(inputF%geometry%acceptance_detector/2.0_C_DOUBLE)
         !ENDIF
 
         !check for presence of collimator
@@ -1827,14 +1833,14 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         IF (ABS(DOT_PRODUCT(inputF%detector%n_detector_orientation_new_x,[1.0,0.0,0.0])) .GT. 1.0E-6) THEN
                 !use y for cross product
                 inputF%detector%n_detector_orientation_new_y = &
-                cross_product([0.0_C_DOUBLE,1.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x) 
+                cross_product([0.0_C_DOUBLE,1.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x)
         ELSE
 #if DEBUG == 1
                 WRITE (*,'(A)') 'This line should appear'
 #endif
                 !use x
                 inputF%detector%n_detector_orientation_new_y = &
-                cross_product([1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x) 
+                cross_product([1.0_C_DOUBLE,0.0_C_DOUBLE,0.0_C_DOUBLE],inputF%detector%n_detector_orientation_new_x)
         ENDIF
         CALL normalize_vector(inputF%detector%n_detector_orientation_new_y)
         inputF%detector%n_detector_orientation_new_z = &
@@ -1865,7 +1871,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         CALL xmi_inverse_matrix(C_LOC(n_detector_orientation_new_x),&
         C_LOC(n_detector_orientation_new_y),&
         C_LOC(n_detector_orientation_new_z), inversePtr)
-        CALL C_F_POINTER(inversePtr, inverse,[3,3]) 
+        CALL C_F_POINTER(inversePtr, inverse,[3,3])
 #if DEBUG == 1
         WRITE (*,'(A)') 'before inverting'
         WRITE (*,'(3(3F12.4,/))') inputF%detector%n_detector_orientation_new(1,:), &
@@ -1881,7 +1887,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         !calculate detector solid angle
         distance_sample_detector =&
         xmi_distance_two_points(inputF%geometry%p_detector_window,&
-        [0.0_C_DOUBLE, 0.0_C_DOUBLE,inputF%geometry%d_sample_source]) 
+        [0.0_C_DOUBLE, 0.0_C_DOUBLE,inputF%geometry%d_sample_source])
         half_apex = &
         ATAN(inputF%detector%detector_radius/distance_sample_detector)
         inputF%detector%detector_solid_angle = &
@@ -1895,7 +1901,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         !calculate n_sample_orientation in detector coordinates
         inputF%detector%n_sample_orientation_det = &
         MATMUL(inputF%detector%n_detector_orientation_inverse, &
-        inputF%geometry%n_sample_orientation) 
+        inputF%geometry%n_sample_orientation)
 
 
 !        ASSOCIATE (layers => inputF%composition%layers, &
@@ -1947,7 +1953,7 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
         TYPE (xmi_line) :: photon_trajectory
         REAL (C_DOUBLE), DIMENSION(3) :: intersect
 
-        !assume 
+        !assume
         rv = .FALSE.
 
         !first thing to check: is the direction of the photon at least the
@@ -1964,7 +1970,7 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
                 photon%coords-inputF%geometry%p_detector_window)
         plane_det_base%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
         plane_det_base%normv = [1.0_C_DOUBLE, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
-       
+
         photon_trajectory%dirv = photon_dirv_det
         photon_trajectory%point = photon_coords_det
 
@@ -1983,7 +1989,7 @@ FUNCTION xmi_check_photon_detector_hit(photon, inputF) RESULT(rv)
                 rv = .TRUE.
                 RETURN
         ENDIF
-        
+
         !there is a collimator...
         plane_det_base%point = [inputF%geometry%collimator_height, 0.0_C_DOUBLE, 0.0_C_DOUBLE]
 
@@ -2048,7 +2054,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         hdf5_Z%Energies, &
         hdf5_Z%RandomNumbers, &
         photon%energy,&
-        r, pos_1, pos_2) 
+        r, pos_1, pos_2)
 
 #if DEBUG == 2
         WRITE (*,'(A,F12.6)') 'theta_i: ',theta_i
@@ -2065,7 +2071,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         phi_i = bilinear_interpolation(hdf5F%Phi_ICDF, &
                 hdf5F%Thetas, hdf5F%RandomNumbers,&
                 theta_temp, fgsl_rng_uniform(rng), pos_1, pos_2)
-        
+
 #if DEBUG == 2
         WRITE (*,'(A,F12.6)') 'phi_i: ',phi_i
 #endif
@@ -2105,7 +2111,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !update history
         photon%history(photon%n_interactions,1) = RAYLEIGH_INTERACTION
-        photon%history(photon%n_interactions,2) = photon%current_element 
+        photon%history(photon%n_interactions,2) = photon%current_element
 
 
 
@@ -2132,7 +2138,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         REAL (C_DOUBLE) :: costheta, sintheta, sinphi, cosphi
         REAL (C_DOUBLE) :: pp, rat, rk, w_h
         REAL (C_DOUBLE) :: theta_temp, K0K
-       
+
         rv = 0
         pos_1 = 0
         pos_2 = 0
@@ -2147,12 +2153,12 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         hdf5_Z%ComptonTheta_ICDF, &
         hdf5_Z%Energies, &
         hdf5_Z%RandomNumbers, &
-        photon%energy,fgsl_rng_uniform(rng), pos_1, pos_2) 
+        photon%energy,fgsl_rng_uniform(rng), pos_1, pos_2)
 
         K0K = 1.0_C_DOUBLE + photon%energy * (1.0_C_DOUBLE - COS(theta_i))/XMI_MEC2
         theta_temp = (SIN(theta_i))**2
         theta_temp = theta_temp/(K0K+(1.0_C_DOUBLE/K0K)-theta_temp)/2.0_C_DOUBLE
-        
+
 
         !reset position variables
         pos_1 = 0
@@ -2205,7 +2211,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
                 rng, inputF, hdf5f)
 
         ENDIF
-        
+
         IF (photon%energy .EQ. 0.0_C_DOUBLE) THEN
                 rv = 1
                 RETURN
@@ -2241,7 +2247,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
 
         !update history
         photon%history(photon%n_interactions,1) = COMPTON_INTERACTION
-        photon%history(photon%n_interactions,2) = photon%current_element 
+        photon%history(photon%n_interactions,2) = photon%current_element
 
 !        ENDASSOCIATE
 #undef hdf5_Z
@@ -2263,7 +2269,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (fgsl_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv,trans
 
-        REAL (C_DOUBLE) :: photo_total 
+        REAL (C_DOUBLE) :: photo_total
         REAL (C_DOUBLE) :: sumz
         INTEGER (C_INT) :: shell,line_first, line_last, line, shell_new
         REAL (C_DOUBLE) :: r
@@ -2372,7 +2378,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         photon%energy_changed = .FALSE.
         DO i=1,inputF%composition%n_layers
                 photon%mus(i) = &
-                photon%precalc_mu_cs(i)%mu(photon%current_element,ABS(line)) 
+                photon%precalc_mu_cs(i)%mu(photon%current_element,ABS(line))
         ENDDO
 
         !calculate theta and phi
@@ -2414,8 +2420,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         CALL xmi_update_photon_elecv(photon)
 
         !update history
-        photon%history(photon%n_interactions,1) = line 
-        photon%history(photon%n_interactions,2) = photon%current_element 
+        photon%history(photon%n_interactions,1) = line
+        photon%history(photon%n_interactions,2) = photon%current_element
         photon%history(photon%n_interactions,3) = hdf5F%uniqZ(photon%current_element)
 
         IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
@@ -2442,7 +2448,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                                 CASE DEFAULT
                                         shell_new = -1_C_INT
                         ENDSELECT
-                        
+
 
 
                 ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
@@ -2480,7 +2486,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
                                         shell_new = M5_SHELL
                                 CASE DEFAULT
                                         shell_new = -1_C_INT
-                        ENDSELECT 
+                        ENDSELECT
                 ELSE
                         !nothing to do... probably an M-line
                         shell_new = -1_C_INT
@@ -2551,7 +2557,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         ELSE
                 RETURN
         ENDIF
-                
+
 
         r = fgsl_rng_uniform(rng)
 
@@ -4550,7 +4556,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
 
                 !leave if energy is too low
                 IF (photon%energy .LE. energy_threshold) THEN
-                        photon%energy = 0.0_C_DOUBLE 
+                        photon%energy = 0.0_C_DOUBLE
                 ELSE
                         photon%energy_changed = .FALSE.
                         photon%mus = xmi_mu_calc(inputF%composition,photon%energy)
@@ -4570,7 +4576,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%elecv(1) = COS(r)
                         photon%elecv(2) = SIN(r)
-                        photon%elecv(3) = 0.0_C_DOUBLE 
+                        photon%elecv(3) = 0.0_C_DOUBLE
                         photon%last_interaction = PHOTOELECTRIC_INTERACTION
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
@@ -4653,7 +4659,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%offspring%elecv(1) = COS(r)
                         photon%offspring%elecv(2) = SIN(r)
-                        photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+                        photon%offspring%elecv(3) = 0.0_C_DOUBLE
                         photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
                         photon%offspring%LineEnergies => photon%LineEnergies
                         cosalfa = DOT_PRODUCT(photon%offspring%elecv, photon%offspring%dirv)
@@ -4697,7 +4703,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         INTEGER (C_INT) :: line_new
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
-        
+
         !
         !
         !       Calculate the cascade based on radiative transitions
@@ -4713,7 +4719,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         !
         !
 
-        
+
         IF (shell_new .LT. K_SHELL .OR. shell_new .GT. M5_SHELL) RETURN
         !exit if an M shell was found while not allowed
         IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&
@@ -4736,7 +4742,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
 
         !leave if energy is too low
         IF (energy .LE. energy_threshold) RETURN
-        
+
         !create offspring
         ALLOCATE(photon%offspring)
         !take over its history!
@@ -4779,7 +4785,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
         photon%offspring%elecv(1) = COS(r)
         photon%offspring%elecv(2) = SIN(r)
-        photon%offspring%elecv(3) = 0.0_C_DOUBLE 
+        photon%offspring%elecv(3) = 0.0_C_DOUBLE
         photon%offspring%last_interaction = PHOTOELECTRIC_INTERACTION
         photon%offspring%current_element = photon%current_element
         photon%offspring%current_element_index = photon%current_element_index
@@ -4815,7 +4821,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_radiative
 
-SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F, shell) 
+SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F, shell)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
@@ -4833,7 +4839,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
 #if DEBUG == 0
         !WRITE (*,'(A,I3)') 'element: ',photon%current_element
 #endif
- 
+
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
         ALLOCATE(cdfs(SIZE(hdf5_Z%compton_profiles%shell_indices)))
         ALLOCATE(electron_config(SIZE(hdf5_Z%compton_profiles%shell_indices)))
@@ -4849,13 +4855,13 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
                         cdfs(i) = 0.0_C_DOUBLE
                 ELSEIF (Qimax .GT. 100.0) THEN
                         !value too high
-                        !WRITE (error_unit, '(A,F14.5)') 'Invalid Qimax: ', Qimax 
+                        !WRITE (error_unit, '(A,F14.5)') 'Invalid Qimax: ', Qimax
                         !WRITE (error_unit, '(A,F14.5)') 'Energy: ',&
-                        !photon%energy 
+                        !photon%energy
                         !WRITE (error_unit, '(A,I3)') 'Element: ',&
-                        !photon%current_element 
+                        !photon%current_element
                         !WRITE (error_unit, '(A,I3)') 'Shell index: ',&
-                        !hdf5_Z%compton_profiles%shell_indices(i) 
+                        !hdf5_Z%compton_profiles%shell_indices(i)
                         !WRITE (error_unit, '(A,F14.5)') 'Theta: ',&
                         !theta_i
                         !CALL xmi_exit(1)
@@ -4911,9 +4917,9 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
                 IF (r .LE. temp_sum) THEN
                         shell = hdf5_Z%compton_profiles%shell_indices(i)
 #if DEBUG == 1
-        WRITE (*,'(A,I3)') 'selected shell: ',shell 
+        WRITE (*,'(A,I3)') 'selected shell: ',shell
 #endif
-                        EXIT 
+                        EXIT
                 ENDIF
                 i = i + 1
         ENDDO
@@ -5015,7 +5021,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
         RETURN
 ENDSUBROUTINE xmi_update_photon_energy_compton
 
-SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F) 
+SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
@@ -5035,11 +5041,11 @@ SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F
 !        ASSOCIATE (hdf5_Z => inputF%composition%layers&
 !                (photon%current_layer)%xmi_hdf5_Z_local&
 !                (photon%current_element_index)%Ptr)
- 
+
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(photon%current_element_index)%Ptr
 
         !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
-        
+
         !convert to eV
         energy = photon%energy*1000.0_C_DOUBLE
         c_lamb0 = c/(energy)
@@ -5051,7 +5057,7 @@ SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F
                 pos = INT(r/(hdf5_Z%compton_profiles%&
                 random_numbers(2)-&
                 hdf5_Z%compton_profiles%&
-                random_numbers(1)))+1 
+                random_numbers(1)))+1
                 pz = interpolate_simple([&
                 hdf5_Z%compton_profiles%&
                 random_numbers(pos),&
@@ -5126,36 +5132,36 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
          ELSE
                  phi_i_new = phi_i
          ENDIF
- 
- 
- 
+
+
+
          cosphi_i = COS(photon%phi)
          sinphi_i = SIN(photon%phi)
          costheta_i = COS(photon%theta)
          sintheta_i = SIN(photon%theta)
- 
+
          trans_m(1,1) = costheta_i*cosphi_i
          trans_m(1,2) = -sinphi_i
          trans_m(1,3) = sintheta_i*cosphi_i
- 
+
          trans_m(2,1) = costheta_i*sinphi_i
          trans_m(2,2) = cosphi_i
          trans_m(2,3) = sintheta_i*sinphi_i
- 
+
          trans_m(3,1) = -sintheta_i
          trans_m(3,2) = 0.0_C_DOUBLE
          trans_m(3,3) = costheta_i
- 
+
          tempsin = SIN(theta_i)
          dirv = [tempsin*COS(phi_i_new), tempsin*SIN(phi_i_new),COS(theta_i)]
-         
+
          photon%dirv = MATMUL(trans_m,dirv)
- 
+
          CALL normalize_vector(photon%dirv)
- 
+
          !update theta and phi in photon
          photon%theta = ACOS(photon%dirv(3))
- 
+
          !IF (photon%dirv(1) .EQ. 0.0_C_DOUBLE) THEN
          !        !watch out... if photon%dirv(2) EQ 0.0 then result may be
          !        !processor dependent...
@@ -5163,7 +5169,7 @@ SUBROUTINE xmi_update_photon_dirv(photon, theta_i, phi_i)
          !ELSE
          !        photon%phi = ATAN(photon%dirv(2)/photon%dirv(1))
          !ENDIF
- 
+
          photon%phi = ATAN2(photon%dirv(2),photon%dirv(1))
 
          IF (photon%phi .GT. 2.0_C_DOUBLE*M_PI) THEN
@@ -5186,7 +5192,7 @@ SUBROUTINE xmi_update_photon_elecv(photon)
 #endif
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-       
+
         REAL (C_DOUBLE) :: cosalfa, c_alfa, sinalfa,c_ae, c_be
 
 #if DEBUG == 1
@@ -5240,7 +5246,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                                         sumz = sumz+CosKronTransProb(&
                                         element, trans)
                                         IF (r .LT. sumz) THEN
-                                                trans_found = .TRUE.           
+                                                trans_found = .TRUE.
                                                 EXIT
                                         ENDIF
                                 ENDDO
@@ -5277,7 +5283,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                                         sumz = sumz+CosKronTransProb(&
                                         element, trans)
                                         IF (r .LT. sumz) THEN
-                                                trans_found = .TRUE.           
+                                                trans_found = .TRUE.
                                                 EXIT
                                         ENDIF
                                 ENDDO
@@ -5299,7 +5305,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                                         sumz = sumz+CosKronTransProb(&
                                         element, trans)
                                         IF (r .LT. sumz) THEN
-                                                trans_found = .TRUE.           
+                                                trans_found = .TRUE.
                                                 EXIT
                                         ENDIF
                                 ENDDO
@@ -5324,7 +5330,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                                         sumz = sumz+CosKronTransProb(&
                                         element, trans)
                                         IF (r .LT. sumz) THEN
-                                                trans_found = .TRUE.           
+                                                trans_found = .TRUE.
                                                 EXIT
                                         ENDIF
                                 ENDDO
@@ -5415,19 +5421,19 @@ FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_r
                 line_first = L3M1_LINE
                 line_last = L3Q1_LINE
         ELSEIF (shell .EQ. M1_SHELL) THEN
-                line_first = M1N1_LINE 
+                line_first = M1N1_LINE
                 line_last = M1P5_LINE
         ELSEIF (shell .EQ. M2_SHELL) THEN
-                line_first = M2N1_LINE 
+                line_first = M2N1_LINE
                 line_last = M2P5_LINE
         ELSEIF (shell .EQ. M3_SHELL) THEN
-                line_first = M3N1_LINE 
+                line_first = M3N1_LINE
                 line_last = M3Q1_LINE
         ELSEIF (shell .EQ. M4_SHELL) THEN
-                line_first = M4N1_LINE 
+                line_first = M4N1_LINE
                 line_last = M4P5_LINE
         ELSEIF (shell .EQ. M5_SHELL) THEN
-                line_first = M5N1_LINE 
+                line_first = M5N1_LINE
                 line_last = M5P5_LINE
         ENDIF
 
@@ -5483,7 +5489,7 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
         detector_point(3) = SIN(theta)*radius
 
         !WRITE (*,'(A,F12.5)') 'radius: ', norm(detector_point)
-        detector_point = MATMUL(inputF%detector%n_detector_orientation_new,detector_point)+inputF%geometry%p_detector_window        
+        detector_point = MATMUL(inputF%detector%n_detector_orientation_new,detector_point)+inputF%geometry%p_detector_window
 
 #if DEBUG == 1
 !        WRITE (*,'(A,3F12.5)') 'detector_point: ',detector_point
@@ -5546,14 +5552,14 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         TYPE (xmi_energy_discrete) :: energy_disc
         TYPE (xmi_energy_continuous) :: energy_cont
         REAL (C_DOUBLE) :: cosalfa, c_alfa, c_ae, c_be
-        INTEGER (C_INT64_T) :: n_photons_sim,n_photons_tot 
+        INTEGER (C_INT64_T) :: n_photons_sim,n_photons_tot
         INTEGER (C_INT) :: progress_percentage
 
         progress_percentage = 1
 
         !associate c pointers
         CALL C_F_POINTER(inputFPtr, inputF)
-        CALL C_F_POINTER(hdf5FPtr, hdf5F) 
+        CALL C_F_POINTER(hdf5FPtr, hdf5F)
 
         ALLOCATE(input_energies(ero%n_input_energies))
         ALLOCATE(compton_escape_output_energies(ero%n_compton_output_energies))
@@ -5567,7 +5573,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 ero%compton_output_energy_min+i*ero%compton_output_energy_delta
         ENDDO
 
-        ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs))) 
+        ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs)))
         Z = hdf5F%xmi_hdf5_Zs(:)%Z
         ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),ero%n_input_energies))
         ALLOCATE(compton_escape_ratios(ero%n_input_energies,&
@@ -5671,7 +5677,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         NULLIFY(photon%offspring)
                         NULLIFY(photon%LineEnergies)
                         !Calculate energy with rng
-                        photon%energy = input_energies(i) 
+                        photon%energy = input_energies(i)
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         photon%mus = initial_mus
@@ -5684,13 +5690,13 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
                         CALL xmi_coords_dir(rng,energy_disc, inputF%geometry,&
                         photon)
-                
+
                         photon%weight = 1.0
                         photon%weight_escape = photon%weight
                         theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
                         photon%elecv(1) = COS(theta_elecv)
                         photon%elecv(2) = SIN(theta_elecv)
-                        photon%elecv(3) = 0.0_C_DOUBLE 
+                        photon%elecv(3) = 0.0_C_DOUBLE
 
                         cosalfa = DOT_PRODUCT(photon%elecv, photon%dirv)
 
@@ -5728,10 +5734,10 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                 SELECT CASE (photon%last_interaction)
                                         CASE (RAYLEIGH_INTERACTION)
                                                 photons_rayleigh = &
-                                                photons_rayleigh + photon%weight 
+                                                photons_rayleigh + photon%weight
                                         CASE (COMPTON_INTERACTION)
                                                 photons_compton = &
-                                                photons_compton + photon%weight  
+                                                photons_compton + photon%weight
                                                 compton_index=INT((photon%energy-&
                                                 ero%compton_output_energy_min)&
                                                 /ero%compton_output_energy_delta)+1
@@ -5743,7 +5749,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                                                 photon%weight
                                         CASE (PHOTOELECTRIC_INTERACTION)
                                                 photons_einstein= &
-                                                photons_einstein + photon%weight  
+                                                photons_einstein + photon%weight
                                                 k=photon%n_interactions
                                                 element =&
                                                 inputF%composition%layers&

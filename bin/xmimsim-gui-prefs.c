@@ -484,6 +484,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
 	g_key_file_set_boolean(keyfile, "Ebel last used", "Logarithmic plot", FALSE);
 	g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", 100.0);
+	g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", 1.0);
 	g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", FALSE);
 	g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
 	gchar **nuclides = GetRadioNuclideDataList(NULL);
@@ -1160,6 +1161,16 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_free(unit);
 			}
 
+			prefs->xnp->nuclide_solid_angle = g_key_file_get_double(keyfile, "Radionuclide last used", "Solid angle", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr, "Radionuclide last used Solid angle not found in preferences file\n");
+				g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", 1.0);
+				prefs->xnp->nuclide_solid_angle = 1.0;
+				error = NULL;
+				update_file = TRUE;
+			}
+
 			nuclides = GetRadioNuclideDataList(&nNuclides);
 			nuclide = g_key_file_get_string(keyfile, "Radionuclide last used", "Radionuclide", &error);
 			if (error != NULL) {
@@ -1335,6 +1346,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			break;
 		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
 			g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", prefs.xnp->activity);
+			g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", prefs.xnp->nuclide_solid_angle);
 			g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", prefs.xnp->log10_active);
 			g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[prefs.xnp->activityUnit]);
 			nuclides = GetRadioNuclideDataList(&nNuclides);

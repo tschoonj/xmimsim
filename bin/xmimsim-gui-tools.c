@@ -540,7 +540,8 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 				convoluted_file,
 				NULL,
 				/*struct xmi_layer *collimator*/ NULL,
-				options
+				options,
+				0.0
 				) == 0) {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,

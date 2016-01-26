@@ -83,6 +83,7 @@ struct generate {
 	GtkWidget *radioNuclideW;
 	GtkWidget *activityW;
 	GtkWidget *activityUnitW;
+	GtkWidget *nuclideSolidAngleW;
 };
 
 static struct xmi_nuclide_parameters *get_nuclide_parameters(struct generate *gen) {
@@ -99,6 +100,14 @@ static struct xmi_nuclide_parameters *get_nuclide_parameters(struct generate *ge
 		g_free(xnp);
 		return NULL;
 	}
+	text = gtk_entry_get_text(GTK_ENTRY(gen->nuclideSolidAngleW));
+	xnp->nuclide_solid_angle = strtod(text, NULL);	
+	if (xnp->nuclide_solid_angle <= 0.0 || xnp->nuclide_solid_angle > 4.0*M_PI) {
+		g_fprintf(stderr, "Warning: invalid solid angle in get_nuclide_parameters\n");
+		g_free(xnp);
+		return NULL;
+	}
+
 	return xnp;
 }
 
@@ -599,7 +608,7 @@ static void info_button_clicked_cb(GtkWidget *button, struct generate *gen) {
 		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Radionuclide");
 		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), 
 		"The X-ray and gamma spectra of the provided radionuclides "
-		"has been obtained using the <a href='http://github.com/tschoonj/xraylib/wiki/The-xraylib-API-list-of-all-functions'>xraylib API</a> for radionuclides. "
+		"have been obtained using the <a href='http://github.com/tschoonj/xraylib/wiki/The-xraylib-API-list-of-all-functions'>xraylib API</a> for radionuclides. "
 		"Follow the references in the xraylib documentation in "
 		"order to find the origin of the datasets."
 		);
@@ -981,6 +990,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	gchar *text;
 	gchar *endPtr;
 	double activity;
+	double nuclide_solid_angle_fraction = 1.0/(4.0*M_PI);
 	GtkWidget *dialog;
 	int activityUnit, radioNuclide;
 
@@ -992,6 +1002,17 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		gtk_widget_destroy(dialog);
 		return;
 	}
+
+	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->nuclideSolidAngleW));
+	nuclide_solid_angle_fraction *= strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || nuclide_solid_angle_fraction <= 0.0 || nuclide_solid_angle_fraction > 1.0) {
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid solid angle: must be greater than zero and less or equal to 4π");		
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	activity *= nuclide_solid_angle_fraction;
 
 	activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW)); 
 
@@ -1553,6 +1574,20 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_end(GTK_BOX(hbox), activityW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(lilVBox), hbox, FALSE, FALSE, 2);
 
+	GtkWidget *nuclideSolidAngleW = gtk_entry_new();
+	hbox = gtk_hbox_new(FALSE, 3);
+	label = gtk_label_new("Source solid angle (sr)");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
+	GtkWidget *slitsButton2 = gtk_button_new_with_label("Get from slits");
+	gtk_box_pack_end(GTK_BOX(hbox), slitsButton2, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), nuclideSolidAngleW, FALSE, FALSE, 2);
+	g_signal_connect(G_OBJECT(slitsButton2), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) nuclideSolidAngleW);
+	gtk_box_pack_start(GTK_BOX(lilVBox), hbox, TRUE, FALSE, 2);
+
+	sprintf(buf, "%g", xnp->nuclide_solid_angle);
+	gtk_entry_set_text(GTK_ENTRY(nuclideSolidAngleW), buf);
+
+
 	gtk_box_pack_start(GTK_BOX(mainVBox), lilVBox, TRUE, FALSE, 2);
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
@@ -1612,6 +1647,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 
 	gen->radioNuclideW = radioNuclideW;
+	gen->nuclideSolidAngleW = nuclideSolidAngleW;
 	gen->activityW = activityW;
 	gen->activityUnitW = activityUnitW;
 	gen->linear_nuclideW = linearW;

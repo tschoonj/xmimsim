@@ -69,7 +69,7 @@ struct xmi_geometry {
 enum {
 	XMI_DISCRETE_MONOCHROMATIC,
 	XMI_DISCRETE_GAUSSIAN,
-	XMI_DISCRETE_LORENTZIAN,
+	XMI_DISCRETE_LORENTZIAN
 };
 
 
@@ -164,6 +164,7 @@ struct xmi_fluorescence_line_counts {
 };
 
 struct xmi_output {
+	float version;
 	char *inputfile;
 	struct xmi_input *input;
 	struct xmi_fluorescence_line_counts *brute_force_history;
@@ -177,6 +178,7 @@ struct xmi_output {
 };
 
 struct xmi_archive {
+	float version;
 	double start_value1;
 	double end_value1;
 	int nsteps1;
@@ -213,6 +215,12 @@ void xmi_free_input(struct xmi_input *);
 
 //returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
+
+//returns 0 when identical, returns 1 if not identical
+int xmi_compare_output(struct xmi_output *A, struct xmi_output *B);
+
+//returns 0 when identical, returns 1 if not identical
+int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B);
 
 //returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
 int xmi_validate_input(struct xmi_input *);

@@ -4245,7 +4245,7 @@ static gboolean dialog_helper_cb(gpointer data) {
 GtkWidget *long_job_dialog(GtkWidget *parent, gchar *message_with_markup) {
 	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(parent));
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
@@ -5227,7 +5227,9 @@ XMI_MAIN
 	//based on http://www.gtkforums.com/viewtopic.php?t=7654
 	static GtkStockItem stock_items[] = {
 		{XMI_STOCK_RADIATION_WARNING, "X-ray sources", 0, 0, NULL},
-		{XMI_STOCK_LOGO, "XMI-MSIM", 0, 0, NULL}
+		{XMI_STOCK_LOGO, "XMSI file", 0, 0, NULL},
+		{XMI_STOCK_LOGO_RED, "XMSO file", 0, 0, NULL},
+		{XMI_STOCK_LOGO_ARCHIVE, "XMSA file", 0, 0, NULL}
 	};
 	gtk_stock_add_static (stock_items, G_N_ELEMENTS (stock_items));
 
@@ -5238,38 +5240,34 @@ XMI_MAIN
 
 #ifdef G_OS_WIN32
 	GdkPixbuf *pixbuf;
-	pixbuf = gdk_pixbuf_from_pixdata(&Radiation_warning_symbol_pixbuf, TRUE, NULL);
-	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
-	g_object_unref(pixbuf);
-	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
-	gtk_icon_set_unref (iconset);
+#define ADD_ICON(name_macro, name_pixbuf) pixbuf = gdk_pixbuf_from_pixdata(&name_pixbuf, TRUE, NULL);\
+					  iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+					  g_object_unref(pixbuf); \
+					  gtk_icon_factory_add (factory, name_macro, iconset);\
+					  gtk_icon_set_unref (iconset)
+		
 
-	pixbuf = gdk_pixbuf_from_pixdata(&Logo_xmi_msim_pixbuf, TRUE, NULL);
-	iconset = gtk_icon_set_new_from_pixbuf(pixbuf);
-	g_object_unref(pixbuf);
-	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
-	gtk_icon_set_unref (iconset);
-
+	ADD_ICON(XMI_STOCK_RADIATION_WARNING, Radiation_warning_symbol_pixbuf);
+	ADD_ICON(XMI_STOCK_LOGO, Logo_xmi_msim_pixbuf); 
+	ADD_ICON(XMI_STOCK_LOGO_RED, Logo_xmi_msim_red_pixbuf);
+	ADD_ICON(XMI_STOCK_LOGO_ARCHIVE, Logo_xmi_msim_archive_pixbuf);
+	
+#undef ADD_ICON
 #else
-	source = gtk_icon_source_new ();
-	gtk_icon_source_set_icon_name (source, XMI_STOCK_RADIATION_WARNING);
+#define ADD_ICON(name) source = gtk_icon_source_new (); \
+			gtk_icon_source_set_icon_name (source, name); \
+			iconset = gtk_icon_set_new (); \
+			gtk_icon_set_add_source (iconset, source);\
+			gtk_icon_source_free (source);\
+			gtk_icon_factory_add (factory, name, iconset);\
+			gtk_icon_set_unref (iconset)
 
-	iconset = gtk_icon_set_new ();
-	gtk_icon_set_add_source (iconset, source);
-	gtk_icon_source_free (source);
+	ADD_ICON(XMI_STOCK_RADIATION_WARNING);
+	ADD_ICON(XMI_STOCK_LOGO);
+	ADD_ICON(XMI_STOCK_LOGO_RED);
+	ADD_ICON(XMI_STOCK_LOGO_ARCHIVE);
 
-	gtk_icon_factory_add (factory, XMI_STOCK_RADIATION_WARNING, iconset);
-	gtk_icon_set_unref (iconset);
-
-	source = gtk_icon_source_new ();
-	gtk_icon_source_set_icon_name (source, XMI_STOCK_LOGO);
-
-	iconset = gtk_icon_set_new ();
-	gtk_icon_set_add_source (iconset, source);
-	gtk_icon_source_free (source);
-
-	gtk_icon_factory_add (factory, XMI_STOCK_LOGO, iconset);
-	gtk_icon_set_unref (iconset);
+#undef ADD_ICON
 #endif
 
 	gtk_window_set_default_icon_name(XMI_STOCK_LOGO);
@@ -5377,16 +5375,16 @@ XMI_MAIN
 	gtk_menu_shell_append(GTK_MENU_SHELL(toolsmenu), batchmodeW);
 
 	convertmenuXMSI = gtk_menu_new();
-	xmsi2xrmcW = gtk_menu_item_new_with_label("XRMC input-files");
+	xmsi2xrmcW = gtk_menu_item_new_with_label("to XRMC input-files");
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSI), xmsi2xrmcW);
 	g_signal_connect(G_OBJECT(xmsi2xrmcW), "activate", G_CALLBACK(xmimsim_gui_xmsi2xrmc), (gpointer) window);
 
 	convertmenuXMSO = gtk_menu_new();
-	xmso2xmsiW = gtk_menu_item_new_with_label("XMSI");
-	xmso2csvW = gtk_menu_item_new_with_label("CSV");
-	xmso2svgW = gtk_menu_item_new_with_label("SVG");
-	xmso2htmlW = gtk_menu_item_new_with_label("HTML");
-	xmso2speW = gtk_menu_item_new_with_label("SPE");
+	xmso2xmsiW = gtk_menu_item_new_with_label("to XMSI");
+	xmso2csvW = gtk_menu_item_new_with_label("to CSV");
+	xmso2svgW = gtk_menu_item_new_with_label("to SVG");
+	xmso2htmlW = gtk_menu_item_new_with_label("to HTML");
+	xmso2speW = gtk_menu_item_new_with_label("to SPE");
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2xmsiW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2csvW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSO), xmso2svgW);
@@ -5400,15 +5398,15 @@ XMI_MAIN
 
 
 	convertmenuXMSA = gtk_menu_new();
-	xmsa2xmsoW = gtk_menu_item_new_with_label("XMSO");
+	xmsa2xmsoW = gtk_menu_item_new_with_label("to XMSO");
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenuXMSA), xmsa2xmsoW);
 	g_signal_connect(G_OBJECT(xmsa2xmsoW), "activate", G_CALLBACK(xmimsim_gui_xmsa2xmso), (gpointer) window);
 
 
 	convertmenu = gtk_menu_new();
-	convertXMSIW = gtk_menu_item_new_with_label("XMSI to");
-	convertXMSOW = gtk_menu_item_new_with_label("XMSO to");
-	convertXMSAW = gtk_menu_item_new_with_label("XMSA to");
+	convertXMSIW = gtk_image_menu_item_new_from_stock(XMI_STOCK_LOGO, NULL);
+	convertXMSOW = gtk_image_menu_item_new_from_stock(XMI_STOCK_LOGO_RED, NULL);
+	convertXMSAW = gtk_image_menu_item_new_from_stock(XMI_STOCK_LOGO_ARCHIVE, NULL);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSIW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSOW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(convertmenu), convertXMSAW);

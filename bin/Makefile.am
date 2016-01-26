@@ -18,7 +18,7 @@
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin
 if ENABLE_MAC_APP
-AM_LDFLAGS = -headerpad_max_install_names
+AM_LDFLAGS = -headerpad_max_install_names -framework Cocoa
 endif
 
 bin_PROGRAMS =  xmimsim \
@@ -278,6 +278,8 @@ xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
 	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
 	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
+	"Logo_xmi_msim_red_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_red.png" \
+	"Logo_xmi_msim_archive_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_archive.png" \
 	> xmimsim-gui-icons.h
 
 else

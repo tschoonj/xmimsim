@@ -170,14 +170,14 @@ int already_running(void) {
 }
 
 void sigterm(int signo) {
-	syslog(LOG_INFO, "got SIGTERM; exiting");
+	syslog(LOG_INFO, "got signal %i: exiting", signo);
 	if (xmi_end_random_acquisition_dev() != 1) {
 		syslog(LOG_ERR,"xmi_end_random_acquisition_dev error");
-		exit(1);
+		_exit(1);
 	}
 	unlink(LOCKFILE);
 	unlink(FIFOMASTER);
-	exit(0);
+	_exit(0);
 }
 
 void sighup(int signo) {
@@ -188,10 +188,9 @@ void sighup(int signo) {
 int main (int argc, char *argv[]) {
 	char *cmd;
 	struct sigaction sa;
-	int fifofd,fifofd2;
+	int fifofd;
 	long int pidslave[3];
 //	char fifoslave[512];
-	int i;
 	struct harvester *sh;
 	pthread_t *ht;
 	pthread_attr_t ha;
@@ -230,11 +229,27 @@ int main (int argc, char *argv[]) {
 	}
 
 	sa.sa_handler = sigterm;
-	sigemptyset(&sa.sa_mask);
-	sigaddset(&sa.sa_mask, SIGTERM);
+	sigfillset(&sa.sa_mask);
+	//sigaddset(&sa.sa_mask, SIGTERM);
 	sa.sa_flags=0;
 	if (sigaction(SIGTERM, &sa, NULL) < 0) {
 		syslog(LOG_ERR, "can't catch SIGTERM: %s", strerror(errno));
+		exit(1);
+	}
+	if (sigaction(SIGSEGV, &sa, NULL) < 0) {
+		syslog(LOG_ERR, "can't catch SIGSEGV: %s", strerror(errno));
+		exit(1);
+	}
+	if (sigaction(SIGBUS, &sa, NULL) < 0) {
+		syslog(LOG_ERR, "can't catch SIGBUS: %s", strerror(errno));
+		exit(1);
+	}
+	if (sigaction(SIGILL, &sa, NULL) < 0) {
+		syslog(LOG_ERR, "can't catch SIGILL: %s", strerror(errno));
+		exit(1);
+	}
+	if (sigaction(SIGQUIT, &sa, NULL) < 0) {
+		syslog(LOG_ERR, "can't catch SIGQUIT: %s", strerror(errno));
 		exit(1);
 	}
 

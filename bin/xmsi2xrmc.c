@@ -40,22 +40,24 @@ XMI_MAIN
 	static gchar *detector_file = NULL;
 	static gchar *convoluted_file = NULL;
 	static gchar *unconvoluted_file = NULL;
+	static double rotate_angle_z = 0.0;
 
 	static GOptionEntry entries[] = {
-		{"input-file",0,0,G_OPTION_ARG_FILENAME,&input_file, "Path to XRMC input file",NULL},
-		{"composition-file",0,0,G_OPTION_ARG_FILENAME,&composition_file, "Path to XRMC composition file",NULL},
-		{"source-file",0,0,G_OPTION_ARG_FILENAME,&source_file, "Path to XRMC source file",NULL},
-		{"sample-file",0,0,G_OPTION_ARG_FILENAME,&sample_file, "Path to XRMC sample file",NULL},
-		{"spectrum-file",0,0,G_OPTION_ARG_FILENAME,&spectrum_file, "Path to XRMC spectrum file",NULL},
-		{"geom3d-file",0,0,G_OPTION_ARG_FILENAME,&geom3d_file, "Path to XRMC geom3d file",NULL},
-		{"quadric-file",0,0,G_OPTION_ARG_FILENAME,&quadric_file, "Path to XRMC quadric file",NULL},
-		{"detector-file",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Path to XRMC detector file",NULL},
-		{"convoluted-file",0,0,G_OPTION_ARG_FILENAME,&convoluted_file, "Path to XRMC convoluted spectra output",NULL},
-		{"unconvoluted-file",0,0,G_OPTION_ARG_FILENAME,&unconvoluted_file, "Path to XRMC unconvoluted spectra output",NULL},
-		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
+		{"input-file",0,0,G_OPTION_ARG_FILENAME,&input_file, "Path to XRMC input file", "FILE"},
+		{"composition-file",0,0,G_OPTION_ARG_FILENAME,&composition_file, "Path to XRMC composition file", "FILE"},
+		{"source-file",0,0,G_OPTION_ARG_FILENAME,&source_file, "Path to XRMC source file", "FILE"},
+		{"sample-file",0,0,G_OPTION_ARG_FILENAME,&sample_file, "Path to XRMC sample file", "FILE"},
+		{"spectrum-file",0,0,G_OPTION_ARG_FILENAME,&spectrum_file, "Path to XRMC spectrum file", "FILE"},
+		{"geom3d-file",0,0,G_OPTION_ARG_FILENAME,&geom3d_file, "Path to XRMC geom3d file", "FILE"},
+		{"quadric-file",0,0,G_OPTION_ARG_FILENAME,&quadric_file, "Path to XRMC quadric file", "FILE"},
+		{"detector-file",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Path to XRMC detector file", "FILE"},
+		{"convoluted-file",0,0,G_OPTION_ARG_FILENAME,&convoluted_file, "Path to XRMC convoluted spectra output", "FILE"},
+		{"unconvoluted-file",0,0,G_OPTION_ARG_FILENAME,&unconvoluted_file, "Path to XRMC unconvoluted spectra output", "FILE"},
+		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL},
 		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
 		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
 		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
+		{"rotate-angle-z", 0, 0, G_OPTION_ARG_DOUBLE, &rotate_angle_z, "Rotate all objects, source and detector around XRMC's Z-axis by ANGLE degrees", "ANGLE"},
 		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
 		{NULL}
 	};
@@ -146,7 +148,8 @@ XMI_MAIN
 				convoluted_file,
 				unconvoluted_file,
 				/*struct xmi_layer *collimator*/ NULL,
-				options
+				options,
+				rotate_angle_z
 				) == 0)
 		return 1;
 

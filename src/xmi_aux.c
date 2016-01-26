@@ -536,6 +536,15 @@ void xmi_free(void *ptr) {
 	free(ptr);
 }
 
+void *xmi_malloc(size_t size) {
+	return malloc(size);
+}
+
+void *xmi_realloc(void *ptr, size_t size){
+	return xmi_realloc(ptr, size);
+}
+
+
 #if LIBXML_VERSION < 20901
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
