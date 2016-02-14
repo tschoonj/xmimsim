@@ -13,6 +13,8 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_detector
 
 
@@ -28,7 +30,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         IMPLICIT NONE
         TYPE (xmi_input), POINTER, INTENT(IN) :: inputF
         REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT) :: channels
-        
+
         REAL (C_DOUBLE) :: Nt
         INTEGER (C_LONG) :: Nt_long
         INTEGER (C_INT) :: nchannels
@@ -72,11 +74,15 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         n_sum_counts = 0
 
         !prepare discrete distribution
+#ifdef HAVE_GSL2
+        preproc = &
+        fgsl_ran_discrete_preproc(channels)
+#else
         preproc = &
         fgsl_ran_discrete_preproc(INT(nchannels,KIND=fgsl_size_t),channels)
+#endif
 
-
-        max_threads = 1 
+        max_threads = 1
         ALLOCATE(seeds(max_threads))
 
 
@@ -97,15 +103,15 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         CALL fgsl_rng_set(rng,seeds(1))
 
         !i=1,Nt_long/max_threads
-       
+
         npulses = 0_C_LONG
         npulses_all = 0_C_LONG
 
-        gardner:DO 
-                !get pulse        
+        gardner:DO
+                !get pulse
                 npulses = npulses+1
                 npulses_all = npulses_all+1
-       
+
                 IF (npulses .GT. 100) THEN
                         WRITE (error_unit,'(A)') 'pulsetrain maximum reached'
                         WRITE (error_unit,'(A)') 'Adjust pulsewidth value or'
@@ -158,7 +164,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                 ENDIF
         ENDDO gardner
 
-        CALL fgsl_rng_free(rng) 
+        CALL fgsl_rng_free(rng)
 
 
      !bug in fgsl -> fixed it in 1.0.0
@@ -188,9 +194,9 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all')
 
         INTEGER (C_INT) :: i, start_index
 
-        IF (zero_inter .EQ. 1_C_INT) THEN 
-                start_index = 1 
-        ELSE 
+        IF (zero_inter .EQ. 1_C_INT) THEN
+                start_index = 1
+        ELSE
                 start_index = 2
         ENDIF
 
@@ -203,7 +209,7 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all')
 !$omp num_threads(options%omp_num_threads)
         DO i=start_index, n_interactions_all+1
                CALL xmi_detector_convolute(inputFPtr, channels_noconv(i),&
-               channels_conv(i), options, escape_ratiosCPtr, i-1) 
+               channels_conv(i), options, escape_ratiosCPtr, i-1)
         ENDDO
 !$omp end parallel do
 
@@ -219,7 +225,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions
 
-        TYPE (xmi_escape_ratios) :: escape_ratios 
+        TYPE (xmi_escape_ratios) :: escape_ratios
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
         channels_temp
@@ -230,7 +236,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         REAL (C_DOUBLE) :: a,b
         REAL (C_DOUBLE), PARAMETER :: c =&
         SQRT(2.0_C_DOUBLE)/(2.0_C_DOUBLE*SQRT(2.0_C_DOUBLE*LOG(2.0_C_DOUBLE)))
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R
         INTEGER (C_INT) :: I0, I
         REAL (C_DOUBLE) :: E0, E, B0, FWHM, A0, A3, A4, ALFA, X, G, F, my_sum,&
         CBG
@@ -249,21 +255,21 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         escape_ratios%n_compton_input_energies = escape_ratiosCPtr%n_compton_input_energies
         escape_ratios%n_compton_output_energies = escape_ratiosCPtr%n_compton_output_energies
         CALL C_F_POINTER(escape_ratiosCPtr%Z,&
-        escape_ratios%Z,[escape_ratios%n_elements]) 
+        escape_ratios%Z,[escape_ratios%n_elements])
         CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_ratios,&
         escape_ratios%fluo_escape_ratios,[escape_ratios%n_elements,ABS(L3P3_LINE),&
-        escape_ratios%n_fluo_input_energies]) 
+        escape_ratios%n_fluo_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_input_energies,&
-        escape_ratios%fluo_escape_input_energies,[escape_ratios%n_fluo_input_energies]) 
+        escape_ratios%fluo_escape_input_energies,[escape_ratios%n_fluo_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_ratios,&
         escape_ratios%compton_escape_ratios,[escape_ratios%n_compton_input_energies,&
-        escape_ratios%n_compton_output_energies]) 
+        escape_ratios%n_compton_output_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_input_energies,&
-        escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies]) 
+        escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_output_energies,&
-        escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies]) 
+        escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies])
         ENDIF
-        
+
 
         !allocate memory for results
         ALLOCATE(channels_temp(0:inputF%detector%nchannels-1))
@@ -296,9 +302,9 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
 
-        
+
         IF (options%use_escape_peaks == 1_C_INT) THEN
-                
+
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Calculating escape peaks after interactions: '&
@@ -377,16 +383,16 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                                 !let's avoid some NaN's
                                 R(I) = A0*G
                         ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SILI) THEN
-                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F
                         ELSEIF (inputF%detector%detector_type .EQ. XMI_DETECTOR_SI_SDD) THEN
-                                R(I)= A0*G+1.0_C_DOUBLE*(0.63_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                                R(I)= A0*G+1.0_C_DOUBLE*(0.63_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F
                         ELSE
-                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F       
+                                R(I)= A0*G+1.0_C_DOUBLE*(2.7_C_DOUBLE*A3+15.0_C_DOUBLE*A4*EXP(ALFA*(E-E0)))*F
                         ENDIF
 #if DEBUG == 1
                         IF (I .EQ. 150 .AND. I0 .EQ. 100) THEN
-                                WRITE (*,'(A,F14.5)') 'R(I): ',R(I) 
-                                WRITE (*,'(A,F14.5)') 'F: ',F 
+                                WRITE (*,'(A,F14.5)') 'R(I): ',R(I)
+                                WRITE (*,'(A,F14.5)') 'F: ',F
                         ENDIF
 #endif
                         my_sum = my_sum + R(I)
@@ -427,7 +433,7 @@ ENDSUBROUTINE xmi_detector_convolute
 
 SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
         IMPLICIT NONE
-        TYPE (xmi_escape_ratios), INTENT(IN) :: escape_ratios 
+        TYPE (xmi_escape_ratios), INTENT(IN) :: escape_ratios
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), INTENT(INOUT),DIMENSION(:), POINTER :: channels_conv
 
@@ -467,7 +473,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 THEN
                                 !interpolate
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
-                                channel_e)   
+                                channel_e)
                                 IF (pos .LT. 1) THEN
                                 CYCLE
                                 ENDIF
@@ -506,7 +512,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 THEN
                                 !interpolate
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
-                                channel_e)   
+                                channel_e)
                                 IF (pos .LT. 1) THEN
                                 CYCLE
                                 ENDIF
@@ -532,7 +538,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
                                 ENDIF
-                                
+
                         ENDDO
                         ENDIF
                         IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L2_SHELL)) THEN
@@ -546,7 +552,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 THEN
                                 !interpolate
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
-                                channel_e)   
+                                channel_e)
                                 IF (pos .LT. 1) THEN
                                 CYCLE
                                 ENDIF
@@ -572,7 +578,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
                                 ENDIF
-                                
+
                         ENDDO
                         ENDIF
                         IF  (channel_e .GT. EdgeEnergy(escape_ratios%Z(j),L3_SHELL)) THEN
@@ -586,7 +592,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 THEN
                                 !interpolate
                                 pos=findpos(escape_ratios%fluo_escape_input_energies,&
-                                channel_e)   
+                                channel_e)
                                 IF (pos .LT. 1) THEN
                                 CYCLE
                                 ENDIF
@@ -612,7 +618,7 @@ SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
                                 channels_conv(escape_i)+ratio*channels_conv(i)
                                 ENDIF
                                 ENDIF
-                                
+
                         ENDDO
                         ENDIF
 
@@ -681,7 +687,7 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
                 esc_rat = 0.5_C_DOUBLE*(1.0_C_DOUBLE -&
                 mu_si/mu_e*LOG(1.0_C_DOUBLE + mu_e/mu_si))
                 esc_rat = const*esc_rat/(1.0_C_DOUBLE-const*esc_rat)
-                
+
                 i_esc_ka = &
                 INT((e-E_Si_Ka-inputF%detector%zero)/inputF%detector%gain)
                 i_esc_kb = &
@@ -737,7 +743,7 @@ SUBROUTINE xmi_detector_poisson(channels)
                 ENDIF
         ENDDO
 
-        CALL fgsl_rng_free(rng) 
+        CALL fgsl_rng_free(rng)
 
 ENDSUBROUTINE xmi_detector_poisson
 
