@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_ENERGIES_H
 #define XMIMSIM_GUI_ENERGIES_H
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window); 
+GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window);
 
 extern struct xmi_energy_discrete *energy_disc;
 extern struct xmi_energy_continuous *energy_cont;
@@ -50,7 +50,7 @@ enum {
 	SCALE_PARAMETER_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
-void update_button_text(GtkWidget *button, gchar *text);
+void update_button_text(GtkWidget *button, const gchar *text);
 
 
 

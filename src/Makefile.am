@@ -52,14 +52,14 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
 			 xmi_random_dev.c \
-			 xmi_random_dev.h 
+			 xmi_random_dev.h
 else
 libxmimsim_la_SOURCES += xmi_random_win.c \
 			 xmi_registry_win.c
 endif
 
 if ENABLE_MAC_APP
-libxmimsim_la_SOURCES += xmi_resources_mac.c 
+libxmimsim_la_SOURCES += xmi_resources_mac.c
 endif
 
 libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
@@ -68,9 +68,9 @@ libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			@glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@GTK_MAC_CFLAGS@ \
-		 	@gtk3extra_CFLAGS@ \
+		 	@gtk2_CFLAGS@ \
 			@JsonGlib_CFLAGS@ \
-		      	@libcurl_CFLAGS@ \
+		  @libcurl_CFLAGS@ \
 			@gmodule_CFLAGS@ \
 			@OPENMP_CFLAGS@ \
 			-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
@@ -111,7 +111,7 @@ xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
 endif
 
 if OS_WINDOWS
-libxmimsim_la_FCFLAGS += -DXMI_WINDOWS 
+libxmimsim_la_FCFLAGS += -DXMI_WINDOWS
 endif
 if ENABLE_MAC_APP
 libxmimsim_la_CFLAGS += -xobjective-c

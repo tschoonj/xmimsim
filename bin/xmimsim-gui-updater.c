@@ -14,11 +14,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include <config.h>
+#include "xmimsim-gui.h"
 #include "xmimsim-gui-updater.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-prefs.h"
-#include "xmimsim-gui.h"
 #include "xmi_aux.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
@@ -82,7 +83,6 @@ static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer 
 	GtkTextIter iter, start;
 	va_list args;
 	GtkTextTag *tag;
-	GtkTextMark *insert_mark;
 	gint start_offset;
 
 	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
@@ -99,10 +99,8 @@ static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer 
 
 	if (first_tag == NULL) {
 		gtk_text_buffer_get_end_iter(buffer, &iter);
-		insert_mark = gtk_text_buffer_get_insert(buffer);
+		gtk_text_buffer_get_insert(buffer);
 		gtk_text_buffer_place_cursor(buffer,&iter);
-        	//gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	        //insert_mark, 0.0, FALSE, 0, 1.0);
 		return;
 	}
 
@@ -115,14 +113,10 @@ static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer 
 		tag = va_arg(args, GtkTextTag*);
 	}
 	va_end(args);
-	
-	gtk_text_buffer_get_end_iter(buffer, &iter);
-	insert_mark = gtk_text_buffer_get_insert(buffer);
-	gtk_text_buffer_place_cursor(buffer,&iter);
-       	//gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	//        insert_mark, 0.0, FALSE, 0, 1.0);
 
-	
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_get_insert(buffer);
+	gtk_text_buffer_place_cursor(buffer,&iter);
 
 	return;
 }
@@ -148,13 +142,13 @@ static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *win
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
-     
-	mem->memory = realloc(mem->memory, mem->size + realsize + 1);
-		        
+
+	mem->memory = (char *) realloc(mem->memory, mem->size + realsize + 1);
+
 	memcpy(&(mem->memory[mem->size]), contents, realsize);
 	mem->size += realsize;
 	mem->memory[mem->size] = 0;
-			       
+
 	return realsize;
 }
 
@@ -163,7 +157,7 @@ static size_t WriteData(void *ptr, size_t size, size_t nmemb, struct DownloadVar
 	size_t written;
 	written = fwrite(ptr, size, nmemb, dv->fp);
 	if (dv->md5sum_comp != NULL) {
-		g_checksum_update(dv->md5sum_comp, ptr, size*nmemb);
+		g_checksum_update(dv->md5sum_comp, (const guchar *) ptr, size*nmemb);
 	}
 	return written;
 
@@ -183,7 +177,7 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	gchar *file = g_strdup_printf("file://%s",dv->download_location);
 	CFURLRef url = CFURLCreateWithBytes (
       	NULL,
-      	(UInt8*)file, 
+      	(UInt8*)file,
       	strlen(file),
       	kCFStringEncodingUTF8,
       	NULL
@@ -191,7 +185,7 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
   	LSOpenCFURLRef(url,NULL);
   	CFRelease(url);
 
-	quit_program_cb(g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));	
+	quit_program_cb(g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));
 #elif defined(G_OS_WIN32)
 	ShellExecute(NULL, "runas", dv->download_location, NULL, NULL, SW_SHOWNORMAL);
 #endif
@@ -201,7 +195,6 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	FILE *fp;
 	CURLcode res;
-	char curlerrors[CURL_ERROR_SIZE];
 
 	dv->started=TRUE;
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
@@ -220,25 +213,26 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		fprintf(stderr,"Get preferences error\n");
 		return;
 	}
-	
-	int i;
+
+	unsigned int i;
 	int rv;
 	for (i = 0 ; i < g_strv_length(prefs.ss) ; i++) {
 		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i],dv->filename);
 		curl_easy_setopt(dv->curl, CURLOPT_URL,url);
 		fprintf(stdout,"Trying url %s\n",url);
-		
+
 		fp = fopen(dv->download_location, "wb");
 		dv->fp = fp;
 		if (fp == NULL) {
 			fprintf(stderr,"download_updates: Could not open %s for writing\n",dv->download_location);
 			//set buttons ok
-		
+
 
 			return;
 		}
 
 		res = curl_easy_perform(dv->curl);
+		gchar *buffer = NULL;
 
 		switch (res) {
 		case CURLE_OK:
@@ -254,7 +248,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 				gtk_label_set_text(GTK_LABEL(dv->label),"Checksum error.\nTry again at a later time.");
 				rv = 0;
 				g_checksum_free(dv->md5sum_comp);
-				break;	
+				break;
 			}
 			else if (dv->md5sum_comp != NULL) {
 				g_checksum_free(dv->md5sum_comp);
@@ -262,7 +256,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
-			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
+			buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
 			gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
@@ -282,7 +276,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			fprintf(stdout,"curl_easy_perform error code: %i\n", res);
 			fclose(fp);
 			unlink(dv->download_location);
-			rv = -1;		
+			rv = -1;
 
 		}
 		if (rv == 1 || rv == 0)
@@ -309,10 +303,10 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	while(gtk_events_pending())
 	    gtk_main_iteration();
 	curl_easy_cleanup(dv->curl);
-	
+
 
 	return;
-} 
+}
 
 
 
@@ -327,7 +321,7 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 	if (!json_object_has_member(object,"ref")) {
 		return;
 	}
-	
+
 	const gchar *ref_string = json_object_get_string_member(object, "ref");
 
 	//discard old tag...
@@ -343,7 +337,7 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 		JsonObject *urlObject = json_object_get_object_member(object, "object");
 		jld->url = g_strdup(json_object_get_string_member(urlObject, "url"));
 	}
-		
+
 	return;
 }
 
@@ -351,7 +345,7 @@ static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double u
 	struct DownloadVars *dv = (struct DownloadVars *) dvvoid;
 	if (dv->started == FALSE)
 		return -1;
-	
+
 
 	if (dltotal < 1000)
 		return 0;
@@ -366,7 +360,7 @@ static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double u
 		while(gtk_events_pending())
 		    gtk_main_iteration();
 	}
-	
+
 
 
 
@@ -384,7 +378,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	CURLcode res;
 	struct MemoryStruct chunk;
 
-	chunk.memory = malloc(1);
+	chunk.memory = (char *) malloc(1);
 	chunk.size = 0;
 
 	fprintf(stdout,"checking for updates...\n");
@@ -394,7 +388,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	if (!curl) {
 		fprintf(stderr,"Could not initialize cURL\n");
 		return XMIMSIM_UPDATES_ERROR;
-	} 
+	}
 
 	curl_easy_setopt(curl, CURLOPT_URL,XMIMSIM_GITHUB_TAGS_LOCATION);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -429,7 +423,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	JsonArray *rootArray = json_node_get_array(rootNode);
 	char *max_version = g_strdup(PACKAGE_VERSION);
 	char *current_version = g_strdup(max_version);
-	struct json_loop_data *jld = g_malloc(sizeof(struct json_loop_data));
+	struct json_loop_data *jld = (struct json_loop_data *) g_malloc(sizeof(struct json_loop_data));
 	jld->max_version = max_version;
 	jld->url = NULL;
 	json_array_foreach_element(rootArray, (JsonArrayForeach) check_version_of_tag, jld);
@@ -440,7 +434,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 		rv = XMIMSIM_UPDATES_AVAILABLE;
 		//get tag message
 		g_object_unref(parser);
-		chunk.memory = malloc(1);
+		chunk.memory = (char *) malloc(1);
 		chunk.size = 0;
 		curl_easy_setopt(curl, CURLOPT_URL, jld->url);
 		res = curl_easy_perform(curl);
@@ -460,7 +454,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 		if (!json_object_has_member(object,"message")) {
 			return XMIMSIM_UPDATES_ERROR;
 		}
-	
+
 		*message = g_strdup(json_object_get_string_member(object, "message"));
 		free(chunk.memory);
 
@@ -469,7 +463,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 		rv = XMIMSIM_UPDATES_NONE;
 	}
 
-	*max_version_rv = strdup(g_strstrip(jld->max_version));	
+	*max_version_rv = strdup(g_strstrip(jld->max_version));
 	//g_fprintf(stdout, "tag url: %s\n", jld->url);
 	g_free(jld->max_version);
 	g_free(jld->url);
@@ -489,14 +483,9 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	//should only be called when there is actually a new version available...
 	//so call check_for_updates before
-	
-	GError *error = NULL;
-	JsonParser *parser;
+
 	char curlerrors[CURL_ERROR_SIZE];
-
-
 	CURL *curl;
-	CURLcode res;
 
 #ifdef MAC_INTEGRATION
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
@@ -508,7 +497,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	//spawn dialog
 	//write your own code for this
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
-		window != NULL ? GTK_DIALOG_MODAL : 0, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,NULL);
+		window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,NULL);
 
 
 	struct DownloadVars dv;
@@ -548,7 +537,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	gchar **splitted = g_strsplit_set(message, "\n", -1);
 	my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[0], -1, tag, NULL);
-	
+
 	for (i = 1 ; splitted[i] != NULL ; i++) {
 		if (g_ascii_strncasecmp(splitted[i], "Changes", strlen("Changes")) == 0 ||
 		   g_ascii_strncasecmp(splitted[i], "Bugfixes", strlen("Bugfixes")) == 0 ||
@@ -582,7 +571,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new(window != NULL ? GTK_WINDOW(window): NULL,
-			window != NULL ? GTK_DIALOG_MODAL : 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+			window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 		exit(1);
@@ -591,7 +580,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), window);
 
 
-	
+
 	//signal
 
 
@@ -603,14 +592,14 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	dv.progressbar = progressbar;
 	dv.button = button;
 	dv.update_dialog = update_dialog;
-	
+
 	dv.downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), &dv);
-	
+
 	curl = curl_easy_init();
 	if (!curl) {
 		fprintf(stderr,"Could not initialize cURL\n");
 		return 0;
-	} 
+	}
 	dv.curl = curl;
 	//construct filename -> platform dependent!!!
 	gchar *filename;
@@ -624,7 +613,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
 	NSString *documentsDirectory = [paths objectAtIndex:0];
 	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
-	
+
 #elif defined(G_OS_WIN32)
 	//Win 32
 #ifdef _WIN64
@@ -636,12 +625,12 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 #endif
 
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-	
+
 #else
 	//Linux??
 	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-	
+
 #endif
 
 	strcpy(dv.md5sum_tag, "none");
@@ -687,16 +676,16 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	if (result == GTK_RESPONSE_QUIT) {
 		//quit XMI-MSIM
-		rv = 1;	
+		rv = 1;
 	}
 	else
 		rv = 0;
-	
+
 	gtk_widget_destroy(update_dialog);
 #ifdef MAC_INTEGRATION
 	[pool drain];
 #endif
-	
+
 
 	return rv;
 }
@@ -706,7 +695,7 @@ gboolean xmimsim_gui_check_download_url(gchar *download_url) {
 	CURL *curl;
 	gchar *url;
 	CURLcode res;
-	
+
 
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
@@ -724,12 +713,12 @@ gboolean xmimsim_gui_check_download_url(gchar *download_url) {
 	//Linux??
 	url = g_strdup_printf("%s/xmimsim-%s.tar.gz", download_url, VERSION);
 #endif
-	
+
 	curl = curl_easy_init();
 	if (!curl) {
 		g_free(url);
 		return FALSE;
-	} 
+	}
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);

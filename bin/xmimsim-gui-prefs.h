@@ -19,8 +19,6 @@
 #ifndef XMIMSIM_GUI_PREFS_H
 #define XMIMSIM_GUI_PREFS_H
 
-#include <config.h>
-#include <glib.h>
 #include <gtk/gtk.h>
 #include "xmimsim-gui-sources.h"
 
@@ -74,9 +72,9 @@ union xmimsim_prefs_val{
 
 //user defined layers manipulation
 gchar **xmimsim_gui_get_user_defined_layer_names(void);
-struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name);
-int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name);
-int xmimsim_gui_remove_user_defined_layer(gchar *layer_name);
+struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name);
+int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name);
+int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name);
 
 
 

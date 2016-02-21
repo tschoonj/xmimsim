@@ -56,11 +56,11 @@ int xmimsim_notifications_init(void) {
 }
 
 
-int xmimsim_notifications_deliver(char *title, char *text) {
+int xmimsim_notifications_deliver(const char *title, const char *text) {
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	union xmimsim_prefs_val xpv;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
-		//abort 
+		//abort
 		return 0;
 	}
 	if (xpv.b == FALSE) {
@@ -90,7 +90,7 @@ int xmimsim_notifications_deliver(char *title, char *text) {
 		GError *error = NULL;
 		if(!notify_notification_show(notification, &error)) {
 			g_fprintf(stderr,"notification show error message: %s\n", error->message);
-			g_error_free(error); 	
+			g_error_free(error);
 		}
 		g_object_unref(G_OBJECT(notification));
 	}
@@ -111,4 +111,3 @@ int xmimsim_notifications_close(void) {
 #endif
 	return 1;
 }
-

@@ -97,7 +97,7 @@ if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
 
-xmimsim_gui_CFLAGS = @gtk3extra_CFLAGS@ \
+xmimsim_gui_CFLAGS = \
 		     @gtk2_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
@@ -109,9 +109,13 @@ xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
 		      @libcurl_CFLAGS@
 endif
 
+if ENABLE_CXX
+xmimsim_gui_CFLAGS += -xc++
+endif
+
+
 xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    libxmimsim-gui-spline.la \
-		    @gtk3extra_LIBS@ \
 		    @gtk2_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
@@ -122,25 +126,28 @@ if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
 endif
+
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
-xmimsim_gui_SOURCES += xmimsim-icon.rc 
+xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 nodist_xmimsim_gui_SOURCES = xmimsim-gui-icons.h
 xmimsim_gui_CFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
 
-if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c
 #next line is necessary to avoid the -xobjective-c flag to be passed to the linker
 xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-else
-xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_LDFLAGS) $(LDFLAGS) $(xmimsim_gui_CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) \
 	$(xmimsim_gui_LDFLAGS) -o $@
+
+if ENABLE_MAC_APP
+xmimsim_gui_CFLAGS += -xobjective-c
+#else
+#xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+#	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+#	$(AM_LDFLAGS) $(LDFLAGS) $(xmimsim_gui_CFLAGS) \
+#	$(xmimsim_gui_LDFLAGS) -o $@
 endif
 
 #xmimsim_test_SOURCES = xmimsim-test.c
@@ -157,7 +164,7 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
-		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
@@ -178,7 +185,7 @@ xmimsim_cli_LDADD = $(xmimsim_LDADD)
 xmimsim_cli_LDFLAGS = @OPENMPI_LDFLAGS@
 
 xmimsim_conv_SOURCES = xmimsim-conv.c
-xmimsim_conv_CFLAGS = $(xmimsim_CFLAGS) 
+xmimsim_conv_CFLAGS = $(xmimsim_CFLAGS)
 xmimsim_conv_LDADD = $(xmimsim_LDADD)
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
@@ -191,7 +198,7 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
-		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" 
+		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 
 xmsi2xrmc_SOURCES = xmsi2xrmc.c
 xmsi2xrmc_LDADD = ../src/libxmimsim.la \
@@ -199,7 +206,7 @@ xmsi2xrmc_LDADD = ../src/libxmimsim.la \
 		  @glib2_LIBS@
 xmsi2xrmc_CFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@ 
+		   @xraylib_CFLAGS@
 
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
@@ -208,7 +215,7 @@ xmso2xmsi_LDADD = ../src/libxmimsim.la \
 		  @glib2_LIBS@
 xmso2xmsi_CFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@ 
+		   @xraylib_CFLAGS@
 
 xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la \
@@ -216,7 +223,7 @@ xmso2svg_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmso2svg_CFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		  @xraylib_CFLAGS@
 
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \
@@ -224,7 +231,7 @@ xmso2spe_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmso2spe_CFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		  @xraylib_CFLAGS@
 
 xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la \
@@ -232,7 +239,7 @@ xmso2csv_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmso2csv_CFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		  @xraylib_CFLAGS@
 
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la \
@@ -240,7 +247,7 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmso2htm_CFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ 
+		  @xraylib_CFLAGS@
 
 xmimsim_db_SOURCES = xmimsim-db.c
 xmimsim_db_LDADD = ../src/libxmimsim.la \
@@ -248,24 +255,24 @@ xmimsim_db_LDADD = ../src/libxmimsim.la \
 		 @glib2_LIBS@
 xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
-		    @xraylib_CFLAGS@ 
-		
+		    @xraylib_CFLAGS@
+
 xmsa2xmso_SOURCES = xmsa2xmso.c
 xmsa2xmso_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmsa2xmso_CFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@ 
+		   @xraylib_CFLAGS@
 
 #xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
-#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la
 
 #xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
-#xmimsim_test_boone1_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_boone1_LDADD = ../src/libxmimsim.la
 
 #xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
-#xmimsim_test_boone2_LDADD = ../src/libxmimsim.la 
+#xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
 
 if OS_WINDOWS
@@ -275,7 +282,7 @@ xmimsim-icon.o: xmimsim-icon.rc
 	-DXMIMSIM_WIN_ICO_XMSI=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSI.ico\" \
 	-DXMIMSIM_WIN_ICO_XMSO=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSO.ico\" \
 	-DXMIMSIM_WIN_ICO_XMSA=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSA.ico\" \
-	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o	
+	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o
 
 
 xmimsim-gui.c: xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
@@ -293,7 +300,7 @@ xmimsim-gui.c: xmimsim-gui-coordinate-system.h
 endif
 
 xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
-	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
+	$(GDK_PIXBUF_CSOURCE) --stream --build-list \
 	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
 	> xmimsim-gui-coordinate-system.h
 
@@ -302,6 +309,3 @@ clean-local:
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5
-
-
-

@@ -15,10 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtk/gtk.h> 
 
 #ifndef XMIMSIM_GUI_CONTROLS_H
 #define XMIMSIM_GUI_CONTROLS_H
+
+#include <gtk/gtk.h>
 
 struct xmi_options {
 	char *executable;
@@ -66,7 +67,7 @@ extern GtkWidget *stopButton;
 #elif defined(G_OS_WIN32)
 	#define GPID_INACTIVE ((GPid) NULL)
 #endif
-	
+
 extern GPid xmimsim_pid;
 
 void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);

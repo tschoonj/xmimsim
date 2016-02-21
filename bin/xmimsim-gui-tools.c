@@ -15,8 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "xmimsim-gui-tools.h"
+#include <config.h>
 #include "xmimsim-gui.h"
+#include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-prefs.h"
 #include <string.h>
 #include "xmi_xslt.h"
@@ -49,15 +50,15 @@ struct xmi_tools {
 struct xmsa_to_xmso_data {
 	gchar *xmsafile;
 	gchar *xmsofile;
-	int step1;	
-	int step2;	
+	int step1;
+	int step2;
 };
 
 static gpointer xmsa_to_xmso_thread(struct xmsa_to_xmso_data *xtxd) {
 	return GINT_TO_POINTER(xmi_xmsa_to_xmso_xslt(xtxd->xmsafile, xtxd->xmsofile, xtxd->step1, xtxd->step2));
 }
 static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
-	
+
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
@@ -86,7 +87,7 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 }
 static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
-	
+
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
@@ -130,7 +131,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner),output->ninteractions);
 		//free everything
 		xmi_free_output(output);
-	
+
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free(filename);
 	}
@@ -138,7 +139,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 }
 static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
-	
+
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
@@ -184,7 +185,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		while(gtk_events_pending())
 			gtk_main_iteration();
 
-		struct read_xmsa_data *rxd = g_malloc(sizeof(struct read_xmsa_data));	
+		struct read_xmsa_data *rxd = (struct read_xmsa_data *) g_malloc(sizeof(struct read_xmsa_data));
 		rxd->filename = filename;
 		rxd->archive = &archive;
 #if GLIB_CHECK_VERSION (2, 32, 0)
@@ -221,7 +222,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		gchar *label_text = g_strdup_printf("XPath1: %s", archive->xpath1);
 		gtk_label_set_text(GTK_LABEL(xt->label1), label_text);
 		g_free(label_text);
-	
+
 		if (archive->xpath2) {
 			gtk_widget_set_sensitive(xt->spinner2, TRUE);
 			GtkObject *adj = gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0);
@@ -237,11 +238,11 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 		gtk_widget_set_sensitive(xt->button1, TRUE);
 		gtk_widget_set_sensitive(xt->button2, TRUE);
-	
+
 		//free everything
 		xmi_free_archive(archive);
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-	
+
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
@@ -277,7 +278,7 @@ static void xmsi_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -312,7 +313,7 @@ static void xmso_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -348,7 +349,7 @@ static void csv_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -384,7 +385,7 @@ static void html_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -420,7 +421,7 @@ static void svg_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -444,7 +445,7 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	);
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	
+
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -456,7 +457,7 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-		g_free (filename);							
+		g_free (filename);
 	}
 
 	gtk_widget_destroy (dialog);
@@ -528,7 +529,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		gtk_widget_destroy(dialog);
 		return ;
 	}
-	if (xmi_copy_input_to_xrmc(input, 
+	if (xmi_copy_input_to_xrmc(input,
 				input_file,
 				composition_file,
 				detector_file,
@@ -854,7 +855,7 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
 		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
-		
+
 	}
 }
 static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) {
@@ -911,7 +912,7 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	while(gtk_events_pending())
 		gtk_main_iteration();
 
-	struct xmsa_to_xmso_data *xtxd = g_malloc(sizeof(struct xmsa_to_xmso_data));	
+	struct xmsa_to_xmso_data *xtxd = (struct xmsa_to_xmso_data *) g_malloc(sizeof(struct xmsa_to_xmso_data));
 	xtxd->xmsafile = xmsafile;
 	xtxd->xmsofile = xmsofile;
 	xtxd->step1 = step1;
@@ -953,9 +954,9 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
 		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
-		
+
 	}
-	
+
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button2))) {
 		g_free(xmsofile);
@@ -999,12 +1000,12 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
@@ -1012,36 +1013,36 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 
 	label = gtk_label_new("XMSI file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
 
 	label = gtk_label_new("New XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 3, 4, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(text), "(optional)");
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 3, 4, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_save_button_clicked_cb), xt3);
 	xt3->window = window;
 	xt3->entry = text;
 	xt4->entry3 = text;
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2xmsi_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 5, 6, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 5, 6, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
 
 	gtk_container_add(GTK_CONTAINER(window), table);
 
@@ -1084,44 +1085,44 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("CSV file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(csv_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
-	
+
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button1 = button1;	
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button1 = button1;
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button2 = button2;	
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button2 = button2;
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2csv_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
 
 	gtk_container_add(GTK_CONTAINER(window), table);
 
@@ -1163,45 +1164,45 @@ void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("HTML file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(html_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
-	
+
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button1 = button1;	
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button1 = button1;
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button2 = button2;	
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button2 = button2;
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2html_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
-	
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
+
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
@@ -1242,45 +1243,45 @@ void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("SVG file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(svg_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
-	
+
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button1 = button1;	
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button1 = button1;
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button2 = button2;	
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button2 = button2;
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2svg_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
-	
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 6, 7, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
+
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
@@ -1321,36 +1322,36 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_full_open_button_clicked_cb), xt1);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("SPE file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(spe_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
-	
+
 	//checkbutton here
 	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button1 = button1;	
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 3, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button1 = button1;
 	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	xt4->button2 = button2;	
+	gtk_table_attach(GTK_TABLE(table), button2, 0, 3, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	xt4->button2 = button2;
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 
 	//spinner
@@ -1362,15 +1363,15 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_set_sensitive(spinner, FALSE);
 	xt1->spinner = spinner;
 	xt4->spinner = spinner;
-	gtk_table_attach(GTK_TABLE(table), hbox, 0, 3, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), hbox, 0, 3, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 6, 7, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 6, 7, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2spe_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 7, 8, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
-	
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 7, 8, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
+
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
@@ -1409,49 +1410,49 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 2, 0, 1);
 
 	label = gtk_label_new("XMSI file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	xmsi_fileW = gtk_file_chooser_button_new("Select an XMI-MSIM input-file", GTK_FILE_CHOOSER_ACTION_OPEN);
-	gtk_table_attach(GTK_TABLE(table), xmsi_fileW, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), xmsi_fileW, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	GtkFileFilter *filter;
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(xmsi_fileW), filter);
-	
+
 	label = gtk_label_new("XRMC folder");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	xrmc_folderW = gtk_file_chooser_button_new("Select a folder in which the XRMC files will be stored", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-	gtk_table_attach(GTK_TABLE(table), xrmc_folderW, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), xrmc_folderW, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	enable_pileupW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_pileupW),xpv.b);
-	gtk_table_attach(GTK_TABLE(table), enable_pileupW, 0, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), enable_pileupW, 0, 2, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	enable_poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW),xpv.b);
-	gtk_table_attach(GTK_TABLE(table), enable_poissonW, 0, 2, 4, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), enable_poissonW, 0, 2, 4, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 2, 5, 6, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 2, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
-	struct xmi_tools *xi = malloc(sizeof(struct xmi_tools));
+	struct xmi_tools *xi = (struct xmi_tools *) malloc(sizeof(struct xmi_tools));
 	xi->window = window;
 	xi->xmsi_fileW = xmsi_fileW;
 	xi->xrmc_folderW = xrmc_folderW;
 	xi->enable_pileupW = enable_pileupW;
 	xi->enable_poissonW = enable_poissonW;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsi2xrmc_apply_button_clicked_cb), xi);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 2, 6, 7, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
-	
+	gtk_table_attach(GTK_TABLE(table), button, 0, 2, 6, 7, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
+
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);
@@ -1497,29 +1498,29 @@ void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 3, 0, 1);
 
 	label = gtk_label_new("XMSA file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsa_full_open_button_clicked_cb), xt1);
 	xt1->window = window;
 	xt1->entry = text;
 	xt4->entry1 = text;
 
 	label = gtk_label_new("XMSO file");
-	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	text = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), text, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_SAVE);
-	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_save_button_clicked_cb), xt2);
 	xt2->window = window;
 	xt2->entry = text;
 	xt4->entry2 = text;
-	
+
 	//togglebuttons here
 	xpath_vbox = gtk_vbox_new(FALSE, 5);
 	xpath1_label = gtk_label_new("XPath1:");
@@ -1532,7 +1533,7 @@ void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(xpath_vbox), align2, FALSE, FALSE, 0);
 	button1 = gtk_radio_button_new_from_widget(NULL);
 	gtk_container_add(GTK_CONTAINER(button1), xpath_vbox);
-	gtk_table_attach(GTK_TABLE(table), button1, 0, 2, 3, 5, GTK_EXPAND | GTK_SHRINK | GTK_FILL, 0, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), button1, 0, 2, 3, 5, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) 0, 0, 0);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
 	xt1->label1 = xpath1_label;
 	xt1->label2 = xpath2_label;
@@ -1549,26 +1550,26 @@ void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data) {
 	xt1->button2 = button2;
 	xt4->button1 = button1;
 	xt4->button2 = button2;
-	
+
 	//spinners
 	xpath1_spinner = gtk_spin_button_new(NULL, 1, 0);
 	gtk_widget_set_sensitive(xpath1_spinner, FALSE);
-	gtk_table_attach(GTK_TABLE(table), xpath1_spinner, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), xpath1_spinner, 2, 3, 3, 4, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	xpath2_spinner = gtk_spin_button_new(NULL, 1, 0);
 	gtk_widget_set_sensitive(xpath2_spinner, FALSE);
-	gtk_table_attach(GTK_TABLE(table), xpath2_spinner, 2, 3, 4, 5, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), xpath2_spinner, 2, 3, 4, 5, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	xt1->spinner1 = xpath1_spinner;
 	xt1->spinner2 = xpath2_spinner;
 	xt4->spinner1 = xpath1_spinner;
 	xt4->spinner2 = xpath2_spinner;
-	
-	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 6, 7, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 3, 0);
+
+	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 3, 6, 7, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmsa2xmso_apply_button_clicked_cb), xt4);
-	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 7, 8, 0, GTK_EXPAND | GTK_SHRINK, 0, 2);
-	
+	gtk_table_attach(GTK_TABLE(table), button, 0, 3, 7, 8, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 2);
+
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 	gtk_widget_show_all(window);

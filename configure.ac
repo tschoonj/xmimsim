@@ -183,30 +183,41 @@ if test "x$LIBCURL_FOUND" = xyes ; then
 		;;
 	esac
 fi
-GTKEXTRA3_FOUND=no
+CXX_MODE=no
+GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtk2],gtk+-2.0 >= 2.18.0, [GTK_FOUND=yes],[GTK_FOUND=no])
-	PKG_CHECK_MODULES([gtk3extra],gtkextra-3.0 >= 3.1.0, [GTKEXTRA3_FOUND=yes],[GTKEXTRA3_FOUND=no])
-	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes && test "x$GTKEXTRA3_FOUND" = xno ; then
+	PKG_CHECK_MODULES([gtk2],gtkmm-2.4 >= 2.24.0 gtkextra-3.0 >= 3.1.0,
+		[
+		GTK_FOUND=yes
+		CXX_MODE=yes
+		AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
+		],[
+		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.1.0,
+			[
+			GTK_FOUND=yes
+			],[
+			GTK_FOUND=no
+			])
+		])
+	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
 		AC_MSG_ERROR([no gtk and/or gtkextra found on the system.])
 	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
-		AC_MSG_WARN([no gtk found on the system. The GUI will not be built.])
-	elif test "x$GTKEXTRA3_FOUND" = xno && test "x$enable_gui" = xcheck ; then
-		AC_MSG_WARN([no gtkextra found on the system. The GUI will not be built.])
+		AC_MSG_WARN([no gtk and/or gtkextra found on the system. The GUI will not be built.])
 	else
 		AC_MSG_NOTICE([Building with GUI])
-		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.18.0")
+		AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.24.0")
 		AC_SUBST(GTKEXTRA_PC, "gtkextra-3.0 >= 3.1.0")
 		AC_DEFINE([HAVE_GUI],[],[building with GUI])
 	fi
 fi
 
-AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes])
+AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes])
+AM_CONDITIONAL([ENABLE_CXX],[test "x$CXX_MODE" = xyes])
 
 JSONGLIB_FOUND=no
 
 AC_ARG_ENABLE([updater],[AS_HELP_STRING([--disable-updater],[build without updater])],[enable_updater=$enableval],[enable_updater=check])
-if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes && test "x$enable_updater" != xno ; then
+if test "x$GTK_FOUND" = xyes && test "x$enable_updater" != xno ; then
 	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8,
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
@@ -226,7 +237,7 @@ AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL
 AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--disable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=check])
 
 GTK_MAC_INTEGRATION_FOUND=no
-if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
+if test "x$GTK_FOUND" = xyes ; then
 	#check for quartz backend
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
@@ -332,7 +343,7 @@ if test x$OS_WINDOWS = x1 ; then
   	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
   fi
 fi
-if test "x$GTK_FOUND" = xyes && test "x$GTKEXTRA3_FOUND" = xyes ; then
+if test "x$GTK_FOUND" = xyes ; then
 	AC_CHECK_PROG([GDK_PIXBUF_CSOURCE],[gdk-pixbuf-csource],[gdk-pixbuf-csource],[fail])
   	if test x$GDK_PIXBUF_CSOURCE = xfail ; then
   		AC_MSG_ERROR([gdk-pixbuf-csource was not found. This program is necessary to insert our custom icons in the GUI])

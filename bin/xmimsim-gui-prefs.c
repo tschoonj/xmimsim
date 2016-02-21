@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+#include "xmimsim-gui.h"
 #include <stdio.h>
 #include <string.h>
-
-#include "xmimsim-gui.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmi_detector.h"
 #include "xmi_solid_angle.h"
@@ -197,7 +197,7 @@ static void import_escape_ratios_clicked_cb(GtkWidget *button, GtkWidget *window
 
 static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
 	GtkWidget *window = (GtkWidget *) data;
-	
+
 	//generate dialog
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
 		"Are you certain you want to delete the solid angles HDF5 file? This operation cannot be undone!");
@@ -215,7 +215,7 @@ static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
 
 static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
 	GtkWidget *window = (GtkWidget *) data;
-	
+
 	//generate dialog
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
 		"Are you certain you want to delete the escape ratios HDF5 file? This operation cannot be undone!");
@@ -243,7 +243,7 @@ static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
 static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, gpointer data) {
 	GtkListStore *store_prefsL = (GtkListStore *) data;
 
-	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1); 
+	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1);
 	if (xmimsim_gui_check_download_url(new_text) == TRUE) {
 		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
 	}
@@ -265,7 +265,7 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
 
 	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
-	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);   
+	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);
 	gtk_widget_realize(tree);
 	gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, column, TRUE);
 	gtk_widget_grab_focus(tree);
@@ -324,7 +324,7 @@ void preferences_error_handler(GtkWidget *window) {
 	gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
 	exit(1);
-	
+
 }
 
 
@@ -335,38 +335,38 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Mlines_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
-	
+
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_up_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_updates_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
@@ -383,38 +383,38 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		valid = gtk_tree_model_iter_next(model, &temp_iter);
 	}
 	urls[nurls] = NULL;
-	
+
 	xpv.ss = urls;
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
-	
-	g_strfreev(xpv.ss);	
+
+	g_strfreev(xpv.ss);
 #endif
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poisson_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 #endif
@@ -422,7 +422,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(notifications_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 #endif
@@ -431,10 +431,10 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE))) > 0) {
 		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
 	}
-	else 
+	else
 		xpv.s = NULL;
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(pa->window);
 	}
 
@@ -444,7 +444,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 
 static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gchar *prefs_file) {
 	gchar *prefs_file_contents;
-	
+
 	//These are all the default values for a new preferences file
 
 	//file does not exist, is not accessible or is not in key format
@@ -505,7 +505,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 		return 0;
-	g_free(prefs_file_contents);	
+	g_free(prefs_file_contents);
 
 
 	return 1;
@@ -517,7 +517,7 @@ static gchar *xmimsim_gui_get_user_defined_layer_filename(void) {
 #ifdef MAC_INTEGRATION
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
-	
+
 #ifdef MAC_INTEGRATION
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
         NSString *documentsDirectory = [paths objectAtIndex:0];
@@ -543,7 +543,7 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
 		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
 		g_free(ini_file);
@@ -556,7 +556,7 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 
 	//sort
 	if (g_strv_length(layer_names) > 1) {
-		qsort(layer_names, g_strv_length(layer_names), sizeof(gchar*), compare_string);	
+		qsort(layer_names, g_strv_length(layer_names), sizeof(gchar*), compare_string);
 	}
 
 	g_free(ini_file);
@@ -565,13 +565,13 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 	return layer_names;
 }
 
-struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
+struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
 		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
 		g_free(ini_file);
@@ -599,7 +599,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
-	}	
+	}
 	gsize weightlen;
 	gdouble *weight = g_key_file_get_double_list(keyfile, layer_name, "weight", &weightlen, &error);
 	if (weight == NULL || weightlen == 0 || error != NULL) {
@@ -607,7 +607,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
-	}	
+	}
 	if (Zlen != weightlen) {
 		g_fprintf(stderr, "Inconsistent lengths of Z and weight for layer %s\n", layer_name);
 		g_free(ini_file);
@@ -629,18 +629,18 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 		return NULL;
 	}
 
-	struct xmi_layer *layer = malloc(sizeof(struct xmi_layer));
+	struct xmi_layer *layer = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
 	//fill her up
 	layer->n_elements = (int) Zlen;
-	layer->Z = xmi_memdup(Z, sizeof(int)*Zlen);
-	layer->weight = xmi_memdup(weight, sizeof(double)*Zlen);
+	layer->Z = (int *) xmi_memdup(Z, sizeof(int)*Zlen);
+	layer->weight = (double *) xmi_memdup(weight, sizeof(double)*Zlen);
 	//scale
 	xmi_scale_double(layer->weight, layer->n_elements, 1.0/xmi_sum_double(layer->weight, layer->n_elements));
 	layer->density = density;
 	layer->thickness = thickness;
 	g_free(Z);
 	g_free(weight);
-	
+
 
 
 	g_free(ini_file);
@@ -649,13 +649,13 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(gchar *layer_name) {
 	return layer;
 }
 
-int xmimsim_gui_remove_user_defined_layer(gchar *layer_name) {
+int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
 		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
 			return 0;
@@ -668,19 +668,19 @@ int xmimsim_gui_remove_user_defined_layer(gchar *layer_name) {
 	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 	if(!g_file_set_contents(ini_file, prefs_file_contents, -1, NULL))
 		return 0;
-	g_free(prefs_file_contents);	
+	g_free(prefs_file_contents);
 	g_key_file_free(keyfile);
 	g_free(ini_file);
 	return 1;
 }
 
-int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_name) {
+int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, ini_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
 		g_fprintf(stderr, "%s does not exist or could not be opened\nTrying to create it...\n", ini_file);
 		g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
@@ -694,7 +694,7 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_nam
 
 	g_key_file_set_integer_list(keyfile, layer_name, "Z", layer->Z, (gsize) layer->n_elements);
 	//make sure the weights are scaled
-	double *weight = xmi_memdup(layer->weight, sizeof(double)*layer->n_elements);
+	double *weight = (double *) xmi_memdup(layer->weight, sizeof(double)*layer->n_elements);
 	xmi_scale_double(weight, layer->n_elements, 1.0/xmi_sum_double(weight, layer->n_elements));
 	g_key_file_set_double_list(keyfile, layer_name, "weight", weight, (gsize) layer->n_elements);
 	free(weight);
@@ -704,7 +704,7 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, gchar *layer_nam
 	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 	if(!g_file_set_contents(ini_file, prefs_file_contents, -1, NULL))
 		return 0;
-	g_free(prefs_file_contents);	
+	g_free(prefs_file_contents);
 	g_key_file_free(keyfile);
 	g_free(ini_file);
 
@@ -716,7 +716,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 #ifdef MAC_INTEGRATION
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
-	
+
 #ifdef MAC_INTEGRATION
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
         NSString *documentsDirectory = [paths objectAtIndex:0];
@@ -734,18 +734,18 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, prefs_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
 			return 0;
 	}
-		
+
 	//extract required information from keyfile
 	GError *error = NULL;
 	gchar *prefs_file_contents, *unit, **nuclides, *nuclide;
 	int i, nNuclides;
 	gboolean update_file, matched;
 	switch (kind) {
-		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
+		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
 			if (error != NULL) {
 				//error
@@ -755,11 +755,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_M_LINES: 
+		case XMIMSIM_GUI_PREFS_M_LINES:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "M lines", &error);
 			if (error != NULL) {
 				//error
@@ -769,11 +769,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_RAD_CASCADE: 
+		case XMIMSIM_GUI_PREFS_RAD_CASCADE:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Radiative cascade", &error);
 			if (error != NULL) {
 				//error
@@ -783,11 +783,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE: 
+		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Non-radiative cascade", &error);
 			if (error != NULL) {
 				//error
@@ -797,11 +797,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION: 
+		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Variance reduction", &error);
 			if (error != NULL) {
 				//error
@@ -811,11 +811,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_PILE_UP: 
+		case XMIMSIM_GUI_PREFS_PILE_UP:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Pile-up", &error);
 			if (error != NULL) {
 				//error
@@ -825,7 +825,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = FALSE;
 			}
 			break;
@@ -840,11 +840,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->ss = g_strdupv((gchar **) xmimsim_download_locations);
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_POISSON: 
+		case XMIMSIM_GUI_PREFS_POISSON:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Poisson noise", &error);
 			if (error != NULL) {
 				//error
@@ -854,11 +854,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = FALSE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
+		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Escape peaks", &error);
 			if (error != NULL) {
 				//error
@@ -868,11 +868,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
-		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON: 
+		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Advanced Compton", &error);
 			if (error != NULL) {
 				//error
@@ -882,12 +882,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = FALSE;
 			}
 			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		case XMIMSIM_GUI_PREFS_OPENCL: 
+		case XMIMSIM_GUI_PREFS_OPENCL:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
 			if (error != NULL) {
 				//error
@@ -897,12 +897,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = FALSE;
 			}
 			break;
 #endif
-		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE: 
+		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
 			{
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Custom detector response", &error);
 			if (error != NULL) {
@@ -913,18 +913,18 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->s = NULL;
 				break;
 			}
-			if (strcmp(temps, "None") == 0) 
+			if (strcmp(temps, "None") == 0)
 				prefs->s = NULL;
 			else
 				prefs->s = temps;
 			}
 			break;
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
+		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
 			if (error != NULL) {
 				//error
@@ -934,14 +934,14 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->b = TRUE;
 			}
 			break;
 #endif
 		case XMIMSIM_GUI_EBEL_LAST_USED:
 			update_file = FALSE;
-			prefs->xep = g_malloc(sizeof(struct xmi_ebel_parameters));
+			prefs->xep = (struct xmi_ebel_parameters*) g_malloc(sizeof(struct xmi_ebel_parameters));
 			prefs->xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
 			if (error != NULL) {
 				//error
@@ -1109,13 +1109,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 			}
 
 			break;
 		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
 			update_file = FALSE;
-			prefs->xnp = g_malloc(sizeof(struct xmi_nuclide_parameters));
+			prefs->xnp = (struct xmi_nuclide_parameters *) g_malloc(sizeof(struct xmi_nuclide_parameters));
 
 			prefs->xnp->log10_active = g_key_file_get_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", &error);
 			if (error != NULL) {
@@ -1204,11 +1204,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 			}
 
 			break;
-		case XMIMSIM_GUI_SOURCES_LAST_USED: 
+		case XMIMSIM_GUI_SOURCES_LAST_USED:
 			prefs->i = g_key_file_get_integer(keyfile, "Sources last used", "Page", &error);
 			if (error != NULL) {
 				//error
@@ -1218,7 +1218,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
-				g_free(prefs_file_contents);	
+				g_free(prefs_file_contents);
 				prefs->i = 0;
 			}
 			else if (prefs->i < 0 || prefs->i > 1) {
@@ -1250,7 +1250,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 #ifdef MAC_INTEGRATION
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
 #endif
-	
+
 #ifdef MAC_INTEGRATION
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
         NSString *documentsDirectory = [paths objectAtIndex:0];
@@ -1268,43 +1268,43 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, prefs_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
+	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
 			return 0;
 	}
-	
+
 	gchar **nuclides;
 	int nNuclides;
 
 	switch (kind) {
-		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES: 
+		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
 			g_key_file_set_boolean(keyfile, "Preferences", "Check for updates", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_M_LINES: 
+		case XMIMSIM_GUI_PREFS_M_LINES:
 			g_key_file_set_boolean(keyfile, "Preferences","M lines", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_RAD_CASCADE: 
+		case XMIMSIM_GUI_PREFS_RAD_CASCADE:
 			g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE: 
+		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE:
 			g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION: 
+		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION:
 			g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_PILE_UP: 
+		case XMIMSIM_GUI_PREFS_PILE_UP:
 			g_key_file_set_boolean(keyfile, "Preferences","Pile-up", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS: 
+		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS:
 			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  (const gchar * const *) prefs.ss, (gsize) g_strv_length(prefs.ss));
 			break;
-		case XMIMSIM_GUI_PREFS_POISSON: 
+		case XMIMSIM_GUI_PREFS_POISSON:
 			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS: 
+		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS:
 			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
 			break;
-		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON: 
+		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON:
 			g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", prefs.b);
 			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
@@ -1314,12 +1314,12 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		case XMIMSIM_GUI_PREFS_OPENCL: 
+		case XMIMSIM_GUI_PREFS_OPENCL:
 			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
 			break;
 #endif
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-		case XMIMSIM_GUI_PREFS_NOTIFICATIONS: 
+		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
 			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
 			break;
 #endif
@@ -1363,15 +1363,15 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		default:
 			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;
-		
+
 	}
-	
+
 	//save file
-	gchar *prefs_file_contents; 
+	gchar *prefs_file_contents;
 	prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 		return 0;
-	g_free(prefs_file_contents);	
+	g_free(prefs_file_contents);
 
 	g_free(prefs_file);
 	g_key_file_free(keyfile);
@@ -1385,14 +1385,14 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *event, GtkTreeSelection *select_layers) {
 	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
 		GtkTreeModel *model;
-		GList *selected_rows = gtk_tree_selection_get_selected_rows(select_layers, &model); 
+		GList *selected_rows = gtk_tree_selection_get_selected_rows(select_layers, &model);
 		//convert to references
 		int n_selected = gtk_tree_selection_count_selected_rows(select_layers);
-		GtkTreeRowReference **refs = g_malloc(sizeof(GtkTreeRowReference*)*n_selected);
+		GtkTreeRowReference **refs = (GtkTreeRowReference**) g_malloc(sizeof(GtkTreeRowReference*)*n_selected);
 		int i;
 		GtkTreeIter iter;
 		for (i = 0 ; i < n_selected ; i++) {
-			refs[i] = gtk_tree_row_reference_new(model, (GtkTreePath *) g_list_nth_data(selected_rows, i));	
+			refs[i] = gtk_tree_row_reference_new(model, (GtkTreePath *) g_list_nth_data(selected_rows, i));
 		}
 		for (i = 0 ; i < n_selected ; i++) {
 			GtkTreePath *path = gtk_tree_row_reference_get_path(refs[i]);
@@ -1403,7 +1403,7 @@ static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *
 			gtk_tree_row_reference_free(refs[i]);
 			//g_fprintf(stdout, "selected layer: %s\n", layer_name);
 
-			if (xmimsim_gui_remove_user_defined_layer(layer_name) == 1) 	
+			if (xmimsim_gui_remove_user_defined_layer(layer_name) == 1)
 				gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 			else {
 				//something went very wrong!
@@ -1432,12 +1432,10 @@ static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *
 }
 
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
-//void xmimsim_gui_launch_preferences(GtkWidget *main_window, gint page) {
 	struct xmi_preferences_data *xpd = (struct xmi_preferences_data *) data;
 
 	GtkWidget *window;
 	GtkWidget *main_window = xpd->window;
-	gint page = xpd->page;
 	GtkWidget *notebook;
 	GtkWidget *master_box;
 
@@ -1458,10 +1456,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 	gtk_container_add(GTK_CONTAINER(window), master_box);
 
-	
+
 
 	GtkWidget *label;
-	
+
 	union xmimsim_prefs_val xpv;
 
 	GtkWidget *superframe = gtk_vbox_new(TRUE,0);
@@ -1479,7 +1477,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	Mlines_prefsW = gtk_check_button_new_with_label("Simulate M-lines");
 	gtk_widget_set_tooltip_text(Mlines_prefsW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mlines_prefsW),xpv.b);
@@ -1488,7 +1486,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
 	gtk_widget_set_tooltip_text(rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW),xpv.b);
@@ -1497,7 +1495,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
 	gtk_widget_set_tooltip_text(nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW),xpv.b);
@@ -1506,7 +1504,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
 	gtk_widget_set_tooltip_text(variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW),xpv.b);
@@ -1515,7 +1513,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	gtk_widget_set_tooltip_text(pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
@@ -1524,7 +1522,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
 	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
@@ -1533,7 +1531,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
 	gtk_widget_set_tooltip_text(escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW),xpv.b);
@@ -1542,7 +1540,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	advanced_compton_prefsW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
 	gtk_widget_set_tooltip_text(advanced_compton_prefsW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW),xpv.b);
@@ -1552,7 +1550,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
 	gtk_widget_set_tooltip_text(opencl_prefsW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(opencl_prefsW),xpv.b);
@@ -1572,7 +1570,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_response_prefsB, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, TRUE, FALSE, 0);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	if (xpv.s != NULL) {
@@ -1598,7 +1596,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 	GtkWidget *buttonbox;
-	int i;
+	unsigned int i;
 	GtkTreeIter iter;
 
 #if defined(RPM_BUILD)
@@ -1618,7 +1616,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_updates_prefsW),xpv.b);
@@ -1645,7 +1643,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_tree_view_column_set_alignment(column, 0.);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	gtk_tree_view_column_set_expand(column, TRUE);
-	
+
 	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	g_object_set(renderer, "stock-size", GTK_ICON_SIZE_SMALL_TOOLBAR, NULL);
@@ -1660,7 +1658,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
-	
+
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_widget_set_size_request(scrolled_window, 300,150);
@@ -1670,11 +1668,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
 	GtkWidget *addButton;
-	GtkWidget *editButton;
 	GtkWidget *removeButton;
 
 	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
-	editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
 	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
 
 	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
@@ -1688,7 +1684,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	//populate tree
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
@@ -1700,10 +1696,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		else {
 			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
 		}
-	}	
+	}
 
 	g_strfreev(xpv.ss);
-	
+
 	gtk_box_pack_start(GTK_BOX(superframe), updatesboxW, FALSE, FALSE, 2);
 
 
@@ -1798,7 +1794,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_solid_angles_clicked_cb), (gpointer) window);
-	
+
 	hbox = gtk_hbox_new(FALSE,2);
 	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	label = gtk_label_new("Import escape ratios");
@@ -1807,7 +1803,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_escape_ratios_clicked_cb), (gpointer) window);
-	
+
 
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 
@@ -1815,7 +1811,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	notifications_prefsW = gtk_check_button_new_with_label("Enable notifications");
 	gtk_widget_set_tooltip_text(notifications_prefsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
-		//abort	
+		//abort
 		preferences_error_handler(main_window);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(notifications_prefsW),xpv.b);
@@ -1846,7 +1842,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 #endif
 	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pa);
 
-	
+
 	gtk_widget_show_all(window);
 }
-

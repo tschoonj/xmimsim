@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "config.h"
+#include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
@@ -168,7 +168,6 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 
 void error_spinners(void) {
 	//check spinners
-#if GTK_CHECK_VERSION(2,20,0)
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
@@ -187,24 +186,6 @@ void error_spinners(void) {
 		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_NO,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_escapeW);
 	}
-#else
-		//should query status of progressbar
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_solidW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_solidW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_mainW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_mainW);
-	}
-	if (gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) > 0.0 &&
-		gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progressbar_escapeW)) < 1.0) {
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_NO, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_escapeW);
-	}
-#endif
 
 }
 static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
@@ -245,14 +226,10 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(strncmp(string,"Precalculating solid angle grid",strlen("Precalculating solid angle grid")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
-		//spinner is relatively new -> not for centos 6 :-(
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
 		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_spinner_new());
 		gtk_widget_show_all(image_solidW);
 		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
-#endif
-
 		return 1;
 	}
 	else if(sscanf(string,"Solid angle calculation at %i",&percentage) == 1) {
@@ -264,15 +241,10 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 0;
 	}
 	else if(strncmp(string,"Solid angle calculation finished",strlen("Solid angle calculation finished")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_solidW)));
 		gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_solidW);
-#else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_solidW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_solidW);
-#endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_solidW),"Solid angle grid calculated");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_solidW),1.0);
 		while(gtk_events_pending())
@@ -289,26 +261,17 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 0;
 	}
 	else if(strncmp(string,"Simulating interactions",strlen("Simulating interactions")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
-		//spinner is relatively new -> not for centos 6 :-(
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
 		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_spinner_new());
 		gtk_widget_show_all(image_mainW);
 		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
-#endif
-
 		return 1;
 	}
 	else if(strncmp(string,"Interactions simulation finished",strlen("Interactions simulation finished")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_mainW))));
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_mainW)));
 		gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_mainW);
-#else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_mainW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_mainW);
-#endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_mainW),"Interactions simulated");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_mainW),1.0);
 		while(gtk_events_pending())
@@ -326,14 +289,10 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 1;
 	}
 	else if(strncmp(string,"Precalculating escape peak ratios",strlen("Precalculating escape peak ratios")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
-		//spinner is relatively new -> not for centos 6 :-(
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
 		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_spinner_new());
 		gtk_widget_show_all(image_escapeW);
 		gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
-#endif
-
 		return 1;
 	}
 	else if(sscanf(string,"Escape peak ratios calculation at %i",&percentage) == 1) {
@@ -345,15 +304,10 @@ static int process_xmimsim_stdout_string(gchar *string) {
 		return 0;
 	}
 	else if(strncmp(string,"Escape peak ratios calculation finished",strlen("Escape peak ratios calculation finished")) == 0) {
-#if GTK_CHECK_VERSION(2,20,0)
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
 		gtk_widget_destroy(gtk_bin_get_child(GTK_BIN(image_escapeW)));
 		gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_YES,GTK_ICON_SIZE_MENU));
 		gtk_widget_show_all(image_escapeW);
-#else
-		gtk_image_set_from_stock(GTK_IMAGE(gtk_bin_get_child(GTK_BIN(image_escapeW))),GTK_STOCK_YES, GTK_ICON_SIZE_MENU);
-		gtk_widget_show_all(image_escapeW);
-#endif
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar_escapeW),"Escape peak ratios calculated");
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar_escapeW),1.0);
 		while(gtk_events_pending())
@@ -698,59 +652,59 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		g_timer_start(timer);
 
 	arg_counter = 0;
-	argv = g_malloc(sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_malloc(sizeof(gchar *)*++arg_counter);
 	argv[arg_counter-1] = g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW)));
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(MlinesW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-M-lines");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-M-lines");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascadeW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-radiative-cascade");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-radiative-cascade");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascadeW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-auger-cascade");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-auger-cascade");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reductionW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-variance-reduction");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-variance-reduction");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_upW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-pile-up");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-pile-up");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poissonW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-poisson");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-poisson");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(escape_peaksW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-escape-peaks");
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-escape-peaks");
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_comptonW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-advanced-compton");
 	}
@@ -759,11 +713,11 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 
 
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	argv[arg_counter-1] = g_strdup("--verbose");
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(openclW)) == TRUE) {
 		argv[arg_counter-1] = g_strdup("--enable-opencl");
 	}
@@ -773,7 +727,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE))) > 0) {
-		argv = g_realloc(argv, sizeof(gchar *)*++arg_counter);
+		argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
 		argv[arg_counter-1] = g_strdup_printf("--custom-detector-response=%s", gtk_entry_get_text(GTK_ENTRY(custom_detector_responseE)));
 	}
 
@@ -892,12 +846,12 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	g_io_channel_set_encoding(xmimsim_stdout, encoding, NULL);
 	//g_io_channel_set_flags(xmimsim_stdout,G_IO_FLAG_NONBLOCK,NULL);
 	g_io_channel_set_close_on_unref(xmimsim_stdout,TRUE);
-	g_io_add_watch(xmimsim_stdout, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, xmimsim_stdout_watcher, argv[0]);
+	g_io_add_watch(xmimsim_stdout, (GIOCondition) (G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL), xmimsim_stdout_watcher, argv[0]);
 	g_io_channel_unref(xmimsim_stdout);
 
 	g_io_channel_set_encoding(xmimsim_stderr, encoding, NULL);
 	g_io_channel_set_close_on_unref(xmimsim_stderr,TRUE);
-	g_io_add_watch(xmimsim_stderr, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, xmimsim_stderr_watcher, argv[0]);
+	g_io_add_watch(xmimsim_stderr, (GIOCondition) (G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL), xmimsim_stderr_watcher, argv[0]);
 	g_io_channel_unref(xmimsim_stderr);
 
 	//while (gtk_events_pending ())
@@ -928,7 +882,6 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		xmimsim_paused=TRUE;
 		gtk_widget_set_sensitive(stopButton,TRUE);
 		gtk_widget_set_sensitive(playButton,TRUE);
-#if GTK_CHECK_VERSION(2,20,0)
 		if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
 			g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
 			if (spinning == TRUE) {
@@ -947,7 +900,6 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
 			}
 		}
-#endif
 	}
 	else {
 		g_timer_continue(timer);
@@ -1055,7 +1007,6 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 			gtk_widget_set_sensitive(pauseButton,TRUE);
 			xmimsim_paused = FALSE;
-#if GTK_CHECK_VERSION(2,20,0)
 			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
 				g_object_get(gtk_bin_get_child(GTK_BIN(image_solidW)),"active",&spinning,NULL);
 				if (spinning == FALSE) {
@@ -1074,7 +1025,6 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					gtk_spinner_start(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_escapeW))));
 				}
 			}
-#endif
 		}
 		else {
 			sprintf(buffer, "Process %i could not be resumed\n", real_xmimsim_pid);
@@ -1637,9 +1587,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(spe_convW), TRUE);
-	gtk_table_attach(GTK_TABLE(table_notebook), label, 0, 1, 0, 1, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), spe_convW, 1, 2, 0, 1, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), spe_convB, 2, 3, 0, 1, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label, 0, 1, 0, 1, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), spe_convW, 1, 2, 0, 1, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), spe_convB, 2, 3, 0, 1, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	//SVG files
 	label = gtk_label_new("Scalable Vector Graphics (SVG) file");
@@ -1655,9 +1605,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(svg_convW), TRUE);
-	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 1, 2, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), svg_convW, 1, 2, 1, 2, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), svg_convB, 2, 3, 1, 2, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 1, 2, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), svg_convW, 1, 2, 1, 2, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), svg_convB, 2, 3, 1, 2, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	//CSV files
 	label = gtk_label_new("Comma Separated Values (CSV) file");
@@ -1673,9 +1623,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(csv_convW), TRUE);
-	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 2, 3, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), csv_convW, 1, 2, 2, 3, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), csv_convB, 2, 3, 2, 3, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label    , 0, 1, 2, 3, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), csv_convW, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), csv_convB, 2, 3, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	//html files
 	label = gtk_label_new("Report HTML file");
@@ -1691,9 +1641,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	we->window = window;
 	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(select_extra_output_cb), (gpointer) we);
 	gtk_editable_set_editable(GTK_EDITABLE(html_convW), TRUE);
-	gtk_table_attach(GTK_TABLE(table_notebook), label     , 0, 1, 3, 4, GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), html_convW, 1, 2, 3, 4, GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK, 0, 0);
-	gtk_table_attach(GTK_TABLE(table_notebook), html_convB, 2, 3, 3, 4, 0, GTK_EXPAND | GTK_SHRINK, 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), label     , 0, 1, 3, 4, GTK_FILL, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), html_convW, 1, 2, 3, 4, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
+	gtk_table_attach(GTK_TABLE(table_notebook), html_convB, 2, 3, 3, 4, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 
 

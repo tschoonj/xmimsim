@@ -15,7 +15,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtk/gtk.h> 
+#define GDK_DISABLE_DEPRECATED
+#define GTK_DISABLE_DEPRECATED
+#include <gtk/gtk.h>
+#include <gtkextra/gtkextra.h>
 #include "xmi_data_structs.h"
 #include "xmimsim-gui-controls.h"
 
@@ -145,9 +148,6 @@ void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check);
 
 int check_changeables(void);
 
-void my_gtk_cell_renderer_toggle_set_activatable (GtkCellRendererToggle *toggle, gboolean setting);
-void my_gtk_cell_renderer_set_alignment (GtkCellRenderer *cell, gfloat xalign, gfloat yalign);
-
 extern GtkWidget *saveW;
 extern GtkWidget *save_asW;
 extern GtkToolItem *saveasT;
@@ -186,18 +186,18 @@ enum {
 	IMPORT_SELECT_DETECTORSETTINGS = 32,
 };
 
-#ifdef MAC_INTEGRATION 
+#ifdef MAC_INTEGRATION
   #define XMIMSIM_TITLE_PREFIX ""
 #else
   #define XMIMSIM_TITLE_PREFIX "XMI-MSIM: "
 #endif
 
 
-void update_xmimsim_title_xmsi(char *new_title, GtkWidget *my_window, char *filename);
-void update_xmimsim_title_xmso(char *new_title, GtkWidget *my_window, char *filename);
+void update_xmimsim_title_xmsi(const char *new_title, GtkWidget *my_window, const char *filename);
+void update_xmimsim_title_xmso(const char *new_title, GtkWidget *my_window, const char *filename);
 
-void xmi_open_url(char *url);
-void xmi_open_email(char *address);
+void xmi_open_url(const char *url);
+void xmi_open_email(const char *address);
 void adjust_save_buttons(void);
 
 #define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
@@ -209,7 +209,7 @@ void adjust_save_buttons(void);
 #ifdef MAC_INTEGRATION
 void quit_program_cb(GtkosxApplication *app, gpointer data);
 #else
-void quit_program_cb(GtkWidget *widget, gpointer data); 
+void quit_program_cb(GtkWidget *widget, gpointer data);
 #endif
 
 int kill_current_job(void);
@@ -221,6 +221,6 @@ struct read_xmsa_data {
 
 gpointer read_xmsa_thread(struct read_xmsa_data *rxd);
 
-GtkWidget *long_job_dialog(GtkWidget *parent, gchar *message_with_markup);
+GtkWidget *long_job_dialog(GtkWidget *parent, const gchar *message_with_markup);
 
 #endif

@@ -15,10 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "xmimsim-gui.h"
 
 #ifndef XMIMSIM_GUI_BATCH_H
 #define XMIMSIM_GUI_BATCH_H
+
+#include <gtk/gtk.h>
+#include "xmi_data_structs.h"
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window);
 

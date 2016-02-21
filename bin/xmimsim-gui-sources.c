@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <config.h>
+#include "xmimsim-gui.h"
 #include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-spline.h"
 #include <gtkextra/gtkextra.h>
@@ -87,21 +89,21 @@ struct generate {
 };
 
 static struct xmi_nuclide_parameters *get_nuclide_parameters(struct generate *gen) {
-	struct xmi_nuclide_parameters *xnp = g_malloc(sizeof(struct xmi_nuclide_parameters));
+	struct xmi_nuclide_parameters *xnp = (struct xmi_nuclide_parameters *) g_malloc(sizeof(struct xmi_nuclide_parameters));
 
 	xnp->radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->radioNuclideW));
-	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW)); 
+	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW));
 	xnp->log10_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->log10_nuclideW));
 
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(gen->activityW));
-	xnp->activity = strtod(text, NULL);	
+	xnp->activity = strtod(text, NULL);
 	if (xnp->activity <= 0.0) {
 		g_fprintf(stderr, "Warning: invalid activity in get_nuclide_parameters\n");
 		g_free(xnp);
 		return NULL;
 	}
 	text = gtk_entry_get_text(GTK_ENTRY(gen->nuclideSolidAngleW));
-	xnp->nuclide_solid_angle = strtod(text, NULL);	
+	xnp->nuclide_solid_angle = strtod(text, NULL);
 	if (xnp->nuclide_solid_angle <= 0.0 || xnp->nuclide_solid_angle > 4.0*M_PI) {
 		g_fprintf(stderr, "Warning: invalid solid angle in get_nuclide_parameters\n");
 		g_free(xnp);
@@ -112,15 +114,15 @@ static struct xmi_nuclide_parameters *get_nuclide_parameters(struct generate *ge
 }
 
 static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
-	struct xmi_ebel_parameters *xep = g_malloc(sizeof(struct xmi_ebel_parameters));
+	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
 
-	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeVoltageW)); 
+	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeVoltageW));
 	xep->transmission_tube = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionW));
 	xep->alpha= gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaElectronW));
 	xep->beta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaXrayW));
 	xep->tube_current = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeCurrentW));
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(gen->tubeSolidAngleW));
-	xep->tube_solid_angle = strtod(text, NULL);	
+	xep->tube_solid_angle = strtod(text, NULL);
 	if (xep->tube_solid_angle <= 0.0) {
 		g_fprintf(stderr, "Warning: invalid tube_solid_angle in get_ebel_parameters\n");
 		g_free(xep);
@@ -136,7 +138,7 @@ static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
 		xep->transmission_efficiency_file = g_strdup("(None)");
 	}
 	char *endPtr;
-	xep->anode_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->anodeMaterialW))+1; 
+	xep->anode_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->anodeMaterialW))+1;
 	text = gtk_entry_get_text(GTK_ENTRY(gen->anodeThicknessW));
 	xep->anode_thickness = strtod(text, &endPtr);
 	if (xep->anode_thickness <= 0.0) {
@@ -151,7 +153,7 @@ static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
 		g_free(xep);
 		return NULL;
 	}
-	xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->windowMaterialW))+1; 
+	xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->windowMaterialW))+1;
 	text = gtk_entry_get_text(GTK_ENTRY(gen->windowThicknessW));
 	xep->window_thickness = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_thickness < 0.0) {
@@ -166,7 +168,7 @@ static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
 		g_free(xep);
 		return NULL;
 	}
-	xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->filterMaterialW))+1; 
+	xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->filterMaterialW))+1;
 	text = gtk_entry_get_text(GTK_ENTRY(gen->filterThicknessW));
 	xep->filter_thickness = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->filter_thickness < 0.0) {
@@ -187,7 +189,7 @@ static struct xmi_ebel_parameters *get_ebel_parameters(struct generate *gen) {
 
 static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
 	int Z = gtk_combo_box_get_active(widget)+1;
-	float density = ElementDensity(Z);	
+	float density = ElementDensity(Z);
 	char buffer[512];
 
 	sprintf(buffer,"%g", density);
@@ -198,7 +200,7 @@ static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
 struct transmission_data {
 	GtkWidget *anodeDensityW;
 	GtkWidget *anodeThicknessW;
-}; 
+};
 
 static void transmission_clicked_cb(GtkToggleButton *button, struct transmission_data *td) {
 	if (gtk_toggle_button_get_active(button)) {
@@ -272,7 +274,7 @@ static void generate_button_clicked_cb(GtkButton *button, struct generate *gen) 
 	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
 		generate_nuclide_spectrum(gen);
 	}
-	
+
 }
 
 static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -283,7 +285,7 @@ static void image_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
 		canvas = gen->canvas_nuclide;
 	}
-	export_canvas_image(canvas, "Save spectrum as image");	
+	export_canvas_image(canvas, "Save spectrum as image");
 	return;
 }
 static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
@@ -300,7 +302,7 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	GtkWidget *label;
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
 		label = gtk_label_new("First the continuous intervals will be printed, marked by their start energy and intensity. This will be followed by a list of discrete lines, each defined by their energy and intensity.");
-		gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);	
+		gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);
 		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "tube-spectrum.txt");
 	}
@@ -313,7 +315,7 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		FILE *filePtr;
 		if ((filePtr = fopen(filename, "w")) == NULL) {
 			gtk_widget_destroy(dialog);
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s.", filename);
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s.", filename);
 			gtk_dialog_run(GTK_DIALOG(dialog));
 		}
 		else {
@@ -324,18 +326,18 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 			for (i = 0 ; i < excitation->n_discrete ; i++) {
 				fprintf(filePtr, "%g     %g\n", excitation->discrete[i].energy, excitation->discrete[i].horizontal_intensity*2.0);
 			}
-			fclose(filePtr);	
+			fclose(filePtr);
 		}
 	}
 	gtk_widget_destroy(dialog);
-	
+
 	return;
 }
 
 static void slits_button_clicked_cb(GtkButton *button, GtkEntry *tubeSolidAngleW) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));
-	
+
 	char buf[200];
 	sprintf(buf, "%g", solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(tubeSolidAngleW), buf);
@@ -505,22 +507,22 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		}
 	}
 	else if (gen->excitation_nuclide && gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add radionuclide emission spectrum to current spectrum or replace it completely?");
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add radionuclide emission spectrum to current spectrum or replace it completely?");
 		gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
-		GtkWidget *button = my_gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+		GtkWidget *button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
 		update_button_text(button, "Replace");
 		//this may not work on all platforms -> Mac OS X
 		gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
-		
+
 		int rv = gtk_dialog_run (GTK_DIALOG (dialog));
 		if (rv == GTK_RESPONSE_OK) {
-			//add	
+			//add
 			int i;
 			if (current->xi->excitation->n_discrete > 0) {
 				for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
 					if (bsearch(gen->excitation_nuclide->discrete+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 						gtk_widget_destroy(dialog);
-						dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines."); 
+						dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(dialog));
 						gtk_widget_destroy(dialog);
 						free(energy_disc);
@@ -583,7 +585,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	     	gtk_widget_destroy (dialog);
 	}
 
-	
+
 	adjust_save_buttons();
 	gtk_widget_destroy(gtk_widget_get_toplevel(GTK_WIDGET(button)));
 }
@@ -597,38 +599,36 @@ static gboolean activate_link_cb(GtkLabel *label, gchar *uri, gpointer data) {
 static void info_button_clicked_cb(GtkWidget *button, struct generate *gen) {
 	GtkWidget *dialog = NULL;
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "X-ray tube spectrum");
-		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), 
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "X-ray tube spectrum");
+		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog),
 		"The model is based on the equations that can be found in "
 		"the papers written by Horst Ebel and published in <a href='http://dx.doi.org/10.1002/(SICI)1097-4539(199907/08)28:4<255::AID-XRS347>3.0.CO;2-Y'>X-ray Spectrometry "
 		"28 (1999), 255-266</a> and <a href='http://dx.doi.org/10.1002/xrs.610'>X-ray Spectrometry 32 (2003), 46-51</a>."
 		);
 	}
 	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Radionuclide");
-		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), 
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(button)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Radionuclide");
+		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog),
 		"The X-ray and gamma spectra of the provided radionuclides "
 		"have been obtained using the <a href='http://github.com/tschoonj/xraylib/wiki/The-xraylib-API-list-of-all-functions'>xraylib API</a> for radionuclides. "
 		"Follow the references in the xraylib documentation in "
 		"order to find the origin of the datasets."
 		);
 	}
-#if GTK_CHECK_VERSION(2,22,0)
 	GtkWidget *area = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
 	GList *children = gtk_container_get_children(GTK_CONTAINER(area));
-	GtkWidget *temp = g_list_nth_data(children, 1);
+	GtkWidget *temp = (GtkWidget *) g_list_nth_data(children, 1);
 	g_list_free(children);
 	//children = gtk_container_get_children(GTK_CONTAINER(temp));
 	//temp = g_list_nth_data(children, 0);
 	//g_list_free(children);
 	g_signal_connect(G_OBJECT(temp), "activate-link", G_CALLBACK(activate_link_cb), NULL);
 
-#endif
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
 	return;
-	
+
 }
 
 static void generate_tube_spectrum(struct generate *gen) {
@@ -638,28 +638,28 @@ static void generate_tube_spectrum(struct generate *gen) {
 	gchar *text;
 	gchar *endPtr;
 	GtkWidget *dialog;
-	double tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeVoltageW)); 
+	double tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeVoltageW));
 
 	int transmission;
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->transmissionW))) {
 		transmission = 1;
-	} 
+	}
 	else {
 		transmission = 0;
 	}
-	
+
 	struct xmi_layer *anode;
 	anode = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
 	anode->n_elements = 1;
 	anode->Z = (int *) malloc(sizeof(int));
 	anode->weight =  (double *) malloc(sizeof(double));
 	anode->weight[0] = 1.0;
-	anode->Z[0] = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->anodeMaterialW))+1; 
+	anode->Z[0] = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->anodeMaterialW))+1;
 	if (transmission) {
 		text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->anodeDensityW));
 		anode->density = strtod(text, &endPtr);
 		if (strlen(text) == 0 || text + strlen(text) != endPtr || anode->density <= 0.0) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid anode density: must be greater than zero");		
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid anode density: must be greater than zero");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
@@ -667,7 +667,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 		text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->anodeThicknessW));
 		anode->thickness = strtod(text, &endPtr);
 		if (strlen(text) == 0 || text + strlen(text) != endPtr || anode->thickness <= 0.0) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid anode thickness: must be greater than zero");		
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid anode thickness: must be greater than zero");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			return;
@@ -679,17 +679,17 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 	struct xmi_layer *filter;
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->filterDensityW));
-	density = strtod(text, &endPtr);	
+	density = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || density < 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid filter density: must be greater than or equal to zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid filter density: must be greater than or equal to zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
 	}
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->filterThicknessW));
-	thickness = strtod(text, &endPtr);	
+	thickness = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid filter thickness: must be greater than or equal to zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid filter thickness: must be greater than or equal to zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
@@ -710,17 +710,17 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 	struct xmi_layer *window;
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->windowDensityW));
-	density = strtod(text, &endPtr);	
+	density = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || density < 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid window density: must be greater than or equal to zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid window density: must be greater than or equal to zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
 	}
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->windowThicknessW));
-	thickness = strtod(text, &endPtr);	
+	thickness = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid window thickness: must be greater than or equal to zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid window thickness: must be greater than or equal to zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
@@ -743,13 +743,13 @@ static void generate_tube_spectrum(struct generate *gen) {
 	double tube_alphaElectron = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaElectronW));
 	double tube_alphaXray = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->alphaXrayW));
 	double tube_current = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->tubeCurrentW));
-	
+
 	double tube_deltaE = gtk_spin_button_get_value(GTK_SPIN_BUTTON(gen->deltaEnergyW));
 
 	text = (gchar *) gtk_entry_get_text(GTK_ENTRY(gen->tubeSolidAngleW));
-	double tube_solid_angle = strtod(text, &endPtr);	
+	double tube_solid_angle = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || tube_solid_angle <= 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid tube solid angle: must be greater than zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid tube solid angle: must be greater than zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
@@ -762,8 +762,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 	//ebel main function
 	xmi_tube_ebel(anode, window, filter, tube_voltage, tube_current, tube_alphaElectron, tube_alphaXray, tube_deltaE, tube_solid_angle, transmission, &gen->excitation_tube);
-	
-	
+
+
 	//read transmission efficiency file if appropriate
 	double *eff_x = NULL;
 	double *eff_y = NULL;
@@ -772,7 +772,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 		g_fprintf(stdout,"Found transmission efficiency file\n");
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gen->transmissionEffFileW));
 		if (filename == NULL || strlen(filename) == 0) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");		
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please provide a transmission efficiency file or switch off the transmission efficiency toggle-button.");
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			xmi_free_excitation(gen->excitation_tube);
@@ -781,13 +781,13 @@ static void generate_tube_spectrum(struct generate *gen) {
 		}
 		FILE *fp;
 		if ((fp = fopen(filename, "r")) == NULL) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for reading.", filename);		
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for reading.", filename);
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			xmi_free_excitation(gen->excitation_tube);
 			gen->excitation_tube = excitation_tube_old;
 			return;
-			
+
 		}
 		char *line = NULL;
 		double energy, efficiency;
@@ -800,17 +800,17 @@ static void generate_tube_spectrum(struct generate *gen) {
 			}
 			values = sscanf(line,"%lg %lg", &energy, &efficiency);
 			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (n_eff > 0 && energy <= eff_x[n_eff-1]) || (n_eff == 0 && energy >= 1.0)) {
-				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+				dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
 				xmi_free_excitation(gen->excitation_tube);
 				gen->excitation_tube = excitation_tube_old;
 				return;
-				
-			} 
+
+			}
 			n_eff++;
-			eff_x = g_realloc(eff_x, sizeof(double)*n_eff);
-			eff_y = g_realloc(eff_y, sizeof(double)*n_eff);
+			eff_x = (double *) g_realloc(eff_x, sizeof(double)*n_eff);
+			eff_y = (double *) g_realloc(eff_y, sizeof(double)*n_eff);
 			eff_x[n_eff-1] = energy;
 			eff_y[n_eff-1] = efficiency;
 			g_fprintf(stdout,"Efficiency: %f -> %f\n",energy,efficiency);
@@ -820,7 +820,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 		fclose(fp);
 		g_fprintf(stdout,"File closed. n_eff: %i\n",(int) n_eff);
 		if (n_eff < 10 || gen->excitation_tube->continuous[gen->excitation_tube->n_continuous-1].energy > eff_x[n_eff-1]) {
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);		
+			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_tube)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", filename);
 			gtk_dialog_run(GTK_DIALOG(dialog));
 			gtk_widget_destroy(dialog);
 			xmi_free_excitation(gen->excitation_tube);
@@ -830,7 +830,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 	}
 
 
-	
+
 	GtkPlotCanvasChild *child;
 
 	GList *list;
@@ -889,7 +889,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 			}
 		}
 	}
-	
+
 	double plot_ymax = xmi_maxval_double(bins,gen->excitation_tube->n_continuous)*1.2;
 	//double plot_ymin = xmi_minval_double(bins,gen->excitation->n_continuous)*0.8;
 	double plot_ymin_lin = 0.0;
@@ -915,7 +915,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_tubeW))) {	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_tubeW))) {
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
 		plot_ymin = plot_ymin_lin;
@@ -933,7 +933,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",TUBE_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",TUBE_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	
+
 	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
         gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,0);
@@ -971,7 +971,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 	gtk_plot_data_set_x(dataset, energies);
 	gtk_plot_data_set_y(dataset, bins);
 	gtk_widget_show(GTK_WIDGET(dataset));
-	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
+	gtk_plot_data_set_line_attributes(dataset, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&blue_plot);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas_tube));
 	gtk_widget_queue_draw(GTK_WIDGET(gen->canvas_tube));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(gen->canvas_tube));
@@ -991,7 +991,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->activityW));
 	activity = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || activity <= 0.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid activity: must be greater than zero");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid activity: must be greater than zero");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
@@ -1000,7 +1000,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	text = (gchar*) gtk_entry_get_text(GTK_ENTRY(gen->nuclideSolidAngleW));
 	nuclide_solid_angle_fraction *= strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || nuclide_solid_angle_fraction <= 0.0 || nuclide_solid_angle_fraction > 1.0) {
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid solid angle: must be greater than zero and less or equal to 4π");		
+		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(gen->canvas_nuclide)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid solid angle: must be greater than zero and less or equal to 4π");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		return;
@@ -1008,7 +1008,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 
 	activity *= nuclide_solid_angle_fraction;
 
-	activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW)); 
+	activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(gen->activityUnitW));
 
 	if (activityUnit == ACTIVITY_UNIT_mCi) {
 		activity *= 3.7E7;
@@ -1039,7 +1039,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 
 	int i;
 
-	gen->excitation_nuclide = malloc(sizeof(struct xmi_excitation));
+	gen->excitation_nuclide = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
 	gen->excitation_nuclide->n_continuous = 0;
 	gen->excitation_nuclide->continuous = NULL;
 	gen->excitation_nuclide->n_discrete= 0;
@@ -1055,7 +1055,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		gen->excitation_nuclide->discrete = realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
+		gen->excitation_nuclide->discrete = (struct xmi_energy_discrete *) realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].energy = energy;
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].horizontal_intensity =
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].vertical_intensity =
@@ -1076,7 +1076,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		gen->excitation_nuclide->discrete = realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
+		gen->excitation_nuclide->discrete = (struct xmi_energy_discrete *) realloc(gen->excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++gen->excitation_nuclide->n_discrete);
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].energy = energy;
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].horizontal_intensity =
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].vertical_intensity =
@@ -1090,7 +1090,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		gen->excitation_nuclide->discrete[gen->excitation_nuclide->n_discrete-1].scale_parameter= 0.0;
 	}
 	FreeRadioNuclideData(rnd);
-	
+
 	//add box with default settings
 	GtkWidget *plot_window;
 	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
@@ -1098,7 +1098,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	gtk_plot_hide_legends(GTK_PLOT(plot_window));
 
 	double *bins = (double *) calloc(1000, sizeof(double));
-	
+
 	plot_xmax *= 1.2;
 
 	double *energies = (double *) malloc(sizeof(double) * 1000);
@@ -1136,7 +1136,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	gen->plot_window_nuclide = plot_window;
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_nuclideW))) {	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_nuclideW))) {
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
 		plot_ymin = plot_ymin_lin;
@@ -1154,7 +1154,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",TUBE_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",TUBE_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",30,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	
+
 	//gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",30,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
         gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,0);
@@ -1189,7 +1189,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	gtk_plot_data_set_x(dataset, energies);
 	gtk_plot_data_set_y(dataset, bins);
 	gtk_widget_show(GTK_WIDGET(dataset));
-	gtk_plot_data_set_line_attributes(dataset,GTK_PLOT_LINE_SOLID,0,0,1,&blue_plot);
+	gtk_plot_data_set_line_attributes(dataset, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&blue_plot);
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(gen->canvas_nuclide));
 	gtk_widget_queue_draw(GTK_WIDGET(gen->canvas_nuclide));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(gen->canvas_nuclide));
@@ -1273,25 +1273,17 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
 	gtk_table_attach(GTK_TABLE(table), label, 2, 3, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Thickness"), 3, 4, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	
+
 	//row 1
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	GtkWidget *anodeDensityW = gtk_entry_new();
-#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *anodeMaterialW = gtk_combo_box_text_new();
-#else
-	GtkWidget *anodeMaterialW = gtk_combo_box_new_text();
-#endif
 	g_signal_connect(G_OBJECT(anodeMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) anodeDensityW);
 	int i;
 	gchar *symbol;
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
-#if GTK_CHECK_VERSION(2,24,0)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(anodeMaterialW), symbol);
-#else
-		gtk_combo_box_append_text(GTK_COMBO_BOX(anodeMaterialW), symbol);
-#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(anodeMaterialW), xep->anode_Z-1);
@@ -1311,20 +1303,12 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	//row 2
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Window"), 0, 1, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
-#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *windowMaterialW = gtk_combo_box_text_new();
-#else
-	GtkWidget *windowMaterialW = gtk_combo_box_new_text();
-#endif
 	GtkWidget *windowDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(windowMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) windowDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
-#if GTK_CHECK_VERSION(2,24,0)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(windowMaterialW), symbol);
-#else
-		gtk_combo_box_append_text(GTK_COMBO_BOX(windowMaterialW), symbol);
-#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(windowMaterialW), xep->window_Z-1);
@@ -1336,23 +1320,15 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_entry_set_text(GTK_ENTRY(windowDensityW), buf);
 	sprintf(buf, "%g", xep->window_thickness);
 	gtk_entry_set_text(GTK_ENTRY(windowThicknessW), buf);
-		
+
 	//row 3
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Filter"), 0, 1, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *filterMaterialW = gtk_combo_box_text_new();
-#else
-	GtkWidget *filterMaterialW = gtk_combo_box_new_text();
-#endif
 	GtkWidget *filterDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(filterMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) filterDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
 		symbol = AtomicNumberToSymbol(i);
-#if GTK_CHECK_VERSION(2,24,0)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filterMaterialW), symbol);
-#else
-		gtk_combo_box_append_text(GTK_COMBO_BOX(filterMaterialW), symbol);
-#endif
 		xrlFree(symbol);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(filterMaterialW), xep->filter_Z-1);
@@ -1364,7 +1340,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_entry_set_text(GTK_ENTRY(filterDensityW), buf);
 	sprintf(buf, "%g", xep->filter_thickness);
 	gtk_entry_set_text(GTK_ENTRY(filterThicknessW), buf);
-	
+
 	GtkObject *adj2 = gtk_adjustment_new(xep->alpha,50,90,1,10,0);
 	GtkWidget *alphaElectronW = gtk_spin_button_new(GTK_ADJUSTMENT(adj2), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaElectronW), GTK_UPDATE_IF_VALID);
@@ -1373,7 +1349,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	
+
 	GtkObject *adj3 = gtk_adjustment_new(xep->beta,5,90,1,10,0);
 	GtkWidget *alphaXrayW = gtk_spin_button_new(GTK_ADJUSTMENT(adj3), 0.1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(alphaXrayW), GTK_UPDATE_IF_VALID);
@@ -1382,7 +1358,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	
+
 	GtkObject *adjDelta = gtk_adjustment_new(xep->interval_width,0.0001,10,0.01,10,0);
 	GtkWidget *deltaEnergyW = gtk_spin_button_new(GTK_ADJUSTMENT(adjDelta), 0.01, 3);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(deltaEnergyW), GTK_UPDATE_IF_VALID);
@@ -1391,14 +1367,14 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), deltaEnergyW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);	
+	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);
 
 	GtkWidget *transmissionW = gtk_check_button_new_with_label("Transmission tube");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionW), xep->transmission_tube);
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
 	struct transmission_data *td = (struct transmission_data *) malloc(sizeof(struct transmission_data));
-	g_signal_connect(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) td);	
+	g_signal_connect(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) td);
 	td->anodeDensityW = anodeDensityW;
 	td->anodeThicknessW = anodeThicknessW;
 
@@ -1410,20 +1386,20 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_widget_set_sensitive(transmissionEffFileW, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(transmissionEffW)));
 	gtk_box_pack_start(GTK_BOX(hbox), transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);	
+	g_signal_connect(G_OBJECT(transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) transmissionEffFileW);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(transmissionEffW))) {
 		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(transmissionEffFileW), xep->transmission_efficiency_file);
 	}
 
 
-	//buttons	
+	//buttons
 	struct generate *gen = (struct generate*) malloc(sizeof(struct generate));
 	gen->notebook = notebook;
 	gen->excitation_tube = NULL;
 	gen->excitation_nuclide = NULL;
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
-	
+
 	GtkWidget *linearW= gtk_radio_button_new_with_label_from_widget(NULL,"Linear scaling");
 	GtkWidget *log10W = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(linearW), "Logarithmic scaling");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(log10W), xep->log10_active);
@@ -1433,7 +1409,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	g_free(xep->transmission_efficiency_file);
 	g_free(xep);
 
-	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3); 
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 	GtkWidget *okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	GtkWidget *cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
 	GtkWidget *generateButton = gtk_button_new_from_stock(GTK_STOCK_EXECUTE);
@@ -1463,12 +1439,12 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), buttonbox, FALSE, FALSE, 2);
 
-	
+
 
 	GtkWidget *mainHBox = gtk_hbox_new(FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 1);
 	GtkWidget *canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);
-	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
+	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), (GtkPlotCanvasFlags) (GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM)); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
 	gtk_box_pack_start(GTK_BOX(mainHBox),canvas,FALSE,FALSE,2);
 
@@ -1523,21 +1499,13 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	GtkWidget *lilVBox = gtk_vbox_new(FALSE, 2);
 	hbox = gtk_hbox_new(FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Radionuclide"), FALSE, FALSE, 2);
-#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *radioNuclideW = gtk_combo_box_text_new();
-#else
-	GtkWidget *radioNuclideW = gtk_combo_box_new_text();
-#endif
 
 	gchar **nuclides;
 	int nNuclides;
 	nuclides = GetRadioNuclideDataList(&nNuclides);
 	for (i = 0 ; i < nNuclides ; i++) {
-#if GTK_CHECK_VERSION(2,24,0)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(radioNuclideW), nuclides[i]);
-#else
-		gtk_combo_box_append_text(GTK_COMBO_BOX(radioNuclideW), nuclides[i]);
-#endif
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(radioNuclideW), xnp->radioNuclide);
 	g_strfreev(nuclides);
@@ -1551,17 +1519,9 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	sprintf(buf, "%g", xnp->activity);
 	gtk_entry_set_text(GTK_ENTRY(activityW), buf);
 
-#if GTK_CHECK_VERSION(2,24,0)
 	GtkWidget *activityUnitW= gtk_combo_box_text_new();
-#else
-	GtkWidget *activityUnitW = gtk_combo_box_new_text();
-#endif
 	for (i = 0 ; i < 4 ; i++) {
-#if GTK_CHECK_VERSION(2,24,0)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(activityUnitW), activity_units[i]);
-#else
-		gtk_combo_box_append_text(GTK_COMBO_BOX(activityUnitW), activity_units[i]);
-#endif
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(activityUnitW), xnp->activityUnit);
 	gtk_box_pack_end(GTK_BOX(hbox), activityUnitW, FALSE, FALSE, 2);
@@ -1586,7 +1546,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
-	
+
 	linearW= gtk_radio_button_new_with_label_from_widget(NULL,"Linear scaling");
 	log10W = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(linearW), "Logarithmic scaling");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(log10W), xnp->log10_active);
@@ -1595,7 +1555,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	g_signal_connect(G_OBJECT(linearW), "toggled",G_CALLBACK(linear_log10_toggled_cb), (gpointer) gen);
 	g_free(xnp);
 
-	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3); 
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 	okButton = gtk_button_new_from_stock(GTK_STOCK_OK);
 	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
@@ -1629,7 +1589,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	mainHBox = gtk_hbox_new(FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, TRUE, 1);
 	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);
-	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM); //probably needs to be unset when initializing, but set when data is available
+	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), (GtkPlotCanvasFlags) (GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM)); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
 	gtk_box_pack_end(GTK_BOX(mainHBox),canvas,FALSE,FALSE,2);
 
@@ -1651,7 +1611,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	gtk_container_add(GTK_CONTAINER(window), notebook);
 
-	
+
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, &xpv) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
 		GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1671,7 +1631,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	generate_nuclide_spectrum(gen);
 }
 
-void export_canvas_image (GtkWidget *canvas, gchar *title) {
+void export_canvas_image(GtkWidget *canvas, const gchar *title) {
 
 	GtkWidget *dialog;
 	GtkFileFilter *filter;
@@ -1679,7 +1639,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 	cairo_t *cairo;
 	cairo_surface_t *surface;
 
-	dialog = gtk_file_chooser_dialog_new(title, 
+	dialog = gtk_file_chooser_dialog_new(title,
 		GTK_WINDOW(gtk_widget_get_toplevel(canvas)), GTK_FILE_CHOOSER_ACTION_SAVE,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
@@ -1725,7 +1685,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 			cairo = cairo_create(surface);
 			/*cairo_translate (cairo, 0, 842);
 			cairo_rotate(cairo, -M_PI/2);*/
-			
+
 			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
 			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 			cairo_show_page(cairo);
@@ -1760,7 +1720,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 			cairo_surface_write_to_png(surface,filename);
 			cairo_surface_destroy(surface);
 			cairo_destroy(cairo);
-		}			
+		}
 #ifdef CAIRO_HAS_SVG_SURFACE
 		else if (strncmp(gtk_file_filter_get_name(filter),"SVG", 3) == 0) {
 			fprintf(stdout,"SVG selected\n");
@@ -1774,7 +1734,7 @@ void export_canvas_image (GtkWidget *canvas, gchar *title) {
 			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 			cairo_surface_destroy(surface);
 			cairo_destroy(cairo);
-		}			
+		}
 #endif
 		g_free(filename);
 		gtk_widget_destroy(dialog);

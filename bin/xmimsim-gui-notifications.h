@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int xmimsim_notifications_init(void);
 
-int xmimsim_notifications_deliver(char *title, char *text);
+int xmimsim_notifications_deliver(const char *title, const char *text);
 
 int xmimsim_notifications_close(void);
 #endif

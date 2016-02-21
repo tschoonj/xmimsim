@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMIMSIM_GUI_RESULTS_H
 
 #include <gtk/gtk.h>
-#include <gtkextra/gtkextra.h>
+#include "xmi_data_structs.h"
 #include "xmi_xml.h"
 
 /*
@@ -42,7 +42,7 @@ extern int results_use_zero_interactions;
 
 GtkWidget *init_results(GtkWidget *window);
 
-int plot_spectra_from_file(char *xmsofile); 
+int plot_spectra_from_file(char *xmsofile);
 
 
 
