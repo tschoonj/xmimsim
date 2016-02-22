@@ -242,13 +242,18 @@ if test "x$GTK_FOUND" = xyes ; then
 	_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
 	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" != xno ; then
-
-	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.5,[
+		if test "x$CXX_MODE" = xyes ; then
+	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.8,[
 			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk2 >= 2.0.5")
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk2 >= 2.0.8")
 			],[GTK_MAC_INTEGRATION_FOUND=no])
+		else
+	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.8,[
+			GTK_MAC_INTEGRATION_FOUND=yes
+			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk2 >= 2.0.8")
+			],[GTK_MAC_INTEGRATION_FOUND=no])
+		fi
 	fi
-
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 

@@ -110,7 +110,15 @@ xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
 endif
 
 if ENABLE_CXX
+if ENABLE_MAC_APP
+xmimsim_gui_CFLAGS += -xobjective-c++
+else
 xmimsim_gui_CFLAGS += -xc++
+endif
+else
+if ENABLE_MAC_APP
+xmimsim_gui_CFLAGS += -xobjective-c
+endif
 endif
 
 
