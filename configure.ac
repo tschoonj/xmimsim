@@ -118,7 +118,7 @@ PKG_CHECK_MODULES([fgsl],[fgsl >= 1.1.0],
 	AC_DEFINE([HAVE_GSL2],[],[building with support for GSL2 and FGSL 1.1.0])
 	],
 	[
-	PKG_CHECK_MODULES([fgsl],[fgsl >= 1.1.0])
+	PKG_CHECK_MODULES([fgsl],[fgsl >= 1.0.0])
 	PKG_CHECK_MODULES([gsl],gsl >= 1.13)
 	])
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
