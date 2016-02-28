@@ -21,6 +21,8 @@ if ENABLE_MAC_APP
 AM_LDFLAGS = -headerpad_max_install_names -framework Cocoa
 endif
 
+NULL=
+
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
 		xmimsim-pymca \
@@ -32,7 +34,13 @@ bin_PROGRAMS =  xmimsim \
 		xmso2xmsi \
 		xmsi2xrmc \
 		xmimsim-conv \
-		xmsa2xmso
+		xmsa2xmso \
+		test-compound-dialog \
+		$(NULL)
+
+test_compound_dialog_SOURCES = xmimsim-gui-compound-dialog.h xmimsim-gui-compound-dialog.c test-compound-dialog.c xmimsim-gui-type-builtins.c
+test_compound_dialog_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
+test_compound_dialog_LDADD = @gtk2_LIBS@ @xraylib_LIBS@
 
 #bin_PROGRAMS += xmimsim-test-ebel \
 #		xmimsim-test-boone1 \
@@ -59,28 +67,40 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 			  @glib2_LIBS@
 
 
-xmimsim_gui_SOURCES = xmimsim-gui.c \
-		      xmimsim-gui-layer.c \
-		      xmimsim-gui-layer.h \
-		      xmimsim-gui-energies.c \
-		      xmimsim-gui-energies.h \
-		      xmimsim-gui.h \
-		      xmimsim-gui-controls.c \
-		      xmimsim-gui-controls.h \
-		      xmimsim-gui-results.c \
-		      xmimsim-gui-results.h \
-		      xmimsim-gui-prefs.h \
-		      xmimsim-gui-prefs.c \
-		      xmimsim-gui-tools.c \
-		      xmimsim-gui-tools.h \
-		      xmimsim-gui-batch.h \
-		      xmimsim-gui-batch.c \
-		      xmimsim-gui-notifications.c \
-		      xmimsim-gui-notifications.h \
-		      xmimsim-gui-coordinate-system.h \
-		      xmimsim-gui-fonts.h \
-		      xmimsim-gui-sources.c \
-		      xmimsim-gui-sources.h
+xmimsim_gui_SOURCES = \
+	xmimsim-gui.c \
+	xmimsim-gui-layer.c \
+	xmimsim-gui-layer.h \
+	xmimsim-gui-energies.c \
+	xmimsim-gui-energies.h \
+	xmimsim-gui.h \
+	xmimsim-gui-controls.c \
+	xmimsim-gui-controls.h \
+	xmimsim-gui-results.c \
+	xmimsim-gui-results.h \
+	xmimsim-gui-prefs.h \
+	xmimsim-gui-prefs.c \
+	xmimsim-gui-tools.c \
+	xmimsim-gui-tools.h \
+	xmimsim-gui-batch.h \
+	xmimsim-gui-batch.c \
+	xmimsim-gui-notifications.c \
+	xmimsim-gui-notifications.h \
+	xmimsim-gui-fonts.h \
+	xmimsim-gui-sources.c \
+	xmimsim-gui-sources.h \
+	xmimsim-gui-compound-dialog.c \
+	xmimsim-gui-compound-dialog.h \
+	$(NULL)
+
+nodist_xmimsim_gui_SOURCES = \
+	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-type-builtins.c \
+	xmimsim-gui-coordinate-system.h \
+	$(NULL)
+
+BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES)
+
 
 # this is a separate convenience library as it allows me to test against it test-cubic-spline
 noinst_LTLIBRARIES = libxmimsim-gui-spline.la
@@ -135,11 +155,13 @@ xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
 endif
 
+
+
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
-nodist_xmimsim_gui_SOURCES = xmimsim-gui-icons.h
+nodist_xmimsim_gui_SOURCES += xmimsim-gui-icons.h
 xmimsim_gui_CFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
 
@@ -303,8 +325,6 @@ xmimsim-gui-icons.h:
 	"Logo_xmi_msim_archive_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_archive.png" \
 	> xmimsim-gui-icons.h
 
-else
-xmimsim-gui.c: xmimsim-gui-coordinate-system.h
 endif
 
 xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
@@ -312,8 +332,29 @@ xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
 	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
 	> xmimsim-gui-coordinate-system.h
 
+xmimsim-gui-type-builtins.h: xmimsim-gui-compound-dialog.h
+	( cd $(srcdir) && glib-mkenums \
+		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n\n" \
+		--fprod "/* enumerations from \"@filename@\" */\n" \
+		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_GUI_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
+		--ftail "\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
+		--identifier-prefix "XmiMsimGui" \
+		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.h
+
+
+xmimsim-gui-type-builtins.c: xmimsim-gui-compound-dialog.h
+	( cd $(srcdir) && glib-mkenums \
+		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"" \
+		--fprod "\n/* enumerations from \"@filename@\" */" \
+		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
+		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
+		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
+		--identifier-prefix "XmiMsimGui" \
+		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.c
+
+
 clean-local:
-	rm -rf xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
+	rm -rf xmimsim-gui-icons.h $(nodist_xmimsim_gui_SOURCES)
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

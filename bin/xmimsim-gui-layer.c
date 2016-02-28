@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-compound-dialog.h"
 #include <stdlib.h>
 #include <string.h>
 #include "xraylib.h"
@@ -30,31 +31,22 @@ extern GdkColor white;
 extern GdkColor red;
 
 
-
 enum {
 	SYMBOL_COLUMN,
 	WEIGHT_COLUMN,
 	N_COLUMNS_LAYER
 };
 
-struct compoundWidget {
-	GtkWidget *dialog;
-	GtkWidget *compoundEntry;
-	GtkWidget *weightEntry;
-	GtkWidget *okButton;
-	GtkWidget *cancelButton;
-	int kind;
-	struct layerWidget *lw;
-	int index;
-};
-
 struct add_data {
 	GtkListStore *store;
 	struct xmi_layer **layer;
-	struct compoundWidget *cw;
 	GtkWidget *sumEntry;
 	GtkWidget *tree;
 	GtkTreeSelection *select;
+	gulong densityG;
+	GtkWidget *densityEntry;
+	GtkWidget *okButton;
+	GtkWidget *addToCatalogButton;
 };
 
 static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer data) {
@@ -84,7 +76,8 @@ static void element_selection_changed_cb (GtkTreeSelection *selection, gpointer 
 
 
 }
-void window_show_cb(GtkWidget *window, gpointer data) {
+
+static void window_show_cb(GtkWidget *window, gpointer data) {
 
 	struct layerWidget *lw = (struct layerWidget *) data;
 	char buffer[512];
@@ -157,7 +150,7 @@ void window_show_cb(GtkWidget *window, gpointer data) {
 
 }
 
-void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 	double sum;
 	int i;
@@ -181,7 +174,7 @@ void normalize_button_clicked_cb(GtkWidget *widget, gpointer data) {
 }
 
 
-void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
+static void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 	char *textPtr,*textPtr2,*endPtr,*lastPtr,*endPtr2,*lastPtr2, *textPtr3, *lastPtr3,*endPtr3 ;
 	struct layerWidget *lw = (struct layerWidget *) data;
 	int density_ok, thickness_ok, layer_ok;
@@ -245,7 +238,7 @@ void density_thickness_changed_cb(GtkWidget *widget, gpointer data) {
 
 
 
-void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct layerWidget *lw = (struct layerWidget *) data;
 
 	if (lw->okButton == widget) {
@@ -266,42 +259,101 @@ void ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		*(lw->my_layer) = NULL;
 	}
 
-
 	gtk_widget_hide(lw->window);
-
 }
 
-enum {
-	CW_ADD,
-	CW_EDIT,
-};
 
-
-
-void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 
 	//make entries empty and disable OK button
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), "");
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), "");
-	gtk_widget_set_sensitive(ad->cw->okButton,FALSE);
-	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), TRUE);
-	ad->cw->kind = CW_ADD;
+	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(ad->tree)), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+	//xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  element);
+	//xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  weight);
 
+	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
 
+	if (rv == GTK_RESPONSE_ACCEPT) {
+		//something was changed
+		gchar *compound = xmi_msim_gui_compound_dialog_get_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog));
+		gdouble weight = xmi_msim_gui_compound_dialog_get_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog));
 
-	gtk_widget_show_all(ad->cw->dialog);
+		struct compoundData *cd, *cd2, *cdsum;
+		if ((cd2 = CompoundParser(compound)) == NULL) {
+			fprintf(stderr,"compoundParser error in add_button_clicked_cb\n");
+			exit(1);
+		}
+		if (*(ad->layer) != NULL && (*(ad->layer))->n_elements > 0) {
+			//copy xmi_layer to compoundData and add current contents
+			cd = xmi_layer2compoundData(*(ad->layer));
+			//calculate sum
+			cdsum = add_compound_data(*cd, 1.0, *cd2, weight/100.0);
+			double density =(*(ad->layer))->density;
+			double thickness=(*(ad->layer))->thickness;
+			xmi_free_layer(*(ad->layer));
+			free(*(ad->layer));
+			*(ad->layer) = compoundData2xmi_layer(cdsum);
+			(*(ad->layer))->thickness = thickness;
+			(*(ad->layer))->density = density;
+			FreeCompoundData(cdsum);
+			FreeCompoundData(cd);
+		}
+		else if (*(ad->layer) == NULL || (*(ad->layer))->n_elements == 0) {
+			double density = 0.0, thickness = 0.0;
+			if ((*(ad->layer))->n_elements == 0) {
+				density =(*(ad->layer))->density;
+				thickness=(*(ad->layer))->thickness;
+				free(*(ad->layer));
+			}	
+			*(ad->layer) = compoundData2xmi_layer(cd2);
+			(*(ad->layer))->thickness = density;
+			(*(ad->layer))->density = thickness;
+			xmi_scale_double((*(ad->layer))->weight, (*(ad->layer))->n_elements, weight/100.0);
+			if ((*(ad->layer))->n_elements == 1) {
+				double density = ElementDensity((*(ad->layer))->Z[0]);
+				gchar *buffer = g_strdup_printf("%f", density);
+				g_signal_handler_block(G_OBJECT(ad->densityEntry), ad->densityG);
+				gtk_entry_set_text(GTK_ENTRY(ad->densityEntry), buffer);
+				g_signal_handler_unblock(G_OBJECT(ad->densityEntry), ad->densityG);
+				(*(ad->layer))->density = 0.0;
+				g_free(buffer);
+			}
+		}
+		else {
+			fprintf(stdout,"error in dialog_buttons_clicked_cb\n");
+			exit(1);
+		}
+		FreeCompoundData(cd2);
+
+		//update store
+		gtk_list_store_clear(ad->store);
+		GtkTreeIter iter;
+		int i;
+		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
+			gtk_list_store_append(ad->store, &iter);
+			gtk_list_store_set(ad->store, &iter,
+				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
+				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
+				-1
+			);
+		}
+		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
+		g_free(buffer);
+	}
+
+	gtk_widget_destroy(dialog);
+
 	return;
 }
 
-void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	int *indices;
 	gchar *element;
 	double weight;
-	char buffer[512];
 	GList *paths;
 
 	//get selection
@@ -314,17 +366,38 @@ void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_tree_model_get(model, &iter, SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
 
 	//put it in dialog
-	gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
-	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), FALSE);
-	ad->cw->kind = CW_EDIT;
-	sprintf(buffer,"%g", weight);
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
-	g_free(element);
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
-	ad->cw->index = indices[0];
-	g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(ad->tree)), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+	xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  element);
+	xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  weight);
 
-	gtk_widget_show_all(ad->cw->dialog);
+	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
+
+	if (rv == GTK_RESPONSE_ACCEPT) {
+		//something was changed
+		(*(ad->layer))->weight[indices[0]] = weight/100.0;
+
+		//update store
+		gtk_list_store_clear(ad->store);
+		int i;
+		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
+			gtk_list_store_append(ad->store, &iter);
+			gtk_list_store_set(ad->store, &iter,
+				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
+				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
+				-1
+			);
+		}
+		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
+		g_free(buffer);
+	}
+
+	g_free(element);
+
+	gtk_widget_destroy(dialog);
+
+
+	g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
 
 	return;
 }
@@ -517,15 +590,14 @@ static void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gtk_widget_destroy(dialog);
 }
 
-
-void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
+static void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 	GtkTreeIter iter;
 	int i;
 	char buffer[512];
 	GtkTreePath *path;
 
-	int n_elements = (*(ad->cw->lw->my_layer))->n_elements;
+	int n_elements = (*(ad->layer))->n_elements;
 	int j;
 
 	for (i = n_elements-1 ; i >= 0 ; i--) {
@@ -535,22 +607,22 @@ void remove_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_tree_model_get_iter (GTK_TREE_MODEL (ad->store),  &iter, path);
 			gtk_list_store_remove(ad->store, &iter);
 			//remove element from my_layer
-			for (j = i ; j < (*(ad->cw->lw->my_layer))->n_elements-1 ; j++) {
-				(*(ad->cw->lw->my_layer))->weight[j] =(*(ad->cw->lw->my_layer))->weight[j+1];
-				(*(ad->cw->lw->my_layer))->Z[j] =(*(ad->cw->lw->my_layer))->Z[j+1];
+			for (j = i ; j < (*(ad->layer))->n_elements-1 ; j++) {
+				(*(ad->layer))->weight[j] =(*(ad->layer))->weight[j+1];
+				(*(ad->layer))->Z[j] =(*(ad->layer))->Z[j+1];
 
 			}
-			(*(ad->cw->lw->my_layer))->weight = (double *) realloc((*(ad->cw->lw->my_layer))->weight, sizeof(double)*((*(ad->cw->lw->my_layer))->n_elements-1));
-			(*(ad->cw->lw->my_layer))->Z = (int *) realloc((*(ad->cw->lw->my_layer))->Z, sizeof(int)*((*(ad->cw->lw->my_layer))->n_elements-1));
-			(*(ad->cw->lw->my_layer))->n_elements--;
+			(*(ad->layer))->weight = (double *) realloc((*(ad->layer))->weight, sizeof(double)*((*(ad->layer))->n_elements-1));
+			(*(ad->layer))->Z = (int *) realloc((*(ad->layer))->Z, sizeof(int)*((*(ad->layer))->n_elements-1));
+			(*(ad->layer))->n_elements--;
 		}
 		gtk_tree_path_free(path);
 	}
-	sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->cw->lw->my_layer))->weight,(*(ad->cw->lw->my_layer))->n_elements )*100.0);
-	gtk_label_set_markup(GTK_LABEL(ad->cw->lw->sumEntry), buffer);
-	if ((*(ad->cw->lw->my_layer))->n_elements == 0) {
-		gtk_widget_set_sensitive(ad->cw->lw->okButton, FALSE);
-		gtk_widget_set_sensitive(ad->cw->lw->addToCatalogButton, FALSE);
+	sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight, (*(ad->layer))->n_elements )*100.0);
+	gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
+	if ((*(ad->layer))->n_elements == 0) {
+		gtk_widget_set_sensitive(ad->okButton, FALSE);
+		gtk_widget_set_sensitive(ad->addToCatalogButton, FALSE);
 	}
 /*	else{
 		//select next line if available
@@ -572,285 +644,47 @@ static gboolean backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, gpo
 	return FALSE;
 }
 
-void dialog_hide_cb(GtkWidget *widget, gpointer data) {
-	//struct compoundWidget * cw = (struct compoundWidget *) data;
-
-	//check if OK button in layerwidget should be activated
-
-
-
-}
-
-
-void dialog_show_cb(GtkWidget *widget, gpointer data) {
-	struct compoundWidget * cw = (struct compoundWidget *) data;
-
-	gtk_widget_modify_base(cw->compoundEntry,GTK_STATE_NORMAL,NULL);
-	gtk_widget_modify_base(cw->weightEntry,GTK_STATE_NORMAL,NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(widget), GTK_RESPONSE_ACCEPT);
-
-}
-
-
-
-
-void compound_changed(GtkWidget * widget, gpointer data) {
-	char *textPtr,*textPtr2,*endPtr,*lastPtr;
-	struct compoundWidget *cw = (struct compoundWidget *) data;
-	struct compoundData *cd;
-	double weight;
-
-	textPtr = (char *) gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry));
-	textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(cw->weightEntry));
-	weight = strtod(textPtr2, &endPtr);
-	cd = CompoundParser(textPtr);
-
-#if DEBUG == 1
-	fprintf(stdout,"weight: %lf\n",weight);
-
-#endif
-
-	lastPtr = textPtr2 + strlen(textPtr2);
-
-#if DEBUG == 1
-	fprintf(stdout,"lastPtr: %p\n",lastPtr);
-	fprintf(stdout,"endPtr: %p\n",endPtr);
-#endif
-
-	if (widget == cw->compoundEntry) {
-		if (cd) {
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
-			FreeCompoundData(cd);
-		}
-		else {
-			//bad value
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
-			gtk_widget_set_sensitive(cw->okButton,FALSE);
-		}
-		if (cd && lastPtr == endPtr && weight > 0.0) {
-			gtk_widget_set_sensitive(cw->okButton,TRUE);
-		}
-	}
-	else if (widget == cw->weightEntry) {
-		if (lastPtr == endPtr && weight > 0.0) {
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
-		}
-		else {
-			//bad value
-			gtk_widget_modify_base(widget,GTK_STATE_NORMAL,&red);
-			gtk_widget_set_sensitive(cw->okButton,FALSE);
-		}
-		if (cd && lastPtr == endPtr && weight > 0.0) {
-			gtk_widget_set_sensitive(cw->okButton,TRUE);
-			FreeCompoundData(cd);
-		}
-	}
-
-
-
-
-
-}
-
-
-
-void dialog_buttons_clicked_cb (GtkDialog *dialog, gint response_id, gpointer data) {
-
-	struct compoundWidget *cw = (struct compoundWidget *) data;
-	struct compoundData *cd, *cd2, *cdsum;
-	double weight;
-	double density, thickness;
-	int i;
-	GtkTreeIter iter;
-	char buffer[512];
-
-#if DEBUG == 1
-	fprintf(stdout,"Entering dialog_buttons_clicked_cb\n");
-#endif
-	if (response_id == GTK_RESPONSE_REJECT) {
-		gtk_widget_hide(GTK_WIDGET(dialog));
-	}
-
-	else if (response_id == GTK_RESPONSE_ACCEPT) {
-		//update
-		if (cw->kind == CW_ADD) {
-
-#if DEBUG == 1
-	fprintf(stdout,"Before mallocing cd2\n");
-#endif
-			//adding something
-			if ((cd2 = CompoundParser(gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry)))) == NULL) {
-				fprintf(stdout,"compoundParser error in dialog_buttons_clicked_cb\n");
-				exit(1);
-			}
-#if DEBUG == 1
-	fprintf(stdout,"After calling CompoundParser: compound is %s\n",gtk_entry_get_text(GTK_ENTRY(cw->compoundEntry)));
-#endif
-			weight = strtod(gtk_entry_get_text(GTK_ENTRY(cw->weightEntry)),NULL);
-#if DEBUG == 1
-	fprintf(stdout,"After calling CompoundParser: weight is %lf\n",weight);
-#endif
-			if (*(cw->lw->my_layer) != NULL && (*(cw->lw->my_layer))->n_elements > 0) {
-				//copy xmi_layer to compoundData and add current contents
-				cd = xmi_layer2compoundData(*(cw->lw->my_layer)  );
-				//calculate sum
-				cdsum = add_compound_data(*cd, 1.0, *cd2, weight/100.0);
-				density =(*(cw->lw->my_layer))->density;
-				thickness=(*(cw->lw->my_layer))->thickness;
-				xmi_free_layer(*(cw->lw->my_layer));
-				free( *(cw->lw->my_layer));
-				*(cw->lw->my_layer) = compoundData2xmi_layer (cdsum);
-				(*(cw->lw->my_layer))->thickness = thickness;
-				(*(cw->lw->my_layer))->density = density;
-				FreeCompoundData(cdsum);
-				FreeCompoundData(cd);
-			}
-			else if (*(cw->lw->my_layer) == NULL) {
-				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
-				(*(cw->lw->my_layer))->thickness = 0.0;
-				(*(cw->lw->my_layer))->density = 0.0;
-				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);
-				if ((*(cw->lw->my_layer))->n_elements == 1) {
-					double density = ElementDensity((*(cw->lw->my_layer))->Z[0]);
-					gchar *buffer = g_strdup_printf("%f", density);
-					g_signal_handler_block(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
-					gtk_entry_set_text(GTK_ENTRY(cw->lw->densityEntry), buffer);
-					g_signal_handler_unblock(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
-					(*(cw->lw->my_layer))->density = 0.0;
-					g_free(buffer);
-				}
-			}
-			else if ((*(cw->lw->my_layer))->n_elements == 0) {
-				free( *(cw->lw->my_layer));
-				*(cw->lw->my_layer) = compoundData2xmi_layer (cd2);
-				xmi_scale_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements, weight/100.0);
-				if ((*(cw->lw->my_layer))->n_elements == 1) {
-					double density = ElementDensity((*(cw->lw->my_layer))->Z[0]);
-					gchar *buffer = g_strdup_printf("%f", density);
-					g_signal_handler_block(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
-					gtk_entry_set_text(GTK_ENTRY(cw->lw->densityEntry), buffer);
-					g_signal_handler_unblock(G_OBJECT(cw->lw->densityEntry),cw->lw->densityG);
-					(*(cw->lw->my_layer))->density = 0.0;
-					g_free(buffer);
-				}
-			}
-			else {
-				fprintf(stdout,"error in dialog_buttons_clicked_cb\n");
-				exit(1);
-			}
-			FreeCompoundData(cd2);
-		}
-		else if (cw->kind == CW_EDIT) {
-			weight = strtod(gtk_entry_get_text(GTK_ENTRY(cw->weightEntry)),NULL);
-			(*(cw->lw->my_layer))->weight[cw->index] = weight/100.0;
-		}
-
-
-
-		//update store
-		gtk_list_store_clear(cw->lw->store);
-		for (i = 0 ; i < (*(cw->lw->my_layer))->n_elements ; i++) {
-			gtk_list_store_append(cw->lw->store, &iter);
-			gtk_list_store_set(cw->lw->store, &iter,
-				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(cw->lw->my_layer))->Z[i]),
-				WEIGHT_COLUMN,  (*(cw->lw->my_layer))->weight[i]*100.0,
-				-1
-			);
-		}
-		sprintf(buffer,"<span weight=\"bold\">%lg</span>", xmi_sum_double((*(cw->lw->my_layer))->weight,(*(cw->lw->my_layer))->n_elements )*100.0);
-		gtk_label_set_markup(GTK_LABEL(cw->lw->sumEntry), buffer);
-
-
-
-
-		gtk_widget_hide(GTK_WIDGET(dialog));
-
-	}
-
-
-}
-
-struct compoundWidget *initialize_compound_widget(struct layerWidget *lw, GtkWindow *parent) {
-
-	GtkWidget *dialog = gtk_dialog_new_with_buttons ("Enter/modify a compound", parent, (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
-		GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
-
-	GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	GtkWidget *HBox;
-	GtkWidget *compoundEntry;
-	GtkWidget *weightEntry;
-	GtkWidget *label;
-	GtkWidget *okButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
-	GtkWidget *cancelButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_REJECT);
-
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
-
-	struct compoundWidget *rv;
-
-	gtk_widget_set_sensitive(okButton, FALSE);
-
-	rv= (struct compoundWidget *) malloc(sizeof(struct compoundWidget));
-
-	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Compound");
-	compoundEntry = gtk_entry_new();
-	gtk_entry_set_activates_default(GTK_ENTRY(compoundEntry), TRUE);
-	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(HBox), compoundEntry, FALSE, FALSE, 2);
-
-	gtk_box_pack_start(GTK_BOX(contentArea), HBox, FALSE, FALSE, 1);
-
-	HBox = gtk_hbox_new(FALSE,2);
-	label = gtk_label_new("Weight fraction (%)");
-	weightEntry = gtk_entry_new();
-	gtk_entry_set_activates_default(GTK_ENTRY(weightEntry), TRUE);
-	gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(HBox), weightEntry, FALSE, FALSE, 2);
-
-	gtk_box_pack_start(GTK_BOX(contentArea), HBox, FALSE, FALSE, 1);
-
-
-
-	rv->dialog = dialog;
-	rv->compoundEntry = compoundEntry;
-	rv->weightEntry = weightEntry;
-	rv->okButton = okButton;
-	rv->cancelButton = cancelButton;
-	rv->lw = lw;
-
-	g_signal_connect(G_OBJECT(dialog),"response", G_CALLBACK(dialog_buttons_clicked_cb), rv);
-	g_signal_connect(G_OBJECT(compoundEntry), "changed", G_CALLBACK(compound_changed), rv);
-	g_signal_connect(G_OBJECT(weightEntry), "changed", G_CALLBACK(compound_changed), rv);
-	g_signal_connect(G_OBJECT(dialog),"show", G_CALLBACK(dialog_show_cb), rv);
-	g_signal_connect(G_OBJECT(dialog),"hide", G_CALLBACK(density_thickness_changed_cb), rv->lw);
-	g_signal_connect(G_OBJECT(dialog),"delete-event",G_CALLBACK(gtk_widget_hide_on_delete), NULL);
-
-
-	return rv;
-}
-
-void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
+static void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
 	struct add_data *ad = (struct add_data *) user_data;
 	gint *indices;
 	GtkTreeIter iter;
 	gchar *element;
 	double weight;
-	char buffer[512];
 
 	indices = gtk_tree_path_get_indices(path);
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(ad->store), &iter, path);
 	gtk_tree_model_get(GTK_TREE_MODEL(ad->store), &iter,  SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1 );
-	gtk_widget_set_sensitive(ad->cw->okButton,TRUE);
-	gtk_editable_set_editable(GTK_EDITABLE(ad->cw->compoundEntry), FALSE);
-	ad->cw->kind = CW_EDIT;
-	sprintf(buffer,"%g", weight);
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->compoundEntry), element);
-	g_free(element);
-	gtk_entry_set_text(GTK_ENTRY(ad->cw->weightEntry), buffer);
-	ad->cw->index = indices[0];
 
-	gtk_widget_show_all(ad->cw->dialog);
+	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(tree_view))), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+	xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  element);
+	xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  weight);
+
+	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
+
+	if (rv == GTK_RESPONSE_ACCEPT) {
+		//something was changed
+		(*(ad->layer))->weight[indices[0]] = weight/100.0;
+
+		//update store
+		gtk_list_store_clear(ad->store);
+		int i;
+		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
+			gtk_list_store_append(ad->store, &iter);
+			gtk_list_store_set(ad->store, &iter,
+				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
+				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
+				-1
+			);
+		}
+		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
+		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
+		g_free(buffer);
+	}
+
+	g_free(element);
+
+	gtk_widget_destroy(dialog);
 
 	return;
 }
@@ -883,7 +717,6 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
 	GtkWidget *scrolledWindow;
-	struct compoundWidget *cw;
 	struct add_data *ad;
 
 	rv = (struct layerWidget *) malloc(sizeof(struct layerWidget));
@@ -900,8 +733,6 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 	g_signal_connect(G_OBJECT(window), "delete-event",G_CALLBACK(delete_layer_widget), NULL);
 
 	//initialize compound
-	cw = initialize_compound_widget(rv, GTK_WINDOW(window));
-
 	mainVBox = gtk_vbox_new(FALSE, 5);
 	gtk_container_set_border_width(GTK_CONTAINER(mainVBox),5);
 	gtk_container_add(GTK_CONTAINER(window), mainVBox);
@@ -1048,10 +879,13 @@ struct layerWidget * initialize_layer_widget(struct xmi_layer **my_layer, GtkWid
 
 	ad->store = store;
 	ad->layer = my_layer;
-	ad->cw = cw;
 	ad->sumEntry = sumEntry;
+	ad->densityEntry = densityEntry;
 	ad->select = select;
 	ad->tree = tree;
+	ad->densityG = rv->densityG;
+	ad->okButton = okButton;
+	ad->addToCatalogButton = addToCatalogButton;
 
 
 	g_signal_connect(G_OBJECT(tree), "key-press-event", G_CALLBACK(backspace_key_clicked), (gpointer) ad);
