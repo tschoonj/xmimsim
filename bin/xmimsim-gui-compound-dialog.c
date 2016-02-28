@@ -41,10 +41,9 @@ enum {
   PROP_COMPOUND_DIALOG_TYPE
 };
 
-G_DEFINE_TYPE(XmiMsimGuiCompoundDialog, xmi_msim_gui_compound_dialog, XMI_MSIM_GUI_TYPE_COMPOUND_DIALOG)
+G_DEFINE_TYPE(XmiMsimGuiCompoundDialog, xmi_msim_gui_compound_dialog, GTK_TYPE_DIALOG)
 
 static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClass *klass) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_class_init\n");
   GObjectClass *gobject_class;
   gobject_class = G_OBJECT_CLASS(klass);
 
@@ -64,7 +63,6 @@ static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClas
 }
 
 static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_init\n");
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
@@ -104,7 +102,6 @@ static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) 
 }
 
 GtkWidget *xmi_msim_gui_compound_dialog_new(GtkWindow *parent, XmiMsimGuiCompoundDialogType type) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_new\n");
   GtkWidget *widget;
 
   g_return_val_if_fail(parent == NULL || GTK_IS_WINDOW(parent), NULL);
@@ -120,7 +117,6 @@ GtkWidget *xmi_msim_gui_compound_dialog_new(GtkWindow *parent, XmiMsimGuiCompoun
 }
 
 static void compound_changed(GtkEditable *widget, gpointer data) {
-  fprintf(stderr, "Entering compound_changed\n");
   const char *textPtr,*textPtr2;
   char *endPtr;
   const char *lastPtr;
@@ -161,12 +157,11 @@ static void compound_changed(GtkEditable *widget, gpointer data) {
       gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), TRUE);
     }
   }
-
-  FreeCompoundData(cd);
+  if (cd)
+    FreeCompoundData(cd);
 }
 
 static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
-  fprintf(stderr, "Entering xmi_msim_compound_dialog_set_property\n");
 
   XmiMsimGuiCompoundDialog *dialog = XMI_MSIM_GUI_COMPOUND_DIALOG(object);
 
@@ -175,6 +170,8 @@ static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id
       dialog->compound_dialog_type = g_value_get_enum(value);
       if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a compound");
+        gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), TRUE);
       } 
       else if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a compound");
@@ -188,7 +185,6 @@ static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id
 }
 
 static void xmi_msim_compound_dialog_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
-  fprintf(stderr, "Entering xmi_msim_compound_dialog_get_property\n");
 
   XmiMsimGuiCompoundDialog *dialog = XMI_MSIM_GUI_COMPOUND_DIALOG(object);
 
@@ -203,23 +199,19 @@ static void xmi_msim_compound_dialog_get_property(GObject *object, guint prop_id
 }
 
 void xmi_msim_gui_compound_dialog_set_compound(XmiMsimGuiCompoundDialog *dialog, const gchar *compound) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_set_compound\n");
   gtk_entry_set_text(GTK_ENTRY(dialog->compoundEntry), compound);
 }
 
 gchar *xmi_msim_gui_compound_dialog_get_compound(XmiMsimGuiCompoundDialog *dialog) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_get_compound\n");
   return g_strdup(gtk_entry_get_text(GTK_ENTRY(dialog->compoundEntry)));
 }
 
 void xmi_msim_gui_compound_dialog_set_weight(XmiMsimGuiCompoundDialog *dialog, gdouble weight) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_set_weight\n");
   gchar *text = g_strdup_printf("%g", weight);
   gtk_entry_set_text(GTK_ENTRY(dialog->weightEntry), text);
   g_free(text);
 }
 
 gdouble xmi_msim_gui_compound_dialog_get_weight(XmiMsimGuiCompoundDialog *dialog) {
-  fprintf(stderr, "Entering xmi_msim_gui_compound_dialog_get_weight\n");
   return strtod(gtk_entry_get_text(GTK_ENTRY(dialog->weightEntry)), NULL);
 }

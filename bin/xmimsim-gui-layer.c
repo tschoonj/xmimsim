@@ -53,6 +53,23 @@ static gboolean delete_layer_widget(GtkWidget *widget, GdkEvent *event, gpointer
 	return TRUE;
 }
 
+static void reload_element_table(struct add_data *ad) {
+	GtkTreeIter iter;
+	gtk_list_store_clear(ad->store);
+	int i;
+	for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
+		gtk_list_store_append(ad->store, &iter);
+		gtk_list_store_set(ad->store, &iter,
+			SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
+			WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
+			-1
+		);
+	}
+	gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
+	gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
+	g_free(buffer);
+}
+
 static void element_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	struct layerWidget *ad = (struct layerWidget *) data;
 
@@ -267,7 +284,7 @@ static void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct add_data *ad = (struct add_data *) data;
 
 	//make entries empty and disable OK button
-	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(ad->tree)), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(ad->tree)), XMI_MSIM_GUI_COMPOUND_DIALOG_ADD);
 	//xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  element);
 	//xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog),  weight);
 
@@ -300,7 +317,7 @@ static void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (*(ad->layer) == NULL || (*(ad->layer))->n_elements == 0) {
 			double density = 0.0, thickness = 0.0;
-			if ((*(ad->layer))->n_elements == 0) {
+			if (*(ad->layer) != NULL && (*(ad->layer))->n_elements == 0) {
 				density =(*(ad->layer))->density;
 				thickness=(*(ad->layer))->thickness;
 				free(*(ad->layer));
@@ -326,20 +343,7 @@ static void add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		FreeCompoundData(cd2);
 
 		//update store
-		gtk_list_store_clear(ad->store);
-		GtkTreeIter iter;
-		int i;
-		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
-			gtk_list_store_append(ad->store, &iter);
-			gtk_list_store_set(ad->store, &iter,
-				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
-				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
-				-1
-			);
-		}
-		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
-		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
-		g_free(buffer);
+		reload_element_table(ad);
 	}
 
 	gtk_widget_destroy(dialog);
@@ -374,22 +378,10 @@ static void edit_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if (rv == GTK_RESPONSE_ACCEPT) {
 		//something was changed
-		(*(ad->layer))->weight[indices[0]] = weight/100.0;
+		(*(ad->layer))->weight[indices[0]] = xmi_msim_gui_compound_dialog_get_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog))/100.0;
 
 		//update store
-		gtk_list_store_clear(ad->store);
-		int i;
-		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
-			gtk_list_store_append(ad->store, &iter);
-			gtk_list_store_set(ad->store, &iter,
-				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
-				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
-				-1
-			);
-		}
-		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
-		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
-		g_free(buffer);
+		reload_element_table(ad);
 	}
 
 	g_free(element);
@@ -664,22 +656,10 @@ static void element_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, 
 
 	if (rv == GTK_RESPONSE_ACCEPT) {
 		//something was changed
-		(*(ad->layer))->weight[indices[0]] = weight/100.0;
+		(*(ad->layer))->weight[indices[0]] = xmi_msim_gui_compound_dialog_get_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(dialog))/100.0;
 
 		//update store
-		gtk_list_store_clear(ad->store);
-		int i;
-		for (i = 0 ; i < (*(ad->layer))->n_elements ; i++) {
-			gtk_list_store_append(ad->store, &iter);
-			gtk_list_store_set(ad->store, &iter,
-				SYMBOL_COLUMN, 	AtomicNumberToSymbol((*(ad->layer))->Z[i]),
-				WEIGHT_COLUMN,  (*(ad->layer))->weight[i]*100.0,
-				-1
-			);
-		}
-		gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double((*(ad->layer))->weight,(*(ad->layer))->n_elements )*100.0);
-		gtk_label_set_markup(GTK_LABEL(ad->sumEntry), buffer);
-		g_free(buffer);
+		reload_element_table(ad);
 	}
 
 	g_free(element);
