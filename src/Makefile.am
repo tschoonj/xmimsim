@@ -18,6 +18,8 @@ xmimsimdir = $(datadir)/xmimsim
 
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
 
+BUILT_SOURCES = $(nodist_xmimsiminclude_HEADERS)
+
 if ENABLE_OPENCL
 dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
 endif

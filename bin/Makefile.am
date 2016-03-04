@@ -339,6 +339,7 @@ xmimsim-gui-type-builtins.h: xmimsim-gui-compound-dialog.h
 		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_GUI_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
 		--ftail "\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
 		--identifier-prefix "XmiMsimGui" \
+		--symbol-prefix "xmi_msim_gui" \
 		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.h
 
 
@@ -350,6 +351,7 @@ xmimsim-gui-type-builtins.c: xmimsim-gui-compound-dialog.h
 		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
 		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 		--identifier-prefix "XmiMsimGui" \
+		--symbol-prefix "xmi_msim_gui" \
 		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.c
 
 
