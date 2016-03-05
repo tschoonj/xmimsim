@@ -35,12 +35,16 @@ bin_PROGRAMS =  xmimsim \
 		xmsi2xrmc \
 		xmimsim-conv \
 		xmsa2xmso \
-		test-compound-dialog \
 		$(NULL)
 
+noinst_PROGRAMS = \
+	test-compound-dialog \
+	$(NULL)
+	
 test_compound_dialog_SOURCES = xmimsim-gui-compound-dialog.h xmimsim-gui-compound-dialog.c test-compound-dialog.c xmimsim-gui-type-builtins.c
 test_compound_dialog_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
 test_compound_dialog_LDADD = @gtk2_LIBS@ @xraylib_LIBS@
+
 
 #bin_PROGRAMS += xmimsim-test-ebel \
 #		xmimsim-test-boone1 \
@@ -91,6 +95,8 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-sources.h \
 	xmimsim-gui-compound-dialog.c \
 	xmimsim-gui-compound-dialog.h \
+	xmimsim-gui-catalog-dialog.c \
+	xmimsim-gui-catalog-dialog.h \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \

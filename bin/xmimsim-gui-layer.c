@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-compound-dialog.h"
+#include "xmimsim-gui-catalog-dialog.h"
 #include <stdlib.h>
 #include <string.h>
 #include "xraylib.h"
@@ -446,121 +447,31 @@ static void add_to_catalog_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	return;
 }
 
-static void predef_combo_changed_cb(GtkWidget *comboBox, GtkToggleButton *radio) {
-	gtk_toggle_button_set_active(radio, TRUE);
-}
-
 static void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct layerWidget *lw = (struct layerWidget *) data;
 	GtkWidget *dialog;
-	char **list = GetCompoundDataNISTList(NULL);
-	GtkWidget *content_area, *vbox;
 
-	dialog = gtk_dialog_new_with_buttons("Select a layer composition", GTK_WINDOW(gtk_widget_get_toplevel(widget)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
-		GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
-
-	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-	vbox = gtk_vbox_new(FALSE,2);
-
-	GtkWidget *nist_radio = gtk_radio_button_new_with_label_from_widget(NULL, "NIST compositions");
-	//gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("NIST compositions"),TRUE, FALSE, 2);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
-
-	GtkWidget *listW = gtk_combo_box_text_new();
-
-	int i;
-	for (i = 0 ; list[i] != NULL ; i++) {
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(listW), list[i]);
-		xrlFree(list[i]);
-	}
-	xrlFree(list);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(listW), 0);
-	//gtk_container_add(GTK_CONTAINER(nist_radio), );
-	gtk_box_pack_start(GTK_BOX(vbox), nist_radio, TRUE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(vbox), listW, TRUE, FALSE, 2);
-
-	gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), TRUE, FALSE, 2);
-
-	GtkWidget *user_radio = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(nist_radio), "User-defined compositions");
-	GtkWidget *list_userW = gtk_combo_box_text_new();
-
-	list = xmimsim_gui_get_user_defined_layer_names();
-	if (list != NULL && g_strv_length(list) > 0) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(user_radio), TRUE);
-		for (i = 0 ; list[i] != NULL ; i++) {
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(list_userW), list[i]);
-			g_free(list[i]);
-		}
-		g_free(list);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(list_userW), 0);
-	}
-	else {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nist_radio), TRUE);
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(list_userW), "(Empty)");
-		gtk_widget_set_sensitive(user_radio, FALSE);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(list_userW), 0);
-		gtk_widget_set_sensitive(list_userW, FALSE);
-	}
-	gtk_box_pack_start(GTK_BOX(vbox), user_radio, TRUE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(vbox), list_userW, TRUE, FALSE, 2);
-	gtk_widget_show_all(vbox);
-
-
-	gtk_container_add (GTK_CONTAINER (content_area), vbox);
-	g_signal_connect(G_OBJECT(listW), "changed", G_CALLBACK(predef_combo_changed_cb), nist_radio);
-	g_signal_connect(G_OBJECT(list_userW), "changed", G_CALLBACK(predef_combo_changed_cb), user_radio);
+	dialog = xmi_msim_gui_catalog_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget))); 
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nist_radio))) {
-			int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(listW));
-			struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
-			if (cdn == NULL) {
-				fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
-				exit(1);
+		struct xmi_layer *layer = xmi_msim_gui_catalog_dialog_get_layer(XMI_MSIM_GUI_CATALOG_DIALOG(dialog)); 
+		double thickness = 0.0;
+		if (*(lw->my_layer) != NULL) {
+			thickness = (*(lw->my_layer))->thickness;
+			if ((*(lw->my_layer))->n_elements > 0) {
+				free((*(lw->my_layer))->Z);
+				free((*(lw->my_layer))->weight);
 			}
-			double thickness = 0.0;
-			if (*(lw->my_layer) != NULL) {
-				thickness = (*(lw->my_layer))->thickness;
-				if ((*(lw->my_layer))->n_elements > 0) {
-					free((*(lw->my_layer))->Z);
-					free((*(lw->my_layer))->weight);
-				}
-				free(*(lw->my_layer));
-			}
-			else if (gtk_widget_get_sensitive(lw->okButton)){
-				//get thickness from widget
-				thickness = strtod(gtk_entry_get_text(GTK_ENTRY(lw->thicknessEntry)),NULL);
-			}
-			else
-				thickness = 0.0;
-
-			double sum = xmi_sum_double(cdn->massFractions, cdn->nElements);
-			xmi_scale_double(cdn->massFractions, cdn->nElements, 1.0/sum);
-			*(lw->my_layer) = compoundDataNIST2xmi_layer(cdn);
-
-			//this next line is fishy
-			(*(lw->my_layer))->thickness = thickness;
-			FreeCompoundDataNIST(cdn);
+			free(*(lw->my_layer));
 		}
-		else {
-			gchar *user_comp;
-			user_comp = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(list_userW));
-			struct xmi_layer *xl = xmimsim_gui_get_user_defined_layer(user_comp);
-			g_free(user_comp);
-			if (xl == NULL) {
-				fprintf(stderr,"Fatal error in xmimsim_gui_get_user_defined_layer\n");
-				exit(1);
-			}
-			if (*(lw->my_layer)) {
-				xmi_free_layer(*(lw->my_layer));
-				free(*(lw->my_layer));
-			}
-			*(lw->my_layer) = xl;
+		*(lw->my_layer) = layer;
+		if (thickness != 0.0)
+			layer->thickness = thickness;
 
-		}
 		//update store
 		gtk_list_store_clear(lw->store);
 		GtkTreeIter iter;
+		int i;
 		for (i = 0 ; i < (*(lw->my_layer))->n_elements ; i++) {
 			gtk_list_store_append(lw->store, &iter);
 			gtk_list_store_set(lw->store, &iter,
@@ -574,7 +485,7 @@ static void predef_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		gtk_label_set_markup(GTK_LABEL(lw->sumEntry), buffer);
 		sprintf(buffer,"%g", (*(lw->my_layer))->density);
 		gtk_entry_set_text(GTK_ENTRY(lw->densityEntry), buffer);
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(user_radio))) {
+		if ((*(lw->my_layer))->thickness > 0.0) {
 			sprintf(buffer,"%g", (*(lw->my_layer))->thickness);
 			gtk_entry_set_text(GTK_ENTRY(lw->thicknessEntry), buffer);
 		}
