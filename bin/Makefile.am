@@ -73,8 +73,6 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 xmimsim_gui_SOURCES = \
 	xmimsim-gui.c \
-	xmimsim-gui-layer.c \
-	xmimsim-gui-layer.h \
 	xmimsim-gui-energies.c \
 	xmimsim-gui-energies.h \
 	xmimsim-gui.h \
@@ -97,6 +95,8 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-catalog-dialog.c \
 	xmimsim-gui-catalog-dialog.h \
+	xmimsim-gui-layer-dialog.c \
+	xmimsim-gui-layer-dialog.h \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -107,6 +107,10 @@ nodist_xmimsim_gui_SOURCES = \
 
 BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES)
 
+mkenum_sources = \
+	xmimsim-gui-compound-dialog.h \
+	xmimsim-gui-layer-dialog.h \
+	$(NULL)
 
 # this is a separate convenience library as it allows me to test against it test-cubic-spline
 noinst_LTLIBRARIES = libxmimsim-gui-spline.la
@@ -338,7 +342,7 @@ xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
 	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
 	> xmimsim-gui-coordinate-system.h
 
-xmimsim-gui-type-builtins.h: xmimsim-gui-compound-dialog.h
+xmimsim-gui-type-builtins.h: $(mkenum_sources) 
 	( cd $(srcdir) && glib-mkenums \
 		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n\n" \
 		--fprod "/* enumerations from \"@filename@\" */\n" \
@@ -346,19 +350,19 @@ xmimsim-gui-type-builtins.h: xmimsim-gui-compound-dialog.h
 		--ftail "\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
-		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.h
+		$(mkenum_sources) ) > $(builddir)/xmimsim-gui-type-builtins.h
 
 
-xmimsim-gui-type-builtins.c: xmimsim-gui-compound-dialog.h
+xmimsim-gui-type-builtins.c: $(mkenum_sources)
 	( cd $(srcdir) && glib-mkenums \
-		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"" \
+		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
 		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
 		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
 		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
-		xmimsim-gui-compound-dialog.h ) > $(builddir)/xmimsim-gui-type-builtins.c
+		$(mkenum_sources) ) > $(builddir)/xmimsim-gui-type-builtins.c
 
 
 clean-local:

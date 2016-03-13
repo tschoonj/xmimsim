@@ -20,13 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_private.h"
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include "xmimsim-gui-layer.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-sources.h"
+#include "xmimsim-gui-layer-dialog.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -124,8 +124,6 @@ static GtkWidget *updatesW;
 #endif
 
 //composition
-struct layerWidget *layerW;
-
 static GtkListStore *compositionL;
 static GtkListStore *exc_compositionL;
 static GtkListStore *det_compositionL;
@@ -294,7 +292,6 @@ struct xmi_composition *compositionS;
 struct xmi_composition *exc_compositionS;
 struct xmi_composition *det_compositionS;
 struct xmi_composition *crystal_compositionS;
-struct xmi_layer *layer;
 
 
 
@@ -1229,175 +1226,6 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 }
 
 
-
-static void layer_widget_hide_cb(GtkWidget *window, gpointer data) {
-	struct layerWidget *lw = (struct layerWidget *) data;
-	struct xmi_composition *composition;
-	GtkTreeIter iter;
-	GtkListStore *store;
-	char *elementString;
-	int i,j;
-	int updateKind;
-	GtkWidget *tree;
-
-
-
-	if (lw->matrixKind == COMPOSITION)
-		tree = compositionW;
-	else if (lw->matrixKind == EXC_COMPOSITION)
-		tree = exc_compositionW;
-	else if (lw->matrixKind == DET_COMPOSITION)
-		tree = det_compositionW;
-	else if (lw->matrixKind == CRYSTAL_COMPOSITION)
-		tree = crystal_compositionW;
-
-
-	if (*(lw->my_layer) != NULL) {
-
-		if (lw->matrixKind == COMPOSITION) {
-			composition = compositionS;
-			store = compositionL;
-			if (lw->AddOrEdit == LW_ADD)
-				updateKind = COMPOSITION_ADD;
-			else if (lw->AddOrEdit == LW_EDIT)
-				updateKind = COMPOSITION_EDIT;
-		}
-		else if (lw->matrixKind == EXC_COMPOSITION) {
-			composition = exc_compositionS;
-			store = exc_compositionL;
-			if (lw->AddOrEdit == LW_ADD)
-				updateKind = EXC_COMPOSITION_ADD;
-			else if (lw->AddOrEdit == LW_EDIT)
-				updateKind = EXC_COMPOSITION_EDIT;
-		}
-		else if (lw->matrixKind == DET_COMPOSITION) {
-			composition = det_compositionS;
-			store = det_compositionL;
-			if (lw->AddOrEdit == LW_ADD)
-				updateKind = DET_COMPOSITION_ADD;
-			else if (lw->AddOrEdit == LW_EDIT)
-				updateKind = DET_COMPOSITION_EDIT;
-		}
-		else if (lw->matrixKind == CRYSTAL_COMPOSITION) {
-			composition = crystal_compositionS;
-			store = crystal_compositionL;
-			if (lw->AddOrEdit == LW_ADD)
-				updateKind = CRYSTAL_COMPOSITION_ADD;
-			else if (lw->AddOrEdit == LW_EDIT)
-				updateKind = CRYSTAL_COMPOSITION_EDIT;
-		}
-
-		//OK button was clicked
-		//in case of editing and changing nothing.. undo should not be triggered
-		//requires xmi_compare_layer... too lazy for now
-		if (lw->AddOrEdit == LW_ADD) {
-			//adding layer
-			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
-			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
-
-			gtk_list_store_append(store, &iter);
-			i = composition->n_layers-1;
-			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
-			elementString[0] = '\0';
-			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
-				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
-				if (j != composition->layers[i].n_elements-1) {
-					strcat(elementString,", ");
-				}
-			}
-			if (lw->matrixKind == COMPOSITION) {
-				if (composition->n_layers == 1)
-					composition->reference_layer = 1;
-
-				gtk_list_store_set(store, &iter,
-					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
-					ELEMENTS_COLUMN,elementString,
-					DENSITY_COLUMN,composition->layers[i].density,
-					THICKNESS_COLUMN,composition->layers[i].thickness,
-					REFERENCE_COLUMN, composition->n_layers == 1 ? TRUE : FALSE,
-					-1
-					);
-
-			}
-			else {
-				gtk_list_store_set(store, &iter,
-					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
-					ELEMENTS_COLUMN,elementString,
-					DENSITY_COLUMN,composition->layers[i].density,
-					THICKNESS_COLUMN,composition->layers[i].thickness,
-					-1
-					);
-			}
-
-			free(elementString);
-
-
-		}
-		else if (lw->AddOrEdit == LW_EDIT) {
-			//editing layer
-			i = lw->layerNumber;
-			free(composition->layers[i].Z);
-			free(composition->layers[i].weight);
-			xmi_copy_layer2(layer,composition->layers+lw->layerNumber);
-
-			elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
-			elementString[0] = '\0';
-			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
-				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
-				if (j != composition->layers[i].n_elements-1) {
-					strcat(elementString,", ");
-				}
-			}
-			if (lw->matrixKind == COMPOSITION) {
-				gtk_list_store_set(store, &(lw->iter),
-					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
-					ELEMENTS_COLUMN,elementString,
-					DENSITY_COLUMN,composition->layers[i].density,
-					THICKNESS_COLUMN,composition->layers[i].thickness,
-					REFERENCE_COLUMN,(i+1 == composition->reference_layer) ? TRUE : FALSE ,
-					-1
-					);
-			}
-			else {
-				gtk_list_store_set(store, &(lw->iter),
-					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
-					ELEMENTS_COLUMN,elementString,
-					DENSITY_COLUMN,composition->layers[i].density,
-					THICKNESS_COLUMN,composition->layers[i].thickness,
-					-1
-					);
-			}
-
-			free(elementString);
-		}
-		update_undo_buffer(updateKind, (GtkWidget *) store);
-
-	}
-
-	//return focus to treeview!
-	gtk_widget_grab_focus(tree);
-	//make sure a layer is selected
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(select) == 0) {
-		GtkTreeIter iter;
-		gtk_tree_model_get_iter_first(model, &iter);
-		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
-		gtk_tree_selection_select_path(select, path);
-		gtk_tree_path_free(path);
-	}
-
-	g_signal_emit_by_name(G_OBJECT(select), "changed");
-
-
-	return;
-
-}
-
-
-
-
-
 static void layer_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	GtkTreeIter iter,temp_iter;
 	GtkTreeModel *model;
@@ -1558,10 +1386,11 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	struct matrix_button *mb= (struct matrix_button *) data;
 	GtkTreeIter iter,temp_iter;
 	GtkTreeModel *model;
+	GtkTreeView *tree;
 	gboolean valid;
 	int index,nindices;
 	gint *indices;
-	int i;
+	int i, updateKind;
 	struct xmi_layer temp;
 	struct xmi_composition *composition;
 
@@ -1577,28 +1406,90 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else if (mb->buttonKind == BUTTON_DELETE)
 		fprintf(stdout,"Delete button clicked\n" );
 #endif
-	if (mb->matrixKind == COMPOSITION)
+	if (mb->matrixKind == COMPOSITION) {
 		composition = compositionS;
-	else if (mb->matrixKind == EXC_COMPOSITION)
+		tree = GTK_TREE_VIEW(compositionW);
+	}
+	else if (mb->matrixKind == EXC_COMPOSITION) {
 		composition = exc_compositionS;
-	else if (mb->matrixKind == DET_COMPOSITION)
+		tree = GTK_TREE_VIEW(exc_compositionW);
+	}
+	else if (mb->matrixKind == DET_COMPOSITION) {
 		composition = det_compositionS;
-	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
+		tree = GTK_TREE_VIEW(det_compositionW);
+	}
+	else if (mb->matrixKind == CRYSTAL_COMPOSITION){
 		composition = crystal_compositionS;
-
+		tree = GTK_TREE_VIEW(crystal_compositionW);
+	}
 
 	if (mb->buttonKind == BUTTON_ADD) {
-		//add line... testing only for now...
-#if DEBUG == 1
-		fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
-#endif
-		layer = NULL;
-		layerW->AddOrEdit = LW_ADD;
-		layerW->matrixKind = mb->matrixKind;
-		gtk_widget_show_all(layerW->window);
-#if DEBUG == 1
-		fprintf(stdout,"After widget show command\n" );
-#endif
+
+		GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_ADD);
+
+		if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+			struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+			if (mb->matrixKind == COMPOSITION) {
+				updateKind = COMPOSITION_ADD;
+			}
+			else if (mb->matrixKind == EXC_COMPOSITION) {
+				updateKind = EXC_COMPOSITION_ADD;
+			}
+			else if (mb->matrixKind == DET_COMPOSITION) {
+				updateKind = DET_COMPOSITION_ADD;
+			}
+			else if (mb->matrixKind == CRYSTAL_COMPOSITION) {
+				updateKind = CRYSTAL_COMPOSITION_ADD;
+			}
+
+			//adding layer
+			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
+
+			GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
+
+			gtk_list_store_append(store, &iter);
+			i = composition->n_layers-1;
+			char *elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
+			elementString[0] = '\0';
+			int j;
+			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
+				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
+				if (j != composition->layers[i].n_elements-1) {
+					strcat(elementString,", ");
+				}
+			}
+			if (mb->matrixKind == COMPOSITION) {
+				if (composition->n_layers == 1)
+					composition->reference_layer = 1;
+
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					REFERENCE_COLUMN, composition->n_layers == 1 ? TRUE : FALSE,
+					-1
+					);
+
+			}
+			else {
+				gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
+					ELEMENTS_COLUMN,elementString,
+					DENSITY_COLUMN,composition->layers[i].density,
+					THICKNESS_COLUMN,composition->layers[i].thickness,
+					-1
+					);
+			}
+
+			free(elementString);
+			update_undo_buffer(updateKind, (GtkWidget *) store);
+
+			xmi_free_layer(layer);
+			free(layer);
+		}
+		gtk_widget_destroy(dialog);
 		return;
 	}
 
@@ -1777,21 +1668,66 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 		}
 		else if (mb->buttonKind == BUTTON_EDIT) {
-			//add line... testing only for now...
-#if DEBUG == 1
-			fprintf(stdout,"window pointer before showing it: %p\n",layerW->window);
-#endif
-			//should work with a copy instead of the real thing
-		//	layer = composition->layers+index;
-			xmi_copy_layer(composition->layers+index,&layer);
-			layerW->AddOrEdit = LW_EDIT;
-			layerW->matrixKind = mb->matrixKind;
-			layerW->layerNumber = index;
-			layerW->iter = iter;
-			gtk_widget_show_all(layerW->window);
+			GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_EDIT);
+			xmi_msim_gui_layer_dialog_set_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog), composition->layers + index);
+			if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+				struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+				if (mb->matrixKind == COMPOSITION) {
+					updateKind = COMPOSITION_EDIT;
+				}
+				else if (mb->matrixKind == EXC_COMPOSITION) {
+					updateKind = EXC_COMPOSITION_EDIT;
+				}
+				else if (mb->matrixKind == DET_COMPOSITION) {
+					updateKind = DET_COMPOSITION_EDIT;
+				}
+				else if (mb->matrixKind == CRYSTAL_COMPOSITION) {
+					updateKind = CRYSTAL_COMPOSITION_EDIT;
+				}
+				//editing layer
+				free(composition->layers[index].Z);
+				free(composition->layers[index].weight);
+				xmi_copy_layer2(layer,composition->layers + index);
+
+				GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
+
+				char *elementString = (char *) malloc(sizeof(char)* (composition->layers[index].n_elements*5));
+				elementString[0] = '\0';
+				int j;
+				for (j = 0 ; j < composition->layers[index].n_elements ; j++) {
+					strcat(elementString,AtomicNumberToSymbol(composition->layers[index].Z[j]));
+					if (j != composition->layers[index].n_elements-1) {
+						strcat(elementString,", ");
+					}
+				}
+				if (mb->matrixKind == COMPOSITION) {
+					gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[index].n_elements,
+					ELEMENTS_COLUMN, elementString,
+					DENSITY_COLUMN, composition->layers[index].density,
+					THICKNESS_COLUMN,composition->layers[index].thickness,
+					REFERENCE_COLUMN,(index + 1 == composition->reference_layer) ? TRUE : FALSE ,
+					-1
+					);
+				}
+				else {
+					gtk_list_store_set(store, &iter,
+					N_ELEMENTS_COLUMN, composition->layers[index].n_elements,
+					ELEMENTS_COLUMN, elementString,
+					DENSITY_COLUMN, composition->layers[index].density,
+					THICKNESS_COLUMN, composition->layers[index].thickness,
+					-1
+					);
+				}
+
+				free(elementString);
+				update_undo_buffer(updateKind, (GtkWidget *) store);
+
+				xmi_free_layer(layer);
+				free(layer);
+			}
+			gtk_widget_destroy(dialog);
 		}
-
-
 		else {
 			fprintf(stderr,"Unknown button clicked\n");
 			exit(1);
@@ -1799,6 +1735,20 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	}
 
+	//return focus to treeview!
+	gtk_widget_grab_focus(GTK_WIDGET(tree));
+	//make sure a layer is selected
+	model = gtk_tree_view_get_model(tree);
+	GtkTreeSelection *select = gtk_tree_view_get_selection(tree);
+	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(select) == 0) {
+		GtkTreeIter iter;
+		gtk_tree_model_get_iter_first(model, &iter);
+		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
+		gtk_tree_selection_select_path(select, path);
+		gtk_tree_path_free(path);
+	}
+
+	g_signal_emit_by_name(G_OBJECT(select), "changed");
 
 	return;
 }
@@ -1862,39 +1812,8 @@ static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *p
 }
 
 void matrix_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
-	struct matrix_button *mb = (struct matrix_button *) user_data;
-	gint *indices;
-	struct xmi_composition *composition;
-	GtkTreeIter iter;
 
-
-#if DEBUG == 1
-	fprintf(stdout,"row activation detected\n");
-#endif
-	indices = gtk_tree_path_get_indices(path);
-
-
-#if DEBUG == 1
-	fprintf(stdout,"indices: %i\n",indices[0]);
-#endif
-	composition = NULL;
-	if (mb->matrixKind == COMPOSITION)
-		composition = compositionS;
-	else if (mb->matrixKind == EXC_COMPOSITION)
-		composition = exc_compositionS;
-	else if (mb->matrixKind == DET_COMPOSITION)
-		composition = det_compositionS;
-	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-		composition = crystal_compositionS;
-
-
-	gtk_tree_model_get_iter(GTK_TREE_MODEL(mb->store), &iter, path);
-	xmi_copy_layer(composition->layers+indices[0],&layer);
-	layerW->AddOrEdit = LW_EDIT;
-	layerW->matrixKind = mb->matrixKind;
-	layerW->layerNumber = indices[0];
-	layerW->iter = iter;
-	gtk_widget_show_all(layerW->window);
+	layers_button_clicked_cb(GTK_WIDGET(tree_view), user_data);
 
 	return;
 }
@@ -4446,7 +4365,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 }
 
 void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
-	char buffer[512];
+	gchar *buffer;
 	if (undo_error) {
 		//nothing changes while other invalid values are inserted
 		return;
@@ -4458,10 +4377,10 @@ void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
 	undo_error->message = get_message_string(kind);
 	undo_error->check = check;
 
-	g_sprintf(buffer,"Undo: %s", undo_error->message);
+	buffer = g_strdup_printf("Undo: %s", undo_error->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
-
+	g_free(buffer);
 }
 
 void update_undo_buffer(int kind, GtkWidget *widget) {
@@ -5750,11 +5669,6 @@ XMI_MAIN
 	//composition
 	tempW = initialize_matrix(current->xi->composition, COMPOSITION);
 	gtk_container_set_border_width(GTK_CONTAINER(tempW), 10);
-
-	//initialize layer widget
-	layerW = initialize_layer_widget(&layer, window);
-	g_signal_connect(G_OBJECT(layerW->window),"hide",G_CALLBACK(layer_widget_hide_cb), (gpointer) layerW);
-
 
 	frame = gtk_frame_new("Composition");
 

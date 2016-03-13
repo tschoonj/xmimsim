@@ -29,11 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_private.h"
 #include "xmi_ebel.h"
-#include "xmimsim-gui-energies.h"
-#include "xmimsim-gui.h"
-#include "xmimsim-gui-layer.h"
-#include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-fonts.h"
 #include "xmimsim-gui-prefs.h"
 #include <math.h>

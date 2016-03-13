@@ -1447,6 +1447,11 @@ FUNCTION xmi_sum_double(array, n_elements) BIND(C,NAME='xmi_sum_double')
         REAL (C_DOUBLE), DIMENSION(:), POINTER :: arrayF
 
         xmi_sum_double = 0.0_C_DOUBLE
+
+        IF (n_elements == 0_C_INT) THEN
+                RETURN
+        ENDIF
+
         CALL C_F_POINTER(array, arrayF, [n_elements])
 
 
