@@ -78,6 +78,7 @@ static void element_selection_changed(GtkTreeSelection *selection, XmiMsimGuiLay
 
 static void update_sum(XmiMsimGuiLayerDialog *dialog);
 
+static gboolean backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, XmiMsimGuiLayerDialog *dialog);
 
 
 //implementation
@@ -219,6 +220,8 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   dialog->density_changed = density_changed;
   dialog->thickness_changed = thickness_changed;
 
+  g_signal_connect(G_OBJECT(compositionTreeView), "key-press-event", G_CALLBACK(backspace_key_clicked), (gpointer) dialog);
+
   gtk_widget_show_all(contentArea);
 
 }
@@ -337,7 +340,6 @@ static void density_thickness_changed(GtkWidget *widget, XmiMsimGuiLayerDialog *
 }
 
 void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, struct xmi_layer *layer) {
-  xmi_msim_gui_layer_dialog_set_composition(dialog, layer->n_elements, layer->Z, layer->weight);
 
   gchar *buffer = g_strdup_printf("%g", layer->thickness);
   gtk_entry_set_text(GTK_ENTRY(dialog->thicknessEntry), buffer);
@@ -346,6 +348,7 @@ void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, struct x
   buffer = g_strdup_printf("%g", layer->density);
   gtk_entry_set_text(GTK_ENTRY(dialog->densityEntry), buffer);
   g_free(buffer);
+  xmi_msim_gui_layer_dialog_set_composition(dialog, layer->n_elements, layer->Z, layer->weight);
 }
 
 static void xmi_msim_gui_layer_dialog_set_composition(XmiMsimGuiLayerDialog *dialog, int n_elements, int *Z, double *weight) {
@@ -363,6 +366,20 @@ static void xmi_msim_gui_layer_dialog_set_composition(XmiMsimGuiLayerDialog *dia
   }
   gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double(weight, n_elements) * 100.0);
   gtk_label_set_markup(GTK_LABEL(dialog->sumLabel), buffer);
+  if (n_elements == 0) {
+    gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
+    gtk_widget_set_sensitive(dialog->addToCatalogButton, FALSE);
+  }
+  else {
+    const char *textPtr = gtk_entry_get_text(GTK_ENTRY(dialog->densityEntry));
+    const char *textPtr2 = gtk_entry_get_text(GTK_ENTRY(dialog->thicknessEntry));
+    double density = strtod(textPtr, NULL);
+    double thickness = strtod(textPtr2, NULL);
+    if (density > 0.0 && thickness > 0.0) {
+      gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
+      gtk_widget_set_sensitive(dialog->addToCatalogButton, TRUE);
+    }
+  }
   g_free(buffer);
 }
 
@@ -655,7 +672,6 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
     else {
       //list is empty!
       xmi_scale_double(cd2->massFractions, cd2->nElements, compound_weight/100.0);
-      xmi_msim_gui_layer_dialog_set_composition(dialog, cd2->nElements, cd2->Elements, cd2->massFractions);
       if (cd2->nElements == 1) {
         // if compound
         double density = ElementDensity(cd2->Elements[0]);
@@ -665,6 +681,7 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
         g_signal_handler_unblock(G_OBJECT(dialog->densityEntry), dialog->density_changed);
 	g_free(buffer);
       }
+      xmi_msim_gui_layer_dialog_set_composition(dialog, cd2->nElements, cd2->Elements, cd2->massFractions);
     }
     FreeCompoundData(cd2);
   }
@@ -692,4 +709,12 @@ static void element_selection_changed(GtkTreeSelection *selection, XmiMsimGuiLay
   }
 
   return;
+}
+
+static gboolean backspace_key_clicked(GtkWidget *widget, GdkEventKey *event, XmiMsimGuiLayerDialog *dialog) {
+  if (event->keyval == gdk_keyval_from_name("BackSpace")) {
+    remove_button_clicked(NULL, dialog);
+    return TRUE;
+  }
+  return FALSE;
 }

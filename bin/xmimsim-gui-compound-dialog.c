@@ -176,6 +176,7 @@ static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id
       else if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a compound");
 	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), FALSE);
+	gtk_widget_set_sensitive(dialog->compoundEntry, FALSE);
       } 
       break;
     default:
