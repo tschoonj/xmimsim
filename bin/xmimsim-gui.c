@@ -40,6 +40,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <gdk-pixbuf/gdk-pixdata.h>
 #include "xmimsim-gui-coordinate-system.h"
+#include <math.h>
 
 #ifdef G_OS_UNIX
 #include <sys/types.h>
@@ -6244,7 +6245,7 @@ XMI_MAIN
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_ERROR,
 			      	GTK_BUTTONS_CLOSE,
-			       	"Could not read file %s\nExtenstion must be either xmsi or xmso.",filename
+				"Could not read file %s\nExtension must be either xmsi, xmso or xmsa.", filename
 	               	);
 			g_idle_add(dialog_helper_cb,(gpointer) dialog);
 		}
@@ -6252,6 +6253,20 @@ XMI_MAIN
 	else {
 		update_xmimsim_title_xmsi("New file", window, NULL);
 		update_xmimsim_title_xmso("No simulation data available", window, NULL);
+	}
+
+	//add warning message in case we are dealing with a development version
+	//get version from config.h (I tend to forget updating xmi_msim.h...
+	double package_version = strtod(PACKAGE_VERSION, NULL);
+	if (package_version - floor(package_version) > 0.0) {
+		dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_WARNING,
+			GTK_BUTTONS_CLOSE,
+			"You are running a development version of XMI-MSIM."
+	        );
+		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(dialog), "Please report bugs to <span><a href=\"mailto:%s\">%s</a></span>", PACKAGE_BUGREPORT, PACKAGE_BUGREPORT);
+		g_idle_add(dialog_helper_cb,(gpointer) dialog);
 	}
 
 
