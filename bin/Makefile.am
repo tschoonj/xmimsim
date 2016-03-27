@@ -97,15 +97,15 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.c \
 	xmimsim-gui-layer-dialog.h \
+	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-type-builtins.c \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
-	xmimsim-gui-type-builtins.h \
-	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-coordinate-system.h \
 	$(NULL)
 
-BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES)
+BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES) xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.c
 
 mkenum_sources = \
 	xmimsim-gui-compound-dialog.h \
@@ -342,7 +342,10 @@ xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
 	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
 	> xmimsim-gui-coordinate-system.h
 
-xmimsim-gui-type-builtins.h: $(mkenum_sources) 
+xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
+
+
+xmimsim-gui-type-builtins.c: $(mkenum_sources)
 	( cd $(srcdir) && glib-mkenums \
 		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n\n" \
 		--fprod "/* enumerations from \"@filename@\" */\n" \
@@ -350,10 +353,7 @@ xmimsim-gui-type-builtins.h: $(mkenum_sources)
 		--ftail "\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
-		$(mkenum_sources) ) > $(builddir)/xmimsim-gui-type-builtins.h
-
-
-xmimsim-gui-type-builtins.c: $(mkenum_sources)
+		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
 	( cd $(srcdir) && glib-mkenums \
 		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
@@ -362,7 +362,7 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
-		$(mkenum_sources) ) > $(builddir)/xmimsim-gui-type-builtins.c
+		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.c
 
 
 clean-local:
