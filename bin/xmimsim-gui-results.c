@@ -1338,10 +1338,12 @@ int plot_spectra_from_file(char *xmsofile) {
 		sd->button = button;
 		sd->dataset_conv = dataset_conv;
 		sd->dataset_unconv = dataset_unconv;
+
+		GdkColor *color_plot;
+
 		switch (i-(results->use_zero_interactions ? 0 : 1)) {
 			case 0:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&blue_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&blue_plot);
+				color_plot = &blue_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",0);
 				}
@@ -1350,8 +1352,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 1:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&red_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&red_plot);
+				color_plot = &red_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",1);
 				}
@@ -1360,8 +1361,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 2:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&green_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&green_plot);
+				color_plot = &green_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interaction",2);
 				}
@@ -1370,8 +1370,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 3:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&purple_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&purple_plot);
+				color_plot = &purple_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",3);
 				}
@@ -1380,8 +1379,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 4:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&yellow_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&yellow_plot);
+				color_plot = &yellow_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",4);
 				}
@@ -1390,8 +1388,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			case 5:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&pink_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&pink_plot);
+				color_plot = &pink_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",5);
 				}
@@ -1400,8 +1397,7 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 			default:
-				gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&black_plot);
-				gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&black_plot);
+				color_plot = &black_plot;
 				if (results->use_zero_interactions == 1) {
 					sprintf(buffer,"%i interactions",i-(results->use_zero_interactions ? 0 : 1));
 				}
@@ -1410,6 +1406,9 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 		}
+		gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0, 1, color_plot);
+		gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0, 1, color_plot);
+
 		if (current_conv == XMI_PLOT_CONVOLUTED) {
 			gtk_widget_show(GTK_WIDGET(dataset_conv));
 		}
