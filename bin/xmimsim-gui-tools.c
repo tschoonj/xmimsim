@@ -126,7 +126,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		}
 		//set the spinner
 		gtk_widget_set_sensitive(xt->spinner, TRUE);
-		GtkObject *adj = gtk_adjustment_new(output->ninteractions, output->use_zero_interactions ? 0 : 1, output->ninteractions, 1 , 1, 0);
+		GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(output->ninteractions, output->use_zero_interactions ? 0 : 1, output->ninteractions, 1 , 1, 0));
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner), GTK_ADJUSTMENT(adj));
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner),output->ninteractions);
 		//free everything
@@ -216,7 +216,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 		//set the spinner
 		gtk_widget_set_sensitive(xt->spinner1, TRUE);
-		GtkObject *adj = gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0);
+		GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0));
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner1), GTK_ADJUSTMENT(adj));
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner1), 0);
 		gchar *label_text = g_strdup_printf("XPath1: %s", archive->xpath1);
@@ -225,7 +225,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 		if (archive->xpath2) {
 			gtk_widget_set_sensitive(xt->spinner2, TRUE);
-			GtkObject *adj = gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0);
+			GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
 			gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner2), GTK_ADJUSTMENT(adj));
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner2), 0);
 			label_text = g_strdup_printf("XPath2: %s", archive->xpath2);

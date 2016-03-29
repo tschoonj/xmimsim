@@ -104,7 +104,6 @@ GtkWidget *image_mainW;
 GtkWidget *image_escapeW;
 
 GtkWidget *nthreadsW;
-GtkObject *nthreadsA;
 GTimer *timer = NULL;
 
 GIOChannel *xmimsim_stdout;
@@ -1322,8 +1321,8 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	if (xmi_omp_get_max_threads() > 1) {
 		cpuBox = gtk_vbox_new(FALSE,1);
 		cpuLabel = gtk_label_new("CPUs");
-		nthreadsA = gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0);
-		nthreadsW = gtk_vscale_new(GTK_ADJUSTMENT(nthreadsA));
+		GtkAdjustment *nthreadsA = GTK_ADJUSTMENT(gtk_adjustment_new((gdouble) xmi_omp_get_max_threads(), 1.0, (gdouble) xmi_omp_get_max_threads(), 1.0,1.0,0.0));
+		nthreadsW = gtk_vscale_new(nthreadsA);
 		gtk_scale_set_digits(GTK_SCALE(nthreadsW), 0);
 		gtk_range_set_inverted(GTK_RANGE(nthreadsW),TRUE);
 		gtk_scale_set_value_pos(GTK_SCALE(nthreadsW),GTK_POS_RIGHT);
@@ -1341,7 +1340,11 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_add(GTK_CONTAINER(image_solidW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_solidW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_solidW,-1,30);
+#if GTK_MAJOR_VERSION == 3
+	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_solidW), GTK_ORIENTATION_HORIZONTAL);
+#else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
+#endif
 	hbox_small = gtk_hbox_new(FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),image_solidW,FALSE,FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_solidW,TRUE,TRUE,1);
@@ -1351,7 +1354,11 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_add(GTK_CONTAINER(image_mainW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_mainW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_mainW,-1,30);
+#if GTK_MAJOR_VERSION == 3
+	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_mainW), GTK_ORIENTATION_HORIZONTAL);
+#else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
+#endif
 	hbox_small = gtk_hbox_new(FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),image_mainW,FALSE,FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_mainW,TRUE,TRUE,1);
@@ -1361,7 +1368,11 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_add(GTK_CONTAINER(image_escapeW),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_MENU));
 	progressbar_escapeW = gtk_progress_bar_new();
 	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
+#if GTK_MAJOR_VERSION == 3
+	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_escapeW), GTK_ORIENTATION_HORIZONTAL);
+#else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
+#endif
 	hbox_small = gtk_hbox_new(FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),image_escapeW,FALSE,FALSE,1);
 	gtk_box_pack_start(GTK_BOX(hbox_small),progressbar_escapeW,TRUE,TRUE,1);

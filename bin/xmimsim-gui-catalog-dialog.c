@@ -37,6 +37,7 @@ static void xmi_msim_gui_catalog_dialog_init(XmiMsimGuiCatalogDialog *dialog) {
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+  gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
   GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);

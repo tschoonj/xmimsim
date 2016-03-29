@@ -342,8 +342,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 
 	start_at_begin = gtk_radio_button_new_with_label_from_widget(NULL,"Start at first line");
 	start_at_line = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(start_at_begin), "Start at line:");
-	GtkObject *adj = gtk_adjustment_new(1,1,10000,1,10,0);
-	start_at_line_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1, 0);
+	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(1,1,10000,1,10,0));
+	start_at_line_spinner = gtk_spin_button_new(adj, 1, 0);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(start_at_line_spinner), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), start_at_line, FALSE, FALSE, 1);
@@ -358,8 +358,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 
 	read_all_lines = gtk_radio_button_new_with_label_from_widget(NULL,"Read all lines");
 	read_only_lines = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(read_all_lines), "Number of lines to be read:");
-	adj = gtk_adjustment_new(1,1,10000,1,10,0);
-	read_only_lines_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1, 0);
+	adj = GTK_ADJUSTMENT(gtk_adjustment_new(1,1,10000,1,10,0));
+	read_only_lines_spinner = gtk_spin_button_new(adj, 1, 0);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(read_only_lines_spinner), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_box_pack_start(GTK_BOX(hbox), read_only_lines, FALSE, FALSE, 1);

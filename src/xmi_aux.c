@@ -185,7 +185,6 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 #include <xraylib.h>
 #ifdef HAVE_GUI
 #include <gtk/gtk.h>
-#include <gtkextra/gtkextra.h>
 #endif
 #include <hdf5.h>
 #include <libxml/xmlversion.h>
@@ -459,7 +458,7 @@ void *xmi_malloc(size_t size) {
 }
 
 void *xmi_realloc(void *ptr, size_t size){
-	return xmi_realloc(ptr, size);
+	return (ptr, size);
 }
 
 

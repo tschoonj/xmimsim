@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-fonts.h"
+#include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
 #include <stdlib.h>
 #include <string.h>
@@ -27,14 +28,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
 
-GdkColor white_plot;
-GdkColor blue_plot;
-GdkColor red_plot;
-GdkColor green_plot;
-GdkColor black_plot;
-GdkColor purple_plot;
-GdkColor yellow_plot;
-GdkColor pink_plot;
+
+XmiColor white_plot;
+XmiColor blue_plot;
+XmiColor red_plot;
+XmiColor green_plot;
+XmiColor black_plot;
+XmiColor purple_plot;
+XmiColor yellow_plot;
+XmiColor pink_plot;
 
 
 static struct xmi_output *results;
@@ -42,27 +44,43 @@ static struct xmi_output *results;
 static double plot_xmin, plot_xmax, plot_ymin, plot_ymax_conv, plot_ymax_unconv;
 
 static GtkWidget *spectra_button_box; //VButtonBox
+#ifdef HAVE_CXX
+static Gtk::PLplot::Canvas *canvas;
+static Gtk::PLplot::Plot2D *plot_window;
+#else
 static GtkWidget *canvas;
 static GtkWidget *plot_window;
+#endif
 static gint canvas_height;
 
 static GtkWidget *spectra_propertiesW;
 static GtkWidget *spectra_properties_linestyleW;
 static GtkWidget *spectra_properties_widthW;
 static GtkWidget *spectra_properties_colorW;
+#ifdef HAVE_CXX
+static Gtk::PLplot::PlotData2D *spectra_properties_dataset_active;
+#else
 static GtkPlotData *spectra_properties_dataset_active;
-
+#endif
 static gulong spectra_properties_linestyleG;
 static gulong spectra_properties_widthG;
 static gulong spectra_properties_colorG;
+#ifdef HAVE_CXX
+
+#else
 static gulong spectra_region_mouse_movedG;
 static gulong spectra_region_changedG;
 static gulong spectra_region_double_clickedG;
+#endif
 
 
 static gchar *xaxis_title = NULL;
 static gchar *yaxis_title = NULL;
+#ifdef HAVE_CXX
+static gboolean current_scale;
+#else
 static GtkPlotScale current_scale;
+#endif
 static int current_conv;
 
 enum {
@@ -81,19 +99,22 @@ static GtkWidget *countsTV;
 
 
 struct spectra_data {
+#ifdef HAVE_CXX
+	Gtk::PLplot::PlotData2D *dataset_conv;
+	Gtk::PLplot::PlotData2D *dataset_unconv;
+#else
 	GtkPlotData *dataset_conv;
 	GtkPlotData *dataset_unconv;
+#endif
 	GtkWidget *checkButton;
 	GtkWidget *button;
 };
 
 static struct spectra_data **sds = NULL;
 
-struct coords_data {
-	GtkWidget *xCoordW;
-	GtkWidget *yCoordW;
-	GtkWidget *channelCoordW;
-};
+GtkWidget *xCoordW;
+GtkWidget *yCoordW;
+GtkWidget *channelCoordW;
 
 enum {
 	ELEMENT_COLUMN,
@@ -129,7 +150,7 @@ double get_tickstep(double xmin, double xmax) {
 	return tickstep;
 }
 
-
+#ifndef HAVE_CXX
 static gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	gdouble magnifier;
 
@@ -150,6 +171,7 @@ static gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer da
 
 	return FALSE;
 }
+#endif
 
 static void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 
@@ -183,8 +205,15 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 	GtkTreePath *tree_path = gtk_tree_path_new_from_string(path);
 	gboolean toggled, inconsistent, toggled2;
 	gint depth;
+#ifdef HAVE_CXX
+	Gtk::PLplot::PlotData2D *plot_data;
+	#define PLOT_SHOW plot_data->show()
+	#define PLOT_HIDE plot_data->hide()
+#else
 	GtkPlotData *plot_data;
-
+	#define PLOT_SHOW gtk_widget_show(GTK_WIDGET(plot_data))
+	#define PLOT_HIDE gtk_widget_hide(GTK_WIDGET(plot_data))
+#endif
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(countsTS), &iter, tree_path);
 	depth = gtk_tree_store_iter_depth(countsTS,&iter);
@@ -200,7 +229,7 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 			gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 			do {
 				gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
-				gtk_widget_show(GTK_WIDGET(plot_data));
+				PLOT_SHOW;
 				gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
 			} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));
 		}
@@ -211,7 +240,7 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 				do {
 					gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
-					gtk_widget_hide(GTK_WIDGET(plot_data));
+					PLOT_HIDE;
 					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, FALSE, -1);
 				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));
 			}
@@ -221,7 +250,7 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 				gtk_tree_model_iter_children(GTK_TREE_MODEL(countsTS), &child, &iter);
 				do {
 					gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &child, CHILD_COLUMN, &plot_data, -1);
-					gtk_widget_show(GTK_WIDGET(plot_data));
+					PLOT_SHOW;
 					gtk_tree_store_set(countsTS, &child, SHOW_LINE_COLUMN, TRUE, -1);
 				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(countsTS),&child));
 			}
@@ -261,21 +290,24 @@ void cell_active_toggle(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
 		//draw or remove line
 		gtk_tree_model_get(GTK_TREE_MODEL(countsTS), &iter, CHILD_COLUMN, &plot_data, -1);
 		if (toggled) {
-			gtk_widget_show(GTK_WIDGET(plot_data));
+			PLOT_SHOW;
 		}
 		else {
-			gtk_widget_hide(GTK_WIDGET(plot_data));
+			PLOT_HIDE;
 		}
 
 	}
 
+#ifndef HAVE_CXX
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
-	//gtk_plot_paint(GTK_PLOT(plot_window));
-
+#endif
 
 	gtk_tree_path_free(tree_path);
+
+#undef PLOT_SHOW
+#undef PLOT_HIDE
 
 	return;
 }
@@ -316,6 +348,7 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 	return;
 }
 
+#ifndef HAVE_CXX
 static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble y1, gdouble x2, gdouble y2, gpointer data) {
 
   	gdouble xmin, ymin, xmax, ymax;
@@ -400,11 +433,14 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 
 	return;
 }
-
+#endif
 
 static void zoom_out(void) {
-	double tickstep = get_tickstep(plot_xmin, plot_xmax);
 	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
+#ifdef HAVE_CXX
+	plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+#else
+	double tickstep = get_tickstep(plot_xmin, plot_xmax);
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		tickstep = get_tickstep(plot_ymin, plot_ymax);
@@ -427,9 +463,10 @@ static void zoom_out(void) {
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
-
+#endif
 }
 
+#ifndef HAVE_CXX
 static gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 
 	if (event->type == GDK_2BUTTON_PRESS) {
@@ -440,9 +477,19 @@ static gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *ev
 
 	return FALSE;
 }
-
+#endif
 
 static void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data) {
+	if (spectra_properties_dataset_active == NULL)
+		return;
+#ifdef HAVE_CXX
+	GdkRGBA color;
+	fprintf(stderr, "Before gtk_color_button_get_rgba\n");
+	gtk_color_button_get_rgba(widget, &color);
+	fprintf(stderr, "Before set_color\n");
+	spectra_properties_dataset_active->set_color(Gdk::RGBA(&color, true));
+	fprintf(stderr, "After set_color\n");
+#else
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
 	GdkJoinStyle join_style;
@@ -450,8 +497,6 @@ static void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data)
 	GdkColor color;
 	GdkColor color_new;
 
-	if (spectra_properties_dataset_active == NULL)
-		return;
 	//update active dataset with new setting
 	//get old one first
 	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
@@ -467,11 +512,12 @@ static void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data)
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
-
+#endif
 	return;
 }
 
-static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event, struct coords_data *cd) {
+#ifndef HAVE_CXX
+static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 
 	gint x, y;
 	gdouble px,py;
@@ -490,31 +536,36 @@ static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event
 		return FALSE;
 
 	buffer = g_strdup_printf("%lg",px);
-	gtk_entry_set_text(GTK_ENTRY(cd->xCoordW), buffer);
+	gtk_entry_set_text(GTK_ENTRY(xCoordW), buffer);
 	g_free(buffer);
 	buffer = g_strdup_printf("%i",(int) ((px-results->input->detector->zero)/results->input->detector->gain));
-	gtk_entry_set_text(GTK_ENTRY(cd->channelCoordW), buffer);
+	gtk_entry_set_text(GTK_ENTRY(channelCoordW), buffer);
 	g_free(buffer);
 	buffer = g_strdup_printf("%lg",py);
-	gtk_entry_set_text(GTK_ENTRY(cd->yCoordW), buffer);
+	gtk_entry_set_text(GTK_ENTRY(yCoordW), buffer);
 	g_free(buffer);
 
 
 
 	return FALSE;
 }
+#endif
 
 
 static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_data) {
+	if (spectra_properties_dataset_active == NULL)
+		return;
+#ifdef HAVE_CXX
+	gdouble width_new;
+	width_new = gtk_spin_button_get_value(spinbutton);
+	spectra_properties_dataset_active->set_line_width(width_new);
+#else
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
 	GdkJoinStyle join_style;
 	gfloat width;
 	GdkColor color;
 	gfloat width_new;
-
-	if (spectra_properties_dataset_active == NULL)
-		return;
 
 	//update active dataset with new setting
 	//get old one first
@@ -530,7 +581,7 @@ static void spectra_width_changed_cb(GtkSpinButton *spinbutton, gpointer user_da
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
-
+#endif
 	return;
 }
 
@@ -540,8 +591,13 @@ static void radio_conv_changed_cb(GtkToggleButton *widget, gpointer data) {
 		current_conv = XMI_PLOT_CONVOLUTED;
 		for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
 			if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sds[i]->checkButton)) == TRUE) {
+#ifdef HAVE_CXX
+				sds[i]->dataset_unconv->hide();
+				sds[i]->dataset_conv->show();
+#else
 				gtk_widget_hide(GTK_WIDGET(sds[i]->dataset_unconv));
 				gtk_widget_show(GTK_WIDGET(sds[i]->dataset_conv));
+#endif
 			}
 		}
 	}
@@ -549,8 +605,13 @@ static void radio_conv_changed_cb(GtkToggleButton *widget, gpointer data) {
 		current_conv = XMI_PLOT_UNCONVOLUTED;
 		for (i = (results->use_zero_interactions ? 0 : 1) ; i <= results->ninteractions ; i++) {
 			if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sds[i]->checkButton)) == TRUE) {
+#ifdef HAVE_CXX
+				sds[i]->dataset_conv->hide();
+				sds[i]->dataset_unconv->show();
+#else
 				gtk_widget_hide(GTK_WIDGET(sds[i]->dataset_conv));
 				gtk_widget_show(GTK_WIDGET(sds[i]->dataset_unconv));
+#endif
 			}
 		}
 	}
@@ -563,6 +624,18 @@ static void radio_conv_changed_cb(GtkToggleButton *widget, gpointer data) {
 }
 
 static void scale_combo_changed_cb(GtkComboBox *widget, gpointer user_data) {
+#ifdef HAVE_CXX
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) == 0) {
+		current_scale = FALSE;
+		plot_ymin = 0.0;
+	}
+	else {
+		current_scale = TRUE;
+		plot_ymin = 1.0;
+	}
+
+
+#else
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) == 0) {
 		current_scale = GTK_PLOT_SCALE_LINEAR;
 	}
@@ -578,12 +651,19 @@ static void scale_combo_changed_cb(GtkComboBox *widget, gpointer user_data) {
 		plot_ymin = 0.0;
 	}
 
+#endif
 	//no matter what -> we need to bring everything to 1:1 scaling again
 	zoom_out();
-
 }
 
 static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data) {
+	if (spectra_properties_dataset_active == NULL)
+		return;
+
+#ifdef HAVE_CXX
+	spectra_properties_dataset_active->set_line_style((Gtk::PLplot::LineStyle) (gtk_combo_box_get_active(GTK_COMBO_BOX(spectra_properties_linestyleW)) + 1));
+
+#else
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
 	GdkJoinStyle join_style;
@@ -592,8 +672,6 @@ static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data
 	GtkPlotLineStyle line_style_new;
 
 
-	if (spectra_properties_dataset_active == NULL)
-		return;
 	//update active dataset with new setting
 	//get old one first
 	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
@@ -627,8 +705,7 @@ static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
-
-	return;
+#endif
 }
 
 
@@ -638,22 +715,33 @@ static void axis_title_changed_cb(GtkEntry *axis_titleW, gpointer data) {
 	gchar *new_title = g_strdup(gtk_entry_get_text(GTK_ENTRY(axis_titleW)));
 	if (kind == 0) {
 		//X-axis
+#ifdef HAVE_CXX
+		plot_window->set_axis_title_x(new_title);
+#else
 		gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), new_title);
+#endif
 		g_free(xaxis_title);
 		xaxis_title = new_title;
 	}
 	else {
 		//Y-axis
+#ifdef HAVE_CXX
+		plot_window->set_axis_title_y(new_title);
+#else
 		gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT), new_title);
+#endif
 		g_free(yaxis_title);
 		yaxis_title = new_title;
 	}
 
+#ifdef HAVE_CXX
+
+#else
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
-
+#endif
 	return;
 }
 
@@ -666,12 +754,21 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 	scale_combo = gtk_combo_box_text_new();
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Linear");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Logarithmic");
+#ifdef HAVE_CXX
+	if (current_scale == FALSE) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 0);
+	}
+	else if (current_scale == TRUE) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 1);
+	}
+#else
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 0);
 	}
 	else if (current_scale == GTK_PLOT_SCALE_LOG10) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 1);
 	}
+#endif
 
 	GtkWidget *lilHBox, *label;
 	lilHBox = gtk_hbox_new(FALSE, 2);
@@ -728,87 +825,18 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 
 static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 	GtkWidget *dialog;
-	GtkFileFilter *filter;
-	gchar *filename;
-	cairo_t *cairo;
-	cairo_surface_t *surface;
 
-	dialog = gtk_file_chooser_dialog_new("Export spectra",
-		GTK_WINDOW(data), GTK_FILE_CHOOSER_ACTION_SAVE,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	dialog = xmi_msim_gui_export_canvas_dialog_new("Export spectra",
+		GTK_WINDOW(data), canvas);
 
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),g_path_get_dirname(results->input->general->outputfile));
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.eps");
-	gtk_file_filter_set_name(filter,"EPS (Encapsulated PostScript)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.pdf");
-	gtk_file_filter_set_name(filter,"PDF (Adobe Portable Document Format)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.png");
-	gtk_file_filter_set_name(filter,"PNG (Portable Network Graphics)");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+	  	g_path_get_dirname(results->input->general->outputfile));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		//get selected filter
-		filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
-		if (strncmp(gtk_file_filter_get_name(filter),"EPS", 3) == 0) {
-			if (strcasecmp(filename+strlen(filename)-4, ".eps") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".eps");
-			}
-			//surface = cairo_ps_surface_create(filename,595.0,842);
-			surface = cairo_ps_surface_create(filename,842,595);
-			/*cairo_ps_surface_dsc_begin_page_setup (surface);
-			cairo_ps_surface_dsc_comment (surface, "%%PageOrientation: Landscape");*/
-			cairo_ps_surface_set_eps(surface,1);
-			cairo = cairo_create(surface);
-			/*cairo_translate (cairo, 0, 842);
-			cairo_rotate(cairo, -M_PI/2);*/
-
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PDF", 3) == 0) {
-			if (strcasecmp(filename+strlen(filename)-4, ".pdf") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".pdf");
-			}
-			surface = cairo_pdf_surface_create(filename,842.0,595.0);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-			cairo_show_page(cairo);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}
-		else if (strncmp(gtk_file_filter_get_name(filter),"PNG", 3) == 0) {
-			if (strcasecmp(filename+strlen(filename)-4, ".png") != 0) {
-				filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-				strcat(filename,".png");
-			}
-			surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 842, 595);
-			cairo = cairo_create(surface);
-			gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
-			gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-			cairo_surface_write_to_png(surface,filename);
-			cairo_surface_destroy(surface);
-			cairo_destroy(cairo);
-		}
-		g_free(filename);
-		gtk_widget_destroy(dialog);
+		// error handling??
+		xmi_msim_gui_export_canvas_dialog_save(XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(dialog));
 	}
-	else
-		gtk_widget_destroy(dialog);
+	gtk_widget_destroy(dialog);
 
 
 	return;
@@ -819,10 +847,13 @@ static void draw_page(GtkPrintOperation *operation, GtkPrintContext *context, gi
 	cairo_t *cairo;
 
 	cairo = gtk_print_context_get_cairo_context(context);
-	/*cairo_translate (cairo, 0, 842);
-	cairo_rotate(cairo, -M_PI/2);
-	cairo_translate (cairo, 30, 30);*/
+#ifdef HAVE_CXX
+	canvas->draw_plot(Cairo::RefPtr<Cairo::Context>(new Cairo::Context(cairo)),
+	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
+	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
+#else
 	gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
+#endif
 
 	return;
 }
@@ -858,12 +889,16 @@ static void print_button_clicked_cb(GtkButton *button, gpointer data) {
 
 static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	struct spectra_data *sd = (struct spectra_data *) data;
+	gfloat width;
+#ifdef HAVE_CXX
+	GdkRGBA *color;
+	Gtk::PLplot::LineStyle line_style;
+#else
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
 	GdkJoinStyle join_style;
-	gfloat width;
 	GdkColor color;
-
+#endif
 
 	//suspend signals
 	g_signal_handler_block((gpointer) spectra_properties_widthW, spectra_properties_widthG);
@@ -871,12 +906,23 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	g_signal_handler_block((gpointer) spectra_properties_colorW, spectra_properties_colorG);
 
 	//
-	spectra_properties_dataset_active = sd->dataset_conv;
+	if (current_conv == XMI_PLOT_CONVOLUTED) {
+		spectra_properties_dataset_active = sd->dataset_conv;
+	}
+	else {
+		spectra_properties_dataset_active = sd->dataset_unconv;
+	}
 
 	//set properties
+#ifdef HAVE_CXX
+	width = spectra_properties_dataset_active->get_line_width();
+	color = spectra_properties_dataset_active->get_color().gobj();
+	line_style = spectra_properties_dataset_active->get_line_style();
+	gtk_color_button_set_rgba(GTK_COLOR_BUTTON(spectra_properties_colorW), color);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(spectra_properties_linestyleW), line_style - 1);
+#else
 	gtk_plot_data_get_line_attributes(spectra_properties_dataset_active, &line_style, &cap_style, &join_style, &width, &color);
 	gtk_color_button_set_color(GTK_COLOR_BUTTON(spectra_properties_colorW), &color);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spectra_properties_widthW),width);
 	switch (line_style) {
 		case GTK_PLOT_LINE_NONE:
 		break;
@@ -899,7 +945,8 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 		gtk_combo_box_set_active(GTK_COMBO_BOX(spectra_properties_linestyleW),5);
 		break;
 	}
-
+#endif
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spectra_properties_widthW),width);
 
 	//unblock
 	g_signal_handler_unblock((gpointer) spectra_properties_widthW, spectra_properties_widthG);
@@ -915,8 +962,11 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 
 static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer data) {
 	struct spectra_data *sd = (struct spectra_data *) data;
+#ifdef HAVE_CXX
+	Gtk::PLplot::PlotData2D *dataset;
+#else
 	GtkPlotData *dataset;
-
+#endif
 
 	if (current_conv == XMI_PLOT_CONVOLUTED) {
 		dataset = sd->dataset_conv;
@@ -927,25 +977,38 @@ static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer d
 
 
 	if (gtk_toggle_button_get_active(toggleButton) == TRUE) {
+#ifdef HAVE_CXX
+		dataset->show();
+#else
 		gtk_widget_show(GTK_WIDGET(dataset));
+#endif
 		gtk_widget_set_sensitive(sd->button,TRUE);
 	}
 	else {
+#ifdef HAVE_CXX
+		dataset->hide();
+#else
 		gtk_widget_hide(GTK_WIDGET(dataset));
+#endif
 		gtk_widget_set_sensitive(sd->button,FALSE);
 	}
+#ifndef HAVE_CXX
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
+#endif
 
 	return;
 
 }
 
-#define COLOR_INIT(color) gdk_color_parse(#color, &color ## _plot);\
+#if GTK_MAJOR_VERSION == 3
+	#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
+#else
+	#define COLOR_INIT(color) gdk_color_parse(#color, &color ## _plot);\
 			gdk_colormap_alloc_color(gdk_colormap_get_system(), &color ## _plot,FALSE,TRUE);
-
+#endif
 
 GtkWidget *init_results(GtkWidget *window) {
 
@@ -960,7 +1023,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	gdouble magnifier;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
-	struct coords_data *cd;
 
 
 
@@ -978,7 +1040,11 @@ GtkWidget *init_results(GtkWidget *window) {
 	//this could be fetched from preferences in the future
 	xaxis_title = g_strdup("Energy (keV)");
 	yaxis_title = g_strdup("Intensity (counts/channel)");
+#ifdef HAVE_CXX
+	current_scale = TRUE;
+#else
 	current_scale = GTK_PLOT_SCALE_LOG10;
+#endif
 	current_conv = XMI_PLOT_CONVOLUTED;
 
 
@@ -987,6 +1053,16 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	//superframe = gtk_vbox_new(FALSE,2);
 	graphics_hbox = gtk_hbox_new(FALSE,2);
+	GtkWidget *aspect_frame = gtk_aspect_frame_new("", 0.0, 0.0, 842.0/595.0, FALSE);
+
+#ifdef HAVE_CXX
+	canvas = Gtk::manage(new Gtk::PLplot::Canvas());
+	canvas->set_hexpand(true);
+	canvas->set_vexpand(true);
+	gtk_widget_set_hexpand(aspect_frame, TRUE);
+	gtk_widget_set_vexpand(aspect_frame, TRUE);
+	gtk_container_add(GTK_CONTAINER(aspect_frame), GTK_WIDGET(canvas->gobj()));
+#else
 	canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W,magnifier);
 	canvas_height = 0;
 	spectra_region_changedG = g_signal_connect(G_OBJECT(canvas),"select-region",G_CALLBACK(spectra_region_changed_cb),NULL);
@@ -996,7 +1072,10 @@ GtkWidget *init_results(GtkWidget *window) {
 	g_signal_connect(G_OBJECT(canvas),"expose-event", G_CALLBACK(resize_canvas_cb),paned);
 	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), (GtkPlotCanvasFlags) (GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM)); //probably needs to be unset when initializing, but set when data is available
 	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
-	gtk_box_pack_start(GTK_BOX(graphics_hbox),canvas,FALSE,FALSE,2);
+	gtk_container_add(GTK_CONTAINER(aspect_frame), canvas);
+#endif
+
+	gtk_box_pack_start(GTK_BOX(graphics_hbox), aspect_frame, TRUE, TRUE, 0);
 
 	spectra_box = gtk_vbox_new(FALSE,1);
 	spectra_button_box = gtk_vbox_new(TRUE,3);
@@ -1006,7 +1085,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_box_pack_start(GTK_BOX(spectra_box),spectra_button_box,FALSE,FALSE,0);
 
 
-	cd = (struct coords_data*) malloc(sizeof(struct coords_data));
 	GtkWidget *table = gtk_table_new(3, 2 , FALSE);
 	label = gtk_label_new("Energy (keV)");
 	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 0, 1);
@@ -1016,7 +1094,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
 	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
 	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
-	cd->xCoordW = entry;
+	xCoordW = entry;
 
 	label = gtk_label_new("Channel number");
 	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 1, 2);
@@ -1026,7 +1104,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
 	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
 	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
-	cd->channelCoordW = entry;
+	channelCoordW = entry;
 
 	label = gtk_label_new("Intensity");
 	gtk_table_attach_defaults(GTK_TABLE(table), label, 0, 1, 2, 3);
@@ -1036,10 +1114,15 @@ GtkWidget *init_results(GtkWidget *window) {
 	//gtk_entry_set_max_length(GTK_ENTRY(entry), 10);
 	gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
 	//gtk_widget_set_sensitive(GTK_WIDGET(entry), FALSE);
-	cd->yCoordW = entry;
+	yCoordW = entry;
 	gtk_box_pack_end(GTK_BOX(spectra_box), table, FALSE, FALSE, 2);
-	spectra_region_mouse_movedG = g_signal_connect(G_OBJECT(canvas),"motion-notify-event",G_CALLBACK(spectra_region_mouse_moved_cb),(gpointer) cd);
+
+#ifdef HAVE_CXX
+	//In Gtkmm-PLplot, cursor movements are connected to plots, not canvases.
+#else
+	spectra_region_mouse_movedG = g_signal_connect(G_OBJECT(canvas),"motion-notify-event",G_CALLBACK(spectra_region_mouse_moved_cb), NULL);
 	g_signal_handler_block((gpointer) canvas, spectra_region_mouse_movedG);
+#endif
 
 	settings_button = gtk_button_new_from_stock(GTK_STOCK_PROPERTIES);
 	g_signal_connect(G_OBJECT(settings_button),"clicked",G_CALLBACK(settings_button_clicked_cb),(gpointer)window);
@@ -1065,14 +1148,15 @@ GtkWidget *init_results(GtkWidget *window) {
 	gtk_widget_set_sensitive(settings_button,FALSE);
 
 
-	gtk_box_pack_end(GTK_BOX(graphics_hbox),spectra_box,TRUE,FALSE,2);
+	gtk_box_pack_end(GTK_BOX(graphics_hbox),spectra_box,FALSE,FALSE,2);
+	gtk_container_set_border_width(GTK_CONTAINER(graphics_hbox), 5);
 	gtk_widget_show_all(spectra_box);
 
 	//gtk_box_pack_start(GTK_BOX(superframe),graphics_hbox,FALSE,FALSE,2);
 	frame = gtk_frame_new(NULL);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 	gtk_container_add(GTK_CONTAINER(frame), graphics_hbox);
-	gtk_widget_set_size_request(frame,-1, (gint) (GTK_PLOT_A4_W*0.25));
+	gtk_widget_set_size_request(frame,-1, (gint) (595*0.25));
 	gtk_paned_pack1(GTK_PANED(paned), frame, TRUE, FALSE);
 
 	//set current result variable to NULL
@@ -1180,14 +1264,22 @@ int plot_spectra_from_file(char *xmsofile) {
 	GtkWidget *spectrum_hbox;
 	struct spectra_data *sd;
 	char buffer[512];
-	GList *list;
 	double *temp_channels, *temp_energies;
-	GtkPlotCanvasChild *child;
-	GtkPlotData *dataset_conv, *dataset_unconv;
 	GtkTreeIter iter1, iter2, iter3;
 	char *symbol;
 	gchar *txt;
+#ifdef HAVE_CXX
+	Gtk::PLplot::PlotData2D *plot_data;
+	Gtk::PLplot::PlotData2D *dataset_conv, *dataset_unconv;
+	#define PLOT_SHOW plot_data->show()
+	#define PLOT_HIDE plot_data->hide()
+#else
+	GtkPlotCanvasChild *child;
 	GtkPlotData *plot_data;
+	GtkPlotData *dataset_conv, *dataset_unconv;
+	#define PLOT_SHOW gtk_widget_show(GTK_WIDGET(plot_data))
+	#define PLOT_HIDE gtk_widget_hide(GTK_WIDGET(plot_data))
+#endif
 	gdouble *plot_data_x;
 	gdouble *plot_data_y;
 
@@ -1203,11 +1295,11 @@ int plot_spectra_from_file(char *xmsofile) {
 		return 0;
 	}
 
+#ifndef HAVE_CXX
 	g_signal_handler_unblock(G_OBJECT(canvas),spectra_region_changedG);
 	g_signal_handler_unblock(G_OBJECT(canvas),spectra_region_double_clickedG);
-
 	g_signal_handler_unblock((gpointer) canvas, spectra_region_mouse_movedG);
-
+#endif
 
 	//clear plotwindow if necessary
 	//start with buttonbox
@@ -1217,18 +1309,23 @@ int plot_spectra_from_file(char *xmsofile) {
 	//clear tree
 	gtk_tree_store_clear(countsTS);
 
-
+	//clear plot
+#ifdef HAVE_CXX
+	try {
+		canvas->remove_plot(0);
+	}
+	catch (Gtk::PLplot::Exception &e) {
+		//this will fail if there's no plot available
+	}
+#else
+	GList *list;
 	list = GTK_PLOT_CANVAS(canvas)->childs;
 	while (list) {
 		child = GTK_PLOT_CANVAS_CHILD(list->data);
 		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(canvas), child);
 		list = GTK_PLOT_CANVAS(canvas)->childs;
 	}
-
-	//add box with default settings
-	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
-	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
-	gtk_plot_hide_legends(GTK_PLOT(plot_window));
+#endif
 
 	//calculate maximum x and y value
 	temp_channels = (double *) malloc(sizeof(double) * results->input->detector->nchannels);
@@ -1241,14 +1338,53 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 	plot_ymax_unconv = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
 	free(temp_channels);
+#ifdef HAVE_CXX
+	if (current_scale == TRUE) {
+		plot_ymin = 1.0;
+	}
+	else if (current_scale == FALSE) {
+		plot_ymin = 0.0;
+	}
+#else
 	if (current_scale == GTK_PLOT_SCALE_LOG10) {
 		plot_ymin = 1.0;
 	}
 	else if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		plot_ymin = 0.0;
 	}
+#endif
 	plot_xmin = 0.0;
 	plot_xmax = results->input->detector->nchannels * results->input->detector->gain + results->input->detector->zero;
+	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
+
+	temp_energies = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+	for (i = 0 ; i < results->input->detector->nchannels ; i++) {
+		temp_energies[i] = results->input->detector->gain * i + results->input->detector->zero;
+	}
+
+#ifdef HAVE_CXX
+	plot_window = Gtk::manage(new Gtk::PLplot::Plot2D(xaxis_title, yaxis_title));
+	plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	plot_window->hide();
+	plot_window->hide_legend();
+	plot_window->signal_cursor_motion().connect([](double x, double y){
+		gchar *buffer = g_strdup_printf("%lg", x);
+		gtk_entry_set_text(GTK_ENTRY(xCoordW), buffer);
+		g_free(buffer);
+		buffer = g_strdup_printf("%i",(int) ((x-results->input->detector->zero)/results->input->detector->gain));
+		gtk_entry_set_text(GTK_ENTRY(channelCoordW), buffer);
+		g_free(buffer);
+		buffer = g_strdup_printf("%lg",y);
+		gtk_entry_set_text(GTK_ENTRY(yCoordW), buffer);
+		g_free(buffer);
+        });
+	canvas->add_plot(*plot_window);
+#else
+	//add box with default settings
+	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
+	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
+	gtk_plot_hide_legends(GTK_PLOT(plot_window));
+
 
 	//x-axis number of ticks continues to be a problem
 	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
@@ -1256,7 +1392,6 @@ int plot_spectra_from_file(char *xmsofile) {
 	double tickstep = get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
-	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
 		tickstep = get_tickstep(plot_ymin, plot_ymax);
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
@@ -1293,11 +1428,7 @@ int plot_spectra_from_file(char *xmsofile) {
         gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(canvas), child, .15,.05,.90,.85);
         gtk_widget_show(plot_window);
 	GTK_PLOT_CANVAS_SET_FLAGS(GTK_PLOT_CANVAS(canvas), GTK_PLOT_CANVAS_CAN_SELECT );
-
-	temp_energies = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
-	for (i = 0 ; i < results->input->detector->nchannels ; i++) {
-		temp_energies[i] = results->input->detector->gain * i + results->input->detector->zero;
-	}
+#endif
 
 	//fill it up again
 
@@ -1314,23 +1445,48 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_box_pack_end(GTK_BOX(spectrum_hbox),button,FALSE,FALSE,1);
 		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
 
+		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+		for (j = 0 ; j < results->input->detector->nchannels ; j++)
+			temp_channels[j]=results->channels_conv[i][j];
+
+#ifdef HAVE_CXX
+		dataset_conv = Gtk::manage(
+			new Gtk::PLplot::PlotData2D(
+				std::vector<double>(temp_energies, temp_energies + results->input->detector->nchannels),
+				std::vector<double>(temp_channels, temp_channels + results->input->detector->nchannels)
+			)
+		);
+		dataset_conv->hide();
+		plot_window->add_data(*dataset_conv);
+#else
 		dataset_conv = GTK_PLOT_DATA(gtk_plot_data_new());
 		gtk_plot_add_data(GTK_PLOT(plot_window),dataset_conv);
 		gtk_plot_data_set_numpoints(dataset_conv, results->input->detector->nchannels);
 		gtk_plot_data_set_x(dataset_conv, temp_energies);
+		gtk_plot_data_set_y(dataset_conv, temp_channels);
+#endif
+
+
 		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
 		for (j = 0 ; j < results->input->detector->nchannels ; j++)
-			temp_channels[j]=results->channels_conv[i][j];
-		gtk_plot_data_set_y(dataset_conv, temp_channels);
+			temp_channels[j]=results->channels_unconv[i][j];
 
+#ifdef HAVE_CXX
+		dataset_unconv = Gtk::manage(
+			new Gtk::PLplot::PlotData2D(
+				std::vector<double>(temp_energies, temp_energies + results->input->detector->nchannels),
+				std::vector<double>(temp_channels, temp_channels + results->input->detector->nchannels)
+			)
+		);
+		dataset_unconv->hide();
+		plot_window->add_data(*dataset_unconv);
+#else
 		dataset_unconv = GTK_PLOT_DATA(gtk_plot_data_new());
 		gtk_plot_add_data(GTK_PLOT(plot_window),dataset_unconv);
 		gtk_plot_data_set_numpoints(dataset_unconv, results->input->detector->nchannels);
 		gtk_plot_data_set_x(dataset_unconv, temp_energies);
-		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
-		for (j = 0 ; j < results->input->detector->nchannels ; j++)
-			temp_channels[j]=results->channels_unconv[i][j];
 		gtk_plot_data_set_y(dataset_unconv, temp_channels);
+#endif
 
 		sd = (struct spectra_data *) malloc(sizeof(struct spectra_data));
 		sds[i] = sd;
@@ -1339,7 +1495,7 @@ int plot_spectra_from_file(char *xmsofile) {
 		sd->dataset_conv = dataset_conv;
 		sd->dataset_unconv = dataset_unconv;
 
-		GdkColor *color_plot;
+		XmiColor *color_plot;
 
 		switch (i-(results->use_zero_interactions ? 0 : 1)) {
 			case 0:
@@ -1406,15 +1562,27 @@ int plot_spectra_from_file(char *xmsofile) {
 				}
 				break;
 		}
+#ifdef HAVE_CXX
+		dataset_conv->set_color(*(*color_plot));
+		dataset_unconv->set_color(*(*color_plot));
+		if (current_conv == XMI_PLOT_CONVOLUTED) {
+			dataset_conv->show();
+			dataset_unconv->hide();
+		}
+		else {
+			dataset_conv->hide();
+			dataset_unconv->show();
+		}
+#else
 		gtk_plot_data_set_line_attributes(dataset_conv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0, 1, color_plot);
 		gtk_plot_data_set_line_attributes(dataset_unconv, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0, 1, color_plot);
-
 		if (current_conv == XMI_PLOT_CONVOLUTED) {
 			gtk_widget_show(GTK_WIDGET(dataset_conv));
 		}
 		else {
 			gtk_widget_show(GTK_WIDGET(dataset_unconv));
 		}
+#endif
 
 		gtk_button_set_label(GTK_BUTTON(checkButton),buffer);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkButton),TRUE);
@@ -1427,12 +1595,13 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 	gtk_widget_show_all(spectra_button_box);
 	gtk_widget_queue_draw(spectra_button_box);
+#ifndef HAVE_CXX
 	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
 	gtk_widget_queue_draw(GTK_WIDGET(canvas));
 	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(canvas));
 	gtk_plot_paint(GTK_PLOT(plot_window));
 	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-
+#endif
 	gtk_widget_set_sensitive(print_button,TRUE);
 	gtk_widget_set_sensitive(export_button,TRUE);
 	gtk_widget_set_sensitive(settings_button,TRUE);
@@ -1455,20 +1624,32 @@ int plot_spectra_from_file(char *xmsofile) {
 				-1);
 			xrlFree(symbol);
 			for (j = 0 ; j < results->brute_force_history[i].n_lines ; j++) {
-				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
 				plot_data_x = (gdouble *) g_malloc(sizeof(gdouble)*2);
 				plot_data_y = (gdouble *) g_malloc(sizeof(gdouble)*2);
-				gtk_plot_data_set_numpoints(plot_data,2);
-				gtk_plot_data_set_x(plot_data,plot_data_x);
-				gtk_plot_data_set_y(plot_data,plot_data_y);
 				plot_data_x[0] = results->brute_force_history[i].lines[j].energy;
 				plot_data_x[1] = results->brute_force_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
 				plot_data_y[1] = plot_ymax_unconv;
+#ifdef HAVE_CXX
+				plot_data = Gtk::manage(
+					new Gtk::PLplot::PlotData2D(
+						std::vector<double>(plot_data_x, plot_data_x + 2),
+						std::vector<double>(plot_data_y, plot_data_y + 2),
+						*black_plot
+					)
+				);
+				plot_data->hide();
+				plot_window->add_data(*plot_data);
+#else
+				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
+				gtk_plot_data_set_numpoints(plot_data,2);
+				gtk_plot_data_set_x(plot_data,plot_data_x);
+				gtk_plot_data_set_y(plot_data,plot_data_y);
 				gtk_plot_data_set_line_attributes(plot_data, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&black_plot);
 
 				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
 				gtk_widget_hide(GTK_WIDGET(plot_data));
+#endif
 
 
 				gtk_tree_store_append(countsTS, &iter2, &iter1);
@@ -1513,20 +1694,32 @@ int plot_spectra_from_file(char *xmsofile) {
 				-1);
 			xrlFree(symbol);
 			for (j = 0 ; j < results->var_red_history[i].n_lines ; j++) {
-				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
 				plot_data_x = (gdouble *) g_malloc(sizeof(gdouble)*2);
 				plot_data_y = (gdouble *) g_malloc(sizeof(gdouble)*2);
-				gtk_plot_data_set_numpoints(plot_data,2);
-				gtk_plot_data_set_x(plot_data,plot_data_x);
-				gtk_plot_data_set_y(plot_data,plot_data_y);
 				plot_data_x[0] = results->var_red_history[i].lines[j].energy;
 				plot_data_x[1] = results->var_red_history[i].lines[j].energy;
 				plot_data_y[0] = plot_ymin;
 				plot_data_y[1] = plot_ymax_unconv;
+#ifdef HAVE_CXX
+				plot_data = Gtk::manage(
+					new Gtk::PLplot::PlotData2D(
+						std::vector<double>(plot_data_x, plot_data_x + 2),
+						std::vector<double>(plot_data_y, plot_data_y + 2),
+						*black_plot
+					)
+				);
+				plot_data->hide();
+				plot_window->add_data(*plot_data);
+#else
+				plot_data = GTK_PLOT_DATA(gtk_plot_data_new());
+				gtk_plot_data_set_numpoints(plot_data,2);
+				gtk_plot_data_set_x(plot_data,plot_data_x);
+				gtk_plot_data_set_y(plot_data,plot_data_y);
 				gtk_plot_data_set_line_attributes(plot_data,(GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,1,&black_plot);
 
 				gtk_plot_add_data(GTK_PLOT(plot_window),plot_data);
 				gtk_widget_hide(GTK_WIDGET(plot_data));
+#endif
 
 
 				gtk_tree_store_append(countsTS, &iter2, &iter1);
@@ -1561,7 +1754,9 @@ int plot_spectra_from_file(char *xmsofile) {
 		//pop up a dialog or so with a warning...
 	}
 
-
+#ifdef HAVE_CXX
+	plot_window->show();
+#endif
 
 	return 1;
 }
@@ -1585,12 +1780,19 @@ void init_spectra_properties(GtkWidget *parent) {
 	//linestyle
 	GtkWidget *hbox = gtk_hbox_new(FALSE,3);
 	spectra_properties_linestyleW = gtk_combo_box_text_new();
+#ifdef HAVE_CXX
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Solid");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Short dash - Short gap");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Long dash - Long gap");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Long dash - Short gap");
+#else
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Solid");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dotted");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dashed");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dash");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dot - Dash");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(spectra_properties_linestyleW),"Dot - Dash - Dash");
+#endif
 	spectra_properties_linestyleG = g_signal_connect(G_OBJECT(spectra_properties_linestyleW),"changed",G_CALLBACK(spectra_linestyle_changed_cb),NULL);
 	gtk_box_pack_start(GTK_BOX(hbox),gtk_label_new("Line style"),FALSE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(hbox),spectra_properties_linestyleW, FALSE, FALSE,2);

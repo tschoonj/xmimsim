@@ -64,27 +64,29 @@ if ENABLE_MAC_APP
 libxmimsim_la_SOURCES += xmi_resources_mac.c
 endif
 
-libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
-			@PTHREAD_CFLAGS@ \
-			@xslt_CFLAGS@ \
-			@glib2_CFLAGS@ \
-			@xraylib_CFLAGS@ \
-			@GTK_MAC_CFLAGS@ \
-		 	@gtk2_CFLAGS@ \
-			@JsonGlib_CFLAGS@ \
-		  @libcurl_CFLAGS@ \
-			@gmodule_CFLAGS@ \
-			@OPENMP_CFLAGS@ \
-			-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
-			-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
-			-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
-			-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\" \
-			-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
-			-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
-			-DXMI_XMSA2XMSO_XSLT=\"$(datadir)/xmimsim/xmsa2xmso.xml\" \
-			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
-			-DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\" \
-			-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
+libxmimsim_la_CFLAGS =  \
+	@H5CC_INCLUDE@ \
+	@PTHREAD_CFLAGS@ \
+	@xslt_CFLAGS@ \
+	@glib2_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@GTK_MAC_CFLAGS@ \
+	@gtk_CFLAGS@ \
+	@JsonGlib_CFLAGS@ \
+	@libcurl_CFLAGS@ \
+	@gmodule_CFLAGS@ \
+	@OPENMP_CFLAGS@ \
+	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
+	-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
+	-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
+	-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\" \
+	-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
+	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
+	-DXMI_XMSA2XMSO_XSLT=\"$(datadir)/xmimsim/xmsa2xmso.xml\" \
+	-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+	-DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\" \
+	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
+
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			@fgsl_CFLAGS@ \
 			@easyRNG_CFLAGS@ \

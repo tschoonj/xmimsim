@@ -15,10 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define GDK_DISABLE_DEPRECATED
-#define GTK_DISABLE_DEPRECATED
+//#define GDK_DISABLE_DEPRECATED
+//#define GTK_DISABLE_DEPRECATED
 #include <gtk/gtk.h>
-#include <gtkextra/gtkextra.h>
+#ifdef HAVE_CXX
+  #include <gtkmm-plplot/gtkmm-plplot.h>
+#else
+  #include <gtkextra/gtkextra.h>
+#endif
 #include "xmi_data_structs.h"
 #include "xmimsim-gui-controls.h"
 

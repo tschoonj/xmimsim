@@ -24,8 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
-#include "xmimsim-gui-batch.h"
-#include "xmimsim-gui-sources.h"
+//#include "xmimsim-gui-batch.h"
+//#include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include <string.h>
 #include <stdio.h>
@@ -72,6 +72,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-notifications.h"
+
+
+#ifdef HAVE_CXX
+#include <gtkmm/main.h>
+#endif
 
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
@@ -4206,7 +4211,7 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 		gtk_widget_destroy(dialog);
 	}
 	else {
-		launch_archive_plot(archive, data->window);
+		//FIXMElaunch_archive_plot(archive, data->window);
 	}
 	g_free(data->filename);
 	g_free(data);
@@ -5108,6 +5113,9 @@ XMI_MAIN
 
 
 	gtk_init(&argc, &argv);
+#ifdef HAVE_CXX
+	Gtk::Main::init_gtkmm_internals();
+#endif
 	LayerAtom = gdk_atom_intern("xmi-msim-layer", FALSE);
 
 
@@ -5263,9 +5271,9 @@ XMI_MAIN
 	toolsmenu = gtk_menu_new();
 	tools = gtk_menu_item_new_with_label("Tools");
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
-	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
+	//FIXMEg_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
-	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	//FIXMEg_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
@@ -5344,16 +5352,16 @@ XMI_MAIN
 	gtk_widget_set_sensitive(pasteW,FALSE);
 
 	//add accelerators
-	gtk_widget_add_accelerator(newW, "activate", accel_group, GDK_n, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(openW, "activate", accel_group, GDK_o, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(saveW, "activate", accel_group, GDK_s, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(save_asW, "activate", accel_group, GDK_s, (GdkModifierType) (PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK), GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(importW, "activate", accel_group, GDK_i, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_z, (GdkModifierType) (PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK), GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(cutW, "activate", accel_group, GDK_x, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(copyW, "activate", accel_group, GDK_c, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(pasteW, "activate", accel_group, GDK_v, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(newW, "activate", accel_group, GDK_KEY_n, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(openW, "activate", accel_group, GDK_KEY_o, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(saveW, "activate", accel_group, GDK_KEY_s, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(save_asW, "activate", accel_group, GDK_KEY_s, (GdkModifierType) (PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK), GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(importW, "activate", accel_group, GDK_KEY_i, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(undoW, "activate", accel_group, GDK_KEY_z, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(redoW, "activate", accel_group, GDK_KEY_z, (GdkModifierType) (PRIMARY_ACCEL_KEY | GDK_SHIFT_MASK), GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(cutW, "activate", accel_group, GDK_KEY_x, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(copyW, "activate", accel_group, GDK_KEY_c, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(pasteW, "activate", accel_group, GDK_KEY_v, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 
 	GtkWidget *helpmenu, *helpitem;
 	GtkWidget *windowmenu, *windowitem;
@@ -5370,9 +5378,9 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(tab1W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(0));
 	g_signal_connect(G_OBJECT(tab2W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(1));
 	g_signal_connect(G_OBJECT(tab3W),"activate",G_CALLBACK(switch_tab_click), GINT_TO_POINTER(2));
-	gtk_widget_add_accelerator(tab1W, "activate", accel_group, GDK_1, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(tab2W, "activate", accel_group, GDK_2, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(tab3W, "activate", accel_group, GDK_3, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab1W, "activate", accel_group, GDK_KEY_1, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab2W, "activate", accel_group, GDK_KEY_2, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(tab3W, "activate", accel_group, GDK_KEY_3, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 
 #ifdef MAC_INTEGRATION
 	helpmenu = gtk_menu_new();
@@ -5447,7 +5455,7 @@ XMI_MAIN
   #endif
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),aboutW);
 
-	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(quitW, "activate", accel_group, GDK_KEY_q, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 3);
 	gtk_widget_show_all(menubar);
 #endif
@@ -5531,8 +5539,8 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
-	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
-	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	//FIXMEg_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
+	//FIXMEg_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(cutT),"clicked",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(copyT),"clicked",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(pasteT),"clicked",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
@@ -7471,7 +7479,7 @@ static gboolean coordinate_system_clicked_cb(GtkWidget *event_box, GdkEvent *eve
 
 
 static void draw_box(double coords[2][2], GtkWidget *image, struct coordinate_pixbufs *cp) {
-	cairo_t *cr = gdk_cairo_create(image->window);
+	cairo_t *cr = gdk_cairo_create(gtk_widget_get_window(image));
 	gdk_cairo_set_source_pixbuf(cr, gtk_image_get_pixbuf(GTK_IMAGE(image)), 0, 0);
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_set_line_width (cr, 1.0);
@@ -7556,9 +7564,16 @@ static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *even
 static gint old_width;
 static gint old_height;
 
-static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, struct coordinate_pixbufs *cp) {
-	gint new_width = image->allocation.width;
-	gint new_height = image->allocation.height;
+#if GTK_MAJOR_VERSION == 3
+static gboolean image_draw_event(GtkWidget *image, cairo_t *event, struct coordinate_pixbufs *cp)
+#else
+static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, struct coordinate_pixbufs *cp)
+#define gtk_widget_get_allocated_width(widget) widget->allocation.width
+#define gtk_widget_get_allocated_height(widget) widget->allocation.height
+#endif
+	{
+	gint new_width = gtk_widget_get_allocated_width(image);
+	gint new_height = gtk_widget_get_allocated_height(image);
 
 	if (new_width != old_width || new_height != old_height) {
 		old_width = new_width;
@@ -7699,8 +7714,11 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	geometry.max_aspect = (double) gdk_pixbuf_get_width(orig_pixbuf)/(double) gdk_pixbuf_get_height(orig_pixbuf);
 
 	gtk_window_set_geometry_hints(GTK_WINDOW(cs_window), cs_window, &geometry, GDK_HINT_ASPECT);
-
+#if GTK_MAJOR_VERSION == 3
+	g_signal_connect(G_OBJECT(coordinate_system_image), "draw", G_CALLBACK(image_draw_event), cp);
+#else
 	g_signal_connect(G_OBJECT(coordinate_system_image), "expose-event", G_CALLBACK(image_expose_event), cp);
+#endif
 	gtk_widget_set_size_request(cs_window, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor);
 
 	//activate all signals for *_ebW

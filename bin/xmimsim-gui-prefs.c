@@ -486,7 +486,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", 100.0);
 	g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", 1.0);
 	g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", FALSE);
-	g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
+	//FIXMEg_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
 	gchar **nuclides = GetRadioNuclideDataList(NULL);
 	g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[0]);
 	g_strfreev(nuclides);
@@ -1140,20 +1140,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			if (error != NULL) {
 				//error
 				fprintf(stderr, "Radionuclide last used Unit not found in preferences file\n");
-				g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
+				//FIXMEg_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[ACTIVITY_UNIT_mCi]);
 				prefs->xnp->activityUnit = ACTIVITY_UNIT_mCi;
 				error = NULL;
 				update_file = TRUE;
 			}
 			else {
 				matched = FALSE;
-				for (i = 0 ; i < ACTIVITY_UNIT_Bq ; i++) {
+				/*FIXMEfor (i = 0 ; i < ACTIVITY_UNIT_Bq ; i++) {
 					if (strcmp(activity_units[i], unit) == 0) {
 						prefs->xnp->activityUnit = i;
 						matched = TRUE;
 						break;
 					}
-				}
+				}*/
 				if (!matched) {
 					fprintf(stderr, "Could not find a match for Radionuclide last used Unit in preferences file\n");
 					return 0;
@@ -1348,7 +1348,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", prefs.xnp->activity);
 			g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", prefs.xnp->nuclide_solid_angle);
 			g_key_file_set_boolean(keyfile, "Radionuclide last used", "Logarithmic plot", prefs.xnp->log10_active);
-			g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[prefs.xnp->activityUnit]);
+			//FIXMEg_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[prefs.xnp->activityUnit]);
 			nuclides = GetRadioNuclideDataList(&nNuclides);
 			if (prefs.xnp->radioNuclide < 0 || prefs.xnp->radioNuclide >= nNuclides) {
 				fprintf(stderr, "Invalid radioNuclide detected in xmimsim_gui_set_prefs\n");

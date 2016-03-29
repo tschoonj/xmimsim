@@ -45,15 +45,20 @@ GtkWidget *init_results(GtkWidget *window);
 int plot_spectra_from_file(char *xmsofile);
 
 
+#if GTK_MAJOR_VERSION == 3
+	#define XmiColor Gdk::RGBA *
+#else
+	#define XmiColor GdkColor
+#endif
 
-extern GdkColor white_plot;
-extern GdkColor blue_plot;
-extern GdkColor red_plot;
-extern GdkColor green_plot;
-extern GdkColor black_plot;
-extern GdkColor purple_plot;
-extern GdkColor yellow_plot;
-extern GdkColor pink_plot;
+extern XmiColor white_plot;
+extern XmiColor blue_plot;
+extern XmiColor red_plot;
+extern XmiColor green_plot;
+extern XmiColor black_plot;
+extern XmiColor purple_plot;
+extern XmiColor yellow_plot;
+extern XmiColor pink_plot;
 
 double get_tickstep(double xmin, double xmax);
 

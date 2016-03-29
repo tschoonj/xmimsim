@@ -37,19 +37,6 @@ bin_PROGRAMS =  xmimsim \
 		xmsa2xmso \
 		$(NULL)
 
-noinst_PROGRAMS = \
-	test-compound-dialog \
-	$(NULL)
-	
-test_compound_dialog_SOURCES = xmimsim-gui-compound-dialog.h xmimsim-gui-compound-dialog.c test-compound-dialog.c xmimsim-gui-type-builtins.c
-test_compound_dialog_CFLAGS = @gtk2_CFLAGS@ @xraylib_CFLAGS@
-test_compound_dialog_LDADD = @gtk2_LIBS@ @xraylib_LIBS@
-
-
-#bin_PROGRAMS += xmimsim-test-ebel \
-#		xmimsim-test-boone1 \
-#		xmimsim-test-boone2
-
 dist_noinst_DATA = coordinate_system.png
 
 if ENABLE_GUI
@@ -84,13 +71,11 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-prefs.c \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-tools.h \
-	xmimsim-gui-batch.h \
-	xmimsim-gui-batch.c \
 	xmimsim-gui-notifications.c \
 	xmimsim-gui-notifications.h \
 	xmimsim-gui-fonts.h \
-	xmimsim-gui-sources.c \
-	xmimsim-gui-sources.h \
+	xmimsim-gui-export-canvas-dialog.c \
+	xmimsim-gui-export-canvas-dialog.h \
 	xmimsim-gui-compound-dialog.c \
 	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-catalog-dialog.c \
@@ -99,6 +84,13 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
+	$(NULL)
+
+do_not_compile = \
+	xmimsim-gui-batch.h \
+	xmimsim-gui-batch.c \
+	xmimsim-gui-sources.c \
+	xmimsim-gui-sources.h \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -129,6 +121,7 @@ endif
 
 xmimsim_gui_CFLAGS = \
 		     @gtk2_CFLAGS@ \
+		     @gtkmm3_CFLAGS@ \
 		     @xraylib_CFLAGS@ \
 		     @GTK_MAC_CFLAGS@ \
 		     @xml2_CFLAGS@ \
@@ -140,12 +133,14 @@ xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
 endif
 
 if ENABLE_CXX
+XMICCLD = $(CXX)
 if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c++
+xmimsim_gui_CFLAGS += -xobjective-c++ -std=gnu++11
 else
-xmimsim_gui_CFLAGS += -xc++
+xmimsim_gui_CFLAGS += -xc++ -std=gnu++11
 endif
 else
+XMICCLD = $(CCLD)
 if ENABLE_MAC_APP
 xmimsim_gui_CFLAGS += -xobjective-c
 endif
@@ -155,6 +150,7 @@ endif
 xmimsim_gui_LDADD = ../src/libxmimsim.la \
 		    libxmimsim-gui-spline.la \
 		    @gtk2_LIBS@ \
+		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
 		    @gthread2_LIBS@ \
@@ -177,7 +173,7 @@ endif
 
 #next line is necessary to avoid the -xobjective-c flag to be passed to the linker
 xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(LIBTOOLFLAGS) --mode=link $(XMICCLD) \
 	$(AM_LDFLAGS) $(LDFLAGS) \
 	$(xmimsim_gui_LDFLAGS) -o $@
 
