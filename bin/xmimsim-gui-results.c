@@ -916,7 +916,8 @@ static void spectrum_button_clicked_cb(GtkButton *button, gpointer data){
 	//set properties
 #ifdef HAVE_CXX
 	width = spectra_properties_dataset_active->get_line_width();
-	color = spectra_properties_dataset_active->get_color().gobj();
+	Gdk::RGBA rgba = spectra_properties_dataset_active->get_color();
+	color = rgba.gobj();
 	line_style = spectra_properties_dataset_active->get_line_style();
 	gtk_color_button_set_rgba(GTK_COLOR_BUTTON(spectra_properties_colorW), color);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(spectra_properties_linestyleW), line_style - 1);

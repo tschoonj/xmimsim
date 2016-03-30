@@ -69,6 +69,9 @@ static void xmi_msim_gui_export_canvas_dialog_init(XmiMsimGuiExportCanvasDialog 
   gtk_file_filter_set_name(dialog->png_filter, "PNG (Portable Network Graphics)");
   gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), dialog->png_filter);
 
+
+  gtk_file_chooser_set_action(GTK_FILE_CHOOSER(dialog), GTK_FILE_CHOOSER_ACTION_SAVE);
+  gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 }
 
 gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog) {
@@ -109,7 +112,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
       return FALSE;
     }
   }
-  else if (filter == dialog->eps_filter) {
+  else if (filter == dialog->png_filter) {
     if (strcasecmp(filename + strlen(filename) - 4, ".png") != 0) {
       filename = (gchar *) g_realloc(filename, sizeof(gchar) * (strlen(filename) + 5));
       strcat(filename,".png");

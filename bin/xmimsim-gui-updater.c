@@ -327,7 +327,7 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 	if (strncmp(ref_string,"refs/tags/XMI-MSIM-",strlen("refs/tags/XMI-MSIM-")) != 0)
 		return;
 
-	char *tag_version_str = strrchr(ref_string,'-')+1;
+	char *tag_version_str = (char *) strrchr(ref_string,'-')+1;
 	gdouble tag_version = g_ascii_strtod(tag_version_str,NULL);
 	if (tag_version > g_ascii_strtod(jld->max_version,NULL)) {
 		g_free(jld->max_version);
