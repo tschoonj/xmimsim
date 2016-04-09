@@ -458,7 +458,7 @@ void *xmi_malloc(size_t size) {
 }
 
 void *xmi_realloc(void *ptr, size_t size){
-	return (ptr, size);
+	return realloc(ptr, size);
 }
 
 

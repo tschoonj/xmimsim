@@ -44,13 +44,6 @@ static struct xmi_output *results;
 static double plot_xmin, plot_xmax, plot_ymin, plot_ymax_conv, plot_ymax_unconv;
 
 static GtkWidget *spectra_button_box; //VButtonBox
-#ifdef HAVE_CXX
-static Gtk::PLplot::Canvas *canvas;
-static Gtk::PLplot::Plot2D *plot_window;
-#else
-static GtkWidget *canvas;
-static GtkWidget *plot_window;
-#endif
 static gint canvas_height;
 
 static GtkWidget *spectra_propertiesW;
@@ -77,7 +70,7 @@ static gulong spectra_region_double_clickedG;
 static gchar *xaxis_title = NULL;
 static gchar *yaxis_title = NULL;
 #ifdef HAVE_CXX
-static gboolean current_scale;
+static bool current_scale;
 #else
 static GtkPlotScale current_scale;
 #endif
@@ -131,6 +124,31 @@ enum {
 
 void init_spectra_properties(GtkWidget *parent);
 gchar *get_style_font(GtkWidget *widget);
+static void zoom_out(void);
+
+#ifdef HAVE_CXX
+
+class Plot2D : public Gtk::PLplot::Plot2D {
+	public:
+	Plot2D(
+		const Glib::ustring &axis_title_x,
+		const Glib::ustring &axis_title_y) : 
+		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
+	virtual void on_double_press(double x, double y) override {
+		zoom_out();
+	}
+
+};
+
+#endif
+
+#ifdef HAVE_CXX
+static Gtk::PLplot::Canvas *canvas;
+static Plot2D *plot_window;
+#else
+static GtkWidget *canvas;
+static GtkWidget *plot_window;
+#endif
 
 double get_tickstep(double xmin, double xmax) {
 	double tickstep = 1E-10;
@@ -626,13 +644,14 @@ static void radio_conv_changed_cb(GtkToggleButton *widget, gpointer data) {
 static void scale_combo_changed_cb(GtkComboBox *widget, gpointer user_data) {
 #ifdef HAVE_CXX
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) == 0) {
-		current_scale = FALSE;
+		current_scale = false;
 		plot_ymin = 0.0;
 	}
 	else {
-		current_scale = TRUE;
+		current_scale = true;
 		plot_ymin = 1.0;
 	}
+	plot_window->set_axis_logarithmic_y(current_scale);
 
 
 #else
@@ -755,10 +774,10 @@ static void settings_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Linear");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(scale_combo),"Logarithmic");
 #ifdef HAVE_CXX
-	if (current_scale == FALSE) {
+	if (current_scale == false) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 0);
 	}
-	else if (current_scale == TRUE) {
+	else if (current_scale == true) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(scale_combo), 1);
 	}
 #else
@@ -1042,7 +1061,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	xaxis_title = g_strdup("Energy (keV)");
 	yaxis_title = g_strdup("Intensity (counts/channel)");
 #ifdef HAVE_CXX
-	current_scale = TRUE;
+	current_scale = true;
 #else
 	current_scale = GTK_PLOT_SCALE_LOG10;
 #endif
@@ -1340,10 +1359,10 @@ int plot_spectra_from_file(char *xmsofile) {
 	plot_ymax_unconv = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
 	free(temp_channels);
 #ifdef HAVE_CXX
-	if (current_scale == TRUE) {
+	if (current_scale == true) {
 		plot_ymin = 1.0;
 	}
-	else if (current_scale == FALSE) {
+	else if (current_scale == false) {
 		plot_ymin = 0.0;
 	}
 #else
@@ -1364,10 +1383,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 
 #ifdef HAVE_CXX
-	plot_window = Gtk::manage(new Gtk::PLplot::Plot2D(xaxis_title, yaxis_title));
-	plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	plot_window = Gtk::manage(new Plot2D(xaxis_title, yaxis_title));
 	plot_window->hide();
 	plot_window->hide_legend();
+	plot_window->set_axis_logarithmic_y(current_scale);
+	plot_window->set_box_style(Gtk::PLplot::BoxStyle::BOX_TICKS_TICK_LABELS_MAIN_AXES_MAJOR_TICK_GRID);
 	plot_window->signal_cursor_motion().connect([](double x, double y){
 		gchar *buffer = g_strdup_printf("%lg", x);
 		gtk_entry_set_text(GTK_ENTRY(xCoordW), buffer);
@@ -1451,10 +1471,14 @@ int plot_spectra_from_file(char *xmsofile) {
 			temp_channels[j]=results->channels_conv[i][j];
 
 #ifdef HAVE_CXX
+		std::vector<double> x_vals(temp_energies, temp_energies + results->input->detector->nchannels);
+		std::vector<double> y_vals(temp_channels, temp_channels + results->input->detector->nchannels);
+		std::for_each(std::begin(y_vals), std::end(y_vals), [](double &a) { if (a < 1.0 ) a = 1.0;});
+
 		dataset_conv = Gtk::manage(
 			new Gtk::PLplot::PlotData2D(
-				std::vector<double>(temp_energies, temp_energies + results->input->detector->nchannels),
-				std::vector<double>(temp_channels, temp_channels + results->input->detector->nchannels)
+				x_vals,
+				y_vals
 			)
 		);
 		dataset_conv->hide();
@@ -1473,10 +1497,13 @@ int plot_spectra_from_file(char *xmsofile) {
 			temp_channels[j]=results->channels_unconv[i][j];
 
 #ifdef HAVE_CXX
+		std::vector<double> x_vals2(temp_energies, temp_energies + results->input->detector->nchannels);
+		std::vector<double> y_vals2(temp_channels, temp_channels + results->input->detector->nchannels);
+		std::for_each(std::begin(y_vals2), std::end(y_vals2), [](double &a) { if (a < 1.0 ) a = 1.0;});
 		dataset_unconv = Gtk::manage(
 			new Gtk::PLplot::PlotData2D(
-				std::vector<double>(temp_energies, temp_energies + results->input->detector->nchannels),
-				std::vector<double>(temp_channels, temp_channels + results->input->detector->nchannels)
+				x_vals2,
+				y_vals2
 			)
 		);
 		dataset_unconv->hide();
@@ -1756,6 +1783,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	}
 
 #ifdef HAVE_CXX
+	plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	plot_window->show();
 #endif
 
