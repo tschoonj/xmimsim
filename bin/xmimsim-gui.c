@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
 //#include "xmimsim-gui-batch.h"
-//#include "xmimsim-gui-sources.h"
+#include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include <string.h>
 #include <stdio.h>
@@ -5271,7 +5271,7 @@ XMI_MAIN
 	toolsmenu = gtk_menu_new();
 	tools = gtk_menu_item_new_with_label("Tools");
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
-	//FIXMEg_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
 	//FIXMEg_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
@@ -5539,7 +5539,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
-	//FIXMEg_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
 	//FIXMEg_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(cutT),"clicked",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(copyT),"clicked",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);

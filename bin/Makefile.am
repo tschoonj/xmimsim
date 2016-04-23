@@ -84,13 +84,13 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
+	xmimsim-gui-sources.c \
+	xmimsim-gui-sources.h \
 	$(NULL)
 
 do_not_compile = \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-batch.c \
-	xmimsim-gui-sources.c \
-	xmimsim-gui-sources.h \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \

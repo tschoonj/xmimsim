@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMIMSIM_GUI_SOURCES_H
 
 void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window);
-void export_canvas_image (GtkWidget *canvas, const gchar *title);
 
 struct xmi_ebel_parameters {
 	double tube_voltage;
