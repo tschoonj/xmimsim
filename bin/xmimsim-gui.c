@@ -7681,6 +7681,7 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	geometry_help_scale_factor = GEOMETRY_HELP_SCALE_FACTOR_DEFAULT;
 	gtk_button_set_label(GTK_BUTTON(geometry_helpW), "Hide geometry help");
 	cs_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_default_size(GTK_WINDOW(cs_window), 600, -1);
 	gtk_widget_modify_bg(cs_window, GTK_STATE_NORMAL, &white);
 	gtk_container_set_border_width(GTK_CONTAINER(cs_window),5);
 	//gtk_window_set_resizable(GTK_WINDOW(cs_window), FALSE);
@@ -7702,8 +7703,8 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 
 	orig_pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL);
 	cp->orig_pixbuf = orig_pixbuf;
-	//pixbuf2 = gdk_pixbuf_scale_simple(pixbuf, gdk_pixbuf_get_width(pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(pixbuf)/geometry_help_scale_factor, GDK_INTERP_HYPER);
-	GtkWidget *coordinate_system_image = gtk_image_new_from_pixbuf(orig_pixbuf);
+	GdkPixbuf *pixbuf2 = gdk_pixbuf_scale_simple(orig_pixbuf, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor, GDK_INTERP_HYPER);
+	GtkWidget *coordinate_system_image = gtk_image_new_from_pixbuf(pixbuf2);
 	gtk_widget_set_events(event_box, gtk_widget_get_events(event_box) | GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
 	gtk_misc_set_alignment(GTK_MISC(coordinate_system_image), 0.0, 0.0);
 	gtk_misc_set_padding(GTK_MISC(coordinate_system_image), 0, 0);
