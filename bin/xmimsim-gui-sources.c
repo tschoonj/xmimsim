@@ -1083,6 +1083,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 		)
 	);
 	dataset->set_color(*blue_plot);
+	dataset->set_line_width(2.0);
 	dataset->show();
 	plot_window->add_data(*dataset);
 #else
@@ -1354,6 +1355,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		)
 	);
 	dataset->set_color(*blue_plot);
+	dataset->set_line_width(2.0);
 	dataset->show();
 	plot_window->add_data(*dataset);
 #else

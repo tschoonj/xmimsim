@@ -86,9 +86,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-sources.c \
 	xmimsim-gui-sources.h \
-	$(NULL)
-
-do_not_compile = \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-batch.c \
 	$(NULL)

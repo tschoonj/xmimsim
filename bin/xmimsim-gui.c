@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
-//#include "xmimsim-gui-batch.h"
+#include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include <string.h>
@@ -4211,7 +4211,7 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 		gtk_widget_destroy(dialog);
 	}
 	else {
-		//FIXMElaunch_archive_plot(archive, data->window);
+		launch_archive_plot(archive, data->window);
 	}
 	g_free(data->filename);
 	g_free(data);
@@ -4996,6 +4996,9 @@ XMI_MAIN
  *
  */
 
+	// no xraylib error messages!
+	SetErrorMessages(0);
+
 	xmi_init_hdf5();
 
 	context = g_option_context_new ("XMSI/XMSO/XMSA file");
@@ -5273,7 +5276,7 @@ XMI_MAIN
 	tube_ebelW = gtk_image_menu_item_new_from_stock(XMI_STOCK_RADIATION_WARNING,accel_group);
 	g_signal_connect(G_OBJECT(tube_ebelW),"activate",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
 	batchmodeW = gtk_image_menu_item_new_from_stock(GTK_STOCK_DND_MULTIPLE,NULL);
-	//FIXMEg_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(batchmodeW),"activate",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	convertW = gtk_image_menu_item_new_from_stock(GTK_STOCK_CONVERT, NULL);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(convertW), "Convert");
 	gtk_menu_item_set_label(GTK_MENU_ITEM(batchmodeW), "Batch mode");
@@ -5540,7 +5543,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
-	//FIXMEg_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
+	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(cutT),"clicked",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(copyT),"clicked",G_CALLBACK(copy_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(pasteT),"clicked",G_CALLBACK(paste_button_clicked_cb), (gpointer) window);
