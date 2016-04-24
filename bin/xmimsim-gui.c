@@ -854,7 +854,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 #ifdef MAC_INTEGRATION
-		GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+		GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 		quit_program_cb(app, window);
 #else
 		quit_program_cb(window, window);
@@ -875,7 +875,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
-			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+			GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 			quit_program_cb(app, window);
 #else
 			quit_program_cb(window, window);
@@ -914,7 +914,7 @@ static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) 
 		if (rv == 1) {
 			//exit XMI-MSIM
 #ifdef MAC_INTEGRATION
-			GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+			GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 			quit_program_cb(app, window);
 #else
 			quit_program_cb(window, window);
@@ -4290,7 +4290,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		}
 	}
 	else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
-		struct dialog_helper_xmsa_data *my_data = g_malloc(sizeof(struct dialog_helper_xmsa_data));
+		struct dialog_helper_xmsa_data *my_data = (struct dialog_helper_xmsa_data *) g_malloc(sizeof(struct dialog_helper_xmsa_data));
 		my_data->window = old->window;
 		my_data->filename = filename;
 		dialog_helper_xmsa_cb(my_data);
@@ -5123,7 +5123,7 @@ XMI_MAIN
 
 
 #ifdef MAC_INTEGRATION
-	theApp = g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+	theApp = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
 #endif
 
@@ -5396,16 +5396,16 @@ XMI_MAIN
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),userguideW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_rootW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),github_wikiW);
-	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/User-guide");
-	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/");
-	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click),"https://github.com/tschoonj/xmimsim/wiki/Home");
-	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),g_object_ref(gtk_separator_menu_item_new()));
+	g_signal_connect(G_OBJECT(userguideW),"activate",G_CALLBACK(url_click), (gpointer) "https://github.com/tschoonj/xmimsim/wiki/User-guide");
+	g_signal_connect(G_OBJECT(github_rootW),"activate",G_CALLBACK(url_click), (gpointer) "https://github.com/tschoonj/xmimsim/");
+	g_signal_connect(G_OBJECT(github_wikiW),"activate",G_CALLBACK(url_click), (gpointer) "https://github.com/tschoonj/xmimsim/wiki/Home");
+	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), GTK_WIDGET(g_object_ref(gtk_separator_menu_item_new())));
 	report_bugW= gtk_menu_item_new_with_label("Report a Bug");
 	request_featureW= gtk_menu_item_new_with_label("Request a feature");
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),report_bugW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu),request_featureW);
-	g_signal_connect(G_OBJECT(report_bugW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
-	g_signal_connect(G_OBJECT(request_featureW),"activate",G_CALLBACK(email_click),"Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
+	g_signal_connect(G_OBJECT(report_bugW), "activate", G_CALLBACK(email_click), (gpointer) "Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report");
+	g_signal_connect(G_OBJECT(request_featureW), "activate", G_CALLBACK(email_click), (gpointer) "Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request");
 
 	gtk_box_pack_start(GTK_BOX(Main_vbox), menubar, FALSE, FALSE, 0);
 	gtk_widget_show_all(menubar);
@@ -5418,10 +5418,10 @@ XMI_MAIN
 	updatesW = gtk_menu_item_new_with_label("Check for updates...");
 	g_signal_connect(G_OBJECT(updatesW),"activate",G_CALLBACK(check_for_updates_on_click_cb),window);
 	gtkosx_application_insert_app_menu_item(theApp, updatesW, 1);
-	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 2);
+	gtkosx_application_insert_app_menu_item(theApp, GTK_WIDGET(g_object_ref(gtk_separator_menu_item_new())), 2);
 	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 3);
   #else
-	gtkosx_application_insert_app_menu_item(theApp, g_object_ref(gtk_separator_menu_item_new()), 1);
+	gtkosx_application_insert_app_menu_item(theApp, GTK_WIDGET(g_object_ref(gtk_separator_menu_item_new())), 1);
 	gtkosx_application_insert_app_menu_item(theApp, preferencesW, 2);
   #endif
 	gtkosx_application_set_help_menu(theApp, GTK_MENU_ITEM(helpitem));

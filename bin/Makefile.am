@@ -174,15 +174,6 @@ xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) \
 	$(xmimsim_gui_LDFLAGS) -o $@
 
-if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c
-#else
-#xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-#	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
-#	$(AM_LDFLAGS) $(LDFLAGS) $(xmimsim_gui_CFLAGS) \
-#	$(xmimsim_gui_LDFLAGS) -o $@
-endif
-
 #xmimsim_test_SOURCES = xmimsim-test.c
 #xmimsim_test_LDADD = ../src/libxmimsim.la
 
