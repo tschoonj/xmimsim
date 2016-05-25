@@ -2045,12 +2045,16 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 
 static void layer_paste_cb(GtkWidget *button, struct matrix_button *mb) {
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-	gtk_clipboard_request_contents(clipboard, LayerAtom, (GtkClipboardReceivedFunc) clipboard_receive_layer_cb, mb);
+	if (clipboard)
+		gtk_clipboard_request_contents(clipboard, LayerAtom, (GtkClipboardReceivedFunc) clipboard_receive_layer_cb, mb);
 	return;
 }
 
 static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+	if (!clipboard)
+		return;
+
 	struct clipboard_data *cd = malloc(sizeof(struct clipboard_data));
 
 	GtkTreeModel *model;
@@ -2183,6 +2187,10 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 }
 
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, struct matrix_button *mb) {
+	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+	if (!clipboard)
+		return;
+
 	GtkWidget *menu, *menuitem;
 
 	//sensitivity should be determined by clipboard state and whether or not a layer was activated!
@@ -2258,6 +2266,9 @@ static gboolean layer_popup_menu_cb(GtkWidget *tree, struct matrix_button *mb) {
 }
 
 static gboolean layer_focus_in_cb(GtkTreeView *tree, GdkEvent *event, gpointer data) {
+	if (!gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))
+		return FALSE;
+
 	static int counter = 0;
 	//g_fprintf(stdout, "Entering layer_focus_in_cb: %i\n", counter++);
 
@@ -4964,7 +4975,7 @@ static gboolean comments_focus_out_cb(GtkTextView *comments, GdkEvent *event, gp
 }
 
 static gboolean comments_focus_in_cb(GtkTextView *comments, GdkEvent *event, gpointer data) {
-	if (gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
+	if (gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
 		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
@@ -4992,7 +5003,7 @@ static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, gpointer da
 static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, gpointer data) {
 	//fprintf(stdout, "Entering entry_focus_in_cb\n");
 	//entry_notify_cursor_position_cb(G_OBJECT(entry), NULL, NULL);
-	if (gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
+	if (gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
 		gtk_widget_set_sensitive(GTK_WIDGET(pasteT), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
@@ -6517,6 +6528,9 @@ static void paste_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	
 	GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(data));
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+
+	if (!clipboard)
+		return;
 
 	if (GTK_IS_TEXT_VIEW(focused) && gtk_clipboard_wait_is_text_available(clipboard)) {
 		g_signal_emit_by_name(G_OBJECT(focused), "paste-clipboard", NULL);	
