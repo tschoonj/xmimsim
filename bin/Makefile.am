@@ -132,7 +132,8 @@ endif
 if ENABLE_CXX
 XMICCLD = $(CXX)
 if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c++ -std=gnu++11
+xmimsim_gui_CFLAGS += -xobjective-c++ -std=gnu++11 -stdlib=libc++
+xmimsim_gui_LDFLAGS = -stdlib=libc++
 else
 xmimsim_gui_CFLAGS += -xc++ -std=gnu++11
 endif
