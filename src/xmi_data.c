@@ -93,9 +93,9 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 			return 0;
 
 
-		if (g_access(hdf5_file, F_OK | R_OK) != 0) {
+		if (g_access(hdf5_file, R_OK) != 0) {
 			g_fprintf(stderr, "HDF5 data file %s found in registry is not accessible\nTrying file in current directory instead\n", hdf5_file);
-			if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
+			if (g_access("xmimsimdata.h5", R_OK) == 0) {
 				//look in current folder
 				hdf5_file = strdup("xmimsimdata.h5");
 				*hdf5_filePtr = hdf5_file;
@@ -111,7 +111,7 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 			return 0;
 
 
-		if (g_access(hdf5_file, F_OK | R_OK) != 0) {
+		if (g_access(hdf5_file, R_OK) != 0) {
 			fprintf(stderr,"App bundle does not contain the HDF5 data file\n");
 			return 0;
 		}
@@ -121,9 +121,9 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 		}
 #else
 		//UNIX mode...
-		if (g_access(XMIMSIM_HDF5_DEFAULT, F_OK | R_OK) == 0)
+		if (g_access(XMIMSIM_HDF5_DEFAULT, R_OK) == 0)
 			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
-		else if (g_access("xmimsimdata.h5", F_OK | R_OK) == 0) {
+		else if (g_access("xmimsimdata.h5", R_OK) == 0) {
 			//look in current folder
 			hdf5_file = strdup("xmimsimdata.h5");
 		}
