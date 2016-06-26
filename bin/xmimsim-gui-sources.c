@@ -1025,8 +1025,6 @@ static void generate_tube_spectrum(struct generate *gen) {
 		plot_window->set_region(gen->plot_xmin_tube, gen->plot_xmax_tube,
 					gen->plot_ymin_tube, gen->plot_ymax_tube);
 	});
-	plot_window->set_region(gen->plot_xmin_tube, gen->plot_xmax_tube,
-				gen->plot_ymin_tube, gen->plot_ymax_tube);
 	plot_window->show();
 #else
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
@@ -1086,6 +1084,8 @@ static void generate_tube_spectrum(struct generate *gen) {
 	dataset->set_line_width(2.0);
 	dataset->show();
 	plot_window->add_data(*dataset);
+	plot_window->set_region(gen->plot_xmin_tube, gen->plot_xmax_tube,
+				gen->plot_ymin_tube, gen->plot_ymax_tube);
 #else
 	GtkPlotData *dataset;
 	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
@@ -1301,8 +1301,6 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 		plot_window->set_region(gen->plot_xmin_nuclide, gen->plot_xmax_nuclide,
 					gen->plot_ymin_nuclide, gen->plot_ymax_nuclide);
 	});
-	plot_window->set_region(gen->plot_xmin_nuclide, gen->plot_xmax_nuclide,
-				gen->plot_ymin_nuclide, gen->plot_ymax_nuclide);
 	plot_window->show();
 #else
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(plot_xmin, plot_xmax),5);
@@ -1358,6 +1356,8 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 	dataset->set_line_width(2.0);
 	dataset->show();
 	plot_window->add_data(*dataset);
+	plot_window->set_region(gen->plot_xmin_nuclide, gen->plot_xmax_nuclide,
+				gen->plot_ymin_nuclide, gen->plot_ymax_nuclide);
 #else
 	GtkPlotData *dataset;
 	dataset = GTK_PLOT_DATA(gtk_plot_data_new());

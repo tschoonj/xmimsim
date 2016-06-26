@@ -4743,33 +4743,17 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	double tickstep2 = get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep2,5);
-#endif
 
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_linearW))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_linearW)))) {
-#ifdef HAVE_CXX
-		plot_window->set_axis_logarithmic_y(false);	
-		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
-			plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-		});
-		plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-#else
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
 		gtk_plot_set_range(GTK_PLOT(plot_window), plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-#endif
 	}
 	else {
-#ifdef HAVE_CXX
-		plot_window->set_axis_logarithmic_y(true);	
-		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, real_ymin, real_ymax](double x, double y){
-			plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
-		});
-		plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
-#else
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
 		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
-#endif
 	}
+#endif
 
 #ifdef HAVE_CXX
 	plot_window->show();
@@ -4839,6 +4823,20 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	dataset->set_symbol_height_scale_factor(2.0);
 	dataset->show();
 	plot_window->add_data(*dataset);
+	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_linearW))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_linearW)))) {
+		plot_window->set_axis_logarithmic_y(false);	
+		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
+			plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+		});
+		plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
+	}
+	else {
+		plot_window->set_axis_logarithmic_y(true);	
+		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, real_ymin, real_ymax](double x, double y){
+			plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
+		});
+		plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
+	}
 #else
 	GtkPlotData *dataset;
 	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
