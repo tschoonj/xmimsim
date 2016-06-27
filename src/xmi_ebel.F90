@@ -21,7 +21,6 @@ MODULE xmimsim_ebel
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
 USE :: omp_lib
-USE :: fgsl
 
 REAL (C_DOUBLE), PARAMETER :: DEG2RAD=0.01745329
 
@@ -112,8 +111,7 @@ BIND(C,NAME='xmi_tube_ebel')
 
 IMPLICIT NONE
 
-TYPE (xmi_layerC), INTENT(IN) :: tube_anode,tube_window,tube_filter
-TARGET :: tube_window, tube_filter
+TYPE (C_PTR), VALUE, INTENT(IN) :: tube_anode,tube_window,tube_filter
 REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, &
 tube_angle_electron, tube_angle_xray, tube_delta_energy, tube_solid_angle
 TYPE (C_PTR), INTENT(INOUT) :: ebel_excitation
@@ -128,7 +126,8 @@ TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc_temp
 
 
 !fortran aux variables
-TYPE (xmi_layer), POINTER :: tube_anodeF, tube_windowF => NULL(), tube_filterF => NULL()
+TYPE (xmi_layerC), POINTER :: tube_anodeC, tube_windowC, tube_filterC
+TYPE (xmi_layer) :: tube_anodeF, tube_windowF, tube_filterF
 INTEGER (C_INT), POINTER, DIMENSION(:) :: Z
 REAL (C_DOUBLE), POINTER, DIMENSION(:) :: weight
 
@@ -151,44 +150,43 @@ REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: oneovers, r
 
 
 !bind the C variables to their fortran counterparts
-ALLOCATE(tube_anodeF)
-
-tube_anodeF%n_elements = tube_anode%n_elements
-tube_anodeF%density = tube_anode%density
-tube_anodeF%thickness= tube_anode%thickness
-ALLOCATE(tube_anodeF%Z(tube_anodeF%n_elements),&
-tube_anodeF%weight(tube_anodeF%n_elements))
-CALL C_F_POINTER(tube_anode%Z, Z, [tube_anodeF%n_elements])
+CALL C_F_POINTER(tube_anode, tube_anodeC)
+tube_anodeF%n_elements = tube_anodeC%n_elements
+tube_anodeF%density = tube_anodeC%density
+tube_anodeF%thickness= tube_anodeC%thickness
+ALLOCATE(tube_anodeF%Z(tube_anodeC%n_elements),&
+tube_anodeF%weight(tube_anodeC%n_elements))
+CALL C_F_POINTER(tube_anodeC%Z, Z, [tube_anodeC%n_elements])
 tube_anodeF%Z = Z
 
-CALL C_F_POINTER(tube_anode%weight, weight, [tube_anodeF%n_elements])
+CALL C_F_POINTER(tube_anodeC%weight, weight, [tube_anodeC%n_elements])
 tube_anodeF%weight = weight
 
-IF (C_ASSOCIATED(C_LOC(tube_window))) THEN
-        ALLOCATE(tube_windowF)
-        tube_windowF%n_elements = tube_window%n_elements
-        tube_windowF%density = tube_window%density
-        tube_windowF%thickness= tube_window%thickness
-        ALLOCATE(tube_windowF%Z(tube_windowF%n_elements),&
-        tube_windowF%weight(tube_windowF%n_elements))
-        CALL C_F_POINTER(tube_window%Z, Z, [tube_windowF%n_elements])
+IF (C_ASSOCIATED(tube_window)) THEN
+        CALL C_F_POINTER(tube_window, tube_windowC)
+        tube_windowF%n_elements = tube_windowC%n_elements
+        tube_windowF%density = tube_windowC%density
+        tube_windowF%thickness= tube_windowC%thickness
+        ALLOCATE(tube_windowF%Z(tube_windowC%n_elements),&
+        tube_windowF%weight(tube_windowC%n_elements))
+        CALL C_F_POINTER(tube_windowC%Z, Z, [tube_windowC%n_elements])
         tube_windowF%Z = Z
 
-        CALL C_F_POINTER(tube_window%weight, weight, [tube_windowF%n_elements])
+        CALL C_F_POINTER(tube_windowC%weight, weight, [tube_windowC%n_elements])
         tube_windowF%weight = weight
 ENDIF
 
-IF (C_ASSOCIATED(C_LOC(tube_filter))) THEN
-        ALLOCATE(tube_filterF)
-        tube_filterF%n_elements = tube_filter%n_elements
-        tube_filterF%density = tube_filter%density
-        tube_filterF%thickness= tube_filter%thickness
-        ALLOCATE(tube_filterF%Z(tube_filterF%n_elements),&
-        tube_filterF%weight(tube_filterF%n_elements))
-        CALL C_F_POINTER(tube_filter%Z, Z, [tube_filterF%n_elements])
+IF (C_ASSOCIATED(tube_filter)) THEN
+        CALL C_F_POINTER(tube_filter, tube_filterC)
+        tube_filterF%n_elements = tube_filterC%n_elements
+        tube_filterF%density = tube_filterC%density
+        tube_filterF%thickness= tube_filterC%thickness
+        ALLOCATE(tube_filterF%Z(tube_filterC%n_elements),&
+        tube_filterF%weight(tube_filterC%n_elements))
+        CALL C_F_POINTER(tube_filterC%Z, Z, [tube_filterC%n_elements])
         tube_filterF%Z = Z
 
-        CALL C_F_POINTER(tube_filter%weight, weight, [tube_filterF%n_elements])
+        CALL C_F_POINTER(tube_filterC%weight, weight, [tube_filterC%n_elements])
         tube_filterF%weight = weight
 ENDIF
 
@@ -404,7 +402,7 @@ DO i=1,ndisc
 ENDDO
 ENDIF
 !take window in account
-IF (ASSOCIATED(tube_windowF)) THEN
+IF (C_ASSOCIATED(tube_window)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_windowF%density*tube_windowF%thickness*&
@@ -418,7 +416,7 @@ DO i=1,ncont
 ENDDO
 ENDIF
 !and if there's a filter, use that one too
-IF (ASSOCIATED(tube_filterF)) THEN
+IF (C_ASSOCIATED(tube_filter)) THEN
 DO i=1,ndisc
         ebel_spectrum_disc(i)%horizontal_intensity=ebel_spectrum_disc(i)%horizontal_intensity*&
         EXP(-1.0_C_DOUBLE*tube_filterF%density*tube_filterF%thickness*&
@@ -479,10 +477,6 @@ ENDIF
 ebel_excitation = C_LOC(ebel_excitation_rv)
 
 xmi_tube_ebel=1
-
-DEALLOCATE(tube_anodeF)
-IF (ASSOCIATED(tube_windowF)) DEALLOCATE(tube_windowF)
-IF (ASSOCIATED(tube_filterF)) DEALLOCATE(tube_filterF)
 
 ENDFUNCTION xmi_tube_ebel
 
