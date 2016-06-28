@@ -717,6 +717,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 photon%channels(n_ia:, channel)+&
                                 temp_weight
                         ENDIF
+                        WRITE(unit_txt, '(2ES15.7)') energy_fluo, temp_weight
 #if DEBUG == 1
                         IF(line_new .EQ. LA1_LINE) THEN
                                 WRITE (*,'(A,F12.4)') 'original energy: ',&

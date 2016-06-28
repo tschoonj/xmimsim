@@ -647,6 +647,8 @@ CHARACTER (LEN=2,KIND=C_CHAR), DIMENSION(99) :: elements = &
         '81', '82', '83', '84', '85', '86', '87', '88', '89', '90',&
         '91', '92', '93', '94', '95', '96', '97', '98', '99']
 
+INTEGER, PARAMETER :: unit_txt = 20
+
 !global variables
 INTEGER (C_INT), PARAMETER ::  NO_INTERACTION = 0
 INTEGER (C_INT), PARAMETER ::  RAYLEIGH_INTERACTION = 1

@@ -113,6 +113,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         TYPE (xmi_ran_trap_workspace) :: workspace
 
 
+        OPEN(unit=unit_txt, file="output.txt", action="write", status="replace")
+
+
+
         CALL SetErrorMessages(0)
 
 
@@ -965,6 +969,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
         rv = 1
 
+        CLOSE(unit_txt)
+
 ENDFUNCTION xmi_main_msim
 
 
@@ -1555,6 +1561,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
                 photon%n_interactions = photon%n_interactions + 1
 
+                WRITE(unit_txt, '(I2,3ES15.7)') photon%n_interactions, photon%coords
                 !variance reduction
 #if DEBUG == 1
                 WRITE (6,'(A,I2)') 'current_layer:',photon%current_layer
