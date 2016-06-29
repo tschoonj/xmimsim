@@ -148,6 +148,7 @@ XMI_MAIN
 #endif
 		{"enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Enable advanced yet slower Compton simulation", NULL },
 		{"disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Disable advanced yet slower Compton simulation (default)", NULL },
+		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Sets the number of threads to NTHREADS (default=max)", "NTHREADS"},
 		{"custom-detector-response",0,0,G_OPTION_ARG_FILENAME,&options.custom_detector_response,"Use the supplied library for the detector response routine",NULL},
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
