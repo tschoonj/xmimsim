@@ -60,6 +60,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         REAL (C_DOUBLE) :: temp_weight
         REAL (C_DOUBLE), DIMENSION(K_SHELL:M5_SHELL) :: shell_weights
         REAL (C_DOUBLE) :: mu_compt
+        LOGICAL :: i_opened
 
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
@@ -717,7 +718,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 photon%channels(n_ia:, channel)+&
                                 temp_weight
                         ENDIF
-                        WRITE(unit_txt, '(2ES15.7)') energy_fluo, temp_weight
+                        INQUIRE(unit_txt, OPENED=i_opened)
+                        IF (i_opened .EQV. .TRUE.) THEN
+                           WRITE(unit_txt, '(2ES15.7)') energy_fluo, temp_weight
+                        ENDIF
 #if DEBUG == 1
                         IF(line_new .EQ. LA1_LINE) THEN
                                 WRITE (*,'(A,F12.4)') 'original energy: ',&
