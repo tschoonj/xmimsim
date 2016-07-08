@@ -1563,7 +1563,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 photon%n_interactions = photon%n_interactions + 1
                 INQUIRE(unit_txt, OPENED=i_opened)
                 IF (i_opened .EQV. .TRUE.) THEN
-                   WRITE(unit_txt, '(I2,3ES15.7)') photon%n_interactions, photon%coords
+                   WRITE(unit_txt, '(I2,7ES15.7)') photon%n_interactions, photon%coords, photon%dirv, temp_sum
                 ENDIF
                 !variance reduction
 #if DEBUG == 1
