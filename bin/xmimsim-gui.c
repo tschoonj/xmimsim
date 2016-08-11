@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2016 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -3244,7 +3244,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 		NULL
 	};
 
-	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2013 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2016 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
 
 	static const gchar comments[] = "A tool for the Monte Carlo simulation of ED-XRF spectrometers\n\n\nPlease read carefully the License section and the links therein.";
 

@@ -3,11 +3,11 @@
 
 <name>XMI-MSIM</name>
 <meta>
-	<prefix name='default'>/usr/local</prefix>	
+	<prefix name='default'>/opt/local</prefix>	
 	<prefix name='source'>/Users/schoon/github/xmimsim</prefix>	
 	<prefix name='build'>/Users/schoon/github/xmimsim/build</prefix>	
 	<prefix name='install'>/usr/local</prefix>	
-	<prefix name='macports'>/usr/local</prefix>	
+	<prefix name='macports'>/opt/local</prefix>	
 	<destination overwrite="yes">${env:PWD}</destination>
 	<launcher-script>${prefix:source}/osx/launcher.sh</launcher-script>
 	<run-install-name-tool/>
@@ -54,6 +54,8 @@
 
 <data>${prefix:macports}/share/themes</data>
 <data>${prefix:install}/share/icons</data>
+<data>${prefix:install}/share/plplot5.11.1/</data>
+<data>${prefix:macports}/share/glib-2.0/schemas/</data>
 <data dest="${bundle}/Contents/Resources/share/mime/packages/applications-x-xmimsim.xml">${prefix:source}/icons/applications-x-xmimsim.xml</data>
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>

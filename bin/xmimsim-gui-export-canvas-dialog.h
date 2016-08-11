@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 
 #ifdef HAVE_CXX
-	#include <gtkmm-plplot/gtkmm-plplot.h>
+	#include <gtkmm-plplot.h>
 #else
 	#include <gtkextra.h>
 #endif

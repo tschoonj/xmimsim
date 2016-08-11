@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_private.h"
 #ifdef HAVE_CXX
-#include <gtkmm-plplot/gtkmm-plplot.h>
+#include <gtkmm-plplot.h>
 #else
 #include <gtkextra/gtkextra.h>
 #endif

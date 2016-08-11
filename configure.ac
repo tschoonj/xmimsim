@@ -187,7 +187,7 @@ fi
 CXX_MODE=no
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], gtkmm-plplot-1.1 >= 1.1,
+	PKG_CHECK_MODULES([gtkmm3], gtkmm-plplot-2.0 >= 2.1,
 		[
 		GTK_FOUND=yes
 		CXX_MODE=yes
