@@ -56,6 +56,7 @@
 <data>${prefix:install}/share/icons</data>
 <data>${prefix:install}/share/plplot5.11.1/</data>
 <data>${prefix:macports}/share/glib-2.0/schemas/</data>
+<data>${prefix:macports}/share/mime/packages/freedesktop.org.xml</data>
 <data dest="${bundle}/Contents/Resources/share/mime/packages/applications-x-xmimsim.xml">${prefix:source}/icons/applications-x-xmimsim.xml</data>
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>
