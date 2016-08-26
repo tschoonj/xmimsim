@@ -2197,12 +2197,8 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !
         IF (photon%options%use_advanced_compton .EQ. 1) THEN
                 CALL xmi_update_photon_energy_compton(photon, theta_i,&
-                rng, inputF, hdf5F, shell)
-                !process shell further for Compton fluorescence:
-                !basically a radiative cascade event
-                IF (photon%options%use_variance_reduction .EQ. 0)&
-                CALL xmi_simulate_photon_cascade_radiative(photon, shell,&
-                rng, inputF, hdf5F)
+                rng, inputF, hdf5f, shell)
+                !process shell further for Compton fluorescence
         ELSE
                 CALL xmi_update_photon_energy_compton2(photon, theta_i,&
                 rng, inputF, hdf5f)
@@ -2268,7 +2264,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         REAL (C_DOUBLE) :: photo_total
         REAL (C_DOUBLE) :: sumz
-        INTEGER (C_INT) :: shell,line_first, line_last, line, shell_new
+        INTEGER (C_INT) :: shell,line_first, line_last, line
         REAL (C_DOUBLE) :: r
         REAL (C_DOUBLE) :: theta_i, phi_i
 
@@ -2423,74 +2419,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
 
         IF (photon%options%use_cascade_radiative .EQ. 1_C_INT .AND.&
         photon%options%use_variance_reduction .EQ. 0_C_INT) THEN
-
-                IF (shell .EQ. K_SHELL) THEN
-                        SELECT CASE (line)
-                                CASE (KL1_LINE)
-                                        shell_new = L1_SHELL
-                                CASE (KL2_LINE)
-                                        shell_new = L2_SHELL
-                                CASE (KL3_LINE)
-                                        shell_new = L3_SHELL
-                                CASE (KM1_LINE)
-                                        shell_new = M1_SHELL
-                                CASE (KM2_LINE)
-                                        shell_new = M2_SHELL
-                                CASE (KM3_LINE)
-                                        shell_new = M3_SHELL
-                                CASE (KM4_LINE)
-                                        shell_new = M4_SHELL
-                                CASE (KM5_LINE)
-                                        shell_new = M5_SHELL
-                                CASE DEFAULT
-                                        shell_new = -1_C_INT
-                        ENDSELECT
-
-
-
-                ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
-                L3_SHELL) .AND. photon%options%use_M_lines .EQ. 1_C_INT) THEN
-                        SELECT CASE (line)
-                                CASE (L1M1_LINE)
-                                        shell_new = M1_SHELL
-                                CASE (L1M2_LINE)
-                                        shell_new = M2_SHELL
-                                CASE (L1M3_LINE)
-                                        shell_new = M3_SHELL
-                                CASE (L1M4_LINE)
-                                        shell_new = M4_SHELL
-                                CASE (L1M5_LINE)
-                                        shell_new = M5_SHELL
-                                CASE (L2M1_LINE)
-                                        shell_new = M1_SHELL
-                                CASE (L2M2_LINE)
-                                        shell_new = M2_SHELL
-                                CASE (L2M3_LINE)
-                                        shell_new = M3_SHELL
-                                CASE (L2M4_LINE)
-                                        shell_new = M4_SHELL
-                                CASE (L2M5_LINE)
-                                        shell_new = M5_SHELL
-                                CASE (L3M1_LINE)
-                                        shell_new = M1_SHELL
-                                CASE (L3M2_LINE)
-                                        shell_new = M2_SHELL
-                                CASE (L3M3_LINE)
-                                        shell_new = M3_SHELL
-                                CASE (L3M4_LINE)
-                                        shell_new = M4_SHELL
-                                CASE (L3M5_LINE)
-                                        shell_new = M5_SHELL
-                                CASE DEFAULT
-                                        shell_new = -1_C_INT
-                        ENDSELECT
-                ELSE
-                        !nothing to do... probably an M-line
-                        shell_new = -1_C_INT
-                ENDIF
-
-                CALL xmi_simulate_photon_cascade_radiative(photon,shell_new,&
-                rng,inputF,hdf5F)
+                CALL xmi_simulate_photon_cascade_radiative(photon,shell,line&
+                ,rng,inputF,hdf5F)
         ENDIF
 
 #if DEBUG == 1
@@ -4561,7 +4491,6 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%detector_hit2 = .FALSE.
                         photon%options%use_cascade_radiative = 0_C_INT
                         photon%options%use_cascade_auger = 0_C_INT
-                        photon%options%use_advanced_compton = 0_C_INT
                         photon%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
                         photon%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%dirv(1) = SIN(photon%theta)*COS(photon%phi)
@@ -4644,7 +4573,6 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%options%use_cascade_auger = 0_C_INT
                         photon%offspring%options%use_cascade_radiative = 0_C_INT
                         photon%offspring%options%use_variance_reduction = 0_C_INT
-                        photon%offspring%options%use_advanced_compton = 0_C_INT
                         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
                         photon%offspring%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
                         photon%offspring%dirv(1) = SIN(photon%offspring%theta)*COS(photon%offspring%phi)
@@ -4691,13 +4619,13 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         RETURN
 ENDSUBROUTINE xmi_simulate_photon_cascade_auger
 
-SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,hdf5F)
+SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,hdf5F)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-        INTEGER (C_INT), INTENT(INOUT) :: shell_new
+        INTEGER (C_INT), INTENT(IN) :: shell, line
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        INTEGER (C_INT) :: line_new
+        INTEGER (C_INT) :: shell_new, line_new
         TYPE (fgsl_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
 
@@ -4716,8 +4644,72 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         !
         !
 
+        IF (shell .EQ. K_SHELL) THEN
+                SELECT CASE (line)
+                        CASE (KL1_LINE)
+                                shell_new = L1_SHELL
+                        CASE (KL2_LINE)
+                                shell_new = L2_SHELL
+                        CASE (KL3_LINE)
+                                shell_new = L3_SHELL
+                        CASE (KM1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (KM2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (KM3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (KM4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (KM5_LINE)
+                                shell_new = M5_SHELL
+                        CASE DEFAULT
+                                shell_new = -1_C_INT
+                ENDSELECT
+                
 
-        IF (shell_new .LT. K_SHELL .OR. shell_new .GT. M5_SHELL) RETURN
+
+        ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
+        L3_SHELL) .AND. photon%options%use_M_lines .EQ. 1_C_INT) THEN
+                SELECT CASE (line)
+                        CASE (L1M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L1M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L1M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L1M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L1M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE (L2M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L2M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L2M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L2M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L2M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE (L3M1_LINE)
+                                shell_new = M1_SHELL
+                        CASE (L3M2_LINE)
+                                shell_new = M2_SHELL
+                        CASE (L3M3_LINE)
+                                shell_new = M3_SHELL
+                        CASE (L3M4_LINE)
+                                shell_new = M4_SHELL
+                        CASE (L3M5_LINE)
+                                shell_new = M5_SHELL
+                        CASE DEFAULT
+                                shell_new = -1_C_INT
+                ENDSELECT 
+        ELSE
+                !nothing to do... probably an M-line
+                RETURN
+        ENDIF
+        
+        IF (shell_new .EQ. -1_C_INT) RETURN
         !exit if an M shell was found while not allowed
         IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&
         photon%options%use_M_lines .EQ. 0) RETURN
@@ -4755,11 +4747,9 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell_new, rng,inputF,h
         photon%offspring%options = photon%options
         photon%options%use_cascade_auger = 0_C_INT
         photon%options%use_cascade_radiative = 0_C_INT
-        photon%options%use_advanced_compton = 0_C_INT
         photon%offspring%options%use_cascade_auger = 0_C_INT
         photon%offspring%options%use_cascade_radiative = 0_C_INT
         photon%offspring%options%use_variance_reduction = 0_C_INT
-        photon%offspring%options%use_advanced_compton = 0_C_INT
         photon%offspring%weight = photon%weight
         photon%offspring%coords = photon%coords
         photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
