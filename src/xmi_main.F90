@@ -13,15 +13,26 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_main
 
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
 USE :: xmimsim_varred
 USE :: xmimsim_detector
+#ifdef HAVE_EASYRNG
+USE :: easyRNG, ONLY : &
+        xmi_ran_cauchy => easy_ran_cauchy, &
+        xmi_ran_gaussian_ziggurat => easy_ran_gaussian_ziggurat, &
+        xmi_ran_flat => easy_ran_flat
+#else
+USE :: fgsl, ONLY : &
+        xmi_ran_cauchy => fgsl_ran_cauchy, &
+        xmi_ran_gaussian_ziggurat => fgsl_ran_gaussian_ziggurat, &
+        xmi_ran_flat => fgsl_ran_flat
+#endif
 USE :: omp_lib
-USE :: fgsl
-
 
 
 INTERFACE xmi_coords_dir
@@ -34,13 +45,16 @@ ENDINTERFACE xmi_coords_gaussian
 
 
 !some physical constants
-REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = fgsl_const_mksa_mass_electron*&
-        fgsl_const_mksa_speed_of_light**2/&
-        fgsl_const_mksa_electron_volt/1000.0_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: xmi_const_mksa_mass_electron = 9.10938188e-31_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: xmi_const_mksa_speed_of_light = 2.99792458e8_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: xmi_const_mksa_electron_volt = 1.602176487e-19_C_DOUBLE
+REAL (C_DOUBLE), PARAMETER :: XMI_MEC2 = xmi_const_mksa_mass_electron*&
+        xmi_const_mksa_speed_of_light**2/&
+        xmi_const_mksa_electron_volt/1000.0_C_DOUBLE
         !source = NIST
 REAL (C_DOUBLE), PARAMETER :: momentum_atomic_unit = 1.992851565E-24
-REAL (C_DOUBLE), PARAMETER :: XMI_MEC = fgsl_const_mksa_mass_electron*&
-        fgsl_const_mksa_speed_of_light
+REAL (C_DOUBLE), PARAMETER :: XMI_MEC = xmi_const_mksa_mass_electron*&
+        xmi_const_mksa_speed_of_light
 REAL (C_DOUBLE), PARAMETER :: XMI_MOM_MEC = momentum_atomic_unit/XMI_MEC
 
 
@@ -67,8 +81,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET, SAVE :: channelsF
         INTEGER :: max_threads, thread_num
 
-        TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng) :: rng
+        TYPE (xmi_rng_type) :: rng_type
+        TYPE (xmi_rng) :: rng
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon,photon_temp,photon_temp2
@@ -255,7 +269,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 var_red_history = 0.0_C_DOUBLE
         !ENDIF
 
-        rng_type = fgsl_rng_mt19937
+        rng_type = xmi_rng_mt19937
         n_photons_sim = 0_C_LONG
         n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line +&
                         inputF%excitation%n_continuous*inputF%general%n_photons_interval
@@ -280,8 +294,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 !
         thread_num = omp_get_thread_num()
 
-        rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+        rng = xmi_rng_alloc(rng_type)
+        CALL xmi_rng_set(rng,seeds(thread_num+1))
         ALLOCATE(initial_mus(inputF%composition%n_layers))
 
 !
@@ -379,7 +393,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon)
 
                         !Calculate its weight and electric field...
-                        IF (fgsl_rng_uniform(rng) .LE. hor_ver_ratio) THEN
+                        IF (xmi_rng_uniform(rng) .LE. hor_ver_ratio) THEN
                                 !horizontal
                                 photon%weight = weight
                                 photon%elecv(1) = 0.0_C_DOUBLE
@@ -619,7 +633,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         IF (exc%discrete(i)%distribution_type .EQ.&
                         XMI_DISCRETE_GAUSSIAN) THEN
                                 !gaussian distribution
-                                photon%energy = fgsl_ran_gaussian_ziggurat(rng,&
+                                photon%energy = xmi_ran_gaussian_ziggurat(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold .OR.&
                                 photon%energy .GT. energy_max) CYCLE &
@@ -629,7 +643,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ELSEIF (exc%discrete(i)%distribution_type .EQ.&
                         XMI_DISCRETE_LORENTZIAN) THEN
                                 !lorentzian distribution
-                                photon%energy = fgsl_ran_cauchy(rng,&
+                                photon%energy = xmi_ran_cauchy(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
                                 IF (photon%energy .LE. energy_threshold .OR.&
                                 photon%energy .GT. energy_max) CYCLE &
@@ -851,7 +865,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
         !cleanup
-        CALL fgsl_rng_free(rng)
+        CALL xmi_rng_free(rng)
 
 !$omp end parallel
 
@@ -970,7 +984,7 @@ ENDFUNCTION xmi_main_msim
 
 SUBROUTINE xmi_coords_dir_disc(rng, energy, geometry, photon)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_discrete), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -1028,7 +1042,7 @@ ENDSUBROUTINE xmi_coords_dir_disc
 
 SUBROUTINE xmi_coords_dir_cont(rng, energy, geometry, photon)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_continuous), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
@@ -1087,7 +1101,7 @@ ENDSUBROUTINE xmi_coords_dir_cont
 
 SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
@@ -1101,8 +1115,8 @@ SUBROUTINE xmi_coords_point(rng, geometry, photon, x1, y1)
         x1_max = ATAN(geometry%slit_size_x/geometry%d_source_slit/2.0_C_DOUBLE)
         y1_max = ATAN(geometry%slit_size_y/geometry%d_source_slit/2.0_C_DOUBLE)
 
-        x1 = x1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
-        y1 = y1_max * fgsl_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
+        x1 = x1_max * xmi_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
+        y1 = y1_max * xmi_ran_flat(rng,-1.0_C_DOUBLE, 1.0_C_DOUBLE)
 
         photon%coords(1:3) = 0.0_C_DOUBLE
 
@@ -1111,19 +1125,19 @@ ENDSUBROUTINE xmi_coords_point
 
 SUBROUTINE xmi_coords_gaussian_disc(rng, energy, geometry, photon, x1, y1)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_discrete), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
 
 
-        x1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_xp)
-        y1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_yp)
+        x1 = xmi_ran_gaussian_ziggurat(rng, energy%sigma_xp)
+        y1 = xmi_ran_gaussian_ziggurat(rng, energy%sigma_yp)
 
-        photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
+        photon%coords(1) = xmi_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
                 geometry%d_source_slit*SIN(x1)
-        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
+        photon%coords(2) = xmi_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
                 geometry%d_source_slit*SIN(y1)
         photon%coords(3) = 0.0_C_DOUBLE
 
@@ -1131,19 +1145,19 @@ ENDSUBROUTINE xmi_coords_gaussian_disc
 
 SUBROUTINE xmi_coords_gaussian_cont(rng, energy, geometry, photon, x1, y1)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_energy_continuous), INTENT(IN) :: energy
         TYPE (xmi_geometry), INTENT(IN) :: geometry
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(OUT) :: x1, y1
 
 
-        x1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_xp)
-        y1 = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_yp)
+        x1 = xmi_ran_gaussian_ziggurat(rng, energy%sigma_xp)
+        y1 = xmi_ran_gaussian_ziggurat(rng, energy%sigma_yp)
 
-        photon%coords(1) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
+        photon%coords(1) = xmi_ran_gaussian_ziggurat(rng, energy%sigma_x) - &
                 geometry%d_source_slit*SIN(x1)
-        photon%coords(2) = fgsl_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
+        photon%coords(2) = xmi_ran_gaussian_ziggurat(rng, energy%sigma_y) - &
                 geometry%d_source_slit*SIN(y1)
         photon%coords(3) = 0.0_C_DOUBLE
 
@@ -1204,7 +1218,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv
 
         LOGICAL :: terminated
@@ -1275,7 +1289,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 blbs = 1.0_C_DOUBLE
                 min_random_layer = 0.0_C_DOUBLE
                 max_random_layer = 0.0_C_DOUBLE
-                interactionR = fgsl_rng_uniform(rng)
+                interactionR = xmi_rng_uniform(rng)
 
 #if DEBUG == 1
                 WRITE (*,'(A)') 'Before do loop'
@@ -1569,7 +1583,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
                 !selection of atom type
                 !get a new random number
                 !maybe this could be done faster... but I'm not sure
-                interactionR = fgsl_rng_uniform(rng)
+                interactionR = xmi_rng_uniform(rng)
                 atomsel_threshold = 0.0_C_DOUBLE
                 DO i = 1, inputF%composition%layers&
                         (photon%current_layer)%n_elements
@@ -1591,7 +1605,7 @@ FUNCTION xmi_simulate_photon(photon, inputF, hdf5F,rng) RESULT(rv)
 
 
                 !selection of interaction type
-                interactionR = fgsl_rng_uniform(rng)
+                interactionR = xmi_rng_uniform(rng)
 
 #if DEBUG == 2
                 WRITE (*,'(A,I)') 'random number interactionprob: ',interactionR
@@ -2014,7 +2028,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv
         REAL (C_DOUBLE) :: theta_i, phi_i
         INTEGER (C_INT) :: pos_1, pos_2
@@ -2034,7 +2048,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
         !calculate theta
         pos_1 = 0_C_INT
         pos_2 = 0_C_INT
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 
 #if DEBUG == 2
         WRITE (*,'(A,I2)') 'element: ',hdf5_Z%Z
@@ -2070,7 +2084,7 @@ FUNCTION xmi_simulate_photon_rayleigh(photon, inputF, hdf5F, rng) RESULT(rv)
 
         phi_i = bilinear_interpolation(hdf5F%Phi_ICDF, &
                 hdf5F%Thetas, hdf5F%RandomNumbers,&
-                theta_temp, fgsl_rng_uniform(rng), pos_1, pos_2)
+                theta_temp, xmi_rng_uniform(rng), pos_1, pos_2)
 
 #if DEBUG == 2
         WRITE (*,'(A,F12.6)') 'phi_i: ',phi_i
@@ -2131,7 +2145,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv, pos_1, pos_2, shell
         REAL (C_DOUBLE) :: theta_i, phi_i
         REAL (C_DOUBLE) :: r,sinphi0,cosphi0,phi0
@@ -2153,7 +2167,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         hdf5_Z%ComptonTheta_ICDF, &
         hdf5_Z%Energies, &
         hdf5_Z%RandomNumbers, &
-        photon%energy,fgsl_rng_uniform(rng), pos_1, pos_2)
+        photon%energy,xmi_rng_uniform(rng), pos_1, pos_2)
 
         K0K = 1.0_C_DOUBLE + photon%energy * (1.0_C_DOUBLE - COS(theta_i))/XMI_MEC2
         theta_temp = (SIN(theta_i))**2
@@ -2167,7 +2181,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         !calculate phi
         phi_i = bilinear_interpolation(hdf5F%Phi_ICDF, &
                 hdf5F%Thetas, hdf5F%RandomNumbers,&
-                theta_temp, fgsl_rng_uniform(rng), pos_1, pos_2)
+                theta_temp, xmi_rng_uniform(rng), pos_1, pos_2)
 
         !again according to laszlo... some things need to happen here first...
         !see comment with rayleigh
@@ -2229,7 +2243,7 @@ FUNCTION xmi_simulate_photon_compton(photon, inputF, hdf5F, rng) RESULT(rv)
         (1-COS(theta_i))*photon%energy/510.998910)
         rk = rat - 2.0_C_DOUBLE + 1.0_C_DOUBLE/rat
         pp = pp/(rk+pp)
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
         w_h = (1.0_C_DOUBLE+pp)/2.0_C_DOUBLE
 
         IF (r .GT. w_h) THEN
@@ -2259,7 +2273,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT) :: rv,trans
 
         REAL (C_DOUBLE) :: photo_total
@@ -2286,7 +2300,7 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         shell_found = .FALSE.
 
         !for now let's just look at K- and L-lines
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 
         IF (photon%options%use_M_lines .EQ. 1_C_INT) THEN
                 max_shell = M5_SHELL
@@ -2375,8 +2389,8 @@ FUNCTION xmi_simulate_photon_fluorescence(photon, inputF, hdf5F, rng) RESULT(rv)
         ENDDO
 
         !calculate theta and phi
-        theta_i = ACOS(-2.0_C_DOUBLE*fgsl_rng_uniform(rng)+1.0_C_DOUBLE)
-        phi_i = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        theta_i = ACOS(-2.0_C_DOUBLE*xmi_rng_uniform(rng)+1.0_C_DOUBLE)
+        phi_i = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
 
 #if DEBUG == 1
         WRITE (*,'(A)') 'Before update_photon_dirv'
@@ -2444,7 +2458,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         TYPE (xmi_input), INTENT(IN) :: inputF
         INTEGER (C_INT) :: shell_new, line_new, auger,&
         auger_first, auger_last, shell_new1, shell_new2
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
         REAL (C_DOUBLE) :: sumz
 
@@ -2486,7 +2500,7 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         ENDIF
 
 
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 
         DO auger=auger_first, auger_last
                 sumz = sumz + AugerRate(photon%current_element,auger)
@@ -4491,15 +4505,15 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%detector_hit2 = .FALSE.
                         photon%options%use_cascade_radiative = 0_C_INT
                         photon%options%use_cascade_auger = 0_C_INT
-                        photon%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
-                        photon%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+                        photon%theta = ACOS(2.0_C_DOUBLE*xmi_rng_uniform(rng)-1.0_C_DOUBLE)
+                        photon%phi = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
                         photon%dirv(1) = SIN(photon%theta)*COS(photon%phi)
                         photon%dirv(2) = SIN(photon%theta)*SIN(photon%phi)
                         photon%dirv(3) = COS(photon%theta)
                         photon%history(photon%n_interactions,1) = line_new
                         photon%history(photon%n_interactions,2) =&
                         photon%current_element
-                        r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+                        r = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
                         photon%elecv(1) = COS(r)
                         photon%elecv(2) = SIN(r)
                         photon%elecv(3) = 0.0_C_DOUBLE
@@ -4573,15 +4587,15 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                         photon%offspring%options%use_cascade_auger = 0_C_INT
                         photon%offspring%options%use_cascade_radiative = 0_C_INT
                         photon%offspring%options%use_variance_reduction = 0_C_INT
-                        photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
-                        photon%offspring%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+                        photon%offspring%theta = ACOS(2.0_C_DOUBLE*xmi_rng_uniform(rng)-1.0_C_DOUBLE)
+                        photon%offspring%phi = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
                         photon%offspring%dirv(1) = SIN(photon%offspring%theta)*COS(photon%offspring%phi)
                         photon%offspring%dirv(2) = SIN(photon%offspring%theta)*SIN(photon%offspring%phi)
                         photon%offspring%dirv(3) = COS(photon%offspring%theta)
                         photon%offspring%history(photon%offspring%n_interactions,1) = line_new
                         photon%offspring%history(photon%offspring%n_interactions,2) =&
                         photon%offspring%current_element
-                        r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+                        r = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
                         photon%offspring%elecv(1) = COS(r)
                         photon%offspring%elecv(2) = SIN(r)
                         photon%offspring%elecv(3) = 0.0_C_DOUBLE
@@ -4626,7 +4640,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         INTEGER (C_INT) :: shell_new, line_new
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: energy,r,cosalfa,c_alfa,c_ae,c_be
 
         !
@@ -4752,9 +4766,9 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%options%use_variance_reduction = 0_C_INT
         photon%offspring%weight = photon%weight
         photon%offspring%coords = photon%coords
-        photon%offspring%theta = ACOS(2.0_C_DOUBLE*fgsl_rng_uniform(rng)-1.0_C_DOUBLE)
-        !photon%offspring%theta = M_PI *fgsl_rng_uniform(rng)
-        photon%offspring%phi = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        photon%offspring%theta = ACOS(2.0_C_DOUBLE*xmi_rng_uniform(rng)-1.0_C_DOUBLE)
+        !photon%offspring%theta = M_PI *xmi_rng_uniform(rng)
+        photon%offspring%phi = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
         !photon%offspring%dirv(1) = COS(photon%offspring%phi)
         !photon%offspring%dirv(2) = SIN(photon%offspring%phi)
         !photon%offspring%dirv(3) = COS(photon%offspring%theta)
@@ -4769,7 +4783,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
         photon%offspring%history(photon%n_interactions,1) = line_new
         photon%offspring%history(photon%n_interactions,2) =&
         photon%current_element
-        r = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        r = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
         photon%offspring%elecv(1) = COS(r)
         photon%offspring%elecv(2) = SIN(r)
         photon%offspring%elecv(3) = 0.0_C_DOUBLE
@@ -4812,7 +4826,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         INTEGER (C_INT), INTENT(OUT) :: shell
@@ -4893,7 +4907,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
         ENDIF
 
         !get random number
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 
         temp_sum = 0.0_C_DOUBLE
         i = 1
@@ -4916,7 +4930,7 @@ SUBROUTINE xmi_update_photon_energy_compton(photon, theta_i, rng, inputF, hdf5F,
 
 
         !sample the energy of the scattered photon
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
         cdf = r*cdfs(i)
 
 #if DEBUG == 1
@@ -5012,7 +5026,7 @@ SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
 
@@ -5040,7 +5054,7 @@ SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F
         sth2 = SIN(theta_i/2.0_C_DOUBLE)
 
         DO
-                r = fgsl_rng_uniform(rng)
+                r = xmi_rng_uniform(rng)
                 pos = INT(r/(hdf5_Z%compton_profiles%&
                 random_numbers(2)-&
                 hdf5_Z%compton_profiles%&
@@ -5065,7 +5079,7 @@ SUBROUTINE xmi_update_photon_energy_compton2(photon, theta_i, rng, inputF, hdf5F
                 WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
 #endif
 
-                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+                IF (xmi_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
 
                 dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
                 c_lamb = c_lamb0+dlamb
@@ -5209,7 +5223,7 @@ ENDSUBROUTINE xmi_update_photon_elecv
 
 SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER(C_INT), INTENT(INOUT) :: shell
         INTEGER(C_INT), INTENT(IN) :: element
         LOGICAL :: trans_found
@@ -5220,7 +5234,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                 DO
                         sumz = 0.0_C_DOUBLE
                         trans_found = .FALSE.
-                        r = fgsl_rng_uniform(rng)
+                        r = xmi_rng_uniform(rng)
                         IF (shell .EQ. L2_SHELL) THEN
                                 IF (r .LT. &
                                 CosKronTransProb(&
@@ -5257,7 +5271,7 @@ SUBROUTINE xmi_coster_kronig_check(rng, shell, element)
                 DO
                         sumz = 0.0_C_DOUBLE
                         trans_found = .FALSE.
-                        r = fgsl_rng_uniform(rng)
+                        r = xmi_rng_uniform(rng)
                         IF (shell .EQ. M4_SHELL) THEN
                                 IF (r .LT. &
                                 CosKronTransProb(&
@@ -5350,7 +5364,7 @@ ENDSUBROUTINE xmi_coster_kronig_check
 
 FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT), INTENT(IN) :: shell
         TYPE (xmi_hdf5_Z), POINTER :: hdf5_Z
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
@@ -5359,7 +5373,7 @@ FUNCTION xmi_fluorescence_yield_check(rng, shell, hdf5_Z, energy) RESULT(rv)
 
         rv = 0
 
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 #if DEBUG == 1
         WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
 #endif
@@ -5380,7 +5394,7 @@ FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_r
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         INTEGER (C_INT), INTENT(IN) :: shell, element
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), INTENT(INOUT) :: energy
         INTEGER (C_INT), INTENT(INOUT) :: line_rv
         INTEGER (C_INT) :: rv
@@ -5392,7 +5406,7 @@ FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_r
 
 
         !so we have fluorescence... but which line?
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
         sumz = 0.0_C_DOUBLE
         line_found = .FALSE.
         IF (shell .EQ. K_SHELL) THEN
@@ -5462,14 +5476,14 @@ SUBROUTINE xmi_force_photon_to_detector(photon, inputF, rng)
         IMPLICIT NONE
         TYPE (xmi_input), INTENT(IN) :: inputF
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE) :: radius, theta
         REAL (C_DOUBLE), DIMENSION(3) :: detector_point
 
 
         !pick a spot on the detector surface
-        radius = fgsl_rng_uniform(rng)*inputF%detector%detector_radius
-        theta = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        radius = xmi_rng_uniform(rng)*inputF%detector%detector_radius
+        theta = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
 
         detector_point(1) = 0.0_C_DOUBLE
         detector_point(2) = COS(theta)*radius
@@ -5512,8 +5526,8 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         precalc_mu_cs
         INTEGER :: max_threads, thread_num
 
-        TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng) :: rng
+        TYPE (xmi_rng_type) :: rng_type
+        TYPE (xmi_rng) :: rng
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon
@@ -5609,7 +5623,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 
         !initialize random number generators
-        rng_type = fgsl_rng_mt19937
+        rng_type = xmi_rng_mt19937
 
 
         !allocate the escape ratio arrays...
@@ -5632,8 +5646,8 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
         thread_num = omp_get_thread_num()
 
-        rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+        rng = xmi_rng_alloc(rng_type)
+        CALL xmi_rng_set(rng,seeds(thread_num+1))
 
 !$omp do schedule(dynamic)
         DO i=1,ero%n_input_energies
@@ -5680,7 +5694,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
                         photon%weight = 1.0
                         photon%weight_escape = photon%weight
-                        theta_elecv = fgsl_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
+                        theta_elecv = xmi_rng_uniform(rng)*M_PI*2.0_C_DOUBLE
                         photon%elecv(1) = COS(theta_elecv)
                         photon%elecv(2) = SIN(theta_elecv)
                         photon%elecv(3) = 0.0_C_DOUBLE

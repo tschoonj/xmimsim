@@ -14,6 +14,7 @@
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
+
 #define MIN_VERSION 2.1
 
 
@@ -21,7 +22,6 @@ MODULE xmimsim_data
 
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
-USE :: fgsl
 USE :: ISO_FORTRAN_ENV
 
 INTEGER (C_INT), BIND(C, NAME='XMI_H5T_NATIVE_DOUBLE') :: XMI_H5T_NATIVE_DOUBLE

@@ -1,18 +1,23 @@
 check_LTLIBRARIES = libxmimsim-test.la
 check_PROGRAMS = \
-		 test-read-xmsi \
+     test-read-xmsi \
      test-read-xmso \
      test-read-xmsa \
-		 test-write-xmsi \
+     test-write-xmsi \
      test-write-xmso \
      test-write-xmsa \
-		 test-xmso2csv \
+     test-xmso2csv \
      test-xmso2htm \
-		 test-xmso2spe
+     test-xmso2spe
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
 endif
+
+if ENABLE_FGSL
+  check_PROGRAMS += test-poly-solve-quadratic
+endif
+
 
 TESTS = $(check_PROGRAMS)
 
@@ -89,6 +94,9 @@ test_xmso2spe_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2spe_LDADD = libxmimsim-test.la
 
+test_poly_solve_quadratic_SOURCES = test-poly-solve-quadratic.F90
+test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@
+test_poly_solve_quadratic_LDADD = libxmimsim-test.la
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa

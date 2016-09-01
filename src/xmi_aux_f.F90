@@ -13,12 +13,23 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_aux
 
 USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
 USE :: xraylib
-USE :: fgsl
+
+#ifdef HAVE_EASYRNG
+USE :: easyRNG, ONLY : &
+        xmi_rng => easy_rng, &
+        xmi_rng_uniform => easy_rng_uniform
+#else
+USE :: fgsl, ONLY : &
+        xmi_rng => fgsl_rng, &
+        xmi_rng_uniform => fgsl_rng_uniform
+#endif
 USE :: omp_lib
 
 IMPLICIT NONE
@@ -1877,9 +1888,44 @@ FUNCTION xmi_ran_trap_workspace_init(x1, x2, y1, y2, workspace)&
         RETURN
 ENDFUNCTION xmi_ran_trap_workspace_init
 
+FUNCTION xmi_poly_solve_quadratic(a, b, c, rv1, rv2) RESULT(rv)
+        IMPLICIT NONE
+        REAL (C_DOUBLE), INTENT(IN) :: a, b, c
+        REAL (C_DOUBLE), INTENT(OUT) :: rv1, rv2
+        INTEGER (C_INT) :: rv
+        REAL (C_DOUBLE) :: delta, rv1_temp, rv2_temp, sqrt_delta
+
+        rv = 0_C_INT
+
+        IF (a .EQ. 0.0_C_DOUBLE) THEN
+                IF (b .EQ. 0.0_C_DOUBLE) RETURN
+                rv1 = -1.0 * c / b 
+                rv = 1_C_INT
+                RETURN
+        ENDIF
+
+        delta = b * b - 4.0_C_DOUBLE * a * c
+
+        IF (delta .LT. 0.0_C_DOUBLE) THEN
+                RETURN
+        ELSEIF (delta .EQ. 0.0_C_DOUBLE) THEN
+                rv1 = -b / 2.0 / a
+                rv2 = rv1
+                rv = 2_C_INT
+        ELSE
+                sqrt_delta = SQRT(delta)
+                rv1_temp = (-b + sqrt_delta) / 2.0 / a
+                rv2_temp = (-b - sqrt_delta) / 2.0 / a
+                rv1 = MIN(rv1_temp, rv2_temp)
+                rv2 = MAX(rv1_temp, rv2_temp)
+                rv = 2_C_INT
+        ENDIF
+
+ENDFUNCTION xmi_poly_solve_quadratic
+
 FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_ran_trap_workspace) :: workspace
         REAL (C_DOUBLE) :: rv
         REAL (C_DOUBLE) :: rv1, rv2
@@ -1888,15 +1934,15 @@ FUNCTION xmi_ran_trap(rng, workspace) RESULT(rv)
         a = workspace%m/2.0_C_DOUBLE
         b = workspace%y1-workspace%x1*workspace%m
         c = -workspace%x1*workspace%y1+workspace%m*workspace%x1**2/2.0_C_DOUBLE&
-            -workspace%denom*fgsl_rng_uniform(rng)
+            -workspace%denom*xmi_rng_uniform(rng)
 
-        IF (fgsl_poly_solve_quadratic(a, &
+        IF (xmi_poly_solve_quadratic(a, &
             b, &
             c, &
             rv1, &
             rv2) == 0_C_INT) THEN
                 WRITE (error_unit, '(A)') 'Error in xmi_ran_trap:'
-                WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                WRITE (error_unit, '(A)') 'xmi_poly_solve_quadratic failure'
                 CALL xmi_exit(1)
         ENDIF
 
@@ -1981,11 +2027,11 @@ FUNCTION xmi_get_energy_from_q(init_energy, Q, theta) RESULT(energy)
         bq = -2.0_C_DOUBLE*onethreeseven**2*a*d + 2.0_C_DOUBLE*a*c*Q**2
         cq = onethreeseven**2*a**2 - a**2*Q**2
 
-        rv = fgsl_poly_solve_quadratic(aq, bq, cq, E1, E2)
+        rv = xmi_poly_solve_quadratic(aq, bq, cq, E1, E2)
 
         IF (rv == 0_C_INT) THEN
                 !WRITE (error_unit, '(A)') 'Error in xmi_get_energy_from_q:'
-                !WRITE (error_unit, '(A)') 'fgsl_poly_solve_quadratic failure'
+                !WRITE (error_unit, '(A)') 'xmi_poly_solve_quadratic failure'
                 !WRITE (error_unit, '(A, F14.5)') 'Q:', Q
                 !WRITE (error_unit, '(A, F14.5)') 'init_energy:', init_energy
                 !WRITE (error_unit, '(A, F14.5)') 'theta:', theta

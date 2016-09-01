@@ -21,8 +21,35 @@ MODULE xmimsim_detector
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
 USE :: omp_lib
-USE :: fgsl
+#ifdef HAVE_EASYRNG
+USE :: easyRNG, ONLY : &
+        xmi_rng_type => easy_rng_type, &
+        xmi_rng_mt19937 => easy_rng_mt19937, &
+        xmi_ran_discrete_t => easy_ran_discrete_t, &
+        xmi_rng_alloc => easy_rng_alloc, &
+        xmi_rng_set => easy_rng_set, &
+        xmi_rng_free => easy_rng_free, &
+        xmi_ran_exponential => easy_ran_exponential, &
+        xmi_ran_discrete => easy_ran_discrete, &
+        xmi_ran_discrete_free => easy_ran_discrete_free, &
+        xmi_ran_discrete_preproc => easy_ran_discrete_preproc, &
+        xmi_ran_poisson => easy_ran_poisson
+#else
+USE :: fgsl, ONLY : &
+        xmi_rng_type => fgsl_rng_type, &
+        xmi_rng_mt19937 => fgsl_rng_mt19937, &
+        xmi_ran_discrete_t => fgsl_ran_discrete_t, &
+        xmi_rng_alloc => fgsl_rng_alloc, &
+        xmi_rng_set => fgsl_rng_set, &
+        xmi_rng_free => fgsl_rng_free, &
+        xmi_ran_exponential => fgsl_ran_exponential, &
+        xmi_ran_discrete => fgsl_ran_discrete, &
+        xmi_ran_discrete_free => fgsl_ran_discrete_free, &
+        xmi_ran_discrete_preproc => fgsl_ran_discrete_preproc, &
+        xmi_ran_poisson => fgsl_ran_poisson
+#endif
 
+REAL (C_DOUBLE), PARAMETER :: M_SQRTPI = 1.77245385090551602729816748334_C_DOUBLE
 
 CONTAINS
 
@@ -38,16 +65,16 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: new_channels
         INTEGER :: max_threads
 
-        TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng) :: rng
+        TYPE (xmi_rng_type) :: rng_type
+        TYPE (xmi_rng) :: rng
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
-        INTEGER (fgsl_size_t), DIMENSION(100) :: pulses
+        INTEGER (c_size_t), DIMENSION(100) :: pulses
         INTEGER (C_LONG) :: npulses, npulses_all
-        TYPE (fgsl_ran_discrete_t) :: preproc
+        TYPE (xmi_ran_discrete_t) :: preproc
         REAL (C_DOUBLE) :: lambda, mu, energies_sum
         REAL (C_DOUBLE), DIMENSION(100) :: deltaT
         INTEGER (C_LONG) :: n_sum_counts
-        INTEGER (fgsl_size_t) :: pulses_sum
+        INTEGER (c_size_t) :: pulses_sum
 
 #if DEBUG == 1
         WRITE (6,'(A)') 'Entering xmi_detector_sum_peaks'
@@ -74,12 +101,12 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         n_sum_counts = 0
 
         !prepare discrete distribution
-#ifdef HAVE_GSL2
+#if defined(HAVE_GSL2) || defined(HAVE_EASYRNG)
         preproc = &
-        fgsl_ran_discrete_preproc(channels)
+        xmi_ran_discrete_preproc(channels)
 #else
         preproc = &
-        fgsl_ran_discrete_preproc(INT(nchannels,KIND=fgsl_size_t),channels)
+        xmi_ran_discrete_preproc(INT(nchannels,KIND=c_size_t),channels)
 #endif
 
         max_threads = 1
@@ -90,7 +117,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
 
-        rng_type = fgsl_rng_mt19937
+        rng_type = xmi_rng_mt19937
 
 
 !
@@ -99,8 +126,8 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 !
 !
 
-        rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(1))
+        rng = xmi_rng_alloc(rng_type)
+        CALL xmi_rng_set(rng,seeds(1))
 
         !i=1,Nt_long/max_threads
 
@@ -120,10 +147,10 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                 ENDIF
 
                 !+1 because channels start counting at 1 here (0 elsewhere)
-                pulses(npulses) = fgsl_ran_discrete(rng, preproc)+1
+                pulses(npulses) = xmi_ran_discrete(rng, preproc)+1
 
                 !check deltaT
-                deltaT(npulses) = fgsl_ran_exponential(rng,mu)
+                deltaT(npulses) = xmi_ran_exponential(rng,mu)
 
 #if DEBUG == 1
                 WRITE (6,'(A,I)') 'npulses: ',npulses
@@ -164,11 +191,11 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
                 ENDIF
         ENDDO gardner
 
-        CALL fgsl_rng_free(rng)
+        CALL xmi_rng_free(rng)
 
 
      !bug in fgsl -> fixed it in 1.0.0
-     CALL fgsl_ran_discrete_free(preproc)
+     CALL xmi_ran_discrete_free(preproc)
 
 #if DEBUG == 1
         WRITE (6,'(A,I)') 'Nt_long: ',Nt_long
@@ -715,18 +742,18 @@ SUBROUTINE xmi_detector_poisson(channels)
         IMPLICIT NONE
 
         REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT), POINTER :: channels
-        TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng) :: rng
+        TYPE (xmi_rng_type) :: rng_type
+        TYPE (xmi_rng) :: rng
         INTEGER (C_LONG), TARGET :: seed
         INTEGER :: i
         REAL (C_DOUBLE), PARAMETER :: poisson_limit = 2.0_C_DOUBLE**32 -&
         1.0_C_DOUBLE
 
-        rng_type = fgsl_rng_mt19937
+        rng_type = xmi_rng_mt19937
         IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) RETURN
 
-        rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seed)
+        rng = xmi_rng_alloc(rng_type)
+        CALL xmi_rng_set(rng,seed)
 #if DEBUG == 1
         WRITE (6,'(A, I6)') 'lbound: ',lbound(channels,DIM=1)
         WRITE (6,'(A, I6)') 'ubound: ',ubound(channels,DIM=1)
@@ -739,11 +766,11 @@ SUBROUTINE xmi_detector_poisson(channels)
                 IF (channels(i) > poisson_limit) THEN
                         WRITE (error_unit, '(A)') 'Channel intensity too high for poisson distribution, ignoring...'
                 ELSEIF (channels(i) > 1.0) THEN
-                        channels(i) = REAL(fgsl_ran_poisson(rng,channels(i)), C_DOUBLE)
+                        channels(i) = REAL(xmi_ran_poisson(rng,channels(i)), C_DOUBLE)
                 ENDIF
         ENDDO
 
-        CALL fgsl_rng_free(rng)
+        CALL xmi_rng_free(rng)
 
 ENDSUBROUTINE xmi_detector_poisson
 

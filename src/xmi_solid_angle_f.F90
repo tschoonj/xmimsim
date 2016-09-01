@@ -13,18 +13,35 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_solid_angle
 
 USE :: xmimsim_aux
 USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
-USE :: fgsl
+#ifdef HAVE_EASYRNG
+USE :: easyRNG, ONLY : &
+        xmi_rng_type => easy_rng_type, &
+        xmi_rng_mt19937 => easy_rng_mt19937, &
+        xmi_rng_alloc => easy_rng_alloc, &
+        xmi_rng_set => easy_rng_set, &
+        xmi_rng_free => easy_rng_free
+#else
+USE :: fgsl, ONLY : &
+        xmi_rng_type => fgsl_rng_type, &
+        xmi_rng_mt19937 => fgsl_rng_mt19937, &
+        xmi_rng_alloc => fgsl_rng_alloc, &
+        xmi_rng_set => fgsl_rng_set, &
+        xmi_rng_free => fgsl_rng_free
+#endif
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000
 !INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 500, grid_dims_theta_n = 500 
 INTEGER (C_LONG) :: hits_per_single = 5000
 BIND(C,NAME='hits_per_single') :: hits_per_single
+REAL (C_DOUBLE), PARAMETER :: M_PI = 3.14159265358979323846_C_DOUBLE
 
 
 
@@ -287,8 +304,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
         INTEGER :: max_threads, thread_num
-        TYPE (fgsl_rng_type) :: rng_type
-        TYPE (fgsl_rng) :: rng
+        TYPE (xmi_rng_type) :: rng_type
+        TYPE (xmi_rng) :: rng
         INTEGER (C_INT) :: grid_done
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
@@ -501,7 +518,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
-        rng_type = fgsl_rng_mt19937
+        rng_type = xmi_rng_mt19937
 
         !WRITE (6,'(A)') 'before single solid angle calc'
 
@@ -512,8 +529,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 !$omp num_threads(max_threads)
         thread_num = omp_get_thread_num()
 
-        rng = fgsl_rng_alloc(rng_type)
-        CALL fgsl_rng_set(rng,seeds(thread_num+1))
+        rng = xmi_rng_alloc(rng_type)
+        CALL xmi_rng_set(rng,seeds(thread_num+1))
 
 !$omp do schedule(dynamic)
         DO i=1,grid_dims_r_n
@@ -543,7 +560,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 
 
 !$omp end do
-
+        CALL xmi_rng_free(rng)
 !$omp end parallel
 
         CALL omp_destroy_lock(omp_lock)
@@ -593,7 +610,7 @@ RESULT(rv)
 
 
         TYPE (xmi_input), INTENT(IN) :: inputF
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), INTENT(IN) :: r1, theta1
         REAL (C_DOUBLE) :: rv
 
@@ -778,7 +795,7 @@ RESULT(rv)
 
 
         DO i=1,hits_per_single
-            theta_rng = ACOS(1.0_C_DOUBLE-fgsl_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
+            theta_rng = ACOS(1.0_C_DOUBLE-xmi_rng_uniform(rng)*(1.0_C_DOUBLE-cos_full_cone_apex))
             !theta_rng = ACOS(1.0_C_DOUBLE-0.5*(1.0_C_DOUBLE-cos_full_cone_apex))
 #if DEBUG == 1
             CALL ieee_get_flag(ieee_usual, flag_value)
@@ -788,8 +805,8 @@ RESULT(rv)
                 STOP
             ENDIF
 #endif
-            !theta_rng = fgsl_rng_uniform(rng)*full_cone_apex
-            phi_rng = fgsl_rng_uniform(rng)*2.0_C_DOUBLE*M_PI
+            !theta_rng = xmi_rng_uniform(rng)*full_cone_apex
+            phi_rng = xmi_rng_uniform(rng)*2.0_C_DOUBLE*M_PI
             !phi_rng = 0.5*2.0_C_DOUBLE*M_PI
 
 #if DEBUG == 1
@@ -873,7 +890,7 @@ RESULT(rv)
         TYPE (xmi_solid_angle), INTENT(IN) :: solid_angles
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), INTENT(OUT) :: detector_solid_angle
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         REAL (C_DOUBLE), DIMENSION(3), INTENT(IN) :: coords
         REAL (C_DOUBLE) :: r, theta
         REAL (C_DOUBLE), DIMENSION(3) :: dirv

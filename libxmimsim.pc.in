@@ -6,8 +6,8 @@ includedir=@includedir@/xmimsim
 Name: xmimsim
 Description: XMI-MSIM is a tool designed for the prediction of the spectral response of ED-XRF spectrometers through Monte Carlo simulations
 Version: @VERSION@
-Requires.private: glib-2.0 >= 2.18.0 libxrlf03 >= 3.0.0 gsl >= 1.10 libxslt >= 1.1.26 fgsl >= 0.9.3
-Requires: libxml-2.0 >= 2.7.0 libxrl >= 3.0.0 
+Requires.private: glib-2.0 >= 2.18.0 libxrlf03 >= 3.2.0 libxslt >= 1.1.26 @fortran_rng@
+Requires: libxml-2.0 >= 2.7.0 libxrl >= 3.2.0 
 Conflicts:
 Libs: -L${libdir} -lxmimsim
 Libs.private: @H5CC_LINKER@

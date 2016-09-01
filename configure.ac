@@ -108,22 +108,62 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 3.1.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.1.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 3.2.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.2.0)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
-PKG_CHECK_MODULES([fgsl],[fgsl >= 1.1.0],
+EASYRNG_FOUND=no
+PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.0],
 	[
-	PKG_CHECK_MODULES([gsl],gsl >= 2.1)
-	AC_DEFINE([HAVE_GSL2],[],[building with support for GSL2 and FGSL 1.1.0])
-	],
-	[
-	PKG_CHECK_MODULES([fgsl],[fgsl >= 1.0.0])
-	PKG_CHECK_MODULES([gsl],gsl >= 1.13)
+	# TODO check if the Fortran bindings are available
+	AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
+	AC_SUBST([fortran_rng], "easyRNG >= 1.0")
+	EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
+	AC_DEFINE_UNQUOTED([EASYRNG_VERSION], $EASYRNG_VERSION, [easyRNG version])
+	EASYRNG_FOUND=yes
+	],[
+	EASYRNG_FOUND=no
 	])
+
+FGSL11_FOUND=no
+FGSL10_FOUND=no
+if test x$EASYRNG_FOUND = xno ; then
+	PKG_CHECK_MODULES([fgsl],[fgsl >= 1.1.0],
+		[
+		AC_DEFINE([HAVE_FGSL11],[],[building with support for FGSL 1.1.0])
+		FGSL_VERSION=`$PKG_CONFIG --modversion fgsl`
+		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
+		AC_SUBST([fortran_rng], "fgsl >= 1.1.0")
+		FGSL11_FOUND=yes
+		], [
+		FGSL11_FOUND=no
+		])
+
+	if test x$FGSL11_FOUND = xno ; then
+		PKG_CHECK_MODULES([fgsl],[fgsl >= 1.0.0],
+		[
+		AC_DEFINE([HAVE_FGSL10],[],[building with support for FGSL 1.0.0])
+		FGSL_VERSION=`$PKG_CONFIG --modversion fgsl`
+		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
+		AC_SUBST([fortran_rng], "fgsl == 1.0.0")
+		FGSL10_FOUND=yes
+		], [
+		FGSL10_FOUND=no
+		])
+	fi
+fi
+if test x$EASYRNG_FOUND = xno && test x$FGSL11_FOUND = xno && test x$FGSL10_FOUND = xno ; then
+	AC_MSG_ERROR([no easyRNG or FGSL found on the system])
+fi
+
+AM_CONDITIONAL([ENABLE_FGSL],[test "x$FGSL10_FOUND" = xyes || test "x$FGSL11_FOUND" = xyes])
+
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
+
+# to be removed when no longer required
+PKG_CHECK_MODULES([GSL],gsl)
 
 #libcurl is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)
 LIBCURL_FOUND=no

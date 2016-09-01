@@ -65,7 +65,6 @@ endif
 libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			@PTHREAD_CFLAGS@ \
 			@xslt_CFLAGS@ \
-			@gsl_CFLAGS@ \
 			@glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@GTK_MAC_CFLAGS@ \
@@ -86,6 +85,7 @@ libxmimsim_la_CFLAGS =  @H5CC_INCLUDE@ \
 			-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			@fgsl_CFLAGS@ \
+			@easyRNG_CFLAGS@ \
 			@xraylib_f2003_CFLAGS@ \
 			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 
@@ -96,9 +96,11 @@ libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@xraylib_f2003_LIBS@ \
 			@H5CC_STATIC@ \
 			@fgsl_LIBS@ \
+			@easyRNG_LIBS@ \
 			@glib2_LIBS@ \
 			@gmodule_LIBS@ \
-			@GTK_MAC_LIBS@
+			@GTK_MAC_LIBS@ \
+			@GSL_LIBS@
 
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la

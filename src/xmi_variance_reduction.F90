@@ -13,6 +13,8 @@
 !You should have received a copy of the GNU General Public License
 !along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "config.h"
+
 MODULE xmimsim_varred
 
 USE :: xmimsim_aux
@@ -36,7 +38,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         !this way we can still deal with the old dirv
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
 
@@ -86,8 +88,8 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
 
         !select random coordinate on detector surface
-        radius = SQRT(fgsl_rng_uniform(rng))*inputF%detector%detector_radius
-        theta = 2.0_C_DOUBLE * M_PI *fgsl_rng_uniform(rng)
+        radius = SQRT(xmi_rng_uniform(rng))*inputF%detector%detector_radius
+        theta = 2.0_C_DOUBLE * M_PI *xmi_rng_uniform(rng)
 
         detector_point(1) = 0.0_C_DOUBLE
         detector_point(2) = COS(theta)*radius
@@ -727,14 +729,14 @@ ENDSUBROUTINE xmi_variance_reduction
 
 SUBROUTINE xmi_fluorescence_yield_check_varred_optim(photon, rng, shell, hdf5_Z)
         IMPLICIT NONE
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         INTEGER (C_INT), INTENT(IN) :: shell
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         TYPE (xmi_hdf5_Z), POINTER :: hdf5_Z
         REAL (C_DOUBLE) :: r,fluor_yield_corr
 
 
-        r = fgsl_rng_uniform(rng)
+        r = xmi_rng_uniform(rng)
 #if DEBUG == 1
         WRITE (*,'(A,F12.4)') 'FluorYield random number: ',r
 #endif
@@ -755,7 +757,7 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         INTEGER (C_INT), INTENT(IN) :: i
         REAL (C_DOUBLE), INTENT(IN) :: theta, phi
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
@@ -838,7 +840,7 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
 
 
                 !sample the energy of the scattered photon
-                r = fgsl_rng_uniform(rng)
+                r = xmi_rng_uniform(rng)
                 cdf = r*cdfs(shell)
 
                 IF (cdf .LT. 0.5_C_DOUBLE) THEN
@@ -952,7 +954,7 @@ SUBROUTINE xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         INTEGER (C_INT), INTENT(IN) :: i
         REAL (C_DOUBLE), INTENT(IN) :: theta, phi
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), DIMENSION(inputF%composition%n_layers), INTENT(IN) :: distances
@@ -1012,7 +1014,7 @@ inputF, hdf5F, energy_new)
         IMPLICIT NONE
         TYPE (xmi_photon), INTENT(INOUT) :: photon
         REAL (C_DOUBLE), INTENT(IN) :: theta_i
-        TYPE (fgsl_rng), INTENT(IN) :: rng
+        TYPE (xmi_rng), INTENT(IN) :: rng
         TYPE (xmi_hdf5), INTENT(IN) :: hdf5F
         TYPE (xmi_input), INTENT(IN) :: inputF
         REAL (C_DOUBLE), INTENT(INOUT) :: energy_new
@@ -1047,7 +1049,7 @@ inputF, hdf5F, energy_new)
         i=0
 
         DO
-                r = fgsl_rng_uniform(rng)
+                r = xmi_rng_uniform(rng)
                 pos = INT(r/(hdf5_Z%compton_profiles%&
                 random_numbers(2)-&
                 hdf5_Z%compton_profiles%&
@@ -1069,7 +1071,7 @@ inputF, hdf5F, energy_new)
                 WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i
 #endif
 
-                IF (fgsl_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
+                IF (xmi_rng_uniform(rng) .LT. 0.5_C_DOUBLE) pz = -pz
 
                 dlamb = c0*sth2*sth2-c1*c_lamb0*sth2*pz
                 c_lamb = c_lamb0+dlamb

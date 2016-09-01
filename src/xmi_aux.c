@@ -29,7 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <hdf5.h>
 #include "xmi_private.h"
 
-
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 
 void *xmi_memdup(const void *mem, size_t bytes) {
@@ -302,10 +303,6 @@ char *xmi_version_string() {
 	strcat(string,temp);
 	g_free(temp);
 #endif
-	//GSL
-	temp = g_strdup_printf("gsl %s, ", GSL_VERSION);
-	strcat(string,temp);
-	g_free(temp);
 	//hdf5
 	temp = g_strdup_printf("HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
 	strcat(string,temp);
@@ -319,9 +316,16 @@ char *xmi_version_string() {
 	strcat(string,temp);
 	g_free(temp);
 	//fgsl
-	temp = g_strdup_printf("fgsl 0.9.4, ");
+#ifdef FGSL_VERSION
+	temp = g_strdup_printf("fgsl %s, ", TOSTRING(FGSL_VERSION));
 	strcat(string,temp);
 	g_free(temp);
+#endif
+#ifdef EASYRNG_VERSION
+	temp = g_strdup_printf("easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
+	strcat(string,temp);
+	g_free(temp);
+#endif
 #ifdef HAVE_GUI
 	//gtkextra
 	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
@@ -339,7 +343,7 @@ char *xmi_version_string() {
 #endif
 	strcat(string,"\n\n");
 	strcat(string,
-"Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2016 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"
