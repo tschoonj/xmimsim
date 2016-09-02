@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-sources.h"
-#include <gsl/gsl_spline.h>
+#include "xmimsim-gui-spline.h"
 #include <gtkextra/gtkextra.h>
 #include <xraylib.h>
 #include <cairo-pdf.h>
@@ -844,30 +844,24 @@ static void generate_tube_spectrum(struct generate *gen) {
 	//apply transmission efficiencies if required
 	int i,j;
 	if (n_eff > 0) {
-		//use some gsl tricks
-		//TODO: use gsl interp API to catch errors?
-		//there shouldnt be any though
-		gsl_interp_accel *acc = gsl_interp_accel_alloc();
-		gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, n_eff);
-		gsl_spline_init(spline, eff_x, eff_y, n_eff);
+		struct xmi_cubic_spline *spline = xmi_cubic_spline_init(eff_x, eff_y, n_eff);
 		
 		for (i = 0 ; i < gen->excitation_tube->n_continuous ; i++) {
 			gen->excitation_tube->continuous[i].horizontal_intensity = 
 			gen->excitation_tube->continuous[i].vertical_intensity = 
 			gen->excitation_tube->continuous[i].horizontal_intensity * 
-			gsl_spline_eval(spline, gen->excitation_tube->continuous[i].energy, acc);
+			xmi_cubic_spline_eval(spline, gen->excitation_tube->continuous[i].energy);
 		}
 
 		for (i = 0 ; i < gen->excitation_tube->n_discrete ; i++) {
 			gen->excitation_tube->discrete[i].horizontal_intensity = 
 			gen->excitation_tube->discrete[i].vertical_intensity = 
 			gen->excitation_tube->discrete[i].horizontal_intensity * 
-			gsl_spline_eval(spline, gen->excitation_tube->discrete[i].energy, acc);
+			xmi_cubic_spline_eval(spline, gen->excitation_tube->discrete[i].energy);
 		}
 		g_free(eff_x);
 		g_free(eff_y);
-		gsl_spline_free (spline);
-		gsl_interp_accel_free (acc);
+		xmi_cubic_spline_free(spline);
 	}
 
 

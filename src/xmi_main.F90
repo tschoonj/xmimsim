@@ -1716,15 +1716,9 @@ FUNCTION xmi_init_input_escape_ratios(inputFPtr)&
 BIND(C,NAME='xmi_init_input_escape_ratios') RESULT(rv)
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN) :: inputFPtr
-        INTEGER (C_INT) :: rv,i,j
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: inverse
+        INTEGER (C_INT) :: rv, j
 
-        TYPE (C_PTR) :: inversePtr
         TYPE (xmi_input), POINTER :: inputF
-        REAL (C_DOUBLE) :: distance_sample_detector,half_apex
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, DIMENSION(:) :: &
-        n_detector_orientation_new_x,&
-        n_detector_orientation_new_y, n_detector_orientation_new_z
 
         rv = 0
 
@@ -1776,12 +1770,11 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN) :: inputFPtr
         INTEGER (C_INT) :: rv,i,j
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: inverse
+        REAL (C_DOUBLE), DIMENSION(3,3) :: inverse
 
-        TYPE (C_PTR) :: inversePtr
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE) :: distance_sample_detector,half_apex
-        REAL (C_DOUBLE), ALLOCATABLE, TARGET, DIMENSION(:) :: &
+        REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: &
         n_detector_orientation_new_x,&
         n_detector_orientation_new_y, n_detector_orientation_new_z
 
@@ -1882,10 +1875,7 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         n_detector_orientation_new_x=inputF%detector%n_detector_orientation_new_x
         n_detector_orientation_new_y=inputF%detector%n_detector_orientation_new_y
         n_detector_orientation_new_z=inputF%detector%n_detector_orientation_new_z
-        CALL xmi_inverse_matrix(C_LOC(n_detector_orientation_new_x),&
-        C_LOC(n_detector_orientation_new_y),&
-        C_LOC(n_detector_orientation_new_z), inversePtr)
-        CALL C_F_POINTER(inversePtr, inverse,[3,3])
+        inverse = xmi_inverse_matrix(inputF%detector%n_detector_orientation_new)
 #if DEBUG == 1
         WRITE (*,'(A)') 'before inverting'
         WRITE (*,'(3(3F12.4,/))') inputF%detector%n_detector_orientation_new(1,:), &
@@ -1895,8 +1885,6 @@ FUNCTION xmi_init_input(inputFPtr) BIND(C,NAME='xmi_init_input') RESULT(rv)
         WRITE (*,'(3(3F12.4,/))') inverse(1,:), inverse(2,:),inverse(3,:)
 #endif
         inputF%detector%n_detector_orientation_inverse = inverse
-        NULLIFY(inverse)
-        CALL xmi_free(inversePtr)
 
         !calculate detector solid angle
         distance_sample_detector =&

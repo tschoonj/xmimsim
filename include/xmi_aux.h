@@ -42,9 +42,6 @@ void *xmi_memdup(const void *mem, size_t bytes);
 //works similar to the IDL function carrying the same name... the array that is returned contains indices!!
 int *xmi_sort_idl_int(int *array,int n_elements);
 
-//inverse will be column-major!! intended to be used from fortran only
-void xmi_inverse_matrix(double x[3], double y[3], double z[3], double **inverse);
-
 //calculates the sum of array containing n elements
 double xmi_sum_double(double *array, int n); 
 int xmi_sum_int(int *array, int n); 

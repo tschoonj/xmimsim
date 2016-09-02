@@ -82,6 +82,17 @@ xmimsim_gui_SOURCES = xmimsim-gui.c \
 		      xmimsim-gui-sources.c \
 		      xmimsim-gui-sources.h
 
+# this is a separate convenience library as it allows me to test against it test-cubic-spline
+noinst_LTLIBRARIES = libxmimsim-gui-spline.la
+libxmimsim_gui_spline_la_SOURCES = \
+		      xmimsim-gui-spline.h \
+		      xmimsim-gui-spline.c
+libxmimsim_gui_spline_la_CPPFLAGS = \
+		     -I$(top_srcdir)/include \
+		     @xraylib_CFLAGS@
+libxmimsim_gui_spline_la_LDFLAGS = -static
+
+
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 endif
@@ -99,6 +110,7 @@ xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
 endif
 
 xmimsim_gui_LDADD = ../src/libxmimsim.la \
+		    libxmimsim-gui-spline.la \
 		    @gtk3extra_LIBS@ \
 		    @gtk2_LIBS@ \
 		    @GTK_MAC_LIBS@ \

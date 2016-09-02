@@ -162,8 +162,6 @@ PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 
-# to be removed when no longer required
-PKG_CHECK_MODULES([GSL],gsl)
 
 #libcurl is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)
 LIBCURL_FOUND=no

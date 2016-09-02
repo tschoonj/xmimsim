@@ -99,8 +99,7 @@ libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
 			@easyRNG_LIBS@ \
 			@glib2_LIBS@ \
 			@gmodule_LIBS@ \
-			@GTK_MAC_LIBS@ \
-			@GSL_LIBS@
+			@GTK_MAC_LIBS@
 
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la

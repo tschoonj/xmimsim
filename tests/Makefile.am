@@ -8,7 +8,8 @@ check_PROGRAMS = \
      test-write-xmsa \
      test-xmso2csv \
      test-xmso2htm \
-     test-xmso2spe
+     test-xmso2spe \
+     test-cubic-spline
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
@@ -97,6 +98,10 @@ test_xmso2spe_LDADD = libxmimsim-test.la
 test_poly_solve_quadratic_SOURCES = test-poly-solve-quadratic.F90
 test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@
 test_poly_solve_quadratic_LDADD = libxmimsim-test.la
+
+test_cubic_spline_SOURCES = test-cubic-spline.c
+test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/bin
+test_cubic_spline_LDADD = $(top_builddir)/bin/libxmimsim-gui-spline.la libxmimsim-test.la
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa

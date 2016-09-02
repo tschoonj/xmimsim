@@ -585,21 +585,6 @@ FUNCTION xmi_get_random_numbers(numbers, n) BIND(C,NAME='xmi_get_random_numbers'
         INTEGER (C_INT) :: xmi_get_random_numbers
 ENDFUNCTION xmi_get_random_numbers
 
-!interface for xmi_inverse_matrix function
-SUBROUTINE xmi_inverse_matrix(x, y, z, inverse) BIND(C,NAME='xmi_inverse_matrix')
-        USE, INTRINSIC :: ISO_C_BINDING
-        IMPLICIT NONE
-        TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
-        TYPE (C_PTR), INTENT(INOUT) :: inverse
-ENDSUBROUTINE
-
-!interface for xmi_determinant_matrix function
-SUBROUTINE xmi_determinant_matrix(x, y, z) BIND(C,NAME='xmi_determinant_matrix')
-        USE, INTRINSIC :: ISO_C_BINDING
-        IMPLICIT NONE
-        TYPE (C_PTR), VALUE, INTENT(IN) :: x, y, z
-ENDSUBROUTINE
-
 FUNCTION xmi_xmlfile_to_string(xmlfile, xmlstring, xmlstringlength) &
 BIND(C,NAME='xmi_xmlfile_to_string') RESULT(rv)
         USE, INTRINSIC :: ISO_C_BINDING
@@ -2103,4 +2088,36 @@ RESULT(rv)
         RETURN
 ENDFUNCTION xmi_get_default_main_options
 
+! taken from http://fortranwiki.org/fortran/show/Matrix+inversion
+PURE FUNCTION xmi_inverse_matrix(A) RESULT(B)
+    implicit none
+    !! Performs a direct calculation of the inverse of a 3×3 matrix.
+    real (c_double), intent(in) :: A(3,3)   !! Matrix
+    real (c_double)             :: B(3,3)   !! Inverse matrix
+    real (c_double)             :: detinv
+
+    ! Calculate the inverse determinant of the matrix
+    detinv = 1/xmi_determinant_matrix(A)
+
+    ! Calculate the inverse of the matrix
+    B(1,1) = +detinv * (A(2,2)*A(3,3) - A(2,3)*A(3,2))
+    B(2,1) = -detinv * (A(2,1)*A(3,3) - A(2,3)*A(3,1))
+    B(3,1) = +detinv * (A(2,1)*A(3,2) - A(2,2)*A(3,1))
+    B(1,2) = -detinv * (A(1,2)*A(3,3) - A(1,3)*A(3,2))
+    B(2,2) = +detinv * (A(1,1)*A(3,3) - A(1,3)*A(3,1))
+    B(3,2) = -detinv * (A(1,1)*A(3,2) - A(1,2)*A(3,1))
+    B(1,3) = +detinv * (A(1,2)*A(2,3) - A(1,3)*A(2,2))
+    B(2,3) = -detinv * (A(1,1)*A(2,3) - A(1,3)*A(2,1))
+    B(3,3) = +detinv * (A(1,1)*A(2,2) - A(1,2)*A(2,1))
+ENDFUNCTION xmi_inverse_matrix
+
+PURE FUNCTION xmi_determinant_matrix(A) RESULT(det)
+    implicit none
+    real (c_double), intent(in) :: A(3,3)   !! Matrix
+    real (c_double)             :: det
+ 
+    det = A(1,1)*A(2,2)*A(3,3) - A(1,1)*A(2,3)*A(3,2)&
+          - A(1,2)*A(2,1)*A(3,3) + A(1,2)*A(2,3)*A(3,1)&
+          + A(1,3)*A(2,1)*A(3,2) - A(1,3)*A(2,2)*A(3,1)
+ENDFUNCTION xmi_determinant_matrix 
 ENDMODULE
