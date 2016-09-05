@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAVE_CXX
 	#include <gtkmm-plplot.h>
 #else
-	#include <gtkextra.h>
+	#include <gtkextra/gtkextra.h>
 #endif
 
 #ifndef XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H

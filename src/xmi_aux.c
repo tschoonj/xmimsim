@@ -185,6 +185,11 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 #include <xraylib.h>
 #ifdef HAVE_GUI
 #include <gtk/gtk.h>
+  #ifdef HAVE_CXX
+   #include <gtkmm-plplot/gtkmm-plplotconfig.h>
+  #else
+    #include <gtkextra/gtkextra.h>
+  #endif
 #endif
 #include <hdf5.h>
 #include <libxml/xmlversion.h>
@@ -215,6 +220,11 @@ char *xmi_version_string() {
 	temp = g_strdup_printf("gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
 	strcat(string,temp);
 	g_free(temp);
+  #ifdef HAVE_CXX
+	temp = g_strdup_printf("gtkmm %i.%i.%i, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+  #endif
 #endif
 	//hdf5
 	temp = g_strdup_printf("HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
@@ -240,10 +250,17 @@ char *xmi_version_string() {
 	g_free(temp);
 #endif
 #ifdef HAVE_GUI
+  #ifdef HAVE_CXX
+	//gtkextra
+	temp = g_strdup_printf("gtkmm-plplot %i.%i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION, GTKMM_PLPLOT_MICRO_VERSION);
+	strcat(string,temp);
+	g_free(temp);
+  #else
 	//gtkextra
 	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
 	strcat(string,temp);
 	g_free(temp);
+  #endif
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
