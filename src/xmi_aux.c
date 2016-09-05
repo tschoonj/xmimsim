@@ -39,7 +39,7 @@ void *xmi_memdup(const void *mem, size_t bytes) {
 #endif
 		return NULL;
 	}
-	
+
 	temp = (void*) malloc(bytes);
 	if (temp == NULL) {
 #if DEBUG == 1
@@ -88,7 +88,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	free(array_copy);
 
 	return rv;
-} 
+}
 
 int xmi_cmp_int(const void *a, const void *b) {
 	return *((int *) a) - *((int *) b);
@@ -105,7 +105,7 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
 	}
 	else {
-		rv->nElements = 0; 
+		rv->nElements = 0;
 	}
 	return rv;
 }
@@ -142,7 +142,7 @@ double *xmi_dindgen(int n) {
 	}
 
 	rv = (double *) malloc(sizeof(double)*n);
-	
+
 	for (i = 0 ; i < n ; i++) {
 		rv[i] = (double )i;
 	}
@@ -163,7 +163,7 @@ int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 	double diff;
 
 	diff = ((struct xmi_energy_discrete *)a)->energy - ((struct xmi_energy_discrete *)b)->energy;
-	
+
 	if (diff > 0.000000001)
 		return 1;
 	else if (diff < -0.000000001)
@@ -175,7 +175,7 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	double diff;
 
 	diff = ((struct xmi_energy_continuous *)a)->energy - ((struct xmi_energy_continuous *)b)->energy;
-	
+
 	if (diff > 0.000000001)
 		return 1;
 	else if (diff < -0.000000001)
@@ -332,11 +332,11 @@ char *xmi_version_string() {
    necessary.  Returns the number of characters read (not including
    the null terminator), or -1 on error or EOF.  */
 
-/* Ugly hack to get around MinGW not defining EOVERFLOW 
+/* Ugly hack to get around MinGW not defining EOVERFLOW
  * Should be future proof though
  */
 
-#ifndef EOVERFLOW 
+#ifndef EOVERFLOW
 # define EOVERFLOW 132
 #endif
 
@@ -524,11 +524,11 @@ struct copy_hdf5_data {
 
 static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 	struct copy_hdf5_data *chd = (struct copy_hdf5_data *) op_data;
-	
+
 	//read in this particular group
 	hid_t group_id;
 	hid_t dset_id, dspace_id;
-	hsize_t dims_string[1]; 
+	hsize_t dims_string[1];
 	char *xmi_input_string;
 
 	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
@@ -579,7 +579,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 		}
 		if (found == 0) {
 			//go to next one
-			return 0;	
+			return 0;
 		}
 	}
 
@@ -600,7 +600,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	//read in this particular group
 	hid_t group_id;
 	hid_t dset_id, dspace_id;
-	hsize_t dims_string[1]; 
+	hsize_t dims_string[1];
 	char *xmi_input_string;
 
 	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
@@ -627,10 +627,10 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	chd->temp_input = temp_input;
 
 	herr_t iterate_rv = H5Literate(chd->file_to_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_hdf5_group2, (void *) chd);
-	
+
 	xmi_free_input(temp_input);
 
-	if (iterate_rv < 0) 
+	if (iterate_rv < 0)
 		return -1;
 	else if (iterate_rv == 0) {
 		//no match found -> copy!
@@ -658,7 +658,7 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 		return -1;
 	}
 
-	//open files	
+	//open files
 	file_from_id = H5Fopen(file_from, H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (file_from_id < 0) {
 		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 file %s for reading\n", file_from);
@@ -788,13 +788,13 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 		H5Fclose(file_to_id);
 		return -1;
 	}
-	
+
 	struct copy_hdf5_data chd;
 	chd.kind = kind;
-	chd.file_from_id = file_from_id; 
-	chd.file_to_id = file_to_id; 
+	chd.file_from_id = file_from_id;
+	chd.file_to_id = file_to_id;
 	chd.file_from = file_from;
-	chd.file_to = file_to; 
+	chd.file_to = file_to;
 	chd.groups = groups;
 	chd.force = force;
 	chd.ncopied = 0;
@@ -812,7 +812,7 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 }
 
 int xmi_get_hdf5_kind(char *name) {
-	//open files	
+	//open files
 	hid_t file_id = H5Fopen(name, H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (file_id < 0) {
 		return XMI_HDF5_INVALID;

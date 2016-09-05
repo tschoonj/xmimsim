@@ -25,8 +25,8 @@ struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 	struct xmi_cubic_spline *rv = (struct xmi_cubic_spline *) malloc(sizeof(struct xmi_cubic_spline));
 
 	rv->n = n-1;
-	rv->x = (double *) xmi_memdup(x, sizeof(double) * n);		
-	rv->y = (double *) xmi_memdup(y, sizeof(double) * n);		
+	rv->x = (double *) xmi_memdup(x, sizeof(double) * n);
+	rv->y = (double *) xmi_memdup(y, sizeof(double) * n);
 
 	double *a = (double *) xmi_memdup(y, sizeof(double) * n);
 	double *b = (double *) malloc(sizeof(double) * rv->n);
@@ -50,7 +50,7 @@ struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 	double *l = (double *) malloc(sizeof(double) * n);
 	double *mu = (double *) malloc(sizeof(double) * n);
 	double *z = (double *) malloc(sizeof(double) * n);
-	
+
 	l[0] = 1.0;
 	mu[0] = 0.0;
 	z[0] = 0.0;
@@ -114,7 +114,7 @@ double xmi_cubic_spline_eval(struct xmi_cubic_spline *spline, double x) {
 	j--;
 
 	double dx = x - spline->all_coeffs[j].x;
-	double y = 
+	double y =
 		spline->all_coeffs[j].a +
 		spline->all_coeffs[j].b * dx +
 		spline->all_coeffs[j].c * dx* dx +

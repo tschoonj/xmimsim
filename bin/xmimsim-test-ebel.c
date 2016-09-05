@@ -46,12 +46,12 @@ int main(int argc, char *argv[]) {
 	//xmi_tube_ebel(&tube_anode, &tube_window, &tube_filter, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, 1.0,
 	xmi_tube_ebel(&tube_anode, NULL, NULL, tube_voltage, tube_current, tube_angle_electron, tube_angle_xray, tube_delta_energy, 1.0, tube_transmission, &excitation);
 
-	int i; 
+	int i;
 
 	fprintf(stdout, "Continuous energies\n");
 
 	for (i = 0 ; i < excitation->n_continuous ; i++)
-		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->continuous[i].energy, 
+		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->continuous[i].energy,
 			excitation->continuous[i].horizontal_intensity,
 			excitation->continuous[i].vertical_intensity,
 			excitation->continuous[i].sigma_x,
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "Discrete energies\n");
 
 	for (i = 0 ; i < excitation->n_discrete ; i++)
-		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->discrete[i].energy, 
+		fprintf(stdout, "%lf %lf %lf %lf %lf %lf %lf\n", excitation->discrete[i].energy,
 			excitation->discrete[i].horizontal_intensity,
 			excitation->discrete[i].vertical_intensity,
 			excitation->discrete[i].sigma_x,

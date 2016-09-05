@@ -198,7 +198,7 @@ struct xmi_archive {
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
-typedef void* xmi_inputFPtr;  
+typedef void* xmi_inputFPtr;
 
 
 
@@ -231,10 +231,10 @@ void xmi_free_composition(struct xmi_composition *);
 
 void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B);
 
-void xmi_free_layer (struct xmi_layer *layer); 
+void xmi_free_layer (struct xmi_layer *layer);
 
-void xmi_copy_layer(struct xmi_layer *, struct xmi_layer **B); 
-void xmi_copy_layer2(struct xmi_layer *, struct xmi_layer *B); 
+void xmi_copy_layer(struct xmi_layer *, struct xmi_layer **B);
+void xmi_copy_layer2(struct xmi_layer *, struct xmi_layer *B);
 
 struct xmi_input *xmi_init_empty_input(void);
 
@@ -242,7 +242,7 @@ void xmi_free_absorbers(struct xmi_absorbers *);
 
 void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B);
 
-void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition); 
+void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition);
 
 void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers);
 

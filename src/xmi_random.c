@@ -35,7 +35,7 @@ static pthread_mutex_t counter_mutex;
 
 
 int xmi_start_random_acquisition(void) {
-	//two possibilities: 
+	//two possibilities:
 	//1) if daemon is running -> do nothing
 	//2) if not -> start a thread
 
@@ -60,7 +60,7 @@ int xmi_start_random_acquisition(void) {
 }
 
 int xmi_end_random_acquisition(void) {
-	//two possibilities: 
+	//two possibilities:
 	//1) if daemon is running -> do nothing
 	//2) if not -> terminate thread
 
@@ -72,7 +72,7 @@ int xmi_end_random_acquisition(void) {
 	else {
 		//daemon is running...
 		//destroy mutex
-		pthread_mutex_destroy(&counter_mutex);	
+		pthread_mutex_destroy(&counter_mutex);
 	}
 
 	return 1;
@@ -80,7 +80,7 @@ int xmi_end_random_acquisition(void) {
 }
 
 int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
-	//two possibilities: 
+	//two possibilities:
 	//1) if daemon is running -> query for n random numbers
 	//2) if not -> get random numbers from dev
 
@@ -95,7 +95,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		for (i = 0 ; i < n ; i++) {
 			if (xmi_get_random_number_dev(numbers+i) == 0) {
 				return 0;
-			}	
+			}
 		}
 	}
 	else {

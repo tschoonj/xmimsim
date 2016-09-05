@@ -99,7 +99,7 @@ XMI_MAIN
 	}
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());	
+		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
@@ -109,7 +109,7 @@ XMI_MAIN
 	}
 
 	g_option_context_free(context);
-	
+
 	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
 		options.omp_num_threads = xmi_omp_get_max_threads();
@@ -128,7 +128,7 @@ XMI_MAIN
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
-	
+
 	//start random number acquisition
 	if (xmi_start_random_acquisition() == 0) {
 		return 1;
@@ -152,7 +152,7 @@ XMI_MAIN
 	}
 
 	//copy xmsi_in detector settings to xmso_in
-	xmso_in->input->detector->detector_type = xmsi_in->detector->detector_type;	
+	xmso_in->input->detector->detector_type = xmsi_in->detector->detector_type;
 	xmso_in->input->detector->pulse_width = xmsi_in->detector->pulse_width;
 
 	xmi_free_input(xmsi_in);

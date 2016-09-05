@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "Before xmi_msim_gui_compound_dialog_new\n");
 	GtkWidget *dialog = xmi_msim_gui_compound_dialog_new(NULL, XMI_MSIM_GUI_COMPOUND_DIALOG_ADD);
-	
+
 	fprintf(stderr, "Before gtk_dialog_run\n");
 	int rv = gtk_dialog_run(GTK_DIALOG(dialog));
 

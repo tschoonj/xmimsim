@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 //returns 1 one on success, 0 on error
-int xmi_copy_input_to_xrmc(	struct xmi_input *input, 
+int xmi_copy_input_to_xrmc(	struct xmi_input *input,
 				char *xrmc_inputfile,
 				char *xrmc_compositionfile,
 				char *xrmc_detectorfile,

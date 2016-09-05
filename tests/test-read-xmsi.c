@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
 	//init test
 	g_assert(test_init() == 1);
-	
+
 	//download file
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 	g_assert(fabs(100 - input->geometry->d_source_slit) < 1E-10);
 	g_assert(fabs(0.001 - input->geometry->slit_size_x) < 1E-10);
 	g_assert(fabs(0.001 - input->geometry->slit_size_y) < 1E-10);
-	
+
 	//excitation
 	g_assert_cmpint(1, ==, input->excitation->n_discrete);
 	g_assert_cmpint(0, ==, input->excitation->n_continuous);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 	g_assert(fabs(0 - input->excitation->discrete[0].sigma_xp) < 1E-10);
 	g_assert(fabs(0 - input->excitation->discrete[0].sigma_y) < 1E-10);
 	g_assert(fabs(0 - input->excitation->discrete[0].sigma_yp) < 1E-10);
-	
+
 	//absorbers
 	g_assert_cmpint(0, ==, input->absorbers->n_exc_layers);
 	g_assert_cmpint(1, ==, input->absorbers->n_det_layers);
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 
 	//make a copy
 	xmi_copy_input(input, &input_copy);
-	
+
 	//compare
 	g_assert(xmi_compare_input(input, input_copy) == 0);
 

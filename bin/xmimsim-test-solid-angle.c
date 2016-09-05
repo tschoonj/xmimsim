@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	if (rv != 1) {
 		return 1;
 	}
-	
+
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 	//initialization
@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
 	if (xmi_init_from_hdf5(XMIMSIM_HDF5_DEFAULT,inputFPtr,&hdf5FPtr) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
-	}	
-	
+	}
+
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 /*
 	xmi_solid_angle_calculation(inputFPtr, &solid_angle, argv[1]);
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 	if( xmi_update_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, solid_angle) == 0)
 		return 1;
 */
-/*	
+/*
 
 	//read solid angles HDF5 file
 	if (xmi_read_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, &solid_angle_h5, &n_solid_angle_h5) == 0)
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
 		//look for matches
 		fprintf(stdout,"match: %i\n",xmi_check_solid_angle_match(input,solid_angle_inputs[i]));
 	}
-*/		
+*/
 	if (xmi_find_solid_angle_match(XMIMSIM_HDF5_SOLID_ANGLES, input, &solid_angle_def) == 0)
 		return 0;
 

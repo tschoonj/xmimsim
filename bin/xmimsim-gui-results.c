@@ -132,7 +132,7 @@ class Plot2D : public Gtk::PLplot::Plot2D {
 	public:
 	Plot2D(
 		const Glib::ustring &axis_title_x,
-		const Glib::ustring &axis_title_y) : 
+		const Glib::ustring &axis_title_y) :
 		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
 	virtual void on_double_press(double x, double y) override {
 		zoom_out();

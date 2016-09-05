@@ -105,7 +105,7 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
         INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
         TARGET :: uniqZ
         INTEGER (C_INT) :: rv
-        
+
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
         CALL C_F_POINTER(xmi_hdf5FPtr, xmi_hdf5F)
 
@@ -115,7 +115,7 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
         ALLOCATE(uniqZ(1))
         uniqZ(1) = layer(1)%Z(1)
         DO i=1,SIZE(layer)
-                DO j=1,SIZE(layer(i)%Z) 
+                DO j=1,SIZE(layer(i)%Z)
                         IF (.NOT. ANY(layer(i)%Z(j) == uniqZ)) THEN
                                 !uniqZ = &
                                 ![uniqZ,layers(i)%Z(j)]
@@ -132,7 +132,7 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
         CALL qsort(C_LOC(uniqZ),SIZE(uniqZ,KIND=C_SIZE_T),&
         INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 
-        DO i=1,SIZE(uniqZ) 
+        DO i=1,SIZE(uniqZ)
                 IF (xmi_hdf5F%xmi_hdf5_Zs(i)%Z /= uniqZ(i)) THEN
                         WRITE (ERROR_UNIT,'(A)') &
                         'Error from xmi_update_input_from_hdf5: elements inconsistency'
@@ -143,11 +143,11 @@ BIND(C,NAME='xmi_update_input_from_hdf5') RESULT(rv)
 #define n_sample_orientation xmi_inputF%geometry%n_sample_orientation
                 !create pointers
                 DO j=1,SIZE(layer)
-                        IF (.NOT. ALLOCATED(layer(j)%xmi_hdf5_Z_local)) & 
+                        IF (.NOT. ALLOCATED(layer(j)%xmi_hdf5_Z_local)) &
                         ALLOCATE(layer(j)%xmi_hdf5_Z_local(layer(j)%n_elements))
-                        DO k=1,layer(j)%n_elements 
+                        DO k=1,layer(j)%n_elements
                                 IF (layer(j)%Z(k) == uniqZ(i)) &
-                                layer(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)   
+                                layer(j)%xmi_hdf5_Z_local(k)%Ptr => xmi_hdf5F%xmi_hdf5_Zs(i)
                         ENDDO
 
                 ENDDO
@@ -179,7 +179,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: uniqZ, temp_array
         TARGET :: uniqZ
         INTEGER :: i,j,k
-        
+
 
         INTEGER (C_INT) :: ndims
         INTEGER (C_INT),DIMENSION(:), POINTER :: dims
@@ -197,7 +197,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         !associate pointers C -> Fortran
         CALL C_F_POINTER(xmi_inputFPtr, xmi_inputF)
 
-        hdf5_vars = xmi_db_open(xmi_hdf5_file) 
+        hdf5_vars = xmi_db_open(xmi_hdf5_file)
 
         !set the XRF cross sections according to the options
         IF (options%use_cascade_auger .EQ. 0 .AND.&
@@ -225,7 +225,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ALLOCATE(uniqZ(1))
         uniqZ(1) = layer(1)%Z(1)
         DO i=1,SIZE(layer)
-                DO j=1,SIZE(layer(i)%Z) 
+                DO j=1,SIZE(layer(i)%Z)
                         IF (.NOT. ANY(layer(i)%Z(j) == uniqZ)) THEN
                                 !uniqZ = &
                                 ![uniqZ,layers(i)%Z(j)]
@@ -244,7 +244,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         INT(KIND(uniqZ),KIND=C_SIZE_T),C_FUNLOC(C_INT_CMP))
 
 
-        
+
         IF (options%use_M_lines .EQ. 1_C_INT) THEN
                 last_shell = M5_SHELL
                 last_line = M5P5_LINE
@@ -338,7 +338,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ALLOCATE(xmi_hdf5F%xmi_hdf5_Zs(SIZE(uniqZ)))
         xmi_hdf5F%uniqZ = 0
 
-        DO i=1,SIZE(uniqZ) 
+        DO i=1,SIZE(uniqZ)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Z = uniqZ(i)
                 xmi_hdf5F%xmi_hdf5_Zs(i)%Zindex = i
                 xmi_hdf5F%uniqZ(uniqZ(i)) = i
@@ -379,7 +379,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 IF (xmi_db_read_dataset(hdf5_vars, &
                         C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%RayleighTheta_ICDF(1,1)),&
                         XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
-                
+
                 !Read Compton Theta ICDF
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening dataset ComptonTheta_ICDF'
@@ -484,7 +484,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         C_CHAR_'Interaction probabilities'//C_NULL_CHAR) &
                         .EQ. 0_C_INT) RETURN
 
-                !Read energies 
+                !Read energies
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening dataset energies'
                 ENDIF
@@ -552,7 +552,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         .EQ. 0_C_INT) RETURN
 
                 !Fernandez and Scot
-                !Read Shell indices 
+                !Read Shell indices
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening Shell indices'
                 ENDIF
@@ -573,7 +573,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%shell_indices(1)),&
                         XMI_H5T_NATIVE_INT) .EQ. 0_C_INT) RETURN
 
-                !Read Qs 
+                !Read Qs
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') 'Opening Qs'
                 ENDIF
@@ -661,7 +661,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
 
 
                 !Vincze style
-                !Read Random numbers 
+                !Read Random numbers
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') &
                         'Opening Random numbers'
@@ -684,7 +684,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                         C_LOC(xmi_hdf5F%xmi_hdf5_Zs(i)%compton_profiles%random_numbers(1)),&
                         XMI_H5T_NATIVE_DOUBLE) .EQ. 0_C_INT) RETURN
 
-                !Read Total profile ICDF 
+                !Read Total profile ICDF
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A)') &
                         'Opening Total profile ICDF'
@@ -731,7 +731,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 ENDIF
 
                 !open group
-                !Read precalculated XRF cross sections 
+                !Read precalculated XRF cross sections
                 IF (options%extra_verbose .EQ. 1_C_INT) THEN
                         WRITE (output_unit,'(A,A)') 'Opening group ',&
                         C_CHAR_'Precalculated XRF cross sections'//C_NULL_CHAR
@@ -827,7 +827,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ASSOCIATE (layers => xmi_inputF%composition%layers)
         !create pointers
         DO j=1,SIZE(layers)
-                DO k=1,SIZE(layers(j)%Z) 
+                DO k=1,SIZE(layers(j)%Z)
                         WRITE (*,'(A,I)') 'Z confirmation: ',&
                         layers(j)%xmi_hdf5_Z_local(k)%Ptr%Z
                 ENDDO
@@ -840,7 +840,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         ENDASSOCIATE
 #endif
 
-        
+
         rv=1
         xmi_hdf5FPtr = C_LOC(xmi_hdf5F)
         RETURN
@@ -989,7 +989,7 @@ ALLOCATE(profile_partial_cdf_big(nintervals_pz))
 !$OMP DO &
 !$OMP SCHEDULE(dynamic,1)
 
-Zloop:DO i=1,maxz 
+Zloop:DO i=1,maxz
         WRITE (output_unit, '(A,I3)') 'Generating datasets for element ', i
         Eloop:DO j=1,nintervals_e
 
@@ -1011,7 +1011,7 @@ Zloop:DO i=1,maxz
 #if DEBUG == 2
                 IF (i == 26) THEN
                         sumz(1)=trapez(1)
-                        DO l=2,nintervals_theta-1 
+                        DO l=2,nintervals_theta-1
                                 sumz(l)=sumz(l-1)+trapez(l)
                         ENDDO
                         WRITE (100,*) sumz
@@ -1022,7 +1022,7 @@ Zloop:DO i=1,maxz
                 temp_sum=0.0_C_DOUBLE
                 l=1
                 m=1
-                DO 
+                DO
                         temp_sum = trapez(l)+temp_sum
                         IF (temp_sum >= rs(m)) THEN
                                 rayleigh_theta(i,j,m) = thetas(l)
@@ -1052,7 +1052,7 @@ Zloop:DO i=1,maxz
                 temp_sum=0.0_C_DOUBLE
                 l=1
                 m=1
-                DO 
+                DO
                         temp_sum = trapez(l)+temp_sum
                         IF (temp_sum >= rs(m)) THEN
                                 compton_theta(i,j,m) = thetas(l)
@@ -1097,7 +1097,7 @@ ENDIF
                         energies_flt(SIZE(energies_flt))=temp_energy-0.00001_C_DOUBLE
                 ENDIF
         ENDDO
-        
+
 
         !SORT them
         CALL qsort(C_LOC(energies_flt),SIZE(energies_flt,KIND=C_SIZE_T),&
@@ -1110,7 +1110,7 @@ ENDIF
         !        ip_temp%energies(i)=REAL(energies_flt(i),KIND=C_DOUBLE)
         !ENDDO
 
-        
+
 
         DO k=1,SIZE(energies_flt)
                 temp_total_cs = CS_Total_Kissel(i,energies_flt(k))
@@ -1164,7 +1164,7 @@ ENDIF
         cp(i)%Qs_inv= C_LOC(cp_temp%Qs_inv(1,1))
         cp(i)%profile_total_icdf = C_LOC(cp_temp%profile_total_icdf(1))
         cp(i)%random_numbers = C_LOC(rs2(1))
-      
+
         DO j=1,nintervals_pz-1
                 trapez2(j) = &
                 (ComptonProfile(i, pzs(j))+&
@@ -1243,7 +1243,7 @@ ENDIF
         !
         !
 #define CKTB CosKronTransProb
-        fluor_yield_corr(i,K_SHELL+1) = FluorYield(i,K_SHELL) 
+        fluor_yield_corr(i,K_SHELL+1) = FluorYield(i,K_SHELL)
         fluor_yield_corr(i,L1_SHELL+1) = FluorYield(i,L1_SHELL)+&
                         (CKTB(i,FL12_TRANS)*FluorYield(i,L2_SHELL))+&
                         (CKTB(i,FL13_TRANS)+CKTB(i,FL12_TRANS)*CKTB(i,FL23_TRANS))*&
@@ -1384,7 +1384,7 @@ ENDIF
                         PM5_auger_cascade_kissel(i,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        
+
                         precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,K_SHELL+1,j,ABS(line)) = PK
                         precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,L1_SHELL+1,j,ABS(line)) = PL1
                         precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,L2_SHELL+1,j,ABS(line)) = PL2
@@ -1462,7 +1462,7 @@ ENDIF
                         PM5_full_cascade_kissel(i,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
-                        
+
                         precalc_xrf_cs(i,XMI_CASCADE_FULL,K_SHELL+1,j,ABS(line)) = PK
                         precalc_xrf_cs(i,XMI_CASCADE_FULL,L1_SHELL+1,j,ABS(line)) = PL1
                         precalc_xrf_cs(i,XMI_CASCADE_FULL,L2_SHELL+1,j,ABS(line)) = PL2
@@ -1524,14 +1524,14 @@ ALLOCATE(cdfs(nintervals_phi))
 
 !$OMP DO
 DO i=1,nintervals_theta2
-        DO j=1,nintervals_phi 
+        DO j=1,nintervals_phi
         cdfs(j)= &
         (phis(j)-thetas(i)*&
         SIN(2.0*phis(j)))/2.0/PI
         ENDDO
         k=1
 
- !       WRITE (100,*) cdfs 
+ !       WRITE (100,*) cdfs
 
         DO j=1,nintervals_phi
                 IF (cdfs(j) >= rs(k)) THEN
@@ -1540,7 +1540,7 @@ DO i=1,nintervals_theta2
                         k=k+1
                 ENDIF
         ENDDO
-        phi(i,1) = 0.0 
+        phi(i,1) = 0.0
         phi(i,nintervals_r) = 2.0*PI
 
 ENDDO

@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 	if (rv != 1) {
 		return 1;
 	}
-	
+
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 	//initialization

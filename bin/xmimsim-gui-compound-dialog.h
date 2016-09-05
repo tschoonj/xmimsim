@@ -36,7 +36,7 @@ typedef enum {
 } XmiMsimGuiCompoundDialogType;
 
 struct _XmiMsimGuiCompoundDialog
-{ 
+{
   GtkDialog parent_instance;
   GtkWidget *compoundEntry;
   GtkWidget *weightEntry;

@@ -41,7 +41,7 @@ typedef struct _XmiMsimGuiExportCanvasDialogClass   XmiMsimGuiExportCanvasDialog
 #define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT 595
 
 struct _XmiMsimGuiExportCanvasDialog
-{ 
+{
   GtkFileChooserDialog parent_instance;
   GtkFileFilter *eps_filter;
   GtkFileFilter *pdf_filter;

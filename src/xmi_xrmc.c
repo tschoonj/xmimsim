@@ -194,7 +194,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, struct xmi_input
 static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *input) {
 	FILE *filePtr;
 	int i;
-	
+
 	if ((filePtr = fopen(xrmc_samplefile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_samplefile);
 		return 0;
@@ -276,7 +276,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		//get axis
 		double rot_axis[3];
 		double start_axis[3] = {0.0, 1.0, 0.0}, end_axis[3];
-		end_axis[0] = input->geometry->n_sample_orientation[1]; 
+		end_axis[0] = input->geometry->n_sample_orientation[1];
 		end_axis[1] = input->geometry->n_sample_orientation[2];
 		end_axis[2] = input->geometry->n_sample_orientation[0];
 		sarrus_rule(end_axis, start_axis, rot_axis);
@@ -298,15 +298,15 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 
 	//so there is a collimator
 	if (input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0) {
-		double detarea_radius = sqrt(input->geometry->area_detector/M_PI); 
+		double detarea_radius = sqrt(input->geometry->area_detector/M_PI);
 		double collim_radius = input->geometry->collimator_diameter/2.0;
 		double collim_height = input->geometry->collimator_height;
 		double neck_height = 0.05; //cm
 
 		if (collim_height < 1.0)
 			neck_height = collim_height/20.0;
-			
-	
+
+
 		double tan_alpha = (detarea_radius - collim_radius)/(collim_height - neck_height);
 		double collim_thickness = 0.3; //cm
 
@@ -317,7 +317,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		start_axis[0] = -1.0;
 		start_axis[1] = 0.0;
 		start_axis[2] = 0.0;
-		end_axis[0] = input->geometry->n_detector_orientation[1]; 
+		end_axis[0] = input->geometry->n_detector_orientation[1];
 		end_axis[1] = input->geometry->n_detector_orientation[2];
 		end_axis[2] = input->geometry->n_detector_orientation[0];
 
@@ -359,7 +359,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 			0.0, 0.0, 1.0, \
 			rotate_angle_z \
 			); \
-		} 
+		}
 
 		//InnerCone
 		fprintf(filePtr, "Quadric InnerCone BlockTransformAll\n%.10g 0.0 0.0 0.0 %.10g 0.0 0.0 %.10g 0.0 0.0\n", -1.0*tan_alpha*tan_alpha, 1.0, 1.0);
@@ -476,7 +476,7 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 		fprintf(filePtr, "Vacuum Collimator\n3\n");
 		fprintf(filePtr, "InnerCyl InnerCyl_TopPlane InnerCyl_BasePlane\n");
 	}
-	
+
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);
 	return 1;
@@ -500,7 +500,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	fprintf(filePtr, "NElem %i\n", input->composition->layers[reference_layer].n_elements);
 	for (j = 0 ; j < input->composition->layers[reference_layer].n_elements ; j++) {
 		fprintf(filePtr, "%i %g\n", input->composition->layers[reference_layer].Z[j], input->composition->layers[reference_layer].weight[j]*100.0);
-	}	
+	}
 	fprintf(filePtr, "Rho %f\n", input->composition->layers[reference_layer].density);
 	counter++;
 
@@ -510,7 +510,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 		fprintf(filePtr,"NElem %i\n", input->composition->layers[i].n_elements);
 		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
 			fprintf(filePtr, "%i %g\n", input->composition->layers[i].Z[j], input->composition->layers[i].weight[j]*100.0);
-		}	
+		}
 		fprintf(filePtr, "Rho %f\n", input->composition->layers[i].density);
 		counter++;
 	}
@@ -521,7 +521,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 		fprintf(filePtr,"NElem %i\n", input->composition->layers[i].n_elements);
 		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
 			fprintf(filePtr, "%i %g\n", input->composition->layers[i].Z[j], input->composition->layers[i].weight[j]*100.0);
-		}	
+		}
 		fprintf(filePtr, "Rho %f\n", input->composition->layers[i].density);
 		counter++;
 	}
@@ -531,7 +531,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	fprintf(filePtr, "NElem %i\n", input->detector->crystal_layers[0].n_elements);
 	for (j = 0 ; j < input->detector->crystal_layers[0].n_elements ; j++) {
 		fprintf(filePtr, "%i %g\n", input->detector->crystal_layers[0].Z[j], input->detector->crystal_layers[0].weight[j]*100.0);
-	}	
+	}
 	fprintf(filePtr, "Rho %f\n", input->detector->crystal_layers[0].density);
 
 	//Window
@@ -541,7 +541,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 		fprintf(filePtr, "NElem %i\n", input->absorbers->det_layers[0].n_elements);
 		for (j = 0 ; j < input->absorbers->det_layers[0].n_elements ; j++) {
 			fprintf(filePtr, "%i %g\n", input->absorbers->det_layers[0].Z[j], input->absorbers->det_layers[0].weight[j]*100.0);
-		}	
+		}
 		fprintf(filePtr, "Rho %f\n", input->absorbers->det_layers[0].density);
 	}
 
@@ -549,7 +549,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 		fprintf(filePtr, "Phase Collimator\n");
 		fprintf(filePtr, "NElem 1\n82 100.0\nRho 11.34\n");
 	}
-	
+
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);
 	return 1;
@@ -569,13 +569,13 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 	fprintf(filePtr, "NPixels 1 1\n");
 	fprintf(filePtr, "PixelSize %g %g\n", sqrt(4.0*input->geometry->area_detector/M_PI), sqrt(4.0*input->geometry->area_detector/M_PI));
 	fprintf(filePtr, "Shape 1\n");
-	fprintf(filePtr, "X %g %g %g\n", input->geometry->p_detector_window[1], 
+	fprintf(filePtr, "X %g %g %g\n", input->geometry->p_detector_window[1],
 					 input->geometry->p_detector_window[2],
 					 input->geometry->p_detector_window[0]);
-	fprintf(filePtr, "uk %g %g %g\n", input->geometry->n_detector_orientation[1], 
+	fprintf(filePtr, "uk %g %g %g\n", input->geometry->n_detector_orientation[1],
 					 input->geometry->n_detector_orientation[2],
 					 input->geometry->n_detector_orientation[0]);
-	fprintf(filePtr, "ui %g %g %g\n", 0.0, 0.0, 0.0); 
+	fprintf(filePtr, "ui %g %g %g\n", 0.0, 0.0, 0.0);
 	if (rotate_angle_z != 0.0) {
 		fprintf(filePtr, "Rotate %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
 		0.0, input->geometry->d_sample_source, 0.0, //point on rotation axis
@@ -583,8 +583,8 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 		rotate_angle_z
 		);
 	}
-	fprintf(filePtr, "ExpTime %g\n", input->detector->live_time); 
-	fprintf(filePtr, "PhotonNum %i\n", 100000); 
+	fprintf(filePtr, "ExpTime %g\n", input->detector->live_time);
+	fprintf(filePtr, "PhotonNum %i\n", 100000);
 	fprintf(filePtr, "RandomPixelFlag 1\n");
 	fprintf(filePtr, "PoissonFlag %i\n", options.use_poisson);
 	fprintf(filePtr, "RoundFlag 0\n");
@@ -619,7 +619,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 }
 
 int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator, struct xmi_main_options options, double rotate_angle_z) {
-	
+
 	if (xmi_write_xrmc_inputfile(xrmc_inputfile, xrmc_compositionfile, xrmc_detectorfile, xrmc_geom3dfile, xrmc_quadricfile, xrmc_samplefile, xrmc_sourcefile, xrmc_spectrumfile, xrmc_convolutedspectrumfile, xrmc_unconvolutedspectrumfile) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_inputfile: Aborting\n");
 		return 0;

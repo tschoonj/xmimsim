@@ -16,10 +16,10 @@
 !An example on how to produce a custom detector response function
 !Here I have essentially used the default code from xmi_detector_f.F90,
 !but the peak shaping is purely Gaussian, so no tailing or so.
-!Essentially I removed all the magic number stuff from He et al. for 
+!Essentially I removed all the magic number stuff from He et al. for
 !the purpose of demonstration.
 !Ensure that the xmi_detector_convolute_all_custom function is exported.
-!You can accomplish this with a linker option or by adding compiler-dependent 
+!You can accomplish this with a linker option or by adding compiler-dependent
 !directives.
 
 
@@ -64,9 +64,9 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all_custom')
 
         INTEGER (C_INT) :: i, start_index
 
-        IF (zero_inter .EQ. 1_C_INT) THEN 
-                start_index = 1 
-        ELSE 
+        IF (zero_inter .EQ. 1_C_INT) THEN
+                start_index = 1
+        ELSE
                 start_index = 2
         ENDIF
 
@@ -79,7 +79,7 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all_custom')
 !$omp num_threads(options%omp_num_threads)
         DO i=start_index, n_interactions_all+1
                CALL xmi_detector_convolute_custom(inputFPtr, channels_noconv(i),&
-               channels_conv(i), options, escape_ratiosCPtr, i-1) 
+               channels_conv(i), options, escape_ratiosCPtr, i-1)
         ENDDO
 !$omp end parallel do
 
@@ -95,7 +95,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions
 
-        TYPE (xmi_escape_ratios) :: escape_ratios 
+        TYPE (xmi_escape_ratios) :: escape_ratios
         TYPE (xmi_input), POINTER :: inputF
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: channels_noconv,&
         channels_temp
@@ -106,7 +106,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         REAL (C_DOUBLE) :: a,b
         REAL (C_DOUBLE), PARAMETER :: c =&
         SQRT(2.0_C_DOUBLE)/(2.0_C_DOUBLE*SQRT(2.0_C_DOUBLE*LOG(2.0_C_DOUBLE)))
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R 
+        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R
         INTEGER (C_INT) :: I0, I
         REAL (C_DOUBLE) :: E0, E, B0, FWHM, A0, A3, A4, ALFA, X, G, F, my_sum,&
         CBG
@@ -125,21 +125,21 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         escape_ratios%n_compton_input_energies = escape_ratiosCPtr%n_compton_input_energies
         escape_ratios%n_compton_output_energies = escape_ratiosCPtr%n_compton_output_energies
         CALL C_F_POINTER(escape_ratiosCPtr%Z,&
-        escape_ratios%Z,[escape_ratios%n_elements]) 
+        escape_ratios%Z,[escape_ratios%n_elements])
         CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_ratios,&
         escape_ratios%fluo_escape_ratios,[escape_ratios%n_elements,ABS(L3P3_LINE),&
-        escape_ratios%n_fluo_input_energies]) 
+        escape_ratios%n_fluo_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%fluo_escape_input_energies,&
-        escape_ratios%fluo_escape_input_energies,[escape_ratios%n_fluo_input_energies]) 
+        escape_ratios%fluo_escape_input_energies,[escape_ratios%n_fluo_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_ratios,&
         escape_ratios%compton_escape_ratios,[escape_ratios%n_compton_input_energies,&
-        escape_ratios%n_compton_output_energies]) 
+        escape_ratios%n_compton_output_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_input_energies,&
-        escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies]) 
+        escape_ratios%compton_escape_input_energies,[escape_ratios%n_compton_input_energies])
         CALL C_F_POINTER(escape_ratiosCPtr%compton_escape_output_energies,&
-        escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies]) 
+        escape_ratios%compton_escape_output_energies,[escape_ratios%n_compton_output_energies])
         ENDIF
-        
+
 
         !allocate memory for results
         ALLOCATE(channels_temp(0:inputF%detector%nchannels-1))
@@ -156,7 +156,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         channels_conv = 0.0_C_DOUBLE
 
         IF (options%use_escape_peaks == 1_C_INT) THEN
-                
+
                 IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Calculating escape peaks after interactions: '&
@@ -220,8 +220,8 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                         R(I) = A0*G
 #if DEBUG == 1
                         IF (I .EQ. 150 .AND. I0 .EQ. 100) THEN
-                                WRITE (*,'(A,F14.5)') 'R(I): ',R(I) 
-                                WRITE (*,'(A,F14.5)') 'F: ',F 
+                                WRITE (*,'(A,F14.5)') 'R(I): ',R(I)
+                                WRITE (*,'(A,F14.5)') 'F: ',F
                         ENDIF
 #endif
                         my_sum = my_sum + R(I)

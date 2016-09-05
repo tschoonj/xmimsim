@@ -38,7 +38,7 @@ USE :: fgsl, ONLY : &
 #endif
 
 INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 1000, grid_dims_theta_n = 1000
-!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 500, grid_dims_theta_n = 500 
+!INTEGER (C_LONG), PARAMETER :: grid_dims_r_n = 500, grid_dims_theta_n = 500
 INTEGER (C_LONG) :: hits_per_single = 5000
 BIND(C,NAME='hits_per_single') :: hits_per_single
 REAL (C_DOUBLE), PARAMETER :: M_PI = 3.14159265358979323846_C_DOUBLE
@@ -78,7 +78,7 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
 
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles
         INTEGER (C_INT) :: i,j
 
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: mu
@@ -234,7 +234,7 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         !CALL xmi_exit(1)
 #endif
 
-        
+
 
 
         grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,S1],&
@@ -301,8 +301,8 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles 
-        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles 
+        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles
         INTEGER :: max_threads, thread_num
         TYPE (xmi_rng_type) :: rng_type
         TYPE (xmi_rng) :: rng
@@ -459,7 +459,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         !CALL xmi_exit(1)
 #endif
 
-        
+
 
 
         grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,S1],&
@@ -505,7 +505,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
                 (grid_dims_theta(2)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
                 /REAL(grid_dims_theta_n-1,C_DOUBLE)
         ENDDO
-        
+
 
         !second step: for every grid point calculate the solid angle
         max_threads = options%omp_num_threads
@@ -564,7 +564,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 !$omp end parallel
 
         CALL omp_destroy_lock(omp_lock)
-        
+
         !put everything in the structure
         ALLOCATE(solid_angle)
         solid_angle%solid_angles = C_LOC(solid_angles(1,1))
@@ -572,7 +572,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         solid_angle%grid_dims_theta_n = grid_dims_theta_n
         solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals(1))
         solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals(1))
-        solid_angle%xmi_input_string = input_string 
+        solid_angle%xmi_input_string = input_string
 
 #if DEBUG == 1
         WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)
@@ -730,8 +730,8 @@ RESULT(rv)
         cone_base_normal(1) = 0.0_C_DOUBLE
         cone_base_normal(2) = COS(theta)
         cone_base_normal(3) = SIN(theta)
-        
-        
+
+
         !calculate full_cone_base_radius
         beta = ATAN(full_cone_base_radius/r)
         alpha1 = ATAN(full_cone_base_radius*SIN(theta)/&
@@ -750,7 +750,7 @@ RESULT(rv)
         !ENDIF
         full_cone_apex = MAX(beta, alpha1)
 
-        
+
 
         cos_full_cone_apex = COS(full_cone_apex)
 
@@ -772,7 +772,7 @@ RESULT(rv)
                 collimator_plane%point = [0.0_C_DOUBLE, 0.0_C_DOUBLE, inputF%geometry%collimator_height]
                 collimator_plane%normv = detector_normal
         ENDIF
-        
+
         photon_line%point = [0.0_C_DOUBLE, r1*COS(theta1), r1*SIN(theta1)]
 !#define DEBUG 1
 #if DEBUG == 1
@@ -781,7 +781,7 @@ RESULT(rv)
         WRITE (6,'(A,F12.6)') 'r1: ',r1
         WRITE (6,'(A,F12.6)') 'theta1: ',theta1
         WRITE (6,'(A,L4)') 'collimator_present: ',inputF%detector%collimator_present
-        WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex 
+        WRITE (6,'(A,F12.6)') 'full_cone_apex:' , full_cone_apex
         WRITE (6,'(A,F12.6)') 'full_cone_solid_angle ' , full_cone_solid_angle
         WRITE (6,'(A,F12.6)') 'detector_radius ',inputF%detector%detector_radius
         WRITE (6,'(A,F12.6)') 'collimator_radius ',inputF%detector%collimator_radius
@@ -791,7 +791,7 @@ RESULT(rv)
         WRITE (6,'(A,3F12.6)') 'detector_plane%point ',detector_plane%point
         WRITE (6,'(A,3F12.6)') 'detector_plane%normv ',detector_plane%normv
 #endif
-#undef DEBUG       
+#undef DEBUG
 
 
         DO i=1,hits_per_single
@@ -870,7 +870,7 @@ RESULT(rv)
         rv = full_cone_solid_angle &
         *REAL(detector_hits,C_DOUBLE)/REAL(hits_per_single,C_DOUBLE)
 
-        
+
 
         !CALL xmi_exit(0)
         RETURN

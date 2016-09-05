@@ -189,10 +189,10 @@ GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtkmm3], gtkmm-plplot-2.0 >= 2.1,
 		[
-		GTK_FOUND=yes
-		CXX_MODE=yes
-		AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
-		PKG_CHECK_MODULES([gtk], gtk+-3.0)
+			GTK_FOUND=yes
+			CXX_MODE=yes
+			AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
+			PKG_CHECK_MODULES([gtk], gtk+-3.0)
 		],[
 		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.1.0,
 			[

@@ -134,7 +134,7 @@ convert_mac:
 	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset/icon_256x256@2x.png
 	convert ${srcdir}/Logo_xmi_msim_archive.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset/icon_512x512.png
 	cp ${srcdir}/Logo_xmi_msim_archive.png ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset/icon_512x512@2x.png
-	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset 
+	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset
 	rm -rf ${srcdir}/Logo_xmi_msim_MacOSX_XMSA.iconset
 	mkdir -p ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSI_retina.png -resize 16x16 ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset/icon_16x16.png
@@ -147,7 +147,7 @@ convert_mac:
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSI_retina.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset/icon_256x256@2x.png
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSI_retina.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset/icon_512x512.png
 	cp ${srcdir}/Logo_xmi_msim_MacOSX_XMSI_retina.png ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset/icon_512x512@2x.png
-	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset 
+	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset
 	rm -rf ${srcdir}/Logo_xmi_msim_MacOSX_XMSI.iconset
 	mkdir -p ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSO_retina.png -resize 16x16 ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset/icon_16x16.png
@@ -160,7 +160,7 @@ convert_mac:
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSO_retina.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset/icon_256x256@2x.png
 	convert ${srcdir}/Logo_xmi_msim_MacOSX_XMSO_retina.png -resize 512x512 ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset/icon_512x512.png
 	cp ${srcdir}/Logo_xmi_msim_MacOSX_XMSO_retina.png ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset/icon_512x512@2x.png
-	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset 
+	iconutil -c icns ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset
 	rm -rf ${srcdir}/Logo_xmi_msim_MacOSX_XMSO.iconset
 
 convert_windows:
@@ -228,7 +228,7 @@ convert_windows:
 		${srcdir}/Logo_xmi_msim32.png \
 		${srcdir}/Logo_xmi_msim48.png \
 		${srcdir}/Logo_xmi_msim256.png
-	
+
 
 
 

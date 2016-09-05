@@ -37,7 +37,7 @@ typedef enum {
 } XmiMsimGuiLayerDialogType;
 
 struct _XmiMsimGuiLayerDialog
-{ 
+{
   GtkDialog parent_instance;
   guint layer_dialog_type;
 

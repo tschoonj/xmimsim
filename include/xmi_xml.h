@@ -31,7 +31,7 @@ extern "C" {
 //return 1 on success, 0 otherwise
 
 //allocation of input occurs in function!
-int xmi_read_input_xml(char *xmsifile, struct xmi_input **input); 
+int xmi_read_input_xml(char *xmsifile, struct xmi_input **input);
 int xmi_write_input_xml(char *xmsifile, struct xmi_input *input);
 int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input);
 int xmi_write_output_xml(char *xmsofile, struct xmi_output *output);
@@ -42,8 +42,8 @@ int xmi_read_output_xml(char *xmsofile, struct xmi_output **output);
 int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive);
 int xmi_write_archive_xml(char *xmsafile, struct xmi_archive *archive);
 
-int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input); 
-int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum); 
+int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input);
+int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum);
 int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_output *output, int step1, int step2, int with_svg);
 int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node);
 int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layers, int n_layers);

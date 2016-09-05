@@ -59,7 +59,7 @@ static void *xmi_random_thread(void *input) {
 /*			//open the random device
 			if ((random_devicePtr=fopen(RANDOM_DEVICE,"r")) == NULL) {
 				fprintf(stderr,"Could not open " RANDOM_DEVICE " for reading: continuing...\n");
-				nanosleep(&sleep_time,NULL);	
+				nanosleep(&sleep_time,NULL);
 				continue;
 			}*/
 #if DEBUG == 2
@@ -67,7 +67,7 @@ static void *xmi_random_thread(void *input) {
 #endif
 			if (fread(&temp_number,sizeof(unsigned long int),1,random_devicePtr) == 1) {
 				rv=pthread_mutex_lock(&xmi_random_mutex);
-				xmi_random_numbers[xmi_numbers_in_memory++]=temp_number; 
+				xmi_random_numbers[xmi_numbers_in_memory++]=temp_number;
 				rv=pthread_mutex_unlock(&xmi_random_mutex);
 #if DEBUG == 2
 				fprintf(stdout,"Found a new number: %lu\n",temp_number);
@@ -83,11 +83,11 @@ static void *xmi_random_thread(void *input) {
 #if DEBUG == 2
 		fprintf(stdout,"Before nanosleep: %i\n",rv);
 #endif
-		nanosleep(&sleep_time,NULL);	
+		nanosleep(&sleep_time,NULL);
 #if DEBUG == 2
 		fprintf(stdout,"After nanosleep\n");
 #endif
-	}	
+	}
 	//this line should never be reached
 	return NULL;
 }
@@ -102,7 +102,7 @@ static void *xmi_random_thread(void *input) {
 
 int xmi_start_random_acquisition_dev(void) {
 #if DEBUG == 2
-	fprintf(stdout,"Entering xmi_start_random_acquisition\n");	
+	fprintf(stdout,"Entering xmi_start_random_acquisition\n");
 #endif
 
 	if (xmi_random_active == 1) {
@@ -127,7 +127,7 @@ int xmi_start_random_acquisition_dev(void) {
 
 	//initialize mutex
 	pthread_mutex_init(&xmi_random_mutex,NULL);
-	
+
 
 	//start the thread
 	if (pthread_create(&xmi_random_pthread_t, NULL, xmi_random_thread,NULL) != 0) {
@@ -141,7 +141,7 @@ int xmi_start_random_acquisition_dev(void) {
 }
 int xmi_end_random_acquisition_dev(void){
 #if DEBUG == 2
-	fprintf(stdout,"Entering xmi_end_random_acquisition\n");	
+	fprintf(stdout,"Entering xmi_end_random_acquisition\n");
 #endif
 	if (xmi_random_active == 0) {
 		fprintf(stderr,"Random number acquisition inactive\n");
@@ -161,19 +161,19 @@ int xmi_end_random_acquisition_dev(void){
 	free(xmi_random_numbers);
 	xmi_numbers_in_memory=0;
 	//destroy mutex
-	pthread_mutex_destroy(&xmi_random_mutex);	
+	pthread_mutex_destroy(&xmi_random_mutex);
 	//close device
 	fclose(random_devicePtr);
 
 
-	xmi_random_active=0;	
+	xmi_random_active=0;
 
 	return 1;
 }
 int xmi_get_random_number_dev(unsigned long int *number) {
 	int rv;
 #if DEBUG == 2
-	fprintf(stdout,"Entering xmi_get_random_number\n");	
+	fprintf(stdout,"Entering xmi_get_random_number\n");
 #endif
 	struct timespec sleep_time = {.tv_sec = (time_t) SLEEP_TIME*2,.tv_nsec = 0};
 
@@ -185,7 +185,7 @@ int xmi_get_random_number_dev(unsigned long int *number) {
 #if DEBUG == 2
 	fprintf(stdout,"Before lock\n");
 #endif
-	rv=pthread_mutex_lock(&xmi_random_mutex);	
+	rv=pthread_mutex_lock(&xmi_random_mutex);
 #if DEBUG == 2
 	fprintf(stdout,"After lock\n",rv);
 #endif
@@ -197,7 +197,7 @@ int xmi_get_random_number_dev(unsigned long int *number) {
 		fprintf(stdout,"Found a random in array\n");
 #endif
 		//a number is available -> use it
-		*number = xmi_random_numbers[--xmi_numbers_in_memory];	
+		*number = xmi_random_numbers[--xmi_numbers_in_memory];
 		//unlock
 		rv=pthread_mutex_unlock(&xmi_random_mutex);
 	}
@@ -211,16 +211,16 @@ int xmi_get_random_number_dev(unsigned long int *number) {
 #if DEBUG == 2
 			fprintf(stdout,"Found no random in array... sleeping\n");
 #endif
-			nanosleep(&sleep_time,NULL);	
-			pthread_mutex_lock(&xmi_random_mutex);	
+			nanosleep(&sleep_time,NULL);
+			pthread_mutex_lock(&xmi_random_mutex);
 			if (xmi_numbers_in_memory > 0) {
-				*number = xmi_random_numbers[--xmi_numbers_in_memory];	
-				rv=pthread_mutex_unlock(&xmi_random_mutex);	
+				*number = xmi_random_numbers[--xmi_numbers_in_memory];
+				rv=pthread_mutex_unlock(&xmi_random_mutex);
 				break;
 			}
-			rv=pthread_mutex_unlock(&xmi_random_mutex);	
+			rv=pthread_mutex_unlock(&xmi_random_mutex);
 		}
-		
+
 	}
 #if DEBUG == 2
 	fprintf(stdout,"Found number: %lu\n",*number);

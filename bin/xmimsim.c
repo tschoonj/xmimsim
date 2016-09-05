@@ -249,7 +249,7 @@ XMI_MAIN
 		xmimsim_hdf5_escape_ratios = xmimsim_hdf5_escape_ratios_utf8;
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());	
+		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
@@ -259,7 +259,7 @@ XMI_MAIN
 	}
 
 	g_option_context_free(context);
-	
+
 	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
 		options.omp_num_threads = xmi_omp_get_max_threads();
@@ -281,7 +281,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
 	}
 
-		
+
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -327,12 +327,12 @@ XMI_MAIN
 
 	if (options.verbose)
 		g_fprintf(stdout,"Reading HDF5 datafile\n");
-	
+
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr,options) == 0) {
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
-	}	
+	}
 	else if (options.verbose)
 		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
@@ -389,7 +389,7 @@ XMI_MAIN
 		if (solid_angle_def == NULL) {
 			g_fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
 			return 1;
-		}	
+		}
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -401,15 +401,15 @@ XMI_MAIN
 		g_fprintf(stderr,"Error in xmi_main_msim\n");
 		return 1;
 	}
-	if (solid_angle_def != NULL)	
+	if (solid_angle_def != NULL)
 		xmi_free_solid_angle(solid_angle_def);
-	
+
 	if (options.verbose)
 		g_fprintf(stdout,"Interactions simulation finished\n");
 
 
 
-	//free what needs freeing 
+	//free what needs freeing
 #ifdef HAVE_OPENMPI
 	if (rank != 0) {
 		xmi_free_input_F(&inputFPtr);
@@ -434,9 +434,9 @@ XMI_MAIN
 
 	if (rank == 0) {
 		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*input->detector->nchannels,sizeof(double));
-		brute_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
+		brute_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));
 		if (options.use_variance_reduction == 1)
-			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));	
+			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -448,7 +448,7 @@ XMI_MAIN
 	if (options.use_variance_reduction == 1)
 		MPI_Reduce(var_red_history, var_red_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 
-	
+
 	MPI_Finalize();
 
 
@@ -468,13 +468,13 @@ XMI_MAIN
 
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
-		
+
 #if DEBUG == 1
-		fprintf(stdout,"Ba-KL2: %li\n",ARRAY3D_FORTRAN(brute_historydef,56,abs(KL2_LINE),1,100,385,1));	
-//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),1,100,385,2));	
-//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),1,100,385,2));	
-//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),2,100,385,2));	
-//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),2,100,385,2));	
+		fprintf(stdout,"Ba-KL2: %li\n",ARRAY3D_FORTRAN(brute_historydef,56,abs(KL2_LINE),1,100,385,1));
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),1,100,385,2));
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),1,100,385,2));
+//		fprintf(stdout,"Ni-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,28,abs(KL3_LINE),2,100,385,2));
+//		fprintf(stdout,"Fe-KL3: %i\n",ARRAY3D_FORTRAN(brute_historydef,26,abs(KL3_LINE),2,100,385,2));
 #endif
 
 
@@ -493,7 +493,7 @@ XMI_MAIN
 		//convolute spectrum
 		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
-		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) 
+		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++)
 			fprintf(stdout,"channel 223 contents unspoiled: %g\n",channelsdef[i*input->detector->nchannels+222]);
 
 #endif
@@ -645,7 +645,7 @@ XMI_MAIN
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
 			for (j=0 ; j < input->detector->nchannels ; j++) {
-				fprintf(csv_noconvPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_noconvPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
 					fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1, input->detector->nchannels));
@@ -658,7 +658,7 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < input->detector->nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);	
+				fprintf(csv_convPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
 					fprintf(csv_convPtr,",%g",channels_conv[i][j]);
@@ -684,7 +684,7 @@ XMI_MAIN
 		else if (options.verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
-		xmi_free_output(output);	
+		xmi_free_output(output);
 		if (svg_file_conv != NULL) {
 			// 1 = convoluted
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
@@ -737,10 +737,10 @@ XMI_MAIN
 			xmi_deallocate(var_red_history);
 
 #ifdef HAVE_OPENMPI
-	}	
+	}
 #endif
 
-	xmi_free_input(input);	
+	xmi_free_input(input);
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif

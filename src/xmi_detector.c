@@ -42,13 +42,13 @@ void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
 	hid_t file_id;   /* file identifier */
-	hid_t root_group_id;	
+	hid_t root_group_id;
 	hid_t attribute_id;
 	hid_t dataspace_id;
 	herr_t status;
 
 	double version = g_ascii_strtod(VERSION, NULL);
-	
+
 
 	/* Create a new file using default properties. */
 	hid_t gcpl = H5Pcreate (H5P_FILE_CREATE);
@@ -76,7 +76,7 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	H5Tset_strpad(atype,H5T_STR_NULLTERM);
 	attribute_id = H5Acreate2(root_group_id, "kind", atype, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
 	H5Awrite(attribute_id, atype, "XMI_HDF5_ESCAPE_RATIOS");
-	
+
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
@@ -86,7 +86,7 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
 
 	/* Terminate access to the file. */
-	status = H5Fclose(file_id); 
+	status = H5Fclose(file_id);
 	return 1;
 }
 
@@ -106,10 +106,10 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	esc_ratio_inputPtr->composition->reference_layer = 1;
 
 	//modify geometry
-	esc_ratio_inputPtr->geometry->d_sample_source = 1.0;	
-	esc_ratio_inputPtr->geometry->d_source_slit = 1.0;	
-	esc_ratio_inputPtr->geometry->slit_size_x = 0.0001;	
-	esc_ratio_inputPtr->geometry->slit_size_y = 0.0001;	
+	esc_ratio_inputPtr->geometry->d_sample_source = 1.0;
+	esc_ratio_inputPtr->geometry->d_source_slit = 1.0;
+	esc_ratio_inputPtr->geometry->slit_size_x = 0.0001;
+	esc_ratio_inputPtr->geometry->slit_size_y = 0.0001;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[0]=0.0;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[1]=0.0;
 	esc_ratio_inputPtr->geometry->n_sample_orientation[2]=1.0;
@@ -165,7 +165,7 @@ int xmi_check_escape_ratios_match(struct xmi_input *A, struct xmi_input *B) {
 				return 0;
 			if (fabsl(A->detector->crystal_layers[i].weight[j]-B->detector->crystal_layers[i].weight[j]) > XMI_COMPARE_THRESHOLD)
 				return 0;
-			
+
 		}
 
 	}
@@ -198,7 +198,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	//create group name based on user and timestamp
 	g_get_current_time(&time);
 	timestring = g_time_val_to_iso8601(&time);
-	
+
 	sprintf(buffer,"%s %s",g_get_user_name(),timestring);
 
 	g_free(timestring);
@@ -262,8 +262,8 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	//write xmi_input_string
 	xmi_input_strlen = strlen(escape_ratios->xmi_input_string)+1;
 	dspace_id = H5Screate_simple(1, &xmi_input_strlen, &xmi_input_strlen);
-	dset_id = H5Dcreate(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);	
-	H5Dwrite(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL,H5P_DEFAULT, escape_ratios->xmi_input_string);	
+	dset_id = H5Dcreate(group_id, "xmi_input_string",H5T_NATIVE_CHAR, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Dwrite(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL,H5P_DEFAULT, escape_ratios->xmi_input_string);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
@@ -289,17 +289,17 @@ struct xmi_escape_ratios_data{
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 
 	hid_t dset_id, dapl_id, dspace_id;
-	hsize_t dims1[1],dims2[2], dims3[3],dims_string[1]; 
+	hsize_t dims1[1],dims2[2], dims3[3],dims_string[1];
 	hid_t group_id;
 	char *xmi_input_string;
 	struct xmi_escape_ratios_data *data = (struct xmi_escape_ratios_data *) op_data;
 	struct xmi_input *temp_input;
 	struct xmi_escape_ratios *escape_ratios;
-	
+
 
 	if (data->options.extra_verbose) {
 		fprintf(stdout,"Checking escape ratios group with name %s\n", name);
-	} 
+	}
 
 	//open group
 	group_id = H5Gopen(g_id,name, H5P_DEFAULT);
@@ -384,7 +384,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
-		//read compton escape input energies 
+		//read compton escape input energies
 		dset_id = H5Dopen(group_id, "compton escape input energies", H5P_DEFAULT);
 		dspace_id = H5Dget_space(dset_id);
 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
@@ -394,8 +394,8 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,escape_ratios->compton_escape_input_energies);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
-		
-		//read compton escape output energies 
+
+		//read compton escape output energies
 		dset_id = H5Dopen(group_id, "compton escape output energies", H5P_DEFAULT);
 		dspace_id = H5Dget_space(dset_id);
 		if (H5Sget_simple_extent_ndims(dspace_id) != 1) {
@@ -451,7 +451,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 		//attribute does not exist
 		g_fprintf(stderr, "Escape ratios file %s does not contain the kind tag\n", hdf5_file);
 		g_fprintf(stderr, "The file will be deleted and recreated\n");
-		
+
 		H5Gclose(root_group_id);
 		H5Fclose(file_id);
 		if(g_unlink(hdf5_file) == -1) {
@@ -480,7 +480,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 		H5Gclose(root_group_id);
 		H5Fclose(file_id);
 		return 0;
-	} 
+	}
 
 
 	attribute_id = H5Aopen(root_group_id, "version", H5P_DEFAULT);
@@ -488,7 +488,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 		//attribute does not exist
 		g_fprintf(stderr, "Escape ratios file %s does not contain the version tag\n", hdf5_file);
 		g_fprintf(stderr, "The file will be deleted and recreated\n");
-		
+
 		H5Gclose(root_group_id);
 		H5Fclose(file_id);
 		if(g_unlink(hdf5_file) == -1) {
@@ -534,7 +534,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	else if(iterate_rv == 0) {
 		*rv = NULL;
 	}
-	
+
 
 	if (H5Fclose(file_id) < 0) {
 		g_fprintf(stderr, "Error closing %s... Fatal error\n", hdf5_file);
@@ -572,7 +572,7 @@ int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 	//behavior is very much platform dependent
 	//general rule
 	//Linux: use g_get_user_data_dir
-	//Windows: use g_get_user_data_dir BUT 
+	//Windows: use g_get_user_data_dir BUT
 	//since it creates problems when spawned, use xmimsim.exe commandline for path
 	//Mac OS X: use g_get_user_data_dir unless when packaged in App
 
@@ -637,7 +637,7 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 		fprintf(stderr,"Warning: could not close module %s: %s\n",dlm, g_module_error());
 		return 0;
 	}
-	return 1;	
+	return 1;
 }
 
 struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {

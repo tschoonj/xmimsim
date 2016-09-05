@@ -4667,7 +4667,7 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
                         CASE DEFAULT
                                 shell_new = -1_C_INT
                 ENDSELECT
-                
+
 
 
         ELSEIF ((shell .EQ. L1_SHELL .OR. shell .EQ. L2_SHELL .OR. shell .EQ.&
@@ -4705,12 +4705,12 @@ SUBROUTINE xmi_simulate_photon_cascade_radiative(photon, shell, line,rng,inputF,
                                 shell_new = M5_SHELL
                         CASE DEFAULT
                                 shell_new = -1_C_INT
-                ENDSELECT 
+                ENDSELECT
         ELSE
                 !nothing to do... probably an M-line
                 RETURN
         ENDIF
-        
+
         IF (shell_new .EQ. -1_C_INT) RETURN
         !exit if an M shell was found while not allowed
         IF (shell_new .GE. M1_SHELL .AND. shell_new .LE. M5_SHELL .AND.&

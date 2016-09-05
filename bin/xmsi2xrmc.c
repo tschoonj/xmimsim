@@ -85,7 +85,7 @@ XMI_MAIN
 	}
 
 	if (version) {
-		fprintf(stdout,"%s",xmi_version_string());	
+		fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
@@ -136,7 +136,7 @@ XMI_MAIN
 		return 1;
 	}
 
-	if (xmi_copy_input_to_xrmc(input, 
+	if (xmi_copy_input_to_xrmc(input,
 				input_file,
 				composition_file,
 				detector_file,

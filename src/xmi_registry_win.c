@@ -80,7 +80,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
 			return 0;
-	} 
+	}
 
 
 	//Windows mode: query registry

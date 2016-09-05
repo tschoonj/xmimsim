@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int main (int argc, char *argv[]) {
 	int n,i;
-	unsigned long int *seeds;	
+	unsigned long int *seeds;
 
 
 	if (argc != 2) {

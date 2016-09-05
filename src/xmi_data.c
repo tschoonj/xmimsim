@@ -128,7 +128,7 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 			hdf5_file = strdup("xmimsimdata.h5");
 		}
 		else {
-			//if not found abort...	
+			//if not found abort...
 			g_fprintf(stderr,"Could not detect the HDF5 data file\nCheck the xmimsim installation or\nuse the --with-hdf5-data option to manually pick the file\n");
 			return 0;
 		}
@@ -156,7 +156,7 @@ int xmi_db(char *filename) {
 	hid_t dataspace_id;
 
 	double version = g_ascii_strtod(VERSION, NULL);
-	//may have to invert dims 
+	//may have to invert dims
 	hsize_t dims[2] = {nintervals_r, nintervals_e};
 	hsize_t dims2[2] = {nintervals_r, nintervals_theta2};
 	hsize_t dims3[3] = {nintervals_r, nintervals_e, nintervals_theta2};
@@ -199,7 +199,7 @@ int xmi_db(char *filename) {
 	H5Tset_strpad(atype,H5T_STR_NULLTERM);
 	attribute_id = H5Acreate2(root_group_id, "kind", atype, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
 	H5Awrite(attribute_id, atype, "XMI_HDF5_DATA");
-	
+
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 	H5Sclose(dataspace_id);
@@ -253,7 +253,7 @@ int xmi_db(char *filename) {
 	double *compton_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
 	double *fluor_yield_corr_slice = (double*) malloc(sizeof(double)*9);
 	double *precalc_xrf_cs_slice = (double*) malloc(sizeof(double)*-1*M5P5_LINE);
-	
+
 	for (i = 1 ; i <= maxz ; i++) {
 		//these two nested for loops ensure that I extract the data correctly from these fortran column major ordered arrays
 		//AND that they are written to the HDF5 file using column major...
@@ -263,9 +263,9 @@ int xmi_db(char *filename) {
 				compton_theta_slice[j+k*nintervals_r] = compton_theta[i-1+maxz*j+nintervals_r*maxz*k];
 			}
 		}
-		for (j=0 ; j < 9 ; j++) 
+		for (j=0 ; j < 9 ; j++)
 			fluor_yield_corr_slice[j] = fluor_yield_corr[i-1+maxz*j];
-	
+
 
 		//create group for the element
 		sprintf(elements,"%2i", i);
@@ -278,41 +278,41 @@ int xmi_db(char *filename) {
 		//create rayleigh theta dataset
 		dspace_id = H5Screate_simple(2, dims, dims);
 		dset_id = H5Dcreate(group_id2, "RayleighTheta_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rayleigh_theta_slice);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rayleigh_theta_slice);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		//create energies dataset
 		dspace_id = H5Screate_simple(1, dims+1, dims+1);
 		dset_id = H5Dcreate(group_id2, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, energies);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, energies);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		//create random numbers dataset
 		dspace_id = H5Screate_simple(1, dims, dims);
 		dset_id = H5Dcreate(group_id2, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		//create compton theta dataset
 		dspace_id = H5Screate_simple(2, dims, dims);
 		dset_id = H5Dcreate(group_id2, "ComptonTheta_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, compton_theta_slice);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, compton_theta_slice);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		//create corrected fluorescence yields dataset
 		dspace_id = H5Screate_simple(1, dims_corr, dims_corr);
 		dset_id = H5Dcreate(group_id2, "Corrected fluorescence yields",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, fluor_yield_corr_slice);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, fluor_yield_corr_slice);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
         	//group close -> theta_icdf
 		H5Gclose(group_id2);
-		
+
 		//Interaction probabilities
 		group_id2 = H5Gcreate(group_id, "Interaction probabilities", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -320,12 +320,12 @@ int xmi_db(char *filename) {
 		dims_ip[1] = ip[i-1].len;
 		dspace_id = H5Screate_simple(1, dims_ip+1, dims_ip+1);
 		dset_id = H5Dcreate(group_id2, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].energies);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].energies);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 		dspace_id = H5Screate_simple(2, dims_ip, dims_ip);
 		dset_id = H5Dcreate(group_id2, "Rayleigh and Compton probabilities", H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].Rayl_and_Compt);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].Rayl_and_Compt);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
@@ -338,19 +338,19 @@ int xmi_db(char *filename) {
 		dims_cp[1] = cp[i-1].shell_indices_len;
 		dspace_id = H5Screate_simple(1, dims_cp+1, dims_cp+1);
 		dset_id = H5Dcreate(group_id2, "Shell indices",H5T_NATIVE_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].shell_indices);	
+		H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].shell_indices);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Qs",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Partial profile CDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf);	
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
@@ -400,7 +400,7 @@ int xmi_db(char *filename) {
 					}
 					dspace_id = H5Screate_simple(1, dims_xrf, dims_xrf);
 					dset_id = H5Dcreate(group_id4, elements,H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-					H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, precalc_xrf_cs_slice);	
+					H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, precalc_xrf_cs_slice);
 					H5Sclose(dspace_id);
 					H5Dclose(dset_id);
 				}
@@ -422,7 +422,7 @@ int xmi_db(char *filename) {
 	for (i=0 ; i < maxz ; i++) {
 		xmi_deallocate(ip[i].energies);
 		xmi_deallocate(ip[i].Rayl_and_Compt);
-	}		
+	}
 	free(ip);
 	free(rayleigh_theta_slice);
 	free(compton_theta_slice);
@@ -452,19 +452,19 @@ int xmi_db(char *filename) {
 
 	dspace_id = H5Screate_simple(2, dims2, dims2);
 	dset_id = H5Dcreate(group_id, "Phi_ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, phi);	
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, phi);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
 	dspace_id = H5Screate_simple(1, dims2+1, dims2+1);
 	dset_id = H5Dcreate(group_id, "Thetas",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, thetas);	
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, thetas);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
 	dspace_id = H5Screate_simple(1, dims2, dims2);
 	dset_id = H5Dcreate(group_id, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);	
+	H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, rs);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
@@ -498,7 +498,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 	if (attribute_id < 0) {
 		//attribute does not exist
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the kind attribute\n", filename);
-		
+
 		H5Fclose(rv->file_id);
 		free(rv);
 		return NULL;
@@ -517,7 +517,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not have the correct kind attribute\n", filename);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", kind);
 		g_fprintf(stderr, "Aborting\n");
-		
+
 		H5Fclose(rv->file_id);
 		free(rv);
 		return NULL;
@@ -527,7 +527,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 	if (attribute_id < 0) {
 		//attribute does not exist
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the version attribute\n", filename);
-		
+
 		H5Fclose(rv->file_id);
 		free(rv);
 		return NULL;
@@ -535,9 +535,9 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 	//attribute exists -> let's read it
 	double version;
 	if (H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &version) < 0) {
-	
+
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s version tag could not be read\n", filename);
-		
+
 		H5Aclose(attribute_id);
 		H5Fclose(rv->file_id);
 		free(rv);
@@ -613,13 +613,13 @@ int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, in
 	*dims = malloc(sizeof(int)**ndims);
 	//reverse array dimensions!
 	for (i=0 ; i < *ndims ; i++)
-		(*dims)[i] = (int) dims5[*ndims-1-i]; 
+		(*dims)[i] = (int) dims5[*ndims-1-i];
 	free(dims5);
 	return 1;
 }
 
 int xmi_db_read_dataset(struct hdf5_vars *hv, void *data, int type) {
-	
+
 	H5Dread(hv->dset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 	H5Sclose(hv->dspace_id);
 	H5Dclose(hv->dset_id);

@@ -49,7 +49,7 @@ XMI_MAIN
 	}
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());	
+		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
@@ -65,7 +65,7 @@ XMI_MAIN
 	}
 
  	//fprintf(stdout,"use_unconvoluted: %i\n",use_unconvoluted);
-        
+
         if(use_unconvoluted == 1) type = 0;
 
         // type = 0 is convoluted, type = 1 is unconvoluted

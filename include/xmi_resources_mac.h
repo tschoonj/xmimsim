@@ -41,7 +41,7 @@ enum xmi_resources_mac {
 };
 
 /*
- * Queries App bundle Resources folder 
+ * Queries App bundle Resources folder
  * valid values for kind are defined in enum xmi_resources_mac
  *
  * Returns 1 on success, 0 on failure

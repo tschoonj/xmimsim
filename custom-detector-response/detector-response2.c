@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef _WIN32
 #  define       XMI_EXPORT         __declspec(dllexport)
-#else 
+#else
 #  define       XMI_EXPORT
 #endif
 XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction) {

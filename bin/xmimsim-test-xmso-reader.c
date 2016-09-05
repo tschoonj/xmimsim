@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 	double **channels_conv;
 	double **channels_unconv;
 	int nchannels;
-	
+
 	char *xmsi_file;
 	int use_zero_interactions;
 	int n_interactions;

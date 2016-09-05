@@ -50,7 +50,7 @@ int main (int argc, char *argv[]) {
 		}
 		fprintf(stdout,"density: %lf\n",input->composition->layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->composition->layers[i].thickness);
-	} 
+	}
 	fprintf(stdout,"reference_layer: %i\n", input->composition->reference_layer);
 	fprintf(stdout,"d_sample_source: %lf\n",input->geometry->d_sample_source);
 	fprintf(stdout,"n_sample_orientation[0]: %lf\n",input->geometry->n_sample_orientation[0]);
@@ -68,21 +68,21 @@ int main (int argc, char *argv[]) {
 	fprintf(stdout,"slit_size_y: %lf\n\n",input->geometry->slit_size_y);
 
 	fprintf(stdout,"excitation\n");
-	for (i = 0 ; i < input->excitation->n_discrete ; i++) { 
+	for (i = 0 ; i < input->excitation->n_discrete ; i++) {
 		fprintf(stdout,"discrete: %lf -> %lf and %lf\n",input->excitation->discrete[i].energy,input->excitation->discrete[i].horizontal_intensity,input->excitation->discrete[i].vertical_intensity);
 		fprintf(stdout,"sigma_x: %lf\n",input->excitation->discrete[i].sigma_x);
 		fprintf(stdout,"sigma_xp: %lf\n",input->excitation->discrete[i].sigma_xp);
 		fprintf(stdout,"sigma_y: %lf\n",input->excitation->discrete[i].sigma_y);
 		fprintf(stdout,"sigma_yp: %lf\n",input->excitation->discrete[i].sigma_yp);
 	}
-	for (i = 0 ; i < input->excitation->n_continuous ; i++) { 
+	for (i = 0 ; i < input->excitation->n_continuous ; i++) {
 		fprintf(stdout,"continuous: %lf -> %lf and %lf\n",input->excitation->continuous[i].energy,input->excitation->continuous[i].horizontal_intensity,input->excitation->continuous[i].vertical_intensity);
 		fprintf(stdout,"sigma_x: %lf\n",input->excitation->continuous[i].sigma_x);
 		fprintf(stdout,"sigma_xp: %lf\n",input->excitation->continuous[i].sigma_xp);
 		fprintf(stdout,"sigma_y: %lf\n",input->excitation->continuous[i].sigma_y);
 		fprintf(stdout,"sigma_yp: %lf\n",input->excitation->continuous[i].sigma_yp);
 	}
-	
+
 	fprintf(stdout,"absorbers\n");
 	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
 		for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
@@ -90,15 +90,15 @@ int main (int argc, char *argv[]) {
 		}
 		fprintf(stdout,"density: %lf\n",input->absorbers->exc_layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->absorbers->exc_layers[i].thickness);
-	} 
-	
+	}
+
 	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
 		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++) {
 			fprintf(stdout,"Z: %i   weight: %lf\n",input->absorbers->det_layers[i].Z[j],input->absorbers->det_layers[i].weight[j]);
 		}
 		fprintf(stdout,"density: %lf\n",input->absorbers->det_layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->absorbers->det_layers[i].thickness);
-	} 
+	}
 
 	fprintf(stdout,"detector\n");
 	fprintf(stdout,"Detector type: %i\n",input->detector->detector_type);
@@ -112,7 +112,7 @@ int main (int argc, char *argv[]) {
 		}
 		fprintf(stdout,"density: %lf\n",input->detector->crystal_layers[i].density);
 		fprintf(stdout,"thickness: %lf\n\n",input->detector->crystal_layers[i].thickness);
-	} 
+	}
 
 
 	rv = xmi_write_input_xml("test_output.xml",input);

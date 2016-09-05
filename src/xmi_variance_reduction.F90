@@ -105,10 +105,10 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 #endif
         !work in detector coordinate system
         line_coll%point = MATMUL(inputF%detector%n_detector_orientation_inverse, &
-                photon%coords-inputF%geometry%p_detector_window) 
+                photon%coords-inputF%geometry%p_detector_window)
         dirv = MATMUL(inputF%detector%n_detector_orientation_inverse, &
-                photon%dirv) 
-        line_coll%dirv = detector_point-line_coll%point 
+                photon%dirv)
+        line_coll%dirv = detector_point-line_coll%point
 
         !check if photon is not headed away from the detector
         IF (DOT_PRODUCT(line_coll%dirv,[1.0_C_DOUBLE,&
@@ -140,7 +140,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 !                point_coll) == 0) CALL xmi_exit(1)
 !
 !                point_coll(1) = 0.0_C_DOUBLE
-!                
+!
 !                IF (norm(point_coll) .GT. inputF%detector%collimator_radius) THEN
 !#if DEBUG == 1
 !
@@ -150,7 +150,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 !        ENDIF
         new_dirv_coords = MATMUL(inputF%detector%n_detector_orientation_new,line_coll%dirv)
 
-        
+
 
         !so we survived the collimator...
         !calculate the angle between the photon*dirv and line_coll%dirv
@@ -165,7 +165,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 
         theta = ACOS(dotprod)
         !WRITE (*,'(A,F12.5)') 'dotprod: ',dotprod
-        
+
 #if DEBUG == 1
         CALL ieee_get_flag(ieee_usual, flag_value)
         IF (ANY(flag_value)) THEN
@@ -238,14 +238,14 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 step_do_dir = 1
         ELSE
                 !moving towards lower layers
-                step_do_max = 1 
+                step_do_max = 1
                 step_do_dir = -1
         ENDIF
 
         ALLOCATE(distances(inputF%composition%n_layers))
 
         temp_coords = photon%coords
-        line%dirv  = new_dirv_coords 
+        line%dirv  = new_dirv_coords
         plane%normv = inputF%geometry%n_sample_orientation
 
         distances = 0.0_C_DOUBLE
@@ -273,7 +273,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
         inputF%geometry%p_detector_window),C_LOC(photon%coords))
 #endif
 
-                        
+
                 distances(i) = xmi_distance_two_points(temp_coords,intersect)
                 IF (distances(i) .GT. total_distance) THEN
                         distances(i) = total_distance
@@ -303,7 +303,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 temp_murhod = temp_murhod + photon%mus(j)*&
                 inputF%composition%layers(j)%density*distances(j)
         ENDDO
-        Pesc_rayl = EXP(-temp_murhod) 
+        Pesc_rayl = EXP(-temp_murhod)
 #if DEBUG == 1
         WRITE (*,'(A,ES14.5)') 'distances',distances(1)
         WRITE (*,'(A,ES12.4)') 'Pesc_rayl: ',Pesc_rayl
@@ -328,9 +328,9 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
 #endif
         Pdir_fluo = detector_solid_angle/4.0_C_DOUBLE/M_PI
 
-        IF (photon%options%use_M_lines .EQ. 1) THEN 
-                line_last = M5P5_LINE 
-        ELSE 
+        IF (photon%options%use_M_lines .EQ. 1) THEN
+                line_last = M5P5_LINE
+        ELSE
                 line_last = L3Q1_LINE
         ENDIF
 
@@ -349,7 +349,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 != Pconv*Pdir*Pesc_rayl*photon%weight
                 !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,383+1)&
                 != photon%energy
-                
+
                 temp_weight = Pconv*Pdir*Pesc_rayl*photon%weight
                 photon%var_red_history(layer%Z(i),383+1,n_ia) =&
                 photon%var_red_history(layer%Z(i),383+1,n_ia)+temp_weight
@@ -386,7 +386,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                 ENDIF
 
                 !
-                !      and finishing with FLUORESCENCE 
+                !      and finishing with FLUORESCENCE
                 !
 #define precalc_xrf_cs_local hdf5F%xmi_hdf5_Zs(hdf5F%uniqZ(layer%Z(i)))%precalc_xrf_cs
                 IF (photon%n_interactions .GT. 1 .AND. &
@@ -395,7 +395,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         PK = precalc_xrf_cs_local(K_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
-                        
+
                         PL1 = precalc_xrf_cs_local(L1_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
@@ -408,7 +408,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
 
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        IF (photon%options%use_M_lines .EQ. 1) THEN
                         PM1 = precalc_xrf_cs_local(M1_SHELL, &
                         photon%history(photon%n_interactions-1,3), &
                         ABS(photon%history(photon%n_interactions-1,1)))
@@ -455,7 +455,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         photon%energy,PL1)
                         PL3 = PL3_pure_kissel(layer%Z(i),&
                         photon%energy,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        IF (photon%options%use_M_lines .EQ. 1) THEN
                                 PM1 = PM1_pure_kissel(layer%Z(i),&
                                 photon%energy)
                                 PM2 = &
@@ -482,7 +482,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         PL3 = PL3_auger_cascade_kissel(layer%Z(i),&
                         photon%energy,&
                         PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        IF (photon%options%use_M_lines .EQ. 1) THEN
                                 PM1 =&
                                 PM1_auger_cascade_kissel(layer%Z(i),&
                                 photon%energy,&
@@ -512,7 +512,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         PL3 = PL3_rad_cascade_kissel(layer%Z(i),&
                         photon%energy,&
                         PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        IF (photon%options%use_M_lines .EQ. 1) THEN
                                 PM1 =&
                                 PM1_rad_cascade_kissel(layer%Z(i),&
                                 photon%energy,&
@@ -542,7 +542,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         PL3 = PL3_full_cascade_kissel(layer%Z(i),&
                         photon%energy,&
                         PK,PL1,PL2)
-                        IF (photon%options%use_M_lines .EQ. 1) THEN 
+                        IF (photon%options%use_M_lines .EQ. 1) THEN
                                 PM1 =&
                                 PM1_full_cascade_kissel(layer%Z(i),&
                                 photon%energy,&
@@ -662,7 +662,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                                 photon%precalc_mu_cs(j)%mu(layer%Z(i),ABS(line_new))*&
                                 inputF%composition%layers(j)%density*distances(j)
                         ENDDO
-                        Pesc = EXP(-temp_murhod) 
+                        Pesc = EXP(-temp_murhod)
                         !photon%variance_reduction(photon%current_layer,n_ia)%weight(i,ABS(line_new))&
                         != Pconv*Pdir_fluo*Pesc*photon%weight
                         !photon%variance_reduction(photon%current_layer,n_ia)%energy(i,ABS(line_new))&
@@ -825,7 +825,7 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
         IF (cdf_sum .EQ. 0.0_C_DOUBLE) THEN
                 !this is a pretty rare event
                 !but it happens every now and then...
-                !if it does -> assume no compton is produced 
+                !if it does -> assume no compton is produced
                 RETURN
         ENDIF
 
@@ -908,7 +908,7 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
                 !translate Q into the corresponding energy
                 energy_compton = xmi_get_energy_from_q(photon%energy, Q, theta)
                 IF (energy_compton .EQ. 0.0_C_DOUBLE) THEN
-                       CYCLE 
+                       CYCLE
                 ENDIF
 
                 mus=xmi_mu_calc(inputF%composition,&
@@ -918,7 +918,7 @@ SUBROUTINE xmi_compton_varred(photon, i, theta, phi, rng, inputF, hdf5F,&
                 temp_murhod = temp_murhod + mus(j)*&
                 inputF%composition%layers(j)%density*distances(j)
                 ENDDO
-                Pesc_comp = EXP(-temp_murhod) 
+                Pesc_comp = EXP(-temp_murhod)
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
                 *DCSP_Compt(layer%Z(i),photon%energy,&
@@ -980,7 +980,7 @@ SUBROUTINE xmi_compton_varred2(photon, i, theta, phi, rng, inputF, hdf5F,&
                 temp_murhod = temp_murhod + mus(j)*&
                 inputF%composition%layers(j)%density*distances(j)
                 ENDDO
-                Pesc_comp = EXP(-temp_murhod) 
+                Pesc_comp = EXP(-temp_murhod)
                 Pconv = layer%weight(i)/photon%mus(photon%current_layer)
                 Pdir = detector_solid_angle&
                 *DCSP_Compt(layer%Z(i),photon%energy,&
@@ -1036,7 +1036,7 @@ inputF, hdf5F, energy_new)
 #define hdf5_Z inputF%composition%layers(photon%current_layer)%xmi_hdf5_Z_local(current_element_index)%Ptr
 
         !K0K = 1.0_C_DOUBLE + (1.0_C_DOUBLE-COS(theta_i))*photon%energy/XMI_MEC2
-        
+
         !convert to eV
         !WRITE (*,'(A,F14.5)') 'photon energy: ',photon%energy
         !WRITE (*,'(A,F14.5)') 'theta_i: ',theta_i
@@ -1053,7 +1053,7 @@ inputF, hdf5F, energy_new)
                 pos = INT(r/(hdf5_Z%compton_profiles%&
                 random_numbers(2)-&
                 hdf5_Z%compton_profiles%&
-                random_numbers(1)))+1 
+                random_numbers(1)))+1
                 pz = interpolate_simple([&
                 hdf5_Z%compton_profiles%&
                 random_numbers(pos),&
@@ -1078,7 +1078,7 @@ inputF, hdf5F, energy_new)
                 energy = c/c_lamb/1000.0_C_DOUBLE
                 !WRITE (*,'(A,F14.5)') 'compton energy: ',energy
                 IF (energy .LE. photon%energy ) EXIT
-                IF (i .EQ. 100) THEN 
+                IF (i .EQ. 100) THEN
                         WRITE (*,'(A)') 'Infinite loop in xmi_update_photon_energy_compton_var_red'
                         WRITE (*,'(A,F12.5)') 'initial energy: ',photon%energy
                         WRITE (*,'(A,F12.5)') 'theta_i: ',theta_i

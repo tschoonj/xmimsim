@@ -3706,7 +3706,7 @@ class Plot2DBatch: public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DBatch(
 		const Glib::ustring &axis_title_x,
-		const Glib::ustring &axis_title_y) : 
+		const Glib::ustring &axis_title_y) :
 		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
 	virtual void on_double_press(double x, double y) override {
 		// do nothing -> we will connect a signal handler
@@ -4824,14 +4824,14 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	dataset->show();
 	plot_window->add_data(*dataset);
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_linearW))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_linearW)))) {
-		plot_window->set_axis_logarithmic_y(false);	
+		plot_window->set_axis_logarithmic_y(false);
 		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
 			plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 		});
 		plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 	}
 	else {
-		plot_window->set_axis_logarithmic_y(true);	
+		plot_window->set_axis_logarithmic_y(true);
 		plot_window->signal_double_press().connect([plot_window, plot_xmin, plot_xmax, real_ymin, real_ymax](double x, double y){
 			plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
 		});

@@ -8,9 +8,9 @@
    Author:      John M. Boone, Ph.D.
    Date:        Dec 15, 1997
    Description: Mammography Spectrum Program
-   
+
 Note:  This code is supplied as is and you should always check your
-       calculated results.  This program was created for ease of use, 
+       calculated results.  This program was created for ease of use,
        and was not optimized for memory efficiency or operational speed.
        Good luck.
 ==================================================================
@@ -24,7 +24,7 @@ INPUTS:
               needs to be in the range 18.0 to 42.0
 OUTPUTS:
    en:   (floating point array, at least 100 elements long)
-              lists the energies of the output spectrum              
+              lists the energies of the output spectrum
    spec: (floating point array, al least 100 elements long)
               lists the fluence values of the output spectrum
 ------------------------------------------------------------ */
@@ -41,7 +41,7 @@ OUTPUTS:
      Date: Mar 13, 1997 (04:58 pm)
      Data for creating XASMIP spectra
      This file for creating MOLYBDENUM spectra
---------------------------------------------- */ 
+--------------------------------------------- */
 static int mnn[150]={
 0,0,0,0,0,0,0,2,2,4,4,4,4,4,4,
 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
@@ -230,7 +230,7 @@ static double maa[151][4]={
      Date: Mar 13, 1997 (04:58 pm)
      Data for creating XASMIP spectra
      This file for creating RHODIUM spectra
---------------------------------------------- */ 
+--------------------------------------------- */
 static int rnn[150]={
 0,0,0,0,0,0,0,0,3,3,3,4,4,4,4,
 4,4,4,4,3,4,4,4,4,4,3,4,3,4,3,
@@ -419,7 +419,7 @@ static double raa[151][4]={
      Date: Mar 13, 1997 (04:58 pm)
      Data for creating XASMIP spectra
      This file for creating TUNGSTEN spectra
---------------------------------------------- */ 
+--------------------------------------------- */
 static int tnn[150]={
 0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,
 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
@@ -617,12 +617,12 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	if( xkv < 18. || xkv > 42. ) {
 		fprintf(stderr, "X-ray tube voltage must be between 18 and 42 keV\n");
 		return 0;
-	} 
+	}
 /* ----------------------------------------------------
 	Transfer Coefficients for Molybdenum Anode (itube=1)
 	into working arrays
 ---------------------------------------------------- */
-	if( itube==XMI_TUBE_BOONE_MOLYBDENUM ) { 
+	if( itube==XMI_TUBE_BOONE_MOLYBDENUM ) {
 		for( i=0; i<90; ++i ) {
 			en[i] = menergy[i];
 			aa[i] = maa[i];
@@ -633,7 +633,7 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	Transfer Coefficients for Rhodium Anode (itube=2)
 	into working arrays
 ---------------------------------------------------- */
-	else if( itube==XMI_TUBE_BOONE_RHODIUM ) { 
+	else if( itube==XMI_TUBE_BOONE_RHODIUM ) {
 		for( i=0; i<90; ++i ) {
 			en[i] = renergy[i];
 			aa[i] = raa[i];
@@ -644,7 +644,7 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 	Transfer Coefficients for Tungsten Anode (itube=3)
 	into working arrays
 ---------------------------------------------------- */
-	else if( itube==XMI_TUBE_BOONE_TUNGSTEN ) { 
+	else if( itube==XMI_TUBE_BOONE_TUNGSTEN ) {
 		for( i=0; i<90; ++i ) {
 			en[i] = tenergy[i];
 			aa[i] = taa[i];
@@ -672,16 +672,16 @@ static int mamspec(int itube,double xkv,double en[],double aspec[])
 			}
 		if( dsum < 0.0 ) dsum = 0.0;
 		aspec[n] = dsum;
-	}	
+	}
 	return 1;
 }
 
 int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		struct xmi_layer *tube_filter, double tube_voltage,
-		  double tube_current, double tube_solid_angle, 
+		  double tube_current, double tube_solid_angle,
 		  struct xmi_excitation **boone_spectrum
 		) {
-		
+
 	double *spec, *en;
 	struct xmi_excitation *boone_spectrum_local = NULL;
 	int i;
@@ -693,8 +693,8 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 
 	if (mamspec(tube_type, tube_voltage, en, spec) == 0)
 		return 0;
-		
-	
+
+
 	boone_spectrum_local = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
 
 	boone_spectrum_local->n_discrete = 0;
@@ -711,13 +711,13 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		intensity /= 4.0;
 		intensity *= tube_solid_angle;
 		intensity *= tube_current;
-		if( tube_type==XMI_TUBE_BOONE_MOLYBDENUM) { 
+		if( tube_type==XMI_TUBE_BOONE_MOLYBDENUM) {
 			intensity /= 26;
 		}
-		else if( tube_type==XMI_TUBE_BOONE_RHODIUM) { 
+		else if( tube_type==XMI_TUBE_BOONE_RHODIUM) {
 			intensity /= 24;
 		}
-		else if( tube_type==XMI_TUBE_BOONE_TUNGSTEN) { 
+		else if( tube_type==XMI_TUBE_BOONE_TUNGSTEN) {
 			intensity /= 37;
 		}
 
@@ -734,11 +734,11 @@ int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 
 		boone_spectrum_local->continuous = realloc(boone_spectrum_local->continuous, sizeof(struct xmi_energy_continuous)*++boone_spectrum_local->n_continuous);
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].energy = en[i];
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].horizontal_intensity = 
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].horizontal_intensity =
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].vertical_intensity = intensity/2.0;
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_x = 
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_xp = 
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y = 
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_x =
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_xp =
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y =
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_yp = 0.0;
 
 	}

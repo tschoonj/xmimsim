@@ -29,14 +29,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
 
-static void xmi_msim_layer_dialog_set_property (GObject          *object, 
+static void xmi_msim_layer_dialog_set_property (GObject          *object,
                                                 guint             prop_id,
-                                                const GValue     *value,  
-                                                GParamSpec       *pspec); 
-static void xmi_msim_layer_dialog_get_property (GObject          *object, 
+                                                const GValue     *value,
+                                                GParamSpec       *pspec);
+static void xmi_msim_layer_dialog_get_property (GObject          *object,
                                                 guint             prop_id,
-                                                GValue           *value,  
-                                                GParamSpec       *pspec); 
+                                                GValue           *value,
+                                                GParamSpec       *pspec);
 
 enum {
 	SYMBOL_COLUMN,  //The element symbol (e.g. Fe) G_TYPE_STRING
@@ -90,7 +90,7 @@ static void xmi_msim_gui_layer_dialog_class_init(XmiMsimGuiLayerDialogClass *kla
   gobject_class->set_property = xmi_msim_layer_dialog_set_property;
   gobject_class->get_property = xmi_msim_layer_dialog_get_property;
 
-  g_object_class_install_property(gobject_class,                                                   
+  g_object_class_install_property(gobject_class,
     PROP_LAYER_DIALOG_TYPE,
     g_param_spec_enum("layer-dialog-type",
     "Layer Dialog Type",
@@ -101,7 +101,7 @@ static void xmi_msim_gui_layer_dialog_class_init(XmiMsimGuiLayerDialogClass *kla
 }
 
 static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
-  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
@@ -236,11 +236,11 @@ static void xmi_msim_layer_dialog_set_property(GObject *object, guint prop_id, c
       if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a new layer");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
-      } 
+      }
       else if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a layer");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
-      } 
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -430,7 +430,7 @@ static void normalize_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *d
   xmi_scale_double(weight, n_elements, 1.0/sum);
 
   xmi_msim_gui_layer_dialog_set_composition(dialog, n_elements, Z, weight);
-  
+
   free(Z);
   free(weight);
 }
@@ -524,11 +524,11 @@ static void name_entry_changed(GtkEntry *nameEntry, GtkWidget *okButton) {
 }
 
 static void predef_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog) {
-  GtkWidget *catalog_dialog = xmi_msim_gui_catalog_dialog_new(GTK_WINDOW(dialog)); 
+  GtkWidget *catalog_dialog = xmi_msim_gui_catalog_dialog_new(GTK_WINDOW(dialog));
   gchar *buffer;
 
   if (gtk_dialog_run(GTK_DIALOG(catalog_dialog)) == GTK_RESPONSE_ACCEPT) {
-    struct xmi_layer *layer = xmi_msim_gui_catalog_dialog_get_layer(XMI_MSIM_GUI_CATALOG_DIALOG(catalog_dialog)); 
+    struct xmi_layer *layer = xmi_msim_gui_catalog_dialog_get_layer(XMI_MSIM_GUI_CATALOG_DIALOG(catalog_dialog));
     xmi_msim_gui_layer_dialog_set_composition(dialog, layer->n_elements, layer->Z, layer->weight);
     buffer = g_strdup_printf("%g", layer->density);
     gtk_entry_set_text(GTK_ENTRY(dialog->densityEntry), buffer);
@@ -632,7 +632,7 @@ static void update_sum(XmiMsimGuiLayerDialog *dialog) {
   if (n_elements > 0) {
     free(Z);
     free(weight);
-  } 
+  }
   return;
 }
 

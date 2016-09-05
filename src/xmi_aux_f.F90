@@ -1889,7 +1889,7 @@ FUNCTION xmi_poly_solve_quadratic(a, b, c, rv1, rv2) RESULT(rv)
 
         IF (a .EQ. 0.0_C_DOUBLE) THEN
                 IF (b .EQ. 0.0_C_DOUBLE) RETURN
-                rv1 = -1.0 * c / b 
+                rv1 = -1.0 * c / b
                 rv = 1_C_INT
                 RETURN
         ENDIF
@@ -2120,9 +2120,9 @@ PURE FUNCTION xmi_determinant_matrix(A) RESULT(det)
     implicit none
     real (c_double), intent(in) :: A(3,3)   !! Matrix
     real (c_double)             :: det
- 
+
     det = A(1,1)*A(2,2)*A(3,3) - A(1,1)*A(2,3)*A(3,2)&
           - A(1,2)*A(2,1)*A(3,3) + A(1,2)*A(2,3)*A(3,1)&
           + A(1,3)*A(2,1)*A(3,2) - A(1,3)*A(2,2)*A(3,1)
-ENDFUNCTION xmi_determinant_matrix 
+ENDFUNCTION xmi_determinant_matrix
 ENDMODULE

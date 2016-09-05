@@ -26,7 +26,7 @@ xmimsim_DATA = xmimsim_cat.xml
 
 
 xmimsim_cat.xml:
-	$(XMLCATALOG) --noout --create xmimsim_cat.xml 
+	$(XMLCATALOG) --noout --create xmimsim_cat.xml
 	$(XMLCATALOG) --noout --add rewriteURI \
 	"http://www.xmi.UGent.be/xml/" \
 	"file:///$(xmimsimdir)/" xmimsim_cat.xml

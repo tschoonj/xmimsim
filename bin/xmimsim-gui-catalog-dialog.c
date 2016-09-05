@@ -34,7 +34,7 @@ static void xmi_msim_gui_catalog_dialog_class_init(XmiMsimGuiCatalogDialogClass 
 
 static void xmi_msim_gui_catalog_dialog_init(XmiMsimGuiCatalogDialog *dialog) {
   gtk_window_set_title(GTK_WINDOW(dialog), "Select a layer from the catalogs");
-  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 

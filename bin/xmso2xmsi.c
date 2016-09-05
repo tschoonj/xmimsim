@@ -47,7 +47,7 @@ XMI_MAIN
 	}
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());	
+		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 

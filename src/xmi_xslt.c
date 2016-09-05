@@ -37,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static void update_xpath_nodes(xmlNodeSetPtr nodes, const xmlChar* value) {
 	int size;
 	int i;
-	   
+
 	size = (nodes) ? nodes->nodeNr : 0;
 	for(i = size - 1; i >= 0; i--) {
 		xmlNodeSetContent(nodes->nodeTab[i], value);
@@ -45,7 +45,7 @@ static void update_xpath_nodes(xmlNodeSetPtr nodes, const xmlChar* value) {
 		/*if (nodes->nodeTab[i]->type != XML_NAMESPACE_DECL)
 	    		nodes->nodeTab[i] = NULL;*/
 	}
-}		
+}
 
 
 int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
@@ -54,7 +54,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const char *params[1] = {NULL};
-	xmlXPathContextPtr xpathCtx; 
+	xmlXPathContextPtr xpathCtx;
 	xmlXPathObjectPtr xpathObj;
 	const gchar *env = g_getenv("XMI_XMSO2XMSI_XSLT");
 	xmlChar *xsltfile = NULL;
@@ -93,7 +93,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
 		xmlFreeParserCtxt(ctx);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsofile);
@@ -117,7 +117,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 		xpathObj = xmlXPathEvalExpression((const xmlChar *) "/xmimsim/general/outputfile", xpathCtx);
 		if(xpathObj == NULL) {
 		        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n","xmimsim/general/outputfile" );
-			xmlXPathFreeContext(xpathCtx); 
+			xmlXPathFreeContext(xpathCtx);
 			return 0;
 		}
 		update_xpath_nodes(xpathObj->nodesetval, (const xmlChar *) outputfile);
@@ -176,9 +176,9 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
          params[1] = s_unconvoluted;
         params[2] = NULL;
 
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL) {
@@ -197,7 +197,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
 		xmlFreeParserCtxt(ctx);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsofile);
@@ -267,9 +267,9 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	params[3] = interaction;
         params[4] = NULL;
 
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL) {
@@ -288,7 +288,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
 		xmlFreeParserCtxt(ctx);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsofile);
@@ -355,9 +355,9 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
          params[1] = s_unconvoluted;
         params[2] = NULL;
 
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL) {
@@ -376,7 +376,7 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
 		xmlFreeParserCtxt(ctx);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsofile);
@@ -443,9 +443,9 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
         params[2] = NULL;
 
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL) {
@@ -464,7 +464,7 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
 		xmlFreeParserCtxt(ctx);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsofile);
@@ -496,7 +496,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
 	const gchar **params;
-	xmlXPathContextPtr xpathCtx; 
+	xmlXPathContextPtr xpathCtx;
 	xmlXPathObjectPtr xpathObj;
 	gchar *xmsofilenew;
 
@@ -520,9 +520,9 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 
 	xsltInit();
 
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] ); 
+       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );  
+	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
 	cur = xsltParseStylesheetFile(xsltfile);
 	if (cur == NULL) {
@@ -543,7 +543,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		xmlFreeParserCtxt(ctx);
 		xsltFreeStylesheet(cur);
 		return 0;
-	}	
+	}
 
 	if (ctx->valid == 0) {
 		fprintf(stderr,"Error validating %s\n",xmsafile);
@@ -569,7 +569,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	//these two checks are actually not necessary because the DTD has been checked already...
 	if(xpathObj == NULL) {
 	        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n","/xmimsim-archive/nsteps1");
-		xmlXPathFreeContext(xpathCtx); 
+		xmlXPathFreeContext(xpathCtx);
 		xsltFreeStylesheet(cur);
 		xmlFreeDoc(doc);
 		return 0;
@@ -589,7 +589,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	if (step1 > nsteps1) {
 		fprintf(stderr, "Error: step1 cannot be greater than %i in this archive\n", nsteps1);
 		xsltFreeStylesheet(cur);
-		xmlXPathFreeContext(xpathCtx); 
+		xmlXPathFreeContext(xpathCtx);
 		xmlFreeDoc(doc);
 		return 0;
 	}
@@ -597,7 +597,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 	xpathObj = xmlXPathEvalExpression((const xmlChar *) "/xmimsim-archive/nsteps2", xpathCtx);
 	if(xpathObj == NULL) {
 	        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n","/xmimsim-archive/nsteps2");
-		xmlXPathFreeContext(xpathCtx); 
+		xmlXPathFreeContext(xpathCtx);
 		xsltFreeStylesheet(cur);
 		xmlFreeDoc(doc);
 		return 0;
@@ -607,7 +607,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		if (step2 > 0) {
 			fprintf(stderr, "Error: step2 cannot be greater than 0 in an archive with one XPath parameter\n");
 			xmlXPathFreeObject(xpathObj);
-			xmlXPathFreeContext(xpathCtx); 
+			xmlXPathFreeContext(xpathCtx);
 			xsltFreeStylesheet(cur);
 			xmlFreeDoc(doc);
 			return 0;
@@ -620,15 +620,15 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		if (step2 > nsteps2) {
 			fprintf(stderr, "Error: step2 cannot be greater than %i in this archive\n", nsteps2);
 			xmlXPathFreeObject(xpathObj);
-			xmlXPathFreeContext(xpathCtx); 
+			xmlXPathFreeContext(xpathCtx);
 			xsltFreeStylesheet(cur);
 			xmlFreeDoc(doc);
 			return 0;
 		}
 	}
 	xmlXPathFreeObject(xpathObj);
-	xmlXPathFreeContext(xpathCtx); 
-	
+	xmlXPathFreeContext(xpathCtx);
+
 
 	if (step1 == -1 && step2 == -1) {
 		//lets's speed things up a bit here...

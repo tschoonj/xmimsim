@@ -92,8 +92,8 @@ XMI_MAIN
 	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
 	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
 	gchar *hdf5_file_utf8 = NULL;
-	
-	
+
+
 	static GOptionEntry entries[] = {
 		{"enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
 		{"disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
@@ -196,7 +196,7 @@ XMI_MAIN
 		return 1;
 	}
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());	
+		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
@@ -205,7 +205,7 @@ XMI_MAIN
 		g_fprintf(stderr,"Options conflict: Use either --enable-rayleigh-normalization or --enable-roi-normalization or --enable-matrix-override or --enable-single-run. No combinations of these are allowed\n");
 		exit(1);
 	}
-	
+
 
 	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
 			options.omp_num_threads < 1) {
@@ -313,12 +313,12 @@ XMI_MAIN
 		if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr,options) == 0) {
 			g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 			return 1;
-		}	
+		}
 		else if (options.verbose)
 			g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
-		
+
 		//determine filename first
 		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
@@ -387,7 +387,7 @@ XMI_MAIN
 			}
 			else if (options.verbose)
 				g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
-	
+
 		}
 		else if (options.verbose)
 			g_fprintf(stdout,"No escape peaks requested: calculation is redundant\n");
@@ -400,7 +400,7 @@ XMI_MAIN
 
 
 
-	//calculate initial 
+	//calculate initial
 	xmi_copy_layer(xi->composition->layers + xp->ilay_pymca, &matrix);
 
 
@@ -425,13 +425,13 @@ XMI_MAIN
 					fprintf(stdout,"Element %i weight: %lf\n",xp->z_arr_quant[i],weights_arr_quant[i]);
 #endif
 					break;
-				}	
+				}
 			}
-		}	
+		}
 	}
 
 
-	xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+	xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 
 #if DEBUG == 2
 	xmi_print_layer(stdout,xi->composition->layers+xp->ilay_pymca,1);
@@ -451,7 +451,7 @@ XMI_MAIN
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr,options) == 0) {
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
-	}	
+	}
 	else if (options.verbose)
 		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
@@ -500,7 +500,7 @@ XMI_MAIN
 
 
 	//read escape ratios
-	
+
 	SetErrorMessages(0);
 
 	if (options.use_escape_peaks) {
@@ -598,7 +598,7 @@ XMI_MAIN
 		}
 #if DEBUG == 1
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmsi",i);
-		xmi_write_input_xml(tempFile, xi);	
+		xmi_write_input_xml(tempFile, xi);
 #endif
 
 
@@ -619,7 +619,7 @@ XMI_MAIN
 		zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 		//convolute_spectrum
 		channels_conv_temp = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
-	
+
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= xi->general->n_interactions_trajectory ; j++) {
 			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xi->detector->nchannels, &channels_conv_temp2, xi->detector->nchannels, options);
 			channels_conv_temp[i] = xmi_memdup(channels_conv_temp2,sizeof(double)*xi->detector->nchannels);
@@ -634,7 +634,7 @@ XMI_MAIN
 
 #endif
 
-		
+
 
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
@@ -649,8 +649,8 @@ XMI_MAIN
 				fprintf(stdout,"Element :%i\n",xp->z_arr_quant[j]);
 #endif
 
-				k_sim[j] = 0.0;	
-				l_sim[j] = 0.0;	
+				k_sim[j] = 0.0;
+				l_sim[j] = 0.0;
 
 				for (k = 0 ; k <= xi->general->n_interactions_trajectory ; k++) {
 					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,xi->general->n_interactions_trajectory);
@@ -671,7 +671,7 @@ XMI_MAIN
 
 				//K-lines
 				//make history_sum
-		
+
 
 
 #if DEBUG == 1
@@ -686,7 +686,7 @@ XMI_MAIN
 
 			}
 			for (j = 0 ; j < xp->n_z_arr_quant ; j++) {
-				//do not allow too large jumps! 
+				//do not allow too large jumps!
 				//if weight <= 0.0001 then max is 100
 				//else if weight <= 0.01 then max is 10
 				//else if weight <= 0.1 then max is 2.5
@@ -711,7 +711,7 @@ XMI_MAIN
 					max_scale = 1.05;
 				else if (weights_arr_quant[j] <= 0.7)
 					max_scale = 1.025;
-				else 
+				else
 					max_scale = 1.01;
 
 				if (k_exp[j] > 0.0 && k_sim[j] > 0.0  ) {
@@ -756,10 +756,10 @@ XMI_MAIN
 				xi->excitation->continuous[j].vertical_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
 			}
 			if (i > 1) {
-				//update concentrations in input	
+				//update concentrations in input
 				free(xi->composition->layers[xp->ilay_pymca].Z);
 				free(xi->composition->layers[xp->ilay_pymca].weight);
-				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 			}
 		}
 		else if (use_roi_normalization) {
@@ -789,17 +789,17 @@ XMI_MAIN
 				}
 			}
 			else if (i % 2 == 0) {
-				//update concentrations in input	
+				//update concentrations in input
 				free(xi->composition->layers[xp->ilay_pymca].Z);
 				free(xi->composition->layers[xp->ilay_pymca].weight);
-				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 			}
 		}
 		else {
-			//update concentrations in input	
+			//update concentrations in input
 			free(xi->composition->layers[xp->ilay_pymca].Z);
 			free(xi->composition->layers[xp->ilay_pymca].weight);
-			xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant); 
+			xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 		}
 		//reload fortran input
 		xmi_free_input_F(&inputFPtr);
@@ -808,25 +808,25 @@ XMI_MAIN
 			return 1;
 		}
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
-	
+
 		g_fprintf(stdout,"Iteration: %i\n",i);
 		g_fprintf(stdout,"sum_k: %g\n",sum_k);
 		g_fprintf(stdout,"sum_l: %g\n",sum_l);
 
 
 	}
-	
+
 
 single_run:
 
-	
+
 	xmi_free_hdf5_F(&hdf5FPtr);
 
 
 	zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 	//convolute_spectrum
 	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
-	
+
 	double **channels_def_ptrs = malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
 	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
 		channels_def_ptrs[i] = channels+i*xi->detector->nchannels;
@@ -846,7 +846,7 @@ single_run:
 	}
 	else if (options.verbose)
 		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
-	xmi_free_output(output);	
+	xmi_free_output(output);
 
 	//write to CSV and SPE if necessary...
 	csv_convPtr = csv_noconvPtr = NULL;
@@ -928,7 +928,7 @@ single_run:
 	//csv file unconvoluted
 	if (csv_noconvPtr != NULL) {
 		for (j=0 ; j < xi->detector->nchannels ; j++) {
-			fprintf(csv_noconvPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_noconvPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
 				fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channels,i,j,xi->general->n_interactions_trajectory+1,xi->detector->nchannels));
@@ -941,7 +941,7 @@ single_run:
 	//csv file convoluted
 	if (csv_convPtr != NULL) {
 		for (j=0 ; j < xi->detector->nchannels ; j++) {
-			fprintf(csv_convPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);	
+			fprintf(csv_convPtr,"%i,%g",j,(j)*xi->detector->gain+xi->detector->zero);
 			for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= xi->general->n_interactions_trajectory ; i++) {
 				//channel number, energy, counts...
 				fprintf(csv_convPtr,",%g",channels_conv[i][j]);

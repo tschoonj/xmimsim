@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
 	//init test
 	g_assert(test_init() == 1);
-	
+
 	//download file
 	g_assert(test_download_file(TEST_XMSA_URL_1) == 1);
 
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 			xmi_copy_output(archive->output[i][j], &output_copy);
 			g_assert(xmi_validate_input(output_copy->input) == 0);
 			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);
-			xmi_free_output(output_copy);	
+			xmi_free_output(output_copy);
 		}
 	}
 
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 			xmi_copy_output(archive->output[i][j], &output_copy);
 			g_assert(xmi_validate_input(output_copy->input) == 0);
 			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);
-			xmi_free_output(output_copy);	
+			xmi_free_output(output_copy);
 		}
 	}
 

@@ -25,14 +25,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
 
-static void xmi_msim_compound_dialog_set_property (GObject          *object, 
+static void xmi_msim_compound_dialog_set_property (GObject          *object,
                                                    guint             prop_id,
-                                                   const GValue     *value,  
-                                                   GParamSpec       *pspec); 
-static void xmi_msim_compound_dialog_get_property (GObject          *object, 
+                                                   const GValue     *value,
+                                                   GParamSpec       *pspec);
+static void xmi_msim_compound_dialog_get_property (GObject          *object,
                                                    guint             prop_id,
-                                                   GValue           *value,  
-                                                   GParamSpec       *pspec); 
+                                                   GValue           *value,
+                                                   GParamSpec       *pspec);
 
 static void compound_changed(GtkEditable *widget, gpointer data);
 
@@ -50,7 +50,7 @@ static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClas
   gobject_class->set_property = xmi_msim_compound_dialog_set_property;
   gobject_class->get_property = xmi_msim_compound_dialog_get_property;
 
-  g_object_class_install_property(gobject_class,                                                   
+  g_object_class_install_property(gobject_class,
     PROP_COMPOUND_DIALOG_TYPE,
     g_param_spec_enum("compound-dialog-type",
     "Compound Dialog Type",
@@ -63,7 +63,7 @@ static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClas
 }
 
 static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) {
-  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 
@@ -172,12 +172,12 @@ static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a compound");
         gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), FALSE);
 	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), TRUE);
-      } 
+      }
       else if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a compound");
 	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), FALSE);
 	gtk_widget_set_sensitive(dialog->compoundEntry, FALSE);
-      } 
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

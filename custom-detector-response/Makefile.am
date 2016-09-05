@@ -30,8 +30,8 @@ detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@
 detector_response1_la_SOURCES = detector-response1.F90
 detector_response1_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 if OS_WINDOWS
-detector_response1_la_LIBADD = ../src/libxmimsim.la 
-detector_response1_la_LDFLAGS += -no-undefined 
+detector_response1_la_LIBADD = ../src/libxmimsim.la
+detector_response1_la_LDFLAGS += -no-undefined
 if OS_WINDOWS_64
 detector_response1_la_LIBADD += -L$(CC_DIR) -lgomp_64-1
 endif
@@ -47,8 +47,8 @@ endif
 detector_response2_la_SOURCES = detector-response2.c
 detector_response2_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 if OS_WINDOWS
-detector_response2_la_LIBADD = ../src/libxmimsim.la 
-detector_response2_la_LDFLAGS += -no-undefined 
+detector_response2_la_LIBADD = ../src/libxmimsim.la
+detector_response2_la_LDFLAGS += -no-undefined
 endif
 
 clean-local:

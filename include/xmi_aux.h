@@ -43,8 +43,8 @@ void *xmi_memdup(const void *mem, size_t bytes);
 int *xmi_sort_idl_int(int *array,int n_elements);
 
 //calculates the sum of array containing n elements
-double xmi_sum_double(double *array, int n); 
-int xmi_sum_int(int *array, int n); 
+double xmi_sum_double(double *array, int n);
+int xmi_sum_int(int *array, int n);
 
 //multiplies each element of array with scale_factor
 void xmi_scale_double(double *array, int n, double scale_factor);

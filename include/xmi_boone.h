@@ -1,7 +1,7 @@
-/* 
+/*
  * Heavily modified version of John M. Boone's code
  * His code mentions no license whatsoever, so will assume it is in the public domain
- * Tom Schoonjans 2013 
+ * Tom Schoonjans 2013
  */
 
 #ifndef XMI_BOONE_H
@@ -18,7 +18,7 @@ extern "C" {
 
 int xmi_tube_boone_1661(struct xmi_layer *tube_window, struct xmi_layer *tube_filter,
 		  double tube_ripple, double tube_voltage,
-		  double tube_current, double tube_solid_angle, 
+		  double tube_current, double tube_solid_angle,
 		  struct xmi_excitation **boone_spectrum
 		  );
 
@@ -37,7 +37,7 @@ enum {
 
 int xmi_tube_boone_1863(int tube_type, struct xmi_layer *tube_window,
 		struct xmi_layer *tube_filter, double tube_voltage,
-		  double tube_current, double tube_solid_angle, 
+		  double tube_current, double tube_solid_angle,
 		  struct xmi_excitation **boone_spectrum
 		);
 

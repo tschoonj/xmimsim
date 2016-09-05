@@ -48,7 +48,7 @@ void *harvest_thread(void *sh) {
 	unsigned long int *seeds;
 	int fifofd2;
 	int i;
-	
+
 	if ((fifofd2 = open(shl->fifoslave,O_WRONLY)) == -1) {
 		syslog(LOG_ERR,"Could not open named link %s: %s",shl->fifoslave,strerror(errno));
 		exit(1);
@@ -87,12 +87,12 @@ void daemonize(const char *cmd) {
 
 	if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
 		fprintf(stderr,"%s: can't get file limit\n",cmd);
-		exit(1);	
+		exit(1);
 	}
 
 	if ((pid = fork()) < 0) {
 		fprintf(stderr,"%s: can't fork\n",cmd);
-		exit(1);	
+		exit(1);
 	}
 	else if (pid != 0)
 		exit(0);
@@ -103,18 +103,18 @@ void daemonize(const char *cmd) {
 	sa.sa_flags = 0;
 	if (sigaction(SIGHUP, &sa, NULL) < 0) {
 		fprintf(stderr,"%s: can't ignore SIGHUP\n",cmd);
-		exit(1);	
+		exit(1);
 	}
 	if ((pid = fork()) < 0) {
 		fprintf(stderr,"%s: can't fork\n",cmd);
-		exit(1);	
+		exit(1);
 	}
 	else if (pid != 0)
 		exit(0);
 
-	if (chdir("/") < 0) {		
+	if (chdir("/") < 0) {
 		fprintf(stderr,"%s: can't change directory to /\n",cmd);
-		exit(1);	
+		exit(1);
 	}
 
 	if (rl.rlim_max == RLIM_INFINITY)
@@ -135,13 +135,13 @@ void daemonize(const char *cmd) {
 
 	setlogmask(LOG_UPTO(LOG_DEBUG));
 
-} 
+}
 
 
 int lockfile(int fd) {
 	struct flock fl = {.l_type = F_WRLCK, .l_start = 0, .l_whence = SEEK_SET, .l_len = 0};
 
-	return fcntl(fd,F_SETLK, &fl);		
+	return fcntl(fd,F_SETLK, &fl);
 }
 
 
@@ -267,7 +267,7 @@ int main (int argc, char *argv[]) {
 		syslog(LOG_ERR,"xmi_start_random_acquisition_dev error");
 		exit(1);
 	}
-	
+
 
 	syslog(LOG_INFO,"daemon running succesfully");
 
@@ -285,12 +285,12 @@ int main (int argc, char *argv[]) {
 			syslog(LOG_ERR,"Could not open named link" FIFOMASTER ": %s",strerror(errno));
 			exit(1);
 		}
-	
+
 		//read pid from slave
 		if (read(fifofd,pidslave,3*sizeof(long int)) != 3*sizeof(long int)) {
 			syslog(LOG_ERR,"Error reading from " FIFOMASTER ": %s",strerror(errno));
 			exit(1);
-		}				
+		}
 		close(fifofd);
 		unlink(FIFOMASTER);
 #ifdef DEBUG
@@ -299,7 +299,7 @@ int main (int argc, char *argv[]) {
 		//allocate necessary variables
 		sh = (struct harvester *) malloc(sizeof(struct harvester));
 		ht = (pthread_t *) malloc(sizeof(pthread_t));
-		
+
 		//create slave fifo
 		sprintf(sh->fifoslave, FIFOSLAVE "%li.%li",pidslave[0],pidslave[1]);
 		sh->nseeds = pidslave[2];

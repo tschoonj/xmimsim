@@ -44,7 +44,7 @@ ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++)\
 	  	argv[argc_counter] = g_utf16_to_utf8(WinArgv[argc_counter],-1, NULL, NULL, NULL);\
 	LocalFree(WinArgv);
-	
+
 #else
   #define XMI_ARGC_ORIG argc
   #define XMI_ARGV_ORIG argv

@@ -39,7 +39,7 @@ REAL (C_DOUBLE), PARAMETER, DIMENSION(100) :: omegaL = [&
 0.234, 0.245, 0.257, 0.269, 0.281, 0.293, 0.305, 0.318, 0.331, 0.343,&
 0.356, 0.369, 0.382, 0.395, 0.409, 0.422, 0.435, 0.448, 0.461, 0.474,&
 0.486, 0.499, 0.511, 0.524, 0.536, 0.548, 0.560, 0.572, 0.583, 0.595&
-] 
+]
 
 
 
@@ -288,7 +288,7 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                         WRITE (error_unit,*) &
                         'Unknown line encountered in xmi_tube_ebel: check your xraylib version'
                         xmi_tube_ebel = 0
-                        RETURN 
+                        RETURN
                 ENDSELECT
                 !next if edge energy is non-existent
                 !can only happen for low Z elements
@@ -296,7 +296,7 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                 !next if tube voltage is too low to excite the shell
                 IF (my_disc_edge_energy .GT. tube_voltage) CYCLE
                 ndisc = ndisc + 1
-                IF (ndisc .EQ. 1) THEN 
+                IF (ndisc .EQ. 1) THEN
                         ALLOCATE(disc_lines(1))
                         ALLOCATE(disc_edge_energy(1))
                         ALLOCATE(ebel_spectrum_disc(1))
@@ -315,8 +315,8 @@ DO i=KL1_LINE,L3Q1_LINE,-1
                         MOVE_ALLOC(ebel_spectrum_disc_temp,ebel_spectrum_disc)
                 ENDIF
                 disc_lines(ndisc) = i
-                disc_edge_energy(ndisc) = my_disc_edge_energy 
-                
+                disc_edge_energy(ndisc) = my_disc_edge_energy
+
                 ebel_spectrum_disc(ndisc)%energy = REAL(LineEnergy(tube_anodeF%Z(1),i),C_DOUBLE)
 
 
@@ -343,10 +343,10 @@ logu0 = LOG(u0)
 oneovers = (SQRT(u0)*logu0 + 2.0_C_DOUBLE*(1.0_C_DOUBLE - SQRT(u0)) )
 oneovers = oneovers/(u0*logu0+1.0_C_DOUBLE-u0)
 oneovers = 1.0_C_DOUBLE+(16.05_C_DOUBLE*SQRT(0.0135_C_DOUBLE*tube_anodeF%Z(1)/disc_edge_energy)*oneovers)
-WHERE (disc_lines .GT. L1L2_LINE) 
+WHERE (disc_lines .GT. L1L2_LINE)
         !K lines
         oneovers = (zk*bk/tube_anodeF%Z(1))*(u0*logu0 + 1.0_C_DOUBLE - u0) * oneovers
-ELSEWHERE 
+ELSEWHERE
         !L lines
         oneovers = (zl*bl/tube_anodeF%Z(1))*(u0*logu0 + 1.0_C_DOUBLE - u0) * oneovers
 ENDWHERE
@@ -375,7 +375,7 @@ IF (tube_transmission .EQ. 0_C_INT) THEN
         WHERE (rhelp > 0.0_C_DOUBLE)&
                 rhelp = (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*rhelp))/rhelp
 ELSE
-        WHERE (rhelp > 0.0_C_DOUBLE) 
+        WHERE (rhelp > 0.0_C_DOUBLE)
                 rhelp = (EXP(-tau*(tube_anodeF%density*tube_anodeF%thickness -2.0_C_DOUBLE*rhoz)/sinalphax) -&
                 EXP(-tau*tube_anodeF%density*tube_anodeF%thickness /sinalphax))/rhelp
         ENDWHERE
@@ -465,7 +465,7 @@ ebel_excitation_rv%continuous = C_LOC(ebel_spectrum_cont_rv(1))
 IF (ndisc .GT. 0) THEN
 ebel_excitation_rv%discrete = C_LOC(ebel_spectrum_disc_rv(1))
 ELSE
-ebel_excitation_rv%discrete= C_NULL_PTR 
+ebel_excitation_rv%discrete= C_NULL_PTR
 ENDIF
 
 

@@ -50,7 +50,7 @@ GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *
 }
 
 static void xmi_msim_gui_export_canvas_dialog_init(XmiMsimGuiExportCanvasDialog *dialog) {
-  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);	
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 
@@ -96,7 +96,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
       return FALSE;
     }
     cairo_ps_surface_set_eps(surface,1);
-    
+
   }
   else if (filter == dialog->pdf_filter) {
     if (strcasecmp(filename + strlen(filename) - 4, ".pdf") != 0) {

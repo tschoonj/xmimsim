@@ -39,9 +39,9 @@ int xmi_end_random_acquisition(void) {
 int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 	//assume numbers is already allocated!!!
 
-	/*	
+	/*
 	 *
-	 *This works perfect on Windows 
+	 *This works perfect on Windows
 	 *
 	 */
 #ifdef HAVE_RAND_S
@@ -57,8 +57,8 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		}
 		numbers[i] = number;
 	}
-#else	
-	
+#else
+
 	long int i;
 	guint32 result;
 	unsigned long int result2;

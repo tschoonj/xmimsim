@@ -113,7 +113,7 @@ class Plot2DSources : public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DSources(
 		const Glib::ustring &axis_title_x,
-		const Glib::ustring &axis_title_y) : 
+		const Glib::ustring &axis_title_y) :
 		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
 	virtual void on_double_press(double x, double y) override {
 		// do nothing -> we will connect a signal handler
@@ -921,18 +921,18 @@ static void generate_tube_spectrum(struct generate *gen) {
 	int i,j;
 	if (n_eff > 0) {
 		struct xmi_cubic_spline *spline = xmi_cubic_spline_init(eff_x, eff_y, n_eff);
-		
+
 		for (i = 0 ; i < gen->excitation_tube->n_continuous ; i++) {
-			gen->excitation_tube->continuous[i].horizontal_intensity = 
-			gen->excitation_tube->continuous[i].vertical_intensity = 
-			gen->excitation_tube->continuous[i].horizontal_intensity * 
+			gen->excitation_tube->continuous[i].horizontal_intensity =
+			gen->excitation_tube->continuous[i].vertical_intensity =
+			gen->excitation_tube->continuous[i].horizontal_intensity *
 			xmi_cubic_spline_eval(spline, gen->excitation_tube->continuous[i].energy);
 		}
 
 		for (i = 0 ; i < gen->excitation_tube->n_discrete ; i++) {
-			gen->excitation_tube->discrete[i].horizontal_intensity = 
-			gen->excitation_tube->discrete[i].vertical_intensity = 
-			gen->excitation_tube->discrete[i].horizontal_intensity * 
+			gen->excitation_tube->discrete[i].horizontal_intensity =
+			gen->excitation_tube->discrete[i].vertical_intensity =
+			gen->excitation_tube->discrete[i].horizontal_intensity *
 			xmi_cubic_spline_eval(spline, gen->excitation_tube->discrete[i].energy);
 		}
 		g_free(eff_x);
@@ -1000,7 +1000,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_tubeW))) {
 #ifdef HAVE_CXX
-		plot_window->set_axis_logarithmic_y(false);	
+		plot_window->set_axis_logarithmic_y(false);
 #else
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
@@ -1278,7 +1278,7 @@ static void generate_nuclide_spectrum(struct generate *gen) {
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gen->linear_nuclideW))) {
 #ifdef HAVE_CXX
-		plot_window->set_axis_logarithmic_y(false);	
+		plot_window->set_axis_logarithmic_y(false);
 #else
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,get_tickstep(plot_ymin_lin, plot_ymax),5);
 		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);

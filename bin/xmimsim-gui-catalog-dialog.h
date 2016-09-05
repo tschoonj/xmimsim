@@ -32,7 +32,7 @@ typedef struct _XmiMsimGuiCatalogDialog        XmiMsimGuiCatalogDialog;
 typedef struct _XmiMsimGuiCatalogDialogClass   XmiMsimGuiCatalogDialogClass;
 
 struct _XmiMsimGuiCatalogDialog
-{ 
+{
   GtkDialog parent_instance;
   GtkWidget *nist_radioW;
   GtkWidget *user_radioW;

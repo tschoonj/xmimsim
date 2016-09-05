@@ -21,7 +21,7 @@ CONTAINS
 SUBROUTINE poly_solve_quadratic_test(a, b, c)
 IMPLICIT NONE
 REAL (C_DOUBLE), INTENT(IN) :: a, b, c
-REAL (C_DOUBLE) :: fgsl_status, xmi_status 
+REAL (C_DOUBLE) :: fgsl_status, xmi_status
 REAL (C_DOUBLE) :: fgsl_rv1, fgsl_rv2
 REAL (C_DOUBLE) :: xmi_rv1, xmi_rv2
 

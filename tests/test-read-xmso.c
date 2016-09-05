@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
 
 	//init test
 	g_assert(test_init() == 1);
-	
+
 	//download file
 	g_assert(test_download_file(TEST_XMSO_URL) == 1);
 
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	xmi_copy_output(output, &output_copy);
 	g_assert(xmi_validate_input(output_copy->input) == 0);
 	g_assert(xmi_compare_input(output->input, output_copy->input) == 0);
-	
+
 	xmi_free_output(output);
 	xmi_free_output(output_copy);
 

@@ -14,16 +14,16 @@ to compile this code.  Float variables here assume 4 bytes per value (32 bit),
 double variables assume 8 bytes (64 bit), and INT variables are also 4 byte
 (32 bit) integer variables.
 -----------------------------------------------------------------------------
-Description: 
+Description:
 ============
 This routine generates spectra (photons/mm**2 per E) for one mAs and
-the output is calibrated to the output of a constant potential generator in 
+the output is calibrated to the output of a constant potential generator in
 our laboratory (a Toshiba Model 2050 x-ray generator with a "Rotanode"
 x-ray tube with housing model DRX-573HD-S and insert model DR-5735H).
 These spectra were calibrated to output (mR/mAs) values and HVL values
 that were measured down the central axis of the x-ray beam.  The output
 data are given in the manuscript, "An accurate method for computer-
-generating tunsten anode x-ray spectra from 30 to 140 kV", JM Boone and 
+generating tunsten anode x-ray spectra from 30 to 140 kV", JM Boone and
 JA Seibert, Medical Physics 23 or 24 (don't know at this time).
 --------------------------------------------------------------------------- */
 
@@ -200,14 +200,14 @@ static double aa[151][4]={
 };
 
 /* -----------------------------------------------------------------------------
-The following code generates an x-ray spectrum based in the input kV, added 
-aluminum filtration, and voltage ripple (in percent). 
+The following code generates an x-ray spectrum based in the input kV, added
+aluminum filtration, and voltage ripple (in percent).
 Inputs:
    kvolt:  The kilovoltage of the x-ray spectrum to be generated
    ripple: The kilovoltage waveform ripple factor, in percent (0.0 to 100.0)
 Output:
     spec[]: An array containing the generated spectrum, with the keV
-    corresponding to the index number.  For example, spec[50] contains the 
+    corresponding to the index number.  For example, spec[50] contains the
     the x-ray photon fluence (photons/mm**2) for that spectrum in the energy
     region from 49.5 to 50.5 keV.
 ----------------------------------------------------------------------------- */
@@ -225,12 +225,12 @@ static int genspec1(double kvolt, double ripple, double spec[151])
 		return 0;
 	}
 	if (ripple < 0.0 || ripple > 100.0) {
-		fprintf(stderr, "Illegal generator ripple value detected in genspec1\nOnly values between 0.0 and 100.0 are accepted\n");	
+		fprintf(stderr, "Illegal generator ripple value detected in genspec1\nOnly values between 0.0 and 100.0 are accepted\n");
 		return 0;
 	}
 	if( ripple==0.0 ) {
 		dc_spectral_model( kvolt,spec );
-		return 1;		
+		return 1;
 		}
 	pi = 3.1415926535;
 	kva = kvolt;
@@ -258,12 +258,12 @@ static int genspec1(double kvolt, double ripple, double spec[151])
 
 /* -----------------------------------------------------------------------------
 The following code, dc_spectral_model, generates raw spectra with DC waveform
-characteristics.  
+characteristics.
 Inputs:
     kvolt:  The kilovoltage ranging from 30 to 140 kV
 Output:
     spec[]: An array containing the generated spectrum, with the keV
-    corresponding to the index number.  For example, spec[50] contains the 
+    corresponding to the index number.  For example, spec[50] contains the
     the x-ray photon fluence (photons/mm**2) for that spectrum in the energy
     region from 49.5 to 50.5 keV.
 ----------------------------------------------------------------------------- */
@@ -292,7 +292,7 @@ static int dc_spectral_model(double kvolt,double spec[151])
 
 int xmi_tube_boone_1661(struct xmi_layer *tube_window, struct xmi_layer *tube_filter,
 		  double tube_ripple, double tube_voltage,
-		  double tube_current, double tube_solid_angle, 
+		  double tube_current, double tube_solid_angle,
 		  struct xmi_excitation **boone_spectrum
 		  ) {
 	double spec[151];
@@ -333,11 +333,11 @@ int xmi_tube_boone_1661(struct xmi_layer *tube_window, struct xmi_layer *tube_fi
 
 		boone_spectrum_local->continuous = realloc(boone_spectrum_local->continuous, sizeof(struct xmi_energy_continuous)*++boone_spectrum_local->n_continuous);
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].energy = (double) i;
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].horizontal_intensity = 
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].horizontal_intensity =
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].vertical_intensity = intensity/2.0;
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_x = 
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_xp = 
-		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y = 
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_x =
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_xp =
+		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_y =
 		boone_spectrum_local->continuous[boone_spectrum_local->n_continuous-1].sigma_yp = 0.0;
 	}
 
