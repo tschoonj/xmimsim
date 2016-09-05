@@ -101,7 +101,7 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
         n_sum_counts = 0
 
         !prepare discrete distribution
-#if defined(HAVE_GSL2) || defined(HAVE_EASYRNG)
+#if defined(HAVE_FGSL11) || defined(HAVE_EASYRNG)
         preproc = &
         xmi_ran_discrete_preproc(channels)
 #else
