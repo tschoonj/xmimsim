@@ -331,7 +331,7 @@ xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
 
 
 xmimsim-gui-type-builtins.c: $(mkenum_sources)
-	( cd $(srcdir) && glib-mkenums \
+	( cd $(srcdir) && $(GLIB_MKENUMS) \
 		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n\n" \
 		--fprod "/* enumerations from \"@filename@\" */\n" \
 		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_GUI_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
@@ -339,7 +339,7 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
-	( cd $(srcdir) && glib-mkenums \
+	( cd $(srcdir) && $(GLIB_MKENUMS) \
 		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
 		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
