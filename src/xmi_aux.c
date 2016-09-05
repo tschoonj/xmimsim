@@ -186,7 +186,8 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 #ifdef HAVE_GUI
 #include <gtk/gtk.h>
   #ifdef HAVE_CXX
-   #include <gtkmm-plplot/gtkmm-plplotconfig.h>
+   #include <gtkmm-plplotconfig.h>
+   #include <gtkmmconfig.h>
   #else
     #include <gtkextra/gtkextra.h>
   #endif
@@ -252,7 +253,7 @@ char *xmi_version_string() {
 #ifdef HAVE_GUI
   #ifdef HAVE_CXX
 	//gtkextra
-	temp = g_strdup_printf("gtkmm-plplot %i.%i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION, GTKMM_PLPLOT_MICRO_VERSION);
+	temp = g_strdup_printf("gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
 	strcat(string,temp);
 	g_free(temp);
   #else

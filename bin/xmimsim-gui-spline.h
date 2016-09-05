@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_SPLINE_H
 #define XMIMSIM_GUI_SPLINE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 
 struct xmi_cubic_spline_coeffs {
@@ -42,5 +46,9 @@ struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n);
 void xmi_cubic_spline_free(struct xmi_cubic_spline *spline);
 
 double xmi_cubic_spline_eval(struct xmi_cubic_spline *spline, double x);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
