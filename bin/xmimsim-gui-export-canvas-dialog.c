@@ -17,6 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-export-canvas-dialog.h"
+#include <string.h>
+#include <cairo-ps.h>
+#include <cairo-pdf.h>
 
 G_DEFINE_TYPE(XmiMsimGuiExportCanvasDialog, xmi_msim_gui_export_canvas_dialog, GTK_TYPE_FILE_CHOOSER_DIALOG)
 
