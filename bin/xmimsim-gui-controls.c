@@ -1342,6 +1342,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_size_request(progressbar_solidW,-1,30);
 #if GTK_MAJOR_VERSION == 3
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_solidW), GTK_ORIENTATION_HORIZONTAL);
+  gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbar_solidW), TRUE);
 #else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_solidW), GTK_PROGRESS_LEFT_TO_RIGHT);
 #endif
@@ -1356,6 +1357,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_size_request(progressbar_mainW,-1,30);
 #if GTK_MAJOR_VERSION == 3
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_mainW), GTK_ORIENTATION_HORIZONTAL);
+  gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbar_mainW), TRUE);
 #else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_mainW), GTK_PROGRESS_LEFT_TO_RIGHT);
 #endif
@@ -1370,6 +1372,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_widget_set_size_request(progressbar_escapeW,-1,30);
 #if GTK_MAJOR_VERSION == 3
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbar_escapeW), GTK_ORIENTATION_HORIZONTAL);
+  gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbar_escapeW), TRUE);
 #else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbar_escapeW), GTK_PROGRESS_LEFT_TO_RIGHT);
 #endif

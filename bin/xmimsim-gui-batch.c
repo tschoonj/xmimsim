@@ -2494,6 +2494,7 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	GtkWidget *progressbarW = gtk_progress_bar_new();
 #if GTK_MAJOR_VERSION == 3
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbarW), GTK_ORIENTATION_HORIZONTAL);
+	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbarW), TRUE);
 #else
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbarW), GTK_PROGRESS_LEFT_TO_RIGHT);
 #endif
