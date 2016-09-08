@@ -194,7 +194,7 @@ if test "x$enable_gui" != xno ; then
 			AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
 			#PKG_CHECK_MODULES([gtk], gtk+-3.0)
 		],[
-		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.1.0,
+		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.2.0,
 			[
 			GTK_FOUND=yes
 			#PKG_CHECK_MODULES([gtk], gtk+-2.0)
