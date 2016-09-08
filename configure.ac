@@ -159,7 +159,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_FGSL],[test "x$FGSL10_FOUND" = xyes || test "x$FGSL11_FOUND" = xyes])
 
-PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0)
+PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.18.0 gobject-2.0)
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.18.0)
 

@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <glib.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "libxml/catalog.h"
 
 
@@ -42,12 +43,17 @@ int test_init () {
 		return 0;
 	}
 
-	g_assert(g_setenv("XMI_XMSO2XMSI_XSLT", XMI_XMSO2XMSI_XSLT, TRUE) == TRUE);
-	g_assert(g_setenv("XMI_XMSO2SVG_XSLT", XMI_XMSO2SVG_XSLT, TRUE) == TRUE);
-	g_assert(g_setenv("XMI_XMSO2SPE_XSLT", XMI_XMSO2SPE_XSLT, TRUE) == TRUE);
-	g_assert(g_setenv("XMI_XMSO2CSV_XSLT", XMI_XMSO2CSV_XSLT, TRUE) == TRUE);
-	g_assert(g_setenv("XMI_XMSO2HTM_XSLT", XMI_XMSO2HTM_XSLT, TRUE) == TRUE);
-	g_assert(g_setenv("XMI_XMSA2XMSO_XSLT", XMI_XMSA2XMSO_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSO2XMSI_XSLT", XMI_XMSO2XMSI_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSO2SVG_XSLT", XMI_XMSO2SVG_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSO2SPE_XSLT", XMI_XMSO2SPE_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSO2CSV_XSLT", XMI_XMSO2CSV_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSO2HTM_XSLT", XMI_XMSO2HTM_XSLT, TRUE) == TRUE);
+	assert(g_setenv("XMI_XMSA2XMSO_XSLT", XMI_XMSA2XMSO_XSLT, TRUE) == TRUE);
+
+#if !GLIB_CHECK_VERSION (2, 35, 3)
+	g_type_init();
+#endif
+	
 
 	return 1;
 }
