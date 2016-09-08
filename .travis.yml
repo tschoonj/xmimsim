@@ -30,7 +30,7 @@ matrix:
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-notifications'
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
     # precise: fgsl
     # no updater
     # no gui
@@ -53,7 +53,7 @@ matrix:
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-notifications'
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
     # precise: fgsl
     # with updater
     # with gui
@@ -80,7 +80,7 @@ matrix:
             - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
-      env: EXTRA='--disable-gui --enable-updater --enable-notifications'
+      env: EXTRA='--disable-gui --enable-updater --enable-libnotify'
 
 #before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get --yes --force-yes update && sudo apt-get --yes --force-yes install python-all-dev python-numpy cython python3-all-dev python3-numpy swig fpc gfortran php5-dev lua5.2 liblua5.2-dev ; fi
