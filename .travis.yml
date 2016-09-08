@@ -24,7 +24,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl-dev
+            - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-notifications'
     # precise: fgsl
     # no updater
@@ -46,7 +46,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl-dev
+            - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-notifications'
     # precise: fgsl
     # with updater
@@ -70,7 +70,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl-dev
+            - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--disable-gui --enable-updater --enable-notifications'
