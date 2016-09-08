@@ -1,7 +1,8 @@
 language: generic
 
 env:
-  - CPPFLAGS="-DH5_NO_DEPRECATED_SYMBOLS"
+  global:
+    - CPPFLAGS="-DH5_NO_DEPRECATED_SYMBOLS"
 
 matrix:
   include:
