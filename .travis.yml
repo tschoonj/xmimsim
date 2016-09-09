@@ -3,90 +3,95 @@ language: generic
 env:
   global:
     - CPPFLAGS="-DH5_NO_DEPRECATED_SYMBOLS"
+    - LD_LIBRARY_PATH='/usr/local/lib'
+    - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
 
 matrix:
   include:
+
+# disable precise since it cannot use our cloudfront packages
+  
     # 1
     # precise: fgsl
     # no updater
     # with gui
     # no notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+#    - os: linux
+#      sudo: required
+#      dist: precise
+#      addons:
+#        apt:
+#          sources:
+#            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#          packages:
+#            - libgsl0-dev
+#            - libfgsl0
+#            - libfgsl0-dev
+#            - libgtkextra3
+#            - libgtkextra3-dev
+#            - gfortran
+#            - libxslt1-dev
+#            - libxml2-utils
+#            - libhdf5-serial-dev
+#            - hdf5-tools
+#            - libxrl7-dev
+#            - libcurl4-openssl-dev
+#      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
     # 2
     # precise: fgsl
     # no updater
     # no gui
     # no notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
-    # 3
-    # precise: fgsl
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+#    - os: linux
+#      sudo: required
+#      dist: precise
+#      addons:
+#        apt:
+#          sources:
+#            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#          packages:
+#            - libgsl0-dev
+#            - libfgsl0
+#            - libfgsl0-dev
+#            - gfortran
+#            - libxslt1-dev
+#            - libxml2-utils
+#            - libhdf5-serial-dev
+#            - hdf5-tools
+#            - libxrl7-dev
+#            - libcurl4-openssl-dev
+#      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
+#    # 3
+#    # precise: fgsl
+#    # with updater
+#    # with gui
+#    # with notifications
+#    - os: linux
+#      sudo: required
+#      dist: precise
+#      addons:
+#        apt:
+#          sources:
+#            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#          packages:
+#            - libgsl0-dev
+#            - libfgsl0
+#            - libfgsl0-dev
+#            - libgtkextra3
+#            - libgtkextra3-dev
+#            - gfortran
+#            - libxslt1-dev
+#            - libxml2-utils
+#            - libhdf5-serial-dev
+#            - hdf5-tools
+#            - libxrl7-dev
+#            - libcurl4-openssl-dev
+#            - libjson-glib-dev
+#            - libnotify-dev
+#      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
     # 4
     # trusty: fgsl and gtkextra
     # no updater
@@ -225,11 +230,161 @@ matrix:
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
+    # 9
+    # trusty: easyRNG and gtkextra
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://d3183j54arboah.cloudfront.net/ubuntu trusty stable'
+              key_url: 'http://d3183j54arboah.cloudfront.net/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-5
+            - gcc-5
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 10
+    # trusty: easyRNG and gtkextra
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://d3183j54arboah.cloudfront.net/ubuntu trusty stable'
+              key_url: 'http://d3183j54arboah.cloudfront.net/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-5
+            - gcc-5
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 11
+    # trusty: easyRNG and gtkmm-plplot
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://d3183j54arboah.cloudfront.net/ubuntu trusty stable'
+              key_url: 'http://d3183j54arboah.cloudfront.net/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - libgtkextra3-dev
+            - gfortran-5
+            - gcc-5
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 12
+    # trusty: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://d3183j54arboah.cloudfront.net/ubuntu trusty stable'
+              key_url: 'http://d3183j54arboah.cloudfront.net/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - gfortran-5
+            - gcc-5
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 13
+    # trusty: easyRNG 
+    # no updater
+    # no gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://d3183j54arboah.cloudfront.net/ubuntu trusty stable'
+              key_url: 'http://d3183j54arboah.cloudfront.net/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - gfortran-5
+            - gcc-5
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
 
 #before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get --yes --force-yes update && sudo apt-get --yes --force-yes install python-all-dev python-numpy cython python3-all-dev python3-numpy swig fpc gfortran php5-dev lua5.2 liblua5.2-dev ; fi
 #  - if [ $TRAVIS_OS_NAME == osx ]; then brew update && brew install homebrew/versions/gcc5 swig ruby python python3 fpc lua && pip install Cython numpy && pip3 install numpy ; fi
+
+install:
+  - if [ $BUILD_XRL_AND_EASYRNG_FROM_SOURCE == yes ] ; then
+      wget http://d1jloz1k2ol9wh.cloudfront.net/xraylib-3.2.0.tar.gz
+      tar xfz xraylib-3.2.0.tar.gz
+      cd xraylib-3.2.0
+      ./configure --enable-fortran
+      make
+      make check
+      sudo make install
+      cd ..
+      http://d1ndjn3zmjkbgh.cloudfront.net/easyRNG-1.0.tar.gz
+      tar xfz easyRNG-1.0.tar.gz
+      cd easyRNG-1.0
+      ./configure --enable-fortran
+      make
+      make check
+      sudo make install
+      cd ..
+    fi
+
+
 
 script:
   - autoreconf -fi
