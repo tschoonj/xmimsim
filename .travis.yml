@@ -6,6 +6,7 @@ env:
 
 matrix:
   include:
+    # 1
     # precise: fgsl
     # no updater
     # with gui
@@ -26,11 +27,13 @@ matrix:
             - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+    # 2
     # precise: fgsl
     # no updater
     # no gui
@@ -49,11 +52,13 @@ matrix:
             - libfgsl0-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
+    # 3
     # precise: fgsl
     # with updater
     # with gui
@@ -74,6 +79,7 @@ matrix:
             - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
@@ -81,107 +87,7 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
-    # trusty: easyrng and gtkextra
-    # no updater
-    # with gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu trusty stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libeasyrng
-            - libeasyrng-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-    # trusty: easyrng and gtkextra
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu trusty stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libeasyrng
-            - libeasyrng-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
-    # trusty: easyrng and gtkmm-plplot
-    # no updater
-    # with gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu trusty stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libeasyrng
-            - libeasyrng-dev
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-    # trusty: easyrng and gtkmm-plplot
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu trusty stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libeasyrng
-            - libeasyrng-dev
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran
-            - libxslt1-dev
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+    # 4
     # trusty: fgsl and gtkextra
     # no updater
     # with gui
@@ -202,11 +108,13 @@ matrix:
             - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+    # 5
     # trusty: fgsl and gtkextra
     # with updater
     # with gui
@@ -227,6 +135,7 @@ matrix:
             - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
@@ -234,6 +143,7 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+    # 6
     # trusty: fgsl and gtkmm-plplot
     # no updater
     # with gui
@@ -255,11 +165,13 @@ matrix:
             - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+    # 7
     # trusty: fgsl and gtkmm-plplot
     # with updater
     # with gui
@@ -280,6 +192,7 @@ matrix:
             - libgtkmm-plplot2-dev
             - gfortran
             - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
@@ -287,6 +200,7 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+    # 8
     # trusty: fgsl
     # no updater
     # no gui
@@ -305,28 +219,7 @@ matrix:
             - libfgsl0-dev
             - gfortran
             - libxslt1-dev
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
-    # trusty: easyRNG
-    # no updater
-    # no gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu trusty stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libeasyrng
-            - libeasyrng-dev
-            - gfortran
-            - libxslt1-dev
+            - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
