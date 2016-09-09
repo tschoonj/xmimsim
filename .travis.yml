@@ -4,6 +4,7 @@ env:
   global:
     - CPPFLAGS="-DH5_NO_DEPRECATED_SYMBOLS"
     - CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
+    - CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
     - LD_LIBRARY_PATH='/usr/local/lib'
     - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
 
