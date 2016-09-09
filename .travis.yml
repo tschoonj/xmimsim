@@ -370,12 +370,12 @@ install:
       wget http://d1jloz1k2ol9wh.cloudfront.net/xraylib-3.2.0.tar.gz
       tar xfz xraylib-3.2.0.tar.gz
       cd xraylib-3.2.0
-      ./configure --enable-fortran
+      ./configure --enable-fortran2003
       make
       make check
       sudo make install
       cd ..
-      http://d1ndjn3zmjkbgh.cloudfront.net/easyRNG-1.0.tar.gz
+      wget http://d1ndjn3zmjkbgh.cloudfront.net/easyRNG-1.0.tar.gz
       tar xfz easyRNG-1.0.tar.gz
       cd easyRNG-1.0
       ./configure --enable-fortran
@@ -389,7 +389,7 @@ install:
 
 script:
   - autoreconf -fi
-  - ./configure ${EXTRA} && make && make check
+  - ./configure ${EXTRA} && make && make check && make distcheck
 
 notifications:
   email:
