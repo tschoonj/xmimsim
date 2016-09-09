@@ -302,12 +302,13 @@ matrix:
             - libgtkextra3-dev
             - gfortran-5
             - gcc-5
+            - g++-5
             - libxslt1-dev
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
             - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # 12
     # trusty: easyRNG and gtkmm-plplot
     # with updater
@@ -327,6 +328,7 @@ matrix:
             - libgtkmm-plplot2-dev
             - gfortran-5
             - gcc-5
+            - g++-5
             - libxslt1-dev
             - libxml2-utils
             - libhdf5-serial-dev
@@ -334,7 +336,7 @@ matrix:
             - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # 13
     # trusty: easyRNG 
     # no updater
