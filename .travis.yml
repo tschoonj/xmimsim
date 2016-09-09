@@ -80,7 +80,7 @@ matrix:
             - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
-      env: EXTRA='--disable-gui --enable-updater --enable-libnotify'
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
 
 #before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get --yes --force-yes update && sudo apt-get --yes --force-yes install python-all-dev python-numpy cython python3-all-dev python3-numpy swig fpc gfortran php5-dev lua5.2 liblua5.2-dev ; fi
@@ -88,7 +88,7 @@ matrix:
 
 script:
   - autoreconf -fi
-  - ./configure ${EXTRA} && make && make check && make distcheck
+  - ./configure ${EXTRA} && make && make check
 
 notifications:
   email:
