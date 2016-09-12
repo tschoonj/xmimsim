@@ -362,6 +362,396 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 14
+    # trusty: easyRNG and gtkextra
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-6
+            - gcc-6
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 15
+    # trusty: easyRNG and gtkextra
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-6
+            - gcc-6
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 16
+    # trusty: easyRNG and gtkmm-plplot
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - libgtkextra3-dev
+            - gfortran-6
+            - gcc-6
+            - g++-6
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 17
+    # trusty: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - gfortran-6
+            - gcc-6
+            - g++-6
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 18
+    # trusty: easyRNG 
+    # no updater
+    # no gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - gfortran-6
+            - gcc-6
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 19
+    # trusty: easyRNG and gtkextra
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-4.8
+            - gcc-4.8
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 20
+    # trusty: easyRNG and gtkextra
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-4.8
+            - gcc-4.8
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 21
+    # trusty: easyRNG and gtkmm-plplot
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - libgtkextra3-dev
+            - gfortran-4.8
+            - gcc-4.8
+            - g++-4.8
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' CXX='g++-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 22
+    # trusty: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - gfortran-4.8
+            - gcc-4.8
+            - g++-4.8
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.8' CXX='g++-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 23
+    # trusty: easyRNG 
+    # no updater
+    # no gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - gfortran-4.8
+            - gcc-4.8
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 24
+    # trusty: easyRNG and gtkextra
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-4.9
+            - gcc-4.9
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 25
+    # trusty: easyRNG and gtkextra
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkextra3
+            - libgtkextra3-dev
+            - gfortran-4.9
+            - gcc-4.9
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 26
+    # trusty: easyRNG and gtkmm-plplot
+    # no updater
+    # with gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - libgtkextra3-dev
+            - gfortran-4.9
+            - gcc-4.9
+            - g++-4.9
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 27
+    # trusty: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - libgtkmm-plplot2
+            - libgtkmm-plplot2-dev
+            - gfortran-4.9
+            - gcc-4.9
+            - g++-4.9
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+            - libjson-glib-dev
+            - libnotify-dev
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # 28
+    # trusty: easyRNG 
+    # no updater
+    # no gui
+    # no notifications
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - gfortran-4.9
+            - gcc-4.9
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libcurl4-openssl-dev
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
 
 #before_install:
