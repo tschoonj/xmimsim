@@ -371,7 +371,7 @@ matrix:
 install:
   - |
     if [ $BUILD_XRL_AND_EASYRNG_FROM_SOURCE == yes ] ; then
-      wget http://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
+      wget https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
       tar xfz xraylib-3.2.0.tar.gz
       cd xraylib-3.2.0
       ./configure --enable-fortran2003
@@ -379,7 +379,7 @@ install:
       make check
       sudo make install
       cd ..
-      wget http://easyrng.tomschoonjans.eu/easyRNG-1.0.tar.gz
+      wget https://easyrng.tomschoonjans.eu/easyRNG-1.0.tar.gz
       tar xfz easyRNG-1.0.tar.gz
       cd easyRNG-1.0
       ./configure --enable-fortran
