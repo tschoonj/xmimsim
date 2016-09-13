@@ -105,8 +105,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -132,8 +132,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -161,8 +161,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -189,8 +189,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -218,8 +218,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -243,8 +243,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -268,8 +268,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -295,8 +295,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -322,8 +322,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -350,8 +350,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-5
@@ -373,8 +373,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -398,8 +398,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -425,8 +425,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -452,8 +452,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -480,8 +480,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-6
@@ -503,138 +503,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran-4.8
-            - gcc-4.8
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 20
-    # trusty: easyRNG and gtkextra
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran-4.8
-            - gcc-4.8
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 21
-    # trusty: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
-            - gfortran-4.8
-            - gcc-4.8
-            - g++-4.8
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' CXX='g++-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 22
-    # trusty: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-4.8
-            - gcc-4.8
-            - g++-4.8
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.8' CXX='g++-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 23
-    # trusty: easyRNG 
-    # no updater
-    # no gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - gfortran-4.8
-            - gcc-4.8
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.8' FC='gfortran-4.8' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 24
-    # trusty: easyRNG and gtkextra
-    # no updater
-    # with gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -647,7 +517,7 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 25
+    # 20
     # trusty: easyRNG and gtkextra
     # with updater
     # with gui
@@ -658,8 +528,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -674,7 +544,7 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 26
+    # 21
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -685,8 +555,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -701,7 +571,7 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 27
+    # 22
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -712,8 +582,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -729,7 +599,7 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 28
+    # 23
     # trusty: easyRNG 
     # no updater
     # no gui
@@ -740,8 +610,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-4.9
@@ -761,29 +631,32 @@ matrix:
 install:
   - |
     if [ $BUILD_XRL_AND_EASYRNG_FROM_SOURCE == yes ] ; then
-      wget https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
-      tar xfz xraylib-3.2.0.tar.gz
+      wget https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz || exit 1
+      tar xfz xraylib-3.2.0.tar.gz || exit 1
       cd xraylib-3.2.0
-      ./configure --enable-fortran2003
-      make
-      make check
-      sudo make install
+      ./configure --enable-fortran2003 || exit 1
+      make || exit 1
+      make check || exit 1
+      sudo make install || exit 1
       cd ..
-      wget https://easyrng.tomschoonjans.eu/easyRNG-1.0.tar.gz
-      tar xfz easyRNG-1.0.tar.gz
+      wget https://easyrng.tomschoonjans.eu/easyRNG-1.0.tar.gz || exit 1
+      tar xfz easyRNG-1.0.tar.gz || exit 1
       cd easyRNG-1.0
-      ./configure --enable-fortran
-      make
-      make check
-      sudo make install
+      ./configure --enable-fortran || exit 1
+      make || exit 1
+      make check || exit 1
+      sudo make install || exit 1
       cd ..
     fi
 
 
 
 script:
-  - autoreconf -fi
-  - ./configure ${EXTRA} && make && make check && make distcheck
+  - autoreconf -fi || exit 1
+  - ./configure ${EXTRA} || exit 1
+  - make || exit 1
+  - make check || exit 1
+  - make distcheck || exit 1
 
 notifications:
   email:
