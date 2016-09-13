@@ -644,7 +644,7 @@ before_install:
   - |
     if [ $TRAVIS_OS_NAME == osx ] ; then
       brew update || exit 1
-      brew install autoconf automake libtool pkg-config libxml2 libxslt homebrew/science/hdf5 homebrew/science/xraylib curl $HOMEBREW_EXTRA || exit 1
+      brew install autoconf automake libxml2 libxslt homebrew/science/hdf5 homebrew/science/xraylib curl $HOMEBREW_EXTRA || exit 1
     fi
 
 install:
