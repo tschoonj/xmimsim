@@ -6,7 +6,7 @@ env:
     - CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
     - CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
     - LD_LIBRARY_PATH='/usr/local/lib'
-    - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
+    - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/libxslt/lib/pkgconfig'
 
 matrix:
   include:
@@ -628,15 +628,15 @@ matrix:
     ###
     ###
     # 24
-    # OS X 10.9 Mountain Lion: fgsl and gtkextra
+    # OS X 10.9 Mavericks: fgsl and gtkextra
     # no updater
     # with gui
     # no mac-integration
     # no openCL
     - os: osx
       sudo: required
-      osx_image: beta-xcode6.2 # OS X 10.9 Mountain Lion
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='fgsl gtkextra' CC='clang' FC='gfortran'
+      osx_image: beta-xcode6.2 # OS X 10.9 Mavericks
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='homebrew/science/fgsl gtkextra' CC='clang' FC='gfortran'
 
 
 before_install:
@@ -644,7 +644,7 @@ before_install:
   - |
     if [ $TRAVIS_OS_NAME == osx ] ; then
       brew update || exit 1
-      brew install libxml2 libxslt hdf5 xraylib curl $HOMEBREW_EXTRA || exit 1
+      brew install libxml2 libxslt homebrew/science/hdf5 homebrew/science/xraylib curl $HOMEBREW_EXTRA || exit 1
     fi
 
 install:
