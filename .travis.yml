@@ -105,8 +105,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -132,8 +132,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -161,8 +161,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -189,8 +189,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -218,8 +218,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
           packages:
             - libgsl0-dev
             - libfgsl0
@@ -243,8 +243,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -268,8 +268,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -295,8 +295,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -322,8 +322,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -350,8 +350,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-5
@@ -373,8 +373,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -398,8 +398,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -425,8 +425,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -452,8 +452,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -480,8 +480,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-6
@@ -503,8 +503,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -528,8 +528,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkextra3
@@ -555,8 +555,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -582,8 +582,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - libgtkmm-plplot2
@@ -610,8 +610,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb [arch=amd64] https://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'https://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
             - gfortran-4.9
