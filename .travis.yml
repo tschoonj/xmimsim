@@ -636,7 +636,7 @@ matrix:
     - os: osx
       sudo: required
       osx_image: beta-xcode6.2 # OS X 10.9 Mavericks
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='homebrew/science/fgsl gtkextra' CC='clang' FC='gfortran'
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra homebrew/science/fgsl' MYCC='clang' MYFC='gfortran-6' HOMEBREW_GCC='homebrew/versions/gcc6' MYLIBS='-L/usr/local/opt/gcc6/lib/gcc/6'
 
 
 before_install:
@@ -645,9 +645,16 @@ before_install:
     if [ $TRAVIS_OS_NAME == osx ] ; then
       brew update || exit 1
       brew upgrade || exit 1
-      brew install autoconf automake homebrew/science/hdf5 curl $HOMEBREW_EXTRA || exit 1
+      brew install autoconf automake homebrew/science/hdf5 curl || exit 1
+      brew uninstall --force gcc carthage || exit 1
+      brew install $HOMEBREW_GCC || exit 1
+      export CC=$MYCC
+      export FC=$MYFC
+      export LIBS=$MYLIBS
       brew install homebrew/science/xraylib --with-fortran || exit 1
-      brew install -s libxml2 libxslt
+      brew install $HOMEBREW_EXTRA
+      brew uninstall libxml2 || exit 1
+      brew install -s libxml2 libxslt || exit 1
     fi
 
 install:
