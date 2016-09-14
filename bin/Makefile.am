@@ -41,6 +41,7 @@ dist_noinst_DATA = coordinate_system.png
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
+BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES) xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.c
 endif
 
 if !OS_WINDOWS
@@ -94,7 +95,6 @@ nodist_xmimsim_gui_SOURCES = \
 	xmimsim-gui-coordinate-system.h \
 	$(NULL)
 
-BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES) xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.c
 
 mkenum_sources = \
 	xmimsim-gui-compound-dialog.h \
