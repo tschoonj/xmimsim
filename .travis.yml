@@ -784,6 +784,7 @@ before_install:
       export CC=$MYCC
       export CXX=$MYCXX
       export FC=$MYFC
+      export LIBS=$MYLIBS
       brew install homebrew/science/xraylib --with-fortran || exit 1
       brew install $HOMEBREW_EXTRA librsvg
       brew uninstall libxml2 || exit 1
