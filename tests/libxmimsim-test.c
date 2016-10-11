@@ -29,6 +29,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 #include "libxml/catalog.h"
 
+#if !GLIB_CHECK_VERSION (2, 35, 3)
+#include <glib-object.h>
+#endif
 
 int test_init () {
 	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
