@@ -41,59 +41,59 @@ test_read_xmsi_SOURCES = test-read-xmsi.c
 test_read_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_read_xmsi_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_read_xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_read_xmso_SOURCES = test-read-xmso.c
 test_read_xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_read_xmso_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_read_xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_read_xmsa_SOURCES = test-read-xmsa.c
 test_read_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_read_xmsa_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_read_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmsi_SOURCES = test-write-xmsi.c
 test_write_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_write_xmsi_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_write_xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmso_SOURCES = test-write-xmso.c
 test_write_xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_write_xmso_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_write_xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmsa_SOURCES = test-write-xmsa.c
 test_write_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_write_xmsa_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_write_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2csv_SOURCES = test-xmso2csv.c
 test_xmso2csv_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
-test_xmso2csv_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2svg_SOURCES = test-xmso2svg.c
 test_xmso2svg_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@ @gtk2_CFLAGS@ @gtkmm3_CFLAGS@
-test_xmso2svg_LDADD = libxmimsim-test.la @gtk2_LIBS@ @gtkmm3_LIBS@ @glib2_LIBS@
+test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtk2_LIBS@ @gtkmm3_LIBS@ @glib2_LIBS@ 
 
 test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
-test_xmso2htm_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_xmso2htm_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2spe_SOURCES = test-xmso2spe.c
 test_xmso2spe_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
-test_xmso2spe_LDADD = libxmimsim-test.la @glib2_LIBS@
+test_xmso2spe_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_poly_solve_quadratic_SOURCES = test-poly-solve-quadratic.F90
 test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@
@@ -101,7 +101,7 @@ test_poly_solve_quadratic_LDADD = libxmimsim-test.la @glib2_LIBS@
 
 test_cubic_spline_SOURCES = test-cubic-spline.c
 test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/bin
-test_cubic_spline_LDADD = $(top_builddir)/bin/libxmimsim-gui-spline.la libxmimsim-test.la @glib2_LIBS@
+test_cubic_spline_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ $(top_builddir)/bin/libxmimsim-gui-spline.la 
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa

@@ -19,7 +19,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
 xmlns="http://www.w3.org/1999/xhtml">
 
-<!-- <xsl:output method="html" omit-xml-declaration="yes" /> -->
+<xsl:output method="html" omit-xml-declaration="yes" indent="yes" encoding="utf-8"/>
 
 <xsl:param name="type1"></xsl:param>
 <xsl:variable name="type2"><xsl:value-of select="$type1"/></xsl:variable>
@@ -41,8 +41,10 @@ xmlns="http://www.w3.org/1999/xhtml">
 
 
 <xsl:template name="main" match="/">
+<xsl:text disable-output-escaping='yes'>&lt;!DOCTYPE html&gt;
+</xsl:text>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 <head>
   <style type="text/css">    
 
@@ -480,7 +482,7 @@ function draw_line(id, state, energy_pre, x_base, size,  min_energy, max_energy 
 
  line = '<svg id="grafiek_lijn_id" style="position: absolute;left: 600px; top: 10px;" width="100%" height="400" version="1.1" xmlns="http://www.w3.org/2000/svg">';
  line += '<path d="M ' + energy + ' 45 L ' + energy + ' 305 " stroke="blue" stroke-width="1" fill="none"/>';
- line += '</svg>';
+ line += '<\/svg>';
  x.innerHTML = line;
 
  x.style.visibility = state;
@@ -694,6 +696,8 @@ function set_all_line(linename, elementnbr)
 </script>
 </head>
 
+<body onload="treetable_rebuild('table1', {$x_base}, {$max_width}, {$min_energy}, {$max_energy} )">
+
 <xsl:for-each select="xmimsim-results/svg_graphs">
 <xsl:for-each select="graphic[id/name=$type2]">
 <xsl:variable name="graph_index"><xsl:value-of select="position() -1 "/></xsl:variable>
@@ -724,22 +728,22 @@ function set_all_line(linename, elementnbr)
 <rect x="{$x_base}" y="{$y_base}"  height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
 
 <!--x-axis-->
-<text x="{$width_extra}" y="{$height_name}" text-anchor="end" text-align="end" style="font-family: arial; font-size: 13px;"  >
+<text x="{$width_extra}" y="{$height_name}" text-anchor="end" style="font-family: arial; font-size: 13px;"  >
 <xsl:value-of select="rect/x-axis/name"/></text>
 <xsl:for-each select="rect/x-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
-<text x="{$val}" y="{$height_text}" text-anchor="middle" text-align="middle" style="font-family: arial; font-size: 11px;" ><xsl:value-of select="name"/></text>
+<text x="{$val}" y="{$height_text}" text-anchor="middle" style="font-family: arial; font-size: 11px;" ><xsl:value-of select="name"/></text>
 <path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
 </xsl:for-each>
 
 <!--y-axis-->
 <xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
-<text x="{$x_text}" y="{$y_index_pos}" text-anchor="middle" text-align="middle" style="font-family: arial; font-size: 13px;"><xsl:value-of select="rect/y-axis/name"/></text>
+<text x="{$x_text}" y="{$y_index_pos}" text-anchor="middle" style="font-family: arial; font-size: 13px;"><xsl:value-of select="rect/y-axis/name"/></text>
 <xsl:for-each select="rect/y-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
-<text x="{$x_text}" y="{$val}"  text-anchor="end" text-align="end" style="font-family: arial; font-size: 11px;"><xsl:value-of select="name"/></text>
+<text x="{$x_text}" y="{$val}"  text-anchor="end" style="font-family: arial; font-size: 11px;"><xsl:value-of select="name"/></text>
 <path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
 </xsl:for-each>
 </svg>
@@ -762,7 +766,7 @@ function set_all_line(linename, elementnbr)
 
 <xsl:variable name="title_pos"><xsl:value-of select=" $height_text + 40 + 10 * $graph_index"/></xsl:variable>
 
-<!--<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+<!--<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" font-family="H
 elvetica Condensed"  stroke="{$color}"> interaction <xsl:value-of select="$type2" />  <xsl:value-of select="$graph_index" />  </text> 
 -->
 
@@ -783,7 +787,6 @@ elvetica Condensed"  stroke="{$color}"> interaction <xsl:value-of select="$type2
 </xsl:for-each>
 
 
-<body onload="treetable_rebuild('table1', {$x_base}, {$max_width}, {$min_energy}, {$max_energy} )">
 <table  style="width: 100%; height: 100%; overflow: vertical; border: 1px solid white;">
 <COLGROUP><COL width="500px"/><COL width="*"/></COLGROUP>
 <td valign="top">       
