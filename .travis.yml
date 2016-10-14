@@ -169,7 +169,6 @@ matrix:
             - libfgsl0-dev
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
             - gfortran
             - libxslt1-dev
             - libxml2-utils
@@ -301,7 +300,6 @@ matrix:
           packages:
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
             - gfortran-5
             - gcc-5
             - g++-5
@@ -431,7 +429,6 @@ matrix:
           packages:
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
             - gfortran-6
             - gcc-6
             - g++-6
@@ -561,7 +558,6 @@ matrix:
           packages:
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - libgtkextra3-dev
             - gfortran-4.9
             - gcc-4.9
             - g++-4.9
