@@ -110,6 +110,7 @@ libxmimsim_gui_spline_la_CPPFLAGS = \
 		     -I$(top_srcdir)/include \
 		     @xraylib_CFLAGS@
 libxmimsim_gui_spline_la_LDFLAGS = -static
+libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 
 
 if ENABLE_UPDATER
