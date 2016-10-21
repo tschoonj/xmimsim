@@ -39,10 +39,14 @@ ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 	char **argv;\
 	int argc_counter;\
 	LPWSTR WinCommandLine = GetCommandLineW();\
-	gunichar2 **WinArgv = CommandLineToArgvW(WinCommandLine,&argc);\
+	LPWSTR *WinArgv = CommandLineToArgvW(WinCommandLine,&argc);\
 	argv = (char **) g_malloc(sizeof(char *)*argc);\
-	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++)\
-	  	argv[argc_counter] = g_utf16_to_utf8(WinArgv[argc_counter],-1, NULL, NULL, NULL);\
+	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++) {\
+		int size_needed = WideCharToMultiByte(CP_UTF8, 0, WinArgv[argc_counter], -1, NULL, 0, NULL, NULL); \
+		char *argvSingle = (char *) g_malloc(sizeof(char) * size_needed); \
+		WideCharToMultiByte(CP_UTF8, 0 , WinArgv[argc_counter], -1, argvSingle, size_needed, NULL, NULL); \
+		argv[argc_counter] = argvSingle; \
+	} \
 	LocalFree(WinArgv);
 
 #else
