@@ -13,87 +13,87 @@ matrix:
 
 # disable precise since it cannot use our cloudfront packages
   
-    # 1
-    # precise: fgsl
-    # no updater
-    # with gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-    # 2
-    # precise: fgsl
-    # no updater
-    # no gui
-    # no notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
-    # 3
-    # precise: fgsl
-    # with updater
-    # with gui
-    # with notifications
-    - os: linux
-      sudo: required
-      dist: precise
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-              key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkextra3
-            - libgtkextra3-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libcurl4-openssl-dev
-            - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+#   # 1
+#   # precise: fgsl
+#   # no updater
+#   # with gui
+#   # no notifications
+#   - os: linux
+#     sudo: required
+#     dist: precise
+#     addons:
+#       apt:
+#         sources:
+#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#         packages:
+#           - libgsl0-dev
+#           - libfgsl0
+#           - libfgsl0-dev
+#           - libgtkextra3
+#           - libgtkextra3-dev
+#           - gfortran
+#           - libxslt1-dev
+#           - libxml2-utils
+#           - libhdf5-serial-dev
+#           - hdf5-tools
+#           - libxrl7-dev
+#           - libcurl4-openssl-dev
+#     env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+#   # 2
+#   # precise: fgsl
+#   # no updater
+#   # no gui
+#   # no notifications
+#   - os: linux
+#     sudo: required
+#     dist: precise
+#     addons:
+#       apt:
+#         sources:
+#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#         packages:
+#           - libgsl0-dev
+#           - libfgsl0
+#           - libfgsl0-dev
+#           - gfortran
+#           - libxslt1-dev
+#           - libxml2-utils
+#           - libhdf5-serial-dev
+#           - hdf5-tools
+#           - libxrl7-dev
+#           - libcurl4-openssl-dev
+#     env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
+#   # 3
+#   # precise: fgsl
+#   # with updater
+#   # with gui
+#   # with notifications
+#   - os: linux
+#     sudo: required
+#     dist: precise
+#     addons:
+#       apt:
+#         sources:
+#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
+#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
+#         packages:
+#           - libgsl0-dev
+#           - libfgsl0
+#           - libfgsl0-dev
+#           - libgtkextra3
+#           - libgtkextra3-dev
+#           - gfortran
+#           - libxslt1-dev
+#           - libxml2-utils
+#           - libhdf5-serial-dev
+#           - hdf5-tools
+#           - libxrl7-dev
+#           - libcurl4-openssl-dev
+#           - libjson-glib-dev
+#           - libnotify-dev
+#     env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
     # 4
     # trusty: fgsl and gtkextra
     # no updater
