@@ -22,6 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include <glib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_GETLINE
 #include <sys/types.h>
 #include <stdio.h>
@@ -70,4 +74,8 @@ int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
 xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
 
 #endif
+#ifdef __cplusplus
+}
+#endif
+
 #endif

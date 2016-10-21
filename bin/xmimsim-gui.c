@@ -5151,12 +5151,16 @@ XMI_MAIN
 
 #ifdef G_OS_WIN32
 	GdkPixbuf *pixbuf;
-#define ADD_ICON(name_macro, name_pixbuf) pixbuf = gdk_pixbuf_from_pixdata(&name_pixbuf, TRUE, NULL);\
+#define ADD_ICON(name_macro, name_pixbuf) \
+						{ \
+						GInputStream *ginput = g_memory_input_stream_new_from_data(name_pixbuf, sizeof(name_pixbuf), NULL); \
+						pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL); \
 					  iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
 					  g_object_unref(pixbuf); \
+					  g_object_unref(ginput); \
 					  gtk_icon_factory_add (factory, name_macro, iconset);\
-					  gtk_icon_set_unref (iconset)
-
+				  	gtk_icon_set_unref (iconset); \
+					}
 
 	ADD_ICON(XMI_STOCK_RADIATION_WARNING, Radiation_warning_symbol_pixbuf);
 	ADD_ICON(XMI_STOCK_LOGO, Logo_xmi_msim_pixbuf);
