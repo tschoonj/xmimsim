@@ -917,11 +917,10 @@ before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get --yes --force-yes update && sudo apt-get --yes --force-yes install python-all-dev python-numpy cython python3-all-dev python3-numpy swig fpc gfortran php5-dev lua5.2 liblua5.2-dev ; fi
   - |
     if [ $TRAVIS_OS_NAME == osx ] ; then
-      brew uninstall carthage
+      brew uninstall --force gcc carthage llvm || exit 1
       brew update || exit 1
       brew upgrade || exit 1
       brew install autoconf automake homebrew/science/hdf5 curl || exit 1
-      brew uninstall --force gcc carthage llvm || exit 1
       brew install $HOMEBREW_GCC || exit 1
       export CC=$MYCC
       export CXX=$MYCXX
