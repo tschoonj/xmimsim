@@ -920,6 +920,8 @@ before_install:
       brew uninstall --force gcc carthage llvm || exit 1
       brew update || exit 1
       brew upgrade || exit 1
+      brew cleanup -s || exit 1
+      rm -rf $(brew --cache) || exit 1
       brew install autoconf automake homebrew/science/hdf5 curl || exit 1
       brew install $HOMEBREW_GCC || exit 1
       export CC=$MYCC
@@ -930,6 +932,8 @@ before_install:
       brew install $HOMEBREW_EXTRA librsvg
       brew uninstall libxml2 || exit 1
       brew install -s libxml2 libxslt || exit 1
+      brew cleanup -s || exit 1
+      rm -rf $(brew --cache) || exit 1
     fi
 
 install:
