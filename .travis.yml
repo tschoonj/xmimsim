@@ -898,7 +898,7 @@ before_install:
       brew upgrade || exit 1
       brew cleanup -s || exit 1
       rm -rf $(brew --cache) || exit 1
-      brew install autoconf automake homebrew/science/hdf5 curl || exit 1
+      brew install gsl autoconf automake homebrew/science/hdf5 curl || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       brew uninstall libxml2 || exit 1
