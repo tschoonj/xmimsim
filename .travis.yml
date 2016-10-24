@@ -950,7 +950,7 @@ script:
   - autoreconf -fi || exit 1
   - ./configure ${EXTRA} || exit 1
   - make || exit 1
-  - make check || cat build/tests/test-read-xmsi.log && exit 1
+  - make check || cat tests/test-read-xmsi.log
   - make distcheck || exit 1
 
 notifications:
