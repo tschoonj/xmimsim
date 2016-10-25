@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int test_init () {
 	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	char rewritePrefix[] = CATALOGPATH;
+	char *rewritePrefix = g_filename_to_uri(CATALOGPATH, NULL, NULL);
 
 	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
 		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
