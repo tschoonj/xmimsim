@@ -6,7 +6,7 @@ env:
     - CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
     - CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
     - LD_LIBRARY_PATH='/usr/local/lib'
-    - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/libxslt/lib/pkgconfig'
+    - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
 
 matrix:
   include:
