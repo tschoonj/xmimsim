@@ -34,8 +34,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 int test_init () {
+	LIBXML_TEST_VERSION
 	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
 	char *rewritePrefix = g_filename_to_uri(CATALOGPATH, NULL, NULL);
+	fprintf(stdout, "rewritePrefix: %s\n", rewritePrefix);
 
 	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
 		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
