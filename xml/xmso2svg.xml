@@ -36,23 +36,23 @@
 <rect x="{$x_base}" y="{$y_base}" height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
 
 <!--x-axis-->
-<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" text-align="begin" font-family="Helvetica Condensed">
+<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" font-family="Helvetica Condensed">
 <xsl:value-of select="rect/x-axis/name"/></text>
 <xsl:for-each select="rect/x-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
-<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" text-align="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
+<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
 <path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
 </xsl:for-each>
 
 <!--y-axis-->
 <xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
-<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed">
+<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" font-family="Helvetica Condensed">
 <xsl:value-of select="rect/y-axis/name"/></text>
 <xsl:for-each select="rect/y-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
-<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
+<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
 <path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
 </xsl:for-each>
 
@@ -60,7 +60,7 @@
 <xsl:variable name="color"><xsl:value-of select="points/color"/></xsl:variable>
 <xsl:variable name="title_pos"><xsl:value-of select=" $y_base - 20"/></xsl:variable>
 
-<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" font-family="H
 elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:value-of select="id/interaction" />  </text>
 
 <xsl:for-each select="points/point">
@@ -100,23 +100,23 @@ elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:v
 <rect x="{$x_base}" y="{$y_base}" height="{$height}" width = "{$width}"  fill="none" stroke="#000" ></rect>
 
 <!--x-axis-->
-<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" text-align="begin" font-family="Helvetica Condensed">
+<text x="{$width_extra}" y="{$height_text}" font-size="10px" text-anchor="begin" font-family="Helvetica Condensed">
 <xsl:value-of select="rect/x-axis/name"/></text>
 <xsl:for-each select="rect/x-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$value + $x_base"/></xsl:variable>
-<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" text-align="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
+<text x="{$val}" y="{$height_text}" font-size="10px" text-anchor="middle" font-family="Helvetica Condensed"  ><xsl:value-of select="name"/></text>
 <path d="M {$val} {$height_extra} L {$val} {$height_index}" stroke="#000"/>
 </xsl:for-each>
 
 <!--y-axis-->
 <xsl:variable name="y_index_pos"><xsl:value-of select=" $y_base - 10"/></xsl:variable>
-<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed">
+<text x="{$x_text}" y="{$y_index_pos}" font-size="10px" text-anchor="end" font-family="Helvetica Condensed">
 <xsl:value-of select="rect/y-axis/name"/></text>
 <xsl:for-each select="rect/y-axis/index">
 <xsl:variable name="value"><xsl:value-of select="value"/></xsl:variable>
 <xsl:variable name="val"><xsl:value-of select="$height_extra - $value"/></xsl:variable>
-<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" text-align="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
+<text x="{$x_text}" y="{$val}" font-size="10px" text-anchor="end" font-family="Helvetica Condensed"><xsl:value-of select="name"/></text>
 <path d="M {$x_index}  {$val} L {$x_base} {$val}" stroke="#000"/>
 </xsl:for-each>
 
@@ -136,7 +136,7 @@ elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:v
 
 <xsl:variable name="title_pos"><xsl:value-of select=" $y_base - 40 + 10 * $graph_index"/></xsl:variable>
 
-<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" text-align="begin" font-family="H
+<text x="{$x_base}" y="{$title_pos}" font-size="10px" text-anchor="begin" font-family="H
 elvetica Condensed"  stroke="{$color}"><xsl:value-of select="id/name" />  <xsl:value-of select="id/interaction" />  </text>
 
 <xsl:for-each select="points/point">

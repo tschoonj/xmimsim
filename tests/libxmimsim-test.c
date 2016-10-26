@@ -29,10 +29,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 #include "libxml/catalog.h"
 
+#if !GLIB_CHECK_VERSION (2, 35, 3)
+#include <glib-object.h>
+#endif
 
 int test_init () {
+	LIBXML_TEST_VERSION
 	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	char rewritePrefix[] = CATALOGPATH;
+	char *rewritePrefix = g_filename_to_uri(CATALOGPATH, NULL, NULL);
+	fprintf(stdout, "rewritePrefix: %s\n", rewritePrefix);
 
 	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
 		fprintf(stderr, "xmlCatalogAdd error: catalog\n");

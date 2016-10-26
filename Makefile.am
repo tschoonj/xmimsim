@@ -30,4 +30,4 @@ install-exec-hook:
 endif
 
 EXTRA_DIST = xmimsim.spec.in License.rtf
-DISTCHECK_CONFIGURE_FLAGS = CC="gcc-5" FC="gfortran-5" --enable-custom-detector-response
+DISTCHECK_CONFIGURE_FLAGS = --enable-custom-detector-response
