@@ -16,7 +16,7 @@ cd ..
 wget -q https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.12/src/hdf5-1.8.12.tar.gz
 tar xfz hdf5-1.8.12.tar.gz 
 cd hdf5-1.8.12
-./configure --disable-hl --prefix=/usr/local
+./configure --disable-hl --prefix=/usr/local CPPFLAGS=-D_GNU_SOURCE=1
 # patch hdf5 -> https://tschoonj.github.io/blog/2014/01/29/building-a-64-bit-version-of-hdf5-with-mingw-w64/
 echo "#ifndef H5_HAVE_WIN32_API" >> src/H5pubconf.h
 echo "#ifdef WIN32 /* defined for all windows systems */" >> src/H5pubconf.h
