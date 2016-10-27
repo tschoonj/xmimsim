@@ -75,7 +75,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	# install plplot from master
    	git clone --depth 1 git://git.code.sf.net/p/plplot/plplot
 	cd plplot
-	cmake -G \"MSYS Makefiles\" -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .
+	cmake -G "MSYS Makefiles" -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .
 	make
 	make install
 	cd ..
