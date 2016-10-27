@@ -75,7 +75,7 @@ test_write_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@
 
 test_xmso2csv_SOURCES = test-xmso2csv.c
 test_xmso2csv_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ \
+			-I${top_srcdir}/src @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 

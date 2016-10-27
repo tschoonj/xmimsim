@@ -2,6 +2,7 @@
 #include "libxmimsim-test.h"
 #include "xmi_msim.h"
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include <glib.h>
 #include <math.h>
 #include <unistd.h>
