@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 CONFIGURE_OPTIONS=""
 
@@ -18,7 +19,8 @@ fi
 
 cd $APPVEYOR_BUILD_FOLDER
 autoreconf -fi
-./configure CPPFLAGS=-I/usr/local/include $CONFIGURE_OPTIONS
+export CPPFLAGS=-I/usr/local/include
+./configure $CONFIGURE_OPTIONS
 make
 make check
 make distcheck
