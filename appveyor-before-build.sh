@@ -4,7 +4,7 @@ set -e
 
 # install xraylib
 wget https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
-tar xfz xraylib-3.2.0.tar.ge
+tar xfz xraylib-3.2.0.tar.gz
 cd xraylib-3.2.0
 ./configure
 make
