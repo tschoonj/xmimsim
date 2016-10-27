@@ -104,4 +104,4 @@ test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/bin
 test_cubic_spline_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ $(top_builddir)/bin/libxmimsim-gui-spline.la 
 
 clean-local:
-	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa
+	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
