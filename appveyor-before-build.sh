@@ -14,7 +14,7 @@ cd ..
 
 if test $RNG = "fgsl" ; then
 	#install gsl
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-{gsl}
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
 	wget http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.1.0.tar.gz
 	tar xfz fgsl-1.1.0.tar.gz
 	cd fgsl-1.1.0
@@ -35,7 +35,7 @@ else
 fi
 
 if test $PLOT = "gtkextra" ; then
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-{gtk2}
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtk2
 	wget https://downloads.sourceforge.net/project/gtkextra/3.3/gtkextra-3.3.2.tar.gz
 	tar xfz gtkextra-3.3.2.tar.gz 
 	cd gtkextra-3.3.2
@@ -44,7 +44,9 @@ if test $PLOT = "gtkextra" ; then
 	make install
 	cd ..
 elif test $PLOT = "gtkmm-plplot" ; then
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-{gtkmm3,boost,cmake}
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
 	# install plplot from master
    	git clone --depth 1 git://git.code.sf.net/p/plplot/plplot
 	cd plplot
