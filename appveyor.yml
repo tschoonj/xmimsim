@@ -9,53 +9,53 @@ environment:
     # gtkextra
     # no updater
     # with gui
-#    - compiler: msvc_msys2
-#      ARCH: x64
-#      MSYS2_ARCH: x86_64
-#      MSYS2_DIR: msys64
-#      MSYSTEM: MINGW64
-#      UPDATER: false
-#      RNG: fgsl
-#      PLOT: gtkextra
+    - compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: false
+      RNG: fgsl
+      PLOT: gtkextra
     # 2
     # fgsl
     # gtkextra
     # with updater
     # with gui
-#    - compiler: msvc_msys2
-#      ARCH: x64
-#      MSYS2_ARCH: x86_64
-#      MSYS2_DIR: msys64
-#      MSYSTEM: MINGW64
-#      UPDATER: true
-#      RNG: fgsl
-#      PLOT: gtkextra
+    - compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: true
+      RNG: fgsl
+      PLOT: gtkextra
     # 3
     # fgsl
     # gtkmm-plplot
     # no updater
     # with gui
-#    - compiler: msvc_msys2
-#      ARCH: x64
-#      MSYS2_ARCH: x86_64
-#      MSYS2_DIR: msys64
-#      MSYSTEM: MINGW64
-#      UPDATER: false
-#      RNG: fgsl
-#      PLOT: gtkmm-plplot
+    - compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: false
+      RNG: fgsl
+      PLOT: gtkmm-plplot
     # 4
     # fgsl
     # gtkmm-plplot
     # with updater
     # with gui
-#    - compiler: msvc_msys2
-#      ARCH: x64
-#      MSYS2_ARCH: x86_64
-#      MSYS2_DIR: msys64
-#      MSYSTEM: MINGW64
-#      UPDATER: true
-#      RNG: fgsl
-#      PLOT: gtkmm-plplot
+    - compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: true
+      RNG: fgsl
+      PLOT: gtkmm-plplot
     # 5
     # fgsl
     # no gui
@@ -131,6 +131,128 @@ environment:
 #      MSYS2_ARCH: i686
 #      MSYS2_DIR: msys64
 #      MSYSTEM: MINGW32
+    # 11
+    # fgsl
+    # gtkextra
+    # no updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: false
+      RNG: fgsl
+      PLOT: gtkextra
+    # 12
+    # fgsl
+    # gtkextra
+    # with updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: true
+      RNG: fgsl
+      PLOT: gtkextra
+    # 13
+    # fgsl
+    # gtkmm-plplot
+    # no updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: false
+      RNG: fgsl
+      PLOT: gtkmm-plplot
+    # 14
+    # fgsl
+    # gtkmm-plplot
+    # with updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: true
+      RNG: fgsl
+      PLOT: gtkmm-plplot
+    # 15
+    # fgsl
+    # no gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      RNG: fgsl
+    # 16
+    # easyRNG
+    # gtkextra
+    # no updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: false
+      RNG: easyRNG
+      PLOT: gtkextra
+    # 17
+    # easyRNG
+    # gtkextra
+    # with updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: true
+      RNG: easyRNG
+      PLOT: gtkextra
+    # 18
+    # easyRNG
+    # gtkmm-plplot
+    # no updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: false
+      RNG: easyRNG
+      PLOT: gtkmm-plplot
+    # 19
+    # easyRNG
+    # gtkmm-plplot
+    # with updater
+    # with gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      UPDATER: true
+      RNG: easyRNG
+      PLOT: gtkmm-plplot
+    # 20
+    # easyRNG
+    # no gui
+    - compiler: msvc_msys2
+      ARCH: x86
+      MSYS2_ARCH: i686
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW32
+      RNG: easyRNG
 
 before_build:
     - set PATH=C:\%MSYS2_DIR%\%MSYSTEM%\bin;C:\%MSYS2_DIR%\usr\bin;%PATH%
