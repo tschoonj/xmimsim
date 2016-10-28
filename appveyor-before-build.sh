@@ -3,6 +3,8 @@
 set -e
 set -x
 
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
 # install xraylib
 wget -q https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
 tar xfz xraylib-3.2.0.tar.gz
@@ -68,6 +70,9 @@ if test $PLOT = "gtkextra" ; then
 	make
 	make install
 	cd ..
+	if test $UPDATER = "true" ; then
+		pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
+	fi
 elif test $PLOT = "gtkmm-plplot" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
@@ -87,10 +92,8 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	make
 	make install
 	cd ..
-else
-	exit 1
+	if test $UPDATER = "true" ; then
+		pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
+	fi
 fi
 
-if test $UPDATER = "true" ; then
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
-fi

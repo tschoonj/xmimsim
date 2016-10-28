@@ -3,36 +3,33 @@ version: 1.0.{build}
 shallow_clone: true
 
 environment:
-  global:
-    PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
-
   matrix:
     # 1
     # fgsl
     # gtkextra
     # no updater
     # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: false
-      RNG: fgsl
-      PLOT: gtkextra
+#    - compiler: msvc_msys2
+#      ARCH: x64
+#      MSYS2_ARCH: x86_64
+#      MSYS2_DIR: msys64
+#      MSYSTEM: MINGW64
+#      UPDATER: false
+#      RNG: fgsl
+#      PLOT: gtkextra
     # 2
     # fgsl
     # gtkextra
     # with updater
     # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: fgsl
-      PLOT: gtkextra
+#    - compiler: msvc_msys2
+#      ARCH: x64
+#      MSYS2_ARCH: x86_64
+#      MSYS2_DIR: msys64
+#      MSYSTEM: MINGW64
+#      UPDATER: true
+#      RNG: fgsl
+#      PLOT: gtkextra
     # 3
     # fgsl
     # gtkmm-plplot
@@ -68,6 +65,7 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: fgsl
+      PLOT: none
     # 6
     # easyRNG
     # gtkextra
@@ -129,6 +127,7 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: easyRNG
+      PLOT: none
 #    - compiler: msvc_msys2
 #      ARCH: x86
 #      MSYS2_ARCH: i686

@@ -3,6 +3,8 @@
 set -e
 set -x
 
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
 CONFIGURE_OPTIONS=""
 
 if test -z ${PLOT+x} ; then
