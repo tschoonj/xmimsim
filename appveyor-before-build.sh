@@ -60,7 +60,8 @@ else
 fi
 
 if test -z ${PLOT+x} ; then
-	# build without GUI!
+	# do nothing
+	:
 elif test $PLOT = "gtkextra" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtk2
 	wget -T 10 -q https://downloads.sourceforge.net/project/gtkextra/3.3/gtkextra-3.3.2.tar.gz
