@@ -65,7 +65,6 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: fgsl
-      PLOT: none
     # 6
     # easyRNG
     # gtkextra
@@ -127,7 +126,6 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: easyRNG
-      PLOT: none
 #    - compiler: msvc_msys2
 #      ARCH: x86
 #      MSYS2_ARCH: i686
