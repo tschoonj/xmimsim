@@ -22,11 +22,11 @@ pkgconfig_DATA=libxmimsim.pc
 #libtool archives are evil
 if ENABLE_OPENCL
 install-exec-hook:
-	rm -f $(libdir)/libxmimsim.la
-	rm -f $(libdir)/xmimsim/xmimsim-cl.la
+	rm -f $(DESTDIR)/$(libdir)/libxmimsim.la
+	rm -f $(DESTDIR)/$(libdir)/xmimsim/xmimsim-cl.la
 else
 install-exec-hook:
-	rm -f $(libdir)/libxmimsim.la
+	rm -f $(DESTDIR)/$(libdir)/libxmimsim.la
 endif
 
 EXTRA_DIST = xmimsim.spec.in License.rtf

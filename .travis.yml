@@ -919,7 +919,6 @@ install:
       cd xraylib-3.2.0
       ./configure --enable-fortran2003 || exit 1
       make || exit 1
-      make check || exit 1
       sudo make install || exit 1
       cd ..
     fi
@@ -929,7 +928,6 @@ install:
       cd easyRNG-1.0
       ./configure --enable-fortran || exit 1
       make || exit 1
-      make check || exit 1
       sudo make install || exit 1
       cd ..
     fi
@@ -939,7 +937,6 @@ install:
       cd fgsl-1.1.0
       ./configure || exit 1
       make || exit 1
-      make check || exit 1
       sudo make install || exit 1
       cd ..
     fi
@@ -950,7 +947,7 @@ script:
   - autoreconf -fi || exit 1
   - ./configure ${EXTRA} || exit 1
   - make || exit 1
-  - make check || cat tests/test-read-xmsi.log
+  - make check || exit 1
   - make distcheck || exit 1
 
 notifications:

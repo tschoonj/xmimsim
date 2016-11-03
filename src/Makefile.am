@@ -140,8 +140,9 @@ xmimsim_detector.mod: libxmimsim.la
 
 #I delete the libtool archives on installation, so this step is necessary to ensure the libraries are uninstalled
 uninstall-local:
+	rm -rf $(DESTDIR)/$(bindir)/libxmimsim*dll
 	rm -rf $(DESTDIR)/$(libdir)/libxmimsim*
 	rm -rf $(DESTDIR)/$(plugindir)/xmimsim-cl*
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def

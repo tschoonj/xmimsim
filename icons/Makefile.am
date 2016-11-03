@@ -238,4 +238,8 @@ convert_windows:
 EXTRA_DIST = Logo_xmi_msim.bmp \
 	Logo_xmi_msim.eps \
 	Logo_xmi_msim.pdf \
+	Logo_xmi_msim_Win7.ico \
+	Logo_xmi_msim_Win7_XMSI.ico \
+	Logo_xmi_msim_Win7_XMSO.ico \
+	Logo_xmi_msim_Win7_XMSA.ico \
 	applications-x-xmimsim.xml

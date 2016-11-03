@@ -146,15 +146,16 @@ endif
 endif
 
 
-xmimsim_gui_LDADD = ../src/libxmimsim.la \
-		    libxmimsim-gui-spline.la \
+xmimsim_gui_LDADD = libxmimsim-gui-spline.la \
 		    @gtk2_LIBS@ \
 		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
 		    @gthread2_LIBS@ \
 		    @xml2_LIBS@ \
-		    @libnotify_LIBS@
+		    @libnotify_LIBS@ \
+		    ../src/libxmimsim.la
+
 if ENABLE_UPDATER
 xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
 		     @libcurl_LIBS@
@@ -314,7 +315,7 @@ xmimsim-icon.o: xmimsim-icon.rc
 xmimsim-gui.c: xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
 
 xmimsim-gui-icons.h:
-	$(GDK_PIXBUF_CSOURCE) --struct --build-list \
+	$(GDK_PIXBUF_CSOURCE) --stream --build-list \
 	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
 	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
 	"Logo_xmi_msim_red_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_red.png" \
