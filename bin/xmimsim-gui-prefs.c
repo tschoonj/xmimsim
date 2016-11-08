@@ -66,6 +66,7 @@ static GtkTreeIter current_iter;
 
 const gchar * const xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
+		"https://xmi-msim.tomschoonjans.eu",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
 
