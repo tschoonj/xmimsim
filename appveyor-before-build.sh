@@ -64,9 +64,9 @@ if test -z ${PLOT+x} ; then
 	:
 elif test $PLOT = "gtkextra" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtk2
-	wget -T 10 -q https://downloads.sourceforge.net/project/gtkextra/3.3/gtkextra-3.3.2.tar.gz
-	tar xfz gtkextra-3.3.2.tar.gz 
-	cd gtkextra-3.3.2
+	wget -T 10 -q https://downloads.sourceforge.net/project/gtkextra/3.3/gtkextra-3.3.3.tar.gz
+	tar xfz gtkextra-3.3.3.tar.gz 
+	cd gtkextra-3.3.3
 	# old libtool was used to generate this tarball :-(
 	autoreconf -i
 	./configure --disable-tests
