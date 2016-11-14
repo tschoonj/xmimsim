@@ -42,13 +42,13 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 	klass->save = xmi_msim_gui_source_abstract_real_save;
 	klass->get_name = xmi_msim_gui_source_abstract_real_get_name;
 	klass->get_about_text = xmi_msim_gui_source_abstract_real_get_about_text;
-
 }
 
 static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
 
 	source->plot_data_linear = NULL;	
 	source->plot_data_log10 = NULL;	
+	source->raw_data = NULL;
 
 }
 
@@ -65,12 +65,18 @@ GtkPlotData *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract
 
 }
 
+struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
+	return source->raw_data;
+}
+
 static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 	// deriving methods should store the data in the preferences file now
 }
 
 static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
+	if (source->raw_data)
+		xmi_free_excitation(source->raw_data);
 #ifdef HAVE_CXX
 	if (source->plot_data_linear)
 		delete source->plot_data_linear;

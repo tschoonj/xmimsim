@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include <gtk/gtk.h>
+#include "xmi_data_structs.h"
 
 #ifdef HAVE_CXX
 	#include <gtkmm-plplot.h>
@@ -47,6 +48,7 @@ struct _XmiMsimGuiSourceAbstract
   GtkPlotData *plot_data_linear;
   GtkPlotData *plot_data_log10;
 #endif
+  struct xmi_excitation *raw_data;
 };
 
 struct _XmiMsimGuiSourceAbstractClass
@@ -61,6 +63,7 @@ struct _XmiMsimGuiSourceAbstractClass
 
   const gchar* (*get_about_text) (XmiMsimGuiSourceAbstract *source);
 
+  struct xmi_excitation * (*get_raw_data) (XmiMsimGuiSourceAbstract *source);
 };
 
 GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
@@ -78,6 +81,8 @@ GtkPlotData *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract
 const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source);
 
 const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source);
+
+struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source);
 
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED
