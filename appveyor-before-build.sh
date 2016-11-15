@@ -92,7 +92,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	wget -q https://gtkmm-plplot.tomschoonjans.eu/gtkmm-plplot-2.1.tar.gz
 	tar xfz gtkmm-plplot-2.1.tar.gz
 	cd gtkmm-plplot-2.1	
-	./configure
+	export plplotcxx_CFLAGS=/usr/local/lib/include/plplot
+	export plplotcxx_LIBS=/usr/local/lib
+	./configure 
 	make
 	make install
 	cd ..

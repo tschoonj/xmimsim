@@ -901,8 +901,6 @@ before_install:
       brew install gsl autoconf automake homebrew/science/hdf5 curl || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
-      brew uninstall libxml2 || exit 1
-      brew install -s libxml2 libxslt || exit 1
       export CC=$MYCC
       export CXX=$MYCXX
       export FC=$MYFC
