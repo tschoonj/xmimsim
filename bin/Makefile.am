@@ -101,7 +101,6 @@ nodist_xmimsim_gui_SOURCES = \
 mkenum_sources = \
 	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-layer-dialog.h \
-	xmimsim-gui-source-abstract.h \
 	$(NULL)
 
 # this is a separate convenience library as it allows me to test against it test-cubic-spline
@@ -345,7 +344,7 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
 	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"\n#include \"xmimsim-gui-source-abstract.h\"" \
+		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
 		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
 		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \

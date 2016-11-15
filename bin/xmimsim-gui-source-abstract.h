@@ -19,14 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
-#ifdef HAVE_CXX
-	#include <gtkmm-plplot.h>
-#else
-	#include <gtkextra/gtkextra.h>
-#endif
-
 #ifndef XMI_MSIM_GUI_SOURCE_ABSTRACT_H
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT_H
+
+G_BEGIN_DECLS
 
 #define XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT                  (xmi_msim_gui_source_abstract_get_type ())
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XmiMsimGuiSourceAbstract))
@@ -41,13 +37,11 @@ typedef struct _XmiMsimGuiSourceAbstractClass   XmiMsimGuiSourceAbstractClass;
 struct _XmiMsimGuiSourceAbstract
 {
   GtkVBox parent_instance;
-#ifdef HAVE_CXX
-  Gtk::PLplot::PlotData2D *plot_data_linear;
-  Gtk::PLplot::PlotData2D *plot_data_log10;
-#else
-  GtkPlotData *plot_data_linear;
-  GtkPlotData *plot_data_log10;
-#endif
+  gdouble *x;
+  gdouble *y_linear;
+  gdouble *y_log10;
+  gint n;
+
   struct xmi_excitation *raw_data;
 };
 
@@ -62,8 +56,6 @@ struct _XmiMsimGuiSourceAbstractClass
   const gchar* (*get_name) (XmiMsimGuiSourceAbstract *source);
 
   const gchar* (*get_about_text) (XmiMsimGuiSourceAbstract *source);
-
-  struct xmi_excitation * (*get_raw_data) (XmiMsimGuiSourceAbstract *source);
 };
 
 GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
@@ -72,11 +64,7 @@ gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source,
 
 void xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename);
 
-#ifdef HAVE_CXX
-Gtk::PLplot::PlotData2D *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10);
-#else
-GtkPlotData *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10);
-#endif
+void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n);
 
 const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source);
 
@@ -92,4 +80,5 @@ typedef enum {
 
 GQuark xmi_msim_gui_source_abstract_error_quark(void);
 
+G_END_DECLS
 #endif
