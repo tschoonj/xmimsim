@@ -92,8 +92,8 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	wget -q https://gtkmm-plplot.tomschoonjans.eu/gtkmm-plplot-2.1.tar.gz
 	tar xfz gtkmm-plplot-2.1.tar.gz
 	cd gtkmm-plplot-2.1	
-	export plplotcxx_CFLAGS=/usr/local/lib/include/plplot
-	export plplotcxx_LIBS=/usr/local/lib
+	export plplotcxx_CFLAGS="-I/usr/local/lib/include/plplot"
+	export plplotcxx_LIBS="-L/usr/local/lib -lplplotcxx -lplplot"
 	./configure 
 	make
 	make install
