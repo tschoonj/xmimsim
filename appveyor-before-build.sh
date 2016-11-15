@@ -94,6 +94,12 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	cd gtkmm-plplot-2.1	
 	export plplotcxx_CFLAGS="-I/usr/local/include/plplot"
 	export plplotcxx_LIBS="-L/usr/local/lib -lplplotcxx -lplplot"
+	gtkmm3_CFLAGS="-I/usr/local/include/plplot "
+	gtkmm3_CFLAGS+=`pkg-config --cflags gtkmm-3.0`
+	gtkmm3_LIBS="-L/usr/local/lib -lplplotcxx -lplplot "
+	gtkmm3_LIBS+=`pkg-config --libs gtkmm-3.0`
+	export gtkmm3_CFLAGS
+	export gtkmm3_LIBS
 	./configure 
 	make
 	make install
