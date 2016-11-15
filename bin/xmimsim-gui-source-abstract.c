@@ -17,21 +17,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui-source-abstract.h"
 
+#ifdef  __cplusplus
+#define EXTERN_C extern "C"
+#else
+#define EXTERN_C
+#endif
+
 G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_VBOX)
 
-static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+EXTERN_C static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
 
-static void xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, gchar *filename);
+EXTERN_C static void xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, gchar *filename);
 
-static const gchar *xmi_msim_gui_source_abstract_real_get_name(XmiMsimGuiSourceAbstract *source);
+EXTERN_C static const gchar *xmi_msim_gui_source_abstract_real_get_name(XmiMsimGuiSourceAbstract *source);
 
-static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiSourceAbstract *source);
+EXTERN_C static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiSourceAbstract *source);
 
-static void xmi_msim_gui_source_abstract_dispose(GObject *object);
+EXTERN_C static void xmi_msim_gui_source_abstract_dispose(GObject *object);
 
-static void xmi_msim_gui_source_abstract_finalize(GObject *object);
+EXTERN_C static void xmi_msim_gui_source_abstract_finalize(GObject *object);
 
-static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClass *klass) {
+EXTERN_C static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClass *klass) {
 
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
@@ -44,91 +50,89 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 	klass->get_about_text = xmi_msim_gui_source_abstract_real_get_about_text;
 }
 
-static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
 
-	source->plot_data_linear = NULL;	
-	source->plot_data_log10 = NULL;	
+	source->x = NULL;
+	source->y_log10 = NULL;
+	source->y_linear = NULL;
 	source->raw_data = NULL;
+	source->n = 0;
 
 }
 
-#ifdef HAVE_CXX
-Gtk::PLplot::PlotData2D *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10)
-#else
-GtkPlotData *xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10)
-#endif
-	{
-	if (log10)
-		return source->plot_data_log10;
-	else
-		return source->plot_data_linear;
-
+EXTERN_C void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n) {
+	*x = source->x;
+	*n = source->n;
+	if (log10) {
+		*y = source->y_log10;
+	}
+	else {
+		*y = source->y_linear;
+	}
 }
 
-struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
 	return source->raw_data;
 }
 
-static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
+EXTERN_C static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 	// deriving methods should store the data in the preferences file now
+
+	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->dispose(object);
 }
 
-static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
+EXTERN_C static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
 	if (source->raw_data)
 		xmi_free_excitation(source->raw_data);
-#ifdef HAVE_CXX
-	if (source->plot_data_linear)
-		delete source->plot_data_linear;
-	if (source->plot_data_log10)
-		delete source->plot_data_log10;
-#else
-	if (source->plot_data_linear)
-		g_object_unref(source->plot_data_linear);
-	if (source->plot_data_log10)
-		g_object_unref(source->plot_data_log10);
+	if (source->x)
+		g_free(source->x);
+	if (source->y_linear)
+		g_free(source->y_linear);
+	if (source->y_log10)
+		g_free(source->y_log10);
 
-#endif
+	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }
 
-static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+EXTERN_C static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
 	g_warning("XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	return FALSE;
 }
 
-static void xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, gchar *filename) {
+EXTERN_C static void xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, gchar *filename) {
 	g_warning("XmiMsimGuiSourceAbstract::save not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 
 }
 
-static const gchar *xmi_msim_gui_source_abstract_real_get_name(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C static const gchar *xmi_msim_gui_source_abstract_real_get_name(XmiMsimGuiSourceAbstract *source) {
 	g_warning("XmiMsimGuiSourceAbstract::get_name not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	return NULL;
 }
 
-static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiSourceAbstract *source) {
 	g_warning("XmiMsimGuiSourceAbstract::get_about_text not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	return NULL;
 }
 
-GQuark xmi_msim_gui_source_abstract_error_quark(void) {
+EXTERN_C GQuark xmi_msim_gui_source_abstract_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-source-abstract-error-quark");
 }
 
-gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+EXTERN_C gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->generate(source, error);
 }
 
-void xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename) {
+EXTERN_C void xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename) {
 	XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->save(source, filename);
 }
 
-const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_name(source);
 }
 
-const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source) {
+EXTERN_C const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_about_text(source);
 }
 
