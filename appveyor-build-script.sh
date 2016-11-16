@@ -16,6 +16,14 @@ else
 	else
 		CONFIGURE_OPTIONS+="--disable-updater"
 	fi
+	if test $PLOT = "gtkmm-plplot" ; then
+		gtkmm3_CFLAGS="-I/usr/local/include/plplot "
+		gtkmm3_CFLAGS+=`pkg-config --cflags gtkmm-plplot-2.0`
+		gtkmm3_LIBS="-L/usr/local/lib -lplplotcxx -lplplot "
+		gtkmm3_LIBS+=`pkg-config --libs gtkmm-plplot-2.0`
+		export gtkmm3_CFLAGS
+		export gtkmm3_LIBS
+	fi
 fi
 
 
