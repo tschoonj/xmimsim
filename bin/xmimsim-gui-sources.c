@@ -416,6 +416,7 @@ static void slits_button_clicked_cb(GtkButton *button, GtkEntry *tubeSolidAngleW
 static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	union xmimsim_prefs_val xpv;
 
+	/*
 	xpv.xep = get_ebel_parameters(gen);
 
 	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
@@ -445,7 +446,7 @@ static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	     	gtk_widget_destroy (dialog);
 	}
 	g_free(xpv.xnp);
-
+	*/
 	xpv.i = gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, xpv) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gen->window),
@@ -463,6 +464,7 @@ static void cancel_button_clicked_cb(GtkButton *button, struct generate *gen) {
 
 static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct generate *gen) {
 	union xmimsim_prefs_val xpv;
+	/*
 	xpv.xep = get_ebel_parameters(gen);
 
 	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
@@ -492,7 +494,7 @@ static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct 
 	     	gtk_widget_destroy (dialog);
 	}
 	g_free(xpv.xnp);
-
+	*/
 	xpv.i = gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_SOURCES_LAST_USED, xpv) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gen->window),
@@ -510,6 +512,7 @@ static gboolean ebel_delete_event_cb(GtkWidget *widget, GdkEvent *event, struct 
 }
 static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	union xmimsim_prefs_val xpv;
+	/*
 	xpv.xep = get_ebel_parameters(gen);
 
 	if (xpv.xep != NULL && xmimsim_gui_set_prefs(XMIMSIM_GUI_EBEL_LAST_USED, xpv) == 0) {
@@ -540,7 +543,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	     	gtk_widget_destroy (dialog);
 	}
 	g_free(xpv.xnp);
-
+	*/
 	if (gen->excitation_tube && gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
 		update_undo_buffer(EBEL_SPECTRUM_REPLACE, (GtkWidget *) gen->excitation_tube);
 		gtk_list_store_clear(discWidget->store);
@@ -1395,6 +1398,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 
 	union xmimsim_prefs_val xpv;
 
+	/*
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_EBEL_LAST_USED, &xpv) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
 		GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1406,8 +1410,9 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	     	gtk_widget_destroy (dialog);
 		return;
 	}
-
-	struct xmi_ebel_parameters *xep = xpv.xep;
+	*/
+	//struct xmi_ebel_parameters *xep = xpv.xep;
+	struct xmi_ebel_parameters *xep;
 
 	GtkWidget *label;
 	GtkWidget *hbox;
@@ -1681,6 +1686,7 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	gtk_widget_set_vexpand(mainVBox, FALSE);
 #endif
 
+	/*
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_NUCLIDE_LAST_USED, &xpv) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(main_window),
 		GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1692,8 +1698,9 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	     	gtk_widget_destroy (dialog);
 		return;
 	}
-
-	struct xmi_nuclide_parameters *xnp = xpv.xnp;
+	*/
+	//struct xmi_nuclide_parameters *xnp = xpv.xnp;
+	struct xmi_nuclide_parameters *xnp;
 
 	GtkWidget *lilVBox = gtk_vbox_new(FALSE, 2);
 	hbox = gtk_hbox_new(FALSE, 3);

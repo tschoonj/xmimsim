@@ -28,6 +28,19 @@ NULL=
 # 2) when compiling against gtkmm3, get also gtk3 headers from configure pkg-config
 # 3) ensure this shared lib is pure C, just like the plugins that will link against it
 # 4) install abstract source header
+lib_LTLIBRARIES = libxmimsim-gui.la
+libxmimsim_gui_la_SOURCES = \
+	xmimsim-gui-prefs.h \
+	xmimsim-gui-prefs.c \
+	xmimsim-gui-source-abstract.h \
+	xmimsim-gui-source-abstract.c \
+	$(NULL)
+libxmimsim_gui_la_CFLAGS = \
+	@gtk2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	@GTK_MAC_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	$(NULL)
 
 
 plugindir = $(libdir)/xmimsim-gui/sources
@@ -43,6 +56,7 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.c \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared
+xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la
 
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
@@ -89,8 +103,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-controls.h \
 	xmimsim-gui-results.c \
 	xmimsim-gui-results.h \
-	xmimsim-gui-prefs.h \
-	xmimsim-gui-prefs.c \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-tools.h \
 	xmimsim-gui-notifications.c \
@@ -110,8 +122,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-sources.h \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-batch.c \
-	xmimsim-gui-source-abstract.h \
-	xmimsim-gui-source-abstract.c \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -170,6 +180,7 @@ endif
 
 
 xmimsim_gui_LDADD = libxmimsim-gui-spline.la \
+		    libxmimsim-gui.la \
 		    @gtk2_LIBS@ \
 		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \

@@ -16,7 +16,6 @@
  */
 
 #include <config.h>
-#include "xmimsim-gui.h"
 #include <stdio.h>
 #include <string.h>
 #include "xmimsim-gui-prefs.h"
@@ -26,7 +25,6 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 #include <xmi_aux.h>
-#include <xraylib.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
 #endif
@@ -472,7 +470,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
-
+/* EBEL
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
 	g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
@@ -498,6 +496,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 	gchar **nuclides = GetRadioNuclideDataList(NULL);
 	g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[0]);
 	g_strfreev(nuclides);
+*/
 	g_key_file_set_integer(keyfile, "Sources last used", "Page", 0);
 
 
@@ -961,6 +960,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
+/*
 		case XMIMSIM_GUI_EBEL_LAST_USED:
 			update_file = FALSE;
 			prefs->xep = (struct xmi_ebel_parameters*) g_malloc(sizeof(struct xmi_ebel_parameters));
@@ -1135,6 +1135,8 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 
 			break;
+*/
+/*
 		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
 			update_file = FALSE;
 			prefs->xnp = (struct xmi_nuclide_parameters *) g_malloc(sizeof(struct xmi_nuclide_parameters));
@@ -1229,7 +1231,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				g_free(prefs_file_contents);
 			}
 
-			break;
+o*/			break;
 		case XMIMSIM_GUI_SOURCES_LAST_USED:
 			prefs->i = g_key_file_get_integer(keyfile, "Sources last used", "Page", &error);
 			if (error != NULL) {
@@ -1348,6 +1350,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
 			break;
 #endif
+/*
 		case XMIMSIM_GUI_EBEL_LAST_USED:
 			g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", prefs.xep->tube_voltage);
 			g_key_file_set_double(keyfile, "Ebel last used", "Tube current", prefs.xep->tube_current);
@@ -1369,6 +1372,8 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_boolean(keyfile, "Ebel last used", "Logarithmic plot", prefs.xep->log10_active);
 
 			break;
+*/
+/*
 		case XMIMSIM_GUI_NUCLIDE_LAST_USED:
 			g_key_file_set_double(keyfile, "Radionuclide last used", "Activity", prefs.xnp->activity);
 			g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", prefs.xnp->nuclide_solid_angle);
@@ -1382,6 +1387,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[prefs.xnp->radioNuclide]);
 			g_strfreev(nuclides);
 			break;
+*/
 		case XMIMSIM_GUI_SOURCES_LAST_USED:
 			g_key_file_set_integer(keyfile, "Sources last used", "Page", prefs.i);
 			break;
@@ -1878,4 +1884,38 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 
 	gtk_widget_show_all(window);
+}
+
+static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
+	GtkFileFilter *filter = gtk_file_filter_new();
+
+	gtk_file_filter_add_pattern(filter, "*." G_MODULE_SUFFIX);
+	if (gtk_file_filter_filter(filter, filter_info) == TRUE && xmi_check_detector_convolute_plugin((char *) filter_info->filename) == 1)
+		return TRUE;
+
+	return FALSE;
+}
+
+void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry) {
+	GtkWidget *dialog;
+	GtkFileFilter *filter;
+	gchar *filename;
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, detector_response_dlm_filter, NULL, NULL);
+	gtk_file_filter_set_name(filter,"Detector response DLM");
+	dialog = gtk_file_chooser_dialog_new ("Select detector response function DLM",
+		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		gtk_entry_set_text(GTK_ENTRY(entry), filename);
+		g_free(filename);
+	}
+	gtk_widget_destroy(dialog);
 }
