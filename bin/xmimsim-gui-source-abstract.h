@@ -42,6 +42,7 @@ struct _XmiMsimGuiSourceAbstract
   gdouble *y_log10;
   gint n;
   struct xmi_excitation *raw_data;
+  struct xmi_input *current;
 };
 
 struct _XmiMsimGuiSourceAbstractClass
@@ -50,18 +51,22 @@ struct _XmiMsimGuiSourceAbstractClass
 
   gboolean (* generate)  (XmiMsimGuiSourceAbstract *source, GError **error);
 
-  gboolean (* save)      (XmiMsimGuiSourceAbstract *source, gchar *filename, GError **error);
+  gboolean (* save)      (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
   
   const gchar* (*get_name) (XmiMsimGuiSourceAbstract *source);
 
   const gchar* (*get_about_text) (XmiMsimGuiSourceAbstract *source);
+
+  gchar* (*energy_discrete_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_discrete *energy);
+
+  gchar* (*energy_continuous_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
 };
 
 GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
 
 gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error);
 
-gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename, GError **error);
+gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n);
 
@@ -72,7 +77,9 @@ const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstrac
 struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source);
 
 typedef enum {
-	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED
+	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED,
+	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_INVALID_FILENAME,
+	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_NO_RAW_DATA,
 } XmiMsimGuiSourceAbstractError;
 
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR (xmi_msim_gui_source_abstract_error_quark())
