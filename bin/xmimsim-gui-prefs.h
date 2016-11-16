@@ -21,6 +21,8 @@
 
 #include <gtk/gtk.h>
 
+G_BEGIN_DECLS
+
 enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES,
@@ -94,4 +96,5 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
 void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry);
 
+G_END_DECLS
 #endif

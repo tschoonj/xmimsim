@@ -41,7 +41,18 @@ libxmimsim_gui_la_CFLAGS = \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	$(NULL)
+libxmimsim_gui_la_LDFLAGS = \
+	@LDFLAGS_XMIMSIM_LIB@
+libxmimsim_gui_la_LIBADD = \
+	@gtk2_LIBS@ \
+	@gtkmm3_LIBS@ \
+	@GTK_MAC_LIBS@ \
+	@xraylib_LIBS@ \
+	$(NULL)
 
+if ENABLE_MAC_APP
+libxmimsim_gui_la_CFLAGS += -xobjective-c
+endif
 
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \
