@@ -23,6 +23,27 @@ endif
 
 NULL=
 
+#TODO:
+# 1) create shared lib containing abstract source code
+# 2) when compiling against gtkmm3, get also gtk3 headers from configure pkg-config
+# 3) ensure this shared lib is pure C, just like the plugins that will link against it
+# 4) install abstract source header
+
+
+plugindir = $(libdir)/xmimsim-gui/sources
+plugin_LTLIBRARIES = \
+	xmimsim-gui-source-tube-ebel.la \
+	$(NULL)
+xmimsim_gui_source_tube_ebel_la_CFLAGS = \
+	@gtk2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	$(NULL)
+xmimsim_gui_source_tube_ebel_la_SOURCES = \
+	xmimsim-gui-source-tube-ebel.h \
+	xmimsim-gui-source-tube-ebel.c \
+	$(NULL)
+xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared
+
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
 		xmimsim-pymca \
