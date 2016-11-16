@@ -131,40 +131,8 @@ static void custom_detector_response_toggled_cb(GtkToggleButton *button, gpointe
 	}
 }
 
-static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
-	GtkFileFilter *filter = gtk_file_filter_new();
-
-	gtk_file_filter_add_pattern(filter, "*." G_MODULE_SUFFIX);
-	if (gtk_file_filter_filter(filter, filter_info) == TRUE && xmi_check_detector_convolute_plugin((char *) filter_info->filename) == 1)
-		return TRUE;
-
-	return FALSE;
-}
 
 
-void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry) {
-	GtkWidget *dialog;
-	GtkFileFilter *filter;
-	gchar *filename;
-
-	filter = gtk_file_filter_new();
-	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, detector_response_dlm_filter, NULL, NULL);
-	gtk_file_filter_set_name(filter,"Detector response DLM");
-	dialog = gtk_file_chooser_dialog_new ("Select detector response function DLM",
-		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
-		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		gtk_entry_set_text(GTK_ENTRY(entry), filename);
-		g_free(filename);
-	}
-	gtk_widget_destroy(dialog);
-}
 
 void error_spinners(void) {
 	//check spinners

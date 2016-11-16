@@ -20,7 +20,6 @@
 #define XMIMSIM_GUI_PREFS_H
 
 #include <gtk/gtk.h>
-#include "xmimsim-gui-sources.h"
 
 enum {
 	//gboolean
@@ -56,9 +55,9 @@ enum {
 	//gchar *
 	XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE,
 	//struct xmi_ebel_parameters*
-	XMIMSIM_GUI_EBEL_LAST_USED,
+	//XMIMSIM_GUI_EBEL_LAST_USED,
 	//struct xmi_nuclide_parameters*
-	XMIMSIM_GUI_NUCLIDE_LAST_USED,
+	//XMIMSIM_GUI_NUCLIDE_LAST_USED,
 	//int
 	XMIMSIM_GUI_SOURCES_LAST_USED,
 };
@@ -68,8 +67,8 @@ union xmimsim_prefs_val{
 	gint i;
 	gchar **ss;
 	gchar *s;
-	struct xmi_ebel_parameters *xep;
-	struct xmi_nuclide_parameters *xnp;
+	//struct xmi_ebel_parameters *xep;
+	//struct xmi_nuclide_parameters *xnp;
 };
 
 //user defined layers manipulation
@@ -93,5 +92,6 @@ struct xmi_preferences_data {
 
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
+void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry);
 
 #endif
