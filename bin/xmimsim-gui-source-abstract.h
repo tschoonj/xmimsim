@@ -41,7 +41,6 @@ struct _XmiMsimGuiSourceAbstract
   gdouble *y_linear;
   gdouble *y_log10;
   gint n;
-
   struct xmi_excitation *raw_data;
 };
 
@@ -51,7 +50,7 @@ struct _XmiMsimGuiSourceAbstractClass
 
   gboolean (* generate)  (XmiMsimGuiSourceAbstract *source, GError **error);
 
-  void     (* save)      (XmiMsimGuiSourceAbstract *source, gchar *filename);
+  gboolean (* save)      (XmiMsimGuiSourceAbstract *source, gchar *filename, GError **error);
   
   const gchar* (*get_name) (XmiMsimGuiSourceAbstract *source);
 
@@ -62,7 +61,7 @@ GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
 
 gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error);
 
-void xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename);
+gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, gchar *filename, GError **error);
 
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n);
 
