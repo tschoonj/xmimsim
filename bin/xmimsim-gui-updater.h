@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 
+G_BEGIN_DECLS
+
 enum {
 	XMIMSIM_UPDATES_ERROR,
 	XMIMSIM_UPDATES_AVAILABLE,
@@ -36,4 +38,5 @@ int download_updates(GtkWidget *window, char *max_version, char *message);
 
 gboolean xmimsim_gui_check_download_url(gchar *download_url);
 
+G_END_DECLS
 #endif
