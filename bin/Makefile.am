@@ -58,6 +58,12 @@ libxmimsim_gui_la_CFLAGS += \
 	@JsonGlib_CFLAGS@ \
 	@libcurl_CFLAGS@ \
 	$(NULL)
+if ENABLE_UPDATER
+libxmimsim_gui_la_LIBADD += \
+	@JsonGlib_LIBS@ \
+	@libcurl_LIBS@ \
+	$(NULL)
+endif
 endif
 
 if ENABLE_MAC_APP
@@ -206,10 +212,6 @@ xmimsim_gui_LDADD = libxmimsim-gui-spline.la \
 		    @libnotify_LIBS@ \
 		    ../src/libxmimsim.la
 
-if ENABLE_UPDATER
-xmimsim_gui_LDADD += @JsonGlib_LIBS@ \
-		     @libcurl_LIBS@
-endif
 
 
 
