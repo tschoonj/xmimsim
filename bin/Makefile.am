@@ -78,8 +78,7 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@
-libxmimsim_gui_la_LIBADD = \
-xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la
+xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 endif
 
 bin_PROGRAMS =  xmimsim \
