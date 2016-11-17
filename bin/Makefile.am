@@ -52,6 +52,14 @@ libxmimsim_gui_la_LIBADD = \
 	../src/libxmimsim.la \
 	$(NULL)
 
+if ENABLE_UPDATER
+libxmimsim_gui_la_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
+libxmimsim_gui_la_CFLAGS += \
+	@JsonGlib_CFLAGS@ \
+	@libcurl_CFLAGS@ \
+	$(NULL)
+endif
+
 if ENABLE_MAC_APP
 libxmimsim_gui_la_CFLAGS += -xobjective-c
 endif
@@ -160,9 +168,6 @@ libxmimsim_gui_spline_la_LDFLAGS = -static
 libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 
 
-if ENABLE_UPDATER
-xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
-endif
 
 xmimsim_gui_CFLAGS = \
 		     @gtk2_CFLAGS@ \
@@ -172,10 +177,6 @@ xmimsim_gui_CFLAGS = \
 		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 		     @libnotify_CFLAGS@
-if ENABLE_UPDATER
-xmimsim_gui_CFLAGS += @JsonGlib_CFLAGS@ \
-		      @libcurl_CFLAGS@
-endif
 
 if ENABLE_CXX
 XMICCLD = $(CXX)
