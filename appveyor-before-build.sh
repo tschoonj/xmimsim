@@ -94,7 +94,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	cd gtkmm-plplot-2.1	
 	export plplotcxx_CFLAGS="-I/usr/local/include/plplot"
 	export plplotcxx_LIBS="-L/usr/local/lib -lplplotcxx -lplplot"
-	./configure 
+	./configure --prefix=/usr/local
 	make
 	make install
 	cd ..
