@@ -98,5 +98,7 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 
 char *xmimsim_gui_get_preferences_filename();
 
+int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file);
+
 G_END_DECLS
 #endif
