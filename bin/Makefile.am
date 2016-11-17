@@ -28,6 +28,7 @@ NULL=
 # 2) when compiling against gtkmm3, get also gtk3 headers from configure pkg-config
 # 3) ensure this shared lib is pure C, just like the plugins that will link against it
 # 4) install abstract source header
+if ENABLE_GUI
 lib_LTLIBRARIES = libxmimsim-gui.la
 libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-prefs.h \
@@ -48,6 +49,7 @@ libxmimsim_gui_la_LIBADD = \
 	@gtkmm3_LIBS@ \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
+	../src/libxmimsim.la \
 	$(NULL)
 
 if ENABLE_MAC_APP
@@ -68,6 +70,7 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la
+endif
 
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
