@@ -448,7 +448,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	return;
 }
 
-static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
+int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	gchar *prefs_file_contents;
 
 	//These are all the default values for a new preferences file
