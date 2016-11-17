@@ -96,5 +96,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
 void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry);
 
+char *xmimsim_gui_get_preferences_filename();
+
 G_END_DECLS
 #endif

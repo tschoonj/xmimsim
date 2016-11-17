@@ -448,7 +448,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	return;
 }
 
-static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gchar *prefs_file) {
+static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	gchar *prefs_file_contents;
 
 	//These are all the default values for a new preferences file
@@ -506,6 +506,7 @@ static int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_dir, gc
 
 	//save file
 	//create dir first if necessary
+	gchar *prefs_dir = g_path_get_dirname(prefs_file);
 	if (g_mkdir_with_parents(prefs_dir, 0755) != 0)
 		return 0;
 	g_free(prefs_dir);
@@ -720,29 +721,13 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *lay
 int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
-#ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-#endif
 
-#ifdef MAC_INTEGRATION
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
-#else
-        const gchar *config_dir = g_get_user_config_dir();
-#endif
-
-
-
-
-	//first check if the preferences file exists!
-	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
-	prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
+	prefs_file = xmimsim_gui_get_preferences_filename();
 
 	keyfile = g_key_file_new();
 
 	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
-		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
+		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
 			return 0;
 	}
 
@@ -1261,9 +1246,6 @@ o*/			break;
 
 	g_free(prefs_file);
 	g_key_file_free(keyfile);
-#ifdef MAC_INTEGRATION
-        [pool drain];
-#endif
 	return 1;
 }
 
@@ -1271,29 +1253,14 @@ o*/			break;
 int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
-#ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-#endif
-
-#ifdef MAC_INTEGRATION
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
-#else
-        const gchar *config_dir = g_get_user_config_dir();
-#endif
 
 
-
-
-	//first check if the preferences file exists!
-	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
-	prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
+	prefs_file = xmimsim_gui_get_preferences_filename();
 
 	keyfile = g_key_file_new();
 
 	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
-		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_dir, prefs_file))
+		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
 			return 0;
 	}
 
@@ -1406,11 +1373,8 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 
 	g_free(prefs_file);
 	g_key_file_free(keyfile);
-#ifdef MAC_INTEGRATION
-        [pool drain];
-#endif
-	return 1;
 
+	return 1;
 }
 
 static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *event, GtkTreeSelection *select_layers) {
@@ -1918,4 +1882,26 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
+}
+
+char *xmimsim_gui_get_preferences_filename() {
+
+#ifdef MAC_INTEGRATION
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+#else
+        const gchar *config_dir = g_get_user_config_dir();
+#endif
+
+	//first check if the preferences file exists!
+	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
+	gchar *prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
+
+
+#ifdef MAC_INTEGRATION
+        [pool drain];
+#endif
+	return prefs_file;
 }
