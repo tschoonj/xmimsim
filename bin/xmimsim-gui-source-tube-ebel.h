@@ -35,8 +35,32 @@ typedef struct _XmiMsimGuiSourceTubeEbelClass   XmiMsimGuiSourceTubeEbelClass;
 
 struct _XmiMsimGuiSourceTubeEbel
 {
-  XmiMsimGuiSourceAbstract parent_instance;
-  // all our widgets
+  	XmiMsimGuiSourceAbstract parent_instance;
+  	// all our widgets
+	GtkWidget *tubeVoltageW;
+	GtkWidget *transmissionW;
+	GtkWidget *anodeMaterialW;
+	GtkWidget *anodeThicknessW;
+	GtkWidget *anodeDensityW;
+	GtkWidget *filterMaterialW;
+	GtkWidget *filterThicknessW;
+	GtkWidget *filterDensityW;
+	GtkWidget *windowMaterialW;
+	GtkWidget *windowThicknessW;
+	GtkWidget *windowDensityW;
+	GtkWidget *alphaElectronW;
+	GtkWidget *alphaXrayW;
+	GtkWidget *deltaEnergyW;
+	GtkWidget *tubeCurrentW;
+	GtkWidget *tubeSolidAngleW;
+	GtkWidget *transmissionEffW;
+	GtkWidget *transmissionEffFileW;
+	double plot_xmin_tube;
+	double plot_xmax_tube;
+	double plot_ymax_tube;
+	double plot_ymin_tube;
+	double plot_ymin_lin_tube;
+	double plot_ymin_log10_tube;
 };
 
 struct _XmiMsimGuiSourceTubeEbelClass

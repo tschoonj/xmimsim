@@ -86,5 +86,7 @@ typedef enum {
 
 GQuark xmi_msim_gui_source_abstract_error_quark(void);
 
+double xmi_msim_gui_source_abstract_get_solid_angle_from_slits(struct xmi_geometry *geometry);
+
 G_END_DECLS
 #endif
