@@ -103,6 +103,7 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 		rv->nElements = xl->n_elements;
 		rv->Elements = (int *) xmi_memdup(xl->Z, sizeof(int)*xl->n_elements);
 		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
+		rv->nAtoms = (double *) malloc(sizeof(int));
 	}
 	else {
 		rv->nElements = 0;
