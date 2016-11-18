@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmimsim-gui-source-abstract.h"
 #include <string.h>
+#include <math.h>
 
 #ifdef  __cplusplus
 #define EXTERN_C extern "C"
@@ -209,5 +210,11 @@ static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsim
 	return g_strdup_printf("%g     %g\n", energy->energy, energy->horizontal_intensity + energy->vertical_intensity);
 }
 
+double xmi_msim_gui_source_abstract_get_solid_angle_from_slits(struct xmi_geometry *geometry) {
+	//calculate solid angle based on slits
+	double solid_angle = 4.0 * atan(geometry->slit_size_x * geometry->slit_size_y/(2.0*geometry->d_source_slit*sqrt(4.0 * geometry->d_source_slit * geometry->d_source_slit + geometry->slit_size_x * geometry->slit_size_x + geometry->slit_size_y + geometry->slit_size_y)));
+
+	return solid_angle;
+}
 
 

@@ -402,6 +402,7 @@ static void export_button_clicked_cb(GtkButton *button, struct generate *gen) {
 	return;
 }
 
+
 static void slits_button_clicked_cb(GtkButton *button, GtkEntry *tubeSolidAngleW) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_y/(2.0*current->xi->geometry->d_source_slit*sqrt(4.0 * current->xi->geometry->d_source_slit * current->xi->geometry->d_source_slit + current->xi->geometry->slit_size_x * current->xi->geometry->slit_size_x + current->xi->geometry->slit_size_y + current->xi->geometry->slit_size_y)));

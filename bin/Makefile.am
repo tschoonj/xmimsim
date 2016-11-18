@@ -16,7 +16,7 @@
 
 
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin -DG_LOG_DOMAIN=\"XmiMsimGui\"
 if ENABLE_MAC_APP
 AM_LDFLAGS = -headerpad_max_install_names -framework Cocoa
 endif
@@ -77,6 +77,7 @@ plugin_LTLIBRARIES = \
 xmimsim_gui_source_tube_ebel_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.h \
