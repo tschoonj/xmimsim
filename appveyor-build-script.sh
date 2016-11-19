@@ -31,6 +31,8 @@ fi
 cd $APPVEYOR_BUILD_FOLDER
 autoreconf -fi
 export CPPFLAGS=-I/usr/local/include
+export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
+export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 ./configure $CONFIGURE_OPTIONS
 make
 make check
