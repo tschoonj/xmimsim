@@ -19,12 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <math.h>
 
-#ifdef  __cplusplus
-#define EXTERN_C extern "C"
-#else
-#define EXTERN_C
-#endif
-
 G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_VBOX)
 
 static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
@@ -68,7 +62,7 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 
 }
 
-EXTERN_C void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n) {
+void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n) {
 	*x = source->x;
 	*n = source->n;
 	if (log10) {
@@ -79,7 +73,7 @@ EXTERN_C void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstrac
 	}
 }
 
-EXTERN_C struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
+struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
 	return source->raw_data;
 }
 
@@ -182,23 +176,23 @@ static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiS
 	return NULL;
 }
 
-EXTERN_C GQuark xmi_msim_gui_source_abstract_error_quark(void) {
+GQuark xmi_msim_gui_source_abstract_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-source-abstract-error-quark");
 }
 
-EXTERN_C gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->generate(source, error);
 }
 
-EXTERN_C gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->save(source, filename, error);
 }
 
-EXTERN_C const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
+const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_name(source);
 }
 
-EXTERN_C const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source) {
+const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_about_text(source);
 }
 
