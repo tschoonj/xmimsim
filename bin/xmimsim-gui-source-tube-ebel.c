@@ -76,8 +76,59 @@ static void xmi_msim_gui_source_tube_ebel_class_init(XmiMsimGuiSourceTubeEbelCla
 	parent_klass->get_about_text = xmi_msim_gui_source_tube_ebel_real_get_about_text;
 }
 
-static struct xmi_ebel_parameters get_preferences() {
-	struct xmi_ebel_parameters xep;
+static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_parameters *xep) {
+	gchar *buf;
+
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->tubeVoltageW), xep->tube_voltage);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->tubeCurrentW), xep->tube_current);
+
+	buf = g_strdup_printf("%g", xep->tube_solid_angle);
+	gtk_entry_set_text(GTK_ENTRY(source->tubeSolidAngleW), buf);
+	g_free(buf);
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(source->anodeMaterialW), xep->anode_Z-1);
+	gtk_widget_set_sensitive(source->anodeThicknessW, xep->transmission_tube);
+	gtk_widget_set_sensitive(source->anodeDensityW, xep->transmission_tube);
+
+	buf = g_strdup_printf("%g", xep->anode_rho);
+	gtk_entry_set_text(GTK_ENTRY(source->anodeDensityW), buf);
+	g_free(buf);
+
+	buf = g_strdup_printf("%g", xep->anode_thickness);
+	gtk_entry_set_text(GTK_ENTRY(source->anodeThicknessW), buf);
+	g_free(buf);
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(source->windowMaterialW), xep->window_Z-1);
+
+	buf = g_strdup_printf("%g", xep->window_rho);
+	gtk_entry_set_text(GTK_ENTRY(source->windowDensityW), buf);
+	g_free(buf);
+	buf = g_strdup_printf("%g", xep->window_thickness);
+	gtk_entry_set_text(GTK_ENTRY(source->windowThicknessW), buf);
+	g_free(buf);
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(source->filterMaterialW), xep->filter_Z-1);
+
+	buf = g_strdup_printf("%g", xep->filter_rho);
+	gtk_entry_set_text(GTK_ENTRY(source->filterDensityW), buf);
+	g_free(buf);
+	buf = g_strdup_printf("%g", xep->filter_thickness);
+	gtk_entry_set_text(GTK_ENTRY(source->filterThicknessW), buf);
+	g_free(buf);
+
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaElectronW), xep->alpha);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaXrayW), xep->beta);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->deltaEnergyW), xep->interval_width);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(source->transmissionW), xep->transmission_tube);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(source->transmissionEffW), strcmp(xep->transmission_efficiency_file, "(None)") == 0 ? FALSE : TRUE);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW))) {
+		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(source->transmissionEffFileW), xep->transmission_efficiency_file);
+	}
+}
+
+static struct xmi_ebel_parameters* get_preferences() {
+	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
 
 	gchar *prefs_file;
 	GKeyFile *keyfile;
@@ -94,139 +145,139 @@ static struct xmi_ebel_parameters get_preferences() {
 	gboolean update_file = FALSE;
 	GError *error = NULL;
 
-	xep.tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
+	xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube voltage not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
-		xep.tube_voltage = 40.0;
+		xep->tube_voltage = 40.0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &error);
+	xep->tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube current not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
-		xep.tube_current = 1.0;
+		xep->tube_current = 1.0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &error);
+	xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube solid angle not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
-		xep.tube_solid_angle = 1E-10;
+		xep->tube_solid_angle = 1E-10;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.alpha = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha", &error);
+	xep->alpha = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube alpha not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", 60.0);
-		xep.alpha = 60.0;
+		xep->alpha = 60.0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.beta = g_key_file_get_double(keyfile, "Ebel last used", "Tube beta", &error);
+	xep->beta = g_key_file_get_double(keyfile, "Ebel last used", "Tube beta", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube beta not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", 60.0);
-		xep.beta = 60.0;
+		xep->beta = 60.0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &error);
+	xep->interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube interval width not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", 0.1);
-		xep.interval_width = 0.1;
+		xep->interval_width = 0.1;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &error);
+	xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube anode element not found in preferences file\n");
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", 47);
-		xep.anode_Z = 47;
+		xep->anode_Z = 47;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &error);
+	xep->anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube anode density not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", 10.5);
-		xep.anode_rho = 10.5;
+		xep->anode_rho = 10.5;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &error);
+	xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube anode thickness not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", 0.0002);
-		xep.anode_thickness = 0.0002;
+		xep->anode_thickness = 0.0002;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &error);
+	xep->window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube window element not found in preferences file\n");
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", 4);
-		xep.window_Z= 4;
+		xep->window_Z= 4;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &error);
+	xep->window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube window density not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", 1.848);
-		xep.window_rho = 1.848;
+		xep->window_rho = 1.848;
 		update_file = TRUE;
 		error = NULL;
 	}
-	xep.window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &error);
+	xep->window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube window thickness not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", 0.0125);
-		xep.window_thickness = 0.0125;
+		xep->window_thickness = 0.0125;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &error);
+	xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube filter element not found in preferences file\n");
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", 2);
-		xep.filter_Z = 2;
+		xep->filter_Z = 2;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &error);
+	xep->filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube filter density not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", 0.000166);
-		xep.filter_rho = 0.000166;
+		xep->filter_rho = 0.000166;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &error);
+	xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube filter thickness not found in preferences file\n");
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
-		xep.filter_thickness = 0;
+		xep->filter_thickness = 0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &error);
+	xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube transmission mode not found in preferences file\n");
 		g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
-		xep.transmission_tube = FALSE;
+		xep->transmission_tube = FALSE;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep.transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &error);
+	xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &error);
 	if (error != NULL) {
 		g_warning("Ebel last used Tube transmission efficiency file not found in preferences file\n");
 		g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
-		xep.transmission_efficiency_file = g_strdup("(None)");
+		xep->transmission_efficiency_file = g_strdup("(None)");
 		error = NULL;
 		update_file = TRUE;
 	}
@@ -244,27 +295,22 @@ static struct xmi_ebel_parameters get_preferences() {
 
 
 static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source) {
-	// start by loading the preferences
-	struct xmi_ebel_parameters xep = get_preferences();
-
 	// construct the widgets, and set them to their values as we go along...
 	GtkWidget *mainVBox = GTK_WIDGET(source);
 
 	GtkWidget *label;
 	GtkWidget *hbox;
-	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(xep.tube_voltage,5,100,1,10,0));
 
 	label = gtk_label_new("Tube voltage (kV)");
-	source->tubeVoltageW = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 0.1, 1);
+	source->tubeVoltageW = gtk_spin_button_new_with_range(5, 100, 1.0);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->tubeVoltageW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeVoltageW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	GtkAdjustment *adjCurrent = GTK_ADJUSTMENT(gtk_adjustment_new(xep.tube_current,0.001,1000,0.1,1.0,0));
 	label = gtk_label_new("Tube current (mA)");
-	source->tubeCurrentW = gtk_spin_button_new(GTK_ADJUSTMENT(adjCurrent), 0.1, 4);
+	source->tubeCurrentW = gtk_spin_button_new_with_range(0.001, 1000, 0.1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->tubeCurrentW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
@@ -278,14 +324,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
 	gtk_box_pack_end(GTK_BOX(hbox), slitsButton, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeSolidAngleW, FALSE, FALSE, 2);
-	g_signal_connect_swapped(G_OBJECT(slitsButton), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) source->tubeSolidAngleW);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-
-	char buf[200];
-	sprintf(buf, "%g", xep.tube_solid_angle);
-	gtk_entry_set_text(GTK_ENTRY(source->tubeSolidAngleW), buf);
-
-
 
 	GtkWidget *table = gtk_table_new(4, 4, FALSE);
 	gtk_table_set_row_spacings(GTK_TABLE(table), 2);
@@ -302,7 +341,6 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	source->anodeDensityW = gtk_entry_new();
 	source->anodeMaterialW = gtk_combo_box_text_new();
-	g_signal_connect(G_OBJECT(source->anodeMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->anodeDensityW);
 	int i;
 	gchar *symbol;
 	for (i = 1 ; i <= 94 ; i++) {
@@ -310,20 +348,10 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->anodeMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(source->anodeMaterialW), xep.anode_Z-1);
 	gtk_table_attach(GTK_TABLE(table), source->anodeMaterialW, 1, 2, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), source->anodeDensityW, 2, 3, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	source->anodeThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), source->anodeThicknessW, 3, 4, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
-
-	if (xep.transmission_tube == FALSE) {
-		gtk_widget_set_sensitive(source->anodeThicknessW, FALSE);
-		gtk_widget_set_sensitive(source->anodeDensityW, FALSE);
-	}
-	sprintf(buf, "%g", xep.anode_rho);
-	gtk_entry_set_text(GTK_ENTRY(source->anodeDensityW), buf);
-	sprintf(buf, "%g", xep.anode_thickness);
-	gtk_entry_set_text(GTK_ENTRY(source->anodeThicknessW), buf);
 
 	//row 2
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Window"), 0, 1, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -335,15 +363,10 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->windowMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(source->windowMaterialW), xep.window_Z-1);
 	gtk_table_attach(GTK_TABLE(table), source->windowMaterialW, 1, 2, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), source->windowDensityW, 2, 3, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	source->windowThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), source->windowThicknessW, 3, 4, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	sprintf(buf, "%g", xep.window_rho);
-	gtk_entry_set_text(GTK_ENTRY(source->windowDensityW), buf);
-	sprintf(buf, "%g", xep.window_thickness);
-	gtk_entry_set_text(GTK_ENTRY(source->windowThicknessW), buf);
 
 	//row 3
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Filter"), 0, 1, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -355,18 +378,12 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->filterMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(source->filterMaterialW), xep.filter_Z-1);
 	gtk_table_attach(GTK_TABLE(table), source->filterMaterialW, 1, 2, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	gtk_table_attach(GTK_TABLE(table), source->filterDensityW, 2, 3, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
 	source->filterThicknessW = gtk_entry_new();
 	gtk_table_attach(GTK_TABLE(table), source->filterThicknessW, 3, 4, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	sprintf(buf, "%g", xep.filter_rho);
-	gtk_entry_set_text(GTK_ENTRY(source->filterDensityW), buf);
-	sprintf(buf, "%g", xep.filter_thickness);
-	gtk_entry_set_text(GTK_ENTRY(source->filterThicknessW), buf);
 
-	GtkAdjustment *adj2 = GTK_ADJUSTMENT(gtk_adjustment_new(xep.alpha,50,90,1,10,0));
-	source->alphaElectronW = gtk_spin_button_new(GTK_ADJUSTMENT(adj2), 0.1, 1);
+	source->alphaElectronW = gtk_spin_button_new_with_range(50, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaElectronW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	label = gtk_label_new("Electron incidence angle (degrees)");
@@ -374,8 +391,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	GtkAdjustment *adj3 = GTK_ADJUSTMENT(gtk_adjustment_new(xep.beta,5,90,1,10,0));
-	source->alphaXrayW = gtk_spin_button_new(GTK_ADJUSTMENT(adj3), 0.1, 1);
+	source->alphaXrayW = gtk_spin_button_new_with_range(50, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaXrayW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	label = gtk_label_new("X-ray take-off angle (degrees)");
@@ -383,8 +399,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	GtkAdjustment *adjDelta = GTK_ADJUSTMENT(gtk_adjustment_new(xep.interval_width,0.0001,10,0.01,10,0));
-	source->deltaEnergyW = gtk_spin_button_new(GTK_ADJUSTMENT(adjDelta), 0.01, 3);
+	source->deltaEnergyW = gtk_spin_button_new_with_range(0.0001, 10.0, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->deltaEnergyW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	label = gtk_label_new("Interval width (keV)");
@@ -393,26 +408,31 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);
 
-	GtkWidget *transmissionW = gtk_check_button_new_with_label("Transmission tube");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmissionW), xep.transmission_tube);
+	source->transmissionW = gtk_check_button_new_with_label("Transmission tube");
 
-	gtk_box_pack_start(GTK_BOX(mainVBox), transmissionW, TRUE, FALSE, 2);
-	g_signal_connect_swapped(G_OBJECT(transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) source);
+	gtk_box_pack_start(GTK_BOX(mainVBox), source->transmissionW, TRUE, FALSE, 2);
 
 	source->transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(source->transmissionEffW), strcmp(xep.transmission_efficiency_file, "(None)") == 0 ? FALSE : TRUE);
 	hbox = gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), source->transmissionEffW, FALSE, FALSE, 0);
 	source->transmissionEffFileW = gtk_file_chooser_button_new("Select a transmission efficiency file", GTK_FILE_CHOOSER_ACTION_OPEN);
 	gtk_widget_set_sensitive(source->transmissionEffFileW, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW)));
 	gtk_box_pack_start(GTK_BOX(hbox), source->transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
-	g_signal_connect(G_OBJECT(source->transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) source->transmissionEffFileW);
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW))) {
-		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(source->transmissionEffFileW), xep.transmission_efficiency_file);
-	}
 
-	g_free(xep.transmission_efficiency_file);
+	// load the preferences
+	struct xmi_ebel_parameters *xep = get_preferences();
+	
+	set_parameters(source, xep);
+
+	g_free(xep->transmission_efficiency_file);
+	g_free(xep);
+
+	// connect signal handlers
+	g_signal_connect(G_OBJECT(source->anodeMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->anodeDensityW);
+	g_signal_connect_swapped(G_OBJECT(slitsButton), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) source->tubeSolidAngleW);
+	g_signal_connect_swapped(G_OBJECT(source->transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) source);
+	g_signal_connect(G_OBJECT(source->transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) source->transmissionEffFileW);
 }
 
 G_MODULE_EXPORT XmiMsimGuiSourceTubeEbel* xmi_msim_gui_source_tube_ebel_new(struct xmi_input *current) {
