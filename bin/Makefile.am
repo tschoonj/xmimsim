@@ -35,6 +35,12 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-prefs.c \
 	xmimsim-gui-source-abstract.h \
 	xmimsim-gui-source-abstract.c \
+	xmimsim-gui-compound-dialog.c \
+	xmimsim-gui-compound-dialog.h \
+	xmimsim-gui-catalog-dialog.c \
+	xmimsim-gui-catalog-dialog.h \
+	xmimsim-gui-layer-dialog.c \
+	xmimsim-gui-layer-dialog.h \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -140,12 +146,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-fonts.h \
 	xmimsim-gui-export-canvas-dialog.c \
 	xmimsim-gui-export-canvas-dialog.h \
-	xmimsim-gui-compound-dialog.c \
-	xmimsim-gui-compound-dialog.h \
-	xmimsim-gui-catalog-dialog.c \
-	xmimsim-gui-catalog-dialog.h \
-	xmimsim-gui-layer-dialog.c \
-	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-sources.c \
