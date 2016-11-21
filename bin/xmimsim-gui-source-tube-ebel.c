@@ -516,3 +516,7 @@ static void xmi_msim_gui_source_tube_ebel_finalize(GObject *object) {
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_tube_ebel_parent_class)->finalize(object);
 }
+
+GQuark xmi_msim_gui_source_tube_ebel_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-gui-source-tube-ebel-error-quark");
+}
