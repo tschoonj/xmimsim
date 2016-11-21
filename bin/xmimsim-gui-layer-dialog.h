@@ -21,6 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_LAYER_DIALOG_H
 #define XMI_MSIM_GUI_LAYER_DIALOG_H
 
+G_BEGIN_DECLS
+
 #define XMI_MSIM_GUI_TYPE_LAYER_DIALOG                  (xmi_msim_gui_layer_dialog_get_type ())
 #define XMI_MSIM_GUI_LAYER_DIALOG(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_LAYER_DIALOG, XmiMsimGuiLayerDialog))
 #define XMI_MSIM_GUI_LAYER_DIALOG_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass), XMI_MSIM_GUI_TYPE_LAYER_DIALOG, XmiMsimGuiLayerDialogClass))
@@ -70,5 +72,7 @@ GtkWidget *xmi_msim_gui_layer_dialog_new(GtkWindow *parent, XmiMsimGuiLayerDialo
 
 void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, struct xmi_layer *layer);
 struct xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog);
+
+G_END_DECLS
 #endif
 
