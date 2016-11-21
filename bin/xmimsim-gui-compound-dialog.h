@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_COMPOUND_DIALOG_H
 #define XMI_MSIM_GUI_COMPOUND_DIALOG_H
 
+G_BEGIN_DECLS
+
 #define XMI_MSIM_GUI_TYPE_COMPOUND_DIALOG                  (xmi_msim_gui_compound_dialog_get_type ())
 #define XMI_MSIM_GUI_COMPOUND_DIALOG(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_COMPOUND_DIALOG, XmiMsimGuiCompoundDialog))
 #define XMI_MSIM_GUI_COMPOUND_DIALOG_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass), XMI_MSIM_GUI_TYPE_COMPOUND_DIALOG, XmiMsimGuiCompoundDialogClass))
@@ -59,4 +61,5 @@ gchar *xmi_msim_gui_compound_dialog_get_compound(XmiMsimGuiCompoundDialog *dialo
 void xmi_msim_gui_compound_dialog_set_weight(XmiMsimGuiCompoundDialog *dialog, gdouble weight);
 gdouble xmi_msim_gui_compound_dialog_get_weight(XmiMsimGuiCompoundDialog *dialog);
 
+G_END_DECLS
 #endif

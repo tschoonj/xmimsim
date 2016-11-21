@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
+G_BEGIN_DECLS
+
 #ifndef XMI_MSIM_GUI_CATALOG_DIALOG_H
 #define XMI_MSIM_GUI_CATALOG_DIALOG_H
 
@@ -51,6 +53,7 @@ GtkWidget *xmi_msim_gui_catalog_dialog_new(GtkWindow *parent);
 
 struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog);
 
+G_END_DECLS
 
 #endif
 
