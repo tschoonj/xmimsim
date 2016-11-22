@@ -41,6 +41,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.c \
 	xmimsim-gui-layer-dialog.h \
+	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-type-builtins.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -146,8 +148,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-fonts.h \
 	xmimsim-gui-export-canvas-dialog.c \
 	xmimsim-gui-export-canvas-dialog.h \
-	xmimsim-gui-type-builtins.h \
-	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-sources.c \
 	xmimsim-gui-sources.h \
 	xmimsim-gui-batch.h \
@@ -387,10 +387,10 @@ xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
 
 xmimsim-gui-type-builtins.c: $(mkenum_sources)
 	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n\n" \
+		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n#include <glib.h>\n\nG_BEGIN_DECLS\n\n" \
 		--fprod "/* enumerations from \"@filename@\" */\n" \
 		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_GUI_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
-		--ftail "\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
+		--ftail "\nG_END_DECLS\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
 		--identifier-prefix "XmiMsimGui" \
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
