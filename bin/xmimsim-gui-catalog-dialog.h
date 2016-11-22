@@ -18,10 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
-G_BEGIN_DECLS
 
 #ifndef XMI_MSIM_GUI_CATALOG_DIALOG_H
 #define XMI_MSIM_GUI_CATALOG_DIALOG_H
+
+G_BEGIN_DECLS
 
 #define XMI_MSIM_GUI_TYPE_CATALOG_DIALOG                  (xmi_msim_gui_catalog_dialog_get_type ())
 #define XMI_MSIM_GUI_CATALOG_DIALOG(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_CATALOG_DIALOG, XmiMsimGuiCatalogDialog))
