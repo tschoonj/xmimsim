@@ -19,13 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include <xraylib.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct xmi_ebel_parameters {
 	double tube_voltage;
 	double tube_current;
 	double tube_solid_angle;
-	double alpha;
-	double beta;
+	double alpha_electron;
+	double alpha_xray;
 	double interval_width;
 	int anode_Z;
 	double anode_rho;
@@ -38,7 +39,6 @@ struct xmi_ebel_parameters {
 	double filter_thickness;
 	gboolean transmission_tube;
 	gchar *transmission_efficiency_file;
-	gboolean log10_active;
 };
 
 G_DEFINE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
@@ -74,6 +74,105 @@ static void xmi_msim_gui_source_tube_ebel_class_init(XmiMsimGuiSourceTubeEbelCla
 	//parent_klass->save = xmi_msim_gui_source_tube_ebel_real_save; // do not override
 	parent_klass->get_name = xmi_msim_gui_source_tube_ebel_real_get_name;
 	parent_klass->get_about_text = xmi_msim_gui_source_tube_ebel_real_get_about_text;
+}
+
+static struct xmi_ebel_parameters* get_parameters(XmiMsimGuiSourceTubeEbel *source, GError **error) {
+	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
+
+	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->tubeVoltageW));
+	xep->tube_current = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->tubeCurrentW));
+
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(source->tubeSolidAngleW));
+	gchar *endPtr;
+	xep->tube_solid_angle = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->tube_solid_angle <= 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid tube solid angle: must be greater than zero");
+		g_free(xep);
+		return NULL;
+	}
+
+	xep->alpha_electron = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->alphaElectronW));
+	xep->alpha_xray = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->alphaXrayW));
+	xep->interval_width = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->deltaEnergyW));
+	xep->anode_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->anodeMaterialW))+1;
+
+	xep->transmission_tube = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionW));
+
+	if (xep->transmission_tube) {
+		// transmission tube mode
+		text = gtk_entry_get_text(GTK_ENTRY(source->anodeDensityW));
+		xep->anode_rho = strtod(text, &endPtr);
+		if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_rho <= 0.0) {
+			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode density: must be greater than zero");
+			g_free(xep);
+			return NULL;
+		}
+		text = gtk_entry_get_text(GTK_ENTRY(source->anodeThicknessW));
+		xep->anode_thickness = strtod(text, &endPtr);
+		if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_thickness <= 0.0) {
+			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode thickness: must be greater than zero");
+			g_free(xep);
+			return NULL;
+		}
+	}
+
+	double rho, thickness;
+
+	text = gtk_entry_get_text(GTK_ENTRY(source->windowDensityW));
+	rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || rho < 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid window density: must be greater than or equal to zero");
+		g_free(xep);
+		return NULL;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(source->windowThicknessW));
+	thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid window thickness: must be greater than or equal to zero");
+		g_free(xep);
+		return NULL;
+	}
+
+	if (thickness > 0.0 && rho > 0.0) {
+		xep->window_thickness = thickness;
+		xep->window_rho = rho;
+		xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->windowMaterialW))+1;
+	}
+
+	text = gtk_entry_get_text(GTK_ENTRY(source->filterDensityW));
+	rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || rho < 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid filter density: must be greater than or equal to zero");
+		g_free(xep);
+		return NULL;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(source->filterThicknessW));
+	thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid filter thickness: must be greater than or equal to zero");
+		g_free(xep);
+		return NULL;
+	}
+
+	if (thickness > 0.0 && rho > 0.0) {
+		xep->filter_thickness = thickness;
+		xep->filter_rho = rho;
+		xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->filterMaterialW))+1;
+	}
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW))) {
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(source->transmissionEffFileW));
+		if (filename == NULL || strlen(filename) == 0) {
+			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid transmission efficiency filename");
+			g_free(xep);
+			return NULL;
+		}
+		xep->transmission_efficiency_file = filename;
+	}
+	else
+		xep->transmission_efficiency_file = NULL;
+
+	return xep;
 }
 
 static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_parameters *xep) {
@@ -116,8 +215,8 @@ static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_par
 	gtk_entry_set_text(GTK_ENTRY(source->filterThicknessW), buf);
 	g_free(buf);
 
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaElectronW), xep->alpha);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaXrayW), xep->beta);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaElectronW), xep->alpha_electron);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->alphaXrayW), xep->alpha_xray);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->deltaEnergyW), xep->interval_width);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(source->transmissionW), xep->transmission_tube);
@@ -169,19 +268,19 @@ static struct xmi_ebel_parameters* get_preferences() {
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep->alpha = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha", &error);
+	xep->alpha_electron = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha electron", &error);
 	if (error != NULL) {
-		g_warning("Ebel last used Tube alpha not found in preferences file\n");
-		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha", 60.0);
-		xep->alpha = 60.0;
+		g_warning("Ebel last used Tube alpha electron not found in preferences file\n");
+		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha electron", 60.0);
+		xep->alpha_electron = 60.0;
 		error = NULL;
 		update_file = TRUE;
 	}
-	xep->beta = g_key_file_get_double(keyfile, "Ebel last used", "Tube beta", &error);
+	xep->alpha_xray = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha xray", &error);
 	if (error != NULL) {
-		g_warning("Ebel last used Tube beta not found in preferences file\n");
-		g_key_file_set_double(keyfile, "Ebel last used", "Tube beta", 60.0);
-		xep->beta = 60.0;
+		g_warning("Ebel last used Tube alpha xray not found in preferences file\n");
+		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha xray", 60.0);
+		xep->alpha_xray = 60.0;
 		error = NULL;
 		update_file = TRUE;
 	}
@@ -472,12 +571,7 @@ static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
 }
 
 static void transmissioneff_clicked_cb(GtkToggleButton *button, GtkWidget *filechooser) {
-	if (gtk_toggle_button_get_active(button)) {
-		gtk_widget_set_sensitive(filechooser, TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(filechooser, FALSE);
-	}
+	gtk_widget_set_sensitive(filechooser, gtk_toggle_button_get_active(button));
 
 	return;
 }
