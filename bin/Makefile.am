@@ -86,6 +86,7 @@ xmimsim_gui_source_tube_ebel_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.h \
@@ -93,7 +94,8 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@
-xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
+xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la libxmimsim-gui-spline.la
+		    
 endif
 
 bin_PROGRAMS =  xmimsim \
@@ -172,7 +174,7 @@ libxmimsim_gui_spline_la_SOURCES = \
 libxmimsim_gui_spline_la_CPPFLAGS = \
 		     -I$(top_srcdir)/include \
 		     @xraylib_CFLAGS@
-libxmimsim_gui_spline_la_LDFLAGS = -static
+#libxmimsim_gui_spline_la_LDFLAGS = -static
 libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 
 
@@ -202,8 +204,7 @@ endif
 endif
 
 
-xmimsim_gui_LDADD = libxmimsim-gui-spline.la \
-		    libxmimsim-gui.la \
+xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @gtk2_LIBS@ \
 		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \
