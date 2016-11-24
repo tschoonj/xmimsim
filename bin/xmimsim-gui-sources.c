@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-sources.h"
-#include "xmimsim-gui-spline.h"
 #ifdef HAVE_CXX
   #include <gtkmm-plplot.h>
 #else
@@ -921,6 +920,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 	}
 #endif
 
+	/*
 	//apply transmission efficiencies if required
 	int i,j;
 	if (n_eff > 0) {
@@ -943,6 +943,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 		g_free(eff_y);
 		xmi_cubic_spline_free(spline);
 	}
+	*/
 
 
 	//TODO:let's clean up the data a bit here...
@@ -966,6 +967,7 @@ static void generate_tube_spectrum(struct generate *gen) {
 
 	double *bins = (double *) malloc(sizeof(double) * gen->excitation_tube->n_continuous);
 
+	int i, j;
 	for (i = 0 ; i < gen->excitation_tube->n_continuous ; i++)
 		bins[i] = gen->excitation_tube->continuous[i].horizontal_intensity*2.0*tube_deltaE;
 

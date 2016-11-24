@@ -76,6 +76,8 @@ G_MODULE_EXPORT XmiMsimGuiSourceTubeEbel* xmi_msim_gui_source_tube_ebel_new(stru
 
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA,
+	XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_GENERATE,
+	XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE,
 } XmiMsimGuiSourceTubeEbelError;
 
 #define XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR (xmi_msim_gui_source_tube_ebel_error_quark())
