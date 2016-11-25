@@ -426,6 +426,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	hbox = gtk_hbox_new(FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeVoltageW, FALSE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	label = gtk_label_new("Tube current (mA)");
@@ -434,6 +435,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	hbox = gtk_hbox_new(FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeCurrentW, FALSE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	source->tubeSolidAngleW = gtk_entry_new();
@@ -443,6 +445,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
 	gtk_box_pack_end(GTK_BOX(hbox), slitsButton, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeSolidAngleW, FALSE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	GtkWidget *table = gtk_table_new(4, 4, FALSE);
@@ -509,6 +512,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaElectronW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 
 	source->alphaXrayW = gtk_spin_button_new_with_range(50, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaXrayW), GTK_UPDATE_IF_VALID);
@@ -517,6 +521,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaXrayW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 
 	source->deltaEnergyW = gtk_spin_button_new_with_range(0.0001, 10.0, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->deltaEnergyW), GTK_UPDATE_IF_VALID);
@@ -525,11 +530,14 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->deltaEnergyW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);
+	gtk_widget_show_all(table);
 
 	source->transmissionW = gtk_check_button_new_with_label("Transmission tube");
 
 	gtk_box_pack_start(GTK_BOX(mainVBox), source->transmissionW, TRUE, FALSE, 2);
+	gtk_widget_show_all(source->transmissionW);
 
 	source->transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
 	hbox = gtk_hbox_new(FALSE, 0);
@@ -538,6 +546,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_widget_set_sensitive(source->transmissionEffFileW, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW)));
 	gtk_box_pack_start(GTK_BOX(hbox), source->transmissionEffFileW, TRUE, TRUE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
+	gtk_widget_show_all(hbox);
 
 	// load the preferences
 	struct xmi_ebel_parameters *xep = get_preferences();

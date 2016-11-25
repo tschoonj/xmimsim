@@ -55,12 +55,6 @@ struct _XmiMsimGuiSourceTubeEbel
 	GtkWidget *tubeSolidAngleW;
 	GtkWidget *transmissionEffW;
 	GtkWidget *transmissionEffFileW;
-	double plot_xmin_tube;
-	double plot_xmax_tube;
-	double plot_ymax_tube;
-	double plot_ymin_tube;
-	double plot_ymin_lin_tube;
-	double plot_ymin_log10_tube;
 };
 
 struct _XmiMsimGuiSourceTubeEbelClass
