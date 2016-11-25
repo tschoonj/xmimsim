@@ -112,7 +112,10 @@ bin_PROGRAMS =  xmimsim \
 		xmsa2xmso \
 		$(NULL)
 
-noinst_PROGRAMS = xmimsim-gui-source-test
+noinst_PROGRAMS = $(NULL)
+if ENABLE_GUI
+noinst_PROGRAMS += xmimsim-gui-source-test
+endif
 xmimsim_gui_source_test_SOURCES = xmimsim-gui-source-test.c
 xmimsim_gui_source_test_CPPFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -123,6 +126,8 @@ xmimsim_gui_source_test_CPPFLAGS = \
 xmimsim_gui_source_test_LDADD = \
 	libxmimsim-gui.la \
 	@gmodule_LIBS@ \
+	@gtk2_LIBS@ \
+	@gtkmm3_LIBS@ \
 	$(NULL)
 
 dist_noinst_DATA = coordinate_system.png
