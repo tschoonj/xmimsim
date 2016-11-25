@@ -55,22 +55,14 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
 
 	source->x = NULL;
-	source->y_log10 = NULL;
-	source->y_linear = NULL;
+	source->y = NULL;
 	source->raw_data = NULL;
-	source->n = 0;
 
 }
 
-void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n) {
+void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray **y) {
 	*x = source->x;
-	*n = source->n;
-	if (log10) {
-		*y = source->y_log10;
-	}
-	else {
-		*y = source->y_linear;
-	}
+	*y = source->y;
 }
 
 struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
@@ -88,11 +80,9 @@ static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	if (source->raw_data)
 		xmi_free_excitation(source->raw_data);
 	if (source->x)
-		g_free(source->x);
-	if (source->y_linear)
-		g_free(source->y_linear);
-	if (source->y_log10)
-		g_free(source->y_log10);
+		g_array_free(source->x, TRUE);
+	if (source->y)
+		g_array_free(source->y, TRUE);
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }

@@ -721,47 +721,48 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 
 	// ideally I investigate the intensities and remove those whose intensity is really, really low...
 	
-
-	// cleanup
-	xmi_free_layer(anode);
-	free(anode);
-	if (window != NULL) {
-		xmi_free_layer(window);
-		free(window);
-	}
-	if (filter != NULL) {
-		xmi_free_layer(filter);
-		free(filter);
-	}
-	
 	// update member variables
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
 		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube;
 
-	g_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x);
-	g_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_linear);
-	g_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_log10);
+	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
+	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = (gdouble *) g_malloc(sizeof(gdouble) * excitation_tube->n_continuous);
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_linear = (gdouble *) g_malloc(sizeof(gdouble) * excitation_tube->n_continuous);
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_log10 = (gdouble *) g_malloc(sizeof(gdouble) * excitation_tube->n_continuous);
+
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
 
 	int i, j;
 	for (i = 0 ; i < excitation_tube->n_continuous ; i++) {
-		XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x[i] = excitation_tube->continuous[i].energy;
-		XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_linear[i] = excitation_tube->continuous[i].horizontal_intensity * 2.0 * xep->interval_width;
+		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, excitation_tube->continuous[i].energy);
+		double intensity = excitation_tube->continuous[i].horizontal_intensity * 2.0 * xep->interval_width;
+		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, intensity);
 	}
 
 	for (i = 0 ; i < excitation_tube->n_discrete ; i++) {
 		for (j = 0 ; j < excitation_tube->n_continuous ; j++) {
 			if (excitation_tube->discrete[i].energy < excitation_tube->continuous[j].energy && j != 0) {
-				XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y_linear[j-1] += excitation_tube->discrete[i].horizontal_intensity*2.0;
+				double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, j-1); 
+				*intensity += excitation_tube->discrete[i].horizontal_intensity*2.0;
 				break;
 			}
 		}
 	}
 
+	// find the smallest value greater than zero (1E-1)
+	double ymax = xmi_maxval_double((double *) XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->data, XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len);
+	double new_min = ymax;
+	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
+		if (g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) < new_min && g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) > 1E-1)
+			new_min = g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
+	}
+
+	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
+		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
+		if (*intensity < new_min)
+			*intensity = new_min;
+	}
 
 	g_free(xep->transmission_efficiency_file);
 	g_free(xep);

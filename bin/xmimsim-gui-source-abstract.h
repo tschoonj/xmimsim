@@ -37,10 +37,8 @@ typedef struct _XmiMsimGuiSourceAbstractClass   XmiMsimGuiSourceAbstractClass;
 struct _XmiMsimGuiSourceAbstract
 {
   GtkVBox parent_instance;
-  gdouble *x;
-  gdouble *y_linear;
-  gdouble *y_log10;
-  gint n;
+  GArray *x;
+  GArray *y;
   struct xmi_excitation *raw_data;
   struct xmi_input *current;
 };
@@ -68,7 +66,7 @@ gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source,
 
 gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
-void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, gboolean log10, gdouble **x, gdouble **y, gint *n);
+void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray**y);
 
 const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source);
 
