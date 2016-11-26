@@ -104,81 +104,53 @@ static struct xmi_ebel_parameters* get_parameters(XmiMsimGuiSourceTubeEbel *sour
 
 	xep->transmission_tube = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionW));
 
-	if (xep->transmission_tube) {
-		// transmission tube mode
-		text = gtk_entry_get_text(GTK_ENTRY(source->anodeDensityW));
-		xep->anode_rho = strtod(text, &endPtr);
-		if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_rho <= 0.0) {
-			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode density: must be greater than zero");
-			g_free(xep);
-			return NULL;
-		}
-		text = gtk_entry_get_text(GTK_ENTRY(source->anodeThicknessW));
-		xep->anode_thickness = strtod(text, &endPtr);
-		if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_thickness <= 0.0) {
-			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode thickness: must be greater than zero");
-			g_free(xep);
-			return NULL;
-		}
+	text = gtk_entry_get_text(GTK_ENTRY(source->anodeDensityW));
+	xep->anode_rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_rho <= 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode density: must be greater than zero");
+		g_free(xep);
+		return NULL;
 	}
-	else {
-		xep->anode_rho = 0.0;
-		xep->anode_thickness = 0.0;
+	text = gtk_entry_get_text(GTK_ENTRY(source->anodeThicknessW));
+	xep->anode_thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->anode_thickness <= 0.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid anode thickness: must be greater than zero");
+		g_free(xep);
+		return NULL;
 	}
-
-	double rho, thickness;
 
 	text = gtk_entry_get_text(GTK_ENTRY(source->windowDensityW));
-	rho = strtod(text, &endPtr);
-	if (strlen(text) == 0 || text + strlen(text) != endPtr || rho < 0.0) {
+	xep->window_rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_rho < 0.0) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid window density: must be greater than or equal to zero");
 		g_free(xep);
 		return NULL;
 	}
 	text = gtk_entry_get_text(GTK_ENTRY(source->windowThicknessW));
-	thickness = strtod(text, &endPtr);
-	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
+	xep->window_thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_thickness < 0.0) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid window thickness: must be greater than or equal to zero");
 		g_free(xep);
 		return NULL;
 	}
+	xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->windowMaterialW))+1;
 
-	if (thickness > 0.0 && rho > 0.0) {
-		xep->window_thickness = thickness;
-		xep->window_rho = rho;
-		xep->window_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->windowMaterialW))+1;
-	}
-	else {
-		xep->window_thickness = 0.0;
-		xep->window_rho = 0.0;
-		xep->window_Z = 0;
-	}
 
 	text = gtk_entry_get_text(GTK_ENTRY(source->filterDensityW));
-	rho = strtod(text, &endPtr);
-	if (strlen(text) == 0 || text + strlen(text) != endPtr || rho < 0.0) {
+	xep->filter_rho = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_rho < 0.0) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid filter density: must be greater than or equal to zero");
 		g_free(xep);
 		return NULL;
 	}
 	text = gtk_entry_get_text(GTK_ENTRY(source->filterThicknessW));
-	thickness = strtod(text, &endPtr);
-	if (strlen(text) == 0 || text + strlen(text) != endPtr || thickness < 0.0) {
+	xep->filter_thickness = strtod(text, &endPtr);
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->window_thickness < 0.0) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid filter thickness: must be greater than or equal to zero");
 		g_free(xep);
 		return NULL;
 	}
-
-	if (thickness > 0.0 && rho > 0.0) {
-		xep->filter_thickness = thickness;
-		xep->filter_rho = rho;
-		xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->filterMaterialW))+1;
-	}
-	else {
-		xep->filter_thickness = 0.0;
-		xep->filter_rho = 0.0;
-		xep->filter_Z = 0;
-	}
+	xep->filter_Z = gtk_combo_box_get_active(GTK_COMBO_BOX(source->filterMaterialW))+1;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW))) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(source->transmissionEffFileW));
@@ -245,6 +217,52 @@ static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_par
 		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(source->transmissionEffFileW), xep->transmission_efficiency_file);
 	}
 }
+
+static void set_preferences(struct xmi_ebel_parameters *xep) {
+	gchar *prefs_file;
+	GKeyFile *keyfile;
+
+	prefs_file = xmimsim_gui_get_preferences_filename();
+
+	keyfile = g_key_file_new();
+
+	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
+		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file)) {
+			g_error("Could not create preferences file %s with default settings!", prefs_file);
+			return;
+		}
+	}
+
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", xep->tube_voltage);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube current", xep->tube_current);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", xep->tube_solid_angle);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha electron", xep->alpha_electron);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha xray", xep->alpha_xray);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", xep->interval_width);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", xep->anode_Z);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", xep->anode_rho);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", xep->anode_thickness);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", xep->filter_Z);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", xep->filter_rho);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", xep->filter_thickness);
+	g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", xep->window_Z);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", xep->window_rho);
+	g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", xep->window_thickness);
+	g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", xep->transmission_tube);
+	g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", xep->transmission_efficiency_file);
+
+	//save file
+	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+	GError *error = NULL;
+	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, &error)) {
+		g_error("Could not write to %s: %s\n", prefs_file, error->message);
+	}
+	g_free(prefs_file_contents);
+	g_free(prefs_file);
+	g_key_file_free(keyfile);
+
+	return;
+} 
 
 static struct xmi_ebel_parameters* get_preferences() {
 	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
@@ -409,6 +427,7 @@ static struct xmi_ebel_parameters* get_preferences() {
 		g_free(prefs_file_contents);
 	}
 	g_free(prefs_file);
+	g_key_file_free(keyfile);
 	return xep;
 }
 
@@ -633,8 +652,8 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 
 
 	struct xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
-	struct xmi_layer *window = xep->window_Z > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
-	struct xmi_layer *filter = xep->filter_Z > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
+	struct xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
+	struct xmi_layer *filter = xep->filter_thickness > 0 && xep->filter_rho > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
 
 	struct xmi_excitation* excitation_tube = NULL;
 
@@ -652,7 +671,7 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 		free(filter);
 	}
 
-	if (ebel_rv = 0) {
+	if (ebel_rv == 0) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_GENERATE, "Error generating spectrum: see console for more details");
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
@@ -794,7 +813,19 @@ static const gchar *xmi_msim_gui_source_tube_ebel_real_get_about_text(XmiMsimGui
 }
 
 static void xmi_msim_gui_source_tube_ebel_dispose(GObject *object) {
+	static gboolean first_entry = TRUE;
 
+	if (first_entry == TRUE) {
+		// save current input in preferences if valid
+		// this can only occur the first time the dispose method is called though!
+		struct xmi_ebel_parameters *xep = get_parameters(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(object), NULL);
+		if (xep != NULL) {
+			set_preferences(xep);
+			g_free(xep->transmission_efficiency_file);
+			g_free(xep);
+		}
+	}
+	first_entry = FALSE;
 	G_OBJECT_CLASS(xmi_msim_gui_source_tube_ebel_parent_class)->dispose(object);
 }
 
