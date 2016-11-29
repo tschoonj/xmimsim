@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include "xmimsim-gui-spline.h"
 #include <stdio.h>
+#include <math.h>
 
 struct xmi_ebel_parameters {
 	double tube_voltage;
@@ -91,8 +92,8 @@ static struct xmi_ebel_parameters* get_parameters(XmiMsimGuiSourceTubeEbel *sour
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(source->tubeSolidAngleW));
 	gchar *endPtr;
 	xep->tube_solid_angle = strtod(text, &endPtr);
-	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->tube_solid_angle <= 0.0) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid tube solid angle: must be greater than zero");
+	if (strlen(text) == 0 || text + strlen(text) != endPtr || xep->tube_solid_angle <= 0.0 || xep->tube_solid_angle >= 2*M_PI) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA, "Invalid tube solid angle: must be greater than zero and less than 2\317\200");
 		g_free(xep);
 		return NULL;
 	}
@@ -577,7 +578,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 
 	// connect signal handlers
 	g_signal_connect(G_OBJECT(source->anodeMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->anodeDensityW);
-	g_signal_connect_swapped(G_OBJECT(slitsButton), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) source->tubeSolidAngleW);
+	g_signal_connect_swapped(G_OBJECT(slitsButton), "clicked", G_CALLBACK(slits_button_clicked_cb), (gpointer) source);
 	g_signal_connect_swapped(G_OBJECT(source->transmissionW), "toggled", G_CALLBACK(transmission_clicked_cb), (gpointer) source);
 	g_signal_connect(G_OBJECT(source->transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) source->transmissionEffFileW);
 }
@@ -752,11 +753,11 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 	// update member variables
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
 		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube;
 
 	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
 	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
-
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
@@ -780,6 +781,12 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 
 	// find the smallest value greater than zero (1E-1)
 	double ymax = xmi_maxval_double((double *) XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->data, XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len);
+	if (ymax < 1.0) {
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
+		g_free(xep->transmission_efficiency_file);
+		g_free(xep);
+		return FALSE;
+	}
 	double new_min = ymax;
 	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
 		if (g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) < new_min && g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) > 1E-1)
