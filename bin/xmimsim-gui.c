@@ -5036,6 +5036,11 @@ XMI_MAIN
 #if defined(G_OS_WIN32)
 	setlocale(LC_ALL,"English_United States");
 	//g_setenv("LANG","en_US",TRUE);
+	gchar *installation_dir = g_win32_get_package_installation_directory_of_module(NULL);
+	gchar *path_to_plplot = g_build_filename(installation_dir, "Share", "plplot", NULL);
+	g_setenv("PLPLOT_LIB", path_to_plplot, TRUE);
+	g_free(installation_dir);
+	g_free(path_to_plplot);
 #else
 	g_setenv("LANG","en_US",TRUE);
 #endif
