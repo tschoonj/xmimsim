@@ -18,22 +18,23 @@
 #define MyAppId "XMI-MSIM"
 #define srcdir abs_top_srcdir_win
 #define builddir abs_top_builddir_win
-#define MY_HOME "C:\msys\1.0\home\schoon\"
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.28-2015-06-23-ts-win64.exe"
-  #define MY_MINGW "C:\TDM-GCC-64\"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.1-2016-11-04-ts-win64.exe"
+  #define MY_MINGW "C:\msys64\mingw64\"
+  #define MY_HOME "C:\msys64\home\schoon\"
 #else
   #define MyAppName "XMI-MSIM 32-bit"
   #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
   #define MY_MINGW "C:\MinGW32\"
+  #define MY_HOME "C:\msys\1.0\home\schoon\"
 #endif
 
 #define MyAppPublisher "Tom Schoonjans"
 #define MyAppURL "http://github.com/tschoonj/xmimsim"
-#define XRAYLIB_VERSION '3.1.0'
-#define XRAYLIB_VERSION_MIN '3.1.0'
+#define XRAYLIB_VERSION '3.2.0'
+#define XRAYLIB_VERSION_MIN '3.2.0'
 
 
 [Setup]
@@ -67,6 +68,7 @@ MinVersion=6.0
 MinVersion=5.1
 #endif
 VersionInfoVersion={#MyAppVersion}
+DisableWelcomePage=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -84,17 +86,33 @@ Name: "source" ; Description: "Source code" ; Types: full
 
 [Files]
 Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
-Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 #ifdef XMI_MSIM64
-Source: "{#MY_MINGW}\bin\libgfortran_64-3.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libquadmath_64-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgomp_64-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libidn-11.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libnghttp2-14.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\librtmp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libssh2-1.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgmp-10.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgnutls-30.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libhogweed-4.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libnettle-6.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libp11-kit-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libtasn1-6.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libeasyRNG-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\share\plplot5.11.1\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
+Source: "{#MY_HOME}\install\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 #else
 Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -105,23 +123,26 @@ Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-#endif
-Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgtkextra-win32-3.0-7.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+#endif
 
-Source: "{#MY_HOME}\bin\xmimsim.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmimsim-cli.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmimsim-db.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmimsim-conv.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmimsim-gui.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmimsim-pymca.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmso2xmsi.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmso2svg.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmso2spe.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_HOME}\bin\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-cli.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-db.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-conv.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-gui.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-pymca.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmso2xmsi.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmso2svg.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmso2spe.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#builddir}\bin\.libs\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\build\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
 
@@ -139,7 +160,7 @@ Source: "{#MY_HOME}\github\xmimsim\src\openclfeatures.h" ; DestDir: "{app}\Share
 Source: "{#MY_HOME}\github\xmimsim\src\sse.h" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\src\threefry.h" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\src\xmi_kernels.cl" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\lib\xmimsim\xmimsim-cl.dll" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\icons\Logo_xmi_msim.png" ; DestDir: "{app}\Share" ; Components: core
 
@@ -168,15 +189,19 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"; Components: core
 
 [Run]
-Filename: "{tmp}\{#GTK_INSTALLER_EXE}" ; Parameters: "/sideeffects=no /dllpath=root /translations=no /S /D={app}\GTK2" ; StatusMsg: "Installing GTK2 runtime libraries..." ; Components: core
+Filename: "{tmp}\{#GTK_INSTALLER_EXE}" ; Parameters: "/sideeffects=no /dllpath=root /translations=no /S /D={app}\GTK" ; StatusMsg: "Installing GTK runtime libraries..." ; Components: core
 Filename: "{tmp}\xraylib-{#XRAYLIB_VERSION}.exe" ; Parameters: "/VERYSILENT /SP- /SUPPRESSMSGBOXES" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
 ;Filename: "{app}\Bin\xmimsim-gui.exe"; Description: "Launch XMI-MSIM"; Flags: postinstall nowait skipifsilent 
 
 [UninstallRun]
-Filename: "{app}\GTK2\gtk2_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
+#ifdef XMI_MSIM64
+Filename: "{app}\GTK\gtk3_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
+#else
+Filename: "{app}\GTK\gtk2_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
+#endif
 
 [UninstallDelete]
-Type: filesandordirs ; Name: "{app}\GTK2"
+Type: filesandordirs ; Name: "{app}\GTK"
 Type: files ; Name: "{app}\Bin\set_xmi_msim_path.bat"
 Type: dirifempty ; Name: "{app}"
 
@@ -197,7 +222,7 @@ Root: HKLM; Subkey: "Software\XMI-MSIM\openclcode" ; ValueType: string ; ValueNa
 Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
 
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Bin\xmimsim-gui.exe" ; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" ; ValueType: string ; ValueName: "Path" ; ValueData: "{app}\Bin;{app}\Lib;{app}\GTK2"
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" ; ValueType: string ; ValueName: "Path" ; ValueData: "{app}\Bin;{app}\Lib;{app}\GTK"
 
 Root: HKCR; Subkey: ".xmsi" ; ValueType: string ; ValueName: "" ; ValueData: "{#MyAppName} input-file" ; Flags: uninsdeletekey 
 Root: HKCR; Subkey: "{#MyAppName} input-file" ; ValueType: string ; ValueName: "" ; ValueData: "{#MyAppName} input-file" ; Flags: uninsdeletekey 
@@ -460,11 +485,11 @@ begin
 //  if (CurStep=ssInstall) then
 //  begin
 //	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', '', ExpandConstant('{app}\Bin\xmimsim-gui.exe'));	
-//	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', 'Path', ExpandConstant('{app}\Bin;{app}\Lib;{app}\GTK2'));	
+//	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', 'Path', ExpandConstant('{app}\Bin;{app}\Lib;{app}\GTK'));	
 //  end;
     if (CurStep=ssPostInstall) then
     begin
-	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH=%PATH%;{app}\Bin;{app}\Lib;{app}\GTK2'), False);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH=%PATH%;{app}\Bin;{app}\Lib;{app}\GTK'), False);
     end;
 end;
 
