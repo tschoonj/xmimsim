@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)));
 	gtk_container_set_border_width(GTK_CONTAINER(window), 10);
 	gtk_container_add(GTK_CONTAINER(window), source);
 	g_signal_connect(window, "delete-event", G_CALLBACK(delete_event), NULL);
