@@ -81,7 +81,9 @@ endif
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \
 	xmimsim-gui-source-tube-ebel.la \
+	xmimsim-gui-source-radionuclide.la \
 	$(NULL)
+
 xmimsim_gui_source_tube_ebel_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
@@ -95,6 +97,20 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la libxmimsim-gui-spline.la
+
+xmimsim_gui_source_radionuclide_la_CFLAGS = \
+	@gtk2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	$(NULL)
+xmimsim_gui_source_radionuclide_la_SOURCES = \
+	xmimsim-gui-source-radionuclide.h \
+	xmimsim-gui-source-radionuclide.c \
+	$(NULL)
+xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
+	@LDFLAGS_XMIMSIM_CL@
+xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 		    
 endif
 
