@@ -130,7 +130,7 @@ static void set_preferences(struct xmi_nuclide_parameters *xnp) {
 	int nNuclides;
 	gchar **nuclides = GetRadioNuclideDataList(&nNuclides);
 	if (xnp->radioNuclide < 0 || xnp->radioNuclide >= nNuclides) {
-		g_warning("Invalid radioNuclide %i detected\n");
+		g_warning("Invalid radioNuclide %i detected\n", xnp->radioNuclide);
 	}
 	else {
 		g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[xnp->radioNuclide]);
@@ -190,7 +190,7 @@ static struct xmi_nuclide_parameters* get_preferences() {
 	else {
 		gboolean matched = FALSE;
 		int i;
-		for (i = 0 ; i < ACTIVITY_UNIT_Bq ; i++) {
+		for (i = 0 ; i < 4 ; i++) {
 			if (strcmp(activity_units[i], unit) == 0) {
 				xnp->activityUnit = i;
 				matched = TRUE;
@@ -245,7 +245,7 @@ static struct xmi_nuclide_parameters* get_preferences() {
 		g_free(nuclide);
 	}
 	int i;
-	for (int i = 0 ; i < nNuclides ; i++)
+	for (i = 0 ; i < nNuclides ; i++)
 		free(nuclides[i]);
 	free(nuclides);
 
@@ -443,7 +443,6 @@ static gboolean xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceA
 	}
 	for (i = 0 ; i < excitation_nuclide->n_discrete ; i++) {
 		int channel = (int) floor(excitation_nuclide->discrete[i].energy * 999.0/plot_xmax);
-		//fprintf(stdout, "j : %i\n", j);
 		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, channel); 
 		*intensity += excitation_nuclide->discrete[i].horizontal_intensity*2.0;
 	}
