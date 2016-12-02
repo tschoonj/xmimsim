@@ -51,9 +51,6 @@ struct _XmiMsimGuiSourceRadionuclideClass
 
 GType xmi_msim_gui_source_radionuclide_get_type(void) G_GNUC_CONST;
 
-// this method needs to be exported explicitly, or it would fail on Windows
-G_MODULE_EXPORT XmiMsimGuiSourceRadionuclide* xmi_msim_gui_source_radionuclide_new(struct xmi_input *current);
-
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR_INVALID_DATA,
 	XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR_GENERATE,

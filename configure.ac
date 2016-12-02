@@ -187,16 +187,18 @@ fi
 CXX_MODE=no
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], gtkmm-plplot-2.0 >= 2.1,
+	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.1],
 		[
 			GTK_FOUND=yes
 			CXX_MODE=yes
 			AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
 			#PKG_CHECK_MODULES([gtk], gtk+-3.0)
+			AC_SUBST(GTK_PC, "gtkmm-plplot-2.0 >= 2.1")
 		],[
 		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.2.0,
 			[
 			GTK_FOUND=yes
+			AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.2.0")
 			#PKG_CHECK_MODULES([gtk], gtk+-2.0)
 			],[
 			GTK_FOUND=no
@@ -574,6 +576,13 @@ AC_CONFIG_FILES([ 	Makefile
 			examples/Makefile
 			tests/Makefile
 		])
+
+if test "x$GTK_FOUND" = xyes ; then
+	AC_CONFIG_FILES([
+		libxmimsim-gui.pc
+	])
+fi
+
 AC_CONFIG_HEADERS([config.h])
 
 if test x$OS_WINDOWS = "x1" ; then

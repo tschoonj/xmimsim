@@ -1,4 +1,5 @@
 #include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-source-module.h"
 #include <gmodule.h>
 
 #include <stdio.h>
@@ -33,45 +34,28 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	char *class_name_short;
-
-	GError *error = NULL;
-	GRegex *regex = g_regex_new("xmimsim-gui-source-(.+)." G_MODULE_SUFFIX, 0, 0, &error);
-	if (regex == NULL) {
-		fprintf(stderr, "regex compile error: %s\n", error->message);
-		return 1;
-	}
-	GMatchInfo *match_info;
-	if (g_regex_match(regex, argv[1], 0, &match_info) == FALSE) {
-		fprintf(stderr, "regex: no match\n");
-		return 1;
-	}
+	XmiMsimGuiSourceModule *module = xmi_msim_gui_source_module_new(argv[1]);
 	
-//	while (g_match_info_matches(match_info)) {
-		class_name_short = g_match_info_fetch (match_info, 1);
-		g_print ("Found: %s\n", class_name_short);
-//		g_free (word);
-//		g_match_info_next (match_info, &error);
-//	}
-	GModule *module = g_module_open(argv[1], G_MODULE_BIND_LOCAL);
-
-	// replace dashes with underscores
-	int i;
-	for (i = 0 ; i < strlen(class_name_short) ; i++) {
-		if (class_name_short[i] == '-')
-			class_name_short[i] = '_';
-	}
-	
-	gchar *constructor_symbol_name = g_strdup_printf("xmi_msim_gui_source_%s_new", class_name_short);
-
-	XmiMsimGuiSourceConstructor constructor;
-
-	if (g_module_symbol(module, constructor_symbol_name, (gpointer *) &constructor) == FALSE) {
-		fprintf(stderr, "Could not get symbol %s in %s!\n", constructor_symbol_name, argv[1]);
+	if (module == NULL || g_type_module_use(G_TYPE_MODULE(module)) == FALSE) {
 		return 1;
 	}
 
-	GtkWidget *source = constructor(NULL);
+	// get kids
+	guint ntypes;
+	GType *source_types = g_type_children(XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, &ntypes);
+
+	if (ntypes == 0) {
+		fprintf(stderr, "No sources were loaded!!!\n");
+		return 1;
+	}
+	else {
+		fprintf(stdout, "%u types found!\n", ntypes);
+	}
+
+	GtkWidget *source = g_object_new(source_types[0], 
+		"xmi-input-current",
+		NULL,
+		NULL);
 
 	if (XMI_MSIM_GUI_IS_SOURCE_ABSTRACT(source) == FALSE) {
 		fprintf(stderr, "source is not instance of XmiMsimGuiAbstractSource!!!\n");

@@ -19,6 +19,10 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA=libxmimsim.pc
 
+if ENABLE_GUI
+pkgconfig_DATA+=libxmimsim-gui.pc
+endif
+
 #libtool archives are evil
 if ENABLE_OPENCL
 install-exec-hook:
