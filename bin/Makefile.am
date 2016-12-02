@@ -29,7 +29,19 @@ NULL=
 # 3) ensure this shared lib is pure C, just like the plugins that will link against it
 # 4) install abstract source header
 if ENABLE_GUI
+libxmimsim_gui_includedir = ${includedir}/xmimsim-gui
+
+libxmimsim_gui_include_HEADERS = \
+	xmimsim-gui-prefs.h \
+	xmimsim-gui-source-abstract.h \
+	xmimsim-gui-compound-dialog.h \
+	xmimsim-gui-catalog-dialog.h \
+	xmimsim-gui-layer-dialog.h \
+	xmimsim-gui-type-builtins.h \
+	$(NULL)
+
 lib_LTLIBRARIES = libxmimsim-gui.la
+
 libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-prefs.h \
 	xmimsim-gui-prefs.c \
@@ -43,6 +55,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
+	xmimsim-gui-source-module.h \
+	xmimsim-gui-source-module.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \

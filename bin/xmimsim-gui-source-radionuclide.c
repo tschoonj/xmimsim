@@ -41,7 +41,7 @@ struct xmi_nuclide_parameters {
 
 static const gchar *activity_units[4] = {"mCi", "Ci", "GBq", "Bq"};
 
-G_DEFINE_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
 static gboolean xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
 
@@ -317,23 +317,6 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 
 }
 
-G_MODULE_EXPORT XmiMsimGuiSourceRadionuclide* xmi_msim_gui_source_radionuclide_new(struct xmi_input *current) {
-	XmiMsimGuiSourceRadionuclide *rv = 
-		(XmiMsimGuiSourceRadionuclide *) g_object_new(
-			XMI_MSIM_GUI_TYPE_SOURCE_RADIONUCLIDE, 
-			"spacing", 2,
-			"homogeneous", FALSE,
-#if GTK_MAJOR_VERSION >= 3
-			"expand", FALSE,
-#endif
-			NULL);
-	
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(rv)->current = current;
-
-
-	return rv;
-}
-
 static void slits_button_clicked_cb(XmiMsimGuiSourceRadionuclide *source) {
 	//calculate solid angle based on slits
 	double solid_angle = xmi_msim_gui_source_abstract_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
@@ -509,5 +492,10 @@ static void xmi_msim_gui_source_radionuclide_finalize(GObject *object) {
 }
 
 GQuark xmi_msim_gui_source_radionuclide_error_quark(void) {
-	return g_quark_from_static_string("xmi-msim-gui-source-radionuclide-error-quark");
+	return g_quark_from_string("xmi-msim-gui-source-radionuclide-error-quark");
 }
+
+static void xmi_msim_gui_source_radionuclide_class_finalize(XmiMsimGuiSourceRadionuclideClass *klass) {
+
+}
+

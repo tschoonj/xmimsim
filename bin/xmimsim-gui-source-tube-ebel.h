@@ -65,9 +65,6 @@ struct _XmiMsimGuiSourceTubeEbelClass
 
 GType xmi_msim_gui_source_tube_ebel_get_type(void) G_GNUC_CONST;
 
-// this method needs to be exported explicitly, or it would fail on Windows
-G_MODULE_EXPORT XmiMsimGuiSourceTubeEbel* xmi_msim_gui_source_tube_ebel_new(struct xmi_input *current);
-
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_INVALID_DATA,
 	XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_GENERATE,

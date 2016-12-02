@@ -37,12 +37,18 @@ static void xmi_msim_gui_source_abstract_dispose(GObject *object);
 
 static void xmi_msim_gui_source_abstract_finalize(GObject *object);
 
+static void xmi_msim_gui_source_abstract_set_property (GObject          *object,
+                                                guint             prop_id,
+                                                const GValue     *value,
+                                                GParamSpec       *pspec);
+
 static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClass *klass) {
 
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_gui_source_abstract_dispose;
 	object_class->finalize = xmi_msim_gui_source_abstract_finalize;
+	object_class->set_property = xmi_msim_gui_source_abstract_set_property;
 
 	klass->generate = xmi_msim_gui_source_abstract_real_generate;
 	klass->save = xmi_msim_gui_source_abstract_real_save;
@@ -50,6 +56,15 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 	klass->get_about_text = xmi_msim_gui_source_abstract_real_get_about_text;
 	klass->energy_discrete_printf = xmi_msim_gui_source_abstract_real_energy_discrete_printf;
 	klass->energy_continuous_printf = xmi_msim_gui_source_abstract_real_energy_continuous_printf;
+
+	g_object_class_install_property(object_class,
+		1,
+		g_param_spec_pointer("xmi-input-current",
+			"Current struct xmi_input",
+			"Current struct xmi_input",
+    			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
+		)
+	);
 }
 
 static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
@@ -57,7 +72,18 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 	source->x = NULL;
 	source->y = NULL;
 	source->raw_data = NULL;
+	source->current = NULL;
 
+	g_object_set(
+		(gpointer) source,
+		"spacing", 2,
+		"homogeneous", FALSE,
+#if GTK_MAJOR_VERSION >= 3
+		"expand", FALSE,
+#endif
+		NULL
+	);
+	
 }
 
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray **y) {
@@ -83,6 +109,9 @@ static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 		g_array_free(source->x, TRUE);
 	if (source->y)
 		g_array_free(source->y, TRUE);
+
+	if (source->current != NULL)
+		source->current = NULL; // since we are using the global current in a read-only way, we cannot free it
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }
@@ -201,4 +230,17 @@ double xmi_msim_gui_source_abstract_get_solid_angle_from_slits(struct xmi_geomet
 	return solid_angle;
 }
 
+static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
+
+  XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
+
+  switch (prop_id) {
+    case 1:
+      source->current = (struct xmi_input *) g_value_get_pointer(value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+
+}
 

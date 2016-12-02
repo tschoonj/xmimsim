@@ -48,7 +48,7 @@ struct xmi_ebel_parameters {
 	gchar *transmission_efficiency_file;
 };
 
-G_DEFINE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
 static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
 
@@ -583,23 +583,6 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	g_signal_connect(G_OBJECT(source->transmissionEffW), "toggled", G_CALLBACK(transmissioneff_clicked_cb), (gpointer) source->transmissionEffFileW);
 }
 
-G_MODULE_EXPORT XmiMsimGuiSourceTubeEbel* xmi_msim_gui_source_tube_ebel_new(struct xmi_input *current) {
-	XmiMsimGuiSourceTubeEbel *rv = 
-		(XmiMsimGuiSourceTubeEbel *) g_object_new(
-			XMI_MSIM_GUI_TYPE_SOURCE_TUBE_EBEL, 
-			"spacing", 2,
-			"homogeneous", FALSE,
-#if GTK_MAJOR_VERSION >= 3
-			"expand", FALSE,
-#endif
-			NULL);
-	
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(rv)->current = current;
-
-
-	return rv;
-}
-
 static void slits_button_clicked_cb(XmiMsimGuiSourceTubeEbel *source) {
 	//calculate solid angle based on slits
 	double solid_angle = xmi_msim_gui_source_abstract_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
@@ -842,5 +825,10 @@ static void xmi_msim_gui_source_tube_ebel_finalize(GObject *object) {
 }
 
 GQuark xmi_msim_gui_source_tube_ebel_error_quark(void) {
-	return g_quark_from_static_string("xmi-msim-gui-source-tube-ebel-error-quark");
+	return g_quark_from_string("xmi-msim-gui-source-tube-ebel-error-quark");
 }
+
+static void xmi_msim_gui_source_tube_ebel_class_finalize(XmiMsimGuiSourceTubeEbelClass *klass) {
+
+}
+
