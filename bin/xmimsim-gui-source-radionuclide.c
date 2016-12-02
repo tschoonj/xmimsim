@@ -136,7 +136,7 @@ static void set_preferences(struct xmi_nuclide_parameters *xnp) {
 		g_key_file_set_string(keyfile, "Radionuclide last used", "Radionuclide", nuclides[xnp->radioNuclide]);
 	}
 	int i;
-	for (int i = 0 ; i < nNuclides ; i++)
+	for (i = 0 ; i < nNuclides ; i++)
 		free(nuclides[i]);
 	free(nuclides);
 
