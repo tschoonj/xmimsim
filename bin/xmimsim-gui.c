@@ -27,6 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-layer-dialog.h"
+#include "xmimsim-gui-source-module.h"
+#include "xmimsim-gui-source-abstract.h"
 #include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
@@ -838,6 +840,77 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 }
 
+static void query_source_modules_dir(gchar *dirname) {
+	GError *error = NULL;
+	GDir *dir = g_dir_open(dirname, 0, &error);
+
+	if (dir == NULL) {
+		g_warning("Could not open %s: %s\n", dirname, error->message);
+		return;
+	}
+
+	// dir exists, let's start creating modules out of these files and load them if possible
+	const gchar *file = NULL;
+	while ((file = g_dir_read_name(dir)) != NULL) {
+		if (!g_str_has_suffix(file, G_MODULE_SUFFIX))
+			continue;
+		if (!g_str_has_prefix(file, "xmimsim-gui-source-"))
+			continue;
+		XmiMsimGuiSourceModule *module = xmi_msim_gui_source_module_new(file);
+		if (module != NULL && g_type_module_use(G_TYPE_MODULE(module)) == FALSE)
+			g_type_module_unuse(G_TYPE_MODULE(module));
+	}
+
+	g_dir_close(dir);
+}
+
+static gboolean query_source_modules(void) {
+
+	// first add the user-defined modules
+#ifdef MAC_INTEGRATION
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+#else
+        const gchar *config_dir = g_get_user_config_dir();
+#endif
+
+	//first check if the preferences file exists!
+	gchar *sources_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "sources", config_dir);
+	
+	g_debug("Querying locally installed modules");
+	query_source_modules_dir(sources_dir);
+	g_free(sources_dir);
+
+	g_debug("Querying system-wide installed modules");
+#ifdef G_OS_WIN32
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SOURCES, &sources_dir) == 0) {
+		return;
+	}
+#elif defined(MAC_INTEGRATION)
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_SOURCES, &sources_dir) == 0) {
+		return;
+	}
+#else
+	sources_dir = g_strdup(XMIMSIM_SOURCES_DEFAULT);
+#endif
+	query_source_modules_dir(sources_dir);
+	g_free(sources_dir);
+
+	// get kids
+	guint ntypes;
+	GType *source_types = g_type_children(XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, &ntypes);
+	guint i;
+	for (i = 0 ; i < ntypes ; i++)
+		g_debug("source %s found\n", g_type_name(source_types[i]));
+
+
+#ifdef MAC_INTEGRATION
+        [pool drain];
+#endif
+	return FALSE;
+}
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 
@@ -5144,7 +5217,7 @@ XMI_MAIN
 	static GtkStockItem stock_items[] = {
 		{(gchar *) XMI_STOCK_RADIATION_WARNING, (gchar *) "X-ray sources", (GdkModifierType) 0, 0, NULL},
 		{(gchar *) XMI_STOCK_LOGO, (gchar *) "XMSI file", (GdkModifierType) 0, 0, NULL},
-		{(gchar *) (gchar *) XMI_STOCK_LOGO_RED, (gchar *) "XMSO file", (GdkModifierType) 0, 0, NULL},
+		{(gchar *) XMI_STOCK_LOGO_RED, (gchar *) "XMSO file", (GdkModifierType) 0, 0, NULL},
 		{(gchar *) XMI_STOCK_LOGO_ARCHIVE, (gchar *) "XMSA file", (GdkModifierType) 0, 0, NULL}
 	};
 	gtk_stock_add_static (stock_items, G_N_ELEMENTS (stock_items));
@@ -5157,15 +5230,15 @@ XMI_MAIN
 #ifdef G_OS_WIN32
 	GdkPixbuf *pixbuf;
 #define ADD_ICON(name_macro, name_pixbuf) \
-						{ \
-						GInputStream *ginput = g_memory_input_stream_new_from_data(name_pixbuf, sizeof(name_pixbuf), NULL); \
-						pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL); \
-					  iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
-					  g_object_unref(pixbuf); \
-					  g_object_unref(ginput); \
-					  gtk_icon_factory_add (factory, name_macro, iconset);\
-				  	gtk_icon_set_unref (iconset); \
-					}
+	{ \
+		GInputStream *ginput = g_memory_input_stream_new_from_data(name_pixbuf, sizeof(name_pixbuf), NULL); \
+		pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL); \
+		iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+		g_object_unref(pixbuf); \
+		g_object_unref(ginput); \
+		gtk_icon_factory_add (factory, name_macro, iconset);\
+		gtk_icon_set_unref (iconset); \
+	}
 
 	ADD_ICON(XMI_STOCK_RADIATION_WARNING, Radiation_warning_symbol_pixbuf);
 	ADD_ICON(XMI_STOCK_LOGO, Logo_xmi_msim_pixbuf);
@@ -5175,12 +5248,12 @@ XMI_MAIN
 #undef ADD_ICON
 #else
 #define ADD_ICON(name) source = gtk_icon_source_new (); \
-			gtk_icon_source_set_icon_name (source, name); \
-			iconset = gtk_icon_set_new (); \
-			gtk_icon_set_add_source (iconset, source);\
-			gtk_icon_source_free (source);\
-			gtk_icon_factory_add (factory, name, iconset);\
-			gtk_icon_set_unref (iconset)
+	gtk_icon_source_set_icon_name (source, name); \
+	iconset = gtk_icon_set_new (); \
+	gtk_icon_set_add_source (iconset, source);\
+	gtk_icon_source_free (source);\
+	gtk_icon_factory_add (factory, name, iconset);\
+	gtk_icon_set_unref (iconset)
 
 	ADD_ICON(XMI_STOCK_RADIATION_WARNING);
 	ADD_ICON(XMI_STOCK_LOGO);
@@ -6292,8 +6365,11 @@ XMI_MAIN
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 	g_idle_add((GSourceFunc) check_for_updates_on_init_cb, window);
-
 #endif
+
+	// import sources
+	g_idle_add((GSourceFunc) query_source_modules, NULL);
+
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 
 

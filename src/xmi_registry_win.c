@@ -77,6 +77,9 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_XMSA2XMSO:
 			strcat(stringkey,"xmsa2xmso");
 			break;
+		case XMI_REGISTRY_WIN_SOURCES:
+			strcat(stringkey,"sources");
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
 			return 0;

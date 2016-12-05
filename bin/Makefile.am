@@ -23,6 +23,8 @@ endif
 
 NULL=
 
+noinst_LTLIBRARIES=$(NULL)
+
 #TODO:
 # 1) create shared lib containing abstract source code
 # 2) when compiling against gtkmm3, get also gtk3 headers from configure pkg-config
@@ -126,6 +128,28 @@ xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@
 xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 		    
+noinst_LTLIBRARIES += \
+	xmimsim-gui-source-random.la
+xmimsim_gui_source_random_la_CFLAGS = \
+	@gtk2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	@fgsl_CFLAGS@ \
+	@easyRNG_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	$(NULL)
+xmimsim_gui_source_random_la_SOURCES = \
+	xmimsim-gui-source-random.h \
+	xmimsim-gui-source-random.c \
+	$(NULL)
+xmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
+	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp
+xmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
+	../src/libxmimsim.la
+	@fgsl_LIBS@ \
+	@easyRNG_LIBS@ \
+	@xraylib_LIBS@ \
+	$(NULL)
 endif
 
 bin_PROGRAMS =  xmimsim \
@@ -215,7 +239,7 @@ mkenum_sources = \
 	$(NULL)
 
 # this is a separate convenience library as it allows me to test against it test-cubic-spline
-noinst_LTLIBRARIES = libxmimsim-gui-spline.la
+noinst_LTLIBRARIES += libxmimsim-gui-spline.la
 libxmimsim_gui_spline_la_SOURCES = \
 		      xmimsim-gui-spline.h \
 		      xmimsim-gui-spline.c
@@ -234,6 +258,7 @@ xmimsim_gui_CFLAGS = \
 		     @GTK_MAC_CFLAGS@ \
 		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
+		     -DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
 		     @libnotify_CFLAGS@
 
 if ENABLE_CXX

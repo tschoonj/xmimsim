@@ -40,7 +40,9 @@ static void xmi_msim_gui_source_module_class_init(XmiMsimGuiSourceModuleClass *k
 }
 
 static void xmi_msim_gui_source_module_init(XmiMsimGuiSourceModule *module) {
-
+	module->filename = NULL;
+	module->library = NULL;
+	module->initialized = FALSE;
 }
 
 XmiMsimGuiSourceModule *xmi_msim_gui_source_module_new (const gchar *filename) {

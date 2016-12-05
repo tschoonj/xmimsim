@@ -1555,6 +1555,7 @@ char *xmimsim_gui_get_preferences_filename() {
 	//first check if the preferences file exists!
 	gchar *prefs_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM",config_dir);
 	gchar *prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
+	g_free(prefs_dir);
 
 
 #ifdef MAC_INTEGRATION
