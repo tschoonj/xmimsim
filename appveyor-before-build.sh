@@ -81,9 +81,8 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
 	# install plplot from master
-	git clone -q git://git.code.sf.net/p/plplot/plplot
+	git clone --depth 1 -q git://git.code.sf.net/p/plplot/plplot
 	cd plplot
-	git checkout 3ab6396f0da8e1b7109ea3323eeb0ef81d215a8a
 	cmake -G "MSYS Makefiles" -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .
 	make
 	make install
@@ -92,8 +91,6 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	wget -q https://gtkmm-plplot.tomschoonjans.eu/gtkmm-plplot-2.1.tar.gz
 	tar xfz gtkmm-plplot-2.1.tar.gz
 	cd gtkmm-plplot-2.1	
-	export plplotcxx_CFLAGS="-I/usr/local/include/plplot"
-	export plplotcxx_LIBS="-L/usr/local/lib -lplplotcxx -lplplot"
 	./configure --prefix=/usr/local
 	make
 	make install
