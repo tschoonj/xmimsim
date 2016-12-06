@@ -886,11 +886,11 @@ static gboolean query_source_modules(void) {
 	g_debug("Querying system-wide installed modules");
 #ifdef G_OS_WIN32
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SOURCES, &sources_dir) == 0) {
-		return;
+		return FALSE;
 	}
 #elif defined(MAC_INTEGRATION)
 	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_SOURCES, &sources_dir) == 0) {
-		return;
+		return FALSE;
 	}
 #else
 	sources_dir = g_strdup(XMIMSIM_SOURCES_DEFAULT);
