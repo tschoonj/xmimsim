@@ -191,6 +191,7 @@ xmimsim_gui_source_test_CPPFLAGS = \
 	$(NULL)
 xmimsim_gui_source_test_LDADD = \
 	libxmimsim-gui.la \
+	../src/libxmimsim.la \
 	@gmodule_LIBS@ \
 	@gtk2_LIBS@ \
 	@gtkmm3_LIBS@ \
