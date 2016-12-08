@@ -50,7 +50,6 @@ enum {
 	SCALE_PARAMETER_COLUMN,
 	NCOLUMNS_ENERGIES,
 };
-void update_button_text(GtkWidget *button, const gchar *text);
 
 
 

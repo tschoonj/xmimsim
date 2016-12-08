@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-batch.h"
+#include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-sources.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include "xmimsim-gui-source-module.h"
@@ -5199,6 +5200,7 @@ XMI_MAIN
 #endif
 	LayerAtom = gdk_atom_intern("xmi-msim-layer", FALSE);
 
+	xmi_msim_gui_utils_init_colors();
 
 #ifdef MAC_INTEGRATION
 	theApp = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);

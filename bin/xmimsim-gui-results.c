@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-results.h"
+#include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-fonts.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
@@ -28,15 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
 
-
-XmiColor white_plot;
-XmiColor blue_plot;
-XmiColor red_plot;
-XmiColor green_plot;
-XmiColor black_plot;
-XmiColor purple_plot;
-XmiColor yellow_plot;
-XmiColor pink_plot;
 
 
 static struct xmi_output *results;
@@ -1023,13 +1015,6 @@ static void spectrum_button_toggled_cb(GtkToggleButton *toggleButton, gpointer d
 
 }
 
-#if GTK_MAJOR_VERSION == 3
-	#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
-#else
-	#define COLOR_INIT(color) gdk_color_parse(#color, &color ## _plot);\
-			gdk_colormap_alloc_color(gdk_colormap_get_system(), &color ## _plot,FALSE,TRUE);
-#endif
-
 GtkWidget *init_results(GtkWidget *window) {
 
 
@@ -1044,19 +1029,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
 
-
-
-	/*initialize colors*/
-	COLOR_INIT(white);
-	COLOR_INIT(blue);
-	COLOR_INIT(red);
-	COLOR_INIT(green);
-	COLOR_INIT(black);
-	COLOR_INIT(purple);
-	COLOR_INIT(yellow);
-	COLOR_INIT(pink);
-
-
 	//this could be fetched from preferences in the future
 	xaxis_title = g_strdup("Energy (keV)");
 	yaxis_title = g_strdup("Intensity (counts/channel)");
@@ -1066,8 +1038,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	current_scale = GTK_PLOT_SCALE_LOG10;
 #endif
 	current_conv = XMI_PLOT_CONVOLUTED;
-
-
 
 	magnifier = 0.75;
 
