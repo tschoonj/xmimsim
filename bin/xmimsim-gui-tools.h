@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 
+G_BEGIN_DECLS
+
 void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data);
@@ -30,5 +32,6 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data);
 void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data);
 
+G_END_DECLS
 
 #endif

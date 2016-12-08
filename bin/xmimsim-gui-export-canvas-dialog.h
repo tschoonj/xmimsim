@@ -15,17 +15,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "config.h"
+
+#ifndef XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H
+#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H
+
 #include <gtk/gtk.h>
 
-#ifdef HAVE_CXX
+
+#if GTK_MAJOR_VERSION == 3
 	#include <gtkmm-plplot.h>
 #else
 	#include <gtkextra/gtkextra.h>
 #endif
 
-#ifndef XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H
-#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H
+G_BEGIN_DECLS
 
 #define XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG                  (xmi_msim_gui_export_canvas_dialog_get_type ())
 #define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG, XmiMsimGuiExportCanvasDialog))
@@ -46,7 +49,7 @@ struct _XmiMsimGuiExportCanvasDialog
   GtkFileFilter *eps_filter;
   GtkFileFilter *pdf_filter;
   GtkFileFilter *png_filter;
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
   Gtk::PLplot::Canvas *canvas;
 #else
   GtkWidget *canvas;
@@ -61,7 +64,7 @@ struct _XmiMsimGuiExportCanvasDialogClass
 
 GType xmi_msim_gui_export_canvas_dialog_get_type(void) G_GNUC_CONST;
 
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
 GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent, Gtk::PLplot::Canvas *canvas);
 #else
 GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent, GtkWidget *canvas);
@@ -69,5 +72,6 @@ GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *
 
 gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog);
 
+G_END_DECLS
 #endif
 

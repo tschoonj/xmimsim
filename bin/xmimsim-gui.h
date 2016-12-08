@@ -17,12 +17,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 //#define GDK_DISABLE_DEPRECATED
 //#define GTK_DISABLE_DEPRECATED
+#ifndef XMI_MSIM_GUI_H
+#define XMI_MSIM_GUI_H
+
 #include <gtk/gtk.h>
-#ifdef HAVE_CXX
+
+#if GTK_MAJOR_VERSION == 3
   #include <gtkmm-plplot.h>
 #else
   #include <gtkextra/gtkextra.h>
 #endif
+
+G_BEGIN_DECLS
+
 #include "xmi_data_structs.h"
 #include "xmimsim-gui-controls.h"
 
@@ -30,9 +37,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtkosxapplication.h>
 #endif
 
-
-#ifndef XMIMSIM_GUI_H
-#define XMIMSIM_GUI_H
 
 #if !GLIB_CHECK_VERSION (2, 28, 0)
 void g_list_free_full (GList *list, GDestroyNotify  free_func);
@@ -218,6 +222,5 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 
 int kill_current_job(void);
 
-GtkWidget *long_job_dialog(GtkWidget *parent, const gchar *message_with_markup);
-
+G_END_DECLS
 #endif
