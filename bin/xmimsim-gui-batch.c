@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-fonts.h"
+#include "xmimsim-gui-utils.h"
 #include "xmi_main.h"
 #include <stdio.h>
 #include <glib.h>

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-tools.h"
+#include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
 #include <string.h>
 #include "xmi_xslt.h"
@@ -177,7 +178,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 			return ;
 
 		}*/
-		dialog = long_job_dialog(xt->window, "<b>Reading XMSA file</b>");
+		dialog = xmi_msim_gui_utils_long_job_dialog(xt->window, "<b>Reading XMSA file</b>");
 		gtk_widget_show_all(dialog);
 		GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
 		gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
@@ -190,10 +191,10 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		rxd->archive = &archive;
 #if GLIB_CHECK_VERSION (2, 32, 0)
 		//new API
-		GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) read_xmsa_thread, (gpointer) rxd);
+		GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd);
 #else
 		//old API
-		GThread *xmsa_thread = g_thread_create((GThreadFunc) read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
+		GThread *xmsa_thread = g_thread_create((GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
 #endif
 		while(gtk_events_pending())
 			gtk_main_iteration();
@@ -904,7 +905,7 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
-	dialog = long_job_dialog(xt->window, "<b>Converting XMSA file</b>");
+	dialog = xmi_msim_gui_utils_long_job_dialog(xt->window, "<b>Converting XMSA file</b>");
 	gtk_widget_show_all(dialog);
 	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
 	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
