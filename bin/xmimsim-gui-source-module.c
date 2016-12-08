@@ -50,7 +50,7 @@ XmiMsimGuiSourceModule *xmi_msim_gui_source_module_new (const gchar *filename) {
 
 	g_return_val_if_fail(filename != NULL, NULL);
 
-	module = g_object_new(XMI_MSIM_GUI_TYPE_SOURCE_MODULE, NULL);
+	module = (XmiMsimGuiSourceModule *) g_object_new(XMI_MSIM_GUI_TYPE_SOURCE_MODULE, NULL);
  	module->filename = g_strdup(filename);
 
 	return module;
