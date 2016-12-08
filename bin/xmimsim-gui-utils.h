@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
+#include "xmi_xml.h"
 
 #if GTK_MAJOR_VERSION == 3
 #include <gdkmm/rgba.h>
@@ -48,6 +49,15 @@ extern XmiColor yellow_plot;
 extern XmiColor pink_plot;
 
 void xmi_msim_gui_utils_init_colors();
+
+GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *message_with_markup);
+
+struct read_xmsa_data {
+	gchar *filename;
+	struct xmi_archive **archive;
+};
+
+gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
 
 G_END_DECLS
 

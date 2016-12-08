@@ -40,34 +40,33 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-source-module.h \
 	xmimsim-gui-utils.h \
+	xmimsim-gui-export-canvas-dialog.h \
+	xmimsim-gui-tools.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
 
 libxmimsim_gui_la_SOURCES = \
-	xmimsim-gui-prefs.h \
+	$(libxmimsim_gui_include_HEADERS) \
 	xmimsim-gui-prefs.c \
-	xmimsim-gui-source-abstract.h \
 	xmimsim-gui-source-abstract.c \
 	xmimsim-gui-compound-dialog.c \
-	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-catalog-dialog.c \
-	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.c \
-	xmimsim-gui-layer-dialog.h \
-	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
-	xmimsim-gui-source-module.h \
 	xmimsim-gui-source-module.c \
-	xmimsim-gui-utils.h \
 	xmimsim-gui-utils.c \
+	xmimsim-gui-export-canvas-dialog.c \
+	xmimsim-gui-tools.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
@@ -79,6 +78,7 @@ libxmimsim_gui_la_LIBADD = \
 	@gtkmm3_LIBS@ \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
+	@xml2_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
 
@@ -219,20 +219,16 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 xmimsim_gui_SOURCES = \
 	xmimsim-gui.c \
+	xmimsim-gui.h \
 	xmimsim-gui-energies.c \
 	xmimsim-gui-energies.h \
-	xmimsim-gui.h \
 	xmimsim-gui-controls.c \
 	xmimsim-gui-controls.h \
 	xmimsim-gui-results.c \
 	xmimsim-gui-results.h \
-	xmimsim-gui-tools.c \
-	xmimsim-gui-tools.h \
 	xmimsim-gui-notifications.c \
 	xmimsim-gui-notifications.h \
 	xmimsim-gui-fonts.h \
-	xmimsim-gui-export-canvas-dialog.c \
-	xmimsim-gui-export-canvas-dialog.h \
 	xmimsim-gui-sources.c \
 	xmimsim-gui-sources.h \
 	xmimsim-gui-batch.h \

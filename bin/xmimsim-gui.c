@@ -384,11 +384,6 @@ struct control_widget *control_array = NULL;
 int control_array_elements = 0;
 
 
-
-gpointer read_xmsa_thread(struct read_xmsa_data *rxd) {
-	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));
-}
-
 struct dialog_helper_xmsa_data {
 	GtkWidget *window;
 	gchar *filename;
@@ -4228,31 +4223,10 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
-GtkWidget *long_job_dialog(GtkWidget *parent, const gchar *message_with_markup) {
-	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(parent));
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
-	GtkWidget *label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), message_with_markup);
-	gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
-	label = gtk_label_new("This may take a while...");
-	gtk_box_pack_start(GTK_BOX(main_vbox), label, FALSE, FALSE, 10);
-	gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
-	gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
-	gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
-	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
-
-	return dialog;
-}
-
 
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	struct xmi_archive *archive;
-	GtkWidget *dialog = long_job_dialog(data->window, "<b>Reading XMSA file</b>");
+	GtkWidget *dialog = xmi_msim_gui_utils_long_job_dialog(data->window, "<b>Reading XMSA file</b>");
 	gtk_widget_show_all(dialog);
 	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
 	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
@@ -4265,10 +4239,10 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	rxd->archive = &archive;
 #if GLIB_CHECK_VERSION (2, 32, 0)
 	//new API
-	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) read_xmsa_thread, (gpointer) rxd);
+	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd);
 #else
 	//old API
-	GThread *xmsa_thread = g_thread_create((GThreadFunc) read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
+	GThread *xmsa_thread = g_thread_create((GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
 #endif
 	int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
 	g_free(rxd);
