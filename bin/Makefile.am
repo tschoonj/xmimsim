@@ -96,10 +96,6 @@ libxmimsim_gui_la_LIBADD += \
 endif
 endif
 
-if ENABLE_MAC_APP
-libxmimsim_gui_la_CFLAGS += -xobjective-c
-endif
-
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \
 	xmimsim-gui-source-tube-ebel.la \
