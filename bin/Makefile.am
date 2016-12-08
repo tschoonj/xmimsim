@@ -184,6 +184,7 @@ endif
 xmimsim_gui_source_test_SOURCES = xmimsim-gui-source-test.c
 xmimsim_gui_source_test_CPPFLAGS = \
 	@gtk2_CFLAGS@ \
+	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@gmodule_CFLAGS@ \
 	$(AM_CPPFLAGS) \
@@ -193,6 +194,7 @@ xmimsim_gui_source_test_LDADD = \
 	@gmodule_LIBS@ \
 	@gtk2_LIBS@ \
 	@gtkmm3_LIBS@ \
+	@xml2_LIBS@ \
 	$(NULL)
 
 dist_noinst_DATA = coordinate_system.png
