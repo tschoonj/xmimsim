@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-source-tube-ebel.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-utils.h"
 #include "xmi_ebel.h"
 #include "xmi_aux.h"
 #include "xmi_private.h"
@@ -585,7 +586,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 
 static void slits_button_clicked_cb(XmiMsimGuiSourceTubeEbel *source) {
 	//calculate solid angle based on slits
-	double solid_angle = xmi_msim_gui_source_abstract_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
+	double solid_angle = xmi_msim_gui_utils_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
 
 	gchar *buf = g_strdup_printf("%g", solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(source->tubeSolidAngleW), buf);

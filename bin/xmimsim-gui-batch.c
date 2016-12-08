@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-batch.h"
+#include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-controls.h"
@@ -4360,8 +4361,8 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	gtk_box_pack_start(GTK_BOX(lilHBox), imageButton, TRUE, TRUE, 2);
 	exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	update_button_text(exportButton, "Export as CSV");
-	update_button_text(imageButton, "Save image");
+	xmi_msim_gui_utils_update_button_text(exportButton, "Export as CSV");
+	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
 	gtk_box_pack_start(GTK_BOX(lilHBox), exportButton, TRUE, TRUE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 4);

@@ -40,6 +40,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-utils.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -59,15 +60,20 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-source-module.h \
 	xmimsim-gui-source-module.c \
+	xmimsim-gui-utils.h \
+	xmimsim-gui-utils.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
+	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
-	@LDFLAGS_XMIMSIM_LIB@
+	@LDFLAGS_XMIMSIM_LIB@ \
+	$(EXTRA_LDFLAGS) \
+	$(NULL)
 libxmimsim_gui_la_LIBADD = \
 	@gtk2_LIBS@ \
 	@gtkmm3_LIBS@ \
@@ -259,20 +265,23 @@ xmimsim_gui_CFLAGS = \
 		     @xml2_CFLAGS@ \
 		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 		     -DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
-		     @libnotify_CFLAGS@
+		     @libnotify_CFLAGS@ \
+		     $(EXTRA_CFLAGS)
+
+xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
 if ENABLE_CXX
 XMICCLD = $(CXX)
 if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c++ -std=gnu++11 -stdlib=libc++
-xmimsim_gui_LDFLAGS = -stdlib=libc++
+EXTRA_CFLAGS = -xobjective-c++ -std=gnu++11 -stdlib=libc++
+EXTRA_LDFLAGS = -stdlib=libc++
 else
-xmimsim_gui_CFLAGS += -xc++ -std=gnu++11
+EXTRA_CFLAGS = -xc++ -std=gnu++11
 endif
 else
 XMICCLD = $(CCLD)
 if ENABLE_MAC_APP
-xmimsim_gui_CFLAGS += -xobjective-c
+EXTRA_CFLAGS = -xobjective-c
 endif
 endif
 
@@ -291,7 +300,7 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 
 
 if OS_WINDOWS
-xmimsim_gui_LDFLAGS = -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 nodist_xmimsim_gui_SOURCES += xmimsim-gui-icons.h

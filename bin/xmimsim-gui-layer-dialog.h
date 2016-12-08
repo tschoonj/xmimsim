@@ -15,11 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtk/gtk.h>
-#include "xmi_data_structs.h"
-
 #ifndef XMI_MSIM_GUI_LAYER_DIALOG_H
 #define XMI_MSIM_GUI_LAYER_DIALOG_H
+
+#include <gtk/gtk.h>
+#include "xmi_data_structs.h"
 
 G_BEGIN_DECLS
 

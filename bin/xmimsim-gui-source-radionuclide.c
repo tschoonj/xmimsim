@@ -319,7 +319,7 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 
 static void slits_button_clicked_cb(XmiMsimGuiSourceRadionuclide *source) {
 	//calculate solid angle based on slits
-	double solid_angle = xmi_msim_gui_source_abstract_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
+	double solid_angle = xmi_msim_gui_utils_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
 
 	gchar *buf = g_strdup_printf("%g", solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(source->nuclideSolidAngleW), buf);

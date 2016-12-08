@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-fonts.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-utils.h"
 #include <math.h>
 #include <stdlib.h>
 #include "xmi_aux.h"
@@ -104,20 +105,6 @@ struct kind_and_window {
 static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xmi_energy_discrete **energies, unsigned int start_line, unsigned int nlines);
 static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct xmi_energy_continuous **energies, unsigned int start_line, unsigned int nlines);
 
-
-void update_button_text(GtkWidget *button, const gchar *text) {
-	//this function is a hack and may not work on Gtk3
-	GList *children = gtk_container_get_children(GTK_CONTAINER(button));
-	GtkWidget *temp = (GtkWidget *) g_list_nth_data(children, 0);
-	g_list_free(children);
-	children = gtk_container_get_children(GTK_CONTAINER(temp));
-	temp = (GtkWidget *) g_list_nth_data(children, 0);
-	g_list_free(children);
-	children = gtk_container_get_children(GTK_CONTAINER(temp));
-	gtk_label_set_text(GTK_LABEL((GtkWidget *) g_list_nth_data(children,1)), text);
-	g_list_free(children);
-	return;
-}
 
 
 
@@ -412,7 +399,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 				dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add spectrum from file to current spectrum or replace it completely?");
 				gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
 				GtkWidget *button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
-				update_button_text(button, "Replace");
+				xmi_msim_gui_utils_update_button_text(button, "Replace");
 				//this may not work on all platforms -> Mac OS X
 				gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
 
@@ -1211,7 +1198,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
 	importButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	update_button_text(importButton, "Import");
+	xmi_msim_gui_utils_update_button_text(importButton, "Import");
 
 	struct kind_and_window *k_a_w = (struct kind_and_window *) malloc(sizeof(struct kind_and_window));
 	k_a_w->kind = kind;
@@ -1228,7 +1215,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	eb->clearButton = clearButton;
 
 	scaleButton = gtk_button_new_from_stock(GTK_STOCK_REFRESH);
-	update_button_text(scaleButton, "Scale");
+	xmi_msim_gui_utils_update_button_text(scaleButton, "Scale");
 	g_signal_connect(G_OBJECT(scaleButton), "clicked", G_CALLBACK(scale_button_clicked_cb), (gpointer) k_a_w);
 	gtk_box_pack_start(GTK_BOX(buttonbox), scaleButton, FALSE, FALSE, 3);
 	eb->scaleButton = scaleButton;

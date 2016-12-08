@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-sources.h"
+#include "xmimsim-gui-utils.h"
 #ifdef HAVE_CXX
   #include <gtkmm-plplot.h>
 #else
@@ -581,7 +582,7 @@ static void ok_button_clicked_cb(GtkButton *button, struct generate *gen) {
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gen->window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add radionuclide emission spectrum to current spectrum or replace it completely?");
 		gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
 		GtkWidget *button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
-		update_button_text(button, "Replace");
+		xmi_msim_gui_utils_update_button_text(button, "Replace");
 		//this may not work on all platforms -> Mac OS X
 		gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
 
@@ -1614,9 +1615,9 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	g_signal_connect(G_OBJECT(okButton), "clicked", G_CALLBACK(ok_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(ebel_delete_event_cb), (gpointer) gen);
-	update_button_text(generateButton, "Update spectrum");
-	update_button_text(exportButton, "Export spectrum");
-	update_button_text(imageButton, "Save image");
+	xmi_msim_gui_utils_update_button_text(generateButton, "Update spectrum");
+	xmi_msim_gui_utils_update_button_text(exportButton, "Export spectrum");
+	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
 	GtkWidget *buttonbox = gtk_table_new(2, 3, TRUE);
 	gtk_table_set_col_spacings(GTK_TABLE(buttonbox), 2);
 	gtk_table_set_row_spacings(GTK_TABLE(buttonbox), 2);
@@ -1779,9 +1780,9 @@ void xray_sources_button_clicked_cb(GtkButton *button, GtkWidget *main_window) {
 	g_signal_connect(G_OBJECT(okButton), "clicked", G_CALLBACK(ok_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) gen);
 	g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(ebel_delete_event_cb), (gpointer) gen);
-	update_button_text(generateButton, "Update spectrum");
-	update_button_text(exportButton, "Export spectrum");
-	update_button_text(imageButton, "Save image");
+	xmi_msim_gui_utils_update_button_text(generateButton, "Update spectrum");
+	xmi_msim_gui_utils_update_button_text(exportButton, "Export spectrum");
+	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
 	buttonbox = gtk_table_new(2, 3, TRUE);
 	gtk_table_set_col_spacings(GTK_TABLE(buttonbox), 2);
 	gtk_table_set_row_spacings(GTK_TABLE(buttonbox), 2);
