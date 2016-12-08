@@ -1,6 +1,7 @@
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-source-module.h"
 #include <gmodule.h>
+#include "xmi_xml.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
 
 	gtk_init(&argc, &argv);
 
-	if (argc != 2) {
+	if (argc != 3) {
 		fprintf(stderr, "No filename provided!\n");
 		return 1;
 	}
@@ -52,9 +53,20 @@ int main(int argc, char *argv[]) {
 		fprintf(stdout, "%u types found!\n", ntypes);
 	}
 
+	//load xml catalog
+	if (xmi_xmlLoadCatalog() == 0) {
+		return 1;
+	}
+
+	struct xmi_input *current = NULL;
+	if (xmi_read_input_xml(argv[2], &current) == 0) {
+		fprintf(stderr, "Could not read in XMSI file %s\n", argv[2]);
+		return 1;
+	}
+
 	GtkWidget *source = g_object_new(source_types[0], 
 		"xmi-input-current",
-		NULL,
+		current,
 		NULL);
 
 	if (XMI_MSIM_GUI_IS_SOURCE_ABSTRACT(source) == FALSE) {
