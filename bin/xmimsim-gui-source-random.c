@@ -55,8 +55,6 @@ static void xmi_msim_gui_source_random_dispose(GObject *object);
 
 static void xmi_msim_gui_source_random_finalize(GObject *object);
 
-static void slits_button_clicked_cb(XmiMsimGuiSourceRandom *source);
-
 static void xmi_msim_gui_source_random_class_init(XmiMsimGuiSourceRandomClass *klass) {
 
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
