@@ -69,7 +69,7 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 
 	g_return_val_if_fail(module->filename, FALSE);
 
-	module->library = g_module_open (module->filename, G_MODULE_BIND_LAZY | G_MODULE_BIND_LOCAL);
+	module->library = g_module_open (module->filename, (GModuleFlags) (G_MODULE_BIND_LAZY | G_MODULE_BIND_LOCAL));
 
 	if (!module->library) {
 		g_error("%s\n", g_module_error ());
@@ -78,13 +78,13 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 
 	/* get the load and unload functions */
 	GError *error = NULL;
-	GRegex *regex = g_regex_new("xmimsim-gui-source-(.+)." G_MODULE_SUFFIX, 0, 0, &error);
+	GRegex *regex = g_regex_new("xmimsim-gui-source-(.+)." G_MODULE_SUFFIX, (GRegexCompileFlags) 0, (GRegexMatchFlags) 0, &error);
 	if (regex == NULL) {
 		g_error("regex compile error: %s\n", error->message);
 		return FALSE;
 	}
 	GMatchInfo *match_info;
-	if (g_regex_match(regex, module->filename, 0, &match_info) == FALSE) {
+	if (g_regex_match(regex, module->filename, (GRegexMatchFlags) 0, &match_info) == FALSE) {
 		g_error("regex: no match\n");
 		return FALSE;
 	}
@@ -103,10 +103,10 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 	/* Make sure that the loaded library contains the required methods */
 	if (!g_module_symbol(module->library,
 		load_name,
-		(gpointer) &module->load) ||
+		(gpointer *) &module->load) ||
       	    !g_module_symbol(module->library,
 		unload_name,
-		(gpointer) &module->unload)) {
+		(gpointer *) &module->unload)) {
 
       		g_error("%s\n", g_module_error());
 		g_module_close(module->library);
