@@ -111,13 +111,16 @@ xmimsim_gui_source_tube_ebel_la_CFLAGS = \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
+	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.h \
 	xmimsim-gui-source-tube-ebel.c \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
-	@LDFLAGS_XMIMSIM_CL@
+	@LDFLAGS_XMIMSIM_CL@ \
+	$(EXTRA_CFLAGS) \
+	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la libxmimsim-gui-spline.la
 
 xmimsim_gui_source_radionuclide_la_CFLAGS = \
@@ -125,13 +128,16 @@ xmimsim_gui_source_radionuclide_la_CFLAGS = \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
+	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_SOURCES = \
 	xmimsim-gui-source-radionuclide.h \
 	xmimsim-gui-source-radionuclide.c \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
-	@LDFLAGS_XMIMSIM_CL@
+	@LDFLAGS_XMIMSIM_CL@ \
+	$(EXTRA_CFLAGS) \
+	$(NULL)
 xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 		    
 noinst_LTLIBRARIES += \
@@ -143,13 +149,16 @@ xmimsim_gui_source_random_la_CFLAGS = \
 	@fgsl_CFLAGS@ \
 	@easyRNG_CFLAGS@ \
 	@xraylib_CFLAGS@ \
+	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_random_la_SOURCES = \
 	xmimsim-gui-source-random.h \
 	xmimsim-gui-source-random.c \
 	$(NULL)
 xmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
-	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp
+	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp \
+	$(EXTRA_CFLAGS) \
+	$(NULL)
 xmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
 	../src/libxmimsim.la
 	@fgsl_LIBS@ \
