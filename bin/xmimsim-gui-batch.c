@@ -502,7 +502,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 
 	gtk_window_set_title(GTK_WINDOW(wizard), "Simulation options");
 	//add intro page
-	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter(s) will assume. Afterwards, the batch simulation interface will be produced: launch the simulations by clicking the \"\xe2\x96\xb8\" button. Afterwards an interface will be produced that will allow the user to inspect the results of the simulations.");
+	GtkWidget *introLabel = gtk_label_new("Use this wizard to set the simulation options and to set the range of values that the selected parameter(s) will assume.\nAfterwards, the batch simulation interface will be produced: launch the simulations by clicking the \"\xe2\x96\xb8\" button.\nFinally an interface will be produced that will allow the user to inspect the results of the simulations.");
 	gtk_label_set_line_wrap(GTK_LABEL(introLabel), TRUE);
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), introLabel);
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), introLabel, TRUE);
@@ -3612,6 +3612,14 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		g_free(buffer);
 		g_free(buffer2);
 	}
+
+	// ensure scrolled_window expands on Gtk3
+#if GTK_MAJOR_VERSION == 3
+	gtk_widget_set_hexpand(scrolled_window, TRUE);
+	gtk_widget_set_vexpand(scrolled_window, TRUE);
+#endif
+	gtk_container_set_border_width(GTK_CONTAINER(scrolled_window), 5);
+
 	return scrolled_window;
 }
 
