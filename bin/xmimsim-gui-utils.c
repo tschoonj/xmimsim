@@ -77,7 +77,7 @@ gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
 }
 
 #ifdef HAVE_LIBCURL
-gboolean xmimsim_gui_utils_check_download_url(gchar *download_url) {
+gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
 	CURL *curl;
 	gchar *url;
 	CURLcode res;
