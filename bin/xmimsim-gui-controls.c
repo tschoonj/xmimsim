@@ -69,6 +69,7 @@ GtkWidget *pile_upW;
 GtkWidget *poissonW;
 GtkWidget *escape_peaksW;
 GtkWidget *advanced_comptonW;
+GtkWidget *default_seedsW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 GtkWidget *openclW;
 #endif
@@ -194,7 +195,7 @@ static gboolean executable_file_filter(const GtkFileFilterInfo *filter_info, gpo
 
 static int process_xmimsim_stdout_string(gchar *string) {
 	int percentage;
-	char buffer[512];
+	char buffer[1024];
 
 	//solid angles
 	if(strncmp(string,"Solid angle grid already present in ",strlen("Solid angle grid already present in ")) == 0) {
@@ -471,6 +472,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gtk_widget_set_sensitive(poissonW,TRUE);
 	gtk_widget_set_sensitive(escape_peaksW,TRUE);
 	gtk_widget_set_sensitive(advanced_comptonW,TRUE);
+	gtk_widget_set_sensitive(default_seedsW,TRUE);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,TRUE);
 #endif
@@ -627,6 +629,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gtk_widget_set_sensitive(poissonW,FALSE);
 	gtk_widget_set_sensitive(escape_peaksW,FALSE);
 	gtk_widget_set_sensitive(advanced_comptonW,FALSE);
+	gtk_widget_set_sensitive(default_seedsW,FALSE);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	gtk_widget_set_sensitive(openclW,FALSE);
 #endif
@@ -709,6 +712,13 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	}
 	else
 		argv[arg_counter-1] = g_strdup("--disable-advanced-compton");
+
+	argv = (gchar **) g_realloc(argv, sizeof(gchar *)*++arg_counter);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(default_seedsW)) == TRUE) {
+		argv[arg_counter-1] = g_strdup("--enable-default-seeds");
+	}
+	else
+		argv[arg_counter-1] = g_strdup("--disable-default-seeds");
 
 
 
@@ -815,9 +825,11 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		xmimsim_pid = (GPid) -1;
 		return;
 	}
-	sprintf(buffer,"%s was started with process id %i\n",argv[0], real_xmimsim_pid);
+	gchar *command = g_strjoinv(" ", argv);
+	sprintf(buffer,"%s was started with process id %i\n", command, real_xmimsim_pid);
 	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
 	g_free(wd);
+	g_free(command);
 
 	xmimsim_paused=FALSE;
 	if (pauseButton)
@@ -1526,6 +1538,15 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_comptonW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(vbox_notebook), advanced_comptonW, TRUE, FALSE, 0);
+
+	default_seedsW = gtk_check_button_new_with_label("Enable default seeds support");
+	gtk_widget_set_tooltip_text(default_seedsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
+		//abort
+		preferences_error_handler(window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(default_seedsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(vbox_notebook), default_seedsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	openclW = gtk_check_button_new_with_label("Enable OpenCL");

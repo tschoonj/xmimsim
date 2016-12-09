@@ -39,6 +39,7 @@ GtkWidget *pile_up_prefsW;
 GtkWidget *poisson_prefsW;
 GtkWidget *escape_peaks_prefsW;
 GtkWidget *advanced_compton_prefsW;
+GtkWidget *default_seeds_prefsW;
 GtkWidget *custom_detector_response_prefsE;
 GtkWidget *custom_detector_response_prefsB;
 GtkWidget *custom_detector_response_prefsC;
@@ -408,6 +409,12 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
+		//abort
+		preferences_error_handler(pa->window);
+	}
+
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(default_seeds_prefsW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, xpv) == 0) {
 		//abort
 		preferences_error_handler(pa->window);
 	}
@@ -887,6 +894,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->b = FALSE;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_DEFAULT_SEEDS:
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Default seeds", &error);
+			if (error != NULL) {
+				//error
+				fprintf(stderr,"Default seeds not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+				prefs->b = FALSE;
+			}
+			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
@@ -1308,6 +1329,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON:
 			g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", prefs.b);
 			break;
+		case XMIMSIM_GUI_PREFS_DEFAULT_SEEDS:
+			g_key_file_set_boolean(keyfile, "Preferences","Default seeds", prefs.b);
+			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
 			if (prefs.s != NULL)
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", prefs.s);
@@ -1546,6 +1570,15 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe), advanced_compton_prefsW, TRUE, FALSE, 0);
+
+	default_seeds_prefsW = gtk_check_button_new_with_label("Enable default seeds support");
+	gtk_widget_set_tooltip_text(default_seeds_prefsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
+		//abort
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(default_seeds_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), default_seeds_prefsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
