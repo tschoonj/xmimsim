@@ -82,20 +82,6 @@ libxmimsim_gui_la_LIBADD = \
 	../src/libxmimsim.la \
 	$(NULL)
 
-if ENABLE_UPDATER
-libxmimsim_gui_la_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
-libxmimsim_gui_la_CFLAGS += \
-	@JsonGlib_CFLAGS@ \
-	@libcurl_CFLAGS@ \
-	$(NULL)
-if ENABLE_UPDATER
-libxmimsim_gui_la_LIBADD += \
-	@JsonGlib_LIBS@ \
-	@libcurl_LIBS@ \
-	$(NULL)
-endif
-endif
-
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \
 	xmimsim-gui-source-tube-ebel.la \
@@ -300,6 +286,18 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @libnotify_LIBS@ \
 		    ../src/libxmimsim.la
 
+
+if ENABLE_UPDATER
+xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
+xmimsim_gui_CFLAGS += \
+	@JsonGlib_CFLAGS@ \
+	@libcurl_CFLAGS@ \
+	$(NULL)
+xmimsim_gui_LDADD += \
+	@JsonGlib_LIBS@ \
+	@libcurl_LIBS@ \
+	$(NULL)
+endif
 
 
 
