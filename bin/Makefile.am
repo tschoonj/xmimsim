@@ -67,6 +67,7 @@ libxmimsim_gui_la_CFLAGS = \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
+	@libcurl_CFLAGS@ \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
@@ -79,8 +80,10 @@ libxmimsim_gui_la_LIBADD = \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
+	@libcurl_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
+
 
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \

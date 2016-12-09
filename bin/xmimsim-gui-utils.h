@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_COMPOUND_DIALOG_H
 #define XMI_MSIM_GUI_COMPOUND_DIALOG_H
 
+#include <config.h> // bad, bad, bad!!!
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
@@ -58,6 +59,10 @@ struct read_xmsa_data {
 };
 
 gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
+
+#ifdef HAVE_LIBCURL
+gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
+#endif
 
 G_END_DECLS
 
