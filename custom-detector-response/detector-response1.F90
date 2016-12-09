@@ -179,7 +179,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                         WRITE(output_unit,'(A,I2)') 'Calculating pile-up after interactions: ',&
                         n_interactions
 #endif
-                CALL xmi_detector_sum_peaks(inputF, channels_temp)
+                CALL xmi_detector_sum_peaks(inputF, channels_temp, options)
         ENDIF
 
         ALLOCATE(R(0:nlim+100))
@@ -245,7 +245,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                         WRITE(output_unit,'(A,I2)') 'Calculating Poisson noise after interactions: ',&
                         n_interactions
 #endif
-                CALL xmi_detector_poisson(channels_conv)
+                CALL xmi_detector_poisson(channels_conv, options)
         ENDIF
 
 
