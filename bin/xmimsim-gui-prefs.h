@@ -51,6 +51,8 @@ enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_NOTIFICATIONS,
 #endif
+	//gboolean
+	XMIMSIM_GUI_PREFS_DEFAULT_SEEDS,
 	//gchar *
 	XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE,
 	//struct xmi_ebel_parameters*
