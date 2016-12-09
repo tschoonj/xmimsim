@@ -327,7 +327,9 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: extra_verbose = 0_C_INT
         TYPE (C_PTR) :: custom_detector_response = C_NULL_PTR
         INTEGER (C_INT) :: use_advanced_compton = 0_C_INT
+        INTEGER (C_INT) :: use_default_seeds = 0_C_INT
 ENDTYPE xmi_main_options
+
 !
 !
 !       xmi_solid_angle: Contains the solid angles for a particular geometry

@@ -150,6 +150,8 @@ XMI_MAIN
 		{"disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Disable advanced yet slower Compton simulation (default)", NULL },
 		{"custom-detector-response",0,0,G_OPTION_ARG_FILENAME,&options.custom_detector_response,"Use the supplied library for the detector response routine",NULL},
 		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Sets the number of threads to NTHREADS (default=max)", "NTHREADS"},
+		{"enable-default-seeds", 0, 0, G_OPTION_ARG_NONE, &(options.use_default_seeds), "Use default seeds for reproducible simulation results", NULL },
+		{"disable-default-seeds", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_default_seeds), "Disable default seeds for irreproducible simulation results (default)", NULL },
 		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
 		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
 		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
@@ -188,28 +190,6 @@ XMI_MAIN
 #else
 	g_setenv("LANG","en_US",TRUE);
 #endif
-
-
-	//
-	//options...
-	//1) use M-lines
-	//3) use cascade effect
-	//4) use variance reduction
-	/*
-	options.use_M_lines = 1;
-	options.use_cascade_auger = 1;
-	options.use_cascade_radiative = 1;
-	options.use_variance_reduction = 1;
-	options.use_sum_peaks = 0;
-	options.use_escape_peaks = 1;
-	options.use_poisson = 0;
-	options.verbose = 0;
-	options.use_opencl = 0;
-	options.extra_verbose = 0;
-	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.custom_detector_response = NULL;
-	options.use_advanced_compton = 0;
-	*/
 
 	options = xmi_get_default_main_options();
 

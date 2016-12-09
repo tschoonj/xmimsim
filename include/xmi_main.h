@@ -41,6 +41,7 @@ struct xmi_main_options {
 	int extra_verbose; //default : 0
 	char *custom_detector_response; //default : NULL
 	int use_advanced_compton; //default : 0
+	int use_default_seeds; // default : 0
 };
 
 struct xmi_main_options xmi_get_default_main_options();
