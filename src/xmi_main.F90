@@ -188,8 +188,16 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         ALLOCATE(seeds(max_threads))
 
         !fetch some seeds
-        IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
-
+        IF (options%use_default_seeds .EQ. 1_C_INT) THEN
+                DO i=1,max_threads
+                        seeds(i) = i
+                ENDDO
+        ELSE
+                IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) THEN
+                        WRITE (error_unit, '(A)') 'Error calling xmi_get_random_number'
+                        RETURN
+                ENDIF
+        ENDIF
 
 
 
