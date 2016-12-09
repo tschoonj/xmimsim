@@ -53,10 +53,11 @@ REAL (C_DOUBLE), PARAMETER :: M_SQRTPI = 1.77245385090551602729816748334_C_DOUBL
 
 CONTAINS
 
-SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
+SUBROUTINE xmi_detector_sum_peaks(inputF, channels, options)
         IMPLICIT NONE
         TYPE (xmi_input), POINTER, INTENT(IN) :: inputF
         REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT) :: channels
+        TYPE (xmi_main_options), INTENT(IN) :: options
 
         REAL (C_DOUBLE) :: Nt
         INTEGER (C_LONG) :: Nt_long
@@ -114,7 +115,16 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels)
 
 
         !fetch some seeds
-        IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
+        IF (options%use_default_seeds .EQ. 1_C_INT) THEN
+                DO i=1,max_threads
+                        seeds(i) = i
+                ENDDO
+        ELSE
+                IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) THEN
+                        WRITE (error_unit, '(A)') 'Error calling xmi_get_random_number'
+                        RETURN
+                ENDIF
+        ENDIF
 
 
         rng_type = xmi_rng_mt19937
@@ -361,7 +371,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                         WRITE(output_unit,'(A,I2)') 'Calculating pile-up after interactions: ',&
                         n_interactions
 #endif
-                CALL xmi_detector_sum_peaks(inputF, channels_temp)
+                CALL xmi_detector_sum_peaks(inputF, channels_temp, options)
         ENDIF
 
         ALLOCATE(R(0:nlim+100))
@@ -443,7 +453,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                         WRITE(output_unit,'(A,I2)') 'Calculating Poisson noise after interactions: ',&
                         n_interactions
 #endif
-                CALL xmi_detector_poisson(channels_conv)
+                CALL xmi_detector_poisson(channels_conv, options)
         ENDIF
 
 
@@ -738,10 +748,11 @@ SUBROUTINE xmi_detector_escape_SiLi(channels_conv, inputF)
         RETURN
 ENDSUBROUTINE xmi_detector_escape_SiLi
 
-SUBROUTINE xmi_detector_poisson(channels)
+SUBROUTINE xmi_detector_poisson(channels, options)
         IMPLICIT NONE
 
         REAL (C_DOUBLE), DIMENSION(:), INTENT(INOUT), POINTER :: channels
+        TYPE (xmi_main_options), INTENT(IN) :: options
         TYPE (xmi_rng_type) :: rng_type
         TYPE (xmi_rng) :: rng
         INTEGER (C_LONG), TARGET :: seed
@@ -750,7 +761,15 @@ SUBROUTINE xmi_detector_poisson(channels)
         1.0_C_DOUBLE
 
         rng_type = xmi_rng_mt19937
-        IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) RETURN
+
+        IF (options%use_default_seeds .EQ. 1_C_INT) THEN
+                seed = 1_C_LONG
+        ELSE
+                IF (xmi_get_random_numbers(C_LOC(seed), 1_C_LONG) == 0) THEN
+                        WRITE (error_unit, '(A)') 'Error calling xmi_get_random_number'
+                        RETURN
+                ENDIF
+        ENDIF
 
         rng = xmi_rng_alloc(rng_type)
         CALL xmi_rng_set(rng,seed)
