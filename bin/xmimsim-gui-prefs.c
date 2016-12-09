@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-utils.h"
 #include "xmi_detector.h"
 #include "xmi_solid_angle.h"
 #include <glib.h>
@@ -244,7 +245,7 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 	GtkListStore *store_prefsL = (GtkListStore *) data;
 
 	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1);
-	if (xmimsim_gui_check_download_url(new_text) == TRUE) {
+	if (xmi_msim_gui_utils_check_download_url(new_text) == TRUE) {
 		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
 	}
 	else {
@@ -1351,7 +1352,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
 		gtk_list_store_append(store_prefsL,&iter);
 		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
-		if (xmimsim_gui_check_download_url(xpv.ss[i]) == TRUE) {
+		if (xmi_msim_gui_utils_check_download_url(xpv.ss[i]) == TRUE) {
 			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
 		}
 		else {

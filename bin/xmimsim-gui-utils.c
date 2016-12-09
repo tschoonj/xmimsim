@@ -1,4 +1,5 @@
 #include "xmimsim-gui-utils.h"
+#include <curl/curl.h>
 #include <math.h>
 
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry) {
@@ -75,3 +76,53 @@ gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
 	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));
 }
 
+#ifdef HAVE_LIBCURL
+gboolean xmimsim_gui_utils_check_download_url(gchar *download_url) {
+	CURL *curl;
+	gchar *url;
+	CURLcode res;
+
+
+#if defined(MAC_INTEGRATION)
+	//Mac OS X
+	url = g_strdup_printf("%s/XMI-MSIM-%s.dmg", download_url, VERSION);
+#elif defined(G_OS_WIN32)
+	//Win 32
+  #ifdef _WIN64
+	url = g_strdup_printf("%s/XMI-MSIM-%s-win64.exe", download_url, VERSION);
+  #elif defined(_WIN32)
+	url = g_strdup_printf("%s/XMI-MSIM-%s-win32.exe", download_url, VERSION);
+  #else
+    #error Unknown Windows architecture detected
+  #endif
+#else
+	//Linux??
+	url = g_strdup_printf("%s/xmimsim-%s.tar.gz", download_url, VERSION);
+#endif
+
+	curl = curl_easy_init();
+	if (!curl) {
+		g_free(url);
+		return FALSE;
+	}
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 1000L);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
+	curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+
+	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
+	if (res == CURLE_OK) {
+		//fprintf(stdout, "%s ok\n", url);
+		g_free(url);
+		return TRUE;
+	}
+	else {
+		fprintf(stdout, "%s not ok: %s\n", url, curl_easy_strerror(res));
+		g_free(url);
+		return FALSE;
+	}
+}
+#endif
