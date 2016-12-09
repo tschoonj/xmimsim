@@ -98,6 +98,7 @@ struct options_widget {
 	GtkWidget *poisson_prefsW;
 	GtkWidget *escape_peaks_prefsW;
 	GtkWidget *advanced_compton_prefsW;
+	GtkWidget *default_seeds_prefsW;
 	GtkWidget *custom_detector_response_prefsE;
 	GtkWidget *custom_detector_response_prefsB;
 	GtkWidget *custom_detector_response_prefsC;
@@ -1692,6 +1693,15 @@ static struct options_widget *create_options_frame(GtkWidget *main_window) {
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->advanced_compton_prefsW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->advanced_compton_prefsW, TRUE, FALSE, 0);
+
+	rv->default_seeds_prefsW = gtk_check_button_new_with_label("Enable default seeds support");
+	gtk_widget_set_tooltip_text(rv->default_seeds_prefsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
+		//abort
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->default_seeds_prefsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->default_seeds_prefsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	rv->opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
