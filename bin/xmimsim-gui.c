@@ -852,7 +852,9 @@ static void query_source_modules_dir(gchar *dirname) {
 			continue;
 		if (!g_str_has_prefix(file, "xmimsim-gui-source-"))
 			continue;
-		XmiMsimGuiSourceModule *module = xmi_msim_gui_source_module_new(file);
+		gchar *full_file = g_build_filename(dirname, file, NULL);
+		XmiMsimGuiSourceModule *module = xmi_msim_gui_source_module_new(full_file);
+		g_free(full_file);
 		if (module != NULL && g_type_module_use(G_TYPE_MODULE(module)) == FALSE)
 			g_type_module_unuse(G_TYPE_MODULE(module));
 	}
