@@ -72,7 +72,7 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 	module->library = g_module_open (module->filename, (GModuleFlags) (G_MODULE_BIND_LAZY | G_MODULE_BIND_LOCAL));
 
 	if (!module->library) {
-		g_error("%s\n", g_module_error ());
+		g_warning("%s\n", g_module_error ());
 		return FALSE;
 	}
 
@@ -80,12 +80,12 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 	GError *error = NULL;
 	GRegex *regex = g_regex_new("xmimsim-gui-source-(.+)." G_MODULE_SUFFIX, (GRegexCompileFlags) 0, (GRegexMatchFlags) 0, &error);
 	if (regex == NULL) {
-		g_error("regex compile error: %s\n", error->message);
+		g_warning("regex compile error: %s\n", error->message);
 		return FALSE;
 	}
 	GMatchInfo *match_info;
 	if (g_regex_match(regex, module->filename, (GRegexMatchFlags) 0, &match_info) == FALSE) {
-		g_error("regex: no match\n");
+		g_warning("regex: no match\n");
 		return FALSE;
 	}
 	gchar *class_name_short = g_match_info_fetch(match_info, 1);
@@ -108,7 +108,7 @@ gboolean xmi_msim_gui_source_module_real_load(GTypeModule *gmodule) {
 		unload_name,
 		(gpointer *) &module->unload)) {
 
-      		g_error("%s\n", g_module_error());
+      		g_warning("%s\n", g_module_error());
 		g_module_close(module->library);
 		return FALSE;
 	}
