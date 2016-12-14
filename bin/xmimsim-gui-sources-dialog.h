@@ -18,11 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_SOURCES_DIALOG_H
 #define XMI_MSIM_GUI_SOURCES_DIALOG_H
 
-#include <config.h>
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
   #include <gtkmm-plplot.h>
 #else
   #include <gtkextra/gtkextra.h>

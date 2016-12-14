@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-utils.h"
-#include "xmimsim-gui-sources.h"
+#include "xmimsim-gui-sources-dialog.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include "xmimsim-gui-source-module.h"
 #include "xmimsim-gui-source-abstract.h"
@@ -863,24 +863,9 @@ static void query_source_modules_dir(gchar *dirname) {
 }
 
 static gboolean query_source_modules(void) {
+	gchar *sources_dir;
 
-	// first add the user-defined modules
-#ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
-#else
-        const gchar *config_dir = g_get_user_config_dir();
-#endif
-
-	//first check if the preferences file exists!
-	gchar *sources_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "sources", config_dir);
-	
-	g_debug("Querying locally installed modules");
-	query_source_modules_dir(sources_dir);
-	g_free(sources_dir);
-
+	// first add the system-wide modules
 	g_debug("Querying system-wide installed modules");
 #ifdef G_OS_WIN32
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SOURCES, &sources_dir) == 0) {
@@ -895,6 +880,23 @@ static gboolean query_source_modules(void) {
 #endif
 	query_source_modules_dir(sources_dir);
 	g_free(sources_dir);
+
+#ifdef MAC_INTEGRATION
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+#else
+        const gchar *config_dir = g_get_user_config_dir();
+#endif
+
+	//first check if the preferences file exists!
+	sources_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "sources", config_dir);
+	
+	g_debug("Querying locally installed modules");
+	query_source_modules_dir(sources_dir);
+	g_free(sources_dir);
+
 
 	// get kids
 	guint ntypes;
@@ -4959,6 +4961,14 @@ static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, gpointer dat
 		gtk_widget_set_sensitive(GTK_WIDGET(pasteW), TRUE);
 	}
 	return FALSE;
+}
+
+static void xray_sources_button_clicked_cb(GtkWidget *button, GtkWidget *main_window) {
+	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(main_window), current->xi);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		// do stuff
+	}
+	gtk_widget_destroy(dialog);
 }
 
 static void enable_entry_signals(GtkWidget *entry) {

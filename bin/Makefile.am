@@ -44,6 +44,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-utils.h \
 	xmimsim-gui-export-canvas-dialog.h \
 	xmimsim-gui-tools.h \
+	xmimsim-gui-sources-dialog.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -60,6 +61,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-utils.c \
 	xmimsim-gui-export-canvas-dialog.c \
 	xmimsim-gui-tools.c \
+	xmimsim-gui-sources-dialog.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -221,8 +223,6 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-notifications.c \
 	xmimsim-gui-notifications.h \
 	xmimsim-gui-fonts.h \
-	xmimsim-gui-sources.c \
-	xmimsim-gui-sources.h \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-batch.c \
 	$(NULL)
