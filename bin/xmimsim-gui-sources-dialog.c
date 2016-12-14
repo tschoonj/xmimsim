@@ -16,9 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-sources-dialog.h"
+#include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-utils.h"
 
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
 class Plot2DSources : public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DSources(
@@ -57,7 +58,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, FALSE, 2);
 	dialog->notebookW = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(mainVBox), dialog->notebookW, TRUE, TRUE, 2);
-	
+
 	// add separator
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
@@ -90,7 +91,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
 
 	// now the plot canvas
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
 	dialog->canvas = Gtk::manage(new Gtk::PLplot::Canvas());
 	dialog->canvas->set_hexpand(true);
 	dialog->canvas->set_vexpand(true);
@@ -115,4 +116,35 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	//g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) source);
 	// add signal handler for Y-axis scale
 	gtk_widget_show_all(mainHBox);
+}
+
+GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *current) {
+	XmiMsimGuiSourcesDialog *widget;
+
+	g_return_val_if_fail(parent == NULL || GTK_IS_WINDOW(parent), NULL);
+
+	guint ntypes;
+	GType *source_types = g_type_children(XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, &ntypes);
+
+	g_return_val_if_fail(ntypes > 0, NULL);
+
+	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(XMI_MSIM_GUI_TYPE_SOURCES_DIALOG,
+                                   NULL));
+
+	gtk_window_set_transient_for(GTK_WINDOW(widget), GTK_WINDOW(parent));
+
+	guint i;
+	for (i = 0 ; i < ntypes ; i++) {
+		GtkWidget *source = GTK_WIDGET(g_object_new(source_types[i], 
+			"xmi-input-current",
+			current,
+			NULL));
+			
+		GtkWidget *label = gtk_label_new(xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)));
+		gtk_notebook_append_page(GTK_NOTEBOOK(widget->notebookW), source, label);
+	}
+
+	gtk_widget_show_all(widget->notebookW);
+
+	return GTK_WIDGET(widget);
 }
