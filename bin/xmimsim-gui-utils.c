@@ -2,6 +2,15 @@
 #include <curl/curl.h>
 #include <math.h>
 
+#ifdef G_OS_WIN32
+#include <windows.h>
+#elif defined(MAC_INTEGRATION)
+#import <Foundation/Foundation.h>
+#include <CoreFoundation/CFBundle.h>
+#include <ApplicationServices/ApplicationServices.h>
+#else
+#include <unistd.h>
+#endif
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(geometry->slit_size_x * geometry->slit_size_y/(2.0*geometry->d_source_slit*sqrt(4.0 * geometry->d_source_slit * geometry->d_source_slit + geometry->slit_size_x * geometry->slit_size_x + geometry->slit_size_y + geometry->slit_size_y)));
