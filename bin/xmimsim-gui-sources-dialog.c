@@ -51,8 +51,8 @@ static gboolean activate_link_cb(GtkLabel *label, gchar *uri, gpointer data) {
 
 static void info_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
-	GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, xmi_msim_gui_source_abstract_get_name(source));
-	gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), xmi_msim_gui_source_abstract_get_about_text(source));
+	GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", xmi_msim_gui_source_abstract_get_name(source));
+	gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", xmi_msim_gui_source_abstract_get_about_text(source));
 
 	GtkWidget *area = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(info_dialog));
 	GList *children = gtk_container_get_children(GTK_CONTAINER(area));

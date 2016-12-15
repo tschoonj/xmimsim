@@ -36,7 +36,7 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_IS_SOURCES_DIALOG_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG))
 #define XMI_MSIM_GUI_SOURCES_DIALOG_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, XmiMsimGuiSourcesDialogClass))
 
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
 class Plot2DSources;
 #endif
 
@@ -51,7 +51,7 @@ struct _XmiMsimGuiSourcesDialog
   GtkWidget *linearW;
   GtkWidget *log10W;
   GtkWidget *generateButton;
-#ifdef HAVE_CXX
+#if GTK_MAJOR_VERSION == 3
   Gtk::PLplot::Canvas *canvas;
   Plot2DSources *plotWindow;
 #else
