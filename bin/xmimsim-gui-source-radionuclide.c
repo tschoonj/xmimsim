@@ -44,7 +44,7 @@ static const gchar *activity_units[4] = {"mCi", "Ci", "GBq", "Bq"};
 
 XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
-static gboolean xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source);
 
 static const gchar *xmi_msim_gui_source_radionuclide_real_get_name(XmiMsimGuiSourceAbstract *source);
 
@@ -328,12 +328,16 @@ static void slits_button_clicked_cb(XmiMsimGuiSourceRadionuclide *source) {
 	return;
 }
 
-static gboolean xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
-	// read the parameters
-	struct xmi_nuclide_parameters *xnp = get_parameters(XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(source), error);
+static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source) {
+	GError *error = NULL;
 
-	if (xnp == NULL)
-		return FALSE;
+	// read the parameters
+	struct xmi_nuclide_parameters *xnp = get_parameters(XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(source), &error);
+
+	if (xnp == NULL) {
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
+	}
 
 	const double nuclide_solid_angle_fraction = 1.0/(4.0*M_PI);
 	double activity = xnp->activity * nuclide_solid_angle_fraction * xnp->nuclide_solid_angle;
@@ -407,52 +411,62 @@ static gboolean xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceA
 	}
 	FreeRadioNuclideData(rnd);
 
+
+	GArray *x = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
+	GArray *y = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
+
+	for (i = 0 ; i < 1000 ; i++) {
+		double energy = i * plot_xmax/999.0;
+		double intensity = 0.0;
+		g_array_append_val(x, energy);
+		g_array_append_val(y, intensity);
+	}
+	for (i = 0 ; i < excitation_nuclide->n_discrete ; i++) {
+		int channel = (int) floor(excitation_nuclide->discrete[i].energy * 999.0/plot_xmax);
+		double *intensity = &g_array_index(y, double, channel); 
+		*intensity += excitation_nuclide->discrete[i].horizontal_intensity*2.0;
+	}
+
+	// find the smallest value greater than zero (1E-1)
+	double ymax = xmi_maxval_double((double *) y->data, y->len);
+	if (ymax < 1.0) {
+		g_set_error(&error, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
+		g_free(xnp);
+		g_array_free(x, TRUE);
+		g_array_free(y, TRUE);
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
+	}
+	double new_min = ymax;
+	for (i = 0 ; i < y->len ; i++) {
+		if (g_array_index(y, double, i) < new_min && g_array_index(y, double, i) > 1E-1)
+			new_min = g_array_index(y, double, i);
+	}
+
+	for (i = 0 ; i < y->len ; i++) {
+		double *intensity = &g_array_index(y, double, i);
+		if (*intensity < new_min)
+			*intensity = new_min;
+	}
+
 	// update member variables
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
 		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_nuclide;
 
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
-
-	for (i = 0 ; i < 1000 ; i++) {
-		double energy = i * plot_xmax/999.0;
-		double intensity = 0.0;
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, energy);
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, intensity);
-	}
-	for (i = 0 ; i < excitation_nuclide->n_discrete ; i++) {
-		int channel = (int) floor(excitation_nuclide->discrete[i].energy * 999.0/plot_xmax);
-		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, channel); 
-		*intensity += excitation_nuclide->discrete[i].horizontal_intensity*2.0;
-	}
-
-	// find the smallest value greater than zero (1E-1)
-	double ymax = xmi_maxval_double((double *) XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->data, XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len);
-	if (ymax < 1.0) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
-		g_free(xnp);
-		return FALSE;
-	}
-	double new_min = ymax;
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		if (g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) < new_min && g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) > 1E-1)
-			new_min = g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
-	}
-
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
-		if (*intensity < new_min)
-			*intensity = new_min;
-	}
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = x;
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
 
 	g_free(xnp);
+	g_signal_emit_by_name((gpointer) source, "after-generate", error);
 
-	return TRUE;
+	return;
 }
 
 static const gchar *xmi_msim_gui_source_radionuclide_real_get_name(XmiMsimGuiSourceAbstract *source) {

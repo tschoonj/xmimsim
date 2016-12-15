@@ -372,6 +372,10 @@ AC_CHECK_PROG([GLIB_MKENUMS],[glib-mkenums],[glib-mkenums],[fail])
 if test x$GLIB_MKENUMS = xfail ; then
 	AC_MSG_WARN([glib-mkenums was not found. Though not required for a regular build, it will impact developers of the GUI.])
 fi
+AC_CHECK_PROG([GLIB_GENMARSHAL],[glib-genmarshal],[glib-genmarshal],[fail])
+if test x$GLIB_GENMARSHAL = xfail ; then
+	AC_MSG_WARN([glib-genmarshal was not found. Though not required for a regular build, it will impact developers of the GUI.])
+fi
 #search for chmod
 AC_CHECK_PROG([CHMOD],[chmod],[chmod],[fail])
 if test x$CHMOD = xfail ; then

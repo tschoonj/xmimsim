@@ -64,6 +64,8 @@ gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
 gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
 #endif
 
+void xmi_msim_gui_utils_open_url(const char *link);
+
 G_END_DECLS
 
 #endif

@@ -58,9 +58,9 @@ struct _XmiMsimGuiSourceAbstractClass
 {
   GtkVBoxClass parent_class;
 
-  gboolean (* generate)  (XmiMsimGuiSourceAbstract *source, GError **error);
+  void (*generate)  (XmiMsimGuiSourceAbstract *source);
 
-  gboolean (* save)      (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+  gboolean (*save)      (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
   
   const gchar* (*get_name) (XmiMsimGuiSourceAbstract *source);
 
@@ -69,11 +69,12 @@ struct _XmiMsimGuiSourceAbstractClass
   gchar* (*energy_discrete_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_discrete *energy);
 
   gchar* (*energy_continuous_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
+
 };
 
 GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
 
-gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+void xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source);
 
 gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 

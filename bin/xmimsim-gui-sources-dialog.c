@@ -38,6 +38,42 @@ static void xmi_msim_gui_sources_dialog_class_init(XmiMsimGuiSourcesDialogClass 
 
 }
 
+static XmiMsimGuiSourceAbstract* get_active_source(XmiMsimGuiSourcesDialog *dialog) {
+	gint current_page = gtk_notebook_get_current_page(GTK_NOTEBOOK(dialog->notebookW));
+	return XMI_MSIM_GUI_SOURCE_ABSTRACT(gtk_notebook_get_nth_page(GTK_NOTEBOOK(dialog->notebookW), current_page));
+}
+
+static gboolean activate_link_cb(GtkLabel *label, gchar *uri, gpointer data) {
+
+	xmi_msim_gui_utils_open_url((char *) uri);
+	return TRUE;
+}
+
+static void info_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+	GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, xmi_msim_gui_source_abstract_get_name(source));
+	gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), xmi_msim_gui_source_abstract_get_about_text(source));
+
+	GtkWidget *area = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(info_dialog));
+	GList *children = gtk_container_get_children(GTK_CONTAINER(area));
+	GtkWidget *temp = (GtkWidget *) g_list_nth_data(children, 1);
+	g_list_free(children);
+	g_signal_connect(G_OBJECT(temp), "activate-link", G_CALLBACK(activate_link_cb), NULL);
+
+	gtk_dialog_run(GTK_DIALOG(info_dialog));
+	gtk_widget_destroy(info_dialog);
+}
+
+static void generate_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
+	// disable generate button
+	gtk_widget_set_sensitive(dialog->generateButton, FALSE);
+
+	// get currently active notebook page
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+	xmi_msim_gui_source_abstract_generate(source);
+
+}
+
 static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
@@ -73,16 +109,16 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 	// add buttons
-	GtkWidget *generateButton = gtk_button_new_from_stock(GTK_STOCK_EXECUTE);
+	dialog->generateButton = gtk_button_new_from_stock(GTK_STOCK_EXECUTE);
 	GtkWidget *infoButton = gtk_button_new_from_stock(GTK_STOCK_ABOUT);
 	GtkWidget *exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	GtkWidget *imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	xmi_msim_gui_utils_update_button_text(generateButton, "Update spectrum");
+	xmi_msim_gui_utils_update_button_text(dialog->generateButton, "Update spectrum");
 	xmi_msim_gui_utils_update_button_text(exportButton, "Export spectrum");
 	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
 
 	GtkWidget *tempHBox = gtk_hbox_new(TRUE, 5);
-	gtk_box_pack_start(GTK_BOX(tempHBox), generateButton, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(tempHBox), dialog->generateButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), infoButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
 	tempHBox = gtk_hbox_new(TRUE, 5);
@@ -111,11 +147,20 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 
 	// finish off with the signal handlers
 	//g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) source);
-	//g_signal_connect(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) source);
-	//g_signal_connect(G_OBJECT(generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) source);
+	g_signal_connect_swapped(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) dialog);
+	g_signal_connect_swapped(G_OBJECT(dialog->generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) dialog);
 	//g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) source);
 	// add signal handler for Y-axis scale
 	gtk_widget_show_all(mainHBox);
+}
+
+static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog) {
+	g_debug("Source %s after-generate called\n", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+	if (error != NULL) {
+		g_warning("Error message: %s\n", error->message);
+		g_error_free(error);
+	}
+	gtk_widget_set_sensitive(dialog->generateButton, TRUE);
 }
 
 GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *current) {
@@ -140,8 +185,12 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *
 			current,
 			NULL));
 			
+		g_signal_connect(G_OBJECT(source), "after-generate", G_CALLBACK(after_generate_cb), widget);
+
 		GtkWidget *label = gtk_label_new(xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)));
 		gtk_notebook_append_page(GTK_NOTEBOOK(widget->notebookW), source, label);
+		// call generate on all sources
+		xmi_msim_gui_source_abstract_generate(XMI_MSIM_GUI_SOURCE_ABSTRACT(source));
 	}
 
 	gtk_widget_show_all(widget->notebookW);

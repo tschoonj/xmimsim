@@ -50,6 +50,7 @@ struct _XmiMsimGuiSourcesDialog
   GtkWidget *notebookW;
   GtkWidget *linearW;
   GtkWidget *log10W;
+  GtkWidget *generateButton;
 #ifdef HAVE_CXX
   Gtk::PLplot::Canvas *canvas;
   Plot2DSources *plotWindow;

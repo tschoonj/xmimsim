@@ -62,6 +62,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-export-canvas-dialog.c \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-sources-dialog.c \
+	xmimsim-gui-marshal.h \
+	xmimsim-gui-marshal.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -193,7 +195,13 @@ dist_noinst_DATA = coordinate_system.png
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
-BUILT_SOURCES = $(nodist_xmimsim_gui_SOURCES) xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.c
+BUILT_SOURCES = \
+	$(nodist_xmimsim_gui_SOURCES) \
+	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-type-builtins.c \
+	xmimsim-gui-marshal.h \
+	xmimsim-gui-marshal.c \
+	$(NULL)
 endif
 
 if !OS_WINDOWS
@@ -236,6 +244,9 @@ mkenum_sources = \
 	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-layer-dialog.h \
 	$(NULL)
+
+marshal_input = \
+	xmimsim-gui-marshal.list
 
 # this is a separate convenience library as it allows me to test against it test-cubic-spline
 noinst_LTLIBRARIES += libxmimsim-gui-spline.la
@@ -492,9 +503,23 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.c
 
+xmimsim-gui-marshal.h: $(marshal_input) xmimsim-gui-marshal.c
+
+xmimsim-gui-marshal.c: $(marshal_input)
+	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
+		--prefix "xmi_msim_gui" \
+		--header \
+		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.h
+	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
+		--prefix "xmi_msim_gui" \
+		--body \
+		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.c
+
 
 clean-local:
 	rm -rf xmimsim-gui-icons.h $(nodist_xmimsim_gui_SOURCES)
+
+EXTRA_DIST = xmimsim-gui-marshal.list
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

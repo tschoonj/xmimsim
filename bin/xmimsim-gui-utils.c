@@ -76,6 +76,33 @@ gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
 	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));
 }
 
+void xmi_msim_gui_utils_open_url(const char *link) {
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link,
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char * const argv[] = {(char *) "xdg-open", (char *) link, NULL};
+	//argv[0] = "xdg-open";
+	//argv[1] = link;
+	//argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp(argv[0], argv);
+#endif
+	return;
+}
+
 #ifdef HAVE_LIBCURL
 gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
 	CURL *curl;
