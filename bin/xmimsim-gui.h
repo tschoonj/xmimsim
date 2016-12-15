@@ -204,7 +204,6 @@ enum {
 void update_xmimsim_title_xmsi(const char *new_title, GtkWidget *my_window, const char *filename);
 void update_xmimsim_title_xmso(const char *new_title, GtkWidget *my_window, const char *filename);
 
-void xmi_open_url(const char *url);
 void xmi_open_email(const char *address);
 void adjust_save_buttons(void);
 

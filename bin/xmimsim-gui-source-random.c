@@ -45,7 +45,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceRandom, xmi_msim_gui_source_random, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
-static gboolean xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source);
 
 static const gchar *xmi_msim_gui_source_random_real_get_name(XmiMsimGuiSourceAbstract *source);
 
@@ -72,7 +72,7 @@ static void xmi_msim_gui_source_random_class_init(XmiMsimGuiSourceRandomClass *k
 static void xmi_msim_gui_source_random_init(XmiMsimGuiSourceRandom *source) {
 }
 
-static gboolean xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source) {
 	int i;
 
 	struct xmi_excitation *excitation_random = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
@@ -81,12 +81,12 @@ static gboolean xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstrac
 	excitation_random->n_discrete= 0;
 	excitation_random->discrete= NULL;
 
-	double plot_xmax = 0.0;
+	double plot_xmax = 10.0;
 
 	const xmi_rng_type *type = xmi_rng_default;
 	xmi_rng *rng = xmi_rng_alloc(type);
 
-	for (i = 0 ; i < 10.0 ; i++) {
+	for (i = 0 ; i < 10 ; i++) {
 		double energy = i + 0.5;
 
 		excitation_random->discrete = (struct xmi_energy_discrete *) realloc(excitation_random->discrete, sizeof(struct xmi_energy_discrete)*++excitation_random->n_discrete);
@@ -105,49 +105,60 @@ static gboolean xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstrac
 	
 	xmi_rng_free(rng);
 
-	// update member variables
+	GArray *x, *y;
+
+	x = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
+	y = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
+
+	for (i = 0 ; i < 1000 ; i++) {
+		double energy = i * plot_xmax/999.0;
+		double intensity = 0.0;
+		g_array_append_val(x, energy);
+		g_array_append_val(y, intensity);
+	}
+	for (i = 0 ; i < excitation_random->n_discrete ; i++) {
+		int channel = (int) floor(excitation_random->discrete[i].energy * 999.0/plot_xmax);
+		double *intensity = &g_array_index(y, double, channel); 
+		*intensity += excitation_random->discrete[i].horizontal_intensity*2.0;
+	}
+
+	// find the smallest value greater than zero (1E-1)
+	double ymax = xmi_maxval_double((double *) y->data, y->len);
+	if (ymax < 1.0) {
+		GError *error = g_error_new(XMI_MSIM_GUI_SOURCE_RANDOM_ERROR, XMI_MSIM_GUI_SOURCE_RANDOM_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
+		g_array_free(x, TRUE);
+		g_array_free(y, TRUE);
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
+	}
+	double new_min = ymax;
+	for (i = 0 ; i < y->len ; i++) {
+		if (g_array_index(y, double, i) < new_min && g_array_index(y, double, i) > 1E-1)
+			new_min = g_array_index(y, double, i);
+	}
+
+	for (i = 0 ; i < y->len ; i++) {
+		double *intensity = &g_array_index(y, double, i);
+		if (*intensity < new_min)
+			*intensity = new_min;
+	}
+
+	// update member variables -> if we get here, everything must be fine.
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
 		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_random;
 
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = g_array_sized_new(FALSE, FALSE, sizeof(double), 1000);
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = x;
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
 
-	for (i = 0 ; i < 1000 ; i++) {
-		double energy = i * plot_xmax/999.0;
-		double intensity = 0.0;
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, energy);
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, intensity);
-	}
-	for (i = 0 ; i < excitation_random->n_discrete ; i++) {
-		int channel = (int) floor(excitation_random->discrete[i].energy * 999.0/plot_xmax);
-		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, channel); 
-		*intensity += excitation_random->discrete[i].horizontal_intensity*2.0;
-	}
-
-	// find the smallest value greater than zero (1E-1)
-	double ymax = xmi_maxval_double((double *) XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->data, XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len);
-	if (ymax < 1.0) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_RANDOM_ERROR, XMI_MSIM_GUI_SOURCE_RANDOM_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
-		return FALSE;
-	}
-	double new_min = ymax;
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		if (g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) < new_min && g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) > 1E-1)
-			new_min = g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
-	}
-
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
-		if (*intensity < new_min)
-			*intensity = new_min;
-	}
-
-	return TRUE;
+	g_signal_emit_by_name((gpointer) source, "after-generate", NULL);
+	return;
 }
 
 static const gchar *xmi_msim_gui_source_random_real_get_name(XmiMsimGuiSourceAbstract *source) {

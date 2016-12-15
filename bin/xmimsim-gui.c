@@ -3284,7 +3284,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 
 static void about_activate_link(GtkAboutDialog *about, const gchar *url, gpointer data) {
 	if (strncmp(url, "https", 5) == 0) {
-		xmi_open_url(url);
+		xmi_msim_gui_utils_open_url(url);
 	}
 	else {
 		xmi_open_email(url);
@@ -3293,7 +3293,7 @@ static void about_activate_link(GtkAboutDialog *about, const gchar *url, gpointe
 }
 
 static void url_click(GtkWidget *widget, const char *url) {
-	xmi_open_url(url);
+	xmi_msim_gui_utils_open_url(url);
 }
 
 static void email_click(GtkWidget *widget, const char *url) {
@@ -7126,32 +7126,6 @@ void xmi_open_email(const char *address) {
 	g_free(link);
 	return;
 
-}
-void xmi_open_url(const char *link) {
-#ifdef MAC_INTEGRATION
-	CFURLRef url = CFURLCreateWithBytes (
-      	NULL,
-      	(UInt8*)link,
-      	strlen(link),
-      	kCFStringEncodingASCII,
-      	NULL
-    	);
-  	LSOpenCFURLRef(url,NULL);
-  	CFRelease(url);
-#elif defined(G_OS_WIN32)
-	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
-#else
-	pid_t pid;
-	char * const argv[] = {(char *) "xdg-open", (char *) link, NULL};
-	//argv[0] = "xdg-open";
-	//argv[1] = link;
-	//argv[2] = NULL;
-
-	pid = fork();
-	if (!pid)
-		execvp(argv[0], argv);
-#endif
-	return;
 }
 
 static void change_all_values_general(struct xmi_input *new_input) {

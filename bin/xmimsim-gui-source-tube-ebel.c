@@ -51,7 +51,7 @@ struct xmi_ebel_parameters {
 
 XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
-static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source);
 
 static const gchar *xmi_msim_gui_source_tube_ebel_real_get_name(XmiMsimGuiSourceAbstract *source);
 
@@ -478,7 +478,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
 	gtk_table_attach(GTK_TABLE(table), label, 2, 3, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Thickness"), 3, 4, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Thickness (cm)"), 3, 4, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
 
 	//row 1
 	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
@@ -618,6 +618,7 @@ static void transmission_clicked_cb(XmiMsimGuiSourceTubeEbel *source, GtkToggleB
 
 static struct xmi_layer* create_layer(int Z, double rho, double thickness) {
 	struct xmi_layer* rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	rv->n_elements = 1;
 	rv->Z = (int *) malloc(sizeof(int));
 	rv->Z[0] = Z;
 	rv->weight = (double *) malloc(sizeof(double));
@@ -628,13 +629,16 @@ static struct xmi_layer* create_layer(int Z, double rho, double thickness) {
 	return rv;
 }
 
-static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source) {
+	GError *error = NULL;
+
 	// read the parameters
-	struct xmi_ebel_parameters *xep = get_parameters(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), error);
+	struct xmi_ebel_parameters *xep = get_parameters(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), &error);
 
-	if (xep == NULL)
-		return FALSE;
-
+	if (xep == NULL) {
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
+	}
 
 	struct xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
 	struct xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
@@ -657,11 +661,11 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 	}
 
 	if (ebel_rv == 0) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_GENERATE, "Error generating spectrum: see console for more details");
+		g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_GENERATE, "Error generating spectrum: see console for more details");
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
-		
-		return FALSE;
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
 	}
 
 	// apply transmission efficiency file, if required...
@@ -674,11 +678,11 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 
 		FILE *fp;
 		if ((fp = fopen(xep->transmission_efficiency_file, "r")) == NULL) {
-			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Could not open %s for reading", xep->transmission_efficiency_file);
+			g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Could not open %s for reading", xep->transmission_efficiency_file);
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
-		
-			return FALSE;
+			g_signal_emit_by_name((gpointer) source, "after-generate", error);
+			return;
 		}
 
 		char *line = NULL;
@@ -692,8 +696,9 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 			}
 			values = sscanf(line,"%lg %lg", &energy, &efficiency);
 			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (eff_x->len > 0 && energy <= g_array_index(eff_x, double, eff_x->len - 1)) || (eff_x->len == 0 && energy >= 1.0)) {
-				g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
-				return FALSE;
+				g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
+				g_signal_emit_by_name((gpointer) source, "after-generate", error);
+				return;
 			}
 			g_array_append_val(eff_x, energy);
 			g_array_append_val(eff_y, efficiency);
@@ -704,11 +709,11 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 		fclose(fp);
 
 		if (eff_x->len < 10 || excitation_tube->continuous[excitation_tube->n_continuous-1].energy > g_array_index(eff_x, double, eff_x->len - 1)) {
-			g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
+			g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
-		
-			return FALSE;
+			g_signal_emit_by_name((gpointer) source, "after-generate", error);
+			return;
 		}
 
 		struct xmi_cubic_spline *spline = xmi_cubic_spline_init((double *) eff_x->data, (double *)eff_y->data, eff_x->len);
@@ -733,30 +738,21 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 	}
 
 	// ideally I investigate the intensities and remove those whose intensity is really, really low...
+	GArray *x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
+	GArray *y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
 	
-	// update member variables
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
-
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube;
-
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
-	g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
-
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
 
 	int i, j;
 	for (i = 0 ; i < excitation_tube->n_continuous ; i++) {
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, excitation_tube->continuous[i].energy);
+		g_array_append_val(x, excitation_tube->continuous[i].energy);
 		double intensity = excitation_tube->continuous[i].horizontal_intensity * 2.0 * xep->interval_width;
-		g_array_append_val(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, intensity);
+		g_array_append_val(y, intensity);
 	}
 
 	for (i = 0 ; i < excitation_tube->n_discrete ; i++) {
 		for (j = 0 ; j < excitation_tube->n_continuous ; j++) {
 			if (excitation_tube->discrete[i].energy < excitation_tube->continuous[j].energy && j != 0) {
-				double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, j-1); 
+				double *intensity = &g_array_index(y, double, j-1); 
 				*intensity += excitation_tube->discrete[i].horizontal_intensity*2.0;
 				break;
 			}
@@ -764,29 +760,47 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbst
 	}
 
 	// find the smallest value greater than zero (1E-1)
-	double ymax = xmi_maxval_double((double *) XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->data, XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len);
+	double ymax = xmi_maxval_double((double *) y->data, y->len);
 	if (ymax < 1.0) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
+		g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
-		return FALSE;
+		g_array_free(x, TRUE);
+		g_array_free(y, TRUE);
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
 	}
 	double new_min = ymax;
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		if (g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) < new_min && g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i) > 1E-1)
-			new_min = g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
+	for (i = 0 ; i < y->len ; i++) {
+		if (g_array_index(y, double, i) < new_min && g_array_index(y, double, i) > 1E-1)
+			new_min = g_array_index(y, double, i);
 	}
 
-	for (i = 0 ; i < XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y->len ; i++) {
-		double *intensity = &g_array_index(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, double, i);
+	for (i = 0 ; i < y->len ; i++) {
+		double *intensity = &g_array_index(y, double, i);
 		if (*intensity < new_min)
 			*intensity = new_min;
 	}
 
+	// update member variables
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
+		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube;
+
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
+	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y)
+		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
+
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = x;
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
+
 	g_free(xep->transmission_efficiency_file);
 	g_free(xep);
+	g_signal_emit_by_name((gpointer) source, "after-generate", error);
 
-	return TRUE;
+	return;
 }
 
 static const gchar *xmi_msim_gui_source_tube_ebel_real_get_name(XmiMsimGuiSourceAbstract *source) {

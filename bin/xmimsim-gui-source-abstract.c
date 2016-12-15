@@ -18,10 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-source-abstract.h"
 #include <string.h>
 #include <math.h>
+#include <xmimsim-gui-marshal.h>
 
 G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_VBOX)
 
-static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error);
+static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source);
 
 static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
@@ -41,6 +42,13 @@ static void xmi_msim_gui_source_abstract_set_property (GObject          *object,
                                                 guint             prop_id,
                                                 const GValue     *value,
                                                 GParamSpec       *pspec);
+
+enum {
+	AFTER_GENERATE,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
 
 static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClass *klass) {
 
@@ -64,6 +72,19 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 			"Current struct xmi_input",
     			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 		)
+	);
+
+	signals[AFTER_GENERATE] = g_signal_new(
+		"after-generate",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_LAST,
+		0, // no default handler
+		NULL,
+		NULL,
+		xmi_msim_gui_VOID__POINTER,
+		G_TYPE_NONE,
+		1,
+		G_TYPE_POINTER // GError *
 	);
 }
 
@@ -116,10 +137,13 @@ static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }
 
-static gboolean xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
+static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source) {
 	g_warning("XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
-	g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
-	return FALSE;
+	GError *error = g_error_new(XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+
+	g_signal_emit((gpointer) source, signals[AFTER_GENERATE], 0, error);
+
+	return;
 }
 
 static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
@@ -199,8 +223,9 @@ GQuark xmi_msim_gui_source_abstract_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-source-abstract-error-quark");
 }
 
-gboolean xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source, GError **error) {
-	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->generate(source, error);
+void xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source) {
+	XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->generate(source);
+	return;
 }
 
 gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
