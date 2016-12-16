@@ -163,3 +163,22 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
 	}
 }
 #endif
+
+double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax) {
+	double tickstep = 1E-10;
+	int nticks = (int) floor((xmax-xmin)/tickstep);
+
+	while (nticks < 1 || nticks >= 10) {
+		tickstep *= 10.0;
+		nticks = (int) floor((xmax-xmin)/tickstep);
+	}
+
+	if (nticks == 1) {
+		tickstep /= 5.0;
+	}
+	else if (nticks == 2) {
+		tickstep /= 2.0;
+	}
+	return tickstep;
+}
+
