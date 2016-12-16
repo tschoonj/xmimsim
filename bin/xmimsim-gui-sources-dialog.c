@@ -134,7 +134,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	GtkWidget *aspect_frame = gtk_aspect_frame_new("", 0.5, 0.5, 842.0/595.0, FALSE);
 	gtk_widget_set_hexpand(aspect_frame, TRUE);
 	gtk_widget_set_vexpand(aspect_frame, TRUE);
-	gtk_container_add(GTK_CONTAINER(aspect_frame), GTK_WIDGET(canvas->gobj()));
+	gtk_container_add(GTK_CONTAINER(aspect_frame), GTK_WIDGET(dialog->canvas->gobj()));
 	gtk_box_pack_start(GTK_BOX(mainHBox), aspect_frame, TRUE, TRUE, 2);
 #else
 	dialog->canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);

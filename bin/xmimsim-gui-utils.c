@@ -4,6 +4,7 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#include <Shellapi.h>
 #elif defined(MAC_INTEGRATION)
 #import <Foundation/Foundation.h>
 #include <CoreFoundation/CFBundle.h>
