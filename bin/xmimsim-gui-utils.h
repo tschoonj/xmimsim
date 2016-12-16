@@ -66,6 +66,8 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
 
 void xmi_msim_gui_utils_open_url(const char *link);
 
+double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax);
+
 G_END_DECLS
 
 #endif

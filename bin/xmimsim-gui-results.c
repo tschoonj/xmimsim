@@ -142,24 +142,6 @@ static GtkWidget *canvas;
 static GtkWidget *plot_window;
 #endif
 
-double get_tickstep(double xmin, double xmax) {
-	double tickstep = 1E-10;
-	int nticks = (int) floor((xmax-xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = (int) floor((xmax-xmin)/tickstep);
-	}
-
-	if (nticks == 1) {
-		tickstep /= 5.0;
-	}
-	else if (nticks == 2) {
-		tickstep /= 2.0;
-	}
-	return tickstep;
-}
-
 #ifndef HAVE_CXX
 static gboolean resize_canvas_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 	gdouble magnifier;
@@ -397,11 +379,11 @@ static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble
 	else if (ymin > plot_ymax)
 		return;
 
-	double tickstep = get_tickstep(xmin, xmax);
+	double tickstep = xmi_msim_gui_utils_get_tickstep(xmin, xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
-		tickstep = get_tickstep(ymin, ymax);
+		tickstep = xmi_msim_gui_utils_get_tickstep(ymin, ymax);
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
 	}
 	if ((xmax - xmin) < 0.005) {
@@ -450,10 +432,10 @@ static void zoom_out(void) {
 #ifdef HAVE_CXX
 	plot_window->set_region(plot_xmin, plot_xmax, plot_ymin, plot_ymax);
 #else
-	double tickstep = get_tickstep(plot_xmin, plot_xmax);
+	double tickstep = xmi_msim_gui_utils_get_tickstep(plot_xmin, plot_xmax);
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
-		tickstep = get_tickstep(plot_ymin, plot_ymax);
+		tickstep = xmi_msim_gui_utils_get_tickstep(plot_ymin, plot_ymax);
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
 	}
 	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,0);
@@ -1380,11 +1362,11 @@ int plot_spectra_from_file(char *xmsofile) {
 	//x-axis number of ticks continues to be a problem
 	//it's quite clear that the gtkextra developers were too lazy to deal with it themselves :-)
 
-	double tickstep = get_tickstep(plot_xmin, plot_xmax);
+	double tickstep = xmi_msim_gui_utils_get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, tickstep,5);
 	if (current_scale == GTK_PLOT_SCALE_LINEAR) {
-		tickstep = get_tickstep(plot_ymin, plot_ymax);
+		tickstep = xmi_msim_gui_utils_get_tickstep(plot_ymin, plot_ymax);
 		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, tickstep,5);
 	}
 	gtk_plot_set_yscale(GTK_PLOT(plot_window), current_scale);

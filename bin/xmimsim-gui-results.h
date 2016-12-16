@@ -44,7 +44,4 @@ GtkWidget *init_results(GtkWidget *window);
 
 int plot_spectra_from_file(char *xmsofile);
 
-
-double get_tickstep(double xmin, double xmax);
-
 #endif

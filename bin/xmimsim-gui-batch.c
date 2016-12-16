@@ -4760,8 +4760,8 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 	}
 
 #ifndef HAVE_CXX
-	double tickstep = get_tickstep(plot_ymin, plot_ymax);
-	double tickstep2 = get_tickstep(plot_xmin, plot_xmax);
+	double tickstep = xmi_msim_gui_utils_get_tickstep(plot_ymin, plot_ymax);
+	double tickstep2 = xmi_msim_gui_utils_get_tickstep(plot_xmin, plot_xmax);
 
 	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep2,5);
 
@@ -5105,8 +5105,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 
 	plot_window = gtk_plot_new_with_size(NULL,1,1);
 
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, get_tickstep(apd->archive->start_value1, apd->archive->end_value1), 5);
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, get_tickstep(apd->archive->start_value2, apd->archive->end_value2), 5);
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, xmi_msim_gui_utils_get_tickstep(apd->archive->start_value1, apd->archive->end_value1), 5);
+	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, xmi_msim_gui_utils_get_tickstep(apd->archive->start_value2, apd->archive->end_value2), 5);
 	gtk_plot_set_range(GTK_PLOT(plot_window),apd->archive->start_value1, apd->archive->end_value1, apd->archive->start_value2, apd->archive->end_value2);
 	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
 	//gtk_plot_hide_legends(GTK_PLOT(plot_window));

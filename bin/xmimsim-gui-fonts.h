@@ -28,10 +28,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define RESULTS_PLOT_LABELS_LR_EXP 20
 	#define RESULTS_PLOT_LABELS_TP 25
 
-	#define TUBE_PLOT_TITLE 30
-	#define TUBE_PLOT_LABELS_LR_FLOAT 25
-	#define TUBE_PLOT_LABELS_LR_EXP 20
-	#define TUBE_PLOT_LABELS_TP 25
+	#define SOURCE_PLOT_TITLE 30
+	#define SOURCE_PLOT_LABELS_LR_FLOAT 25
+	#define SOURCE_PLOT_LABELS_LR_EXP 20
+	#define SOURCE_PLOT_LABELS_TP 25
 
 	#define BATCH_2D_PLOT_TITLE 30
 	#define BATCH_2D_PLOT_LABELS_LR_FLOAT 25
@@ -52,10 +52,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define RESULTS_PLOT_LABELS_LR_EXP 16
 	#define RESULTS_PLOT_LABELS_TP 20
 
-	#define TUBE_PLOT_TITLE 25
-	#define TUBE_PLOT_LABELS_LR_FLOAT 20
-	#define TUBE_PLOT_LABELS_LR_EXP 14
-	#define TUBE_PLOT_LABELS_TP 20
+	#define SOURCE_PLOT_TITLE 25
+	#define SOURCE_PLOT_LABELS_LR_FLOAT 20
+	#define SOURCE_PLOT_LABELS_LR_EXP 14
+	#define SOURCE_PLOT_LABELS_TP 20
 
 	#define BATCH_2D_PLOT_TITLE 22
 	#define BATCH_2D_PLOT_LABELS_LR_FLOAT 17
@@ -78,10 +78,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#define RESULTS_PLOT_LABELS_LR_EXP 16
 	#define RESULTS_PLOT_LABELS_TP 18
 
-	#define TUBE_PLOT_TITLE 22
-	#define TUBE_PLOT_LABELS_LR_FLOAT 20
-	#define TUBE_PLOT_LABELS_LR_EXP 14
-	#define TUBE_PLOT_LABELS_TP 20
+	#define SOURCE_PLOT_TITLE 22
+	#define SOURCE_PLOT_LABELS_LR_FLOAT 20
+	#define SOURCE_PLOT_LABELS_LR_EXP 14
+	#define SOURCE_PLOT_LABELS_TP 20
 
 	#define BATCH_2D_PLOT_TITLE 20
 	#define BATCH_2D_PLOT_LABELS_LR_FLOAT 17

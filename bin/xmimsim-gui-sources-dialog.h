@@ -53,10 +53,10 @@ struct _XmiMsimGuiSourcesDialog
   GtkWidget *generateButton;
 #if GTK_MAJOR_VERSION == 3
   Gtk::PLplot::Canvas *canvas;
-  Plot2DSources *plotWindow;
+  Plot2DSources *plot_window;
 #else
   GtkWidget *canvas;
-  GtkWidget *plotWindow;
+  GtkWidget *plot_window;
 #endif
 };
 
