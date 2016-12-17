@@ -170,7 +170,6 @@ static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 
 static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	gtk_dialog_response(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_QUIT);
-	fprintf(stdout,"exit clicked\n");
 
 #ifdef MAC_INTEGRATION
 	gchar *file = g_strdup_printf("file://%s",dv->download_location);
@@ -209,7 +208,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	//get download locations
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &prefs) == 0) {
-		fprintf(stderr,"Get preferences error\n");
+		g_warning("Get preferences error\n");
 		return;
 	}
 
@@ -218,12 +217,12 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	for (i = 0 ; i < g_strv_length(prefs.ss) ; i++) {
 		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i],dv->filename);
 		curl_easy_setopt(dv->curl, CURLOPT_URL,url);
-		fprintf(stdout,"Trying url %s\n",url);
+		g_debug("Trying url %s\n",url);
 
 		fp = fopen(dv->download_location, "wb");
 		dv->fp = fp;
 		if (fp == NULL) {
-			fprintf(stderr,"download_updates: Could not open %s for writing\n",dv->download_location);
+			g_warning("download_updates: Could not open %s for writing\n",dv->download_location);
 			//set buttons ok
 
 
@@ -272,7 +271,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			rv = 0;
 			break;
 		default:
-			fprintf(stdout,"curl_easy_perform error code: %i\n", res);
+			g_debug("curl_easy_perform error code: %i\n", res);
 			fclose(fp);
 			unlink(dv->download_location);
 			rv = -1;
@@ -380,12 +379,12 @@ int check_for_updates(char **max_version_rv, char **message) {
 	chunk.memory = (char *) malloc(1);
 	chunk.size = 0;
 
-	fprintf(stdout,"checking for updates...\n");
+	g_debug("checking for updates...\n");
 
 
 	curl = curl_easy_init();
 	if (!curl) {
-		fprintf(stderr,"Could not initialize cURL\n");
+		g_warning("Could not initialize cURL\n");
 		return XMIMSIM_UPDATES_ERROR;
 	}
 
@@ -400,7 +399,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	g_free(user_agent);
 	res = curl_easy_perform(curl);
 	if (res != 0) {
-		fprintf(stderr,"check_for_updates: %s\n",curlerrors);
+		g_warning("check_for_updates: %s\n",curlerrors);
 		return XMIMSIM_UPDATES_ERROR;
 	}
 
@@ -410,13 +409,13 @@ int check_for_updates(char **max_version_rv, char **message) {
 	parser = json_parser_new();
 	if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
 		if (error) {
-			fprintf(stderr,"check_for_updates: %s\n",error->message);
+			g_warning("check_for_updates: %s\n",error->message);
 			return XMIMSIM_UPDATES_ERROR;
 		}
 	}
 	JsonNode *rootNode = json_parser_get_root(parser);
 	if(json_node_get_node_type(rootNode) != JSON_NODE_ARRAY) {
-		fprintf(stderr,"check_for_updates: rootNode is not an Array\n");
+		g_warning("check_for_updates: rootNode is not an Array\n");
 		return XMIMSIM_UPDATES_ERROR;
 	}
 	JsonArray *rootArray = json_node_get_array(rootNode);
@@ -438,13 +437,13 @@ int check_for_updates(char **max_version_rv, char **message) {
 		curl_easy_setopt(curl, CURLOPT_URL, jld->url);
 		res = curl_easy_perform(curl);
 		if (res != 0) {
-			fprintf(stderr,"check_for_updates: %s\n",curlerrors);
+			g_warning("check_for_updates: %s\n",curlerrors);
 			return XMIMSIM_UPDATES_ERROR;
 		}
 		parser = json_parser_new();
 		if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
 			if (error) {
-				fprintf(stderr,"check_for_updates: %s\n",error->message);
+				g_warning("check_for_updates: %s\n",error->message);
 				return XMIMSIM_UPDATES_ERROR;
 			}
 		}
@@ -471,7 +470,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	g_object_unref(parser);
 	curl_easy_cleanup(curl);
 	//fprintf(stdout, "message: %s\n", *message);
-	fprintf(stdout,"done checking for updates\n");
+	g_debug("done checking for updates\n");
 
 	return rv;
 }
@@ -596,7 +595,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	curl = curl_easy_init();
 	if (!curl) {
-		fprintf(stderr,"Could not initialize cURL\n");
+		g_warning("Could not initialize cURL\n");
 		return 0;
 	}
 	dv.curl = curl;

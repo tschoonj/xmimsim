@@ -157,7 +157,7 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
 		return TRUE;
 	}
 	else {
-		fprintf(stdout, "%s not ok: %s\n", url, curl_easy_strerror(res));
+		g_warning("%s not ok: %s\n", url, curl_easy_strerror(res));
 		g_free(url);
 		return FALSE;
 	}
