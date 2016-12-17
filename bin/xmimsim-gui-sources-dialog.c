@@ -101,7 +101,11 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	// mainHBox will contain two columns -> one with source parameters (mainVBox), one with plot
 	// 
 	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 5);
+#if GTK_MAJOR_VERSION == 3
+	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 2);
+#else
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, FALSE, 2);
+#endif
 	dialog->notebookW = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(mainVBox), dialog->notebookW, TRUE, TRUE, 2);
 
@@ -165,14 +169,6 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 }
 
 static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source) {
-	GArray *x, *y;
-	xmi_msim_gui_source_abstract_get_plot_data(source, &x, &y);
-
-	if (x == NULL || y == NULL) {
-		g_warning("update_plot: xmi_msim_gui_source_abstract_get_plot_data returned no data!");
-		return;
-	}
-
 	// start by removing the current plot
 #ifdef HAVE_CXX
 	try {
@@ -192,6 +188,15 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 		list = GTK_PLOT_CANVAS(dialog->canvas)->childs;
 	}
 #endif
+
+	GArray *x, *y;
+	xmi_msim_gui_source_abstract_get_plot_data(source, &x, &y);
+
+	if (x == NULL || y == NULL) {
+		g_warning("update_plot: xmi_msim_gui_source_abstract_get_plot_data returned no data!");
+		return;
+	}
+
 	// add plot
 #ifdef HAVE_CXX
 	dialog->plot_window = Gtk::manage(new Plot2DSources("Energy (keV)", "Intensity (photons/s)"));
@@ -228,7 +233,7 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	}
 
 #ifdef HAVE_CXX
-	dialog->plot_window->signal_double_press().connect([dialog->plot_window, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
+	dialog->plot_window->signal_double_press().connect([dialog, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
 		dialog->plot_window->set_region(plot_xmin, plot_xmax,
 						plot_ymin, plot_ymax);
 	});
@@ -281,8 +286,8 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	dataset->set_color(*blue_plot);
 	dataset->set_line_width(2.0);
 	dataset->show();
-	plot_window->add_data(*dataset);
-	plot_window->set_region(plot_xmin, plot_xmax,
+	dialog->plot_window->add_data(*dataset);
+	dialog->plot_window->set_region(plot_xmin, plot_xmax,
 				plot_ymin, plot_ymax);
 #else
 	GtkPlotData *dataset;
