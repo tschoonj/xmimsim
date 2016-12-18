@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-fonts.h"
+#include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
 
 #if GTK_MAJOR_VERSION == 3
@@ -119,6 +120,20 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 
 	return;
 }
+
+static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
+	GtkWidget *image_dialog = xmi_msim_gui_export_canvas_dialog_new("Save spectrum as image",
+		GTK_WINDOW(dialog), dialog->canvas);
+
+	if (gtk_dialog_run(GTK_DIALOG(image_dialog)) == GTK_RESPONSE_ACCEPT) {
+		// error handling??
+		xmi_msim_gui_export_canvas_dialog_save(XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(image_dialog));
+	}
+	gtk_widget_destroy(image_dialog);
+
+	return;
+}
+
 static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
@@ -198,7 +213,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect_swapped(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect_swapped(G_OBJECT(dialog->generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) dialog);
-	//g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) source);
+	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect(G_OBJECT(dialog->linearW), "toggled", G_CALLBACK(scale_toggled_cb), (gpointer) dialog);
 	gtk_widget_show_all(mainHBox);
 }
