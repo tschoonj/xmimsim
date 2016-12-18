@@ -149,7 +149,7 @@ static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract 
 static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
 	// check if we have data to save
 	if (source->raw_data == NULL || (source->raw_data->n_discrete == 0 && source->raw_data->n_continuous == 0)) {
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_NO_RAW_DATA, "XmiMsimGuiSourceAbstract::save No data available for saving. Call xmi_msim_gui_source_abstract_generate first");
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_NO_RAW_DATA, "No data available for saving. Ensure the model data is valid and click \"Generate spectrum\"");
 		return FALSE;
 
 	}
@@ -165,7 +165,7 @@ static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract 
 	}
 	else if (type != G_FILE_TYPE_UNKNOWN) {
 		// file exists but is not a regular file -> throw error
-		g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_INVALID_FILENAME, "XmiMsimGuiSourceAbstract::save Could not save to %s", filename);
+		g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_INVALID_FILENAME, "Could not save to %s. It appears to exist already but it is not a regular file!", filename);
 		g_object_unref(file);
 		return FALSE;
 	}
@@ -181,7 +181,7 @@ static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract 
 	gsize bytes_written = 0;
 	for (i = 0 ; i < source->raw_data->n_continuous ; i++) {
 		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_continuous_printf(source, &source->raw_data->continuous[i]);
-		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line)+1, &bytes_written, NULL, error) == FALSE) {
+		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line), &bytes_written, NULL, error) == FALSE) {
 			g_object_unref(stream);
 			g_object_unref(file);
 			return FALSE;
@@ -190,7 +190,7 @@ static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract 
 	}
 	for (i = 0 ; i < source->raw_data->n_discrete ; i++) {
 		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_discrete_printf(source, &source->raw_data->discrete[i]);
-		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line)+1, &bytes_written, NULL, error) == FALSE) {
+		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line), &bytes_written, NULL, error) == FALSE) {
 			g_object_unref(stream);
 			g_object_unref(file);
 			return FALSE;
