@@ -84,6 +84,41 @@ static void scale_toggled_cb(GtkToggleButton *linearW, XmiMsimGuiSourcesDialog *
 	update_plot(dialog, get_active_source(dialog));
 }
 
+static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
+
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+
+	GtkWidget *export_dialog = gtk_file_chooser_dialog_new("Export spectrum as ASCII file", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(export_dialog), TRUE);
+	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(export_dialog), TRUE);
+	GtkWidget *label;
+	/*if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
+		label = gtk_label_new("First the continuous intervals will be printed, marked by their start energy and intensity. This will be followed by a list of discrete lines, each defined by their energy and intensity.");
+		gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);
+		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "tube-spectrum.txt");
+	}
+	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "nuclide-spectrum.txt");
+	}*/
+	if (gtk_dialog_run(GTK_DIALOG(export_dialog)) == GTK_RESPONSE_ACCEPT) {
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(export_dialog));
+		GError *error = NULL;
+		if (!xmi_msim_gui_source_abstract_save(source, (const char *) filename, &error)) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(export_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting %s spectrum to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+
+			g_error_free(error);
+			g_free(filename);
+		}
+	}
+	gtk_widget_destroy(export_dialog);
+
+	return;
+}
 static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
@@ -160,7 +195,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 
 
 	// finish off with the signal handlers
-	//g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) source);
+	g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect_swapped(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect_swapped(G_OBJECT(dialog->generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) dialog);
 	//g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) source);
