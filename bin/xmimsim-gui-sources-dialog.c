@@ -126,8 +126,16 @@ static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *
 		GTK_WINDOW(dialog), dialog->canvas);
 
 	if (gtk_dialog_run(GTK_DIALOG(image_dialog)) == GTK_RESPONSE_ACCEPT) {
-		// error handling??
-		xmi_msim_gui_export_canvas_dialog_save(XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(image_dialog));
+		GError *error = NULL;
+		if (!xmi_msim_gui_export_canvas_dialog_save(XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(image_dialog), &error)) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(image_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s spectrum", xmi_msim_gui_source_abstract_get_name(get_active_source(dialog)));
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+
+			g_error_free(error);
+		}
 	}
 	gtk_widget_destroy(image_dialog);
 

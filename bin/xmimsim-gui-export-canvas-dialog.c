@@ -77,7 +77,7 @@ static void xmi_msim_gui_export_canvas_dialog_init(XmiMsimGuiExportCanvasDialog 
   gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 }
 
-gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog) {
+gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog, GError **error) {
 
   gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
   //get selected filter
@@ -94,7 +94,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
     if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
-      fprintf(stderr, "Could not write to file %s in xmi_msim_gui_export_canvas_dialog_save", filename);
+      g_set_error(error, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO, "Could not write to file %s due to a cairo error: %s", filename, cairo_status_to_string(cairo_surface_status(surface)));
       g_free(filename);
       return FALSE;
     }
@@ -110,7 +110,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
     if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
-      fprintf(stderr, "Could not write to file %s in xmi_msim_gui_export_canvas_dialog_save", filename);
+      g_set_error(error, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO, "Could not write to file %s due to a cairo error: %s", filename, cairo_status_to_string(cairo_surface_status(surface)));
       g_free(filename);
       return FALSE;
     }
@@ -123,10 +123,16 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
     surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
+    if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
+      g_set_error(error, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO, "Could not write to file %s due to a cairo error: %s", filename, cairo_status_to_string(cairo_surface_status(surface)));
+      g_free(filename);
+      return FALSE;
+    }
   }
   else {
     g_free(filename);
     fprintf(stderr, "Unknown file filter in xmi_msim_gui_export_canvas_dialog_save");
+    g_set_error(error, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_UNKNOWN_FILEFILTER, "Unknown filefilter detected");
     return FALSE;
   }
   cairo = cairo_create(surface);
@@ -139,8 +145,9 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
   gtk_plot_canvas_paint(GTK_PLOT_CANVAS(dialog->canvas));
 #endif
   if (filter == dialog->png_filter) {
-    if (cairo_surface_write_to_png(surface, filename) != CAIRO_STATUS_SUCCESS) {
-      fprintf(stderr, "Could not write to file %s in xmi_msim_gui_export_canvas_dialog_save", filename);
+    cairo_status_t status = cairo_surface_write_to_png(surface, filename);
+    if (status != CAIRO_STATUS_SUCCESS) {
+      g_set_error(error, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR, XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO, "Could not write to file %s due to a cairo error: %s", filename, cairo_status_to_string(status));
       g_free(filename);
       return FALSE;
     }

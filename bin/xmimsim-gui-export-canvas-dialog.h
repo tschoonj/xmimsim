@@ -70,7 +70,16 @@ GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *
 GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent, GtkWidget *canvas);
 #endif
 
-gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog);
+gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog, GError **error);
+
+typedef enum {
+	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO,
+	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_UNKNOWN_FILEFILTER,
+} XmiMsimGuiExportCanvasDialogError;
+
+#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR (xmi_msim_gui_export_canvas_dialog_error_quark())
+
+GQuark xmi_msim_gui_export_canvas_dialog_error_quark(void);
 
 G_END_DECLS
 #endif
