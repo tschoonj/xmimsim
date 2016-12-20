@@ -372,7 +372,7 @@ static void switch_page_cb(GtkNotebook *notebook, XmiMsimGuiSourceAbstract *sour
 static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog) {
 	g_debug("Source %s after-generate called\n", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	if (error != NULL) {
-		g_warning("Error message: %s\n", error->message);
+		g_warning("after_generate_cb message: %s\n", error->message);
 		// spawn error dialog with message
 		GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error generating %s spectrum", xmi_msim_gui_source_abstract_get_name(source));
 		gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
