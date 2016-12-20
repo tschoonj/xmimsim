@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
+#include <time.h>
 #ifdef HAVE_EASYRNG
   #include <easy_rng.h>
   #include <easy_randist.h>
@@ -25,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #define xmi_rng_alloc easy_rng_alloc
   #define xmi_ran_gaussian easy_ran_gaussian
   #define xmi_rng_free easy_rng_free
+  #define xmi_rng_set easy_rng_set
 #else
   #include <gsl/gsl_rng.h>
   #include <gsl/gsl_randist.h> 
@@ -34,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #define xmi_rng_alloc gsl_rng_alloc
   #define xmi_ran_gaussian gsl_ran_gaussian
   #define xmi_rng_free gsl_rng_free
+  #define xmi_rng_set gsl_rng_set
 #endif
 #include "xmimsim-gui-source-random.h"
 #include "xmi_aux.h"
@@ -85,6 +88,7 @@ static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *s
 
 	const xmi_rng_type *type = xmi_rng_default;
 	xmi_rng *rng = xmi_rng_alloc(type);
+	xmi_rng_set(rng, (long unsigned int) time(NULL));
 
 	for (i = 0 ; i < 10 ; i++) {
 		double energy = i + 0.5;

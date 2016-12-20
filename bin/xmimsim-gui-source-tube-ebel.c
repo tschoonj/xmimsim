@@ -702,7 +702,6 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 			}
 			g_array_append_val(eff_x, energy);
 			g_array_append_val(eff_y, efficiency);
-			fprintf(stdout,"Efficiency: %f -> %f\n",energy,efficiency);
 			free(line);
 			line = NULL;
 		}
