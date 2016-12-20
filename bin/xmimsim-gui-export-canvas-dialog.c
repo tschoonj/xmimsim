@@ -160,3 +160,8 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
   g_free(filename);
   return TRUE;
 }
+
+GQuark xmi_msim_gui_export_canvas_dialog_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-gui-export-canvas-dialog-error-quark");
+}
+
