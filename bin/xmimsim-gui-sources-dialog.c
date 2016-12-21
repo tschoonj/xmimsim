@@ -73,6 +73,7 @@ static void info_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
 static void generate_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
 	// disable generate button
 	gtk_widget_set_sensitive(dialog->generateButton, FALSE);
+	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
 
 	// get currently active notebook page
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
@@ -226,7 +227,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_widget_show_all(mainHBox);
 }
 
-static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source) {
+static void clear_plot(XmiMsimGuiSourcesDialog *dialog) {
 	// start by removing the current plot
 #ifdef HAVE_CXX
 	try {
@@ -247,13 +248,22 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	}
 #endif
 
+}
+
+static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source) {
+
+	clear_plot(dialog);
+
 	GArray *x, *y;
 	xmi_msim_gui_source_abstract_get_plot_data(source, &x, &y);
 
 	if (x == NULL || y == NULL) {
 		g_warning("update_plot: xmi_msim_gui_source_abstract_get_plot_data returned no data!");
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
 		return;
 	}
+
+	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
 
 	// add plot
 #ifdef HAVE_CXX
@@ -381,6 +391,23 @@ static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, X
 		gtk_widget_destroy(info_dialog);
 
 		g_error_free(error);
+
+		// set source data to NULL
+		if (source->raw_data) {
+			xmi_free_excitation(source->raw_data);
+			source->raw_data = NULL;
+		}
+		if (source->x) {
+			g_array_free(source->x, TRUE);
+			source->x = NULL;
+		}
+		if (source->y) {
+			g_array_free(source->y, TRUE);
+			source->y = NULL;
+		}
+
+		clear_plot(dialog);
+		gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
 	}
 	else if (source == get_active_source(dialog)) {
 		// update plot when this is the currently shown source
