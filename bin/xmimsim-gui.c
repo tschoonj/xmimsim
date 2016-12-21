@@ -6716,7 +6716,7 @@ int kill_current_job(void) {
 #ifdef G_OS_UNIX
 		int kill_rv;
 
-		fprintf(stdout,"killing %i UNIX style\n", (int) xmimsim_pid);
+		g_debug("killing %i UNIX style\n", (int) xmimsim_pid);
 		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
 #if !GLIB_CHECK_VERSION (2, 35, 0)
 		//starting with 2.36.0 (and some unstable versions before),
@@ -6726,10 +6726,10 @@ int kill_current_job(void) {
 		waitpid(xmimsim_pid, NULL, WNOHANG);
 #endif
 		if (kill_rv == 0) {
-			fprintf(stdout, "Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
+			g_debug("Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
 		}
 		else {
-			fprintf(stdout, "Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
+			g_debug("Process %i could not be terminated with the SIGTERM signal\n",(int) xmimsim_pid);
 		}
 #elif defined(G_OS_WIN32)
 		BOOL terminate_rv;
@@ -6737,10 +6737,10 @@ int kill_current_job(void) {
 		terminate_rv = TerminateProcess((HANDLE) xmimsim_pid, (UINT) 1);
 
 		if (terminate_rv == TRUE) {
-			fprintf(stdout, "Process %i was successfully terminated\n", real_xmimsim_pid);
+			g_debug("Process %i was successfully terminated\n", real_xmimsim_pid);
 		}
 		else {
-			fprintf(stdout, "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
+			g_debug("Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
 		}
 #endif
 		g_spawn_close_pid(xmimsim_pid);
@@ -6769,8 +6769,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 	kill_current_job();
 
-
-	fprintf(stdout,"quitting\n");
+	g_debug("quitting\n");
 
 	gtk_main_quit();
 
@@ -6996,12 +6995,9 @@ gboolean save_function(GtkWidget *widget, gpointer data) {
 		//do nothing
 	}
 
-
-
 	return TRUE;
-
-
 }
+
 gboolean saveas_function(GtkWidget *widget, gpointer data) {
 
 	GtkWidget *dialog;
@@ -7088,11 +7084,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	else
    		gtk_widget_destroy (dialog);
 
-
-
 	return TRUE;
-
-
 }
 
 void xmi_open_email(const char *address) {
