@@ -336,7 +336,7 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP), "Helvetica", SOURCE_PLOT_LABELS_TP, 0, NULL, NULL, TRUE, GTK_JUSTIFY_CENTER);
 	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP), 0);
         gtk_plot_grids_set_visible(GTK_PLOT(dialog->plot_window), TRUE, FALSE, TRUE, FALSE);
-	child = gtk_plot_canvas_plot_new(GTK_PLOT(dialog->plot_window));
+	GtkPlotCanvasChild* child = gtk_plot_canvas_plot_new(GTK_PLOT(dialog->plot_window));
         gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(dialog->canvas), child, .15, .05, .90, .85);
         gtk_widget_show(dialog->plot_window);
 #endif
