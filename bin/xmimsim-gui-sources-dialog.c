@@ -46,6 +46,9 @@ static void xmi_msim_gui_sources_dialog_class_init(XmiMsimGuiSourcesDialogClass 
 
 static XmiMsimGuiSourceAbstract* get_active_source(XmiMsimGuiSourcesDialog *dialog) {
 	gint current_page = gtk_notebook_get_current_page(GTK_NOTEBOOK(dialog->notebookW));
+	if (current_page < 0) {
+		g_warning("get_active_source: no page is active!");
+	}
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT(gtk_notebook_get_nth_page(GTK_NOTEBOOK(dialog->notebookW), current_page));
 }
 
@@ -452,4 +455,16 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *
 	gtk_widget_show_all(widget->notebookW);
 
 	return GTK_WIDGET(widget);
+}
+
+struct xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog *dialog) {
+	struct xmi_excitation *rv = NULL;
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+
+	if (source == NULL)
+		return NULL;
+
+	xmi_copy_excitation(source->raw_data, &rv);
+
+	return rv;
 }

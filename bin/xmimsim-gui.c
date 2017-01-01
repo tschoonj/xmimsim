@@ -649,14 +649,11 @@ static gchar *get_message_string(int kind) {
 		case CONTINUOUS_ENERGY_DELETE:
 			message = g_strdup("deletion of continuous energy");
 			break;
-		case EBEL_SPECTRUM_REPLACE:
-			message = g_strdup("importing of Ebel X-ray tube spectrum");
+		case SOURCE_SPECTRUM_REPLACE:
+			message = g_strdup("importing external spectrum");
 			break;
-		case NUCLIDE_SPECTRUM_REPLACE:
-			message = g_strdup("replacing with radionuclide spectrum");
-			break;
-		case NUCLIDE_SPECTRUM_ADD:
-			message = g_strdup("adding radionuclide spectrum");
+		case SOURCE_SPECTRUM_ADD:
+			message = g_strdup("adding external spectrum");
 			break;
 		case EXC_COMPOSITION_ORDER:
 			message = g_strdup("change of excitation absorber ordering");
@@ -2974,7 +2971,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
-		case NUCLIDE_SPECTRUM_ADD:
+		case SOURCE_SPECTRUM_ADD:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -2988,6 +2985,19 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
 					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
 					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
+					-1);
+			}
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
 			break;
@@ -3012,8 +3022,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					-1);
 			}
 			break;
-		case EBEL_SPECTRUM_REPLACE:
-		case NUCLIDE_SPECTRUM_REPLACE:
+		case SOURCE_SPECTRUM_REPLACE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -3538,7 +3547,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
-		case NUCLIDE_SPECTRUM_ADD:
+		case SOURCE_SPECTRUM_ADD:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -3552,6 +3561,19 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
 					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
 					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
+					-1);
+			}
+			gtk_list_store_clear(contWidget->store);
+			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
+				gtk_list_store_append(contWidget->store, &iter);
+				gtk_list_store_set(contWidget->store, &iter,
+					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
+					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
+					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
+					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
+					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
+					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
+					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
 					-1);
 			}
 			break;
@@ -3576,8 +3598,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					-1);
 			}
 			break;
-		case EBEL_SPECTRUM_REPLACE:
-		case NUCLIDE_SPECTRUM_REPLACE:
+		case SOURCE_SPECTRUM_REPLACE:
 			gtk_list_store_clear(discWidget->store);
 			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
 				gtk_list_store_append(discWidget->store, &iter);
@@ -4576,7 +4597,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
-		case NUCLIDE_SPECTRUM_ADD:
+		case SOURCE_SPECTRUM_ADD:
 			temp_exc = (struct xmi_excitation*) widget;
 			last->xi->excitation->n_discrete += temp_exc->n_discrete;
 			//realloc discrete energies
@@ -4585,6 +4606,13 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				last->xi->excitation->discrete[i] = temp_exc->discrete[i-last->xi->excitation->n_discrete+temp_exc->n_discrete];
 			}
 			qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			last->xi->excitation->n_continuous += temp_exc->n_continuous;
+			//realloc continuous energies
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			for (i = last->xi->excitation->n_continuous-temp_exc->n_continuous ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i] = temp_exc->continuous[i-last->xi->excitation->n_continuous+temp_exc->n_continuous];
+			}
+			qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			free(temp_exc);
 
 			break;
@@ -4724,8 +4752,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				last->xi->excitation->n_continuous = 0;
 			}
 			break;
-		case EBEL_SPECTRUM_REPLACE:
-		case NUCLIDE_SPECTRUM_REPLACE:
+		case SOURCE_SPECTRUM_REPLACE:
 			if (last->xi->excitation->n_continuous > 0)
 				free(last->xi->excitation->continuous);
 			if (last->xi->excitation->n_discrete > 0)
@@ -4966,9 +4993,105 @@ static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, gpointer dat
 static void xray_sources_button_clicked_cb(GtkWidget *button, GtkWidget *main_window) {
 	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(main_window), current->xi);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		// do stuff
+		// get the excitation data from the dialog
+		struct xmi_excitation *excitation_orig = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
+		struct xmi_excitation *excitation;
+
+		// a copy is necessary since the original data will get destroyed when the dialog is destroyed
+		xmi_copy_excitation(excitation_orig, &excitation);
+
+		gtk_widget_destroy(dialog);
+
+		// unlikely to occur: produce an error message if it does...
+		if (excitation == NULL) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "xmi_msim_gui_sources_dialog_get_raw_data returned NULL!!!");
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "This is a bug and should be reported to the developers");
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+			return;	
+		}
+
+		// start new dialog: we need to know if the existing spectrum needs to be replaced or augmented with the new one
+		GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "Add new source spectrum to current excitation spectrum or replace it completely?");
+		gtk_dialog_add_buttons(GTK_DIALOG(info_dialog), GTK_STOCK_ADD, GTK_RESPONSE_OK, GTK_STOCK_REFRESH, GTK_RESPONSE_CANCEL, NULL);
+		GtkWidget *button = gtk_dialog_get_widget_for_response(GTK_DIALOG(info_dialog), GTK_RESPONSE_CANCEL);
+		xmi_msim_gui_utils_update_button_text(button, "Replace");
+		//this may not work on all platforms -> Mac OS X
+		gtk_window_set_deletable(GTK_WINDOW(info_dialog), FALSE);
+		int rv;
+		while ((rv = gtk_dialog_run(GTK_DIALOG(info_dialog))) == GTK_RESPONSE_DELETE_EVENT) {
+		}
+		gtk_widget_destroy(info_dialog);
+		if (rv == GTK_RESPONSE_OK) {
+			// add
+			int i;
+			if (current->xi->excitation->n_discrete > 0) {
+				for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
+					if (bsearch(excitation->discrete+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
+						gtk_dialog_run(GTK_DIALOG(error_dialog));
+						gtk_widget_destroy(error_dialog);
+						// these two next lines are bad code
+						free(energy_disc);
+						energy_disc = NULL;
+						return;
+					}
+				}
+			}
+			if (current->xi->excitation->n_continuous > 0) {
+				for (i = 0 ; i < current->xi->excitation->n_continuous ; i++) {
+					if (bsearch(excitation->continuous+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
+						gtk_dialog_run(GTK_DIALOG(error_dialog));
+						gtk_widget_destroy(error_dialog);
+						// these two next lines are bad code
+						free(energy_cont);
+						energy_cont = NULL;
+						return;
+					}
+				}
+			}
+			update_undo_buffer(SOURCE_SPECTRUM_ADD, (GtkWidget *) excitation);
+		} else {
+			// replace
+			update_undo_buffer(SOURCE_SPECTRUM_REPLACE, (GtkWidget *) excitation);
+		}
+		gtk_list_store_clear(discWidget->store);
+		int i;
+		GtkTreeIter iter;
+		for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
+			gtk_list_store_append(discWidget->store, &iter);
+			gtk_list_store_set(discWidget->store, &iter,
+			ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
+			SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
+			SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
+			SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
+			SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
+			DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
+			SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
+			-1);
+		}
+		gtk_list_store_clear(contWidget->store);
+		for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
+			gtk_list_store_append(contWidget->store, &iter);
+			gtk_list_store_set(contWidget->store, &iter,
+			ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
+			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
+			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
+			SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
+			SIGMA_XP_COLUMN,(current)->xi->excitation->continuous[i].sigma_xp,
+			SIGMA_Y_COLUMN,(current)->xi->excitation->continuous[i].sigma_y,
+			SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
+			-1);
+		}
 	}
-	gtk_widget_destroy(dialog);
+	else {
+		gtk_widget_destroy(dialog);
+	}
+
+	adjust_save_buttons();
 }
 
 static void enable_entry_signals(GtkWidget *entry) {

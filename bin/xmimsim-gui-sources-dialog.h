@@ -70,7 +70,9 @@ GType xmi_msim_gui_sources_dialog_get_type(void) G_GNUC_CONST;
 
 GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *current);
 
-// need to write xmi_excitation getter
+// returns newly allocated currently available xmi_excitation data
+struct xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog *dialog);
+
 G_END_DECLS
 #endif
 
