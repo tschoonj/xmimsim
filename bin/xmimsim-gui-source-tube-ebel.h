@@ -55,6 +55,7 @@ struct _XmiMsimGuiSourceTubeEbel
 	GtkWidget *tubeSolidAngleW;
 	GtkWidget *transmissionEffW;
 	GtkWidget *transmissionEffFileW;
+	gboolean dispose_called;
 };
 
 struct _XmiMsimGuiSourceTubeEbelClass
