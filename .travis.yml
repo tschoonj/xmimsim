@@ -11,90 +11,6 @@ env:
 matrix:
   include:
 
-# disable precise since it cannot use our cloudfront packages
-  
-#   # 1
-#   # precise: fgsl
-#   # no updater
-#   # with gui
-#   # no notifications
-#   - os: linux
-#     sudo: required
-#     dist: precise
-#     addons:
-#       apt:
-#         sources:
-#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-#         packages:
-#           - libgsl0-dev
-#           - libfgsl0
-#           - libfgsl0-dev
-#           - libgtkextra3
-#           - libgtkextra3-dev
-#           - gfortran
-#           - libxslt1-dev
-#           - libxml2-utils
-#           - libhdf5-serial-dev
-#           - hdf5-tools
-#           - libxrl7-dev
-#           - libcurl4-openssl-dev
-#     env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-#   # 2
-#   # precise: fgsl
-#   # no updater
-#   # no gui
-#   # no notifications
-#   - os: linux
-#     sudo: required
-#     dist: precise
-#     addons:
-#       apt:
-#         sources:
-#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-#         packages:
-#           - libgsl0-dev
-#           - libfgsl0
-#           - libfgsl0-dev
-#           - gfortran
-#           - libxslt1-dev
-#           - libxml2-utils
-#           - libhdf5-serial-dev
-#           - hdf5-tools
-#           - libxrl7-dev
-#           - libcurl4-openssl-dev
-#     env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
-#   # 3
-#   # precise: fgsl
-#   # with updater
-#   # with gui
-#   # with notifications
-#   - os: linux
-#     sudo: required
-#     dist: precise
-#     addons:
-#       apt:
-#         sources:
-#           - sourceline: 'deb [arch=amd64] http://lvserver.ugent.be/apt/ubuntu precise stable'
-#             key_url: 'http://lvserver.ugent.be/apt/xmi.packages.key'
-#         packages:
-#           - libgsl0-dev
-#           - libfgsl0
-#           - libfgsl0-dev
-#           - libgtkextra3
-#           - libgtkextra3-dev
-#           - gfortran
-#           - libxslt1-dev
-#           - libxml2-utils
-#           - libhdf5-serial-dev
-#           - hdf5-tools
-#           - libxrl7-dev
-#           - libcurl4-openssl-dev
-#           - libjson-glib-dev
-#           - libnotify-dev
-#     env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
-    # 4
     # trusty: fgsl and gtkextra
     # no updater
     # with gui
@@ -121,7 +37,6 @@ matrix:
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-    # 5
     # trusty: fgsl and gtkextra
     # with updater
     # with gui
@@ -150,7 +65,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
-    # 6
     # trusty: fgsl and gtkmm-plplot
     # no updater
     # with gui
@@ -177,7 +91,6 @@ matrix:
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
-    # 7
     # trusty: fgsl and gtkmm-plplot
     # with updater
     # with gui
@@ -206,7 +119,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
-    # 8
     # trusty: fgsl
     # no updater
     # no gui
@@ -231,7 +143,6 @@ matrix:
             - libxrl7-dev
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
-    # 9
     # trusty: easyRNG and gtkextra
     # no updater
     # with gui
@@ -256,7 +167,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 10
     # trusty: easyRNG and gtkextra
     # with updater
     # with gui
@@ -283,7 +193,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 11
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -309,7 +218,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 12
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -337,7 +245,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 13
     # trusty: easyRNG 
     # no updater
     # no gui
@@ -360,7 +267,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 14
     # trusty: easyRNG and gtkextra
     # no updater
     # with gui
@@ -385,7 +291,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 15
     # trusty: easyRNG and gtkextra
     # with updater
     # with gui
@@ -412,7 +317,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 16
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -438,7 +342,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 17
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -466,7 +369,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 18
     # trusty: easyRNG 
     # no updater
     # no gui
@@ -489,7 +391,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 19
     # trusty: easyRNG and gtkextra
     # no updater
     # with gui
@@ -514,7 +415,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 20
     # trusty: easyRNG and gtkextra
     # with updater
     # with gui
@@ -541,7 +441,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 21
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -567,7 +466,6 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 22
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -595,7 +493,6 @@ matrix:
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # 23
     # trusty: easyRNG 
     # no updater
     # no gui
@@ -623,139 +520,6 @@ matrix:
     ### Mac OS X
     ###
     ###
-    # 24
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # no updater
-    # with gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 25
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 26
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # with updater
-    # with gui
-    # with mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 27
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # no updater
-    # with gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 28
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 29
-    # OS X 10.10 Yosemite: fgsl and gtkextra
-    # with updater
-    # with gui
-    # with mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # 30
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 31
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 32
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 33
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 34
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 35
-    # OS X 10.10 Yosemite: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode6.4 # OS X 10.10 Yosemite
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # 36
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # no updater
     # with gui
@@ -766,7 +530,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 37
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # no updater
     # no gui
@@ -777,7 +540,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 38
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # with updater
     # with gui
@@ -788,7 +550,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 39
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # no updater
     # with gui
@@ -799,7 +560,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 40
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # no updater
     # no gui
@@ -810,7 +570,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 41
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # with updater
     # with gui
@@ -821,7 +580,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 42
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -832,7 +590,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 43
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # no updater
     # no gui
@@ -843,7 +600,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 44
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -854,7 +610,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 45
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -865,7 +620,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 46
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # no updater
     # no gui
@@ -876,7 +630,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 47
     # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -887,7 +640,6 @@ matrix:
       osx_image: xcode8 # OS X 10.11 El Capitan
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 48
     # OS X 10.12 Sierra: fgsl and gtkextra
     # no updater
     # with gui
@@ -898,7 +650,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 49
     # OS X 10.12 Sierra: fgsl and gtkextra
     # no updater
     # no gui
@@ -909,7 +660,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 50
     # OS X 10.12 Sierra: fgsl and gtkextra
     # with updater
     # with gui
@@ -920,7 +670,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 51
     # OS X 10.12 Sierra: fgsl and gtkextra
     # no updater
     # with gui
@@ -931,7 +680,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 52
     # OS X 10.12 Sierra: fgsl and gtkextra
     # no updater
     # no gui
@@ -942,7 +690,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 53
     # OS X 10.12 Sierra: fgsl and gtkextra
     # with updater
     # with gui
@@ -953,7 +700,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='gtkextra json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
 
-    # 54
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -964,7 +710,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 55
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # no updater
     # no gui
@@ -975,7 +720,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 56
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -986,7 +730,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 57
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -997,7 +740,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 58
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # no updater
     # no gui
@@ -1008,7 +750,6 @@ matrix:
       osx_image: xcode8.2 # OS X 10.12 Sierra
       env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran-6' HOMEBREW_GCC='gcc@6 llvm' MYLIBS='-L/usr/local/opt/gcc@6/lib/gcc/6 -L/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
-    # 59
     # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -1025,7 +766,8 @@ before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get --yes --force-yes update && sudo apt-get --yes --force-yes install python-all-dev python-numpy cython python3-all-dev python3-numpy swig fpc gfortran php5-dev lua5.2 liblua5.2-dev ; fi
   - |
     if [ $TRAVIS_OS_NAME == osx ] ; then
-      brew uninstall --force oclint xctool swiftlint gcc gcc49 carthage llvm || exit 1
+      brew cask uninstall --force oclint
+      brew uninstall --force xctool swiftlint gcc gcc49 carthage llvm || exit 1
       brew update || exit 1
       brew upgrade || exit 1
       brew cleanup -s || exit 1
