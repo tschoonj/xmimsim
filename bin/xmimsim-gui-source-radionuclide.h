@@ -41,6 +41,7 @@ struct _XmiMsimGuiSourceRadionuclide
 	GtkWidget *activityW;
 	GtkWidget *activityUnitW;
 	GtkWidget *nuclideSolidAngleW;
+	gboolean dispose_called;
 };
 
 struct _XmiMsimGuiSourceRadionuclideClass

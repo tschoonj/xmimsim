@@ -263,6 +263,8 @@ static struct xmi_nuclide_parameters* get_preferences() {
 }
 
 static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *source) {
+	source->dispose_called = FALSE;
+
 	// construct the widgets, and set them to their values as we go along...
 	GtkWidget *mainVBox = GTK_WIDGET(source);
 
@@ -486,18 +488,18 @@ static const gchar *xmi_msim_gui_source_radionuclide_real_get_about_text(XmiMsim
 }
 
 static void xmi_msim_gui_source_radionuclide_dispose(GObject *object) {
-	static gboolean first_entry = TRUE;
+	XmiMsimGuiSourceRadionuclide *source = XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(object);
 
-	if (first_entry == TRUE) {
+	if (source->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
-		struct xmi_nuclide_parameters *xnp = get_parameters(XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(object), NULL);
+		struct xmi_nuclide_parameters *xnp = get_parameters(source, NULL);
 		if (xnp != NULL) {
 			set_preferences(xnp);
 			g_free(xnp);
 		}
+		source->dispose_called = TRUE;
 	}
-	first_entry = FALSE;
 	G_OBJECT_CLASS(xmi_msim_gui_source_radionuclide_parent_class)->dispose(object);
 }
 

@@ -435,6 +435,8 @@ static struct xmi_ebel_parameters* get_preferences() {
 
 
 static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source) {
+	source->dispose_called = FALSE;
+
 	// construct the widgets, and set them to their values as we go along...
 	GtkWidget *mainVBox = GTK_WIDGET(source);
 
@@ -817,19 +819,19 @@ static const gchar *xmi_msim_gui_source_tube_ebel_real_get_about_text(XmiMsimGui
 }
 
 static void xmi_msim_gui_source_tube_ebel_dispose(GObject *object) {
-	static gboolean first_entry = TRUE;
+	XmiMsimGuiSourceTubeEbel *source = XMI_MSIM_GUI_SOURCE_TUBE_EBEL(object);
 
-	if (first_entry == TRUE) {
+	if (source->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
-		struct xmi_ebel_parameters *xep = get_parameters(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(object), NULL);
+		struct xmi_ebel_parameters *xep = get_parameters(source, NULL);
 		if (xep != NULL) {
 			set_preferences(xep);
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
 		}
+		source->dispose_called = TRUE;
 	}
-	first_entry = FALSE;
 	G_OBJECT_CLASS(xmi_msim_gui_source_tube_ebel_parent_class)->dispose(object);
 }
 
