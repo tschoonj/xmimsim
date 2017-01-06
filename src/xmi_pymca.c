@@ -1489,7 +1489,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		int n_elements_orig = 0;
 		double *weight_orig = NULL;
 
-		int found = 0;
+		found = 0;
 
 		for (i = 0 ; i < (*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements ; i++) {
 			found = 0;

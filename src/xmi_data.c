@@ -269,7 +269,7 @@ int xmi_db(char *filename) {
 
 		//create group for the element
 		sprintf(elements,"%2i", i);
-		hid_t gcpl = H5Pcreate (H5P_GROUP_CREATE);
+		gcpl = H5Pcreate (H5P_GROUP_CREATE);
 		H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
 		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, gcpl, H5P_DEFAULT);
 		H5Pclose (gcpl);

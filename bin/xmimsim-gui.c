@@ -1155,7 +1155,7 @@ void update_xmimsim_title_xmso(const char *new_title, GtkWidget *my_window, cons
 }
 
 
-static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, guint page, gpointer data) {
+static void notebook_page_changed_cb(GtkNotebook *my_notebook, gpointer pageptr, guint page, gpointer data) {
 	GtkWidget *my_window = (GtkWidget *) data;
 
 
@@ -1817,7 +1817,6 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	model = gtk_tree_view_get_model(tree);
 	GtkTreeSelection *select = gtk_tree_view_get_selection(tree);
 	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(select) == 0) {
-		GtkTreeIter iter;
 		gtk_tree_model_get_iter_first(model, &iter);
 		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
 		gtk_tree_selection_select_path(select, path);
@@ -2012,7 +2011,6 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 	//if there is one layer now -> activeate copy/cut
 	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(mb->select));
 	if (gtk_tree_model_iter_n_children(model, NULL) > 0 && gtk_tree_selection_count_selected_rows(mb->select) == 0) {
-		GtkTreeIter iter;
 		gtk_tree_model_get_iter_first(model, &iter);
 		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
 		gtk_tree_selection_select_path(mb->select, path);
@@ -3277,7 +3275,6 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 		}
 		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
-			GtkTreeIter iter;
 			gtk_tree_model_get_iter_first(model, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
 			gtk_tree_selection_select_path(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused)), path);
@@ -3846,7 +3843,6 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(GTK_WIDGET(copyW), FALSE);
 		}
 		else if (gtk_tree_selection_count_selected_rows(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused))) == 0) {
-			GtkTreeIter iter;
 			gtk_tree_model_get_iter_first(model, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &iter);
 			gtk_tree_selection_select_path(gtk_tree_view_get_selection(GTK_TREE_VIEW(focused)), path);
@@ -4990,7 +4986,7 @@ static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, gpointer dat
 	return FALSE;
 }
 
-static void xray_sources_button_clicked_cb(GtkWidget *button, GtkWidget *main_window) {
+static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *main_window) {
 	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(main_window), current->xi);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		// get the excitation data from the dialog

@@ -226,7 +226,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 		if (archive->xpath2) {
 			gtk_widget_set_sensitive(xt->spinner2, TRUE);
-			GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
+			adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
 			gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner2), GTK_ADJUSTMENT(adj));
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner2), 0);
 			label_text = g_strdup_printf("XPath2: %s", archive->xpath2);
