@@ -1334,7 +1334,7 @@ static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd)
 	return;
 }
 
-static void play_button_clicked(GtkButton *playButton, struct batch_window_data *bwd) {
+static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd) {
 	//first deal with the pause case
 	if (bwd->pauseButton && bwd->paused) {
 		gtk_widget_set_sensitive(bwd->playButton, FALSE);
@@ -1537,7 +1537,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 
 	return;
 }
-static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data *bwd) {
+static void stop_button_clicked(GtkButton *button, struct batch_window_data *bwd) {
 	char buffer[512];
 
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
@@ -1589,7 +1589,7 @@ static void stop_button_clicked(GtkButton *stopButton, struct batch_window_data 
 	return;
 }
 
-static void pause_button_clicked(GtkButton *pauseButton, struct batch_window_data *bwd) {
+static void pause_button_clicked(GtkButton *button, struct batch_window_data *bwd) {
 	//UNIX only
 
 	int kill_rv;
@@ -2377,7 +2377,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 		gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 		GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
-		GtkWidget *label = gtk_label_new(NULL);
+		label = gtk_label_new(NULL);
 		gtk_label_set_markup(GTK_LABEL(label),"<b>Converting XMSO files to archive</b>");
 		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 		gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
@@ -2459,10 +2459,9 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	gtk_container_set_border_width(GTK_CONTAINER(batch_window),3);
 	GtkWidget *hbox = gtk_hbox_new(FALSE, 2);
 
-	GtkWidget *playButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
-	bwd->playButton = playButton;
-	gtk_box_pack_start(GTK_BOX(hbox), playButton, FALSE, FALSE, 2);
+	bwd->playButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(bwd->playButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY,GTK_ICON_SIZE_DIALOG));
+	gtk_box_pack_start(GTK_BOX(hbox), bwd->playButton, FALSE, FALSE, 2);
 
 	bwd->pauseButton = NULL;
 #ifdef G_OS_WIN32
@@ -2473,21 +2472,19 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 		FreeLibrary(ntdll);
 		if (NtSuspendProcess != NULL && NtResumeProcess != NULL) {
 #endif
-			GtkWidget *pauseButton = gtk_button_new();
-			gtk_container_add(GTK_CONTAINER(pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
-			bwd->pauseButton = pauseButton;
-			gtk_box_pack_start(GTK_BOX(hbox), pauseButton, FALSE, FALSE, 2);
-			gtk_widget_set_sensitive(pauseButton, FALSE);
+			bwd->pauseButton = gtk_button_new();
+			gtk_container_add(GTK_CONTAINER(bwd->pauseButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE,GTK_ICON_SIZE_DIALOG));
+			gtk_box_pack_start(GTK_BOX(hbox), bwd->pauseButton, FALSE, FALSE, 2);
+			gtk_widget_set_sensitive(bwd->pauseButton, FALSE);
 #ifdef G_OS_WIN32
 		}
 	}
 #endif
 
-	GtkWidget *stopButton = gtk_button_new();
-	gtk_container_add(GTK_CONTAINER(stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
-	bwd->stopButton = stopButton;
-	gtk_box_pack_start(GTK_BOX(hbox), stopButton, FALSE, FALSE, 2);
-	gtk_widget_set_sensitive(stopButton, FALSE);
+	bwd->stopButton = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(bwd->stopButton),gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP,GTK_ICON_SIZE_DIALOG));
+	gtk_box_pack_start(GTK_BOX(hbox), bwd->stopButton, FALSE, FALSE, 2);
+	gtk_widget_set_sensitive(bwd->stopButton, FALSE);
 
 	GtkWidget *nthreadsW = NULL;
 	if (xmi_omp_get_max_threads() > 1) {
@@ -2574,8 +2571,8 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 	g_signal_connect(G_OBJECT(batch_window), "delete-event", G_CALLBACK(batch_window_delete_event), (gpointer) bwd);
 	g_signal_connect(G_OBJECT(batch_window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(G_OBJECT(exitButton), "clicked", G_CALLBACK(batch_window_exit), (gpointer) bwd);
-	g_signal_connect(G_OBJECT(playButton), "clicked", G_CALLBACK(play_button_clicked), (gpointer) bwd);
-	g_signal_connect(G_OBJECT(stopButton), "clicked", G_CALLBACK(stop_button_clicked), (gpointer) bwd);
+	g_signal_connect(G_OBJECT(bwd->playButton), "clicked", G_CALLBACK(play_button_clicked), (gpointer) bwd);
+	g_signal_connect(G_OBJECT(bwd->stopButton), "clicked", G_CALLBACK(stop_button_clicked), (gpointer) bwd);
 	if (bwd->pauseButton)
 		g_signal_connect(G_OBJECT(bwd->pauseButton), "clicked", G_CALLBACK(pause_button_clicked), (gpointer) bwd);
 	bwd->paused = FALSE;
@@ -3948,7 +3945,7 @@ static void xrf_element_changed_cb(GtkComboBox *xrf_element_comboW, struct archi
 	}
 	else {
 		gtk_widget_set_sensitive(apd->xrf_line_comboW, TRUE);
-		int i = gtk_combo_box_get_active(GTK_COMBO_BOX(xrf_element_comboW))-1;
+		i = gtk_combo_box_get_active(GTK_COMBO_BOX(xrf_element_comboW))-1;
 		int j;
 		for (j = 0 ; j < apd->fd[i].n_lines ; j++) {
 			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(apd->xrf_line_comboW), apd->fd[i].line_types[j]);

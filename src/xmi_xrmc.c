@@ -327,7 +327,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 		//fprintf(stdout, "start_axis: %g %g %g\n", start_axis[0], start_axis[1], start_axis[2]);
 		//fprintf(stdout, "end_axis: %g %g %g\n", end_axis[0], end_axis[1], end_axis[2]);
 
-		double rot_angle = acos(start_axis[0]*end_axis[0]+start_axis[1]*end_axis[1]+start_axis[2]*end_axis[2])*180.0/M_PI;
+		rot_angle = acos(start_axis[0]*end_axis[0]+start_axis[1]*end_axis[1]+start_axis[2]*end_axis[2])*180.0/M_PI;
 
 		if (rot_angle > 179.999999) {
 			//mirror

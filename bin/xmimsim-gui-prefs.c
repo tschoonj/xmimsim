@@ -207,7 +207,6 @@ static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
 		//delete the file
 		char *file=NULL;
 		xmi_get_solid_angle_file(&file, 0);
-		g_fprintf(stdout, "solid_angle_file: %s\n",file);
 		g_unlink(file);
 		free(file);
 	}
@@ -254,7 +253,6 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	return;
 }
-#endif
 
 static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
@@ -305,6 +303,7 @@ static void url_selection_changed_cb (GtkTreeSelection *selection, gpointer data
 
 	return;
 }
+#endif
 
 
 static void preferences_cancel_button_clicked(GtkWidget *button, gpointer data) {
@@ -521,7 +520,7 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 
 	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
-		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+		g_warning("%s does not exist or could not be opened\n", ini_file);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
@@ -549,7 +548,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 
 	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
-		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+		g_warning("%s does not exist or could not be opened\n", ini_file);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
@@ -558,7 +557,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 	//see if the layer exists in the file
 	if(g_key_file_has_group(keyfile, layer_name) == FALSE) {
 		//not found
-		g_fprintf(stderr, "Layer %s does not exist\n", layer_name);
+		g_warning("Layer %s does not exist\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
@@ -571,7 +570,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 	GError *error = NULL;
 	gint *Z = g_key_file_get_integer_list(keyfile, layer_name, "Z", &Zlen, &error);
 	if (Z == NULL || Zlen == 0 || error != NULL) {
-		g_fprintf(stderr, "Error reading Z in layer %s\n", layer_name);
+		g_warning("Error reading Z in layer %s\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
@@ -579,27 +578,27 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 	gsize weightlen;
 	gdouble *weight = g_key_file_get_double_list(keyfile, layer_name, "weight", &weightlen, &error);
 	if (weight == NULL || weightlen == 0 || error != NULL) {
-		g_fprintf(stderr, "Error reading weight in layer %s\n", layer_name);
+		g_warning("Error reading weight in layer %s\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
 	}
 	if (Zlen != weightlen) {
-		g_fprintf(stderr, "Inconsistent lengths of Z and weight for layer %s\n", layer_name);
+		g_warning("Inconsistent lengths of Z and weight for layer %s\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
 	}
 	gdouble density = g_key_file_get_double(keyfile, layer_name, "density", &error);
 	if (error != NULL) {
-		g_fprintf(stderr, "Could not read density of layer %s\n", layer_name);
+		g_warning("Could not read density of layer %s\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
 	}
 	gdouble thickness = g_key_file_get_double(keyfile, layer_name, "thickness", &error);
 	if (error != NULL) {
-		g_fprintf(stderr, "Could not read thickness of layer %s\n", layer_name);
+		g_warning("Could not read thickness of layer %s\n", layer_name);
 		g_free(ini_file);
 		g_key_file_free(keyfile);
 		return NULL;
@@ -633,11 +632,11 @@ int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name) {
 
 	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
-		g_fprintf(stderr, "%s does not exist or could not be opened\n", ini_file);
+		g_warning("%s does not exist or could not be opened\n", ini_file);
 			return 0;
 	}
 	if (g_key_file_remove_group(keyfile, layer_name, NULL) == FALSE) {
-		g_fprintf(stderr, "Layer %s does not exist in %s\n", layer_name, ini_file);
+		g_warning("Layer %s does not exist in %s\n", layer_name, ini_file);
 			return 0;
 	}
 
@@ -658,7 +657,7 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *lay
 
 	if (!g_key_file_load_from_file(keyfile, ini_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		//file does not exist!
-		g_fprintf(stderr, "%s does not exist or could not be opened\nTrying to create it...\n", ini_file);
+		g_warning("%s does not exist or could not be opened\nTrying to create it...\n", ini_file);
 		g_key_file_set_comment(keyfile, NULL, NULL, "Modify this file at your own risk!",NULL);
 		//save file
 		//create dir first if necessary
@@ -701,15 +700,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 
 	//extract required information from keyfile
 	GError *error = NULL;
-	gchar *prefs_file_contents, *unit, **nuclides, *nuclide;
-	int i, nNuclides;
-	gboolean update_file, matched;
+	gchar *prefs_file_contents;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Check for updates not found in preferences file\n");
+				g_warning("Check for updates not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Check for updates", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -723,7 +720,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "M lines", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"M lines not found in preferences file\n");
+				g_warning("M lines not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","M lines", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -737,7 +734,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Radiative cascade", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Radiative cascade not found in preferences file\n");
+				g_warning("Radiative cascade not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -751,7 +748,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Non-radiative cascade", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Non-radiative cascade not found in preferences file\n");
+				g_warning("Non-radiative cascade not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -765,7 +762,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Variance reduction", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Variance reduction not found in preferences file\n");
+				g_warning("Variance reduction not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -779,7 +776,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Pile-up", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Pile-up not found in preferences file\n");
+				g_warning("Pile-up not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Pile-up", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -793,8 +790,8 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->ss = g_key_file_get_string_list(keyfile, "Preferences", "Download locations", NULL, &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Download locations not found in preferences file\n");
-				fprintf(stdout,"Number of locations: %i\n",g_strv_length((gchar **) xmimsim_download_locations));
+				g_warning("Download locations not found in preferences file\n");
+				g_debug("Number of locations: %i\n",g_strv_length((gchar **) xmimsim_download_locations));
 				g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -808,7 +805,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Poisson noise", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Poisson noise not found in preferences file\n");
+				g_warning("Poisson noise not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -822,7 +819,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Escape peaks", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Escape peaks not found in preferences file\n");
+				g_warning("Escape peaks not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -836,7 +833,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Advanced Compton", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Advanced Compton not found in preferences file\n");
+				g_warning("Advanced Compton not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -850,7 +847,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Default seeds", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Default seeds not found in preferences file\n");
+				g_warning("Default seeds not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -865,7 +862,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"OpenCL not found in preferences file\n");
+				g_warning("OpenCL not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -881,7 +878,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Custom detector response", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Custom detector response not found in preferences file\n");
+				g_warning("Custom detector response not found in preferences file\n");
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -902,7 +899,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Notifications not found in preferences file\n");
+				g_warning("Notifications not found in preferences file\n");
 				g_key_file_set_boolean(keyfile, "Preferences","Notifications", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -917,7 +914,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			prefs->i = g_key_file_get_integer(keyfile, "Sources last used", "Page", &error);
 			if (error != NULL) {
 				//error
-				fprintf(stderr,"Sources last used Page not found in preferences file\n");
+				g_warning("Sources last used Page not found in preferences file\n");
 				g_key_file_set_integer(keyfile, "Sources last used", "Page", 0);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -927,12 +924,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->i = 0;
 			}
 			else if (prefs->i < 0 || prefs->i > 1) {
-				fprintf(stderr, "Invalid value detected for Sources last used Page in preferences file\n");
+				g_warning( "Invalid value detected for Sources last used Page in preferences file\n");
 				return 0;
 			}
 			break;
 		default:
-			fprintf(stderr,"Unknown preference requested in xmimsim_gui_get_prefs\n");
+			g_warning("Unknown preference requested in xmimsim_gui_get_prefs\n");
 			return 0;
 	}
 
@@ -959,9 +956,6 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
 			return 0;
 	}
-
-	gchar **nuclides;
-	int nNuclides;
 
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
@@ -1017,7 +1011,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_integer(keyfile, "Sources last used", "Page", prefs.i);
 			break;
 		default:
-			fprintf(stderr,"Unknown preference requested in xmimsim_gui_set_prefs\n");
+			g_warning("Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;
 
 	}
@@ -1054,7 +1048,6 @@ static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *
 			gtk_tree_model_get(model, &iter, 0, &layer_name, -1);
 			gtk_tree_path_free(path);
 			gtk_tree_row_reference_free(refs[i]);
-			//g_fprintf(stdout, "selected layer: %s\n", layer_name);
 
 			if (xmimsim_gui_remove_user_defined_layer(layer_name) == 1)
 				gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
