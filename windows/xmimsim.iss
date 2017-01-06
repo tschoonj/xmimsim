@@ -21,9 +21,9 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.1-2016-11-04-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.4-2017-01-06-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
-  #define MY_HOME "C:\msys64\home\schoon\"
+  #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
   #define MyAppName "XMI-MSIM 32-bit"
   #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
@@ -113,6 +113,7 @@ Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Compo
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\share\plplot5.11.1\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 #else
 Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -129,6 +130,7 @@ Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 #endif
 
 Source: "{#builddir}\bin\.libs\xmimsim.exe" ; DestDir: "{app}\Bin" ; Components: core
@@ -144,7 +146,9 @@ Source: "{#builddir}\bin\.libs\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components
 Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
 
+#if Len(GetEnv("DO_NOT_USE_DATA")) == 0
 Source: "{#MY_HOME}\github\xmimsim\build\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
+#endif
 
 Source: "{#MY_HOME}\github\xmimsim\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\xml\xmso2xmsi.xml" ; DestDir: "{app}\Share" ; Components: core
@@ -160,7 +164,9 @@ Source: "{#MY_HOME}\github\xmimsim\src\openclfeatures.h" ; DestDir: "{app}\Share
 Source: "{#MY_HOME}\github\xmimsim\src\sse.h" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\src\threefry.h" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#MY_HOME}\github\xmimsim\src\xmi_kernels.cl" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
+Source: "{#builddir}\bin\.libs\xmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\icons\Logo_xmi_msim.png" ; DestDir: "{app}\Share" ; Components: core
 
@@ -178,7 +184,9 @@ Source: "{#MY_HOME}\github\xmimsim\examples\In.xmso" ; DestDir: "{app}\Examples"
 Source: "{#builddir}\windows\xmi*.h" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\xmimsim*mod" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\.libs\libxmimsim.dll.a" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
+Source: "{#builddir}\bin\.libs\libxmimsim-gui.dll.a" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 Source: "{#builddir}\windows\libxmimsim-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
+Source: "{#builddir}\windows\libxmimsim-gui-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 
 [Icons]
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"
@@ -219,7 +227,8 @@ Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2htm" ; ValueType: string ; ValueName
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmsa2xmso" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmsa2xmso.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\icon" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\Logo_xmi_msim.png"
 Root: HKLM; Subkey: "Software\XMI-MSIM\openclcode" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
-Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
+Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\OpenCL"
+Root: HKLM; Subkey: "Software\XMI-MSIM\sources" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\Sources"
 
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Bin\xmimsim-gui.exe" ; Flags: uninsdeletekey
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe" ; ValueType: string ; ValueName: "Path" ; ValueData: "{app}\Bin;{app}\Lib;{app}\GTK"

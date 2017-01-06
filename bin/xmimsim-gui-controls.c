@@ -782,6 +782,10 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	spawn_rv = g_spawn_async_with_pipes(wd, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
+	// print fds for debugging purposes
+	fprintf(stdout, "out_fh: %d\n", out_fh);
+	fprintf(stdout, "err_fh: %d\n", err_fh);
+
 
 	if (spawn_rv == FALSE) {
 		//couldn't spawn
@@ -810,6 +814,8 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	cd->window = window;
 
 #ifdef G_OS_WIN32
+	fprintf(stdout, "out_fh before channel: %d\n", out_fh);
+	fprintf(stdout, "err_fh before channel: %d\n", err_fh);
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
 	xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
 #else
