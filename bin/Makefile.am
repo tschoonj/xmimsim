@@ -75,7 +75,7 @@ libxmimsim_gui_la_CFLAGS = \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
-	@LDFLAGS_XMIMSIM_LIB@ \
+	@LDFLAGS_XMIMSIM_GUI_LIB@ \
 	$(EXTRA_LDFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LIBADD = \
@@ -316,7 +316,7 @@ endif
 
 
 if OS_WINDOWS
-xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 nodist_xmimsim_gui_SOURCES += xmimsim-gui-icons.h
@@ -517,7 +517,7 @@ xmimsim-gui-marshal.c: $(marshal_input)
 
 
 clean-local:
-	rm -rf xmimsim-gui-icons.h $(nodist_xmimsim_gui_SOURCES)
+	rm -rf xmimsim-gui-icons.h $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
 
 EXTRA_DIST = xmimsim-gui-marshal.list
 
