@@ -24,12 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include <math.h>
-#include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_private.h"
 #include "xmi_ebel.h"
 #include <glib/gstdio.h>
-#include <string.h>
 #include <search.h>
 
 
@@ -419,7 +417,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 								gtk_dialog_run(GTK_DIALOG(dialog));
 								gtk_widget_destroy(dialog);
-								free(energy_disc);
+								g_free(energy_disc);
 								energy_disc = NULL;
 								return;
 							}
@@ -435,7 +433,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct kind_and_window *
 								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 								gtk_dialog_run(GTK_DIALOG(dialog));
 								gtk_widget_destroy(dialog);
-								free(energy_cont);
+								g_free(energy_cont);
 								energy_cont= NULL;
 								return;
 							}
@@ -551,11 +549,11 @@ static void energy_ok_cancel_button_clicked_cb(GtkWidget *widget, gpointer data)
 
 
 		if (discOrCont == DISCRETE) {
-			free(energy_disc);
+			g_free(energy_disc);
 			energy_disc = NULL;
 		}
 		else if (discOrCont == CONTINUOUS) {
-			free(energy_cont);
+			g_free(energy_cont);
 			energy_cont = NULL;
 		}
 	}
@@ -851,9 +849,9 @@ void energy_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
 
 	if (kind == DISCRETE)
-		energy_disc = (struct xmi_energy_discrete *) malloc(sizeof(struct xmi_energy_discrete));
+		energy_disc = (struct xmi_energy_discrete *) g_malloc(sizeof(struct xmi_energy_discrete));
 	else
-		energy_cont = (struct xmi_energy_continuous *) malloc(sizeof(struct xmi_energy_continuous));
+		energy_cont = (struct xmi_energy_continuous *) g_malloc(sizeof(struct xmi_energy_continuous));
 
 
 	addOrEdit = ENERGY_ADD;
@@ -1165,7 +1163,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
 	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
 
-	eb = (struct energyButtons *) malloc(sizeof(struct energyButtons));
+	eb = (struct energyButtons *) g_malloc(sizeof(struct energyButtons));
 
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
@@ -1200,7 +1198,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	importButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
 	xmi_msim_gui_utils_update_button_text(importButton, "Import");
 
-	struct kind_and_window *k_a_w = (struct kind_and_window *) malloc(sizeof(struct kind_and_window));
+	struct kind_and_window *k_a_w = (struct kind_and_window *) g_malloc(sizeof(struct kind_and_window));
 	k_a_w->kind = kind;
 	k_a_w->main_window = main_window;
 	g_signal_connect(G_OBJECT(importButton), "clicked", G_CALLBACK(import_button_clicked_cb), (gpointer) k_a_w);
@@ -1238,7 +1236,7 @@ struct energiesWidget *initialize_single_energies(void *energies, int n_energies
 	g_signal_connect(G_OBJECT(store), "row-inserted", G_CALLBACK(row_inserted_cb), (gpointer) eb);
 	g_signal_connect(G_OBJECT(store), "row-deleted", G_CALLBACK(row_deleted_cb), (gpointer) eb);
 
-	rv = (struct energiesWidget *) malloc(sizeof(struct energiesWidget));
+	rv = (struct energiesWidget *) g_malloc(sizeof(struct energiesWidget));
 	rv->store=store;
 	rv->widget=mainbox;
 
@@ -1267,7 +1265,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
-				free(energy_disc);
+				g_free(energy_disc);
 				energy_disc = NULL;
 				return;
 			}
@@ -1280,7 +1278,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy interval: the energy already exists in the list of intervals.");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
-				free(energy_cont);
+				g_free(energy_cont);
 				energy_cont = NULL;
 				return;
 			}
@@ -1296,7 +1294,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
-				free(energy_disc);
+				g_free(energy_disc);
 				energy_disc = NULL;
 				return;
 			}
@@ -1309,7 +1307,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy interval: the energy already exists in the list of intervals.");
 				gtk_dialog_run(GTK_DIALOG(dialog));
 				gtk_widget_destroy(dialog);
-				free(energy_cont);
+				g_free(energy_cont);
 				energy_cont = NULL;
 				return;
 			}
@@ -1357,7 +1355,7 @@ void energy_window_hide_cb(GtkWidget *widget, GtkWidget *window) {
 
 void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 	struct energyDialog *ew = (struct energyDialog *) data;
-	char buffer[512];
+	char *buffer;
 
 
 
@@ -1408,19 +1406,19 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		//set values
 		if (discOrCont == DISCRETE) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%g",energy_disc->energy);
+			buffer = g_strdup_printf("%g",energy_disc->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->horizontal_intensity);
+			buffer = g_strdup_printf("%g",energy_disc->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->vertical_intensity);
+			buffer = g_strdup_printf("%g",energy_disc->vertical_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->ver_intensityEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->sigma_x);
+			buffer = g_strdup_printf("%g",energy_disc->sigma_x);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->sigma_y);
+			buffer = g_strdup_printf("%g",energy_disc->sigma_y);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_yEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->sigma_xp);
+			buffer = g_strdup_printf("%g",energy_disc->sigma_xp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),buffer);
-			sprintf(buffer,"%g",energy_disc->sigma_yp);
+			buffer = g_strdup_printf("%g",energy_disc->sigma_yp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(ew->distribution_typeCombo), energy_disc->distribution_type);
 			if (energy_disc->distribution_type == XMI_DISCRETE_MONOCHROMATIC) {
@@ -1429,14 +1427,14 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 				//gtk_widget_set_sensitive(ew->scale_parameterEntry, FALSE);
 			}
 			else if (energy_disc->distribution_type == XMI_DISCRETE_GAUSSIAN){
-				sprintf(buffer,"%g",energy_disc->scale_parameter);
+				buffer = g_strdup_printf("%g",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
 				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Standard deviation (keV)");
 				gtk_widget_show_all(ew->scale_parameterBox);
 			}
 			else if (energy_disc->distribution_type == XMI_DISCRETE_LORENTZIAN){
-				sprintf(buffer,"%g",energy_disc->scale_parameter);
+				buffer = g_strdup_printf("%g",energy_disc->scale_parameter);
 				gtk_entry_set_text(GTK_ENTRY(ew->scale_parameterEntry),buffer);
 				gtk_widget_set_sensitive(ew->scale_parameterEntry, TRUE);
 				gtk_label_set_text(GTK_LABEL(ew->scale_parameterLabel),"Scale parameter (keV)");
@@ -1445,19 +1443,19 @@ void energy_window_show_cb(GtkWidget *widget, gpointer data) {
 		}
 		else if (discOrCont == CONTINUOUS) {
 			gtk_widget_set_sensitive(ew->okButton,TRUE);
-			sprintf(buffer,"%g",energy_cont->energy);
+			buffer = g_strdup_printf("%g",energy_cont->energy);
 			gtk_entry_set_text(GTK_ENTRY(ew->energyEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->horizontal_intensity);
+			buffer = g_strdup_printf("%g",energy_cont->horizontal_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->hor_intensityEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->vertical_intensity);
+			buffer = g_strdup_printf("%g",energy_cont->vertical_intensity);
 			gtk_entry_set_text(GTK_ENTRY(ew->ver_intensityEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->sigma_x);
+			buffer = g_strdup_printf("%g",energy_cont->sigma_x);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->sigma_y);
+			buffer = g_strdup_printf("%g",energy_cont->sigma_y);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_yEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->sigma_xp);
+			buffer = g_strdup_printf("%g",energy_cont->sigma_xp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_xpEntry),buffer);
-			sprintf(buffer,"%g",energy_cont->sigma_yp);
+			buffer = g_strdup_printf("%g",energy_cont->sigma_yp);
 			gtk_entry_set_text(GTK_ENTRY(ew->sigma_ypEntry),buffer);
 		}
 	}
@@ -1518,7 +1516,7 @@ static struct energyDialog *initialize_energy_widget(GtkWidget *main_window,int 
 	GtkWidget *label;
 	GtkWidget *separator;
 
-	rv= (struct energyDialog *) malloc(sizeof(struct energyDialog));
+	rv= (struct energyDialog *) g_malloc(sizeof(struct energyDialog));
 
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1774,7 +1772,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		if (nlines == nxe)
 			break;
 		if (nxe == 0) {
-			xe = (struct xmi_energy_discrete *) realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
+			xe = (struct xmi_energy_discrete *) g_realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
 			xe[0] = temp;
 		}
 		else {
@@ -1786,7 +1784,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 			if((find_res = (struct xmi_energy_discrete *) lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
 #endif
 				{
-				xe = (struct xmi_energy_discrete *) realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
+				xe = (struct xmi_energy_discrete *) g_realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
 				xe[nxe-1] = temp;
 			}
 			else  {
@@ -1893,7 +1891,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 			break;
 
 		if (nxe == 0) {
-			xe = (struct xmi_energy_continuous *) realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
+			xe = (struct xmi_energy_continuous *) g_realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
 			xe[0] = temp;
 		}
 		else {
@@ -1904,7 +1902,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL)
 #endif
 				{
-				xe = (struct xmi_energy_continuous *) realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
+				xe = (struct xmi_energy_continuous *) g_realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
 				xe[nxe-1] = temp;
 			}
 			else  {

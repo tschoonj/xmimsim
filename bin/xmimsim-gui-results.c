@@ -22,8 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-fonts.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include <xraylib.h>
 #include <cairo-pdf.h>
@@ -1243,7 +1241,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	GtkWidget *button;
 	GtkWidget *spectrum_hbox;
 	struct spectra_data *sd;
-	char buffer[512];
+	char *buffer;
 	double *temp_channels, *temp_energies;
 	GtkTreeIter iter1, iter2, iter3;
 	char *symbol;
@@ -1308,7 +1306,7 @@ int plot_spectra_from_file(char *xmsofile) {
 #endif
 
 	//calculate maximum x and y value
-	temp_channels = (double *) malloc(sizeof(double) * results->input->detector->nchannels);
+	temp_channels = (double *) g_malloc(sizeof(double) * results->input->detector->nchannels);
 	for (i=0 ; i < results->input->detector->nchannels ; i++) {
 		temp_channels[i] = results->channels_conv[results->ninteractions][i];
 	}
@@ -1317,7 +1315,7 @@ int plot_spectra_from_file(char *xmsofile) {
 		temp_channels[i] = results->channels_unconv[results->ninteractions][i];
 	}
 	plot_ymax_unconv = xmi_maxval_double(temp_channels,results->input->detector->nchannels)*1.2;
-	free(temp_channels);
+	g_free(temp_channels);
 #ifdef HAVE_CXX
 	if (current_scale == true) {
 		plot_ymin = 1.0;
@@ -1337,7 +1335,7 @@ int plot_spectra_from_file(char *xmsofile) {
 	plot_xmax = results->input->detector->nchannels * results->input->detector->gain + results->input->detector->zero;
 	double plot_ymax = (current_conv == XMI_PLOT_CONVOLUTED) ? plot_ymax_conv : plot_ymax_unconv;
 
-	temp_energies = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+	temp_energies = (double *) g_malloc(sizeof(double)*results->input->detector->nchannels);
 	for (i = 0 ; i < results->input->detector->nchannels ; i++) {
 		temp_energies[i] = results->input->detector->gain * i + results->input->detector->zero;
 	}
@@ -1426,7 +1424,7 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_box_pack_end(GTK_BOX(spectrum_hbox),button,FALSE,FALSE,1);
 		gtk_box_pack_start(GTK_BOX(spectra_button_box),spectrum_hbox,FALSE,FALSE,1);
 
-		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+		temp_channels = (double *) g_malloc(sizeof(double)*results->input->detector->nchannels);
 		for (j = 0 ; j < results->input->detector->nchannels ; j++)
 			temp_channels[j]=results->channels_conv[i][j];
 
@@ -1452,7 +1450,7 @@ int plot_spectra_from_file(char *xmsofile) {
 #endif
 
 
-		temp_channels = (double *) malloc(sizeof(double)*results->input->detector->nchannels);
+		temp_channels = (double *) g_malloc(sizeof(double)*results->input->detector->nchannels);
 		for (j = 0 ; j < results->input->detector->nchannels ; j++)
 			temp_channels[j]=results->channels_unconv[i][j];
 
@@ -1476,7 +1474,7 @@ int plot_spectra_from_file(char *xmsofile) {
 		gtk_plot_data_set_y(dataset_unconv, temp_channels);
 #endif
 
-		sd = (struct spectra_data *) malloc(sizeof(struct spectra_data));
+		sd = (struct spectra_data *) g_malloc(sizeof(struct spectra_data));
 		sds[i] = sd;
 		sd->checkButton = checkButton;
 		sd->button = button;
@@ -1489,64 +1487,64 @@ int plot_spectra_from_file(char *xmsofile) {
 			case 0:
 				color_plot = &blue_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",0);
+					buffer = g_strdup_printf("%i interactions",0);
 				}
 				else {
-					sprintf(buffer,"%i interaction",1);
+					buffer = g_strdup_printf("%i interaction",1);
 				}
 				break;
 			case 1:
 				color_plot = &red_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interaction",1);
+					buffer = g_strdup_printf("%i interaction",1);
 				}
 				else {
-					sprintf(buffer,"%i interactions",2);
+					buffer = g_strdup_printf("%i interactions",2);
 				}
 				break;
 			case 2:
 				color_plot = &green_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interaction",2);
+					buffer = g_strdup_printf("%i interaction",2);
 				}
 				else {
-					sprintf(buffer,"%i interactions",3);
+					buffer = g_strdup_printf("%i interactions",3);
 				}
 				break;
 			case 3:
 				color_plot = &purple_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",3);
+					buffer = g_strdup_printf("%i interactions",3);
 				}
 				else {
-					sprintf(buffer,"%i interactions",4);
+					buffer = g_strdup_printf("%i interactions",4);
 				}
 				break;
 			case 4:
 				color_plot = &yellow_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",4);
+					buffer = g_strdup_printf("%i interactions",4);
 				}
 				else {
-					sprintf(buffer,"%i interactions",5);
+					buffer = g_strdup_printf("%i interactions",5);
 				}
 				break;
 			case 5:
 				color_plot = &pink_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",5);
+					buffer = g_strdup_printf("%i interactions",5);
 				}
 				else {
-					sprintf(buffer,"%i interactions",6);
+					buffer = g_strdup_printf("%i interactions",6);
 				}
 				break;
 			default:
 				color_plot = &black_plot;
 				if (results->use_zero_interactions == 1) {
-					sprintf(buffer,"%i interactions",i-(results->use_zero_interactions ? 0 : 1));
+					buffer = g_strdup_printf("%i interactions",i-(results->use_zero_interactions ? 0 : 1));
 				}
 				else {
-					sprintf(buffer,"%i interactions",i+1-(results->use_zero_interactions ? 0 : 1));
+					buffer = g_strdup_printf("%i interactions",i+1-(results->use_zero_interactions ? 0 : 1));
 				}
 				break;
 		}

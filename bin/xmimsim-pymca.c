@@ -26,9 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include "xmi_pymca.h"
 #include "xmi_data_structs.h"
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include "xmi_random.h"
 #include "xmi_detector.h"
 #include <math.h>

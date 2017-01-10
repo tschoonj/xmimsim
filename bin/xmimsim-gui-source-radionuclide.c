@@ -21,8 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-utils.h"
 #include "xmi_aux.h"
 #include <xraylib.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include <stdio.h>
 

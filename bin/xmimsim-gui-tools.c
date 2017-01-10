@@ -16,16 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include "xmimsim-gui.h"
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
-#include <string.h>
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include "xmi_xrmc.h"
 #include "xmi_main.h"
-#include <stdlib.h>
 
 struct xmi_tools {
 	GtkWidget *window;

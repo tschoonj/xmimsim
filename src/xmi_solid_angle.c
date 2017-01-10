@@ -20,9 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_main.h"
 #include <glib.h>
-#include <string.h>
 #include <math.h>
-#include <stdlib.h>
+#include <string.h>
 #include <glib/gstdio.h>
 #include <gmodule.h>
 
@@ -42,7 +41,6 @@ struct xmi_solid_angles_data{
   #include <hdf5.h>
   #include "xmi_aux.h"
   #include "xmi_xml.h"
-  #include <sys/stat.h>
   #include <xraylib.h>
   #ifdef G_OS_WIN32
   	#include "windows.h"
@@ -121,7 +119,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			goto fallback;
 		}
 		if (xmi_solid_angle_calculation_cl != NULL) {
-			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, strdup(input_string), xmo);
+			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, g_strdup(input_string), xmo);
 			if (rv == 0) {
 				fprintf(stderr,"OpenCL calculation failed: fallback to Fortran implementation\n");
 				goto fallback;
@@ -139,7 +137,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 	}
 fallback:
 #endif
-	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, strdup(input_string), xmo);
+	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, g_strdup(input_string), xmo);
 }
 
 
@@ -196,7 +194,7 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
 int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *solid_angle) {
 	hid_t file_id;
-	char buffer[1024];
+	char *buffer;
 	hid_t group_id;
 	hid_t dspace_id;
 	hid_t dset_id;
@@ -219,7 +217,7 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	g_get_current_time(&time);
         timestring = g_time_val_to_iso8601(&time);
 
-	sprintf(buffer,"%s %s",g_get_user_name(),timestring);
+	buffer = g_strdup_printf("%s %s",g_get_user_name(),timestring);
 
 	g_free(timestring);
 
@@ -228,6 +226,7 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
 	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, gcpl, H5P_DEFAULT);
 	H5Pclose (gcpl);
+	g_free(buffer);
 
 	//add solid_angles dataset
 	dims[1] = solid_angle->grid_dims_r_n;
@@ -323,7 +322,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	xmi_input_string = (char *) g_malloc(sizeof(char)*dims_string[0]);
 	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT,xmi_input_string );
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
@@ -336,7 +335,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		//match
 		//read in this group completely
 		xmi_free_input(temp_input);
-		*(data->solid_angles) = (struct xmi_solid_angle *) malloc(sizeof(struct xmi_solid_angle));
+		*(data->solid_angles) = (struct xmi_solid_angle *) g_malloc(sizeof(struct xmi_solid_angle));
 		solid_angles = *(data->solid_angles);
 		solid_angles->xmi_input_string  = xmi_input_string;
 
@@ -353,7 +352,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		H5Sget_simple_extent_dims(dspace_id, dims, NULL);
 
 		//allocate memory
-		solid_angles->solid_angles = (double *) malloc(sizeof(double)*dims[0]*dims[1]);
+		solid_angles->solid_angles = (double *) g_malloc(sizeof(double)*dims[0]*dims[1]);
 		solid_angles->grid_dims_r_n = dims[1];
 		solid_angles->grid_dims_theta_n = dims[0];
 
@@ -368,14 +367,14 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 
 		dset_id = H5Dopen(group_id, "grid_dims_r_vals", H5P_DEFAULT);
 		dspace_id = H5Dget_space(dset_id);
-		solid_angles->grid_dims_r_vals = (double *) malloc(sizeof(double)*dims[1]);
+		solid_angles->grid_dims_r_vals = (double *) g_malloc(sizeof(double)*dims[1]);
 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_r_vals );
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dset_id = H5Dopen(group_id, "grid_dims_theta_vals", H5P_DEFAULT);
 		dspace_id = H5Dget_space(dset_id);
-		solid_angles->grid_dims_theta_vals = (double *) malloc(sizeof(double)*dims[0]);
+		solid_angles->grid_dims_theta_vals = (double *) g_malloc(sizeof(double)*dims[0]);
 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,solid_angles->grid_dims_theta_vals );
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
@@ -388,7 +387,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
-		free(xmi_input_string);
+		g_free(xmi_input_string);
 		if (data->options.extra_verbose)
 			fprintf(stdout,"No match in solid angle grid\n");
 		return 0;
@@ -420,12 +419,12 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	//new approach: compare extremes of the layer system
 	xmi_normalize_vector_double(A->geometry->n_sample_orientation, 3);
 	xmi_normalize_vector_double(B->geometry->n_sample_orientation, 3);
-	thickness_along_Z_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
-	Z_coord_begin_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
-	Z_coord_end_a = (double *) malloc(sizeof(double) * A->composition->n_layers);
-	thickness_along_Z_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
-	Z_coord_begin_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
-	Z_coord_end_b = (double *) malloc(sizeof(double) * B->composition->n_layers);
+	thickness_along_Z_a = (double *) g_malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_begin_a = (double *) g_malloc(sizeof(double) * A->composition->n_layers);
+	Z_coord_end_a = (double *) g_malloc(sizeof(double) * A->composition->n_layers);
+	thickness_along_Z_b = (double *) g_malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_begin_b = (double *) g_malloc(sizeof(double) * B->composition->n_layers);
+	Z_coord_end_b = (double *) g_malloc(sizeof(double) * B->composition->n_layers);
 
 
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
@@ -487,7 +486,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	//S1
 	//low energy limit
-	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	mu_a = (double *) g_malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
 	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
 		energy = MIN(A->excitation->continuous[0].energy, A->excitation->discrete[0].energy);
@@ -523,8 +522,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	//S2
 	//high energy limit
-	free(mu_a);
-	mu_a = (double *) malloc(sizeof(double)*A->composition->n_layers);
+	g_free(mu_a);
+	mu_a = (double *) g_malloc(sizeof(double)*A->composition->n_layers);
 	sum = 0.0;
 	if (A->excitation->n_continuous > 1 && A->excitation->n_discrete > 0) {
 		energy = MAX(A->excitation->continuous[A->excitation->n_continuous-1].energy, A->excitation->discrete[A->excitation->n_discrete-1].energy);
@@ -557,12 +556,12 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	S2_a = sum + myln/(mu_a[m]*A->composition->layers[m].density) + Z_coord_begin_a[0];
 
-	free(mu_a);
+	g_free(mu_a);
 
 
 	//S1
 	//low energy limit
-	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	mu_b = (double *) g_malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
 	if (B->excitation->n_continuous > 0 && B->excitation->n_discrete > 0) {
 		energy = MIN(B->excitation->continuous[0].energy, B->excitation->discrete[0].energy);
@@ -607,8 +606,8 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	//S2
 	//high energy limit
-	free(mu_b);
-	mu_b = (double *) malloc(sizeof(double)*B->composition->n_layers);
+	g_free(mu_b);
+	mu_b = (double *) g_malloc(sizeof(double)*B->composition->n_layers);
 	sum = 0.0;
 	if (B->excitation->n_continuous > 1 && B->excitation->n_discrete > 0) {
 		energy = MAX(B->excitation->continuous[B->excitation->n_continuous-1].energy, B->excitation->discrete[B->excitation->n_discrete-1].energy);
@@ -645,7 +644,7 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 
 	S2_b = sum + myln/(mu_b[m]*B->composition->layers[m].density) + Z_coord_begin_b[0];
 
-	free(mu_b);
+	g_free(mu_b);
 
 #if DEBUG == 1
 	fprintf(stdout, "S2_b: %lg\n", S2_b);
@@ -658,12 +657,12 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	fprintf(stderr, "Z_coord_begin_a: %lg\n", Z_coord_begin_a[0]);
 #endif
 
-	free(thickness_along_Z_a);
-	free(thickness_along_Z_b);
-	free(Z_coord_begin_a);
-	free(Z_coord_end_a);
-	free(Z_coord_begin_b);
-	free(Z_coord_end_b);
+	g_free(thickness_along_Z_a);
+	g_free(thickness_along_Z_b);
+	g_free(Z_coord_begin_a);
+	g_free(Z_coord_end_a);
+	g_free(Z_coord_begin_b);
+	g_free(Z_coord_end_b);
 
 	if (S2_a - S2_b < -0.0001 || S1_a - S1_b > 0.0001) {
 		return 0;
@@ -766,7 +765,7 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 
-	if (strcmp(kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+	if (g_strcmp0(kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
 		g_fprintf(stderr, "Solid angles file %s does not have the correct kind attribute\n", hdf5_file);
 		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", kind);
 		g_fprintf(stderr, "Aborting\n");
@@ -845,11 +844,11 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 
 void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
 	//this is potentially dangerous... some of this memory is allocated by fortran...
-	free(solid_angle->solid_angles);
-	free(solid_angle->grid_dims_r_vals);
-	free(solid_angle->grid_dims_theta_vals);
-	free(solid_angle->xmi_input_string);
-	free(solid_angle);
+	g_free(solid_angle->solid_angles);
+	g_free(solid_angle->grid_dims_r_vals);
+	g_free(solid_angle->grid_dims_theta_vals);
+	g_free(solid_angle->xmi_input_string);
+	g_free(solid_angle);
 }
 
 int xmi_get_solid_angle_file(char **filePtr, int create_file) {
@@ -878,11 +877,7 @@ int xmi_get_solid_angle_file(char **filePtr, int create_file) {
 #else
 		const gchar *data_dir = g_get_user_data_dir();
 #endif
-
-
-		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-solid-angles.h5")+1));
-		strcpy(file, data_dir);
-		strcat(file,G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-solid-angles.h5");
+		file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-solid-angles.h5", data_dir);
 		*filePtr = file;
 	}
 
@@ -985,7 +980,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	status = clGetPlatformIDs(0, NULL, &numPlatforms);
 	OPENCL_ERROR(clGetPlatformIDs)
 
-	platforms = (cl_platform_id *) malloc(sizeof(cl_platform_id)*numPlatforms);
+	platforms = (cl_platform_id *) g_malloc(sizeof(cl_platform_id)*numPlatforms);
 	status = clGetPlatformIDs(numPlatforms, platforms, NULL);
 	OPENCL_ERROR(clGetPlatformIDs)
 
@@ -1016,7 +1011,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 		return 0;
 	}
 
-	devices = (cl_device_id *) malloc(sizeof(cl_device_id)*numDevices);
+	devices = (cl_device_id *) g_malloc(sizeof(cl_device_id)*numDevices);
 	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
 	OPENCL_ERROR(clGetDeviceIDs)
 
@@ -1039,12 +1034,12 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 		status = clGetDeviceInfo(devices[i], CL_DEVICE_NAME, info_size, info, NULL);
 		OPENCL_ERROR(clGetDeviceInfo)
-		fprintf(stdout,"OpenCL device %i name %s\n", i, info);
+		if (xmo.verbose)
+			fprintf(stdout,"Using OpenCL device %i name %s\n", i, info);
 
 		size_t max_work_group_size_temp;
 		status = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size_temp, NULL);
 		OPENCL_ERROR(clGetDeviceInfo)
-		fprintf(stdout,"OpenCL device %i max_work_group_size %i\n", i, max_work_group_size_temp);
 		if (max_work_group_size_temp > max_work_group_size) {
 			device = devices[i];
 			max_work_group_size = max_work_group_size_temp;
@@ -1087,8 +1082,8 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	//	hits_per_single
 	//
 
-	float *grid_dims_r_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_r_n);
-	float *grid_dims_theta_vals_float = (float *) malloc(sizeof(float)*sa->grid_dims_theta_n);
+	float *grid_dims_r_vals_float = (float *) g_malloc(sizeof(float)*sa->grid_dims_r_n);
+	float *grid_dims_theta_vals_float = (float *) g_malloc(sizeof(float)*sa->grid_dims_theta_n);
 
 	for (i = 0 ; i < sa->grid_dims_r_n ; i++)
 		grid_dims_r_vals_float[i] = (float) sa->grid_dims_r_vals[i];
@@ -1096,7 +1091,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	for (i = 0 ; i < sa->grid_dims_theta_n ; i++)
 		grid_dims_theta_vals_float[i] = (float) sa->grid_dims_theta_vals[i];
 
-	float *solid_angles_float = (float *) malloc(sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n);
+	float *solid_angles_float = (float *) g_malloc(sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n);
 
 
 	//check device constant memory
@@ -1111,8 +1106,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 //#define DEBUG
 
-	cl_event writeEventA = 0, writeEventB = 0;
-	cl_event eventlist[2] = {writeEventA, writeEventB};
 #ifndef DEBUG
 	cl_mem grid_dims_r_vals_cl = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float)*sa->grid_dims_r_n, NULL, &status);
 	OPENCL_ERROR(clCreateBuffer)
@@ -1125,8 +1118,8 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	status = clEnqueueWriteBuffer(cmdQueue, grid_dims_theta_vals_cl, CL_TRUE, 0, sizeof(float)*sa->grid_dims_theta_n, grid_dims_theta_vals_float, 0, NULL, NULL);
 	OPENCL_ERROR(clEnqueueWriteBuffer)
 #else
-	float *input1 = (float *) malloc(sizeof(float));
-	float *input2 = (float *) malloc(sizeof(float));
+	float *input1 = (float *) g_malloc(sizeof(float));
+	float *input2 = (float *) g_malloc(sizeof(float));
 	input1[0] = sa->grid_dims_r_vals[199];
 	input2[0] = sa->grid_dims_theta_vals[199];
 
@@ -1160,83 +1153,70 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	opencl_code = g_strdup(XMI_OPENCL_CODE);
 #endif
 
-	gchar *kernel_code = NULL;
+	GString *kernel_code = g_string_sized_new(4096);
 	gchar *kernel_file;
 	gchar *source_code = NULL;
-	gsize file_length;
 
-	//kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);;
+	// the different headers are loaded separately as the OpenCL compiler cannot look for dirs with spaces...
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "openclfeatures.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (file_length+2));
-	strcpy(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "compilerfeatures.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
-	strcat(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "sse.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
-	strcat(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "array.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
-	strcat(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "threefry.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
-	strcat(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, &file_length, NULL) == FALSE) {
+	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
 		g_fprintf(stderr,"Could not open %s\n",kernel_file);
 		return 0;
 	}
-	kernel_code = g_realloc(kernel_code, sizeof(char) * (strlen(kernel_code)+file_length+2));
-	strcat(kernel_code, source_code);
-	strcat(kernel_code, "\n");
+	g_string_append(kernel_code, source_code);
 	g_free(source_code);
 	g_free(kernel_file);
 
 	g_free(opencl_code);
 
-	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code, NULL, &status);
+	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code->str, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
-	g_free(kernel_code);
+	g_string_free(kernel_code, TRUE);
 
 	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i", RANGE_DIVIDER);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
@@ -1251,7 +1231,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 		OPENCL_ERROR(clGetProgramBuildInfo)
 
 		// Allocate memory for the log
-		char *my_log = (char *) malloc(log_size+1);
+		char *my_log = (char *) g_malloc(log_size+1);
 
 	        // Get the log
 		status = clGetProgramBuildInfo(myprog, device, CL_PROGRAM_BUILD_LOG, log_size, my_log, NULL);
@@ -1301,7 +1281,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	size_t offset[2];
 	for (i = 0 ; i < RANGE_DIVIDER ; i++) {
 		for (j = 0 ; j < RANGE_DIVIDER ; j++) {
-			kernelEvent = (cl_event*) malloc(sizeof(kernelEvent));
+			kernelEvent = (cl_event*) g_malloc(sizeof(kernelEvent));
 			offset[0] = i*sa->grid_dims_r_n/RANGE_DIVIDER;
 			offset[1] = j*sa->grid_dims_theta_n/RANGE_DIVIDER;
 			status = clEnqueueNDRangeKernel(cmdQueue, mykernel, 2, offset, globalws, NULL, 0, NULL, kernelEvent);
@@ -1310,7 +1290,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 			OPENCL_ERROR(clWaitForEvents)
 			status = clReleaseEvent(kernelEvent[0]);
 			OPENCL_ERROR(clReleaseEvent)
-			free(kernelEvent);
+			g_free(kernelEvent);
 			if (xmo.verbose)
 				fprintf(stdout,"Solid angle calculation at %3i %%\n",(int) floor(100.0*(float)(RANGE_DIVIDER*i+j+1)/(float)(RANGE_DIVIDER*RANGE_DIVIDER)));
 		}
@@ -1345,9 +1325,9 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	clReleaseMemObject(solid_angles_cl);
 	clReleaseContext(context);
 
-	free(solid_angles_float);
-	free(devices);
-	free(platforms);
+	g_free(solid_angles_float);
+	g_free(devices);
+	g_free(platforms);
 
 	if (xmo.verbose)
 		fprintf(stdout,"Solid angle calculation finished\n");

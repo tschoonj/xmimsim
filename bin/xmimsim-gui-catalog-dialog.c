@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-catalog-dialog.h"
 #include "xmi_aux.h"
 #include <xraylib.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 #include "xmimsim-gui-prefs.h"
 

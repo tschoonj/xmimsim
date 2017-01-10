@@ -35,11 +35,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <locale.h>
 #include <xraylib.h>
-#include <stdlib.h>
 #include <gmodule.h>
 
 #include <stdio.h>
-#include <string.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -86,7 +84,7 @@ XMI_MAIN
 	double *channels, *channelsdef;
 	double **channels_conv;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
-	char filename[512];
+	char *filename;
 	int i,j;
 	GError *error = NULL;
 	GOptionContext *context;
@@ -571,13 +569,14 @@ XMI_MAIN
 
 			//write it to outputfile... spe style
 			if (spe_file_noconv != NULL) {
-				sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+				filename = g_strdup_printf("%s_%i.spe",spe_file_noconv,i);
 				if ((outPtr=fopen(filename,"w")) == NULL ) {
 					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
+				g_free(filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
@@ -596,13 +595,14 @@ XMI_MAIN
 			}
 			//convoluted spectrum
 			if (spe_file_conv != NULL) {
-				sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+				filename = g_strdup_printf("%s_%i.spe",spe_file_conv,i);
 				if ((outPtr=fopen(filename,"w")) == NULL ) {
 					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
 				else if (options.verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
+				g_free(filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
 				fprintf(outPtr,"$MCA_CAL:\n2\n");
 				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);

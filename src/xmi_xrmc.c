@@ -17,12 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include "xmi_msim.h"
-#include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 #include <xraylib.h>
 #include <xmi_aux.h>
+#include <glib.h>
 
 #define SMALL_VALUE 1E-7
 
@@ -39,28 +38,20 @@ static void sarrus_rule(double a[3], double b[3], double c[3]) {
 
 static char *xmi_convert_xrmc_path(char *path) {
 	int i,j;
-	char *new_path = NULL;
+	GString *new_path = g_string_new(path);
 
 	j = 0;
-	for (i = 0 ; i < strlen(path) ; i++) {
-		if (path[i] == ' ') {
-			new_path = realloc(new_path, sizeof(char)*(j+3));
-			strcat(new_path+j, "\\ ");
-			j += 2;
+	for (i = 0 ; i < new_path->len ; i++) {
+		if (new_path->str[i] == ' ') {
+			g_string_overwrite(new_path, i, "\\ ");
+			i++;
 		}
-		else if (path[i] == '\\') {
-			new_path = realloc(new_path, sizeof(char)*(j+3));
-			strcat(new_path+j, "\\\\");
-			j += 2;
-		}
-		else {
-			new_path = realloc(new_path, sizeof(char)*(j+2));
-			new_path[j] = path[i];
-			new_path[j+1] = '\0';
-			j += 1;
+		else if (new_path->str[i] == '\\') {
+			g_string_overwrite(new_path, i, "\\\\");
+			i++;
 		}
 	}
-	return new_path;
+	return g_string_free(new_path, FALSE);
 }
 
 static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile) {
@@ -74,35 +65,35 @@ static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_composition
 	fprintf(filePtr, "; XRMC input-file for ED-XRF spectrometers\n; Produced through XMI-MSIM\n;\n");
 	temp = xmi_convert_xrmc_path(xrmc_sourcefile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_spectrumfile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_samplefile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_quadricfile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_geom3dfile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_compositionfile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	temp = xmi_convert_xrmc_path(xrmc_detectorfile);
 	fprintf(filePtr, "Load %s\n", temp);
-	free(temp);
+	g_free(temp);
 	fprintf(filePtr, "Run Detector\n");
 	if (xrmc_convolutedspectrumfile) {
 		temp = xmi_convert_xrmc_path(xrmc_convolutedspectrumfile);
 		fprintf(filePtr, "Save Detector ConvolutedImage %s\n", temp);
-		free(temp);
+		g_free(temp);
 	}
 	if (xrmc_unconvolutedspectrumfile) {
 		temp = xmi_convert_xrmc_path(xrmc_unconvolutedspectrumfile);
 		fprintf(filePtr, "Save Detector Image %s\n", temp);
-		free(temp);
+		g_free(temp);
 	}
 	fprintf(filePtr, "End\n");
 	fclose(filePtr);

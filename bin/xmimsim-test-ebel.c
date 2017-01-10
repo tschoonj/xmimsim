@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "xmi_ebel.h"
-#include <stdlib.h>
 
 
 int main(int argc, char *argv[]) {

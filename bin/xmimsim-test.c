@@ -17,8 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_random.h"
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 int main (int argc, char *argv[]) {
 	int n,i;

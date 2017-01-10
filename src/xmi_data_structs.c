@@ -19,15 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_aux.h"
 #include "xmi_lines.h"
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
-//for g_ascii_strtod
 #include <glib.h>
+#include <string.h>
+#include <stdlib.h>
 
 void xmi_free_layer (struct xmi_layer *layer) {
-	free(layer->Z);
-	free(layer->weight);
+	g_free(layer->Z);
+	g_free(layer->weight);
 }
 
 
@@ -36,9 +35,9 @@ void xmi_free_layer (struct xmi_layer *layer) {
 
 void xmi_free_input(struct xmi_input *input) {
 	//general
-	free(input->general->outputfile);
-	free(input->general->comments);
-	free(input->general);
+	g_free(input->general->outputfile);
+	g_free(input->general->comments);
+	g_free(input->general);
 
 	//composition
 	xmi_free_composition(input->composition);
@@ -56,7 +55,7 @@ void xmi_free_input(struct xmi_input *input) {
 	xmi_free_detector(input->detector);
 
 	//input
-	free(input);
+	g_free(input);
 
 
 }
@@ -64,13 +63,12 @@ void xmi_free_input(struct xmi_input *input) {
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	//allocate space for B
-	*B = (struct xmi_input *) malloc(sizeof(struct xmi_input));
+	*B = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
 
 	//general
-	//(*B)->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
 	(*B)->general = (struct xmi_general *) xmi_memdup((A)->general, sizeof(struct xmi_general));
-	(*B)->general->outputfile = strdup(A->general->outputfile);
-	(*B)->general->comments= strdup(A->general->comments);
+	(*B)->general->outputfile = g_strdup(A->general->outputfile);
+	(*B)->general->comments= g_strdup(A->general->comments);
 
 	//composition
 	xmi_copy_composition(A->composition, &((*B)->composition));
@@ -110,7 +108,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		goto after_general;
 	}*/
 
-	if (strcmp(A->general->outputfile,B->general->outputfile) != 0) {
+	if (g_strcmp0(A->general->outputfile,B->general->outputfile) != 0) {
 		rv |= XMI_CONFLICT_GENERAL;
 		goto after_general;
 	}
@@ -130,7 +128,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		goto after_general;
 	}
 
-	if (strcmp(A->general->comments,B->general->comments) != 0) {
+	if (g_strcmp0(A->general->comments,B->general->comments) != 0) {
 		rv |= XMI_CONFLICT_GENERAL;
 		goto after_general;
 	}
@@ -201,8 +199,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[0],temparr2[0])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[1],temparr2[1])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
-	free(temparr1);
-	free(temparr2);
+	g_free(temparr1);
+	g_free(temparr2);
 
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
@@ -216,8 +214,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[0],temparr2[0])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[1],temparr2[1])
 	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
-	free(temparr1);
-	free(temparr2);
+	g_free(temparr1);
+	g_free(temparr2);
 
 	XMI_IF_COMPARE_GEOMETRY(area_detector)
 	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
@@ -419,16 +417,16 @@ void xmi_free_composition(struct xmi_composition *composition) {
 	for (i = 0 ; i < composition->n_layers ; i++)
 		xmi_free_layer(composition->layers+i);
 
-	free(composition->layers);
+	g_free(composition->layers);
 
-	free(composition);
+	g_free(composition);
 }
 
 void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B) {
 	int i;
 
 	//allocate space for B
-	*B = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	*B = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	(*B)->n_layers = A->n_layers;
 	(*B)->reference_layer = A->reference_layer;
 	(*B)->layers = (struct xmi_layer *) xmi_memdup((A)->layers,((A)->n_layers)*sizeof(struct xmi_layer));
@@ -442,7 +440,7 @@ void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B)
 
 void xmi_copy_layer(struct xmi_layer *A, struct xmi_layer **B) {
 	//allocate space for B
-	*B = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	*B = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 	(*B)->n_elements = A->n_elements;
 	(*B)->density = A->density;
 	(*B)->thickness = A->thickness;
@@ -463,25 +461,25 @@ struct xmi_input *xmi_init_empty_input(void) {
 
 	struct xmi_input *rv;
 
-	rv = (struct xmi_input *) malloc(sizeof(struct xmi_input));
+	rv = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
 
 	//general
-	rv->general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
+	rv->general = (struct xmi_general *) g_malloc(sizeof(struct xmi_general));
 	rv->general->version = g_ascii_strtod(VERSION, NULL);
-	rv->general->outputfile = strdup("");
-	rv->general->comments= strdup("");
+	rv->general->outputfile = g_strdup("");
+	rv->general->comments= g_strdup("");
 	rv->general->n_photons_interval = 10000;
 	rv->general->n_photons_line = 100000;
 	rv->general->n_interactions_trajectory = 4;
 
 	//layer
-	rv->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	rv->composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	rv->composition->n_layers = 0;
 	rv->composition->layers = NULL;
 	rv->composition->reference_layer = 1;
 
 	//geometry
-	rv->geometry = (struct xmi_geometry *) malloc(sizeof(struct xmi_geometry));
+	rv->geometry = (struct xmi_geometry *) g_malloc(sizeof(struct xmi_geometry));
 	rv->geometry->d_sample_source=100.0;
 	rv->geometry->n_sample_orientation[0] = 0.0;
 	rv->geometry->n_sample_orientation[1] = -1.0*sqrt(2.0)/2.0;
@@ -501,11 +499,11 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->geometry->slit_size_y = 0.001;
 
 	//excitation
-	rv->excitation = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	rv->excitation = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	rv->excitation->n_discrete = 1;
 	rv->excitation->n_continuous = 0;
 	rv->excitation->continuous = NULL;
-	rv->excitation->discrete = (struct xmi_energy_discrete *) malloc(sizeof(struct xmi_energy_discrete));
+	rv->excitation->discrete = (struct xmi_energy_discrete *) g_malloc(sizeof(struct xmi_energy_discrete));
 	rv->excitation->discrete[0].energy = 28.0;
 	rv->excitation->discrete[0].horizontal_intensity= 1E12;
 	rv->excitation->discrete[0].vertical_intensity= 1E9;
@@ -517,21 +515,21 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->excitation->discrete[0].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 
 	//absorbers
-	rv->absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+	rv->absorbers = (struct xmi_absorbers *) g_malloc(sizeof(struct xmi_absorbers));
 	rv->absorbers->n_exc_layers = 0;
 	rv->absorbers->exc_layers = NULL;
 	rv->absorbers->n_det_layers = 1;
-	rv->absorbers->det_layers = malloc(sizeof(struct xmi_layer));
+	rv->absorbers->det_layers = g_malloc(sizeof(struct xmi_layer));
 	rv->absorbers->det_layers[0].n_elements = 1;
-	rv->absorbers->det_layers[0].Z = (int *) malloc(sizeof(int));
-	rv->absorbers->det_layers[0].weight = (double *) malloc(sizeof(double));
+	rv->absorbers->det_layers[0].Z = (int *) g_malloc(sizeof(int));
+	rv->absorbers->det_layers[0].weight = (double *) g_malloc(sizeof(double));
 	rv->absorbers->det_layers[0].Z[0] = 4;
 	rv->absorbers->det_layers[0].weight[0] = 1.0;
 	rv->absorbers->det_layers[0].density = 1.85;
 	rv->absorbers->det_layers[0].thickness = 0.002;
 
 	//detector
-	rv->detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
+	rv->detector = (struct xmi_detector *) g_malloc(sizeof(struct xmi_detector));
 	rv->detector->detector_type = XMI_DETECTOR_SILI;
 	rv->detector->live_time = 1;
 	rv->detector->pulse_width= 10E-6;
@@ -541,10 +539,10 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->detector->noise = 0.1;
 	rv->detector->nchannels = 2048;
 	rv->detector->n_crystal_layers = 1;
-	rv->detector->crystal_layers = malloc(sizeof(struct xmi_layer));
+	rv->detector->crystal_layers = g_malloc(sizeof(struct xmi_layer));
 	rv->detector->crystal_layers[0].n_elements = 1;
-	rv->detector->crystal_layers[0].Z = (int *) malloc(sizeof(int));
-	rv->detector->crystal_layers[0].weight = (double *) malloc(sizeof(double));
+	rv->detector->crystal_layers[0].Z = (int *) g_malloc(sizeof(int));
+	rv->detector->crystal_layers[0].weight = (double *) g_malloc(sizeof(double));
 	rv->detector->crystal_layers[0].Z[0] = 14;
 	rv->detector->crystal_layers[0].weight[0] = 1.0;
 	rv->detector->crystal_layers[0].density = 2.33;
@@ -563,7 +561,7 @@ void xmi_free_exc_absorbers(struct xmi_absorbers *A) {
 	if (A->n_exc_layers > 0) {
 		for (i = 0 ; i < A->n_exc_layers ; i++)
 			xmi_free_layer(A->exc_layers+i);
-		free(A->exc_layers);
+		g_free(A->exc_layers);
 	}
 	A->n_exc_layers = 0;
 	A->exc_layers = NULL;
@@ -575,7 +573,7 @@ void xmi_free_det_absorbers(struct xmi_absorbers *A) {
 	if (A->n_det_layers > 0) {
 		for (i = 0 ; i < A->n_det_layers ; i++)
 			xmi_free_layer(A->det_layers+i);
-		free(A->det_layers);
+		g_free(A->det_layers);
 	}
 	A->n_det_layers = 0;
 	A->det_layers = NULL;
@@ -585,7 +583,7 @@ void xmi_free_absorbers(struct xmi_absorbers *A) {
 	xmi_free_exc_absorbers(A);
 	xmi_free_det_absorbers(A);
 
-	free(A);
+	g_free(A);
 }
 
 void xmi_copy_exc_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
@@ -612,7 +610,7 @@ void xmi_copy_det_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
 
 void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B) {
 	//allocate space for B
-	*B = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+	*B = (struct xmi_absorbers *) g_malloc(sizeof(struct xmi_absorbers));
 
 	xmi_copy_exc_absorbers(A, *B);
 	xmi_copy_det_absorbers(A, *B);
@@ -621,10 +619,10 @@ void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B) {
 void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition) {
 	int i;
 
-	*composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	*composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	(*composition)->n_layers = n_layers;
 	if (n_layers > 0) {
-		(*composition)->layers = (struct xmi_layer *) malloc(sizeof(struct xmi_layer)*n_layers);
+		(*composition)->layers = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer)*n_layers);
 		for (i = 0 ; i < n_layers ; i++)
 			xmi_copy_layer2(layers+i,(*composition)->layers+i);
 	}
@@ -639,7 +637,7 @@ void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, st
 	*n_layers = composition->n_layers;
 
 	if (*n_layers > 0) {
-		*layers	= (struct xmi_layer *) malloc(sizeof(struct xmi_layer)**n_layers);
+		*layers	= (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer)**n_layers);
 		for (i = 0 ; i < *n_layers ; i++) {
 			xmi_copy_layer2(composition->layers+i, (*layers)+i);
 		}
@@ -1041,7 +1039,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
 struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions ) {
 
-	struct xmi_output* output = malloc(sizeof(struct xmi_output));
+	struct xmi_output* output = g_malloc(sizeof(struct xmi_output));
 	int i,j,k;
 	int nchannels = input->detector->nchannels;
 
@@ -1049,15 +1047,15 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	output->version = g_ascii_strtod(VERSION, NULL);
 	output->input = input;
 	xmi_copy_input(input, &output->input);
-	output->inputfile = strdup(inputfile);
+	output->inputfile = g_strdup(inputfile);
 	output->use_zero_interactions = use_zero_interactions;
-	output->channels_conv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
-	output->channels_unconv = malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->channels_conv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->channels_unconv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 	output->ninteractions = input->general->n_interactions_trajectory;
 
 	for (i = (use_zero_interactions ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-		output->channels_unconv[i] = malloc(sizeof(double)*nchannels);
-		output->channels_conv[i] = malloc(sizeof(double)*nchannels);
+		output->channels_unconv[i] = g_malloc(sizeof(double)*nchannels);
+		output->channels_conv[i] = g_malloc(sizeof(double)*nchannels);
 		for (j = 0 ; j < nchannels ; j++) {
 			output->channels_unconv[i][j] = ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels);
 			output->channels_conv[i][j] = channels_conv[i][j];
@@ -1067,7 +1065,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	int *uniqZ = NULL;
 	int nuniqZ = 1;
 	int found;
-	uniqZ = realloc(uniqZ, sizeof(int));
+	uniqZ = g_realloc(uniqZ, sizeof(int));
 	uniqZ[0] = input->composition->layers[0].Z[0];
 	for (i = 0 ; i < input->composition->n_layers ; i++) {
 		for (j = 0 ; j < input->composition->layers[i].n_elements ; j++) {
@@ -1080,7 +1078,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			}
 			if (found == 0) {
 				//enlarge uniqZ
-				uniqZ = (int *) realloc(uniqZ, sizeof(int)*++nuniqZ);
+				uniqZ = (int *) g_realloc(uniqZ, sizeof(int)*++nuniqZ);
 				uniqZ[nuniqZ-1] = input->composition->layers[i].Z[j];
 			}
 		}
@@ -1103,7 +1101,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			continue;
 
 		//so there are counts somewhere: open element
-		output->brute_force_history = realloc(output->brute_force_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nbrute_force_history);
+		output->brute_force_history = g_realloc(output->brute_force_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nbrute_force_history);
 		output->brute_force_history[output->nbrute_force_history-1].atomic_number = uniqZ[i];
 		output->brute_force_history[output->nbrute_force_history-1].total_counts = counts_sum;
 		output->brute_force_history[output->nbrute_force_history-1].n_lines = 0;
@@ -1115,8 +1113,8 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			}
 			if (counts_sum == 0.0)
 				continue;
-			output->brute_force_history[output->nbrute_force_history-1].lines = realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
-			strcpy(output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].line_type, xmi_lines[j]);
+			output->brute_force_history[output->nbrute_force_history-1].lines = g_realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].total_counts = counts_sum;
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions = 0;
@@ -1126,7 +1124,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				if (ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 					continue;
-				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = realloc(output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions, ++output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
+				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = g_realloc(output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions, ++output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
 				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions[output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions-1].counts = ARRAY3D_FORTRAN(brute_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
 				output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions[output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions-1].interaction_number = k;
 			}
@@ -1134,7 +1132,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	}
 
 	if (var_red_history == NULL) {
-		free(uniqZ);
+		g_free(uniqZ);
 		return output;
 	}
 
@@ -1150,7 +1148,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			continue;
 
 		//so there are counts somewhere: open element
-		output->var_red_history = realloc(output->var_red_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nvar_red_history);
+		output->var_red_history = g_realloc(output->var_red_history, sizeof(struct xmi_fluorescence_line_counts)*++output->nvar_red_history);
 		output->var_red_history[output->nvar_red_history-1].atomic_number = uniqZ[i];
 		output->var_red_history[output->nvar_red_history-1].total_counts = counts_sum;
 		output->var_red_history[output->nvar_red_history-1].n_lines = 0;
@@ -1162,8 +1160,8 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			}
 			if (counts_sum == 0.0)
 				continue;
-			output->var_red_history[output->nvar_red_history-1].lines = realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
-			strcpy(output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].line_type, xmi_lines[j]);
+			output->var_red_history[output->nvar_red_history-1].lines = g_realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(struct xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].total_counts = counts_sum;
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions = 0;
@@ -1173,7 +1171,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 			for (k = 1 ; k <= input->general->n_interactions_trajectory ; k++) {
 				if (ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory) <= 0.0)
 					continue;
-				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = realloc(output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions, ++output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
+				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = g_realloc(output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions, ++output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions*sizeof(struct xmi_counts));
 				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions[output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions-1].counts = ARRAY3D_FORTRAN(var_red_history,uniqZ[i],j,k,100,385,input->general->n_interactions_trajectory);
 				output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions[output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions-1].interaction_number = k;
 			}
@@ -1181,7 +1179,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	}
 
 
-	free(uniqZ);
+	g_free(uniqZ);
 	return output;
 }
 
@@ -1193,79 +1191,80 @@ void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *hist
 
 	for (i = 0 ; i < nhistory ; i++) {
 		for (j = 0 ; j < history[i].n_lines ; j++) {
-			free(history[i].lines[j].interactions);
+			g_free(history[i].lines[j].interactions);
+			g_free(history[i].lines[j].line_type);
 		}
-		free(history[i].lines);
+		g_free(history[i].lines);
 	}
-	free(history);
+	g_free(history);
 }
 
 void xmi_free_output(struct xmi_output *output) {
 	if (output->inputfile)
-		free(output->inputfile);
+		g_free(output->inputfile);
 	int i;
 
 	for (i = (output->use_zero_interactions ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
-		free(output->channels_conv[i]);
-		free(output->channels_unconv[i]);
+		g_free(output->channels_conv[i]);
+		g_free(output->channels_unconv[i]);
 	}
-	free(output->channels_conv);
-	free(output->channels_unconv);
+	g_free(output->channels_conv);
+	g_free(output->channels_unconv);
 	xmi_free_fluorescence_line_counts(output->brute_force_history, output->nbrute_force_history);
 	xmi_free_fluorescence_line_counts(output->var_red_history, output->nvar_red_history);
 
 	xmi_free_input(output->input);
-	free(output);
+	g_free(output);
 
 	return;
 }
 
 void xmi_free_archive(struct xmi_archive *archive) {
-	free(archive->xpath1);
+	g_free(archive->xpath1);
 	if (archive->xpath2 != NULL)
-		free(archive->xpath2);
+		g_free(archive->xpath2);
 	int i,j;
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
 			xmi_free_output(archive->output[i][j]);
 		}
-		free(archive->input[i]);
-		free(archive->output[i]);
-		free(archive->inputfiles[i]);
-		free(archive->outputfiles[i]);
+		g_free(archive->input[i]);
+		g_free(archive->output[i]);
+		g_free(archive->inputfiles[i]);
+		g_free(archive->outputfiles[i]);
 	}
-	free(archive->input);
-	free(archive->output);
-	free(archive->inputfiles);
-	free(archive->outputfiles);
+	g_free(archive->input);
+	g_free(archive->output);
+	g_free(archive->inputfiles);
+	g_free(archive->outputfiles);
 
 	return;
 }
 
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
-	struct xmi_archive *archive = malloc(sizeof(struct xmi_archive));
+	struct xmi_archive *archive = g_malloc(sizeof(struct xmi_archive));
 	archive->version = g_ascii_strtod(VERSION, NULL);
 	archive->start_value1 = start_value1;
 	archive->end_value1 = end_value1;
 	archive->nsteps1 = nsteps1;
-	archive->xpath1 = strdup(xpath1);
+	archive->xpath1 = g_strdup(xpath1);
 	archive->start_value2 = start_value2;
 	archive->end_value2= end_value2;
 	archive->nsteps2 = nsteps2;
 	if (xpath2)
-		archive->xpath2 = strdup(xpath2);
+		archive->xpath2 = g_strdup(xpath2);
 	else
 		archive->xpath2 = NULL;
-	archive->output = malloc(sizeof(struct xmi_output **)*(nsteps1+1));
-	archive->input = malloc(sizeof(struct xmi_input **)*(nsteps1+1));
-	archive->inputfiles = malloc(sizeof(char **)*(nsteps1+1));
-	archive->outputfiles = malloc(sizeof(char **)*(nsteps1+1));
+	archive->output = g_malloc(sizeof(struct xmi_output **)*(nsteps1+1));
+	archive->input = g_malloc(sizeof(struct xmi_input **)*(nsteps1+1));
+	archive->inputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
+	archive->outputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
 	int i;
 	for (i = 0 ; i <= nsteps1 ; i++) {
-		archive->output[i] = malloc(sizeof(struct xmi_output *)*(nsteps2+1));
-		archive->input[i] = malloc(sizeof(struct xmi_input *)*(nsteps2+1));
-		archive->inputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
-		archive->outputfiles[i] = malloc(sizeof(char *)*(nsteps2+1));
+		archive->output[i] = g_malloc(sizeof(struct xmi_output *)*(nsteps2+1));
+		archive->input[i] = g_malloc(sizeof(struct xmi_input *)*(nsteps2+1));
+		archive->inputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
+		archive->outputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
 	}
 
 	int j;
@@ -1282,17 +1281,17 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 }
 
 void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
-	struct xmi_output *C = malloc(sizeof(struct xmi_output));
+	struct xmi_output *C = g_malloc(sizeof(struct xmi_output));
 	C->version = A->version;
-	C->inputfile = strdup(A->inputfile);
+	C->inputfile = g_strdup(A->inputfile);
 	xmi_copy_input(A->input, &C->input);
 	C->nbrute_force_history = A->nbrute_force_history;
 	C->nvar_red_history = A->nvar_red_history;
 	C->ninteractions = A->ninteractions;
 	C->use_zero_interactions = A->use_zero_interactions;
 	int i, j;
-	C->channels_conv = malloc(sizeof(double *) * (C->ninteractions+1));
-	C->channels_unconv = malloc(sizeof(double *) * (C->ninteractions+1));
+	C->channels_conv = g_malloc(sizeof(double *) * (C->ninteractions+1));
+	C->channels_unconv = g_malloc(sizeof(double *) * (C->ninteractions+1));
 	for (i = (C->use_zero_interactions ? 0 : 1) ; i <= C->ninteractions ; i++) {
 		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
 		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
@@ -1332,7 +1331,7 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 		*B = NULL;
 		return;
 	}
-	*B = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	*B = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	(*B)->n_discrete = A->n_discrete;
 	(*B)->n_continuous = A->n_continuous;
 
@@ -1370,16 +1369,16 @@ void xmi_free_detector(struct xmi_detector *A) {
 	if (A->n_crystal_layers > 0) {
 		for (i = 0 ; i < A->n_crystal_layers ; i++)
 			xmi_free_layer(A->crystal_layers+i);
-		free(A->crystal_layers);
+		g_free(A->crystal_layers);
 	}
 
-	free(A);
+	g_free(A);
 
 	return;
 }
 
 void xmi_free_geometry(struct xmi_geometry *A) {
-	free(A);
+	g_free(A);
 
 	return;
 }
@@ -1388,12 +1387,12 @@ void xmi_free_excitation(struct xmi_excitation *A) {
 	if (A == NULL)
 		return;
 	if (A->n_discrete > 0)
-		free(A->discrete);
+		g_free(A->discrete);
 
 	if (A->n_continuous > 0)
-		free(A->continuous);
+		g_free(A->continuous);
 
-	free(A);
+	g_free(A);
 
 	return;
 }
@@ -1438,7 +1437,7 @@ int xmi_compare_output(struct xmi_output *A, struct xmi_output *B) {
 		}
 
 		for (j = 0 ; j < A->brute_force_history[i].n_lines ; j++) {
-			if (strcmp(A->brute_force_history[i].lines[j].line_type,
+			if (g_strcmp0(A->brute_force_history[i].lines[j].line_type,
 			           B->brute_force_history[i].lines[j].line_type) != 0) {
 				return 1;
 			}
@@ -1492,7 +1491,7 @@ int xmi_compare_output(struct xmi_output *A, struct xmi_output *B) {
 		}
 
 		for (j = 0 ; j < A->var_red_history[i].n_lines ; j++) {
-			if (strcmp(A->var_red_history[i].lines[j].line_type,
+			if (g_strcmp0(A->var_red_history[i].lines[j].line_type,
 			           B->var_red_history[i].lines[j].line_type) != 0) {
 				return 1;
 			}
@@ -1551,7 +1550,7 @@ int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B) {
 		return 1;
 	}
 
-	if (strcmp(A->xpath1, B->xpath1) != 0) {
+	if (g_strcmp0(A->xpath1, B->xpath1) != 0) {
 		return 1;
 	}
 
@@ -1576,7 +1575,7 @@ int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B) {
 			return 1;
 		}
 
-		if (strcmp(A->xpath2, B->xpath2) != 0) {
+		if (g_strcmp0(A->xpath2, B->xpath2) != 0) {
 			return 1;
 		}
 	}

@@ -18,15 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_random.h"
 #include "xmi_random_dev.h"
-#include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
+#include <glib.h>
 
 
 static long int counter;
@@ -88,7 +88,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 	long int i;
 	long int counter_local;
 	long int pidstuff[3]; //pid, counter and n
-	char fifoslave[512];
+	char *fifoslave;
 
 	if ((fdmaster = open (FIFOMASTER, O_WRONLY)) == -1) {
 		//daemon does not appear to be running
@@ -111,7 +111,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 		pidstuff[1] = counter_local;
 		pidstuff[2] = n;
 
-		sprintf(fifoslave,FIFOSLAVE "%li.%li",pidstuff[0],pidstuff[1]);
+		fifoslave = g_strdup_printf(FIFOSLAVE "%li.%li",pidstuff[0],pidstuff[1]);
         	if (mkfifo(fifoslave, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1) {
 	                fprintf(stderr,"Could not create named link %s: %s",fifoslave,strerror(errno));
 		        return 0;
@@ -131,7 +131,7 @@ int xmi_get_random_numbers(unsigned long int *numbers,long int n) {
 	        }
 	        close(fdslave);
 	        unlink(fifoslave);
-
+		g_free(fifoslave);
 
 	}
 

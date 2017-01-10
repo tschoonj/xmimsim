@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 #include <glib.h>
-#include <string.h>
 
 #ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
@@ -67,11 +66,11 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2XMSI,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSO2XMSI_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSO2XMSI_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -82,7 +81,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -160,11 +159,11 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SVG,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSO2SVG_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSO2SVG_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -186,7 +185,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -235,7 +234,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	char parm_name2[] = "interaction";
         char s_convoluted[] = "'spectrum_conv'";
         char s_unconvoluted[] = "'spectrum_unconv'";
-	char interaction[10];
+	char *interaction;
 
 	const gchar *env = g_getenv("XMI_XMSO2SPE_XSLT");
 	xmlChar *xsltfile = NULL;
@@ -248,11 +247,11 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SPE,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSO2SPE_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSO2SPE_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -263,7 +262,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
         else
          params[1] = s_unconvoluted;
 	params[2] = parm_name2;
-	sprintf(interaction,"'%i'",interaction_number);
+	interaction = g_strdup_printf("'%i'",interaction_number);
 	params[3] = interaction;
         params[4] = NULL;
 
@@ -277,7 +276,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -308,7 +307,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	xsltFreeStylesheet(cur);
 	xmlFreeDoc(res);
 	xmlFreeDoc(doc);
-
+	g_free(interaction);
         xsltCleanupGlobals();
 
 	return 1;
@@ -339,11 +338,11 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2CSV,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSO2CSV_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSO2CSV_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -365,7 +364,7 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -425,11 +424,11 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2HTM,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSO2HTM_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSO2HTM_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -453,7 +452,7 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -511,11 +510,11 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSA2XMSO,(char **) &xsltfile) == 0)
 			return 0;
 #else
-		xsltfile = strdup(XMI_XMSA2XMSO_XSLT);
+		xsltfile = BAD_CAST g_strdup(XMI_XMSA2XMSO_XSLT);
 #endif
 	}
 	else {
-		xsltfile = strdup(env);
+		xsltfile = BAD_CAST g_strdup(env);
 	}
 
 	xsltInit();
@@ -530,7 +529,7 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		return 0;
 	}
 
-	free(xsltfile);
+	g_free(xsltfile);
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");

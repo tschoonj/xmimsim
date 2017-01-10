@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-export-canvas-dialog.h"
-#include <string.h>
 #include <cairo-ps.h>
 #include <cairo-pdf.h>
 

@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-source-abstract.h"
-#include <string.h>
 #include <math.h>
+#include <string.h>
 #include <xmimsim-gui-marshal.h>
 
 G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_VBOX)

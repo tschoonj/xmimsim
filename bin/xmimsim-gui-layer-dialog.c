@@ -22,9 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-type-builtins.h"
 #include "xmimsim-gui-prefs.h"
 #include <xraylib.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 #include "xmi_aux.h"
 
 static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
@@ -289,9 +288,9 @@ static void density_thickness_changed(GtkWidget *widget, XmiMsimGuiLayerDialog *
   // if no elements are to be found there, the label should always be zero
   textPtr3 = gtk_label_get_text(GTK_LABEL(dialog->sumLabel));
 
-  density = strtod(textPtr, &endPtr);
-  thickness = strtod(textPtr2, &endPtr2);
-  sum = strtod(textPtr3, &endPtr3);
+  density = g_ascii_strtod(textPtr, &endPtr);
+  thickness = g_ascii_strtod(textPtr2, &endPtr2);
+  sum = g_ascii_strtod(textPtr3, &endPtr3);
 
   lastPtr = textPtr + strlen(textPtr);
   lastPtr2 = textPtr2 + strlen(textPtr2);
@@ -358,11 +357,13 @@ static void xmi_msim_gui_layer_dialog_set_composition(XmiMsimGuiLayerDialog *dia
   int i;
   for (i = 0 ; i < n_elements ; i++) {
     gtk_list_store_append(store, &iter);
+    char *symbol = AtomicNumberToSymbol(Z[i]);
     gtk_list_store_set(store, &iter,
-      SYMBOL_COLUMN, AtomicNumberToSymbol(Z[i]),
+      SYMBOL_COLUMN, symbol,
       WEIGHT_COLUMN, weight[i] * 100.0,
       ELEMENT_COLUMN, Z[i],
       -1);
+    xrlFree(symbol);
   }
   gchar *buffer = g_strdup_printf("<span weight=\"bold\">%lg</span>", xmi_sum_double(weight, n_elements) * 100.0);
   gtk_label_set_markup(GTK_LABEL(dialog->sumLabel), buffer);
@@ -373,8 +374,8 @@ static void xmi_msim_gui_layer_dialog_set_composition(XmiMsimGuiLayerDialog *dia
   else {
     const char *textPtr = gtk_entry_get_text(GTK_ENTRY(dialog->densityEntry));
     const char *textPtr2 = gtk_entry_get_text(GTK_ENTRY(dialog->thicknessEntry));
-    double density = strtod(textPtr, NULL);
-    double thickness = strtod(textPtr2, NULL);
+    double density = g_ascii_strtod(textPtr, NULL);
+    double thickness = g_ascii_strtod(textPtr2, NULL);
     if (density > 0.0 && thickness > 0.0) {
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
       gtk_widget_set_sensitive(dialog->addToCatalogButton, TRUE);
@@ -390,8 +391,8 @@ static void xmi_msim_gui_layer_dialog_get_composition(XmiMsimGuiLayerDialog *dia
   if (*n_elements == 0)
     return;
 
-  *Z = (int *) malloc(sizeof(int) * *n_elements);
-  *weight = (double *) malloc(sizeof(double) * *n_elements);
+  *Z = (int *) g_malloc(sizeof(int) * *n_elements);
+  *weight = (double *) g_malloc(sizeof(double) * *n_elements);
   int i;
 
   for (i = 0 ; i < *n_elements ; i++) {
@@ -406,11 +407,11 @@ static void xmi_msim_gui_layer_dialog_get_composition(XmiMsimGuiLayerDialog *dia
 }
 
 struct xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog) {
-  struct xmi_layer *rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+  struct xmi_layer *rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
   xmi_msim_gui_layer_dialog_get_composition(dialog, &rv->n_elements, &rv->Z, &rv->weight);
 
-  rv->density = strtod(gtk_entry_get_text(GTK_ENTRY(dialog->densityEntry)), NULL);
-  rv->thickness = strtod(gtk_entry_get_text(GTK_ENTRY(dialog->thicknessEntry)), NULL);
+  rv->density = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->densityEntry)), NULL);
+  rv->thickness = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->thicknessEntry)), NULL);
 
   return rv;
 }
@@ -431,8 +432,8 @@ static void normalize_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *d
 
   xmi_msim_gui_layer_dialog_set_composition(dialog, n_elements, Z, weight);
 
-  free(Z);
-  free(weight);
+  g_free(Z);
+  g_free(weight);
 }
 
 static void element_row_activated(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, XmiMsimGuiLayerDialog *dialog) {
@@ -505,7 +506,7 @@ static void add_to_catalog_button_clicked(GtkButton *button, XmiMsimGuiLayerDial
     gtk_widget_destroy(error_dialog);
     g_free(layer_name);
     xmi_free_layer(layer);
-    free(layer);
+    g_free(layer);
   }
   gtk_widget_destroy(update_dialog);
 
@@ -539,7 +540,7 @@ static void predef_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dial
       g_free(buffer);
     }
     xmi_free_layer(layer);
-    free(layer);
+    g_free(layer);
     gtk_widget_destroy(catalog_dialog);
   }
 }
@@ -630,8 +631,8 @@ static void update_sum(XmiMsimGuiLayerDialog *dialog) {
   }
   g_free(buffer);
   if (n_elements > 0) {
-    free(Z);
-    free(weight);
+    g_free(Z);
+    g_free(weight);
   }
   return;
 }
@@ -648,10 +649,8 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
     gdouble compound_weight = xmi_msim_gui_compound_dialog_get_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog));
 
     struct compoundData *cd, *cd2, *cdsum;
-    if ((cd2 = CompoundParser(compound)) == NULL) {
-      fprintf(stderr,"compoundParser error in add_button_clicked\n");
-      exit(1);
-    }
+    cd2 = CompoundParser(compound);
+
     //get current composition
     int n_elements, *Z;
     double *weight;
@@ -664,8 +663,8 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
       //calculate sum
       cdsum = add_compound_data(*cd, 1.0, *cd2, compound_weight/100.0);
       xmi_msim_gui_layer_dialog_set_composition(dialog, cdsum->nElements, cdsum->Elements, cdsum->massFractions);
-      free(Z);
-      free(weight);
+      g_free(Z);
+      g_free(weight);
       FreeCompoundData(cdsum);
       FreeCompoundData(cd);
     }

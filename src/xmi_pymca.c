@@ -22,9 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <xraylib.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 
 int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
@@ -62,64 +62,60 @@ int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input
 		//check for K, Ka, L and L3
 		g_strchug(elements[i]);
 
-		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+1+1));
-		sprintf(temp_string,"%s K",elements[i]);
+		temp_string = g_strdup_printf("%s K",elements[i]);
 		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		g_free(temp_string);
 		if (temp_double > 0.0) {
 			pymca_input->n_z_arr_pymca_conc++;
-			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
-			free(temp_string);
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
 #endif
 			continue;
 		}
 
-		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+2+1));
-		sprintf(temp_string,"%s Ka",elements[i]);
+		temp_string = g_strdup_printf(temp_string,"%s Ka",elements[i]);
 		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		g_free(temp_string);
 		if (temp_double > 0.0) {
 			pymca_input->n_z_arr_pymca_conc++;
-			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
-			free(temp_string);
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
 #endif
 			continue;
 		}
 
-		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+1+1));
-		sprintf(temp_string,"%s L",elements[i]);
+		temp_string = g_strdup_printf("%s L",elements[i]);
 		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		g_free(temp_string);
 		if (temp_double > 0.0) {
 			pymca_input->n_z_arr_pymca_conc++;
-			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
-			free(temp_string);
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
 #endif
 			continue;
 		}
 
-		temp_string = (gchar *) malloc(sizeof(gchar)*(strlen(elements[i])+1+2+1));
-		sprintf(temp_string,"%s La",elements[i]);
+		temp_string = g_strdup_printf("%s La",elements[i]);
 		temp_double = g_key_file_get_double(pymcaFile, "concentrations.mass fraction",temp_string, NULL);
+		g_free(temp_string);
 		if (temp_double > 0.0) {
 			pymca_input->n_z_arr_pymca_conc++;
-			pymca_input->z_arr_pymca_conc = (int *) realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->weight_arr_pymca_conc = (double *) realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
+			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
-			free(temp_string);
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
 #endif
@@ -145,7 +141,7 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int i,j;
 	double scatter_energy = 0.0;
 	double scatter_intensity = 0.0;
-	gchar buffer[128];
+	gchar *buffer;
 
 
 	pymca_input->scatter_energy = 0.0;
@@ -169,8 +165,9 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 			continue;
 
 		//scatter peak found
-		sprintf(buffer,"result.%s",strings[i]);
+		buffer = g_strdup_printf("result.%s",strings[i]);
 		peaks = g_key_file_get_string_list(pymcaFile, buffer,"peaks",&npeaks,NULL);
+		g_free(buffer);
 		if (peaks == NULL) {
 			g_fprintf(stderr,"Scatter Peak found but no peaks were defined\nAborting\n");
 			rv = 0;
@@ -181,24 +178,26 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 		//there should be only one peak... if there are more, ignore the rest
 		g_strchug(peaks[0]);
-		sprintf(buffer,"result.%s.%s",strings[i],peaks[0]);
+		buffer = g_strdup_printf("result.%s.%s",strings[i],peaks[0]);
 		scatter_energy = g_key_file_get_double(pymcaFile, buffer, "energy",NULL);
 		scatter_intensity += g_key_file_get_double(pymcaFile, buffer, "fitarea",NULL);
+		g_free(buffer);
 
 		g_strfreev(peaks);
 
 		//escape peaks should be added
-		sprintf(buffer,"result.%s",strings[i]);
+		buffer = g_strdup_printf("result.%s",strings[i]);
 		escapepeaks = g_key_file_get_string_list(pymcaFile, buffer,"escapepeaks",&nescapepeaks,NULL);
+		g_free(buffer);
 		if (escapepeaks != NULL) {
 			for (j = 0 ; j < nescapepeaks ; j++) {
 				g_strchug(escapepeaks[j]);
-				sprintf(buffer,"result.%s.%sesc",strings[i],escapepeaks[j]);
+				buffer = g_strdup_printf("result.%s.%sesc",strings[i],escapepeaks[j]);
 #if DEBUG == 2
 				fprintf(stdout,"buffer: %s\n",buffer);
 #endif
 				scatter_intensity += g_key_file_get_double(pymcaFile, buffer, "fitarea",NULL);
-
+				g_free(buffer);
 			}
 			g_strfreev(escapepeaks);
 		}
@@ -227,12 +226,10 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_layer **layer, int alloc) {
 	int rv = 0;
 	gchar *predefGroup;
-	gchar **strings=NULL;
 	gchar **compoundlist=NULL;
 	gsize lengthfractions, lengthlist;
 	GError *error = NULL;
 	gdouble *compoundfractions;
-	struct xmi_layer *temp1,*temp2;
 	struct compoundData *cd1, *cd2, *cd_sum;
 	int i;
 	double *weight;
@@ -369,9 +366,9 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	}
 
 
-	free(Z);
-	free(weight);
-	free(sorted_Z_ind);
+	g_free(Z);
+	g_free(weight);
+	g_free(sorted_Z_ind);
 
 	if (predefGroup != NULL)
 		g_free(predefGroup);
@@ -390,7 +387,7 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 
 	rv = 0;
 
-	*detector = (struct xmi_detector *) malloc(sizeof(struct xmi_detector));
+	*detector = (struct xmi_detector *) g_malloc(sizeof(struct xmi_detector));
 
 	//get parameters from result, if available
 	params = g_key_file_get_string_list(pymcaFile, "result", "fittedpar", &nparams, NULL);
@@ -452,10 +449,10 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	}
 
 
-	if (strcmp("Si",type) == 0) {
+	if (g_strcmp0("Si",type) == 0) {
 		(*detector)->detector_type = XMI_DETECTOR_SILI;
 	}
-	else if (strcmp("Ge",type) == 0) {
+	else if (g_strcmp0("Ge",type) == 0) {
 		(*detector)->detector_type = XMI_DETECTOR_GE;
 	}
 	else {
@@ -508,10 +505,10 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 		names = NULL;
 		i = 0;
 		while (det_names[i] != NULL) {
-			if (strcmp(det_names[i], "Matrix") == 0 ||
-				strcmp(det_names[i], "Detector") == 0 ||
-				strcmp(det_names[i], "BeamFilter0") == 0 ||
-				strcmp(det_names[i], "BeamFilter1") == 0
+			if (g_strcmp0(det_names[i], "Matrix") == 0 ||
+				g_strcmp0(det_names[i], "Detector") == 0 ||
+				g_strcmp0(det_names[i], "BeamFilter0") == 0 ||
+				g_strcmp0(det_names[i], "BeamFilter1") == 0
 			) {
 				//do nothing
 			}
@@ -549,7 +546,7 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 			continue;
 		}
 		//ok... allocate memory
-		*(layers) = (struct xmi_layer *) realloc(*(layers), sizeof(struct xmi_layer)*++(*n_layers));
+		*(layers) = (struct xmi_layer *) g_realloc(*(layers), sizeof(struct xmi_layer)*++(*n_layers));
 		temp = *layers+*n_layers-1;
 		if (get_composition(pymcaFile, strings[1], &temp, FALSE) == 0)
 			return rv;
@@ -574,13 +571,12 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	gchar **strings;
 	gsize length;
 	double det_dist;
-	gchar *reference;
 	GError *error = NULL;
 
 
 
 	//allocate memory
-	*geometry = (struct xmi_geometry *) malloc(sizeof(struct xmi_geometry));
+	*geometry = (struct xmi_geometry *) g_malloc(sizeof(struct xmi_geometry));
 
 
 	//calculate sample normal using Matrix angles alpha and beta
@@ -704,8 +700,8 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 	gint active;
 	gsize length, length2;
 	gchar **strings, **strings2;
-	gchar buffer[128];
-	int i, j, k;
+	gchar *buffer;
+	int i;
 	struct xmi_layer *temp;
 
 	//see it Matrix is toggled -> absolute requirement!
@@ -723,7 +719,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 
 
 	//see if we're dealing with a multilayer here or a single layer Matrix
-	if (strcmp(g_strstrip(strings[1]),"MULTILAYER") == 0) {
+	if (g_strcmp0(g_strstrip(strings[1]),"MULTILAYER") == 0) {
 		//Multilayer found
 		//look for the reference layer
 		gchar *reference_layer_str = g_key_file_get_string(pymcaFile, "result.config.multilayer", "ReferenceLayer", NULL);
@@ -737,7 +733,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 			reference_layer_match = TRUE;
 		}
 		for (i = 0 ; i < 10 ; i++) {
-			sprintf(buffer,"Layer%i",i);
+			buffer = g_strdup_printf("Layer%i",i);
 			if ((strings2 = g_key_file_get_string_list(pymcaFile, "result.config.multilayer", buffer ,&length2, NULL)) == NULL && (strings2 = g_key_file_get_string_list(pymcaFile, "multilayer", buffer ,&length2, NULL)) == NULL) {
 				g_fprintf(stderr,"Could not find key %s in multilayer... Fatal error",buffer);
 				return rv;
@@ -748,14 +744,14 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 			if (active != 1) {
 				continue;
 			}
-			if (reference_layer_match == FALSE && strcmp(reference_layer_str, buffer) == 0) {
+			if (reference_layer_match == FALSE && g_strcmp0(reference_layer_str, buffer) == 0) {
 				reference_layer_match = TRUE;
 				*reference_layer = *n_multilayer_layers;
 				g_free(reference_layer_str);
 			}
 
 			//ok... allocate memory
-			*(multilayer_layers) = (struct xmi_layer *) realloc(*(multilayer_layers), sizeof(struct xmi_layer)*++(*n_multilayer_layers));
+			*(multilayer_layers) = (struct xmi_layer *) g_realloc(*(multilayer_layers), sizeof(struct xmi_layer)*++(*n_multilayer_layers));
 			temp = *multilayer_layers+*n_multilayer_layers-1;
 			if (get_composition(pymcaFile, strings2[1], &temp, FALSE) == 0)
 				return rv;
@@ -764,6 +760,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 			(*multilayer_layers+*n_multilayer_layers-1)->thickness= g_ascii_strtod(strings2[3],NULL);
 
 			g_strfreev(strings2);
+			g_free(buffer);
 		}
 		if (reference_layer_match == FALSE) {
 			g_fprintf(stderr,"ReferenceLayer was not active... Assuming first layer\n");
@@ -815,7 +812,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int i, Z, j;
 	int K_found, Ka_found, Kb_found, L_found, L1_found, L2_found, L3_found;
 	int use_K, use_L;
-	gchar buffer[128];
+	gchar *buffer;
 
 	//sort variables
 	int *z_arr, *sorted_Z_ind;
@@ -830,11 +827,11 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 		return rv;
 	}
 
-	//malloc memory...
+	//g_malloc memory...
 	(pymca_input)->n_peaks = n_elements;
-	(pymca_input)->z_arr = (int *) malloc(sizeof(int)*n_elements);
-	(pymca_input)->k_alpha = (double *) malloc(sizeof(double)*n_elements);
-	(pymca_input)->l_alpha = (double *) malloc(sizeof(double)*n_elements);
+	(pymca_input)->z_arr = (int *) g_malloc(sizeof(int)*n_elements);
+	(pymca_input)->k_alpha = (double *) g_malloc(sizeof(double)*n_elements);
+	(pymca_input)->l_alpha = (double *) g_malloc(sizeof(double)*n_elements);
 
 	for (i = 0 ; i < n_elements ; i++) {
 #if DEBUG == 2
@@ -855,28 +852,28 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 		//check lines
 		for (j = 0 ; j < n_lines ; j++) {
-			if (strcmp("K",g_strstrip(lines[j])) == 0) {
+			if (g_strcmp0("K",g_strstrip(lines[j])) == 0) {
 				K_found = 1;
 			}
-			else if (strcmp("Ka",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("Ka",g_strstrip(lines[j])) == 0) {
 				Ka_found = 1;
 			}
-			else if (strcmp("Kb",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("Kb",g_strstrip(lines[j])) == 0) {
 				Kb_found = 1;
 			}
-			else if (strcmp("L",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("L",g_strstrip(lines[j])) == 0) {
 				L_found = 1;
 			}
-			else if (strcmp("L1",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("L1",g_strstrip(lines[j])) == 0) {
 				L1_found = 1;
 			}
-			else if (strcmp("L2",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("L2",g_strstrip(lines[j])) == 0) {
 				L2_found = 1;
 			}
-			else if (strcmp("L3",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("L3",g_strstrip(lines[j])) == 0) {
 				L3_found = 1;
 			}
-			else if (strcmp("M",g_strstrip(lines[j])) == 0) {
+			else if (g_strcmp0("M",g_strstrip(lines[j])) == 0) {
 				fprintf(stdout,"M-lines are not yet supported...\n");
 			}
 		}
@@ -939,41 +936,53 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 		(pymca_input)->l_alpha[i] = 0.0;
 
 		//check all keys
-		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		buffer = g_strdup_printf("result.%s %s", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		buffer = g_strdup_printf("result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
+		buffer = g_strdup_printf("result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL3" : "Ka.KL3a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		buffer = g_strdup_printf("result.%s %s", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		buffer = g_strdup_printf("result.%s %s Si_KL3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
+		buffer = g_strdup_printf("result.%s %s Si_KM3esc", elements[i],use_K ? "K.KL2" : "Ka.KL2a");
 		(pymca_input)->k_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		buffer = g_strdup_printf("result.%s %s", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		buffer = g_strdup_printf("result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
+		buffer = g_strdup_printf("result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M5*" : "L3.L3M5");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		buffer = g_strdup_printf("result.%s %s", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		buffer = g_strdup_printf("result.%s %s Si_KL3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
-		sprintf(buffer,"result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
+		buffer = g_strdup_printf("result.%s %s Si_KM3esc", elements[i],use_L ? "L.L3M4*" : "L3.L3M4");
 		(pymca_input)->l_alpha[i] += g_key_file_get_double(pymcaFile, buffer, "fitarea", NULL);
+		g_free(buffer);
 
 
 #if DEBUG == 2
@@ -1000,10 +1009,10 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 #endif
 	}
 
-	free(z_arr);
-	free(k_alpha);
-	free(l_alpha);
-	free(sorted_Z_ind);
+	g_free(z_arr);
+	g_free(k_alpha);
+	g_free(l_alpha);
+	g_free(sorted_Z_ind);
 	g_strfreev(elements);
 
 	rv = 1;
@@ -1081,7 +1090,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 	}
 
 	//look at the flags -> assume that all lines are discrete!!!
-	(*excitation) = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	(*excitation) = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	(*excitation)->n_discrete = 0;
 	(*excitation)->discrete = NULL;
 	(*excitation)->n_continuous = 0;
@@ -1107,7 +1116,7 @@ int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excita
 		if (energyflag[i] == FALSE)
 			continue;
 
-		(*excitation)->discrete = (struct xmi_energy_discrete *) realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
+		(*excitation)->discrete = (struct xmi_energy_discrete *) g_realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].energy = g_ascii_strtod(energy[i],NULL);
 		if ((*excitation)->discrete[((*excitation)->n_discrete)-1].energy <= 0.0) {
 			fprintf(stderr,"A flagged energy turned out to be negative or zero... Fatal error\n");
@@ -1154,8 +1163,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	struct xmi_excitation *excitation = NULL;
 	struct xmi_detector *detector = NULL;
 	struct xmi_general *general = NULL;
-	gchar **strings, *energy_string, *ydata_string;
-	double *ydata;
+	gchar **strings, *ydata_string;
 	int override_required = 0;
 
 	//read the file...
@@ -1169,8 +1177,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	g_key_file_set_list_separator(pymcaFile, ',');
 
 	//allocate input
-	*input = (struct xmi_input *) malloc(sizeof(struct xmi_input));
-	*pymca_input = (struct xmi_pymca *) malloc(sizeof(struct xmi_pymca));
+	*input = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
+	*pymca_input = (struct xmi_pymca *) g_malloc(sizeof(struct xmi_pymca));
 
 
 	if (!use_single_run) {
@@ -1252,7 +1260,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 				g_fprintf(stderr,"Invalid chemical symbol %s found in ignore_elements\n", ignore_elements[element]);
 				return rv;
 			}
-			(*pymca_input)->ignore_elements = realloc((*pymca_input)->ignore_elements, sizeof(int)*++(*pymca_input)->n_ignore_elements);
+			(*pymca_input)->ignore_elements = g_realloc((*pymca_input)->ignore_elements, sizeof(int)*++(*pymca_input)->n_ignore_elements);
 			(*pymca_input)->ignore_elements[(*pymca_input)->n_ignore_elements-1] = atomic_number;
 		}
 	}
@@ -1270,7 +1278,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 		gchar *reference = g_key_file_get_string(pymcaFile, "result.config.concentrations", "reference", NULL);
 
 		if (reference != NULL && (*pymca_input)->usematrix == 1) {
-			if (strcmp(reference, "Auto") == 0) {
+			if (g_strcmp0(reference, "Auto") == 0) {
 				g_fprintf(stderr, "When using ROI normalization, the \"The matrix reference element\" has to be different from Auto\n");
 				return rv;
 			}
@@ -1355,7 +1363,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 			}
 			if (found == 0) {
 				//found
-				(*pymca_input)->z_arr_quant = (int *) realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
+				(*pymca_input)->z_arr_quant = (int *) g_realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
 				(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
 #if DEBUG == 2
 				fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
@@ -1370,9 +1378,9 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 
 	//general
-	general = (struct xmi_general *) malloc(sizeof(struct xmi_general));
-	general->outputfile = strdup("");
-	general->comments = strdup("");
+	general = (struct xmi_general *) g_malloc(sizeof(struct xmi_general));
+	general->outputfile = g_strdup("");
+	general->comments = g_strdup("");
 	general->n_photons_interval = 100000;
 	general->n_photons_line = 100000;
 	general->version = 1.0;
@@ -1400,7 +1408,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	//put it all together
 	(*input)->general = general;
 	//allocate composition
-	(*input)->composition = (struct xmi_composition *) malloc(sizeof(struct xmi_composition));
+	(*input)->composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	(*input)->composition->n_layers = n_multilayer_layers;
 	(*input)->composition->layers = multilayer_layers;
 	//check ReferenceLayer
@@ -1408,7 +1416,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 	(*input)->geometry = geometry;
 	(*input)->excitation = excitation;
-	(*input)->absorbers = (struct xmi_absorbers *) malloc(sizeof(struct xmi_absorbers));
+	(*input)->absorbers = (struct xmi_absorbers *) g_malloc(sizeof(struct xmi_absorbers));
 	(*input)->absorbers->n_exc_layers = n_exc_layers;
 	(*input)->absorbers->exc_layers = exc_layers;
 	(*input)->absorbers->n_det_layers = n_det_layers;
@@ -1497,8 +1505,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 				if ((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i] ==
 					(*pymca_input)->z_arr_quant[j]) {
 					n_elements_or++;
-					Z_or = (int *) realloc(Z_or, sizeof(int)*n_elements_or);
-					weight_or = (double *) realloc(weight_or, sizeof(double)*n_elements_or);
+					Z_or = (int *) g_realloc(Z_or, sizeof(int)*n_elements_or);
+					weight_or = (double *) g_realloc(weight_or, sizeof(double)*n_elements_or);
 					Z_or[n_elements_or-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i];
 					weight_or[n_elements_or-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[i];
 					found = 1;
@@ -1507,8 +1515,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 			}
 			if (! found) {
 				n_elements_orig++;
-				Z_orig = (int *) realloc(Z_orig, sizeof(int)*n_elements_orig);
-				weight_orig = (double *) realloc(weight_orig, sizeof(double)*n_elements_orig);
+				Z_orig = (int *) g_realloc(Z_orig, sizeof(int)*n_elements_orig);
+				weight_orig = (double *) g_realloc(weight_orig, sizeof(double)*n_elements_orig);
 				Z_orig[n_elements_orig-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[i];
 				weight_orig[n_elements_orig-1] = (*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[i];
 			}
@@ -1533,8 +1541,9 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 		fprintf(stdout,"Matrix element start value: %i\n",matrix_el_int);
 
-		int found1, found2, found12 = 0;
-/*		for (i = 1 ; i < MIN(5, abs(matrix_el_int - 10)) ; i++) {
+		int found1, found2;
+/*		int found12 = 0;
+ 		for (i = 1 ; i < MIN(5, abs(matrix_el_int - 10)) ; i++) {
 			found1 = found2 = 0;
 			for (j = 0 ; j < (*pymca_input)->n_z_arr_quant ; j++) {
 				if (matrix_el_int - i == (*pymca_input)->z_arr_quant[j]) {
@@ -1558,11 +1567,11 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 		if (found12) {
 			//found two suitable matrix elements -> add them to the array
-			free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
-			free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
+			g_free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
+			g_free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
 			(*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements = n_elements_orig+2;
-			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) realloc(Z_orig, sizeof(int)*(n_elements_orig+2));
-			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) realloc(weight_orig,sizeof(double)*(n_elements_orig+2));
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) g_realloc(Z_orig, sizeof(int)*(n_elements_orig+2));
+			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) g_realloc(weight_orig,sizeof(double)*(n_elements_orig+2));
 			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig] = matrix_el_int-i;
 			(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig+1] = matrix_el_int+i;
 			(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight[n_elements_orig] = 0.5*weights_sum_or;
@@ -1598,11 +1607,11 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 			}
 			if (!found1 || !found2) {
 				//found two suitable matrix elements -> add them to the array
-				free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
-				free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
+				g_free((*input)->composition->layers[(*pymca_input)->ilay_pymca].Z);
+				g_free((*input)->composition->layers[(*pymca_input)->ilay_pymca].weight);
 				(*input)->composition->layers[(*pymca_input)->ilay_pymca].n_elements = n_elements_orig+1;
-				(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) realloc(Z_orig, sizeof(int)*(n_elements_orig+1));
-				(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) realloc(weight_orig,sizeof(double)*(n_elements_orig+1));
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z = (int *) g_realloc(Z_orig, sizeof(int)*(n_elements_orig+1));
+				(*input)->composition->layers[(*pymca_input)->ilay_pymca].weight = (double *) g_realloc(weight_orig,sizeof(double)*(n_elements_orig+1));
 				if (!found1)
 					(*input)->composition->layers[(*pymca_input)->ilay_pymca].Z[n_elements_orig] = matrix_el_int+i;
 				else
@@ -1639,8 +1648,8 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 	double max_net_intensity;
 	double reference_weight = 0.0;
 
-	rv.Z = (int *) malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
-	rv.weight = (double *) malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
+	rv.Z = (int *) g_malloc(sizeof(int)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
+	rv.weight = (double *) g_malloc(sizeof(double)*(matrix->n_elements+pymca_aux->n_z_arr_quant));
 	rv.density = matrix->density;
 	rv.thickness = matrix->thickness;
 
@@ -1793,9 +1802,9 @@ struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi
 #endif
 
 
-	free(Z);
-	free(weight);
-	free(sorted_Z_ind);
+	g_free(Z);
+	g_free(weight);
+	g_free(sorted_Z_ind);
 
 
 	rv.density = matrix->density;
