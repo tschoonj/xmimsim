@@ -255,7 +255,8 @@ libxmimsim_gui_spline_la_SOURCES = \
 		      xmimsim-gui-spline.c
 libxmimsim_gui_spline_la_CPPFLAGS = \
 		     -I$(top_srcdir)/include \
-		     @xraylib_CFLAGS@
+		     @xraylib_CFLAGS@ \
+		     @glib2_CFLAGS@
 #libxmimsim_gui_spline_la_LDFLAGS = -static
 libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 

@@ -16,14 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
-#include <stdlib.h>
 #include "xmi_data.h"
 #include "xmi_aux.h"
 #include "xmi_main.h"
 #include <glib.h>
 #include <unistd.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
 #include <math.h>
@@ -97,7 +96,7 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 			g_fprintf(stderr, "HDF5 data file %s found in registry is not accessible\nTrying file in current directory instead\n", hdf5_file);
 			if (g_access("xmimsimdata.h5", R_OK) == 0) {
 				//look in current folder
-				hdf5_file = strdup("xmimsimdata.h5");
+				hdf5_file = g_strdup("xmimsimdata.h5");
 				*hdf5_filePtr = hdf5_file;
 				return 1;
 			}
@@ -122,10 +121,10 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 #else
 		//UNIX mode...
 		if (g_access(XMIMSIM_HDF5_DEFAULT, R_OK) == 0)
-			hdf5_file = strdup(XMIMSIM_HDF5_DEFAULT);
+			hdf5_file = g_strdup(XMIMSIM_HDF5_DEFAULT);
 		else if (g_access("xmimsimdata.h5", R_OK) == 0) {
 			//look in current folder
-			hdf5_file = strdup("xmimsimdata.h5");
+			hdf5_file = g_strdup("xmimsimdata.h5");
 		}
 		else {
 			//if not found abort...
@@ -159,12 +158,11 @@ int xmi_db(char *filename) {
 	//may have to invert dims
 	hsize_t dims[2] = {nintervals_r, nintervals_e};
 	hsize_t dims2[2] = {nintervals_r, nintervals_theta2};
-	hsize_t dims3[3] = {nintervals_r, nintervals_e, nintervals_theta2};
 	hsize_t dims_corr[1] = {9};
 	hsize_t dims_ip[2];
 	hsize_t dims_cp[2];
 	hsize_t dims_xrf[1] = {-1*M5P5_LINE};
-	char elements[3];
+	gchar *elements;
 	double *rayleigh_theta, *compton_theta, *energies, *rs, *fluor_yield_corr, *precalc_xrf_cs;
 	double *phi, *thetas;
 	struct interaction_prob* ip;
@@ -268,10 +266,11 @@ int xmi_db(char *filename) {
 
 
 		//create group for the element
-		sprintf(elements,"%2i", i);
+		elements = g_strdup_printf("%2i", i);
 		gcpl = H5Pcreate (H5P_GROUP_CREATE);
 		H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
 		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, gcpl, H5P_DEFAULT);
+		g_free(elements);
 		H5Pclose (gcpl);
 		group_id2 = H5Gcreate(group_id, "Theta_ICDF", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -389,7 +388,7 @@ int xmi_db(char *filename) {
 				group_id4 = H5Gcreate(group_id3, shell_names[k], H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 				//start loop over elements
 				for (l = 1 ; l <= maxz ; l++) {
-					sprintf(elements,"%2i", l);
+					elements = g_strdup_printf("%2i", l);
 					for (m = 0 ;  m < -1*M5P5_LINE ; m++) {
 						precalc_xrf_cs_slice[m]	= precalc_xrf_cs[i-1+
 									 		maxz*j+
@@ -400,6 +399,7 @@ int xmi_db(char *filename) {
 					}
 					dspace_id = H5Screate_simple(1, dims_xrf, dims_xrf);
 					dset_id = H5Dcreate(group_id4, elements,H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+					g_free(elements);
 					H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, precalc_xrf_cs_slice);
 					H5Sclose(dspace_id);
 					H5Dclose(dset_id);
@@ -512,7 +512,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 
-	if (strcmp(kind, "XMI_HDF5_DATA") != 0) {
+	if (g_strcmp0(kind, "XMI_HDF5_DATA") != 0) {
 		//wrong attribute value
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not have the correct kind attribute\n", filename);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", kind);

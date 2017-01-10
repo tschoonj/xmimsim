@@ -18,20 +18,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_data_structs.h"
 #include "xmi_detector.h"
-#include <stdlib.h>
 #include <hdf5.h>
 #include <glib.h>
 #include <gmodule.h>
-#include <string.h>
 #include <math.h>
-#include <stdlib.h>
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_data.h"
 #include "xmi_main.h"
 #include <xraylib.h>
-#include <sys/stat.h>
 #include <glib/gstdio.h>
+#include <string.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 #endif
@@ -138,7 +135,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, strdup(input_string), escape_main_options, ero);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, g_strdup(input_string), escape_main_options, ero);
 
 }
 
@@ -175,7 +172,7 @@ int xmi_check_escape_ratios_match(struct xmi_input *A, struct xmi_input *B) {
 
 int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios *escape_ratios) {
 	hid_t file_id;
-	char buffer[1024];
+	gchar *buffer;
 	hid_t group_id;
 	hid_t dspace_id;
 	hid_t dset_id;
@@ -183,7 +180,6 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	hsize_t dims2[2];
 	hsize_t dims3[3];
 	hsize_t xmi_input_strlen;
-	int i;
 	gchar *timestring;
 	GTimeVal time;
 
@@ -199,7 +195,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	g_get_current_time(&time);
 	timestring = g_time_val_to_iso8601(&time);
 
-	sprintf(buffer,"%s %s",g_get_user_name(),timestring);
+	buffer = g_strdup_printf("%s %s",g_get_user_name(),timestring);
 
 	g_free(timestring);
 
@@ -207,7 +203,8 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	hid_t gcpl = H5Pcreate (H5P_GROUP_CREATE);
 	H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
 	group_id = H5Gcreate(file_id, buffer, H5P_DEFAULT, gcpl, H5P_DEFAULT);
-	H5Pclose (gcpl);
+	g_free(buffer);
+	H5Pclose(gcpl);
 
 
 	//write Z
@@ -288,7 +285,7 @@ struct xmi_escape_ratios_data{
 
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 
-	hid_t dset_id, dapl_id, dspace_id;
+	hid_t dset_id, dspace_id;
 	hsize_t dims1[1],dims2[2], dims3[3],dims_string[1];
 	hid_t group_id;
 	char *xmi_input_string;
@@ -312,7 +309,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	xmi_input_string = (char *) g_malloc(sizeof(char)*dims_string[0]);
 	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT,xmi_input_string );
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
@@ -324,7 +321,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		//match
 		//read in this group completely
 		xmi_free_input(temp_input);
-		*(data->escape_ratios) = (struct xmi_escape_ratios *) malloc(sizeof(struct xmi_escape_ratios));
+		*(data->escape_ratios) = (struct xmi_escape_ratios *) g_malloc(sizeof(struct xmi_escape_ratios));
 		escape_ratios = *(data->escape_ratios);
 		escape_ratios->xmi_input_string  = xmi_input_string;
 		//read elements
@@ -336,7 +333,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		}
 		H5Sget_simple_extent_dims(dspace_id, dims1, NULL);
 		escape_ratios->n_elements = dims1[0];
-		escape_ratios->Z = (int *) malloc(sizeof(int)*dims1[0]);
+		escape_ratios->Z = (int *) g_malloc(sizeof(int)*dims1[0]);
 		H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,escape_ratios->Z );
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
@@ -350,8 +347,8 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		}
 		H5Sget_simple_extent_dims(dspace_id, dims3, NULL);
 		escape_ratios->n_fluo_input_energies = dims3[0];
-		escape_ratios->fluo_escape_input_energies = (double *) malloc(sizeof(double)*dims3[0]);
-		escape_ratios->fluo_escape_ratios = (double *) malloc(sizeof(double)*dims3[0]*dims3[1]*dims3[2]);
+		escape_ratios->fluo_escape_input_energies = (double *) g_malloc(sizeof(double)*dims3[0]);
+		escape_ratios->fluo_escape_ratios = (double *) g_malloc(sizeof(double)*dims3[0]*dims3[1]*dims3[2]);
 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,escape_ratios->fluo_escape_ratios);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
@@ -377,9 +374,9 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Sget_simple_extent_dims(dspace_id, dims2, NULL);
 		escape_ratios->n_compton_input_energies = dims2[1];
 		escape_ratios->n_compton_output_energies = dims2[0];
-		escape_ratios->compton_escape_input_energies = (double *) malloc(sizeof(double)*dims2[1]);
-		escape_ratios->compton_escape_output_energies = (double *) malloc(sizeof(double)*dims2[0]);
-		escape_ratios->compton_escape_ratios = (double *) malloc(sizeof(double)*dims2[0]*dims2[1]);
+		escape_ratios->compton_escape_input_energies = (double *) g_malloc(sizeof(double)*dims2[1]);
+		escape_ratios->compton_escape_output_energies = (double *) g_malloc(sizeof(double)*dims2[0]);
+		escape_ratios->compton_escape_ratios = (double *) g_malloc(sizeof(double)*dims2[0]*dims2[1]);
 		H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,escape_ratios->compton_escape_ratios);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
@@ -414,7 +411,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		//no match -> continue looking...
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
-		free(xmi_input_string);
+		g_free(xmi_input_string);
 		if (data->options.extra_verbose)
 			fprintf(stdout,"No match in escape ratios\n");
 		return 0;
@@ -472,7 +469,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 
-	if (strcmp(kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+	if (g_strcmp0(kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
 		g_fprintf(stderr, "Escape ratios file %s does not have the correct kind attribute\n", hdf5_file);
 		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", kind);
 		g_fprintf(stderr, "Aborting\n");
@@ -546,14 +543,14 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 	if (escape_ratios->fluo_escape_input_energies != escape_ratios->compton_escape_input_energies) {
 		//allocated in C
-		free(escape_ratios->Z);
-		free(escape_ratios->fluo_escape_ratios);
-		free(escape_ratios->fluo_escape_input_energies);
-		free(escape_ratios->compton_escape_input_energies);
-		free(escape_ratios->compton_escape_ratios);
-		free(escape_ratios->compton_escape_output_energies);
-		free(escape_ratios->xmi_input_string);
-		free(escape_ratios);
+		g_free(escape_ratios->Z);
+		g_free(escape_ratios->fluo_escape_ratios);
+		g_free(escape_ratios->fluo_escape_input_energies);
+		g_free(escape_ratios->compton_escape_input_energies);
+		g_free(escape_ratios->compton_escape_ratios);
+		g_free(escape_ratios->compton_escape_output_energies);
+		g_free(escape_ratios->xmi_input_string);
+		g_free(escape_ratios);
 	}
 	else {
 		//allocated in Fortran
@@ -563,7 +560,7 @@ void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
 		xmi_deallocate(escape_ratios->fluo_escape_input_energies);
 		xmi_deallocate(escape_ratios->compton_escape_ratios);
 		xmi_deallocate(escape_ratios->compton_escape_output_energies);
-		free(escape_ratios->xmi_input_string);
+		g_free(escape_ratios->xmi_input_string);
 		xmi_deallocate(escape_ratios);
 	}
 }
@@ -593,9 +590,7 @@ int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 #else
 		const gchar *data_dir = g_get_user_data_dir();
 #endif
-		file = (char *) malloc(sizeof(char)*(strlen(data_dir)+strlen(G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5")+1));
-		strcpy(file, data_dir);
-		strcat(file,G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5");
+		file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "xmimsim-escape-ratios.h5", data_dir);
 		*filePtr = file;
 	}
 

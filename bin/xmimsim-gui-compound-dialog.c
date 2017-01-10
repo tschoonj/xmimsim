@@ -19,9 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-compound-dialog.h"
 #include "xmimsim-gui-type-builtins.h"
 #include <xraylib.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
 
@@ -126,7 +125,7 @@ static void compound_changed(GtkEditable *widget, gpointer data) {
 
   textPtr = gtk_entry_get_text(GTK_ENTRY(dialog->compoundEntry));
   textPtr2 = gtk_entry_get_text(GTK_ENTRY(dialog->weightEntry));
-  weight = strtod(textPtr2, &endPtr);
+  weight = g_ascii_strtod(textPtr2, &endPtr);
   cd = CompoundParser(textPtr);
 
   lastPtr = textPtr2 + strlen(textPtr2);
@@ -214,5 +213,5 @@ void xmi_msim_gui_compound_dialog_set_weight(XmiMsimGuiCompoundDialog *dialog, g
 }
 
 gdouble xmi_msim_gui_compound_dialog_get_weight(XmiMsimGuiCompoundDialog *dialog) {
-  return strtod(gtk_entry_get_text(GTK_ENTRY(dialog->weightEntry)), NULL);
+  return g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->weightEntry)), NULL);
 }

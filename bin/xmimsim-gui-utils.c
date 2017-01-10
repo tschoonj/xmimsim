@@ -1,6 +1,7 @@
 #include "xmimsim-gui-utils.h"
 #include <curl/curl.h>
 #include <math.h>
+#include <xraylib.h>
 
 #ifdef G_OS_WIN32
 #include <windows.h>
@@ -182,3 +183,25 @@ double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax) {
 	return tickstep;
 }
 
+void xmi_msim_gui_ensure_extension(gchar **filename, const gchar *extension) {
+	if (g_ascii_strcasecmp(*filename+strlen(*filename)-strlen(extension), extension) != 0) {
+		*filename = (gchar *) realloc(*filename,sizeof(gchar)*(strlen(*filename)+strlen(extension)+1));
+		strcat(*filename,".xmso");
+	}
+
+}
+
+gchar* xmi_msim_gui_get_layer_element_string(struct xmi_layer *layer) {
+	GString *rv = g_string_new(NULL);
+	int j;
+
+	for (j = 0 ; j < layer->n_elements ; j++) {
+		char *symbol = AtomicNumberToSymbol(layer->Z[j]);
+		g_string_append(rv, symbol);
+		xrlFree(symbol);
+		if (j != layer->n_elements-1) {
+			g_string_append(rv, ", ");
+		}
+	}
+	return g_string_free(rv, FALSE);
+}

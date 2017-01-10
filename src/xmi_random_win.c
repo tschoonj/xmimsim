@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define _CRT_RAND_S
 #include "config.h"
-#include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
 

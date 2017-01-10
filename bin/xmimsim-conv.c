@@ -30,10 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <locale.h>
 #include <xraylib.h>
-#include <stdlib.h>
 
 #include <stdio.h>
-#include <string.h>
 #include <gmodule.h>
 
 

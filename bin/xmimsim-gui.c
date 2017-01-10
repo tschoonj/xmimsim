@@ -30,11 +30,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-layer-dialog.h"
 #include "xmimsim-gui-source-module.h"
 #include "xmimsim-gui-source-abstract.h"
-#include <string.h>
 #include <stdio.h>
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
-#include <stdlib.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <xraylib.h>
@@ -776,7 +774,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	struct xmi_input *xi;
 
 
-	if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
+	if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
@@ -801,7 +799,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
+	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
 			gchar *temp_base = g_path_get_basename(filename);
@@ -819,7 +817,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
+	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 		struct dialog_helper_xmsa_data *my_data = (struct dialog_helper_xmsa_data *) g_malloc(sizeof(struct dialog_helper_xmsa_data));
 		my_data->window = (GtkWidget *)data;
 		my_data->filename = filename;
@@ -1214,10 +1212,10 @@ struct undo_single *check_changes_saved(int *status) {
 	gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 
 	if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-		commentsText = strdup("");
+		commentsText = g_strdup("");
 	}
 	else {
-		commentsText = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+		commentsText = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 	}
 
 	commentsEqual = strcmp(commentsText,current->xi->general->comments);
@@ -1285,10 +1283,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-5, ".xmso") != 0) {
-			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".xmso");
-		}
+		xmi_msim_gui_ensure_extension(&filename, ".xmso");
 
 		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
 		update_undo_buffer(OUTPUTFILE,outputfileW);
@@ -1466,7 +1461,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	gboolean valid;
 	int index,nindices;
 	gint *indices;
-	int i, updateKind;
+	int i, updateKind = -1;
 	struct xmi_layer temp;
 	struct xmi_composition *composition;
 
@@ -1519,22 +1514,15 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 
 			//adding layer
-			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+			composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
 			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
 
 			GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
 
 			gtk_list_store_append(store, &iter);
 			i = composition->n_layers-1;
-			char *elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
-			elementString[0] = '\0';
-			int j;
-			for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
-				strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
-				if (j != composition->layers[i].n_elements-1) {
-					strcat(elementString,", ");
-				}
-			}
+
+			gchar *elementString = xmi_msim_gui_get_layer_element_string(&composition->layers[i]);
 			if (mb->matrixKind == COMPOSITION) {
 				if (composition->n_layers == 1)
 					composition->reference_layer = 1;
@@ -1559,11 +1547,11 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					);
 			}
 
-			free(elementString);
+			g_free(elementString);
 			update_undo_buffer(updateKind, (GtkWidget *) store);
 
 			xmi_free_layer(layer);
-			free(layer);
+			g_free(layer);
 		}
 		gtk_widget_destroy(dialog);
 		return;
@@ -1584,7 +1572,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			nindices++;
 			valid = gtk_tree_model_iter_next(model, &temp_iter);
 		}
-		indices = (gint *) malloc(sizeof(gint)*nindices);
+		indices = (gint *) g_malloc(sizeof(gint)*nindices);
 		for (i = 0 ; i < nindices ; i++)
 			indices[i] = i;
 
@@ -1703,7 +1691,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				for (i = index ;  i < nindices-1 ; i++)
 					composition->layers[i] = composition->layers[i+1];
 			}
-			composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+			composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
 			if (mb->matrixKind == COMPOSITION) {
@@ -1761,21 +1749,13 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					updateKind = CRYSTAL_COMPOSITION_EDIT;
 				}
 				//editing layer
-				free(composition->layers[index].Z);
-				free(composition->layers[index].weight);
+				g_free(composition->layers[index].Z);
+				g_free(composition->layers[index].weight);
 				xmi_copy_layer2(layer,composition->layers + index);
 
 				GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
 
-				char *elementString = (char *) malloc(sizeof(char)* (composition->layers[index].n_elements*5));
-				elementString[0] = '\0';
-				int j;
-				for (j = 0 ; j < composition->layers[index].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol(composition->layers[index].Z[j]));
-					if (j != composition->layers[index].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				gchar *elementString = xmi_msim_gui_get_layer_element_string(composition->layers+index);
 				if (mb->matrixKind == COMPOSITION) {
 					gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, composition->layers[index].n_elements,
@@ -1796,11 +1776,11 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					);
 				}
 
-				free(elementString);
+				g_free(elementString);
 				update_undo_buffer(updateKind, (GtkWidget *) store);
 
 				xmi_free_layer(layer);
-				free(layer);
+				g_free(layer);
 			}
 			gtk_widget_destroy(dialog);
 		}
@@ -1919,8 +1899,8 @@ struct clipboard_data {
 };
 
 static void clipboard_clear_layer_cb(GtkClipboard *clipboard, struct clipboard_data *cd) {
-	free(cd->data);
-	free(cd);
+	g_free(cd->data);
+	g_free(cd);
 	return;
 }
 
@@ -1931,7 +1911,7 @@ static void clipboard_get_layer_cb(GtkClipboard *clipboard, GtkSelectionData *se
 static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, struct matrix_button *mb) {
 
 	const guchar *data = gtk_selection_data_get_data(selection_data);
-	struct xmi_layer *clipboard_layer = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	struct xmi_layer *clipboard_layer = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 	memcpy(&clipboard_layer->n_elements, data, sizeof(int));
 	clipboard_layer->Z = (int *) xmi_memdup(data+sizeof(int), sizeof(int)*clipboard_layer->n_elements);
 	clipboard_layer->weight = (double *) xmi_memdup(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements, sizeof(double)*clipboard_layer->n_elements);
@@ -1943,9 +1923,9 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 	struct xmi_composition *composition = NULL;
 	GtkTreeIter iter;
 	GtkListStore *store = NULL;
-	char *elementString;
-	int i,j;
-	int updateKind;
+	gchar *elementString;
+	int i;
+	int updateKind = -1;
 
 	if (mb->matrixKind == COMPOSITION) {
 		composition = compositionS;
@@ -1968,19 +1948,12 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 		updateKind = CRYSTAL_COMPOSITION_PASTE;
 	}
 	//adding layer
-	composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+	composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
 	xmi_copy_layer2(clipboard_layer,composition->layers+composition->n_layers-1);
 
 	gtk_list_store_append(store, &iter);
 	i = composition->n_layers-1;
-	elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
-	elementString[0] = '\0';
-	for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
-		strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
-		if (j != composition->layers[i].n_elements-1) {
-			strcat(elementString,", ");
-		}
-	}
+	elementString = xmi_msim_gui_get_layer_element_string(composition->layers + i);
 	if (mb->matrixKind == COMPOSITION) {
 		if (composition->n_layers == 1)
 			composition->reference_layer = 1;
@@ -2005,7 +1978,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 		);
 	}
 
-	free(elementString);
+	g_free(elementString);
 	update_undo_buffer(updateKind, (GtkWidget *) store);
 
 	//if there is one layer now -> activeate copy/cut
@@ -2034,7 +2007,7 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 	if (!clipboard)
 		return;
 
-	struct clipboard_data *cd = (struct clipboard_data *) malloc(sizeof(struct clipboard_data));
+	struct clipboard_data *cd = (struct clipboard_data *) g_malloc(sizeof(struct clipboard_data));
 
 	GtkTreeModel *model;
 	GtkTreeIter iter;
@@ -2062,7 +2035,7 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 
 	//create data for clipboard
 	cd->length = sizeof(int)+clipboard_layer->n_elements*(sizeof(double)+sizeof(int))+2*sizeof(double);
-	guchar *data = (guchar *) malloc(cd->length);
+	guchar *data = (guchar *) g_malloc(cd->length);
 	memcpy(data, &clipboard_layer->n_elements, sizeof(int));
 	memcpy(data+sizeof(int), clipboard_layer->Z, sizeof(int)*clipboard_layer->n_elements);
 	memcpy(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements, clipboard_layer->weight, sizeof(double)*clipboard_layer->n_elements);
@@ -2122,7 +2095,7 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 		for (i = index ;  i < nindices-1 ; i++)
 			composition->layers[i] = composition->layers[i+1];
 	}
-	composition->layers = (struct xmi_layer*) realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+	composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
 	composition->n_layers--;
 	gtk_list_store_remove(mb->store,&iter);
 	if (mb->matrixKind == COMPOSITION) {
@@ -2283,7 +2256,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	GtkWidget *tree;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
-	char *elementString;
+	gchar *elementString;
 	GtkTreeSelection *select;
 	GtkWidget *mainbox, *mainbox2;
 	GtkWidget *buttonbox;
@@ -2300,7 +2273,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	struct matrix_reorder *mr;
 	GtkWidget *scrolledWindow;
 
-	int i,j;
+	int i;
 
 	mainbox = gtk_hbox_new(FALSE, 5);
 	mainbox2 = gtk_vbox_new(FALSE, 5);
@@ -2315,14 +2288,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 	for (i=0 ; i < composition->n_layers ; i++) {
 		gtk_list_store_append(store, &iter);
-		elementString = (char *) malloc(sizeof(char)* (composition->layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < composition->layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(composition->layers[i].Z[j]));
-			if (j != composition->layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-		}
+		elementString = xmi_msim_gui_get_layer_element_string(composition->layers + i);
 		if (kind == COMPOSITION) {
 			gtk_list_store_set(store, &iter,
 				N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
@@ -2343,7 +2309,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 				);
 		}
 
-		free(elementString);
+		g_free(elementString);
 	}
 
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
@@ -2398,7 +2364,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 
 	if (kind == COMPOSITION) {
-		rt = (struct reference_toggle *) malloc(sizeof(struct reference_toggle));
+		rt = (struct reference_toggle *) g_malloc(sizeof(struct reference_toggle));
 		rt->store = store;
 		rt->model = (GtkTreeModel *) tree;
 		renderer = gtk_cell_renderer_toggle_new();
@@ -2437,28 +2403,28 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_widget_set_sensitive(bottomButton, FALSE);
 	//signals -> let's create some nice memory leaks..
 	//TOP button
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_TOP;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(topButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 	//BOTTOM button
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_BOTTOM;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(bottomButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 	//UP button
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_UP;
 	mb->matrixKind=kind;
 	mb->select=select;
 	mb->store=store;
 	g_signal_connect(G_OBJECT(upButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 	//DOWN button
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_DOWN;
 	mb->matrixKind=kind;
 	mb->select=select;
@@ -2489,7 +2455,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_widget_set_sensitive(editButton, FALSE);
 	gtk_widget_set_sensitive(deleteButton, FALSE);
 	//DELETE
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_DELETE;
 	mb->matrixKind=kind;
 	mb->select=select;
@@ -2501,7 +2467,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	g_signal_connect(G_OBJECT(tree), "popup-menu", G_CALLBACK(layer_popup_menu_cb), (gpointer) mb);
 
 	//ADD
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_ADD;
 	mb->matrixKind=kind;
 	mb->select=select;
@@ -2509,7 +2475,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	g_signal_connect(G_OBJECT(addButton),"clicked", G_CALLBACK(layers_button_clicked_cb), (gpointer) mb);
 
 	//EDIT
-	mb = (struct matrix_button *) malloc(sizeof(struct matrix_button));
+	mb = (struct matrix_button *) g_malloc(sizeof(struct matrix_button));
 	mb->buttonKind=BUTTON_EDIT;
 	mb->matrixKind=kind;
 	mb->select=select;
@@ -2522,7 +2488,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	g_signal_connect(G_OBJECT(tree), "focus-out-event", G_CALLBACK(layer_focus_out_cb), NULL);
 
 
-	md = (struct matrix_data*) malloc(sizeof(struct matrix_data));
+	md = (struct matrix_data*) g_malloc(sizeof(struct matrix_data));
 	md->topButton = topButton;
 	md->upButton = upButton;
 	md->downButton = downButton;
@@ -2534,7 +2500,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	gtk_tree_selection_set_mode(select,GTK_SELECTION_SINGLE);
 	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(layer_selection_changed_cb), (gpointer) md);
 
-	mr = (struct matrix_reorder *) malloc(sizeof(struct matrix_reorder));
+	mr = (struct matrix_reorder *) g_malloc(sizeof(struct matrix_reorder));
 	mr->kind=kind;
 	mr->select=select;
 	mr->store=store;
@@ -2572,15 +2538,15 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 
 void undo_menu_fix_after_error(void) {
-	char buffer[512];
+	char *buffer;
 	//update undo
 	if (current != redo_buffer) {
-		g_sprintf(buffer,"Undo: %s",(current)->message);
+		buffer = g_strdup_printf("Undo: %s",(current)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 	}
 	else {
-		g_sprintf(buffer,"Undo");
+		buffer = g_strdup_printf("Undo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 		gtk_widget_set_sensitive(undoW,FALSE);
@@ -2589,14 +2555,14 @@ void undo_menu_fix_after_error(void) {
 
 	//update redo
 	if (current == last) {
-		g_sprintf(buffer,"Redo");
+		buffer = g_strdup_printf("Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 		gtk_widget_set_sensitive(redoW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	}
 	else {
-		g_sprintf(buffer,"Redo: %s", (current+1)->message);
+		buffer = g_strdup_printf("Redo: %s", (current+1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 		gtk_widget_set_sensitive(redoW,TRUE);
@@ -2614,13 +2580,13 @@ void undo_menu_fix_after_error(void) {
 }
 
 void undo_menu_click_with_error(void) {
-	char buffer[512];
+	char *buffer;
 
 	*(undo_error->check) = 1;
 
 	switch (undo_error->kind) {
 		case N_PHOTONS_INTERVAL:
-			g_sprintf(buffer,"%li",(current)->xi->general->n_photons_interval);
+			buffer = g_strdup_printf("%li",(current)->xi->general->n_photons_interval);
 #if DEBUG == 1
 			fprintf(stdout,"n_photons_interval undo to %s\n",buffer);
 #endif
@@ -2629,115 +2595,115 @@ void undo_menu_click_with_error(void) {
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_photons_intervalG);
 			break;
 		case N_PHOTONS_LINE:
-			g_sprintf(buffer,"%li",(current)->xi->general->n_photons_line);
+			buffer = g_strdup_printf("%li",(current)->xi->general->n_photons_line);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_photons_lineG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_photons_lineG);
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			g_sprintf(buffer,"%i",(current)->xi->general->n_interactions_trajectory);
+			buffer = g_strdup_printf("%i",(current)->xi->general->n_interactions_trajectory);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_interactions_trajectoryG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_interactions_trajectoryG);
 			break;
 		case D_SAMPLE_SOURCE:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->d_sample_source);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), d_sample_sourceG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), d_sample_sourceG);
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_sample_orientation[0]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_xG);
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_sample_orientation[1]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_yG);
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_sample_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_sample_orientation[2]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_sample_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_sample_orientation_zG);
 			break;
 		case P_DETECTOR_WINDOW_X:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[0]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->p_detector_window[0]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_xG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_xG);
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[1]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->p_detector_window[1]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_yG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_yG);
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->p_detector_window[2]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->p_detector_window[2]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), p_detector_window_zG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), p_detector_window_zG);
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_detector_orientation[0]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_xG);
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_detector_orientation[1]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_yG);
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->n_detector_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->n_detector_orientation[2]);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), n_detector_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), n_detector_orientation_zG);
 			break;
 		case AREA_DETECTOR:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->area_detector);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->area_detector);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), area_detectorG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), area_detectorG);
 			break;
 		case COLLIMATOR_HEIGHT:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->collimator_height);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->collimator_height);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), collimator_heightG);
 			break;
 		case COLLIMATOR_DIAMETER:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->collimator_diameter);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->collimator_diameter);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), collimator_diameterG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->d_source_slit);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->d_source_slit);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), d_source_slitG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), d_source_slitG);
 			break;
 		case SLIT_SIZE_X:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->slit_size_x);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->slit_size_x);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), slit_size_xG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), slit_size_xG);
 			break;
 		case SLIT_SIZE_Y:
-			g_sprintf(buffer,"%lg",(current)->xi->geometry->slit_size_y);
+			buffer = g_strdup_printf("%lg",(current)->xi->geometry->slit_size_y);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), slit_size_yG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), slit_size_yG);
 			break;
 		case DETECTOR_GAIN:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->gain);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_gainG);
@@ -2749,31 +2715,31 @@ void undo_menu_click_with_error(void) {
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_nchannelsG);
 			break;
 		case DETECTOR_LIVE_TIME:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->live_time);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_live_timeG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_live_timeG);
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->pulse_width);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->pulse_width);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_pulse_widthG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_pulse_widthG);
 			break;
 		case DETECTOR_ZERO:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->zero);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_zeroG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_zeroG);
 			break;
 		case DETECTOR_NOISE:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->noise);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->noise);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_noiseG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_noiseG);
 			break;
 		case DETECTOR_FANO:
-			g_sprintf(buffer,"%lg",(current)->xi->detector->fano);
+			buffer = g_strdup_printf("%lg",(current)->xi->detector->fano);
 			g_signal_handler_block(G_OBJECT(undo_error->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY(undo_error->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(undo_error->widget), detector_fanoG);
@@ -2784,11 +2750,11 @@ void undo_menu_click_with_error(void) {
 }
 
 static void undo_menu_click(GtkWidget *widget, gpointer data) {
-	char buffer[512];
+	char *buffer;
 	GtkListStore *store;
 	GtkTreeIter iter;
 	char *elementString;
-	int i,j;
+	int i;
 	int undo_rv;
 
 	//restore previous state
@@ -2810,7 +2776,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),(current-1)->xi->general->outputfile);
 			break;
 		case N_PHOTONS_INTERVAL:
-			g_sprintf(buffer,"%li",(current-1)->xi->general->n_photons_interval);
+			buffer = g_strdup_printf("%li",(current-1)->xi->general->n_photons_interval);
 #if DEBUG == 1
 			fprintf(stdout,"n_photons_interval undo to %s\n",buffer);
 #endif
@@ -2819,13 +2785,13 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_photons_intervalG);
 			break;
 		case N_PHOTONS_LINE:
-			g_sprintf(buffer,"%li",(current-1)->xi->general->n_photons_line);
+			buffer = g_strdup_printf("%li",(current-1)->xi->general->n_photons_line);
 			g_signal_handler_block(G_OBJECT(current->widget), n_photons_lineG);
 			gtk_entry_set_text(GTK_ENTRY(current->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_photons_lineG);
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			g_sprintf(buffer,"%i",(current-1)->xi->general->n_interactions_trajectory);
+			buffer = g_strdup_printf("%i",(current-1)->xi->general->n_interactions_trajectory);
 			g_signal_handler_block(G_OBJECT(current->widget), n_interactions_trajectoryG);
 			gtk_entry_set_text(GTK_ENTRY(current->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT(current->widget), n_interactions_trajectoryG);
@@ -2845,14 +2811,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->composition->n_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->composition->layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current-1)->xi->composition->layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->composition->layers[i].Z[j]));
-					if (j != (current-1)->xi->composition->layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->composition->layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -2861,103 +2820,103 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					REFERENCE_COLUMN,(i+1 == (current-1)->xi->composition->reference_layer) ? TRUE : FALSE,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current-1)->xi->composition, &compositionS);
 			break;
 		case D_SAMPLE_SOURCE:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->d_sample_source);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current)->widget), d_sample_sourceG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), d_sample_sourceG);
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_sample_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_xG);
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_sample_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_yG);
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_sample_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_sample_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_sample_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_sample_orientation_zG);
 			break;
 		case P_DETECTOR_WINDOW_X:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[0]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->p_detector_window[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_xG);
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[1]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->p_detector_window[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_yG);
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->p_detector_window[2]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->p_detector_window[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), p_detector_window_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), p_detector_window_zG);
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_detector_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_xG);
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_detector_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_yG);
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->n_detector_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->n_detector_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current)->widget), n_detector_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), n_detector_orientation_zG);
 			break;
 		case AREA_DETECTOR:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->area_detector);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->area_detector);
 			g_signal_handler_block(G_OBJECT((current)->widget), area_detectorG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), area_detectorG);
 			break;
 		case COLLIMATOR_HEIGHT:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_height);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->collimator_height);
 			g_signal_handler_block(G_OBJECT((current)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_heightG);
 			break;
 		case COLLIMATOR_DIAMETER:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->collimator_diameter);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->collimator_diameter);
 			g_signal_handler_block(G_OBJECT((current)->widget), collimator_diameterG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->d_source_slit);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->d_source_slit);
 			g_signal_handler_block(G_OBJECT((current)->widget), d_source_slitG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), d_source_slitG);
 			break;
 		case SLIT_SIZE_X:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_x);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->slit_size_x);
 			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_xG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_xG);
 			break;
 		case SLIT_SIZE_Y:
-			g_sprintf(buffer,"%lg",(current-1)->xi->geometry->slit_size_y);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->geometry->slit_size_y);
 			g_signal_handler_block(G_OBJECT((current)->widget), slit_size_yG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), slit_size_yG);
@@ -3064,14 +3023,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->absorbers->n_exc_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->absorbers->exc_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current-1)->xi->absorbers->exc_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->absorbers->exc_layers[i].Z[j]));
-					if (j != (current-1)->xi->absorbers->exc_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->absorbers->exc_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->exc_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3079,7 +3031,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current-1)->xi->absorbers->exc_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 #if DEBUG == 1
 
@@ -3101,14 +3053,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->absorbers->n_det_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->absorbers->det_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current-1)->xi->absorbers->det_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->absorbers->det_layers[i].Z[j]));
-					if (j != (current-1)->xi->absorbers->det_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->absorbers->det_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->det_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3116,7 +3061,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current-1)->xi->absorbers->det_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(det_compositionS);
 			xmi_copy_abs_or_crystal2composition((current-1)->xi->absorbers->det_layers,(current-1)->xi->absorbers->n_det_layers , &det_compositionS);
@@ -3135,14 +3080,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->detector->n_crystal_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current-1)->xi->detector->crystal_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current-1)->xi->detector->crystal_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current-1)->xi->detector->crystal_layers[i].Z[j]));
-					if (j != (current-1)->xi->detector->crystal_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->detector->crystal_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->detector->crystal_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3150,7 +3088,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current-1)->xi->detector->crystal_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 #if DEBUG == 1
 
@@ -3159,14 +3097,14 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			xmi_copy_abs_or_crystal2composition((current-1)->xi->detector->crystal_layers,(current-1)->xi->detector->n_crystal_layers , &crystal_compositionS);
 			break;
 		case DETECTOR_TYPE:
-			//g_sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			//buffer = g_strdup_printf("%lg",(current-1)->xi->detector->detector_type);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_typeG);
 			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX((current)->widget),(current-1)->xi->detector->detector_type);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_typeG);
 			break;
 		case DETECTOR_GAIN:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->gain);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_gainG);
@@ -3177,31 +3115,31 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_nchannelsG);
 			break;
 		case DETECTOR_LIVE_TIME:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->live_time);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_live_timeG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_live_timeG);
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->pulse_width);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->pulse_width);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_pulse_widthG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_pulse_widthG);
 			break;
 		case DETECTOR_ZERO:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->zero);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_zeroG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_zeroG);
 			break;
 		case DETECTOR_NOISE:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->noise);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->noise);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_noiseG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_noiseG);
 			break;
 		case DETECTOR_FANO:
-			g_sprintf(buffer,"%lg",(current-1)->xi->detector->fano);
+			buffer = g_strdup_printf("%lg",(current-1)->xi->detector->fano);
 			g_signal_handler_block(G_OBJECT((current)->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current)->widget), detector_fanoG);
@@ -3229,19 +3167,19 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			break;
 	}
 	if (current-1 != redo_buffer) {
-		g_sprintf(buffer,"Undo: %s",(current-1)->message);
+		buffer = g_strdup_printf("Undo: %s",(current-1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 	}
 	else {
-		g_sprintf(buffer,"Undo");
+		buffer = g_strdup_printf("Undo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 		gtk_tool_item_set_tooltip_text(undoT,buffer);
 		gtk_widget_set_sensitive(undoW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(undoT),FALSE);
 	}
 	//update redo
-	g_sprintf(buffer,"Redo: %s",current->message);
+	buffer = g_strdup_printf("Redo: %s",current->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 	gtk_tool_item_set_tooltip_text(redoT,buffer);
 	gtk_widget_set_sensitive(redoW,TRUE);
@@ -3376,11 +3314,11 @@ static void about_click(GtkWidget *widget, gpointer data) {
 }
 
 static void redo_menu_click(GtkWidget *widget, gpointer data) {
-	char buffer[512];
+	char *buffer;
 	GtkListStore *store;
 	GtkTreeIter iter;
 	char *elementString;
-	int i,j;
+	int i;
 	int undo_rv;
 
 #if DEBUG == 1
@@ -3391,19 +3329,19 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),(current+1)->xi->general->outputfile);
 			break;
 		case N_PHOTONS_INTERVAL:
-			g_sprintf(buffer,"%li",(current+1)->xi->general->n_photons_interval);
+			buffer = g_strdup_printf("%li",(current+1)->xi->general->n_photons_interval);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_photons_intervalG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_photons_intervalG);
 			break;
 		case N_PHOTONS_LINE:
-			g_sprintf(buffer,"%li",(current+1)->xi->general->n_photons_line);
+			buffer = g_strdup_printf("%li",(current+1)->xi->general->n_photons_line);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_photons_lineG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_photons_lineG);
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			g_sprintf(buffer,"%i",(current+1)->xi->general->n_interactions_trajectory);
+			buffer = g_strdup_printf("%i",(current+1)->xi->general->n_interactions_trajectory);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_interactions_trajectoryG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_interactions_trajectoryG);
@@ -3420,14 +3358,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->composition->n_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->composition->layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current+1)->xi->composition->layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->composition->layers[i].Z[j]));
-					if (j != (current+1)->xi->composition->layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->composition->layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3436,103 +3367,103 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					REFERENCE_COLUMN,(i+1 == (current+1)->xi->composition->reference_layer) ? TRUE : FALSE,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(compositionS);
 			xmi_copy_composition((current+1)->xi->composition, &compositionS);
 			break;
 		case D_SAMPLE_SOURCE:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->d_sample_source);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->d_sample_source);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), d_sample_sourceG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_sample_sourceG);
 			break;
 		case N_SAMPLE_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_sample_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_xG);
 			break;
 		case N_SAMPLE_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_sample_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_yG);
 			break;
 		case N_SAMPLE_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_sample_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_sample_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_sample_orientation_zG);
 			break;
 		case P_DETECTOR_WINDOW_X:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[0]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->p_detector_window[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_xG);
 			break;
 		case P_DETECTOR_WINDOW_Y:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[1]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->p_detector_window[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_yG);
 			break;
 		case P_DETECTOR_WINDOW_Z:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->p_detector_window[2]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->p_detector_window[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), p_detector_window_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), p_detector_window_zG);
 			break;
 		case N_DETECTOR_ORIENTATION_X:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[0]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_detector_orientation[0]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_xG);
 			break;
 		case N_DETECTOR_ORIENTATION_Y:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[1]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_detector_orientation[1]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_yG);
 			break;
 		case N_DETECTOR_ORIENTATION_Z:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->n_detector_orientation[2]);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->n_detector_orientation[2]);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), n_detector_orientation_zG);
 			break;
 		case AREA_DETECTOR:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->area_detector);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->area_detector);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), area_detectorG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), area_detectorG);
 			break;
 		case COLLIMATOR_HEIGHT:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_height);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->collimator_height);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_heightG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_heightG);
 			break;
 		case COLLIMATOR_DIAMETER:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->collimator_diameter);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->collimator_diameter);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), collimator_diameterG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), collimator_diameterG);
 			break;
 		case D_SOURCE_SLIT:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->d_source_slit);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->d_source_slit);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), d_source_slitG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), d_source_slitG);
 			break;
 		case SLIT_SIZE_X:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_x);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->slit_size_x);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_xG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_xG);
 			break;
 		case SLIT_SIZE_Y:
-			g_sprintf(buffer,"%lg",(current+1)->xi->geometry->slit_size_y);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->geometry->slit_size_y);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), slit_size_yG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), slit_size_yG);
@@ -3639,14 +3570,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->absorbers->n_exc_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->absorbers->exc_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current+1)->xi->absorbers->exc_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->absorbers->exc_layers[i].Z[j]));
-					if (j != (current+1)->xi->absorbers->exc_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->absorbers->exc_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->exc_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3654,7 +3578,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current+1)->xi->absorbers->exc_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(exc_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->exc_layers,(current+1)->xi->absorbers->n_exc_layers , &exc_compositionS);
@@ -3673,14 +3597,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->absorbers->n_det_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->absorbers->det_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current+1)->xi->absorbers->det_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->absorbers->det_layers[i].Z[j]));
-					if (j != (current+1)->xi->absorbers->det_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->absorbers->det_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->det_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3688,7 +3605,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current+1)->xi->absorbers->det_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(det_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->absorbers->det_layers,(current+1)->xi->absorbers->n_det_layers , &det_compositionS);
@@ -3707,14 +3624,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->detector->n_crystal_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = (char *) malloc(sizeof(char)* ((current+1)->xi->detector->crystal_layers[i].n_elements*5));
-				elementString[0] = '\0';
-				for (j = 0 ; j < (current+1)->xi->detector->crystal_layers[i].n_elements ; j++) {
-					strcat(elementString,AtomicNumberToSymbol((current+1)->xi->detector->crystal_layers[i].Z[j]));
-					if (j != (current+1)->xi->detector->crystal_layers[i].n_elements-1) {
-						strcat(elementString,", ");
-					}
-				}
+				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->detector->crystal_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->detector->crystal_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3722,13 +3632,13 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 					THICKNESS_COLUMN,(current+1)->xi->detector->crystal_layers[i].thickness,
 					-1
 					);
-				free(elementString);
+				g_free(elementString);
 			}
 			xmi_free_composition(crystal_compositionS);
 			xmi_copy_abs_or_crystal2composition((current+1)->xi->detector->crystal_layers,(current+1)->xi->detector->n_crystal_layers , &crystal_compositionS);
 			break;
 		case DETECTOR_TYPE:
-			//g_sprintf(buffer,"%lg",(current-1)->xi->detector->detector_type);
+			//buffer = g_strdup_printf("%lg",(current-1)->xi->detector->detector_type);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_typeG);
 			//gtk_entry_set_text(GTK_ENTRY((current)->widget),buffer);
 			gtk_combo_box_set_active(GTK_COMBO_BOX((current+1)->widget),(current+1)->xi->detector->detector_type);
@@ -3740,37 +3650,37 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_nchannelsG);
 			break;
 		case DETECTOR_GAIN:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->gain);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->gain);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_gainG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_gainG);
 			break;
 		case DETECTOR_LIVE_TIME:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->live_time);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->live_time);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_live_timeG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_live_timeG);
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->pulse_width);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->pulse_width);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_pulse_widthG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_pulse_widthG);
 			break;
 		case DETECTOR_ZERO:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->zero);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->zero);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_zeroG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_zeroG);
 			break;
 		case DETECTOR_NOISE:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->noise);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->noise);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_noiseG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_noiseG);
 			break;
 		case DETECTOR_FANO:
-			g_sprintf(buffer,"%lg",(current+1)->xi->detector->fano);
+			buffer = g_strdup_printf("%lg",(current+1)->xi->detector->fano);
 			g_signal_handler_block(G_OBJECT((current+1)->widget), detector_fanoG);
 			gtk_entry_set_text(GTK_ENTRY((current+1)->widget),buffer);
 			g_signal_handler_unblock(G_OBJECT((current+1)->widget), detector_fanoG);
@@ -3801,7 +3711,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 	}
 
 
-	g_sprintf(buffer,"Undo: %s",(current+1)->message);
+	buffer = g_strdup_printf("Undo: %s",(current+1)->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
 	gtk_widget_set_sensitive(undoW,TRUE);
@@ -3811,14 +3721,14 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 
 	current++;
 	if (current == last) {
-		g_sprintf(buffer,"Redo");
+		buffer = g_strdup_printf("Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 		gtk_widget_set_sensitive(redoW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	}
 	else {
-		g_sprintf(buffer,"Redo: %s",(current+1)->message);
+		buffer = g_strdup_printf("Redo: %s",(current+1)->message);
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 	}
@@ -4312,7 +4222,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 
 	//check for filetype
-	if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
+	if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 		if (process_pre_file_operation(old->window) == FALSE)
 			return FALSE;
 
@@ -4339,7 +4249,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy(dialog);
 		}
 	}
-	else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
+	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 		if (plot_spectra_from_file(filename) == 1) {
@@ -4358,7 +4268,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 			gtk_widget_destroy (dialog);
 		}
 	}
-	else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
+	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 		struct dialog_helper_xmsa_data *my_data = (struct dialog_helper_xmsa_data *) g_malloc(sizeof(struct dialog_helper_xmsa_data));
 		my_data->window = old->window;
 		my_data->filename = filename;
@@ -4371,7 +4281,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 
 static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpointer data) {
-	struct osx_load_data *old = (struct osx_load_data *) malloc(sizeof(struct osx_load_data));
+	struct osx_load_data *old = (struct osx_load_data *) g_malloc(sizeof(struct osx_load_data));
 
 	old->window = (GtkWidget *) data;
 	old->path = g_strdup(path);
@@ -4383,7 +4293,6 @@ static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpoin
 #endif
 void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 	struct undo_single *iter;
-	char buffer[10];
 
 #if DEBUG == 1
 	fprintf(stdout,"resetting undo_buffer\n");
@@ -4399,27 +4308,27 @@ void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 	}
 
 	for (iter = redo_buffer ; iter <= current ; iter++) {
-		free(iter->filename);
+		g_free(iter->filename);
 		if (iter->message)
 			g_free(iter->message);
 		xmi_free_input(iter->xi);
 	}
-	free(redo_buffer);
-	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single));
+	g_free(redo_buffer);
+	redo_buffer = (struct undo_single *) g_malloc(sizeof(struct undo_single));
 	current = redo_buffer;
 	last = redo_buffer;
-	redo_buffer->filename = strdup(filename);
+	redo_buffer->filename = g_strdup(filename);
 	redo_buffer->xi = xi_new;
 	redo_buffer->message = NULL;
 	if (filename != NULL && strcmp(filename,UNLIKELY_FILENAME) != 0) {
 		if (last_saved != NULL) {
-			free(last_saved->filename);
+			g_free(last_saved->filename);
 			xmi_free_input(last_saved->xi);
-			free(last_saved);
+			g_free(last_saved);
 		}
-		last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+		last_saved = (struct undo_single *) g_malloc(sizeof(struct undo_single));
 		xmi_copy_input(xi_new, &(last_saved->xi));
-		last_saved->filename = strdup(filename);
+		last_saved->filename = g_strdup(filename);
 	}
 	else {
 		last_saved = NULL;
@@ -4429,12 +4338,10 @@ void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 	gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	gtk_widget_set_sensitive(undoW,FALSE);
 	gtk_widget_set_sensitive(redoW,FALSE);
-	g_sprintf(buffer,"Undo");
-	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
-	gtk_tool_item_set_tooltip_text(undoT,buffer);
-	g_sprintf(buffer,"Redo");
-	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
-	gtk_tool_item_set_tooltip_text(redoT,buffer);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW), "Undo");
+	gtk_tool_item_set_tooltip_text(undoT, "Undo");
+	gtk_menu_item_set_label(GTK_MENU_ITEM(redoW), "Redo");
+	gtk_tool_item_set_tooltip_text(redoT, "Redo");
 
 	return;
 }
@@ -4459,7 +4366,7 @@ void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
 }
 
 void update_undo_buffer(int kind, GtkWidget *widget) {
-	char buffer[512];
+	char *buffer;
 	ptrdiff_t last_diff, current_diff;
 	struct undo_single *tempPtr;
 	int i,j,n;
@@ -4477,27 +4384,27 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		fprintf(stdout,"last > current\n");
 #endif
 		for (tempPtr = current+1 ; tempPtr == last ; tempPtr++) {
-			free(tempPtr->filename);
+			g_free(tempPtr->filename);
 			if (tempPtr->message)
 				g_free(tempPtr->message);
 			xmi_free_input(tempPtr->xi);
 		}
 		//disable redo
-		g_sprintf(buffer,"Redo");
+		buffer = g_strdup_printf("Redo");
 		gtk_menu_item_set_label(GTK_MENU_ITEM(redoW),buffer);
 		gtk_widget_set_sensitive(redoW,FALSE);
 		gtk_tool_item_set_tooltip_text(redoT,buffer);
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 	}
 
-	redo_buffer = (struct undo_single *) realloc(redo_buffer,(current-redo_buffer+2)*sizeof(struct undo_single));
+	redo_buffer = (struct undo_single *) g_realloc(redo_buffer,(current-redo_buffer+2)*sizeof(struct undo_single));
 #if DEBUG == 1
 	fprintf(stdout,"After redo_buffer realloc\n");
 #endif
 	last = redo_buffer + last_diff;
 	current = redo_buffer + current_diff;
 	last = current+1;
-	last->filename=strdup(UNLIKELY_FILENAME);
+	last->filename = g_strdup(UNLIKELY_FILENAME);
 	xmi_copy_input(current->xi, &(last->xi));
 	last->kind = kind;
 	double value;
@@ -4507,8 +4414,8 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 
 	switch (kind) {
 		case OUTPUTFILE:
-			free(last->xi->general->outputfile);
-			last->xi->general->outputfile=strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
+			g_free(last->xi->general->outputfile);
+			last->xi->general->outputfile = g_strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
 			last->widget = widget;
 			break;
 		case N_PHOTONS_INTERVAL:
@@ -4585,9 +4492,9 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case DISCRETE_ENERGY_ADD:
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
 			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy_disc;
-			free(energy_disc);
+			g_free(energy_disc);
 			energy_disc = NULL;
 			//sort
 			if (last->xi->excitation->n_discrete > 1)
@@ -4597,44 +4504,44 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			temp_exc = (struct xmi_excitation*) widget;
 			last->xi->excitation->n_discrete += temp_exc->n_discrete;
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			for (i = last->xi->excitation->n_discrete-temp_exc->n_discrete ; i < last->xi->excitation->n_discrete ; i++) {
 				last->xi->excitation->discrete[i] = temp_exc->discrete[i-last->xi->excitation->n_discrete+temp_exc->n_discrete];
 			}
 			qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			last->xi->excitation->n_continuous += temp_exc->n_continuous;
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			for (i = last->xi->excitation->n_continuous-temp_exc->n_continuous ; i < last->xi->excitation->n_continuous ; i++) {
 				last->xi->excitation->continuous[i] = temp_exc->continuous[i-last->xi->excitation->n_continuous+temp_exc->n_continuous];
 			}
 			qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
-			free(temp_exc);
+			g_free(temp_exc);
 
 			break;
 		case DISCRETE_ENERGY_IMPORT_ADD:
 			last->xi->excitation->n_discrete += GPOINTER_TO_INT(widget);
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			for (i = last->xi->excitation->n_discrete-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_discrete ; i++) {
 				last->xi->excitation->discrete[i] = energy_disc[i-last->xi->excitation->n_discrete+GPOINTER_TO_INT(widget)];
 			}
-			free(energy_disc);
+			g_free(energy_disc);
 			energy_disc = NULL;
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_IMPORT_REPLACE:
 			last->xi->excitation->n_discrete = GPOINTER_TO_INT(widget);
-			free(last->xi->excitation->discrete);
+			g_free(last->xi->excitation->discrete);
 			last->xi->excitation->discrete = (struct xmi_energy_discrete *) xmi_memdup(energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
-			free(energy_disc);
+			g_free(energy_disc);
 			energy_disc = NULL;
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_CLEAR:
-			free(last->xi->excitation->discrete);
+			g_free(last->xi->excitation->discrete);
 			last->xi->excitation->discrete = NULL;
 			last->xi->excitation->n_discrete = 0;
 			break;
@@ -4642,7 +4549,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->discrete[current_index] = *energy_disc;
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
-			free(energy_disc);
+			g_free(energy_disc);
 			energy_disc = NULL;
 			break;
 		case DISCRETE_ENERGY_SCALE:
@@ -4667,19 +4574,19 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 					}
 				}
 
-				last->xi->excitation->discrete = (struct xmi_energy_discrete *) realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+				last->xi->excitation->discrete = (struct xmi_energy_discrete *) g_realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			}
 			else {
-				free(last->xi->excitation->discrete);
+				g_free(last->xi->excitation->discrete);
 				last->xi->excitation->discrete = NULL;
 				last->xi->excitation->n_discrete = 0;
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
 			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy_cont;
-			free(energy_cont);
+			g_free(energy_cont);
 			energy_cont = NULL;
 			//sort
 			if (last->xi->excitation->n_continuous > 1)
@@ -4688,26 +4595,26 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			for (i = last->xi->excitation->n_continuous-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_continuous ; i++) {
 				last->xi->excitation->continuous[i] = energy_cont[i-last->xi->excitation->n_continuous+GPOINTER_TO_INT(widget)];
 			}
-			free(energy_cont);
+			g_free(energy_cont);
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
 			last->xi->excitation->n_continuous = GPOINTER_TO_INT(widget);
-			free(last->xi->excitation->continuous);
+			g_free(last->xi->excitation->continuous);
 			last->xi->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup(energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
-			free(energy_cont);
+			g_free(energy_cont);
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_CLEAR:
-			free(last->xi->excitation->continuous);
+			g_free(last->xi->excitation->continuous);
 			last->xi->excitation->continuous = NULL;
 			last->xi->excitation->n_continuous = 0;
 			break;
@@ -4720,7 +4627,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
 			last->xi->excitation->continuous[current_index] = *energy_cont;
-			free(energy_cont);
+			g_free(energy_cont);
 			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
@@ -4740,20 +4647,20 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 					}
 				}
 
-				last->xi->excitation->continuous = (struct xmi_energy_continuous *) realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+				last->xi->excitation->continuous = (struct xmi_energy_continuous *) g_realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			}
 			else {
-				free(last->xi->excitation->continuous);
+				g_free(last->xi->excitation->continuous);
 				last->xi->excitation->continuous = NULL;
 				last->xi->excitation->n_continuous = 0;
 			}
 			break;
 		case SOURCE_SPECTRUM_REPLACE:
 			if (last->xi->excitation->n_continuous > 0)
-				free(last->xi->excitation->continuous);
+				g_free(last->xi->excitation->continuous);
 			if (last->xi->excitation->n_discrete > 0)
-				free(last->xi->excitation->discrete);
-			free(last->xi->excitation);
+				g_free(last->xi->excitation->discrete);
+			g_free(last->xi->excitation);
 			temp_exc = (struct xmi_excitation*) widget;
 			last->xi->excitation = temp_exc;
 			break;
@@ -4766,7 +4673,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->absorbers->n_exc_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_exc_layers ; i++)
 					xmi_free_layer(last->xi->absorbers->exc_layers+i);
-				free(last->xi->absorbers->exc_layers);
+				g_free(last->xi->absorbers->exc_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
 			last->widget = widget;
@@ -4780,7 +4687,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->absorbers->n_det_layers > 0) {
 				for (i = 0 ; i < last->xi->absorbers->n_det_layers ; i++)
 					xmi_free_layer(last->xi->absorbers->det_layers+i);
-				free(last->xi->absorbers->det_layers);
+				g_free(last->xi->absorbers->det_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
 			last->widget = widget;
@@ -4794,7 +4701,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->detector->n_crystal_layers > 0) {
 				for (i = 0 ; i < last->xi->detector->n_crystal_layers ; i++)
 					xmi_free_layer(last->xi->detector->crystal_layers+i);
-				free(last->xi->detector->crystal_layers);
+				g_free(last->xi->detector->crystal_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
 			last->widget = widget;
@@ -4865,7 +4772,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			exit(1);
 	}
 	current = last;
-	g_sprintf(buffer,"Undo: %s",last->message);
+	buffer = g_strdup_printf("Undo: %s",last->message);
 	gtk_menu_item_set_label(GTK_MENU_ITEM(undoW),buffer);
 	gtk_widget_set_sensitive(undoW,TRUE);
 	gtk_tool_item_set_tooltip_text(undoT,buffer);
@@ -5028,7 +4935,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
 						// these two next lines are bad code
-						free(energy_disc);
+						g_free(energy_disc);
 						energy_disc = NULL;
 						return;
 					}
@@ -5041,7 +4948,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
 						// these two next lines are bad code
-						free(energy_cont);
+						g_free(energy_cont);
 						energy_cont = NULL;
 						return;
 					}
@@ -5135,7 +5042,7 @@ XMI_MAIN
 	GtkWidget *toolbar;
 	GtkWidget *scrolled_window;
 	GtkWidget *tempW;
-	char buffer[512];
+	char *buffer;
 	struct xmi_composition *temp_composition;
 	struct val_changed *vc;
 	char *title;
@@ -5242,7 +5149,7 @@ XMI_MAIN
 
 
 	//initialize undo system
-	redo_buffer = (struct undo_single *) malloc(sizeof(struct undo_single ));
+	redo_buffer = (struct undo_single *) g_malloc(sizeof(struct undo_single ));
 	current = redo_buffer;
 	last = current;
 	last_saved = NULL;
@@ -5259,7 +5166,7 @@ XMI_MAIN
 
 
 	current->xi = xmi_init_empty_input();
-	current->filename = strdup(UNLIKELY_FILENAME);
+	current->filename = g_strdup(UNLIKELY_FILENAME);
 	current->message = NULL;
 
 	n_photons_intervalC = 1;
@@ -5780,9 +5687,9 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_photons_intervalW = text;
-	g_sprintf(buffer,"%li",current->xi->general->n_photons_interval);
+	buffer = g_strdup_printf("%li",current->xi->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_PHOTONS_INTERVAL;
 	vc->check = &n_photons_intervalC;
 	n_photons_intervalG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
@@ -5798,9 +5705,9 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_photons_lineW = text;
-	g_sprintf(buffer,"%li",current->xi->general->n_photons_line);
+	buffer = g_strdup_printf("%li",current->xi->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_PHOTONS_LINE;
 	vc->check = &n_photons_lineC;
 	n_photons_lineG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
@@ -5813,9 +5720,9 @@ XMI_MAIN
 	gtk_box_pack_start(GTK_BOX(hbox_text_label),label,FALSE,FALSE,0);
 	text = gtk_entry_new();
 	n_interactions_trajectoryW = text;
-	g_sprintf(buffer,"%i",current->xi->general->n_interactions_trajectory);
+	buffer = g_strdup_printf("%i",current->xi->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(text),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_INTERACTIONS_TRAJECTORY;
 	vc->check = &n_interactions_trajectoryC;
 	n_interactions_trajectoryG = g_signal_connect(G_OBJECT(text),"changed",G_CALLBACK(pos_int_changed), (gpointer) vc);
@@ -5888,9 +5795,9 @@ XMI_MAIN
 	label = gtk_label_new("Sample-source distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_sample_sourceW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->d_sample_source);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->d_sample_source);
 	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = D_SAMPLE_SOURCE;
 	vc->check = &d_sample_sourceC;
 	d_sample_sourceG = g_signal_connect(G_OBJECT(d_sample_sourceW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -5912,10 +5819,10 @@ XMI_MAIN
 	label = gtk_label_new("Sample orientation vector");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_zW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[2]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_sample_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_zW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_SAMPLE_ORIENTATION_Z;
 	vc->check = &n_sample_orientation_zC;
 	n_sample_orientation_zG = g_signal_connect(G_OBJECT(n_sample_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
@@ -5924,10 +5831,10 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_yW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[1]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_sample_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_yW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_SAMPLE_ORIENTATION_Y;
 	vc->check = &n_sample_orientation_yC;
 	n_sample_orientation_yG = g_signal_connect(G_OBJECT(n_sample_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -5936,10 +5843,10 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_sample_orientation_xW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_sample_orientation[0]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_sample_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_sample_orientation_xW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_SAMPLE_ORIENTATION_X;
 	vc->check = &n_sample_orientation_xC;
 	n_sample_orientation_xG = g_signal_connect(G_OBJECT(n_sample_orientation_xW),"changed",G_CALLBACK(double_changed),(gpointer) vc  );
@@ -5957,10 +5864,10 @@ XMI_MAIN
 	label = gtk_label_new("Detector window position (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_zW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[2]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->p_detector_window[2]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_zW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = P_DETECTOR_WINDOW_Z;
 	vc->check = &p_detector_window_zC;
 	p_detector_window_zG = g_signal_connect(G_OBJECT(p_detector_window_zW),"changed",G_CALLBACK(double_changed), vc  );
@@ -5969,10 +5876,10 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_yW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[1]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->p_detector_window[1]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_yW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = P_DETECTOR_WINDOW_Y;
 	vc->check = &p_detector_window_yC;
 	p_detector_window_yG = g_signal_connect(G_OBJECT(p_detector_window_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
@@ -5981,10 +5888,10 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	p_detector_window_xW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->p_detector_window[0]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->p_detector_window[0]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(p_detector_window_xW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = P_DETECTOR_WINDOW_X;
 	vc->check = &p_detector_window_xC;
 	p_detector_window_xG = g_signal_connect(G_OBJECT(p_detector_window_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
@@ -6002,10 +5909,10 @@ XMI_MAIN
 	label = gtk_label_new("Detector window normal vector");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_zW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[2]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_detector_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_zW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_DETECTOR_ORIENTATION_Z;
 	vc->check = &n_detector_orientation_zC ;
 	n_detector_orientation_zG = g_signal_connect(G_OBJECT(n_detector_orientation_zW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6014,10 +5921,10 @@ XMI_MAIN
 	label = gtk_label_new("z:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_yW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[1]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_detector_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_yW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_DETECTOR_ORIENTATION_Y;
 	vc->check = &n_detector_orientation_yC ;
 	n_detector_orientation_yG = g_signal_connect(G_OBJECT(n_detector_orientation_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6026,10 +5933,10 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	n_detector_orientation_xW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->n_detector_orientation[0]);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->n_detector_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
 	gtk_entry_set_width_chars(GTK_ENTRY(n_detector_orientation_xW),10);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = N_DETECTOR_ORIENTATION_X;
 	vc->check = &n_detector_orientation_xC ;
 	n_detector_orientation_xG = g_signal_connect(G_OBJECT(n_detector_orientation_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6048,9 +5955,9 @@ XMI_MAIN
 	gtk_label_set_markup(GTK_LABEL(label),"Active detector area (cm<sup>2</sup>)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	area_detectorW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->area_detector);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = AREA_DETECTOR;
 	vc->check = &area_detectorC;
 	area_detectorG = g_signal_connect(G_OBJECT(area_detectorW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6066,9 +5973,9 @@ XMI_MAIN
 	label = gtk_label_new("Collimator height (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_heightW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->collimator_height);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->collimator_height);
 	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = COLLIMATOR_HEIGHT;
 	vc->check = &collimator_heightC ;
 	collimator_heightG = g_signal_connect(G_OBJECT(collimator_heightW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6084,9 +5991,9 @@ XMI_MAIN
 	label = gtk_label_new("Collimator diameter (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	collimator_diameterW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->collimator_diameter);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->collimator_diameter);
 	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = COLLIMATOR_DIAMETER;
 	vc->check = &collimator_diameterC ;
 	collimator_diameterG = g_signal_connect(G_OBJECT(collimator_diameterW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6102,9 +6009,9 @@ XMI_MAIN
 	label = gtk_label_new("Source-slits distance (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	d_source_slitW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->d_source_slit);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = D_SOURCE_SLIT;
 	vc->check = &d_source_slitC ;
 	d_source_slitG = g_signal_connect(G_OBJECT(d_source_slitW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6120,9 +6027,9 @@ XMI_MAIN
 	label = gtk_label_new("Slits size (cm)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_yW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->slit_size_y);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->slit_size_y);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = SLIT_SIZE_Y;
 	vc->check = &slit_size_yC;
 	slit_size_yG = g_signal_connect(G_OBJECT(slit_size_yW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6131,9 +6038,9 @@ XMI_MAIN
 	label = gtk_label_new("y:");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	slit_size_xW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->geometry->slit_size_x);
+	buffer = g_strdup_printf("%lg",current->xi->geometry->slit_size_x);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = SLIT_SIZE_X;
 	vc->check = &slit_size_xC;
 	slit_size_xG = g_signal_connect(G_OBJECT(slit_size_xW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6239,9 +6146,9 @@ XMI_MAIN
 	label = gtk_label_new("Detector gain (keV/channel)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_gainW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->gain);
+	buffer = g_strdup_printf("%lg",current->xi->detector->gain);
 	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_GAIN;
 	vc->check = &detector_gainC;
 	detector_gainG = g_signal_connect(G_OBJECT(detector_gainW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6254,9 +6161,9 @@ XMI_MAIN
 	label = gtk_label_new("Detector zero (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_zeroW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->zero);
+	buffer = g_strdup_printf("%lg",current->xi->detector->zero);
 	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_ZERO;
 	vc->check = &detector_zeroC;
 	detector_zeroG = g_signal_connect(G_OBJECT(detector_zeroW),"changed",G_CALLBACK(double_changed), (gpointer) vc);
@@ -6269,9 +6176,9 @@ XMI_MAIN
 	label = gtk_label_new("Detector Fano factor");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_fanoW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->fano);
+	buffer = g_strdup_printf("%lg",current->xi->detector->fano);
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_FANO;
 	vc->check = &detector_fanoC;
 	detector_fanoG = g_signal_connect(G_OBJECT(detector_fanoW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6284,9 +6191,9 @@ XMI_MAIN
 	label = gtk_label_new("Detector electronic noise (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_noiseW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->noise);
+	buffer = g_strdup_printf("%lg",current->xi->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_NOISE;
 	vc->check = &detector_noiseC;
 	detector_noiseG = g_signal_connect(G_OBJECT(detector_noiseW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6299,9 +6206,9 @@ XMI_MAIN
 	label = gtk_label_new("Live time (s)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_live_timeW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->live_time);
+	buffer = g_strdup_printf("%lg",current->xi->detector->live_time);
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_LIVE_TIME;
 	vc->check = &detector_live_timeC;
 	detector_live_timeG = g_signal_connect(G_OBJECT(detector_live_timeW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6314,9 +6221,9 @@ XMI_MAIN
 	label = gtk_label_new("Pulse width (s)");
 	gtk_box_pack_start(GTK_BOX(hbox_text_label), label, FALSE, FALSE, 0);
 	detector_pulse_widthW = gtk_entry_new();
-	g_sprintf(buffer,"%lg",current->xi->detector->pulse_width);
+	buffer = g_strdup_printf("%lg",current->xi->detector->pulse_width);
 	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
-	vc = (struct val_changed *) malloc(sizeof(struct val_changed));
+	vc = (struct val_changed *) g_malloc(sizeof(struct val_changed));
 	vc->kind = DETECTOR_PULSE_WIDTH;
 	vc->check = &detector_pulse_widthC;
 	detector_pulse_widthG = g_signal_connect(G_OBJECT(detector_pulse_widthW),"changed",G_CALLBACK(double_changed), (gpointer) vc  );
@@ -6380,7 +6287,7 @@ XMI_MAIN
 	GtkWidget *dialog;
 	if (argc == 2) {
 		gchar *filename = g_strdup(argv[1]);
-		if (strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
+		if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSI file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
@@ -6407,7 +6314,7 @@ XMI_MAIN
 			}
 			adjust_save_buttons();
 		}
-		else if (strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
+		else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSO file
@@ -6429,7 +6336,7 @@ XMI_MAIN
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 		}
-		else if (strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
+		else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsa") == 0) {
 			update_xmimsim_title_xmsi("New file", window, NULL);
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//have to add busy readin XMSA dialog here, through custom g_idle_add callback
@@ -6682,13 +6589,13 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		//open file based on extension
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") == 0) {
+		if (g_ascii_strcasecmp(filename+strlen(filename)-5, ".xmsi") == 0) {
 			//input-file found
 			if (xmi_read_input_xml(filename, &xi) == 0) {
 				xi = NULL;
 			}
 		}
-		else if (strcasecmp(filename+strlen(filename)-5, ".xmso") == 0) {
+		else if (g_ascii_strcasecmp(filename+strlen(filename)-5, ".xmso") == 0) {
 			//output-file found
 			if (xmi_read_output_xml(filename, &xo) == 0) {
 				xo = NULL;
@@ -7072,12 +6979,12 @@ gboolean save_function(GtkWidget *widget, gpointer data) {
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup("");
+			g_free(current->xi->general->comments);
+			current->xi->general->comments = g_strdup("");
 		}
 		else {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			g_free(current->xi->general->comments);
+			current->xi->general->comments = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 		}
 		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
 			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
@@ -7092,14 +6999,14 @@ gboolean save_function(GtkWidget *widget, gpointer data) {
 
 		}
 		else {
-			filename = strdup(last_saved->filename);
-			free(last_saved->filename);
+			filename = g_strdup(last_saved->filename);
+			g_free(last_saved->filename);
 			xmi_free_input(last_saved->xi);
-			free(last_saved);
-			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+			g_free(last_saved);
+			last_saved = (struct undo_single *) g_malloc(sizeof(struct undo_single));
 			xmi_copy_input(current->xi, &(last_saved->xi));
-			last_saved->filename = strdup(filename);
-			free(filename);
+			last_saved->filename = g_strdup(filename);
+			g_free(filename);
 		}
 		gtk_widget_set_sensitive(saveW,FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
@@ -7152,32 +7059,30 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") != 0) {
-			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".xmsi");
-		}
+		xmi_msim_gui_ensure_extension(&filename, ".xmsi");
+		//
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
 		if (gtk_text_iter_equal (&iterb, &itere) == TRUE) {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup("");
+			g_free(current->xi->general->comments);
+			current->xi->general->comments = g_strdup("");
 		}
 		else {
-			free(current->xi->general->comments);
-			current->xi->general->comments = strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
+			g_free(current->xi->general->comments);
+			current->xi->general->comments = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 		}
 
 
 		if (xmi_write_input_xml(filename, current->xi) == 1) {
 			gtk_widget_destroy (dialog);
 			if (last_saved != NULL) {
-				free(last_saved->filename);
+				g_free(last_saved->filename);
 				xmi_free_input(last_saved->xi);
-				free(last_saved);
+				g_free(last_saved);
 			}
-			last_saved = (struct undo_single *) malloc(sizeof(struct undo_single));
+			last_saved = (struct undo_single *) g_malloc(sizeof(struct undo_single));
 			xmi_copy_input(current->xi, &(last_saved->xi));
-			last_saved->filename = strdup(filename);
+			last_saved->filename = g_strdup(filename);
 			title = g_path_get_basename(filename);
 			update_xmimsim_title_xmsi(title, (GtkWidget *) data, filename);
 			g_free(title);
@@ -7240,7 +7145,7 @@ void xmi_open_email(const char *address) {
 }
 
 static void change_all_values_general(struct xmi_input *new_input) {
-	char buffer[512];
+	char *buffer;
 	GtkTextBuffer *commentsBuffer;
 
 	n_photons_intervalC = 1;
@@ -7253,11 +7158,11 @@ static void change_all_values_general(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW))),commentsG);
 
 	gtk_entry_set_text(GTK_ENTRY(outputfileW),new_input->general->outputfile);
-	g_sprintf(buffer,"%li",new_input->general->n_photons_interval);
+	buffer = g_strdup_printf("%li",new_input->general->n_photons_interval);
 	gtk_entry_set_text(GTK_ENTRY(n_photons_intervalW),buffer);
-	g_sprintf(buffer,"%li",new_input->general->n_photons_line);
+	buffer = g_strdup_printf("%li",new_input->general->n_photons_line);
 	gtk_entry_set_text(GTK_ENTRY(n_photons_lineW),buffer);
-	g_sprintf(buffer,"%i",new_input->general->n_interactions_trajectory);
+	buffer = g_strdup_printf("%i",new_input->general->n_interactions_trajectory);
 	gtk_entry_set_text(GTK_ENTRY(n_interactions_trajectoryW),buffer);
 	commentsBuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (commentsW));
 	gtk_text_buffer_set_text(commentsBuffer,new_input->general->comments,-1);
@@ -7274,21 +7179,13 @@ static void change_all_values_general(struct xmi_input *new_input) {
 
 static void change_all_values_composition(struct xmi_input *new_input) {
 	char *elementString;
-	int i,j;
+	int i;
 	GtkTreeIter iter;
 
 	gtk_list_store_clear(compositionL);
-	for (i=0 ; i < new_input->composition->n_layers ; i++) {
+	for (i = 0 ; i < new_input->composition->n_layers ; i++) {
 		gtk_list_store_append(compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->composition->layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->composition->layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->composition->layers[i].Z[j]));
-			if (j != new_input->composition->layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
+		elementString = xmi_msim_gui_get_layer_element_string(new_input->composition->layers + i);
 		gtk_list_store_set(compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->composition->layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7297,14 +7194,14 @@ static void change_all_values_composition(struct xmi_input *new_input) {
 			REFERENCE_COLUMN,(i+1 == new_input->composition->reference_layer) ? TRUE : FALSE,
 			-1
 			);
-		free(elementString);
+		g_free(elementString);
 	}
 	xmi_free_composition(compositionS);
 	xmi_copy_composition(new_input->composition,&compositionS);
 }
 
 static void change_all_values_geometry(struct xmi_input *new_input) {
-	char buffer[512];
+	char *buffer;
 
 	d_sample_sourceC = 1;
 	n_sample_orientation_xC = 1;
@@ -7340,37 +7237,37 @@ static void change_all_values_geometry(struct xmi_input *new_input) {
 	g_signal_handler_block(G_OBJECT(slit_size_xW), slit_size_xG);
 	g_signal_handler_block(G_OBJECT(slit_size_yW), slit_size_yG);
 
-	g_sprintf(buffer,"%lg",new_input->geometry->d_sample_source);
+	buffer = g_strdup_printf("%lg",new_input->geometry->d_sample_source);
 	gtk_entry_set_text(GTK_ENTRY(d_sample_sourceW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[0]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_sample_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[1]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_sample_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_sample_orientation[2]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_sample_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_sample_orientation_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[0]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->p_detector_window[0]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[1]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->p_detector_window[1]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->p_detector_window[2]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->p_detector_window[2]);
 	gtk_entry_set_text(GTK_ENTRY(p_detector_window_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[0]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_detector_orientation[0]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[1]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_detector_orientation[1]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_yW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->n_detector_orientation[2]);
+	buffer = g_strdup_printf("%lg",new_input->geometry->n_detector_orientation[2]);
 	gtk_entry_set_text(GTK_ENTRY(n_detector_orientation_zW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->area_detector);
+	buffer = g_strdup_printf("%lg",new_input->geometry->area_detector);
 	gtk_entry_set_text(GTK_ENTRY(area_detectorW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->collimator_height);
+	buffer = g_strdup_printf("%lg",new_input->geometry->collimator_height);
 	gtk_entry_set_text(GTK_ENTRY(collimator_heightW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->collimator_diameter);
+	buffer = g_strdup_printf("%lg",new_input->geometry->collimator_diameter);
 	gtk_entry_set_text(GTK_ENTRY(collimator_diameterW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->d_source_slit);
+	buffer = g_strdup_printf("%lg",new_input->geometry->d_source_slit);
 	gtk_entry_set_text(GTK_ENTRY(d_source_slitW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_x);
+	buffer = g_strdup_printf("%lg",new_input->geometry->slit_size_x);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_xW),buffer);
-	g_sprintf(buffer,"%lg",new_input->geometry->slit_size_y);
+	buffer = g_strdup_printf("%lg",new_input->geometry->slit_size_y);
 	gtk_entry_set_text(GTK_ENTRY(slit_size_yW),buffer);
 
 	g_signal_handler_unblock(G_OBJECT(d_sample_sourceW), d_sample_sourceG);
@@ -7430,21 +7327,13 @@ static void change_all_values_excitation(struct xmi_input *new_input) {
 
 static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
 	char *elementString;
-	int i,j;
+	int i;
 	GtkTreeIter iter;
 
 	gtk_list_store_clear(exc_compositionL);
 	for (i=0 ; i < new_input->absorbers->n_exc_layers ; i++) {
 		gtk_list_store_append(exc_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->exc_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->absorbers->exc_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->exc_layers[i].Z[j]));
-			if (j != new_input->absorbers->exc_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
+		elementString = xmi_msim_gui_get_layer_element_string(new_input->absorbers->exc_layers + i);
 		gtk_list_store_set(exc_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->absorbers->exc_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7452,7 +7341,7 @@ static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
 			THICKNESS_COLUMN, new_input->absorbers->exc_layers[i].thickness,
 			-1
 			);
-		free(elementString);
+		g_free(elementString);
 	}
 	xmi_free_composition(exc_compositionS);
 	xmi_copy_abs_or_crystal2composition(new_input->absorbers->exc_layers, new_input->absorbers->n_exc_layers,&exc_compositionS);
@@ -7463,21 +7352,13 @@ static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
 
 static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
 	char *elementString;
-	int i,j;
+	int i;
 	GtkTreeIter iter;
 
 	gtk_list_store_clear(det_compositionL);
 	for (i=0 ; i < new_input->absorbers->n_det_layers ; i++) {
 		gtk_list_store_append(det_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->absorbers->det_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->absorbers->det_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->absorbers->det_layers[i].Z[j]));
-			if (j != new_input->absorbers->det_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
+		elementString = xmi_msim_gui_get_layer_element_string(new_input->absorbers->det_layers + i);
 		gtk_list_store_set(det_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->absorbers->det_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7485,7 +7366,7 @@ static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
 			THICKNESS_COLUMN, new_input->absorbers->det_layers[i].thickness,
 			-1
 			);
-		free(elementString);
+		g_free(elementString);
 	}
 	xmi_free_composition(det_compositionS);
 	xmi_copy_abs_or_crystal2composition(new_input->absorbers->det_layers, new_input->absorbers->n_det_layers,&det_compositionS);
@@ -7494,8 +7375,8 @@ static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
 }
 
 static void change_all_values_detectorsettings(struct xmi_input *new_input) {
-	char buffer[512], *elementString;
-	int i,j;
+	char *buffer, *elementString;
+	int i;
 	GtkTreeIter iter;
 
 	detector_typeC = 1;
@@ -7517,32 +7398,24 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(detector_typeW),new_input->detector->detector_type);
 
-	g_sprintf(buffer,"%lg",new_input->detector->gain);
+	buffer = g_strdup_printf("%lg",new_input->detector->gain);
 	gtk_entry_set_text(GTK_ENTRY(detector_gainW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->zero);
+	buffer = g_strdup_printf("%lg",new_input->detector->zero);
 	gtk_entry_set_text(GTK_ENTRY(detector_zeroW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->fano);
+	buffer = g_strdup_printf("%lg",new_input->detector->fano);
 	gtk_entry_set_text(GTK_ENTRY(detector_fanoW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->noise);
+	buffer = g_strdup_printf("%lg",new_input->detector->noise);
 	gtk_entry_set_text(GTK_ENTRY(detector_noiseW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->live_time);
+	buffer = g_strdup_printf("%lg",new_input->detector->live_time);
 	gtk_entry_set_text(GTK_ENTRY(detector_live_timeW),buffer);
-	g_sprintf(buffer,"%lg",new_input->detector->pulse_width);
+	buffer = g_strdup_printf("%lg",new_input->detector->pulse_width);
 	gtk_entry_set_text(GTK_ENTRY(detector_pulse_widthW),buffer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(detector_nchannelsW), (double) new_input->detector->nchannels);
 
 	gtk_list_store_clear(crystal_compositionL);
-	for (i=0 ; i < new_input->detector->n_crystal_layers ; i++) {
+	for (i = 0 ; i < new_input->detector->n_crystal_layers ; i++) {
 		gtk_list_store_append(crystal_compositionL, &iter);
-		elementString = (char *) malloc(sizeof(char)* (new_input->detector->crystal_layers[i].n_elements*5));
-		elementString[0] = '\0';
-		for (j = 0 ; j < new_input->detector->crystal_layers[i].n_elements ; j++) {
-			strcat(elementString,AtomicNumberToSymbol(new_input->detector->crystal_layers[i].Z[j]));
-			if (j != new_input->detector->crystal_layers[i].n_elements-1) {
-				strcat(elementString,", ");
-			}
-
-		}
+		elementString = xmi_msim_gui_get_layer_element_string(new_input->detector->crystal_layers + i);
 		gtk_list_store_set(crystal_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->detector->crystal_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7550,7 +7423,7 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 			THICKNESS_COLUMN, new_input->detector->crystal_layers[i].thickness,
 			-1
 			);
-		free(elementString);
+		g_free(elementString);
 	}
 	xmi_free_composition(crystal_compositionS);
 	xmi_copy_abs_or_crystal2composition(new_input->detector->crystal_layers, new_input->detector->n_crystal_layers,&crystal_compositionS);
@@ -7849,7 +7722,7 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	g_signal_connect(G_OBJECT(cs_window), "delete-event", G_CALLBACK(cs_window_delete_event), NULL);
 
 	GtkWidget *event_box = gtk_event_box_new();
-	struct coordinate_pixbufs *cp = (struct coordinate_pixbufs *) malloc(sizeof(struct coordinate_pixbufs));
+	struct coordinate_pixbufs *cp = (struct coordinate_pixbufs *) g_malloc(sizeof(struct coordinate_pixbufs));
 	cp->current_pixbuf = NULL;
 	//g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(coordinate_system_clicked_cb), cp);
 	//g_signal_connect(G_OBJECT(event_box), "enter-notify-event", G_CALLBACK(coordinate_system_enter_cb), NULL);
@@ -7909,5 +7782,5 @@ g_list_free_full (GList          *list,
 {
   g_list_foreach (list, (GFunc) free_func, NULL);
   g_list_free (list);
-}
+	}
 #endif

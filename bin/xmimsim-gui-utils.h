@@ -68,6 +68,9 @@ void xmi_msim_gui_utils_open_url(const char *link);
 
 double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax);
 
+void xmi_msim_gui_ensure_extension(gchar **filename, const gchar *extension);
+
+gchar* xmi_msim_gui_get_layer_element_string(struct xmi_layer *layer);
 G_END_DECLS
 
 #endif

@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_solid_angle.h"
 #include "xmi_xml.h"
 #include "xmi_random.h"
-#include <stdlib.h>
 #include <unistd.h>
 
 

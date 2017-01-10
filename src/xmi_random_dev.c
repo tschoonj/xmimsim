@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <pthread.h>
 #include <stdio.h>
 #include <time.h>
-#include <stdlib.h>
 #include <errno.h>
+#include <glib.h>
 
 #define SLEEP_TIME 1
 #define MAX_NUMBERS 8192
@@ -111,7 +111,7 @@ int xmi_start_random_acquisition_dev(void) {
 	}
 	xmi_numbers_in_memory = 0;
 	//allocate memory for the random_numbers
-	xmi_random_numbers = (unsigned long int*) malloc(sizeof(unsigned long int)*MAX_NUMBERS);
+	xmi_random_numbers = (unsigned long int*) g_malloc(sizeof(unsigned long int)*MAX_NUMBERS);
 	if (xmi_random_numbers == NULL) {
 		fprintf(stderr,"Could not allocate memory for the random numbers\n");
 		return 0;
@@ -158,7 +158,7 @@ int xmi_end_random_acquisition_dev(void){
 		return 0;
 	}
 	//free memory
-	free(xmi_random_numbers);
+	g_free(xmi_random_numbers);
 	xmi_numbers_in_memory=0;
 	//destroy mutex
 	pthread_mutex_destroy(&xmi_random_mutex);

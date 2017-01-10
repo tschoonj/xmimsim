@@ -23,8 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_private.h"
 #include <xraylib.h>
-#include <string.h>
-#include <stdlib.h>
 #include "xmimsim-gui-spline.h"
 #include <stdio.h>
 #include <math.h>

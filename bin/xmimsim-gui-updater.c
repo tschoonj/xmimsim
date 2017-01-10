@@ -22,8 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
-#include <stdlib.h>
-#include <string.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <math.h>
@@ -142,7 +140,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 	size_t realsize = size * nmemb;
 	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
 
-	mem->memory = (char *) realloc(mem->memory, mem->size + realsize + 1);
+	mem->memory = (char *) g_realloc(mem->memory, mem->size + realsize + 1);
 
 	memcpy(&(mem->memory[mem->size]), contents, realsize);
 	mem->size += realsize;
@@ -349,11 +347,12 @@ static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double u
 		return 0;
 
 	double ratio = dlnow/dltotal;
-	gchar buffer[15];
+	gchar *buffer;
 	if (floor(ratio*10000.0)/10000.0 > floor(gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(dv->progressbar))*10000.0)/10000.0) {
 		//update progress bar
-		g_sprintf(buffer,"%.2f %%",ratio*100.0);
+		buffer = g_strdup_printf("%.2f %%",ratio*100.0);
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),buffer);
+		g_free(buffer);
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(dv->progressbar),ratio);
 		while(gtk_events_pending())
 		    gtk_main_iteration();
@@ -376,7 +375,7 @@ int check_for_updates(char **max_version_rv, char **message) {
 	CURLcode res;
 	struct MemoryStruct chunk;
 
-	chunk.memory = (char *) malloc(1);
+	chunk.memory = (char *) g_malloc(1);
 	chunk.size = 0;
 
 	g_debug("checking for updates...\n");
@@ -426,13 +425,13 @@ int check_for_updates(char **max_version_rv, char **message) {
 	jld->url = NULL;
 	json_array_foreach_element(rootArray, (JsonArrayForeach) check_version_of_tag, jld);
 
-	free(chunk.memory);
+	g_free(chunk.memory);
 	int rv;
 	if (g_ascii_strtod(jld->max_version, NULL) > g_ascii_strtod(current_version, NULL)) {
 		rv = XMIMSIM_UPDATES_AVAILABLE;
 		//get tag message
 		g_object_unref(parser);
-		chunk.memory = (char *) malloc(1);
+		chunk.memory = (char *) g_malloc(1);
 		chunk.size = 0;
 		curl_easy_setopt(curl, CURLOPT_URL, jld->url);
 		res = curl_easy_perform(curl);
@@ -454,14 +453,14 @@ int check_for_updates(char **max_version_rv, char **message) {
 		}
 
 		*message = g_strdup(json_object_get_string_member(object, "message"));
-		free(chunk.memory);
+		g_free(chunk.memory);
 
 	}
 	else {
 		rv = XMIMSIM_UPDATES_NONE;
 	}
 
-	*max_version_rv = strdup(g_strstrip(jld->max_version));
+	*max_version_rv = g_strdup(g_strstrip(jld->max_version));
 	//g_fprintf(stdout, "tag url: %s\n", jld->url);
 	g_free(jld->max_version);
 	g_free(jld->url);

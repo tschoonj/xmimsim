@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <fcntl.h>
 #include <sys/resource.h>
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include "xmi_random_dev.h"
 #include <sys/resource.h>
@@ -29,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 
@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 struct harvester {
-	char fifoslave[100];
+	char *fifoslave;
 	int nseeds;
 };
 
@@ -54,7 +54,7 @@ void *harvest_thread(void *sh) {
 		exit(1);
 	}
 
-	seeds = (unsigned long int *) malloc(sizeof(unsigned long int)*shl->nseeds);
+	seeds = (unsigned long int *) g_malloc(sizeof(unsigned long int)*shl->nseeds);
 	for (i = 0 ; i < shl->nseeds ; i++) {
 		if (xmi_get_random_number_dev(seeds+i) != 1) {
 			syslog(LOG_ERR,"xmi_get_random_number error");
@@ -69,9 +69,10 @@ void *harvest_thread(void *sh) {
 		exit(1);
 	}
 	//cleanup
-	free(seeds);
+	g_free(seeds);
 	close(fifofd2);
-	free(sh);
+	g_free(shl->fifoslave);
+	g_free(sh);
 
 	return NULL;
 }
@@ -148,7 +149,7 @@ int lockfile(int fd) {
 
 int already_running(void) {
 	int fd;
-	char buf[16];
+	char *buf;
 
 	fd = open(LOCKFILE, O_RDWR|O_CREAT, LOCKMODE);
 	if (fd < 0) {
@@ -164,8 +165,9 @@ int already_running(void) {
 		exit(1);
 	}
 	ftruncate(fd,0);
-	sprintf(buf,"%ld",(long) getpid());
+	buf = g_strdup_printf("%ld",(long) getpid());
 	write(fd,buf,strlen(buf)+1);
+	g_free(buf);
 	return 0;
 }
 
@@ -297,11 +299,11 @@ int main (int argc, char *argv[]) {
 		syslog(LOG_INFO,"Daemon -> pid: %li  counter: %li number: %li",pidslave[0],pidslave[1],pidslave[2]);
 #endif
 		//allocate necessary variables
-		sh = (struct harvester *) malloc(sizeof(struct harvester));
-		ht = (pthread_t *) malloc(sizeof(pthread_t));
+		sh = (struct harvester *) g_malloc(sizeof(struct harvester));
+		ht = (pthread_t *) g_malloc(sizeof(pthread_t));
 
 		//create slave fifo
-		sprintf(sh->fifoslave, FIFOSLAVE "%li.%li",pidslave[0],pidslave[1]);
+		sh->fifoslave = g_strdup_printf(FIFOSLAVE "%li.%li",pidslave[0],pidslave[1]);
 		sh->nseeds = pidslave[2];
 
 		//start thread

@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmi_private.h"
 #include "xmi_msim.h"
-#include <string.h>
 #include <stdio.h>
 #include <math.h>
 #include <glib.h>

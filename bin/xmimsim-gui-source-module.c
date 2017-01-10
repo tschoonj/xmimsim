@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include <string.h>
 #include "xmimsim-gui-source-module.h"
+#include <string.h>
 
 
 G_DEFINE_TYPE(XmiMsimGuiSourceModule, xmi_msim_gui_source_module, G_TYPE_TYPE_MODULE)

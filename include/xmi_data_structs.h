@@ -149,7 +149,7 @@ struct xmi_counts {
 struct xmi_main_options;
 
 struct xmi_fluorescence_line {
-	char line_type[10];
+	char *line_type;
 	double energy;
 	double total_counts;
 	int n_interactions;

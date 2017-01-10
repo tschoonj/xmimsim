@@ -17,14 +17,12 @@
 
 #include <config.h>
 #include <stdio.h>
-#include <string.h>
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmi_detector.h"
 #include "xmi_solid_angle.h"
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <stdlib.h>
 #include <xmi_aux.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>

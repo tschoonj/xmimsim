@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_data_structs.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <glib/gstdio.h>
 #include <hdf5.h>
 #include "xmi_private.h"
@@ -31,25 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 void *xmi_memdup(const void *mem, size_t bytes) {
-	void *temp;
-
-	if (mem == NULL || bytes == 0) {
-#if DEBUG == 1
-		fprintf(stdout,"Warning: xmi_memdup returns NULL\n");
-#endif
-		return NULL;
-	}
-
-	temp = (void*) malloc(bytes);
-	if (temp == NULL) {
-#if DEBUG == 1
-		fprintf(stdout,"Warning: xmi_memdup returns NULL\n");
-#endif
-		return NULL;
-	}
-	memcpy(temp,mem,bytes);
-
-	return temp;
+	return g_memdup(mem, bytes);
 }
 
 int *xmi_sort_idl_int(int *array,int n_elements) {
@@ -205,80 +185,51 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 #endif
 
 char *xmi_version_string() {
-	gchar *string = g_malloc(sizeof(gchar)*5*1024);
-	gchar *temp;
+	GString *string = g_string_sized_new(512);
 
-	temp = g_strdup_printf("XMI-MSIM %s\n\n", VERSION);
-	strcat(string,temp);
-	g_free(temp);
-	strcat(string,"Compiled with ");
+	g_string_append_printf(string, "XMI-MSIM %s\n\n", VERSION);
+	g_string_append(string,"Compiled with ");
 	//xraylib
-	temp = g_strdup_printf("xraylib %i.%i, ", XRAYLIB_MAJOR, XRAYLIB_MINOR);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "xraylib %i.%i, ", XRAYLIB_MAJOR, XRAYLIB_MINOR);
 	//glib
-	temp = g_strdup_printf("glib %i.%i.%i, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "glib %i.%i.%i, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
 	//gtk2
 #ifdef HAVE_GUI
-	temp = g_strdup_printf("gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
   #ifdef HAVE_CXX
-	temp = g_strdup_printf("gtkmm %i.%i.%i, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "gtkmm %i.%i.%i, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
   #endif
 #endif
 	//hdf5
-	temp = g_strdup_printf("HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
 	//libxml2
-	temp = g_strdup_printf("libxml2 %s,\n", LIBXML_DOTTED_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "libxml2 %s,\n", LIBXML_DOTTED_VERSION);
 	//libxslt
-	temp = g_strdup_printf("libxslt %s, ", LIBXSLT_DOTTED_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "libxslt %s, ", LIBXSLT_DOTTED_VERSION);
 	//fgsl
 #ifdef FGSL_VERSION
-	temp = g_strdup_printf("fgsl %s, ", TOSTRING(FGSL_VERSION));
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "fgsl %s, ", TOSTRING(FGSL_VERSION));
 #endif
 #ifdef EASYRNG_VERSION
-	temp = g_strdup_printf("easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
 #endif
 #ifdef HAVE_GUI
   #ifdef HAVE_CXX
 	//gtkextra
-	temp = g_strdup_printf("gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
   #else
 	//gtkextra
-	temp = g_strdup_printf("gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, "gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
   #endif
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-	temp = g_strdup_printf(", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
-	strcat(string,temp);
-	g_free(temp);
-	temp = g_strdup_printf(", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
-	strcat(string,temp);
-	g_free(temp);
+	g_string_append_printf(string, ", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+	g_string_append_printf(string, ", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
 #endif
-	strcat(string,"\n\n");
-	strcat(string,
-"Copyright (C) 2010-2016 Tom Schoonjans and Laszlo Vincze\n"
+	g_string_append(string, "\n\n");
+	g_string_append(string,
+"Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"
@@ -294,7 +245,7 @@ char *xmi_version_string() {
 "along with this program.  If not, see <http://www.gnu.org/licenses/>.\n"
 );
 
-	return string;
+	return g_string_free(string, FALSE);
 }
 
 
@@ -326,7 +277,6 @@ char *xmi_version_string() {
 
 #include <limits.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <errno.h>
 
 #ifndef HAVE_GETDELIM
@@ -472,15 +422,15 @@ getline (char **lineptr, size_t *n, FILE *stream)
 
 
 void xmi_free(void *ptr) {
-	free(ptr);
+	g_free(ptr);
 }
 
 void *xmi_malloc(size_t size) {
-	return malloc(size);
+	return g_malloc(size);
 }
 
 void *xmi_realloc(void *ptr, size_t size){
-	return realloc(ptr, size);
+	return g_realloc(ptr, size);
 }
 
 
@@ -594,7 +544,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	if (chd->groups != NULL) {
 		int found = 0;
 		for (i = 0 ; chd->groups[i] != NULL ; i++) {
-			if (strcmp(name, chd->groups[i]) == 0) {
+			if (g_strcmp0(name, chd->groups[i]) == 0) {
 				found = 1;
 				break;
 			}
@@ -702,19 +652,19 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 
-	if (kind == XMI_HDF5_SOLID_ANGLES && strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+	if (kind == XMI_HDF5_SOLID_ANGLES && g_strcmp0(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
 		return -1;
 	}
-	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && g_strcmp0(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
 		return -1;
 	}
-	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
+	else if (kind == XMI_HDF5_DATA && g_strcmp0(xmi_kind, "XMI_HDF5_DATA") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_from);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
 		H5Fclose(file_from_id);
@@ -768,19 +718,19 @@ int xmi_copy_between_hdf5_files(int kind, char *file_from, char *file_to, char *
 	H5Tclose(atype);
 	H5Aclose(attribute_id);
 
-	if (kind == XMI_HDF5_SOLID_ANGLES && strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
+	if (kind == XMI_HDF5_SOLID_ANGLES && g_strcmp0(xmi_kind, "XMI_HDF5_SOLID_ANGLES") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_SOLID_ANGLES but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
 		return -1;
 	}
-	else if (kind == XMI_HDF5_ESCAPE_RATIOS && strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
+	else if (kind == XMI_HDF5_ESCAPE_RATIOS && g_strcmp0(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_ESCAPE_RATIOS but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
 		return -1;
 	}
-	else if (kind == XMI_HDF5_DATA && strcmp(xmi_kind, "XMI_HDF5_DATA") != 0) {
+	else if (kind == XMI_HDF5_DATA && g_strcmp0(xmi_kind, "XMI_HDF5_DATA") != 0) {
 		g_fprintf(stderr,"XMI-MSIM HDF5 file %s has wrong kind attribute\n", file_to);
 		g_fprintf(stderr, "Expected XMI_HDF5_DATA but found %s\n", xmi_kind);
 		H5Fclose(file_to_id);
@@ -856,13 +806,13 @@ int xmi_get_hdf5_kind(char *name) {
 
 	int rv = XMI_HDF5_INVALID;
 
-	if (strcmp(xmi_kind, "XMI_HDF5_SOLID_ANGLES") == 0) {
+	if (g_strcmp0(xmi_kind, "XMI_HDF5_SOLID_ANGLES") == 0) {
 		rv = XMI_HDF5_SOLID_ANGLES;
 	}
-	else if (strcmp(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") == 0) {
+	else if (g_strcmp0(xmi_kind, "XMI_HDF5_ESCAPE_RATIOS") == 0) {
 		rv = XMI_HDF5_ESCAPE_RATIOS;
 	}
-	else if (strcmp(xmi_kind, "XMI_HDF5_DATA") == 0) {
+	else if (g_strcmp0(xmi_kind, "XMI_HDF5_DATA") == 0) {
 		rv = XMI_HDF5_DATA;
 	}
 	else {
@@ -894,5 +844,5 @@ int xmi_get_hdf5_kind(char *name) {
 	return  rv;
 }
 int compare_string(const void *a, const void *b) {
-   return strcmp(*(char **)a, *(char **)b);
+   return g_strcmp0(*(char **)a, *(char **)b);
 }

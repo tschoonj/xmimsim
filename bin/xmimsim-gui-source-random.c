@@ -40,8 +40,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include "xmimsim-gui-source-random.h"
 #include "xmi_aux.h"
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -78,7 +76,7 @@ static void xmi_msim_gui_source_random_init(XmiMsimGuiSourceRandom *source) {
 static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source) {
 	int i;
 
-	struct xmi_excitation *excitation_random = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	struct xmi_excitation *excitation_random = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	excitation_random->n_continuous = 0;
 	excitation_random->continuous = NULL;
 	excitation_random->n_discrete= 0;
@@ -93,7 +91,7 @@ static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *s
 	for (i = 0 ; i < 10 ; i++) {
 		double energy = i + 0.5;
 
-		excitation_random->discrete = (struct xmi_energy_discrete *) realloc(excitation_random->discrete, sizeof(struct xmi_energy_discrete)*++excitation_random->n_discrete);
+		excitation_random->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_random->discrete, sizeof(struct xmi_energy_discrete)*++excitation_random->n_discrete);
 		excitation_random->discrete[excitation_random->n_discrete-1].energy = energy;
 		excitation_random->discrete[excitation_random->n_discrete-1].horizontal_intensity =
 		excitation_random->discrete[excitation_random->n_discrete-1].vertical_intensity =

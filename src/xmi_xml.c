@@ -24,14 +24,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/parser.h>
 #include <libxml/catalog.h>
 #include <libxml/globals.h>
-#include <string.h>
 #include <math.h>
 #include <glib.h>
 #include <libxslt/xslt.h>
 #include <libxslt/xsltInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
-#include <stdlib.h>
 #include <xraylib.h>
 #include <search.h>
 
@@ -395,10 +393,10 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			//outputfile
 			txt = xmlNodeGetContent(subnode->children);
 			if (txt == NULL) {
-				(*general)->outputfile = strdup("");
+				(*general)->outputfile = g_strdup("");
 			}
 			else {
-				(*general)->outputfile = (char *) strdup((char *) txt);
+				(*general)->outputfile = g_strdup((char *) txt);
 			}
 			xmlFree(txt);
 		}
@@ -430,10 +428,10 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			//comments
 			txt = xmlNodeGetContent(subnode->children);
 			if (txt == NULL) {
-				(*general)->comments = strdup("");
+				(*general)->comments = g_strdup("");
 			}
 			else {
-				(*general)->comments = (char *) strdup((char *) txt);
+				(*general)->comments = g_strdup((char *) txt);
 			}
 			xmlFree(txt);
 		}
@@ -750,11 +748,11 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					while (attr != NULL) {
 						if (!xmlStrcmp(attr->name,(const xmlChar *) "distribution_type")) {
 							txt = xmlNodeGetContent(attr->children);
-							if (strcmp((char *) txt, "monochromatic") == 0) {
+							if (xmlStrcmp(txt, BAD_CAST "monochromatic") == 0) {
 								distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 								xmlFree(txt);
 							}
-							else if (strcmp((char *) txt, "gaussian") == 0) {
+							else if (xmlStrcmp(txt, BAD_CAST "gaussian") == 0) {
 								distribution_type = XMI_DISCRETE_GAUSSIAN;
 								xmlFree(txt);
 								//read scale_parameter value
@@ -765,7 +763,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 								}
 								xmlFree(txt);
 							}
-							else if (strcmp((char *) txt, "lorentzian") == 0) {
+							else if (xmlStrcmp(txt, BAD_CAST "lorentzian") == 0) {
 								distribution_type = XMI_DISCRETE_LORENTZIAN;
 								xmlFree(txt);
 								//read scale_parameter value
@@ -1532,7 +1530,7 @@ int xmi_write_output_xml(char *xmlfile, struct xmi_output *output) {
 
 int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input) {
 	int i;
-	char detector_type[20];
+	gchar *detector_type = NULL;
 	xmlNodePtr nodePtr1, nodePtr2, nodePtr3;
 
 
@@ -1632,11 +1630,11 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input
 	//detector
 	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "detector", NULL);
 	if (input->detector->detector_type == XMI_DETECTOR_SILI)
-		strcpy(detector_type,"SiLi");
+		detector_type = g_strdup("SiLi");
 	else if (input->detector->detector_type == XMI_DETECTOR_GE)
-		strcpy(detector_type,"Ge");
+		detector_type = g_strdup("Ge");
 	else if (input->detector->detector_type == XMI_DETECTOR_SI_SDD)
-		strcpy(detector_type,"Si_SDD");
+		detector_type = g_strdup("Si_SDD");
 
 	xmlNewChild(nodePtr1, NULL, BAD_CAST "detector_type", BAD_CAST detector_type);
 	xmi_new_child_printf(nodePtr1, BAD_CAST "live_time", "%g", input->detector->live_time);
@@ -1647,6 +1645,7 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input
 	xmi_new_child_printf(nodePtr1, BAD_CAST "fano", "%g", input->detector->fano);
 	xmi_new_child_printf(nodePtr1, BAD_CAST "noise", "%g", input->detector->noise);
 	nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "crystal", NULL);
+	g_free(detector_type);
 	if (xmi_write_layer_xml_body(doc, nodePtr2, input->detector->crystal_layers, input->detector->n_crystal_layers) == 0) {
 		return 0;
 	}
@@ -2138,7 +2137,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "inputfile")) {
 			//inputfile
 			txt = xmlNodeGetContent(subroot->children);
-			op->inputfile = (char *) strdup((char *) txt);
+			op->inputfile = g_strdup((char *) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "spectrum_conv")) {
@@ -2282,7 +2281,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
 			txt = xmlNodeGetContent(subroot->children);
-			ar->xpath1 = strdup((char*) txt);
+			ar->xpath1 = g_strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
@@ -2311,7 +2310,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath2")) {
 			txt = xmlNodeGetContent(subroot->children);
-			ar->xpath2 = strdup((char*) txt);
+			ar->xpath2 = g_strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {

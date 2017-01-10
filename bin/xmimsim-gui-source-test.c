@@ -4,7 +4,6 @@
 #include "xmi_xml.h"
 
 #include <stdio.h>
-#include <string.h>
 
 typedef GtkWidget* (*XmiMsimGuiSourceConstructor) (struct xmi_input *current);
 

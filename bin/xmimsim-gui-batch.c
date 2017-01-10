@@ -29,7 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
-#include <string.h>
 #include <xraylib.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
@@ -309,10 +308,7 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		if (strcasecmp(filename+strlen(filename)-5, ".xmsa") != 0) {
-			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".xmsa");
-		}
+		xmi_msim_gui_ensure_extension(&filename, ".xmsa");
 		gtk_entry_set_text(archiveEntry, filename);
 		g_free (filename);
 	}
@@ -1090,14 +1086,14 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else
 		argv[9] = g_strdup("--disable-advanced-compton");
 
-	char buffer[512];
+	char *buffer;
 #ifdef G_OS_WIN32
 	//set solid angles and escape ratios files ourself!
 	char *xmimsim_hdf5_solid_angles = NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
 
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
-		sprintf(buffer,"Could not determine solid angles HDF5 file\n");
+		buffer = g_strdup_printf("Could not determine solid angles HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
@@ -1109,7 +1105,7 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	arg_counter++;
 
 	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
-		sprintf(buffer,"Could not determine escape ratios HDF5 file\n");
+		buffer = g_strdup_printf("Could not determine escape ratios HDF5 file\n");
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
@@ -1152,8 +1148,8 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 	if (spawn_rv == FALSE) {
 		//couldn't spawn
-		//print messag_ to textbox in red...
-		sprintf(buffer,"%s\n",spawn_error->message);
+		//print message to textbox in red...
+		buffer = g_strdup_printf("%s\n",spawn_error->message);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		if (bwd->logFile) {
 			g_fprintf(bwd->logFile,"%s",buffer);
@@ -1175,7 +1171,7 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 		return;
 	}
-	sprintf(buffer,"%s was started with process id %i\n",argv[0], real_xmimsim_pid);
+	buffer = g_strdup_printf("%s was started with process id %i\n",argv[0], real_xmimsim_pid);
 	my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,NULL);
 	if (bwd->logFile) {
 		g_fprintf(bwd->logFile,"%s",buffer);
@@ -1225,14 +1221,14 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	gchar *pipe_string;
 	GError *pipe_error=NULL;
 	GIOStatus pipe_status;
-	char buffer[512];
+	char *buffer;
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
 		/*while (gtk_events_pending ())
 		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
-			sprintf(buffer,"%s with process id %i had an I/O error: %s\n", bwd->argv0, real_xmimsim_pid,pipe_error->message);
+			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", bwd->argv0, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			if (bwd->logFile) {
 				g_fprintf(bwd->logFile,"%s",buffer);
@@ -1252,7 +1248,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
-		//sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
+		//buffer = g_strdup_printf("%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
 		//my_gtk_text_buffer_insert_at_cursor_with_tags2(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
@@ -1264,14 +1260,14 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	gchar *pipe_string;
 	GError *pipe_error=NULL;
 	GIOStatus pipe_status;
-	char buffer[512];
+	char *buffer;
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
 		/*while (gtk_events_pending ())
 		        gtk_main_iteration ();*/
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
-			sprintf(buffer,"%s with process id %i had an I/O error: %s\n", bwd->argv0, real_xmimsim_pid,pipe_error->message);
+			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", bwd->argv0, real_xmimsim_pid,pipe_error->message);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			g_error_free(pipe_error);
 			if (bwd->logFile) {
@@ -1283,7 +1279,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, pipe_string,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			g_free(pipe_string);
 			if (bwd->logFile) {
-				g_fprintf(bwd->logFile,"%s",buffer);
+				g_fprintf(bwd->logFile,"%s", pipe_string);
 			}
 		}
 		else
@@ -1292,7 +1288,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	}
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
-		//sprintf(buffer,"%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
+		//buffer = g_strdup_printf("%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
 		//my_gtk_text_buffer_insert_at_cursor_with_tags2(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
@@ -1340,7 +1336,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		gtk_widget_set_sensitive(bwd->playButton, FALSE);
 		//send SIGCONT
 		int kill_rv;
-		char buffer[512];
+		char *buffer;
 		g_timer_continue(bwd->timer);
 
 #ifdef G_OS_UNIX
@@ -1349,7 +1345,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		kill_rv = (int) NtResumeProcess((HANDLE) xmimsim_pid);
 #endif
 		if (kill_rv == 0) {
-			sprintf(buffer, "Process %i was successfully resumed\n",(int) real_xmimsim_pid);
+			buffer = g_strdup_printf( "Process %i was successfully resumed\n",(int) real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
 			if (bwd->logFile) {
 				g_fprintf(bwd->logFile,"%s",buffer);
@@ -1358,7 +1354,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 			bwd->paused = FALSE;
 		}
 		else {
-			sprintf(buffer, "Process %i could not be resumed\n",(int) real_xmimsim_pid);
+			buffer = g_strdup_printf( "Process %i could not be resumed\n",(int) real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			if (bwd->logFile) {
 				g_fprintf(bwd->logFile,"%s",buffer);
@@ -1401,7 +1397,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 }
 
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd) {
-	char buffer[512];
+	char *buffer;
 	int success;
 
 
@@ -1419,35 +1415,35 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 #ifdef G_OS_UNIX
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) == 0) { /* child was terminated due to a call to exit */
-			sprintf(buffer,"%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
+			buffer = g_strdup_printf("%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"success" ),NULL);
 			success = 1;
 		}
 		else {
-			sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, WEXITSTATUS(status));
+			buffer = g_strdup_printf("%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, WEXITSTATUS(status));
 			my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			success = 0;
 		}
 	}
 	else if (WIFSIGNALED(status)) { /* child was terminated due to a signal */
-		sprintf(buffer, "%s with process id %i was terminated by signal %i\n",data, real_xmimsim_pid, WTERMSIG(status));
+		buffer = g_strdup_printf( "%s with process id %i was terminated by signal %i\n",data, real_xmimsim_pid, WTERMSIG(status));
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 	else {
-		sprintf(buffer, "%s with process id %i was terminated in some special way\n",data, real_xmimsim_pid);
+		buffer = g_strdup_printf( "%s with process id %i was terminated in some special way\n",data, real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 
 #elif defined(G_OS_WIN32)
 	if (status == 0) {
-		sprintf(buffer,"%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
+		buffer = g_strdup_printf("%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"success" ),NULL);
 		success = 1;
 	}
 	else {
-		sprintf(buffer,"%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, status);
+		buffer = g_strdup_printf("%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, status);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 		success = 0;
 	}
@@ -1538,7 +1534,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_
 	return;
 }
 static void stop_button_clicked(GtkButton *button, struct batch_window_data *bwd) {
-	char buffer[512];
+	char *buffer;
 
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
 
@@ -1561,11 +1557,11 @@ static void stop_button_clicked(GtkButton *button, struct batch_window_data *bwd
 #endif
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
-		sprintf(buffer, "Process %i was successfully terminated before completion\n", real_xmimsim_pid);
+		buffer = g_strdup_printf( "Process %i was successfully terminated before completion\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
-		sprintf(buffer, "Process %i could not be terminated with the SIGTERM signal\n", real_xmimsim_pid);
+		buffer = g_strdup_printf( "Process %i could not be terminated with the SIGTERM signal\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 	}
 
@@ -1575,11 +1571,11 @@ static void stop_button_clicked(GtkButton *button, struct batch_window_data *bwd
 	terminate_rv = TerminateProcess((HANDLE) xmimsim_pid, (UINT) 1);
 
 	if (terminate_rv == TRUE) {
-		sprintf(buffer, "Process %i was successfully terminated\n", real_xmimsim_pid);
+		buffer = g_strdup_printf( "Process %i was successfully terminated\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
-		sprintf(buffer, "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
+		buffer = g_strdup_printf( "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 	}
 #endif
@@ -1593,7 +1589,7 @@ static void pause_button_clicked(GtkButton *button, struct batch_window_data *bw
 	//UNIX only
 
 	int kill_rv;
-	char buffer[512];
+	char *buffer;
 
 	g_timer_stop(bwd->timer);
 
@@ -1605,7 +1601,7 @@ static void pause_button_clicked(GtkButton *button, struct batch_window_data *bw
 	kill_rv = (int) NtSuspendProcess((HANDLE) xmimsim_pid);
 #endif
 	if (kill_rv == 0) {
-		sprintf(buffer, "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n", real_xmimsim_pid);
+		buffer = g_strdup_printf( "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n", real_xmimsim_pid);
 		my_gtk_text_buffer_insert_at_cursor_with_tags2(bwd, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"pause-continue-stopped" ),NULL);
 		bwd->paused=TRUE;
 		if (bwd->logFile)
@@ -3836,11 +3832,7 @@ static void export_archive_plot(struct archive_plot_data *apd) {
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		if (strcasecmp(filename+strlen(filename)-4, ".csv") != 0) {
-			filename = (gchar *) realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-			strcat(filename,".csv");
-
-		}
+		xmi_msim_gui_ensure_extension(&filename, ".csv");
 		//open file
 		FILE *filePtr;
 		if ((filePtr = fopen(filename, "w")) == NULL) {
@@ -4895,8 +4887,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	z = apd->z;
 
 #ifdef HAVE_CXX
-	double *xx = (double *) malloc(sizeof(double ) * (apd->archive->nsteps1+1));
-	double **zz = (double **) malloc(sizeof(double *) * (apd->archive->nsteps1+1));
+	double *xx = (double *) g_malloc(sizeof(double ) * (apd->archive->nsteps1+1));
+	double **zz = (double **) g_malloc(sizeof(double *) * (apd->archive->nsteps1+1));
 	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 		zz[i] = z + i * (apd->archive->nsteps2+1);
 		xx[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
@@ -5090,8 +5082,8 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	apd->plot_window = plot_window;
 	apd->canvas->add_plot(*plot_window);
 
-	free(zz);
-	free(xx);
+	g_free(zz);
+	g_free(xx);
 
 
 #else
