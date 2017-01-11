@@ -222,7 +222,7 @@ int kill_current_job(void);
 
 #define malloc(x) trrrrmalloc(x)
 #define realloc(x, y) trrrrrealloc(x, y)
-#define free(x) trrrrfree(c)
+#define free(x) trrrrfree(x)
 #define sprintf(x, y, ...) trrrrsprintf(x, y, ...)
 #define strcat(x, y) lslslslslsllsstrcat(x, y)
 #define strdup(x) lslslslslsllsstrdup(x)
