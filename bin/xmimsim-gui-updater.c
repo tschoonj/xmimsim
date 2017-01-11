@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <math.h>
+#include <string.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 	#include <gtkosxapplication.h>
@@ -72,7 +73,7 @@ struct DownloadVars {
 	gchar *download_location;
 	gchar *filename;
 	GChecksum *md5sum_comp;
-	char md5sum_tag[32+1];
+	char *md5sum_tag;
 
 };
 
@@ -630,7 +631,8 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 #endif
 
-	strcpy(dv.md5sum_tag, "none");
+	dv.md5sum_tag = g_strdup("none");
+	dv.md5sum_tag = (char *) g_realloc((void *) dv.md5sum_tag, (32+1) * sizeof(gchar));
 	char *pattern = g_strdup_printf("MD5 (%s) = %%32s", filename);
 
 	for (i = 1 ; splitted[i] != NULL ; i++) {
