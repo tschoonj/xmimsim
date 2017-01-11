@@ -68,9 +68,11 @@ void xmi_msim_gui_utils_open_url(const char *link);
 
 double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax);
 
-void xmi_msim_gui_ensure_extension(gchar **filename, const gchar *extension);
+void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension);
 
-gchar* xmi_msim_gui_get_layer_element_string(struct xmi_layer *layer);
+gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer);
+
+void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *controlsLogW, GTimer *timer, GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 G_END_DECLS
 
 #endif

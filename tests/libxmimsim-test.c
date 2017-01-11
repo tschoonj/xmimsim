@@ -111,7 +111,7 @@ struct spe_data * read_spe(const char *filename) {
 		return NULL;
 	}
 
-	rv = malloc(sizeof(struct spe_data));
+	rv = g_malloc(sizeof(struct spe_data));
 
 	do {
 		if (fgets(buffer, 1024, spePtr) == NULL) {
@@ -124,16 +124,16 @@ struct spe_data * read_spe(const char *filename) {
 
 	rv->nchannels = rv->channel_last - rv->channel_first + 1;
 
-	rv->data = malloc(sizeof(double) * rv->nchannels);
+	rv->data = g_malloc(sizeof(double) * rv->nchannels);
 
 	unsigned int i;
 
 	for (i = 0 ; i < rv->nchannels ; i++) {
-    if (fscanf(spePtr, "%lf", rv->data + i) != 1) {
-      fprintf(stderr,"Error reading DATA segment of %s at position %i\n",filename,i);
-      return NULL;
-    }
-  }
+		if (fscanf(spePtr, "%lf", rv->data + i) != 1) {
+			fprintf(stderr,"Error reading DATA segment of %s at position %i\n",filename,i);
+			return NULL;
+		}
+	}
 
 	return rv;
 }
@@ -141,8 +141,8 @@ struct spe_data * read_spe(const char *filename) {
 void free_spe_data(struct spe_data *sd) {
 	g_assert(sd != NULL);
 	g_assert(sd->data != NULL);
-	free(sd->data);
-	free(sd);
+	g_free(sd->data);
+	g_free(sd);
 
 	return;
 }

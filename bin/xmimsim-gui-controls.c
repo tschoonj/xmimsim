@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_detector.h"
 #include "xmi_data_structs.h"
 #include <glib.h>
+#include <string.h>
 #include <gmodule.h>
 #ifdef G_OS_UNIX
   #include <sys/types.h>
@@ -58,64 +59,54 @@ struct window_entry {
 };
 
 
-GtkWidget *executableW;
-GtkWidget *executableB;
-GtkWidget *MlinesW;
-GtkWidget *rad_cascadeW;
-GtkWidget *nonrad_cascadeW;
-GtkWidget *variance_reductionW;
-GtkWidget *pile_upW;
-GtkWidget *poissonW;
-GtkWidget *escape_peaksW;
-GtkWidget *advanced_comptonW;
-GtkWidget *default_seedsW;
+static GtkWidget *executableW;
+static GtkWidget *executableB;
+static GtkWidget *MlinesW;
+static GtkWidget *rad_cascadeW;
+static GtkWidget *nonrad_cascadeW;
+static GtkWidget *variance_reductionW;
+static GtkWidget *pile_upW;
+static GtkWidget *poissonW;
+static GtkWidget *escape_peaksW;
+static GtkWidget *advanced_comptonW;
+static GtkWidget *default_seedsW;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-GtkWidget *openclW;
+static GtkWidget *openclW;
 #endif
-GtkWidget *custom_detector_responseE;
-GtkWidget *custom_detector_responseB;
-GtkWidget *custom_detector_responseC;
-GtkWidget *spe_convW;
-GtkWidget *spe_convB;
-GtkWidget *spe_uconvW;
-GtkWidget *csv_convW;
-GtkWidget *csv_convB;
-GtkWidget *csv_uconvW;
-GtkWidget *svg_convW;
-GtkWidget *svg_convB;
-GtkWidget *svg_uconvW;
-GtkWidget *html_convW;
-GtkWidget *html_convB;
-GtkWidget *html_uconvW;
+static GtkWidget *custom_detector_responseE;
+static GtkWidget *custom_detector_responseB;
+static GtkWidget *custom_detector_responseC;
+static GtkWidget *spe_convW;
+static GtkWidget *spe_convB;
+static GtkWidget *csv_convW;
+static GtkWidget *csv_convB;
+static GtkWidget *svg_convW;
+static GtkWidget *svg_convB;
+static GtkWidget *html_convW;
+static GtkWidget *html_convB;
 
-GtkWidget *playButton;
-GtkWidget *pauseButton = NULL;
-GtkWidget *stopButton;
+static GtkWidget *playButton;
+static GtkWidget *pauseButton = NULL;
+static GtkWidget *stopButton;
 
-GtkWidget *controlsLogW;
-GtkTextBuffer *controlsLogB;
+static GtkWidget *controlsLogW;
+static GtkTextBuffer *controlsLogB;
 
-GtkWidget *progressbar_solidW;
-GtkWidget *progressbar_mainW;
-GtkWidget *progressbar_escapeW;
+static GtkWidget *progressbar_solidW;
+static GtkWidget *progressbar_mainW;
+static GtkWidget *progressbar_escapeW;
 
-GtkWidget *image_solidW;
-GtkWidget *image_mainW;
-GtkWidget *image_escapeW;
+static GtkWidget *image_solidW;
+static GtkWidget *image_mainW;
+static GtkWidget *image_escapeW;
 
-GtkWidget *nthreadsW;
-GTimer *timer = NULL;
-
-GIOChannel *xmimsim_stdout;
-GIOChannel *xmimsim_stderr;
-
-
+static GtkWidget *nthreadsW;
+static GTimer *timer = NULL;
 
 GPid xmimsim_pid = GPID_INACTIVE;
 
 static gboolean xmimsim_paused = FALSE;
 
-void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 void reset_controls(void);
 
 
@@ -303,7 +294,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_error_free(pipe_error);
 			return FALSE;
 		}
@@ -311,7 +302,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 			//lot of message handling should come here...
 			//for now just print them in the box
 			if (process_xmimsim_stdout_string(pipe_string))
-				my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,NULL);
+				xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, pipe_string,-1,NULL);
 			g_free(pipe_string);
 		}
 		else
@@ -321,7 +312,7 @@ static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition conditio
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
 		//buffer = g_strdup_printf("%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
-		//my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		//xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
 
@@ -341,12 +332,12 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n",(char *) data, real_xmimsim_pid,pipe_error->message);
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_error_free(pipe_error);
 			return FALSE;
 		}
 		else if (pipe_status == G_IO_STATUS_NORMAL) {
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, pipe_string,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, pipe_string,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			g_free(pipe_string);
 		}
 		else
@@ -356,7 +347,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		//hung up...
 		//buffer = g_strdup_printf("%s with process id %i had an I/O error: connection hung up\n",(char *) data, (int) xmimsim_pid);
-		//my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		//xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		return FALSE;
 	}
 
@@ -389,35 +380,35 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) == 0) { /* child was terminated due to a call to exit */
 			buffer = g_strdup_printf("%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 			success = 1;
 		}
 		else {
 			buffer = g_strdup_printf("%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, WEXITSTATUS(status));
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			success = 0;
 		}
 	}
 	else if (WIFSIGNALED(status)) { /* child was terminated due to a signal */
 		buffer = g_strdup_printf( "%s with process id %i was terminated by signal %i\n",data, real_xmimsim_pid, WTERMSIG(status));
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 	else {
 		buffer = g_strdup_printf( "%s with process id %i was terminated in some special way\n",data, real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 
 #elif defined(G_OS_WIN32)
 	if (status == 0) {
 		buffer = g_strdup_printf("%s with process id %i exited normally without errors\n", data, real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"success" ),NULL);
 		success = 1;
 	}
 	else {
 		buffer = g_strdup_printf("%s with process id %i exited with an error (code: %i)\n",data, real_xmimsim_pid, status);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		success = 0;
 	}
 #endif
@@ -505,68 +496,6 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	return;
 }
-
-
-void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
-	GtkTextIter iter, start;
-	va_list args;
-	GtkTextTag *tag;
-	GtkTextMark *insert_mark;
-	gint start_offset;
-
-	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
-	g_return_if_fail(text != NULL);
-
-	glong time_elapsed = (glong) g_timer_elapsed(timer,NULL);
-	glong hours = time_elapsed / 3600;
-	time_elapsed = time_elapsed % 3600;
-	glong minutes = time_elapsed / 60;
-	glong seconds = time_elapsed % 60;
-
-
-	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",(int) hours, (int) minutes, (int) seconds,text);
-
-	gtk_text_buffer_get_end_iter(buffer, &iter);
-
-	start_offset = gtk_text_iter_get_offset(&iter);
-	gtk_text_buffer_insert(buffer, &iter, to_print,len);
-
-	g_free(to_print);
-
-	if (first_tag == NULL) {
-		gtk_text_buffer_get_end_iter(buffer, &iter);
-		insert_mark = gtk_text_buffer_get_insert(buffer);
-		gtk_text_buffer_place_cursor(buffer,&iter);
-        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	        insert_mark, 0.0, FALSE, 0, 1.0);
-		return;
-	}
-
-	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
-
-	va_start(args, first_tag);
-	tag = first_tag;
-	while (tag) {
-		gtk_text_buffer_apply_tag(buffer, tag, &start, &iter);
-		tag = va_arg(args, GtkTextTag*);
-	}
-	va_end(args);
-
-	gtk_text_buffer_get_end_iter(buffer, &iter);
-	insert_mark = gtk_text_buffer_get_insert(buffer);
-	gtk_text_buffer_place_cursor(buffer,&iter);
-       	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	        insert_mark, 0.0, FALSE, 0, 1.0);
-
-
-
-	return;
-}
-
-
-
-
-
 
 void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	gchar **argv;
@@ -746,7 +675,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		buffer = g_strdup_printf("Could not determine solid angles HDF5 file\n");
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
 		return;
 	}
@@ -756,7 +685,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 
 	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
 		buffer = g_strdup_printf("Could not determine escape ratios HDF5 file\n");
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		gtk_widget_set_sensitive(playButton,TRUE);
 		return;
 	}
@@ -782,15 +711,15 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
 	// print fds for debugging purposes
-	fprintf(stdout, "out_fh: %d\n", out_fh);
-	fprintf(stdout, "err_fh: %d\n", err_fh);
+	g_debug("out_fh: %d\n", out_fh);
+	g_debug("err_fh: %d\n", err_fh);
 
 
 	if (spawn_rv == FALSE) {
 		//couldn't spawn
 		//print messag_ to textbox in red...
 		buffer = g_strdup_printf("%s\n",spawn_error->message);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		g_error_free(spawn_error);
 		gtk_widget_set_sensitive(playButton,TRUE);
 		xmimsim_pid = (GPid) -1;
@@ -798,7 +727,7 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	}
 	gchar *command = g_strjoinv(" ", argv);
 	buffer = g_strdup_printf("%s was started with process id %i\n", command, real_xmimsim_pid);
-	my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,NULL);
+	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,NULL);
 	g_free(wd);
 	g_free(command);
 
@@ -812,9 +741,12 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	cd->argv = argv;
 	cd->window = window;
 
+	GIOChannel *xmimsim_stdout;
+	GIOChannel *xmimsim_stderr;
+
 #ifdef G_OS_WIN32
-	fprintf(stdout, "out_fh before channel: %d\n", out_fh);
-	fprintf(stdout, "err_fh before channel: %d\n", err_fh);
+	g_debug("out_fh before channel: %d\n", out_fh);
+	g_debug("err_fh before channel: %d\n", err_fh);
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
 	xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
 #else
@@ -862,7 +794,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 	if (kill_rv == 0) {
 		buffer = g_strdup_printf( "Process %i was successfully paused. Press the Play button to continue or Stop to kill the process\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 		xmimsim_paused=TRUE;
 		gtk_widget_set_sensitive(stopButton,TRUE);
 		gtk_widget_set_sensitive(playButton,TRUE);
@@ -888,7 +820,7 @@ static void pause_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	else {
 		g_timer_continue(timer);
 		buffer = g_strdup_printf( "Process %i could not be paused.\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 		xmimsim_paused=FALSE;
 		gtk_widget_set_sensitive(pauseButton,TRUE);
 		gtk_widget_set_sensitive(stopButton,TRUE);
@@ -928,11 +860,11 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
 		buffer = g_strdup_printf( "Process %i was successfully terminated before completion\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
 		buffer = g_strdup_printf( "Process %i could not be terminated with the SIGTERM signal\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 
 #elif defined(G_OS_WIN32)
@@ -942,11 +874,11 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	if (terminate_rv == TRUE) {
 		buffer = g_strdup_printf( "Process %i was successfully terminated\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 	}
 	else {
 		buffer = g_strdup_printf( "Process %i could not be terminated with the TerminateProcess call\n", real_xmimsim_pid);
-		my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 	}
 #endif
 
@@ -988,7 +920,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 		if (kill_rv == 0) {
 			buffer = g_strdup_printf( "Process %i was successfully resumed\n", real_xmimsim_pid);
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
 			gtk_widget_set_sensitive(pauseButton,TRUE);
 			xmimsim_paused = FALSE;
 			if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
@@ -1012,7 +944,7 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		}
 		else {
 			buffer = g_strdup_printf( "Process %i could not be resumed\n", real_xmimsim_pid);
-			my_gtk_text_buffer_insert_at_cursor_with_tags(controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"error" ),NULL);
 			gtk_widget_set_sensitive(playButton,TRUE);
 		}
 		return;
@@ -1219,13 +1151,13 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		if (we->entry == svg_convW) {
-			xmi_msim_gui_ensure_extension(&filename, ".svg");
+			xmi_msim_gui_utils_ensure_extension(&filename, ".svg");
 		}
 		else if (we->entry == csv_convW) {
-			xmi_msim_gui_ensure_extension(&filename, ".csv");
+			xmi_msim_gui_utils_ensure_extension(&filename, ".csv");
 		}
 		else if (we->entry == html_convW) {
-			xmi_msim_gui_ensure_extension(&filename, ".html");
+			xmi_msim_gui_utils_ensure_extension(&filename, ".html");
 		}
 
 		gtk_entry_set_text(GTK_ENTRY(we->entry),filename);

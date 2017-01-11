@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-spline.h"
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 struct xmi_ebel_parameters {
 	double tube_voltage;
@@ -617,11 +618,11 @@ static void transmission_clicked_cb(XmiMsimGuiSourceTubeEbel *source, GtkToggleB
 }
 
 static struct xmi_layer* create_layer(int Z, double rho, double thickness) {
-	struct xmi_layer* rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	struct xmi_layer* rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 	rv->n_elements = 1;
-	rv->Z = (int *) malloc(sizeof(int));
+	rv->Z = (int *) g_malloc(sizeof(int));
 	rv->Z[0] = Z;
-	rv->weight = (double *) malloc(sizeof(double));
+	rv->weight = (double *) g_malloc(sizeof(double));
 	rv->weight[0] = 1.0;
 	rv->density = rho;
 	rv->thickness = thickness;
@@ -650,14 +651,14 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	int ebel_rv = xmi_tube_ebel(anode, window, filter, xep->tube_voltage, xep->tube_current, xep->alpha_electron, xep->alpha_xray, xep->interval_width, xep->tube_solid_angle, xep->transmission_tube, &excitation_tube);
 
 	xmi_free_layer(anode);
-	free(anode);
+	g_free(anode);
 	if (window != NULL) {
 		xmi_free_layer(window);
-		free(window);
+		g_free(window);
 	}
 	if (filter != NULL) {
 		xmi_free_layer(filter);
-		free(filter);
+		g_free(filter);
 	}
 
 	if (ebel_rv == 0) {
@@ -702,7 +703,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 			}
 			g_array_append_val(eff_x, energy);
 			g_array_append_val(eff_y, efficiency);
-			free(line);
+			g_free(line);
 			line = NULL;
 		}
 		fclose(fp);

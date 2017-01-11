@@ -42,6 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gdk-pixbuf/gdk-pixdata.h>
 #include "xmimsim-gui-coordinate-system.h"
 #include <math.h>
+#include <string.h>
 
 #ifdef G_OS_UNIX
 #include <sys/types.h>
@@ -1283,7 +1284,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		xmi_msim_gui_ensure_extension(&filename, ".xmso");
+		xmi_msim_gui_utils_ensure_extension(&filename, ".xmso");
 
 		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
 		update_undo_buffer(OUTPUTFILE,outputfileW);
@@ -1522,7 +1523,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			gtk_list_store_append(store, &iter);
 			i = composition->n_layers-1;
 
-			gchar *elementString = xmi_msim_gui_get_layer_element_string(&composition->layers[i]);
+			gchar *elementString = xmi_msim_gui_utils_get_layer_element_string(&composition->layers[i]);
 			if (mb->matrixKind == COMPOSITION) {
 				if (composition->n_layers == 1)
 					composition->reference_layer = 1;
@@ -1755,7 +1756,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 				GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
 
-				gchar *elementString = xmi_msim_gui_get_layer_element_string(composition->layers+index);
+				gchar *elementString = xmi_msim_gui_utils_get_layer_element_string(composition->layers+index);
 				if (mb->matrixKind == COMPOSITION) {
 					gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, composition->layers[index].n_elements,
@@ -1953,7 +1954,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 
 	gtk_list_store_append(store, &iter);
 	i = composition->n_layers-1;
-	elementString = xmi_msim_gui_get_layer_element_string(composition->layers + i);
+	elementString = xmi_msim_gui_utils_get_layer_element_string(composition->layers + i);
 	if (mb->matrixKind == COMPOSITION) {
 		if (composition->n_layers == 1)
 			composition->reference_layer = 1;
@@ -2288,7 +2289,7 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 
 	for (i=0 ; i < composition->n_layers ; i++) {
 		gtk_list_store_append(store, &iter);
-		elementString = xmi_msim_gui_get_layer_element_string(composition->layers + i);
+		elementString = xmi_msim_gui_utils_get_layer_element_string(composition->layers + i);
 		if (kind == COMPOSITION) {
 			gtk_list_store_set(store, &iter,
 				N_ELEMENTS_COLUMN, composition->layers[i].n_elements,
@@ -2811,7 +2812,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->composition->n_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->composition->layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current-1)->xi->composition->layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3023,7 +3024,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->absorbers->n_exc_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->absorbers->exc_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current-1)->xi->absorbers->exc_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->exc_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3053,7 +3054,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->absorbers->n_det_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->absorbers->det_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current-1)->xi->absorbers->det_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->absorbers->det_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3080,7 +3081,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current-1)->xi->detector->n_crystal_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current-1)->xi->detector->crystal_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current-1)->xi->detector->crystal_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current-1)->xi->detector->crystal_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3358,7 +3359,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->composition->n_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->composition->layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current+1)->xi->composition->layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->composition->layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3570,7 +3571,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->absorbers->n_exc_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->absorbers->exc_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current+1)->xi->absorbers->exc_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->exc_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3597,7 +3598,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->absorbers->n_det_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->absorbers->det_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current+1)->xi->absorbers->det_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->absorbers->det_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -3624,7 +3625,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 			gtk_list_store_clear(store);
 			for (i=0 ; i < (current+1)->xi->detector->n_crystal_layers ; i++) {
 				gtk_list_store_append(store, &iter);
-				elementString = xmi_msim_gui_get_layer_element_string((current+1)->xi->detector->crystal_layers + i);
+				elementString = xmi_msim_gui_utils_get_layer_element_string((current+1)->xi->detector->crystal_layers + i);
 				gtk_list_store_set(store, &iter,
 					N_ELEMENTS_COLUMN, (current+1)->xi->detector->crystal_layers[i].n_elements,
 					ELEMENTS_COLUMN,elementString,
@@ -7059,7 +7060,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 
 	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		xmi_msim_gui_ensure_extension(&filename, ".xmsi");
+		xmi_msim_gui_utils_ensure_extension(&filename, ".xmsi");
 		//
 		//get text from comments...
 		gtk_text_buffer_get_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere);
@@ -7185,7 +7186,7 @@ static void change_all_values_composition(struct xmi_input *new_input) {
 	gtk_list_store_clear(compositionL);
 	for (i = 0 ; i < new_input->composition->n_layers ; i++) {
 		gtk_list_store_append(compositionL, &iter);
-		elementString = xmi_msim_gui_get_layer_element_string(new_input->composition->layers + i);
+		elementString = xmi_msim_gui_utils_get_layer_element_string(new_input->composition->layers + i);
 		gtk_list_store_set(compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->composition->layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7333,7 +7334,7 @@ static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
 	gtk_list_store_clear(exc_compositionL);
 	for (i=0 ; i < new_input->absorbers->n_exc_layers ; i++) {
 		gtk_list_store_append(exc_compositionL, &iter);
-		elementString = xmi_msim_gui_get_layer_element_string(new_input->absorbers->exc_layers + i);
+		elementString = xmi_msim_gui_utils_get_layer_element_string(new_input->absorbers->exc_layers + i);
 		gtk_list_store_set(exc_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->absorbers->exc_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7358,7 +7359,7 @@ static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
 	gtk_list_store_clear(det_compositionL);
 	for (i=0 ; i < new_input->absorbers->n_det_layers ; i++) {
 		gtk_list_store_append(det_compositionL, &iter);
-		elementString = xmi_msim_gui_get_layer_element_string(new_input->absorbers->det_layers + i);
+		elementString = xmi_msim_gui_utils_get_layer_element_string(new_input->absorbers->det_layers + i);
 		gtk_list_store_set(det_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->absorbers->det_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,
@@ -7415,7 +7416,7 @@ static void change_all_values_detectorsettings(struct xmi_input *new_input) {
 	gtk_list_store_clear(crystal_compositionL);
 	for (i = 0 ; i < new_input->detector->n_crystal_layers ; i++) {
 		gtk_list_store_append(crystal_compositionL, &iter);
-		elementString = xmi_msim_gui_get_layer_element_string(new_input->detector->crystal_layers + i);
+		elementString = xmi_msim_gui_utils_get_layer_element_string(new_input->detector->crystal_layers + i);
 		gtk_list_store_set(crystal_compositionL, &iter,
 			N_ELEMENTS_COLUMN, new_input->detector->crystal_layers[i].n_elements,
 			ELEMENTS_COLUMN,elementString,

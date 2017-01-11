@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-export-canvas-dialog.h"
+#include "xmimsim-gui-utils.h"
 #include <cairo-ps.h>
 #include <cairo-pdf.h>
 
@@ -85,10 +86,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
   cairo_t *cairo;
 
   if (filter == dialog->eps_filter) {
-    if (strcasecmp(filename + strlen(filename) - 4, ".eps") != 0) {
-      filename = (gchar *) g_realloc(filename, sizeof(gchar) * (strlen(filename) + 5));
-      strcat(filename, ".eps");
-    }
+    xmi_msim_gui_utils_ensure_extension(&filename, ".eps");
     surface = cairo_ps_surface_create(filename,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
@@ -101,10 +99,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
 
   }
   else if (filter == dialog->pdf_filter) {
-    if (strcasecmp(filename + strlen(filename) - 4, ".pdf") != 0) {
-      filename = (gchar *) g_realloc(filename, sizeof(gchar) * (strlen(filename) + 5));
-      strcat(filename, ".pdf");
-    }
+    xmi_msim_gui_utils_ensure_extension(&filename, ".pdf");
     surface = cairo_pdf_surface_create(filename,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
@@ -115,10 +110,7 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *di
     }
   }
   else if (filter == dialog->png_filter) {
-    if (strcasecmp(filename + strlen(filename) - 4, ".png") != 0) {
-      filename = (gchar *) g_realloc(filename, sizeof(gchar) * (strlen(filename) + 5));
-      strcat(filename,".png");
-    }
+    xmi_msim_gui_utils_ensure_extension(&filename, ".png");
     surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
       XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);

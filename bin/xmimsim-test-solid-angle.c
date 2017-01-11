@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 	if (xmi_read_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, &solid_angle_h5, &n_solid_angle_h5) == 0)
 		return 1;
 
-	solid_angle_inputs = (struct xmi_input **) malloc(sizeof(struct xmi_input *)*n_solid_angle_h5);
+	solid_angle_inputs = (struct xmi_input **) g_malloc(sizeof(struct xmi_input *)*n_solid_angle_h5);
 
 	for (i = 0 ; i < n_solid_angle_h5 ; i++)  {
 		//fprintf(stdout,"xmlfile: %s\n",solid_angle_h5[i].xmi_input_string);

@@ -206,51 +206,51 @@ int xmi_db(char *filename) {
 	H5Gclose(root_group_id);
 
 	//rayleigh_theta
-	rayleigh_theta = malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	rayleigh_theta = g_malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
 	if (rayleigh_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for rayleigh_theta. Aborting\n");
 		return 0;
 	}
 	//compton_theta
-	compton_theta = malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	compton_theta = g_malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
 	if (compton_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for compton_theta. Aborting\n");
 		return 0;
 	}
-	energies = malloc(sizeof(double)*nintervals_e);
+	energies = g_malloc(sizeof(double)*nintervals_e);
 	if (energies == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for energies. Aborting\n");
 		return 0;
 	}
-	rs = malloc(sizeof(double)*nintervals_r);
+	rs = g_malloc(sizeof(double)*nintervals_r);
 	if (rs == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for rs. Aborting\n");
 		return 0;
 	}
-	fluor_yield_corr = malloc(sizeof(double)*maxz*9);
+	fluor_yield_corr = g_malloc(sizeof(double)*maxz*9);
 	if (fluor_yield_corr == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for fluor_yield_corr. Aborting\n");
 		return 0;
 	}
-	ip = malloc(sizeof(struct interaction_prob)*maxz);
+	ip = g_malloc(sizeof(struct interaction_prob)*maxz);
 	if (ip == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for ip. Aborting\n");
 		return 0;
 	}
-	precalc_xrf_cs = malloc(sizeof(double)*maxz*4*9*maxz*-1*M5P5_LINE);
+	precalc_xrf_cs = g_malloc(sizeof(double)*maxz*4*9*maxz*-1*M5P5_LINE);
 	if (precalc_xrf_cs == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for precalc_xrf_cs. Aborting\n");
 		return 0;
 	}
 
-	cp = malloc(sizeof(struct compton_profiles)*maxz);
+	cp = g_malloc(sizeof(struct compton_profiles)*maxz);
 
 	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, fluor_yield_corr, ip, nintervals_r, nintervals_e, maxz, nintervals_e_ip, precalc_xrf_cs, cp, ncompton_profiles);
 
-	double *rayleigh_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
-	double *compton_theta_slice = (double*) malloc(sizeof(double)*nintervals_r*nintervals_e);
-	double *fluor_yield_corr_slice = (double*) malloc(sizeof(double)*9);
-	double *precalc_xrf_cs_slice = (double*) malloc(sizeof(double)*-1*M5P5_LINE);
+	double *rayleigh_theta_slice = (double*) g_malloc(sizeof(double)*nintervals_r*nintervals_e);
+	double *compton_theta_slice = (double*) g_malloc(sizeof(double)*nintervals_r*nintervals_e);
+	double *fluor_yield_corr_slice = (double*) g_malloc(sizeof(double)*9);
+	double *precalc_xrf_cs_slice = (double*) g_malloc(sizeof(double)*-1*M5P5_LINE);
 
 	for (i = 1 ; i <= maxz ; i++) {
 		//these two nested for loops ensure that I extract the data correctly from these fortran column major ordered arrays
@@ -415,28 +415,28 @@ int xmi_db(char *filename) {
 		H5Gclose(group_id);
 	}
 	//free memory
-	free(rayleigh_theta);
-	free(compton_theta);
-	free(fluor_yield_corr);
-	free(precalc_xrf_cs);
+	g_free(rayleigh_theta);
+	g_free(compton_theta);
+	g_free(fluor_yield_corr);
+	g_free(precalc_xrf_cs);
 	for (i=0 ; i < maxz ; i++) {
 		xmi_deallocate(ip[i].energies);
 		xmi_deallocate(ip[i].Rayl_and_Compt);
 	}
-	free(ip);
-	free(rayleigh_theta_slice);
-	free(compton_theta_slice);
-	free(fluor_yield_corr_slice);
-	free(precalc_xrf_cs_slice);
+	g_free(ip);
+	g_free(rayleigh_theta_slice);
+	g_free(compton_theta_slice);
+	g_free(fluor_yield_corr_slice);
+	g_free(precalc_xrf_cs_slice);
 
 	//Z independent part
-	phi = (double *) malloc(sizeof(double)*nintervals_theta2*nintervals_r);
+	phi = (double *) g_malloc(sizeof(double)*nintervals_theta2*nintervals_r);
 	if (phi == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for phi. Aborting\n");
 		return 0;
 	}
 	//thetas
-	thetas = (double *) malloc(sizeof(double)*nintervals_theta2);
+	thetas = (double *) g_malloc(sizeof(double)*nintervals_theta2);
 	if (thetas == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for thetas. Aborting\n");
 		return 0;
@@ -471,10 +471,10 @@ int xmi_db(char *filename) {
 	H5Gclose(group_id);
 
 
-	free(energies);
-	free(rs);
-	free(phi);
-	free(thetas);
+	g_free(energies);
+	g_free(rs);
+	g_free(phi);
+	g_free(thetas);
 	//close file
 	H5Fclose(file_id);
 
@@ -483,14 +483,14 @@ int xmi_db(char *filename) {
 
 struct hdf5_vars *xmi_db_open(char *filename) {
 
-	struct hdf5_vars *rv = malloc(sizeof(struct hdf5_vars));
+	struct hdf5_vars *rv = g_malloc(sizeof(struct hdf5_vars));
 	hid_t attribute_id;
 
 	rv->file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
 
 	if (rv->file_id < 0) {
 		g_fprintf(stderr,"Cannot open XMI-MSIM HDF5 data file %s for reading\n", filename);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 
@@ -500,7 +500,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the kind attribute\n", filename);
 
 		H5Fclose(rv->file_id);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 
@@ -519,7 +519,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		g_fprintf(stderr, "Aborting\n");
 
 		H5Fclose(rv->file_id);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 
@@ -529,7 +529,7 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s does not contain the version attribute\n", filename);
 
 		H5Fclose(rv->file_id);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 	//attribute exists -> let's read it
@@ -540,14 +540,14 @@ struct hdf5_vars *xmi_db_open(char *filename) {
 
 		H5Aclose(attribute_id);
 		H5Fclose(rv->file_id);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 	H5Aclose(attribute_id);
 	if (version < XMI_DATA_MIN_VERSION) {
 		g_fprintf(stderr, "XMI-MSIM HDF5 data file %s version is too old\nGenerate a new file with xmimsim-db\n", filename);
 		H5Fclose(rv->file_id);
-		free(rv);
+		g_free(rv);
 		return NULL;
 	}
 	rv->group_id = NULL;
@@ -569,7 +569,7 @@ int xmi_db_open_group(struct hdf5_vars *hv, char *group_name) {
 		return 0;
 	}
 
-	hv->group_id = realloc(hv->group_id, sizeof(hid_t)*++(hv->n_group_id));
+	hv->group_id = g_realloc(hv->group_id, sizeof(hid_t)*++(hv->n_group_id));
 	hv->group_id[hv->n_group_id-1] = group_id;
 	return 1;
 }
@@ -580,12 +580,12 @@ int xmi_db_close_group(struct hdf5_vars *hv) {
 		return 0;
 	}
 	if (hv->n_group_id == 1) {
-		free(hv->group_id);
+		g_free(hv->group_id);
 		hv->group_id = NULL;
 		hv->n_group_id = 0;
 	}
 	else
-		hv->group_id = realloc(hv->group_id, sizeof(hid_t)*--(hv->n_group_id));
+		hv->group_id = g_realloc(hv->group_id, sizeof(hid_t)*--(hv->n_group_id));
 
 	return 1;
 }
@@ -606,15 +606,15 @@ int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, in
 	}
 
 	ndims5 = H5Sget_simple_extent_ndims(hv->dspace_id);
-	dims5 = malloc(sizeof(hsize_t)*ndims5);
+	dims5 = g_malloc(sizeof(hsize_t)*ndims5);
 
 	H5Sget_simple_extent_dims(hv->dspace_id, dims5, NULL);
 	*ndims = (int) ndims5;
-	*dims = malloc(sizeof(int)**ndims);
+	*dims = g_malloc(sizeof(int)**ndims);
 	//reverse array dimensions!
 	for (i=0 ; i < *ndims ; i++)
 		(*dims)[i] = (int) dims5[*ndims-1-i];
-	free(dims5);
+	g_free(dims5);
 	return 1;
 }
 
@@ -635,7 +635,7 @@ int xmi_db_close(struct hdf5_vars *hv) {
 
 	H5Fclose(hv->file_id);
 
-	free(hv);
+	g_free(hv);
 
 	return 1;
 }

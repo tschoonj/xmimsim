@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 enum {
 	ACTIVITY_UNIT_mCi = 0,
@@ -136,8 +137,8 @@ static void set_preferences(struct xmi_nuclide_parameters *xnp) {
 	}
 	int i;
 	for (i = 0 ; i < nNuclides ; i++)
-		free(nuclides[i]);
-	free(nuclides);
+		g_free(nuclides[i]);
+	g_free(nuclides);
 
 	//save file
 	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
@@ -245,8 +246,8 @@ static struct xmi_nuclide_parameters* get_preferences() {
 	}
 	int i;
 	for (i = 0 ; i < nNuclides ; i++)
-		free(nuclides[i]);
-	free(nuclides);
+		g_free(nuclides[i]);
+	g_free(nuclides);
 
 	if (update_file) {
 		//save file
@@ -359,7 +360,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 
 	int i;
 
-	struct xmi_excitation *excitation_nuclide = (struct xmi_excitation *) malloc(sizeof(struct xmi_excitation));
+	struct xmi_excitation *excitation_nuclide = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	excitation_nuclide->n_continuous = 0;
 	excitation_nuclide->continuous = NULL;
 	excitation_nuclide->n_discrete= 0;
@@ -375,7 +376,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		excitation_nuclide->discrete = (struct xmi_energy_discrete *) realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
+		excitation_nuclide->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].energy = energy;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].horizontal_intensity =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].vertical_intensity =
@@ -396,7 +397,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		excitation_nuclide->discrete = (struct xmi_energy_discrete *) realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
+		excitation_nuclide->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].energy = energy;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].horizontal_intensity =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].vertical_intensity =

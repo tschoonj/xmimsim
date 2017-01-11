@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
       g_assert_cmpfloat(output->channels_conv[i-1][nlines], ==, csv_value);
     }
 
-    free(line);
+    g_free(line);
     line = NULL;
     linecap = 0;
     g_strfreev(splitted);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
       g_assert_cmpfloat(output->channels_unconv[i-1][nlines], ==, csv_value);
     }
 
-    free(line);
+    g_free(line);
     line = NULL;
     linecap = 0;
     g_strfreev(splitted);

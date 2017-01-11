@@ -41,26 +41,6 @@ struct xmi_options {
 
 
 GtkWidget *init_simulation_controls(GtkWidget *window);
-extern GtkWidget *executableW;
-extern GtkWidget *MlinesW;
-extern GtkWidget *rad_cascadeW;
-extern GtkWidget *nonrad_cascadeW;
-extern GtkWidget *variance_reductionW;
-extern GtkWidget *pile_upW;
-extern GtkWidget *poissonW;
-extern GtkWidget *escape_peaksW;
-extern GtkWidget *spe_convW;
-extern GtkWidget *spe_uconvW;
-extern GtkWidget *csv_convW;
-extern GtkWidget *csv_uconvW;
-extern GtkWidget *svg_convW;
-extern GtkWidget *svg_uconvW;
-extern GtkWidget *html_convW;
-extern GtkWidget *html_uconvW;
-
-extern GtkWidget *playButton;
-extern GtkWidget *pauseButton;
-extern GtkWidget *stopButton;
 
 #ifdef G_OS_UNIX
 	#define GPID_INACTIVE ((GPid) -1)
@@ -69,7 +49,5 @@ extern GtkWidget *stopButton;
 #endif
 
 extern GPid xmimsim_pid;
-
-void my_gtk_text_buffer_insert_at_cursor_with_tags(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 
 #endif
