@@ -411,10 +411,10 @@ XMI_MAIN
 
 
 	if (rank == 0) {
-		channelsdef = (double *) calloc((input->general->n_interactions_trajectory+1)*input->detector->nchannels,sizeof(double));
-		brute_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));
+		channelsdef = (double *) g_malloc0((input->general->n_interactions_trajectory+1)*input->detector->nchannels*sizeof(double));
+		brute_historydef = (double *) g_malloc0(100*(383+2)*input->general->n_interactions_trajectory*sizeof(double));
 		if (options.use_variance_reduction == 1)
-			var_red_historydef = (double *) calloc(100*(383+2)*input->general->n_interactions_trajectory,sizeof(double));
+			var_red_historydef = (double *) g_malloc0(100*(383+2)*input->general->n_interactions_trajectory*sizeof(double));
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -469,7 +469,7 @@ XMI_MAIN
 
 
 		//convolute spectrum
-		channels_conv = (double **) malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+		channels_conv = (double **) g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 #if DEBUG == 2
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++)
 			fprintf(stdout,"channel 223 contents unspoiled: %g\n",channelsdef[i*input->detector->nchannels+222]);
@@ -508,7 +508,7 @@ XMI_MAIN
 		else if (options.verbose)
 			g_fprintf(stdout,"No escape peaks requested: escape peak calculation is redundant\n");
 
-		double **channels_def_ptrs = malloc(sizeof(double *) * (input->general->n_interactions_trajectory+1));
+		double **channels_def_ptrs = g_malloc(sizeof(double *) * (input->general->n_interactions_trajectory+1));
 		for (i = 0 ; i <= input->general->n_interactions_trajectory ; i++)
 			channels_def_ptrs[i] = channelsdef+i*input->detector->nchannels;
 
@@ -540,7 +540,7 @@ XMI_MAIN
 		}
 
 
-		free(channels_def_ptrs);
+		g_free(channels_def_ptrs);
 		if (options.use_escape_peaks) {
 			xmi_free_escape_ratios(escape_ratios_def);
 		}
@@ -710,7 +710,7 @@ XMI_MAIN
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 			xmi_deallocate(channels_conv[i] );
 		}
-		free(channels_conv);
+		g_free(channels_conv);
 		xmi_deallocate(channelsdef);
 		xmi_deallocate(brute_history);
 		if (options.use_variance_reduction)

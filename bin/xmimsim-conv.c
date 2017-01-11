@@ -206,7 +206,7 @@ XMI_MAIN
 		return 1;
 	}
 
-	double **channels_conv = malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
+	double **channels_conv = g_malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
 	if (options.custom_detector_response == NULL)
 		xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
@@ -238,7 +238,7 @@ XMI_MAIN
 		xmi_free_escape_ratios(escape_ratios_def);
 	}
 
-	xmso_out = malloc(sizeof(struct xmi_output));
+	xmso_out = g_malloc(sizeof(struct xmi_output));
 	xmso_out->inputfile = xmso_in->inputfile;
 	xmso_out->input = xmso_in->input;
 	xmso_out->brute_force_history = xmso_in->brute_force_history;

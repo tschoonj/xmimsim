@@ -16,24 +16,24 @@ int main(int argc, char *argv[]) {
 	int tube_transmission = 0;
 
 	tube_anode.n_elements = 1;
-	tube_anode.Z = malloc(sizeof(int));
-	tube_anode.weight = malloc(sizeof(double));
+	tube_anode.Z = g_malloc(sizeof(int));
+	tube_anode.weight = g_malloc(sizeof(double));
 	tube_anode.Z[0] = 29;
 	tube_anode.weight[0] = 1.0;
 	tube_anode.density = 8.96;
 	tube_anode.thickness= 0.000200;
 
 	tube_window.n_elements = 1;
-	tube_window.Z = malloc(sizeof(int));
-	tube_window.weight = malloc(sizeof(double));
+	tube_window.Z = g_malloc(sizeof(int));
+	tube_window.weight = g_malloc(sizeof(double));
 	tube_window.Z[0] = 4;
 	tube_window.weight[0] = 1.0;
 	tube_window.thickness = 0.0125;
 	tube_window.density = 1.848;
 
 	tube_filter.n_elements = 1;
-	tube_filter.Z = malloc(sizeof(int));
-	tube_filter.weight = malloc(sizeof(double));
+	tube_filter.Z = g_malloc(sizeof(int));
+	tube_filter.weight = g_malloc(sizeof(double));
 	tube_filter.Z[0] = 13;
 	tube_filter.weight[0] = 1.0;
 	tube_filter.thickness = 0.0870;

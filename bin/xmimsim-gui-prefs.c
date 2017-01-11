@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <xmi_aux.h>
+#include <string.h>
 #ifdef MAC_INTEGRATION
         #import <Foundation/Foundation.h>
 #endif
@@ -178,7 +179,7 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 		}
 
 		g_free(filename);
-		free(target);
+		g_free(target);
 	}
 	gtk_widget_destroy(dialog);
 
@@ -206,7 +207,7 @@ static void delete_solid_angles_clicked_cb(GtkWidget *button, gpointer data) {
 		char *file=NULL;
 		xmi_get_solid_angle_file(&file, 0);
 		g_unlink(file);
-		free(file);
+		g_free(file);
 	}
 	gtk_widget_destroy(dialog);
 }
@@ -223,7 +224,7 @@ static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
 		char *file=NULL;
 		xmi_get_escape_ratios_file(&file, 0);
 		g_unlink(file);
-		free(file);
+		g_free(file);
 	}
 	gtk_widget_destroy(dialog);
 }
@@ -563,7 +564,6 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 
 	//so the group exists: read elements, weight fractions, density and thickness
 
-	//problem: glib uses g_malloc to allocate the arrays. We need malloc though, in order to avoid problems on Windows with xmi_free_layer
 	gsize Zlen;
 	GError *error = NULL;
 	gint *Z = g_key_file_get_integer_list(keyfile, layer_name, "Z", &Zlen, &error);
@@ -602,7 +602,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 		return NULL;
 	}
 
-	struct xmi_layer *layer = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	struct xmi_layer *layer = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 	//fill her up
 	layer->n_elements = (int) Zlen;
 	layer->Z = (int *) xmi_memdup(Z, sizeof(int)*Zlen);
@@ -670,7 +670,7 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *lay
 	double *weight = (double *) xmi_memdup(layer->weight, sizeof(double)*layer->n_elements);
 	xmi_scale_double(weight, layer->n_elements, 1.0/xmi_sum_double(weight, layer->n_elements));
 	g_key_file_set_double_list(keyfile, layer_name, "weight", weight, (gsize) layer->n_elements);
-	free(weight);
+	g_free(weight);
 	g_key_file_set_double(keyfile, layer_name, "density", layer->density);
 	g_key_file_set_double(keyfile, layer_name, "thickness", layer->thickness);
 
@@ -1486,7 +1486,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(buttonbox), cancelButton, TRUE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 6);
 	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
-	struct preferences_apply *pa = (struct preferences_apply *) malloc(sizeof(struct preferences_apply));
+	struct preferences_apply *pa = (struct preferences_apply *) g_malloc(sizeof(struct preferences_apply));
 	pa->window = window;
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 	pa->model = GTK_TREE_MODEL(store_prefsL);

@@ -2,6 +2,7 @@
 #include <curl/curl.h>
 #include <math.h>
 #include <xraylib.h>
+#include <string.h>
 
 #ifdef G_OS_WIN32
 #include <windows.h>
@@ -183,15 +184,16 @@ double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax) {
 	return tickstep;
 }
 
-void xmi_msim_gui_ensure_extension(gchar **filename, const gchar *extension) {
-	if (g_ascii_strcasecmp(*filename+strlen(*filename)-strlen(extension), extension) != 0) {
-		*filename = (gchar *) realloc(*filename,sizeof(gchar)*(strlen(*filename)+strlen(extension)+1));
-		strcat(*filename,".xmso");
+void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension) {
+	GString *string = g_string_new(*filename);
+	g_free(*filename);
+	if (g_ascii_strcasecmp(string->str + string->len - strlen(extension), extension) != 0) {
+		g_string_append(string, extension);
 	}
-
+	*filename = g_string_free(string, FALSE);
 }
 
-gchar* xmi_msim_gui_get_layer_element_string(struct xmi_layer *layer) {
+gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer) {
 	GString *rv = g_string_new(NULL);
 	int j;
 
@@ -204,4 +206,60 @@ gchar* xmi_msim_gui_get_layer_element_string(struct xmi_layer *layer) {
 		}
 	}
 	return g_string_free(rv, FALSE);
+}
+
+void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *controlsLogW, GTimer *timer, GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
+	GtkTextIter iter, start;
+	va_list args;
+	GtkTextTag *tag;
+	GtkTextMark *insert_mark;
+	gint start_offset;
+
+	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
+	g_return_if_fail(text != NULL);
+
+	glong time_elapsed = (glong) g_timer_elapsed(timer,NULL);
+	glong hours = time_elapsed / 3600;
+	time_elapsed = time_elapsed % 3600;
+	glong minutes = time_elapsed / 60;
+	glong seconds = time_elapsed % 60;
+
+
+	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",(int) hours, (int) minutes, (int) seconds,text);
+
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+
+	start_offset = gtk_text_iter_get_offset(&iter);
+	gtk_text_buffer_insert(buffer, &iter, to_print,len);
+
+	g_free(to_print);
+
+	if (first_tag == NULL) {
+		gtk_text_buffer_get_end_iter(buffer, &iter);
+		insert_mark = gtk_text_buffer_get_insert(buffer);
+		gtk_text_buffer_place_cursor(buffer,&iter);
+        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	        insert_mark, 0.0, FALSE, 0, 1.0);
+		return;
+	}
+
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
+
+	va_start(args, first_tag);
+	tag = first_tag;
+	while (tag) {
+		gtk_text_buffer_apply_tag(buffer, tag, &start, &iter);
+		tag = va_arg(args, GtkTextTag*);
+	}
+	va_end(args);
+
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	insert_mark = gtk_text_buffer_get_insert(buffer);
+	gtk_text_buffer_place_cursor(buffer,&iter);
+       	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
+	        insert_mark, 0.0, FALSE, 0, 1.0);
+
+
+
+	return;
 }

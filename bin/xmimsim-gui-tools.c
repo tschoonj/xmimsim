@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_xrmc.h"
 #include "xmi_main.h"
+#include <string.h>
 
 struct xmi_tools {
 	GtkWidget *window;
@@ -270,10 +271,7 @@ static void xmsi_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-5, ".xmsi") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".xmsi");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".xmsi");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -305,10 +303,7 @@ static void xmso_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-5, ".xmso") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".xmso");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".xmso");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -341,10 +336,7 @@ static void csv_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-4, ".csv") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-			strcat(filename,".csv");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".csv");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -377,10 +369,7 @@ static void html_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-5, ".html") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+6));
-			strcat(filename,".html");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".html");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -413,10 +402,7 @@ static void svg_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-4, ".svg") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-			strcat(filename,".svg");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".svg");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -449,10 +435,7 @@ static void spe_save_button_clicked_cb(GtkButton *button, gpointer data) {
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
-		if (strcasecmp(filename+strlen(filename)-4, ".spe") != 0) {
-			filename = (gchar *) g_realloc(filename,sizeof(gchar)*(strlen(filename)+5));
-			strcat(filename,".spe");
-		}
+		xmi_msim_gui_utils_ensure_extension(&filename, ".spe");
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free (filename);
@@ -1442,7 +1425,7 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	gtk_table_attach(GTK_TABLE(table), gtk_hseparator_new(), 0, 2, 5, 6, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 3, 0);
 
 	button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
-	struct xmi_tools *xi = (struct xmi_tools *) malloc(sizeof(struct xmi_tools));
+	struct xmi_tools *xi = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
 	xi->window = window;
 	xi->xmsi_fileW = xmsi_fileW;
 	xi->xrmc_folderW = xrmc_folderW;

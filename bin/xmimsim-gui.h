@@ -220,16 +220,16 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 
 int kill_current_job(void);
 
-#define malloc(x) trrrrmalloc(c)
-#define realloc(x) trrrrmalloc(c)
-#define free(x) trrrrmalloc(c)
-#define sprintf(x, ...) trrrrmalloc(c)
-#define strcat(x, y) lslslslslslls
-#define strdup(x, y) lslslslslslls
-#define strndup(x, y) lslslslslslls
-#define g_sprintf(x, ...) lslslslslslls
-#define strcpy(x, y) lslslslslslls
-#define strcasecmp(x, y) lslslslslslls
+#define malloc(x) trrrrmalloc(x)
+#define realloc(x, y) trrrrrealloc(x, y)
+#define free(x) trrrrfree(c)
+#define sprintf(x, y, ...) trrrrsprintf(x, y, ...)
+#define strcat(x, y) lslslslslsllsstrcat(x, y)
+#define strdup(x) lslslslslsllsstrdup(x)
+#define strndup(x, y) lslslslslsllsstrndup(x, y)
+#define g_sprintf(x, y, ...) lslslslslsllsg_sprintf(x, y, ...)
+#define strcpy(x, y) lslslslslsllsstrcpy(x, y)
+#define strcasecmp(x, y) lslslslslsllsstrcasecmp(x, y)
 
 G_END_DECLS
 #endif

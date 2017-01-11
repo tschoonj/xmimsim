@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_ebel.h"
 #include <glib/gstdio.h>
 #include <search.h>
+#include <string.h>
 
 
 struct energyDialog {

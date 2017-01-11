@@ -38,7 +38,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	int i,j;
 
 	if (n_elements < 1) {
-		rv = (int *) malloc(sizeof(int));
+		rv = (int *) g_malloc(sizeof(int));
 		rv[0] = -1;
 		return rv;
 	}
@@ -55,7 +55,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 
 
 
-	rv = (int *) malloc(sizeof(int)*n_elements);
+	rv = (int *) g_malloc(sizeof(int)*n_elements);
 
 	for (i = 0 ; i < n_elements ; i++) {
 		for (j = 0 ; j < n_elements ; j++)
@@ -65,7 +65,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 			}
 	}
 
-	free(array_copy);
+	g_free(array_copy);
 
 	return rv;
 }
@@ -77,7 +77,7 @@ int xmi_cmp_int(const void *a, const void *b) {
 struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 	struct compoundData *rv;
 
-	rv = (struct compoundData *) malloc(sizeof(struct compoundData));
+	rv = (struct compoundData *) g_malloc(sizeof(struct compoundData));
 
 	if (xl != NULL) {
 		rv->nElements = xl->n_elements;
@@ -85,7 +85,7 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
 		// TODO: remove when bumping minimum xraylib version
 #if XRAYLIB_MAJOR == 3 && XRAYLIB_MINOR > 2
-		rv->nAtoms = (double *) malloc(sizeof(int));
+		rv->nAtoms = (double *) g_malloc(sizeof(int));
 #endif
 	}
 	else {
@@ -97,7 +97,7 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
 	struct xmi_layer *rv;
 
-	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 
 		rv->n_elements = cd->nElements;
 		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
@@ -108,7 +108,7 @@ struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
 struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
 	struct xmi_layer *rv;
 
-	rv = (struct xmi_layer *) malloc(sizeof(struct xmi_layer));
+	rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
 
 		rv->n_elements = cd->nElements;
 		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
@@ -125,7 +125,7 @@ double *xmi_dindgen(int n) {
 		return NULL;
 	}
 
-	rv = (double *) malloc(sizeof(double)*n);
+	rv = (double *) g_malloc(sizeof(double)*n);
 
 	for (i = 0 ; i < n ; i++) {
 		rv[i] = (double )i;
@@ -330,7 +330,7 @@ getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
     {
       char *new_lineptr;
       *n = 120;
-      new_lineptr = (char *) realloc (*lineptr, *n);
+      new_lineptr = (char *) g_realloc (*lineptr, *n);
       if (new_lineptr == NULL)
         {
           result = -1;
@@ -367,7 +367,7 @@ getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
               goto unlock_return;
             }
 
-          new_lineptr = (char *) realloc (*lineptr, needed);
+          new_lineptr = (char *) g_realloc (*lineptr, needed);
           if (new_lineptr == NULL)
             {
               result = -1;
@@ -513,7 +513,7 @@ static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	xmi_input_string = (char *) g_malloc(sizeof(char)*dims_string[0]);
 	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, xmi_input_string);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
@@ -585,7 +585,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	dset_id = H5Dopen(group_id, "xmi_input_string", H5P_DEFAULT);
 	dspace_id = H5Dget_space(dset_id);
 	H5Sget_simple_extent_dims(dspace_id, dims_string, NULL);
-	xmi_input_string = (char *) malloc(sizeof(char)*dims_string[0]);
+	xmi_input_string = (char *) g_malloc(sizeof(char)*dims_string[0]);
 	H5Dread(dset_id, H5T_NATIVE_CHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, xmi_input_string);
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);

@@ -404,7 +404,7 @@ XMI_MAIN
 
 
 
-	weights_arr_quant = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	weights_arr_quant = (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
 
 	if (xp->n_z_arr_pymca_conc == 0) {
 		for (i = 0 ; i < xp->n_z_arr_quant ; i++)
@@ -546,11 +546,11 @@ XMI_MAIN
 
 
 
-	scale = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
-	k_exp= (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
-	k_sim = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
-	l_exp = (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
-	l_sim= (double *) malloc(sizeof(double)*xp->n_z_arr_quant);
+	scale = (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
+	k_exp= (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
+	k_sim = (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
+	l_exp = (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
+	l_sim= (double *) g_malloc(sizeof(double)*xp->n_z_arr_quant);
 
 
 	//fill up k_exp and l_exp
@@ -616,7 +616,7 @@ XMI_MAIN
 		//xmi_print_input(stdout,xi);
 		zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 		//convolute_spectrum
-		channels_conv_temp = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
+		channels_conv_temp = (double **) g_malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= xi->general->n_interactions_trajectory ; j++) {
 			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xi->detector->nchannels, &channels_conv_temp2, xi->detector->nchannels, options);
@@ -755,8 +755,8 @@ XMI_MAIN
 			}
 			if (i > 1) {
 				//update concentrations in input
-				free(xi->composition->layers[xp->ilay_pymca].Z);
-				free(xi->composition->layers[xp->ilay_pymca].weight);
+				g_free(xi->composition->layers[xp->ilay_pymca].Z);
+				g_free(xi->composition->layers[xp->ilay_pymca].weight);
 				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 			}
 		}
@@ -788,15 +788,15 @@ XMI_MAIN
 			}
 			else if (i % 2 == 0) {
 				//update concentrations in input
-				free(xi->composition->layers[xp->ilay_pymca].Z);
-				free(xi->composition->layers[xp->ilay_pymca].weight);
+				g_free(xi->composition->layers[xp->ilay_pymca].Z);
+				g_free(xi->composition->layers[xp->ilay_pymca].weight);
 				xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 			}
 		}
 		else {
 			//update concentrations in input
-			free(xi->composition->layers[xp->ilay_pymca].Z);
-			free(xi->composition->layers[xp->ilay_pymca].weight);
+			g_free(xi->composition->layers[xp->ilay_pymca].Z);
+			g_free(xi->composition->layers[xp->ilay_pymca].weight);
 			xi->composition->layers[xp->ilay_pymca] = xmi_ilay_composition_pymca(matrix, xp, weights_arr_quant);
 		}
 		//reload fortran input
@@ -823,15 +823,15 @@ single_run:
 
 	zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 	//convolute_spectrum
-	channels_conv = (double **) malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
+	channels_conv = (double **) g_malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 
-	double **channels_def_ptrs = malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
+	double **channels_def_ptrs = g_malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
 	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
 		channels_def_ptrs[i] = channels+i*xi->detector->nchannels;
 
 	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, xi->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 
-	free(channels_def_ptrs);
+	g_free(channels_def_ptrs);
 
 	if (xmi_end_random_acquisition() == 0) {
 		return 1;

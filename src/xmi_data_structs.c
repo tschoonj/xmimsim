@@ -1301,16 +1301,20 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 
 	for (i = 0 ; i < C->nbrute_force_history ; i++) {
 		C->brute_force_history[i].lines = xmi_memdup(A->brute_force_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->brute_force_history[i].n_lines);
-		for (j = 0 ; j < C->brute_force_history[i].n_lines ; j++)
+		for (j = 0 ; j < C->brute_force_history[i].n_lines ; j++) {
 			C->brute_force_history[i].lines[j].interactions = xmi_memdup(C->brute_force_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->brute_force_history[i].lines[j].n_interactions);
+			C->brute_force_history[i].lines[j].line_type = g_strdup(C->brute_force_history[i].lines[j].line_type);
+		}
 	}
 
 	C->var_red_history = xmi_memdup(A->var_red_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nvar_red_history);
 
 	for (i = 0 ; i < C->nvar_red_history ; i++) {
 		C->var_red_history[i].lines = xmi_memdup(A->var_red_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->var_red_history[i].n_lines);
-		for (j = 0 ; j < C->var_red_history[i].n_lines ; j++)
+		for (j = 0 ; j < C->var_red_history[i].n_lines ; j++) {
 			C->var_red_history[i].lines[j].interactions = xmi_memdup(C->var_red_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->var_red_history[i].lines[j].n_interactions);
+			C->var_red_history[i].lines[j].line_type = g_strdup(C->var_red_history[i].lines[j].line_type);
+		}
 	}
 
 
