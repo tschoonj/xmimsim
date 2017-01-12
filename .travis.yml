@@ -290,7 +290,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkextra
     # with updater
     # with gui
@@ -316,7 +316,7 @@ matrix:
             - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' FC='gfortran' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
@@ -341,7 +341,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libcurl4-openssl-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
@@ -368,7 +368,7 @@ matrix:
             - libcurl4-openssl-dev
             - libjson-glib-dev
             - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG 
     # no updater
     # no gui
@@ -390,7 +390,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libcurl4-openssl-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkextra
     # no updater
     # with gui

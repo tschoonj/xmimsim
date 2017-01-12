@@ -220,7 +220,7 @@ void quit_program_cb(GtkWidget *widget, gpointer data);
 
 int kill_current_job(void);
 
-#define malloc(x) trrrrmalloc(x)
+/*#define malloc(x) trrrrmalloc(x)
 #define realloc(x, y) trrrrrealloc(x, y)
 #define free(x) trrrrfree(x)
 #define sprintf(x, y, ...) trrrrsprintf(x, y, ...)
@@ -230,6 +230,6 @@ int kill_current_job(void);
 #define g_sprintf(x, y, ...) lslslslslsllsg_sprintf(x, y, ...)
 #define strcpy(x, y) lslslslslsllsstrcpy(x, y)
 #define strcasecmp(x, y) lslslslslsllsstrcasecmp(x, y)
-
+*/
 G_END_DECLS
 #endif
