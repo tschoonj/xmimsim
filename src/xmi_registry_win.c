@@ -38,46 +38,46 @@ int xmi_registry_win_query(int kind, char **regcontents) {
     	DWORD BufferSize = TOTALBYTES;
         DWORD cbdata;
 	PPERF_DATA_BLOCK PerfData;
-	char stringkey[1024];
+	GString *stringkey;
 
 
-	strcpy(stringkey,"Software\\XMI-MSIM\\");
+	stringkey = g_string_new("Software\\XMI-MSIM\\");
 	switch (kind) {
 		case XMI_REGISTRY_WIN_DATA:
-			strcat(stringkey,"data");
+			g_string_append(stringkey,"data");
 			break;
 		case XMI_REGISTRY_WIN_SHARE:
-			strcat(stringkey,"share");
+			g_string_append(stringkey,"share");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2XMSI:
-			strcat(stringkey,"xmso2xmsi");
+			g_string_append(stringkey,"xmso2xmsi");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2SVG:
-			strcat(stringkey,"xmso2svg");
+			g_string_append(stringkey,"xmso2svg");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2SPE:
-			strcat(stringkey,"xmso2spe");
+			g_string_append(stringkey,"xmso2spe");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2CSV:
-			strcat(stringkey,"xmso2csv");
+			g_string_append(stringkey,"xmso2csv");
 			break;
 		case XMI_REGISTRY_WIN_XMSO2HTM:
-			strcat(stringkey,"xmso2htm");
+			g_string_append(stringkey,"xmso2htm");
 			break;
 		case XMI_REGISTRY_WIN_LOGO:
-			strcat(stringkey,"icon");
+			g_string_append(stringkey,"icon");
 			break;
 		case XMI_REGISTRY_WIN_OPENCL_CODE:
-			strcat(stringkey,"openclcode");
+			g_string_append(stringkey,"openclcode");
 			break;
 		case XMI_REGISTRY_WIN_OPENCL_LIB:
-			strcat(stringkey,"opencllib");
+			g_string_append(stringkey,"opencllib");
 			break;
 		case XMI_REGISTRY_WIN_XMSA2XMSO:
-			strcat(stringkey,"xmsa2xmso");
+			g_string_append(stringkey,"xmsa2xmso");
 			break;
 		case XMI_REGISTRY_WIN_SOURCES:
-			strcat(stringkey,"sources");
+			g_string_append(stringkey,"sources");
 			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
@@ -86,12 +86,12 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 
 
 	//Windows mode: query registry
-	RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT(stringkey), 0, KEY_READ,&key);
+	RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT(stringkey->str), 0, KEY_READ,&key);
 	if (RegRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error opening key %s in registry\n",stringkey);
+		fprintf(stderr,"Error opening key %s in registry\n",stringkey->str);
 		return 0;
 	}
-	PerfData = (PPERF_DATA_BLOCK) g_malloc( BufferSize );
+	PerfData = (PPERF_DATA_BLOCK) g_malloc(BufferSize);
 	cbdata = BufferSize;
 
 
@@ -104,7 +104,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
 	}
 	if (QueryRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error querying key %s in registry\n",stringkey);
+		fprintf(stderr,"Error querying key %s in registry\n",stringkey->str);
 		return 0;
 	}
 
@@ -114,7 +114,7 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 #endif
 
 
-
+	g_string_free(stringkey, TRUE);
 	RegCloseKey(key);
 
 	*regcontents = (char *) PerfData;
