@@ -283,7 +283,7 @@ matrix:
           packages:
             - libgtkextra3
             - libgtkextra3-dev
-            - gfortran
+            - gfortran-6
             - gcc-6
             - libxslt1-dev
             - libxml2-utils
@@ -307,7 +307,7 @@ matrix:
           packages:
             - libgtkextra3
             - libgtkextra3-dev
-            - gfortran
+            - gfortran-6
             - gcc-6
             - libxslt1-dev
             - libxml2-utils
@@ -333,7 +333,7 @@ matrix:
           packages:
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - gfortran
+            - gfortran-6
             - gcc-6
             - g++-6
             - libxslt1-dev
@@ -358,7 +358,7 @@ matrix:
           packages:
             - libgtkmm-plplot2
             - libgtkmm-plplot2-dev
-            - gfortran
+            - gfortran-6
             - gcc-6
             - g++-6
             - libxslt1-dev
@@ -383,7 +383,7 @@ matrix:
               key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
             - ubuntu-toolchain-r-test
           packages:
-            - gfortran
+            - gfortran-6
             - gcc-6
             - libxslt1-dev
             - libxml2-utils
