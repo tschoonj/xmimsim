@@ -317,7 +317,7 @@ endif
 
 
 if OS_WINDOWS
-#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 nodist_xmimsim_gui_SOURCES += xmimsim-gui-icons.h

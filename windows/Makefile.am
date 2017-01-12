@@ -28,7 +28,6 @@ common:
 	unix2dos -n $(top_srcdir)/include/xmi_msim.h xmi_msim.h
 	unix2dos -n $(top_srcdir)/include/xmi_ebel.h xmi_ebel.h
 	unix2dos -n $(top_srcdir)/include/xmi_aux.h xmi_aux.h
-	unix2dos -n $(top_srcdir)/include/xmi_boone.h xmi_boone.h
 	unix2dos -n $(top_srcdir)/include/xmi_xrmc.h xmi_xrmc.h
 	unix2dos -n $(top_srcdir)/include/xmi_registry_win.h xmi_registry_win.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-prefs.h xmimsim-gui-prefs.h
