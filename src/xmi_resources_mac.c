@@ -75,6 +75,8 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 
 	}
 
+	g_free(resource_path);
+
 	*resource_file = temp;
 	return 1;
 }

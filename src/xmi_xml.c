@@ -75,12 +75,9 @@ int xmi_xmlLoadCatalog() {
 	if (xml_catalog_loaded)
 		return 1;
 
-	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SHARE,&share) == 0) {
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SHARE, &share) == 0) {
 		return 0;
 	}
-
-	share = (gchar *) g_realloc(share,sizeof(gchar *)*(strlen(share)+2));
-	strcat(share,"/");
 
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
 	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(share,NULL,NULL);
@@ -118,28 +115,29 @@ int xmi_xmlLoadCatalog() {
 
 	gchar *resource_path;
 	resource_path = gtkosx_application_get_resource_path();
-	resource_path = (gchar *) g_realloc(resource_path,sizeof(gchar *)*(strlen(resource_path)+2));
-	strcat(resource_path,"/");
+	GString *resource_path_string = g_string_new(resource_path);
+	g_free(resource_path);
+	g_string_append(resource_path_string, "/");
 
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path,NULL,NULL);
+	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path_string->str, NULL, NULL);
 
 
-	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
+	if (xmlCatalogAdd(BAD_CAST "catalog", NULL, NULL) == -1) {
 		fprintf(stderr,"Could not add catalog\n");
 		rv = 0;
 	}
 	else
 		rv =1;
 
-	if (xmlCatalogAdd(BAD_CAST "rewriteURI",uriStartString,rewritePrefix) == -1) {
+	if (xmlCatalogAdd(BAD_CAST "rewriteURI", uriStartString, rewritePrefix) == -1) {
 		fprintf(stderr,"Could not add catalog rewriteURI\n");
 		rv = 0;
 	}
 	else
 		rv =1;
 
-	g_free(resource_path);
+	g_string_free(resource_path_string, TRUE);
 
 
 	xml_catalog_loaded = TRUE;

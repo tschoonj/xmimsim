@@ -218,7 +218,7 @@ Root: HKLM; Subkey: "Software\XMI-MSIM" ; ValueType: string ; ValueName: "" ; Va
 Root: HKLM; Subkey: "Software\XMI-MSIM" ; ValueType: string ; ValueName: "InstallationDirectory" ; ValueData: "{app}"
 Root: HKLM; Subkey: "Software\XMI-MSIM" ; ValueType: string ; ValueName: "Vendor" ; ValueData: "Tom Schoonjans"
 Root: HKLM; Subkey: "Software\XMI-MSIM\data" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmimsimdata.h5"
-Root: HKLM; Subkey: "Software\XMI-MSIM\share" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
+Root: HKLM; Subkey: "Software\XMI-MSIM\share" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2svg" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2svg.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2spe" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2spe.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2csv" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2csv.xml"
