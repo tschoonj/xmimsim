@@ -21,7 +21,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.4-2017-01-06-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.7-2017-01-19-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
   #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
@@ -169,6 +169,7 @@ Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\icons\Logo_xmi_msim.png" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#MY_HOME}\github\xmimsim\bin\coordinate_system.png" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#MY_HOME}\github\xmimsim\build\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 
@@ -226,6 +227,7 @@ Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2xmsi" ; ValueType: string ; ValueNam
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2htm" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2htm.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmsa2xmso" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmsa2xmso.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\icon" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\Logo_xmi_msim.png"
+Root: HKLM; Subkey: "Software\XMI-MSIM\coordinate-system" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\coordinate_system.png"
 Root: HKLM; Subkey: "Software\XMI-MSIM\openclcode" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
 Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\OpenCL"
 Root: HKLM; Subkey: "Software\XMI-MSIM\sources" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\Sources"
