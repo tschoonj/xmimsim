@@ -35,6 +35,7 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.png</data>
+<data dest="${bundle}/Contents/Resources">${prefix:source}/bin/coordinate_system.png</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.bmp</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/array.h</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/compilerfeatures.h</data>

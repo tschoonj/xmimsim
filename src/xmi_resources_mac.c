@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 
 int xmi_resources_mac_query(int kind, char **resource_file) {
-	const gchar *resource_path;
+	gchar *resource_path;
 	gchar *temp;
 
 	resource_path = gtkosx_application_get_resource_path();
@@ -65,6 +65,9 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 			break;
 		case XMI_RESOURCES_MAC_SOURCES:
 			temp = g_strdup_printf("%s/sources",resource_path);
+			break;
+		case XMI_RESOURCES_MAC_COORDINATE_SYSTEM:
+			temp = g_strdup_printf("%s/coordinate_system.png",resource_path);
 			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_resources_mac_query\n");
