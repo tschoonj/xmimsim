@@ -7741,10 +7741,12 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_COORDINATE_SYSTEM, &coordinate_system_file) == 0) {
 		g_fprintf(stderr, "Could not open coordinate system file\n");
 		exit(1);
-
 	}
-
 #elif defined(MAC_INTEGRATION)
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_COORDINATE_SYSTEM, &coordinate_system_file) == 0) {
+		g_fprintf(stderr, "Could not open coordinate system file\n");
+		exit(1);
+	}
 #else
 	coordinate_system_file = g_strdup(XMIMSIM_COORDINATE_SYSTEM);
 #endif
