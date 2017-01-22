@@ -40,7 +40,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale.h>
 #include <unistd.h>
 #include <gdk-pixbuf/gdk-pixdata.h>
-#include "xmimsim-gui-coordinate-system.h"
 #include <math.h>
 #include <string.h>
 
@@ -3293,6 +3292,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog), copyright);
 	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(about_dialog), "This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011 ) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011 ) in your manuscripts.");
 #ifdef G_OS_WIN32
+	// TODO: figure out why we cannot just use the icon here...
 	gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(about_dialog), logo);
 #else
 	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), XMI_STOCK_LOGO);
@@ -7730,10 +7730,25 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	//g_signal_connect(G_OBJECT(event_box), "leave-notify-event", G_CALLBACK(coordinate_system_leave_cb), NULL);
 	g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(coordinate_system_motion_cb), cp);
 	GdkPixbuf *orig_pixbuf;
+	gchar *coordinate_system_file = NULL;
 
-	GInputStream *ginput = g_memory_input_stream_new_from_data(coordinate_system_pixbuf, sizeof(coordinate_system_pixbuf), NULL);
+#ifdef G_OS_WIN32
 
-	orig_pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL);
+#elif defined(MAC_INTEGRATION)
+
+#else
+	coordinate_system_file = g_strdup(XMIMSIM_COORDINATE_SYSTEM);
+#endif
+
+	GError *error = NULL;
+	orig_pixbuf = gdk_pixbuf_new_from_file(coordinate_system_file, &error);
+
+	if (error != NULL) {
+		g_fprintf(stderr, "Could not open coordinate system file: %s\n", error->message);
+		exit(1);
+	}
+	g_free(coordinate_system_file);
+
 	cp->orig_pixbuf = orig_pixbuf;
 	GdkPixbuf *pixbuf2 = gdk_pixbuf_scale_simple(orig_pixbuf, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor, GDK_INTERP_HYPER);
 	GtkWidget *coordinate_system_image = gtk_image_new_from_pixbuf(pixbuf2);
@@ -7770,8 +7785,6 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	EB_CONNECT(d_source_slit);
 	EB_CONNECT(slit_size);
 #undef EB_CONNECT
-
-	g_object_unref(ginput);
 
 	gtk_widget_show_all(cs_window);
 }

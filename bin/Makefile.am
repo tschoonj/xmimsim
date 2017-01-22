@@ -191,8 +191,6 @@ xmimsim_gui_source_test_LDADD = \
 	@xml2_LIBS@ \
 	$(NULL)
 
-dist_noinst_DATA = coordinate_system.png
-
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 BUILT_SOURCES = \
@@ -236,7 +234,6 @@ xmimsim_gui_SOURCES = \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
-	xmimsim-gui-coordinate-system.h \
 	$(NULL)
 
 
@@ -248,7 +245,7 @@ mkenum_sources = \
 marshal_input = \
 	xmimsim-gui-marshal.list
 
-# this is a separate convenience library as it allows me to test against it test-cubic-spline
+# this is a separate convenience library as it allows me to test against it in test-cubic-spline
 noinst_LTLIBRARIES += libxmimsim-gui-spline.la
 libxmimsim_gui_spline_la_SOURCES = \
 		      xmimsim-gui-spline.h \
@@ -263,15 +260,17 @@ libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 
 
 xmimsim_gui_CFLAGS = \
-		     @gtk2_CFLAGS@ \
-		     @gtkmm3_CFLAGS@ \
-		     @xraylib_CFLAGS@ \
-		     @GTK_MAC_CFLAGS@ \
-		     @xml2_CFLAGS@ \
-		     -DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
-		     -DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
-		     @libnotify_CFLAGS@ \
-		     $(EXTRA_CFLAGS)
+	@gtk2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@GTK_MAC_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
+	-DXMIMSIM_COORDINATE_SYSTEM=\"$(datadir)/xmimsim/coordinate_system.png\" \
+	-DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
+	@libnotify_CFLAGS@ \
+	$(EXTRA_CFLAGS) \
+	$(NULL)
 
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
@@ -454,6 +453,8 @@ xmsa2xmso_CFLAGS = @glib2_CFLAGS@ \
 #xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
 #xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
+xmimsimdir = $(datadir)/xmimsim
+dist_xmimsim_DATA = coordinate_system.png
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc
@@ -465,7 +466,7 @@ xmimsim-icon.o: xmimsim-icon.rc
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o
 
 
-xmimsim-gui.c: xmimsim-gui-icons.h xmimsim-gui-coordinate-system.h
+xmimsim-gui.c: xmimsim-gui-icons.h
 
 xmimsim-gui-icons.h:
 	$(GDK_PIXBUF_CSOURCE) --stream --build-list \
@@ -476,11 +477,6 @@ xmimsim-gui-icons.h:
 	> xmimsim-gui-icons.h
 
 endif
-
-xmimsim-gui-coordinate-system.h: $(srcdir)/coordinate_system.png
-	$(GDK_PIXBUF_CSOURCE) --stream --build-list \
-	"coordinate_system_pixbuf" "$(srcdir)/coordinate_system.png" \
-	> xmimsim-gui-coordinate-system.h
 
 xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
 
