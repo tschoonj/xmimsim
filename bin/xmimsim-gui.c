@@ -5246,13 +5246,18 @@ XMI_MAIN
 	GdkPixbuf *pixbuf;
 #define ADD_ICON(name_macro, name_pixbuf) \
 	{ \
+		GError *icon_error = NULL; \
 		GInputStream *ginput = g_memory_input_stream_new_from_data(name_pixbuf, sizeof(name_pixbuf), NULL); \
-		pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, NULL); \
-		iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
-		g_object_unref(pixbuf); \
-		g_object_unref(ginput); \
-		gtk_icon_factory_add (factory, name_macro, iconset);\
-		gtk_icon_set_unref (iconset); \
+		pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, &icon_error); \
+		if (icon_error) \
+			fprintf(stderr, "gdk_pixbuf_new_from_stream error %s\n", icon_error->message); \
+		else { \
+			iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+			g_object_unref(pixbuf); \
+			g_object_unref(ginput); \
+			gtk_icon_factory_add (factory, name_macro, iconset);\
+			gtk_icon_set_unref (iconset); \
+		}\
 	}
 
 	ADD_ICON(XMI_STOCK_RADIATION_WARNING, Radiation_warning_symbol_pixbuf);
@@ -7733,9 +7738,13 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	gchar *coordinate_system_file = NULL;
 
 #ifdef G_OS_WIN32
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_COORDINATE_SYSTEM, &coordinate_system_file) == 0) {
+		g_fprintf(stderr, "Could not open coordinate system file\n");
+		exit(1);
+
+	}
 
 #elif defined(MAC_INTEGRATION)
-
 #else
 	coordinate_system_file = g_strdup(XMIMSIM_COORDINATE_SYSTEM);
 #endif

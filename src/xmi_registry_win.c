@@ -79,6 +79,9 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_SOURCES:
 			g_string_append(stringkey,"sources");
 			break;
+		case XMI_REGISTRY_WIN_COORDINATE_SYSTEM:
+			g_string_append(stringkey,"coordinate-system");
+			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
 			return 0;
