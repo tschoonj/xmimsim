@@ -54,9 +54,6 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 		case XMI_RESOURCES_MAC_XMIMSIM_EXEC:
 			temp = g_strdup_printf("%s/xmimsim",resource_path);
 			break;
-		case XMI_RESOURCES_MAC_LOGO:
-			temp = g_strdup_printf("%s/Logo_xmi_msim.png",resource_path);
-			break;
 		case XMI_RESOURCES_MAC_OPENCL_CODE:
 			temp = g_strdup_printf("%s",resource_path);
 			break;
