@@ -76,7 +76,6 @@ dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 #			  Radiation_warning_symbol.svg
 #endif
 xmimsimdir = $(datadir)/xmimsim
-#used from within the About screen -> not working in the Mac App version starting with ML...
 dist_xmimsim_DATA = Logo_xmi_msim.png Logo_xmi_msim_red.png Logo_xmi_msim_archive.png
 endif
 all:
