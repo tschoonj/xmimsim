@@ -51,7 +51,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #elif defined(G_OS_WIN32)
 #include <windows.h>
 #include "xmi_registry_win.h"
-#include "xmimsim-gui-icons.h"
 #define real_xmimsim_pid ((int) GetProcessId((HANDLE) xmimsim_pid))
 #endif
 
@@ -3267,21 +3266,6 @@ static void about_click(GtkWidget *widget, gpointer data) {
 
 	GdkPixbuf *logo = NULL;
 
-#ifdef G_OS_WIN32
-	gchar *logo_file = NULL;
-	xmi_registry_win_query(XMI_REGISTRY_WIN_LOGO,&logo_file);
-
-	GError *error = NULL;
-	if (logo_file) {
-		logo = gdk_pixbuf_new_from_file_at_scale(logo_file, 100,-1,TRUE,&error);
-		if (error != NULL) {
-			fprintf(stderr,"Could not load logo in %s: %s\n",logo_file,error->message);
-		}
-
-		g_free(logo_file);
-	}
-#endif
-
 	GtkWidget *about_dialog = gtk_about_dialog_new();
 	gtk_window_set_transient_for(GTK_WINDOW(about_dialog), GTK_WINDOW(data));
 	gtk_window_set_modal(GTK_WINDOW(about_dialog), TRUE);
@@ -3291,12 +3275,7 @@ static void about_click(GtkWidget *widget, gpointer data) {
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog), comments);
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog), copyright);
 	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(about_dialog), "This program comes with ABSOLUTELY NO WARRANTY. It is made available under the terms and conditions specified by version 3 of the GNU General Public License. For details, visit http://www.gnu.org/licenses/gpl.html\n\nPlease refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 5. Polarized radiation, stratified samples, cascade effects, M-lines\" (http://dx.doi.org/10.1016/j.sab.2012.03.011 ) in your manuscripts when using this tool.\n\nWhen using XMI-MSIM through the PyMca quantification interface, please refer to our paper \"A general Monte Carlo simulation of energy-dispersive X-ray fluorescence spectrometers - Part 6. Quantification through iterative simulations\" (http://dx.doi.org/10.1016/j.sab.2012.12.011 ) in your manuscripts.");
-#ifdef G_OS_WIN32
-	// TODO: figure out why we cannot just use the icon here...
-	gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(about_dialog), logo);
-#else
 	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), XMI_STOCK_LOGO);
-#endif
 	gtk_about_dialog_set_artists(GTK_ABOUT_DIALOG(about_dialog), artists);
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_dialog), VERSION);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_dialog), "https://github.com/tschoonj/xmimsim");
@@ -5227,6 +5206,10 @@ XMI_MAIN
 		chartreuse_green = green;
 	}
 
+#if GTK_MAJOR_VERSION == 3
+	g_type_class_unref(g_type_class_ref(GTK_TYPE_IMAGE_MENU_ITEM));
+	g_object_set(gtk_settings_get_default(), "gtk-menu-images", TRUE, NULL);
+#endif
 	//iconfactory stuff
 	//based on http://www.gtkforums.com/viewtopic.php?t=7654
 	static GtkStockItem stock_items[] = {
@@ -5244,26 +5227,34 @@ XMI_MAIN
 
 #ifdef G_OS_WIN32
 	GdkPixbuf *pixbuf;
-#define ADD_ICON(name_macro, name_pixbuf) \
-	{ \
-		GError *icon_error = NULL; \
-		GInputStream *ginput = g_memory_input_stream_new_from_data(name_pixbuf, sizeof(name_pixbuf), NULL); \
-		pixbuf = gdk_pixbuf_new_from_stream(ginput, NULL, &icon_error); \
-		if (icon_error) \
-			fprintf(stderr, "gdk_pixbuf_new_from_stream error %s\n", icon_error->message); \
-		else { \
-			iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
-			g_object_unref(pixbuf); \
-			g_object_unref(ginput); \
-			gtk_icon_factory_add (factory, name_macro, iconset);\
-			gtk_icon_set_unref (iconset); \
-		}\
+	gchar *icons_dir = NULL;
+	if (xmi_registry_win_query(XMI_REGISTRY_WIN_ICONS_DIR, &icons_dir) == 0) {
+		g_fprintf(stderr, "Could not open icons dir\n");
+		exit(1);
 	}
 
-	ADD_ICON(XMI_STOCK_RADIATION_WARNING, Radiation_warning_symbol_pixbuf);
-	ADD_ICON(XMI_STOCK_LOGO, Logo_xmi_msim_pixbuf);
-	ADD_ICON(XMI_STOCK_LOGO_RED, Logo_xmi_msim_red_pixbuf);
-	ADD_ICON(XMI_STOCK_LOGO_ARCHIVE, Logo_xmi_msim_archive_pixbuf);
+#define ADD_ICON(name_macro, name_pixbuf) \
+	{ \
+		GString *icon_file = g_string_new(icons_dir); \
+		g_string_append(icon_file, name_pixbuf ".png"); \
+		GError *icon_error = NULL; \
+		pixbuf = gdk_pixbuf_new_from_file(icon_file->str, &icon_error); \
+		if (icon_error) { \
+			fprintf(stderr, "gdk_pixbuf_new_from_file error %s\n", icon_error->message); \
+			exit(1); \
+		} \
+		iconset = gtk_icon_set_new_from_pixbuf(pixbuf);\
+		g_object_unref(pixbuf); \
+		gtk_icon_factory_add (factory, name_macro, iconset);\
+		gtk_icon_set_unref (iconset); \
+		g_string_free(icon_file, TRUE); \
+	}
+
+	ADD_ICON(XMI_STOCK_RADIATION_WARNING, "Radiation_warning_symbol");
+	ADD_ICON(XMI_STOCK_LOGO, "Logo_xmi_msim");
+	ADD_ICON(XMI_STOCK_LOGO_RED, "Logo_xmi_msim_red");
+	ADD_ICON(XMI_STOCK_LOGO_ARCHIVE, "Logo_xmi_msim_archive");
+	g_free(icons_dir);
 
 #undef ADD_ICON
 #else
