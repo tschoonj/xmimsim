@@ -39,14 +39,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 XMI_MAIN
 
 	static struct xmi_main_options options;
-
 	xmi_inputFPtr inputFPtr;
-	int rv;
-	gchar filename[512];
-
 	struct xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
-	FILE *outPtr;
 	GError *error = NULL;
 	GOptionContext *context;
 	static int version = 0;
@@ -195,8 +190,6 @@ XMI_MAIN
 	else if (options.verbose)
 		g_fprintf(stdout,"No escape peaks requested: escape peak calculation is redundant\n");
 
-
-	int i,j;
 
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(xmso_in->input,&inputFPtr);
