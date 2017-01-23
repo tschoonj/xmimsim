@@ -316,10 +316,9 @@ endif
 
 
 if OS_WINDOWS
-#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
-nodist_xmimsim_gui_SOURCES += xmimsim-gui-icons.h
 xmimsim_gui_CFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
 
@@ -465,17 +464,6 @@ xmimsim-icon.o: xmimsim-icon.rc
 	-DXMIMSIM_WIN_ICO_XMSA=\"${top_srcdir}/icons/Logo_xmi_msim_Win7_XMSA.ico\" \
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o
 
-
-xmimsim-gui.c: xmimsim-gui-icons.h
-
-xmimsim-gui-icons.h:
-	$(GDK_PIXBUF_CSOURCE) --stream --build-list \
-	"Radiation_warning_symbol_pixbuf" "$(top_srcdir)/icons/256x256/Radiation_warning_symbol.png" \
-	"Logo_xmi_msim_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim.png" \
-	"Logo_xmi_msim_red_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_red.png" \
-	"Logo_xmi_msim_archive_pixbuf" "$(top_srcdir)/icons/256x256/Logo_xmi_msim_archive.png" \
-	> xmimsim-gui-icons.h
-
 endif
 
 xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
@@ -514,7 +502,7 @@ xmimsim-gui-marshal.c: $(marshal_input)
 
 
 clean-local:
-	rm -rf xmimsim-gui-icons.h $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
+	rm -rf $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
 
 EXTRA_DIST = xmimsim-gui-marshal.list
 

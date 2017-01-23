@@ -64,9 +64,6 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_XMSO2HTM:
 			g_string_append(stringkey,"xmso2htm");
 			break;
-		case XMI_REGISTRY_WIN_LOGO:
-			g_string_append(stringkey,"icon");
-			break;
 		case XMI_REGISTRY_WIN_OPENCL_CODE:
 			g_string_append(stringkey,"openclcode");
 			break;
@@ -81,6 +78,9 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 			break;
 		case XMI_REGISTRY_WIN_COORDINATE_SYSTEM:
 			g_string_append(stringkey,"coordinate-system");
+			break;
+		case XMI_REGISTRY_WIN_ICONS_DIR:
+			g_string_append(stringkey,"icons-dir");
 			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_registry_win_query\n");
