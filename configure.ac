@@ -363,12 +363,6 @@ if test x$OS_WINDOWS = x1 ; then
   	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
   fi
 fi
-if test "x$GTK_FOUND" = xyes ; then
-	AC_CHECK_PROG([GDK_PIXBUF_CSOURCE],[gdk-pixbuf-csource],[gdk-pixbuf-csource],[fail])
-  	if test x$GDK_PIXBUF_CSOURCE = xfail ; then
-  		AC_MSG_ERROR([gdk-pixbuf-csource was not found. This program is necessary to insert our custom icons in the GUI])
-  	fi
-fi
 AC_CHECK_PROG([GLIB_MKENUMS],[glib-mkenums],[glib-mkenums],[fail])
 if test x$GLIB_MKENUMS = xfail ; then
 	AC_MSG_WARN([glib-mkenums was not found. Though not required for a regular build, it will impact developers of the GUI.])
