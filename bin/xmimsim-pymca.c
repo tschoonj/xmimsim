@@ -75,7 +75,7 @@ XMI_MAIN
 	static gchar *geometry_file = NULL;
 	static gchar *detector_file = NULL;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
-	char filename[512];
+	gchar *filename;
 	static int use_rayleigh_normalization = 0;
 	static int use_roi_normalization = 0;
 	static int use_matrix_override= 0;
@@ -871,7 +871,7 @@ single_run:
 
 		//write it to outputfile... spe style
 		if (spe_file_noconv != NULL) {
-			sprintf(filename,"%s_%i.spe",spe_file_noconv,i);
+			filename = g_strdup_printf("%s_%i.spe",spe_file_noconv,i);
 			if ((outPtr=fopen(filename,"w")) == NULL ) {
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
@@ -894,10 +894,11 @@ single_run:
 				}
 			}
 			fclose(outPtr);
+			g_free(filename);
 		}
 		//convoluted spectrum
 		if (spe_file_conv != NULL) {
-			sprintf(filename,"%s_%i.spe",spe_file_conv,i);
+			filename = g_strdup_printf("%s_%i.spe",spe_file_conv,i);
 			if ((outPtr=fopen(filename,"w")) == NULL ) {
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
@@ -918,6 +919,7 @@ single_run:
 				}
 			}
 			fclose(outPtr);
+			g_free(filename);
 		}
 	}
 
