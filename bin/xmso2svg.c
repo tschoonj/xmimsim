@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2011 Tom Schoonjans, Laszlo Vincze and Philip Brondeel
+Copyright (C) 2010-2017 Tom Schoonjans, Laszlo Vincze and Philip Brondeel
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
