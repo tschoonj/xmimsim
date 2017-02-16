@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_detector.h"
 #include <math.h>
 #include <locale.h>
+#include <xraylib.h>
 
 #ifdef _WIN32
   #define _UNICODE
@@ -51,6 +52,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"
 #endif
+
+double calculate_detector_absorption(struct xmi_input *input, int Z, int line) {
+	double energy = LineEnergy(Z, line);
+	int i, j;
+	double rv = 1.0;
+
+	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
+		double mu = 0.0;
+		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++)
+			mu += CS_Total_Kissel(input->absorbers->det_layers[i].Z[j], energy) * input->absorbers->det_layers[i].weight[j];
+		rv *= exp(-1.0*input->absorbers->det_layers[i].density * input->absorbers->det_layers[i].thickness * mu);
+	}
+	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
+		double mu = 0.0;
+		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++)
+			mu += CS_Total_Kissel(input->detector->crystal_layers[i].Z[j], energy) * input->detector->crystal_layers[i].weight[j];
+		rv *= -1.0 * expm1(-1.0*input->detector->crystal_layers[i].density*input->detector->crystal_layers[i].thickness * mu);
+	}
+	return rv;
+}
 
 XMI_MAIN
 	char *xmimsim_hdf5_solid_angles=NULL;
@@ -650,13 +671,14 @@ XMI_MAIN
 				k_sim[j] = 0.0;
 				l_sim[j] = 0.0;
 
+				// TODO: apply detector absorption to var_red values
 				for (k = 0 ; k <= xi->general->n_interactions_trajectory ; k++) {
-					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,xi->general->n_interactions_trajectory);
-					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,xi->general->n_interactions_trajectory);
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL2_LINE),k,100,385,xi->general->n_interactions_trajectory) * calculate_detector_absorption(xi, xp->z_arr_quant[j], KL2_LINE);
+					k_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(KL3_LINE),k,100,385,xi->general->n_interactions_trajectory) * calculate_detector_absorption(xi, xp->z_arr_quant[j], KL3_LINE);
 				}
 				for (k = 0 ; k <= xi->general->n_interactions_trajectory ; k++) {
-					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,xi->general->n_interactions_trajectory);
-					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,xi->general->n_interactions_trajectory);
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M4_LINE),k,100,385,xi->general->n_interactions_trajectory) * calculate_detector_absorption(xi, xp->z_arr_quant[j], L3M4_LINE);
+					l_sim[j] += ARRAY3D_FORTRAN(var_red_history, xp->z_arr_quant[j], abs(L3M5_LINE),k,100,385,xi->general->n_interactions_trajectory) * calculate_detector_absorption(xi, xp->z_arr_quant[j], L3M5_LINE);
 				}
 
 				if (k_exp[j] > 0.0 && k_sim[j] > 0.0) {
@@ -766,7 +788,7 @@ XMI_MAIN
 			if (i % 2 == 1) {
 				if (options.verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
-				xmi_detector_convolute(inputFPtr, channels+xi->general->n_interactions_trajectory*xi->detector->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
+				xmi_detector_convolute_spectrum(inputFPtr, channels+xi->general->n_interactions_trajectory*xi->detector->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
 
 				sum_roi = 0.0;
 				for (j = xp->xmin ; j <= xp->xmax ; j++)
@@ -829,7 +851,7 @@ single_run:
 	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
 		channels_def_ptrs[i] = channels+i*xi->detector->nchannels;
 
-	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, xi->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_history, var_red_history, options, escape_ratios_def, xi->general->n_interactions_trajectory, 1);
 
 	g_free(channels_def_ptrs);
 
@@ -838,7 +860,7 @@ single_run:
 	}
 
 	//write to xml outputfile
-	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channels, argv[1], zero_sum > 0.0 ? 1 : 0);
+	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
 	if (xmi_write_output_xml(argv[2], output) == 0) {
 		return 1;
 	}
