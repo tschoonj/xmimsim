@@ -216,13 +216,23 @@ SUBROUTINE xmi_detector_sum_peaks(inputF, channels, options)
 
 ENDSUBROUTINE xmi_detector_sum_peaks
 
-SUBROUTINE xmi_detector_convolute_all(inputFPtr, channels_noconvPtr,&
-channels_convPtr, options, escape_ratiosCPtr, n_interactions_all,&
-zero_inter) BIND(C,NAME='xmi_detector_convolute_all')
+SUBROUTINE xmi_detector_convolute_all(&
+        inputFPtr,&
+        channels_noconvPtr,&
+        channels_convPtr,&
+        brute_historyPtr,&
+        var_red_historyPtr,&
+        options,&
+        escape_ratiosCPtr,&
+        n_interactions_all,&
+        zero_inter) &
+        BIND(C,NAME='xmi_detector_convolute_all')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr
         TYPE (C_PTR), INTENT(IN), VALUE :: channels_noconvPtr
         TYPE (C_PTR), INTENT(IN), VALUE :: channels_convPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: var_red_historyPtr
+        TYPE (C_PTR), INTENT(IN), VALUE :: brute_historyPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
         TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions_all, zero_inter
@@ -245,16 +255,90 @@ zero_inter) BIND(C,NAME='xmi_detector_convolute_all')
 !$omp parallel do default(shared) private(i)&
 !$omp num_threads(options%omp_num_threads)
         DO i=start_index, n_interactions_all+1
-               CALL xmi_detector_convolute(inputFPtr, channels_noconv(i),&
+               CALL xmi_detector_convolute_spectrum(inputFPtr, channels_noconv(i),&
                channels_conv(i), options, escape_ratiosCPtr, i-1)
         ENDDO
 !$omp end parallel do
 
+        IF (options%use_variance_reduction == 1_C_INT .AND. C_ASSOCIATED(var_red_historyPtr)) THEN
+          IF (options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
+            CALL xmi_print_progress('Calculating variance reduction history detector absorption correction'
+#else
+            WRITE(output_unit,'(A, I2)') 'Calculating variance reduction history detector absorption correction'
+#endif
+          CALL xmi_detector_convolute_history(&
+            inputFPtr,&
+            var_red_historyPtr,&
+            options)
+        ENDIF
+
+        IF (C_ASSOCIATED(brute_historyPtr)) THEN
+          IF (options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
+            CALL xmi_print_progress('Calculating brute force history detector absorption correction'
+#else
+            WRITE(output_unit,'(A, I2)') 'Calculating brute force history detector absorption correction'
+#endif
+          CALL xmi_detector_convolute_history(&
+            inputFPtr,&
+            brute_historyPtr,&
+            options)
+        ENDIF
+
 ENDSUBROUTINE xmi_detector_convolute_all
 
-SUBROUTINE xmi_detector_convolute(inputFPtr, channels_noconvPtr,&
+SUBROUTINE xmi_detector_convolute_history(&
+        inputFPtr,&
+        historyPtr,&
+        options)&
+        BIND(C,NAME='xmi_detector_convolute_history')
+        IMPLICIT NONE
+        TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, historyPtr
+        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: history
+        TYPE (xmi_input), POINTER :: inputF
+        INTEGER (C_INT) :: i, j, k, l
+        REAL (C_DOUBLE) :: counts, line_energy, det_corr
+
+        CALL C_F_POINTER(inputFPtr, inputF)
+        CALL C_F_POINTER(historyPtr, history,&
+        [inputF%general%n_interactions_trajectory, 383+2, 100])
+
+        DO i=1,inputF%general%n_interactions_trajectory
+          DO j=1,383
+            DO k=1,100
+              counts = history(i,j,k)
+              IF (counts > 0.0_C_DOUBLE) THEN
+                line_energy = LineEnergy(k,-j)
+                IF (line_energy > 0.0_C_DOUBLE) THEN
+                  det_corr = 1.0_C_DOUBLE
+                  DO l=1,inputF%absorbers%n_det_layers
+                          det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                          inputF%absorbers%det_layers(j)%density*&
+                          inputF%absorbers%det_layers(j)%thickness*&
+                          xmi_mu_calc(inputF%absorbers%det_layers(j),&
+                          line_energy))
+                  ENDDO
+                  DO l=1,inputF%detector%n_crystal_layers
+                          det_corr = -1.0 * det_corr * EXPM1(-1.0_C_DOUBLE*&
+                          inputF%detector%crystal_layers(j)%density*&
+                          inputF%detector%crystal_layers(j)%thickness*&
+                          xmi_mu_calc(inputF%detector%crystal_layers(j),&
+                          line_energy))
+                  ENDDO
+                  history(i,j,k) = counts * det_corr
+                ENDIF
+              ENDIF
+            ENDDO
+          ENDDO
+        ENDDO
+        
+ENDSUBROUTINE xmi_detector_convolute_history
+
+SUBROUTINE xmi_detector_convolute_spectrum(inputFPtr, channels_noconvPtr,&
 channels_convPtr, options, escape_ratiosCPtr, n_interactions&
-) BIND(C,NAME='xmi_detector_convolute')
+) BIND(C,NAME='xmi_detector_convolute_spectrum')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
@@ -270,11 +354,11 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         REAL (C_DOUBLE), POINTER, DIMENSION(:) ::&
         channels_conv
         INTEGER (C_LONG) :: nlim
-        REAL (C_DOUBLE) :: a,b
+        REAL (C_DOUBLE) :: a,b, det_corr
         REAL (C_DOUBLE), PARAMETER :: c =&
         SQRT(2.0_C_DOUBLE)/(2.0_C_DOUBLE*SQRT(2.0_C_DOUBLE*LOG(2.0_C_DOUBLE)))
         REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: R
-        INTEGER (C_INT) :: I0, I
+        INTEGER (C_INT) :: I0, I, j
         REAL (C_DOUBLE) :: E0, E, B0, FWHM, A0, A3, A4, ALFA, X, G, F, my_sum,&
         CBG
 
@@ -338,6 +422,35 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         WRITE (*,'(A,ES14.6)') 'channels_temp max: ',MAXVAL(channels_temp)
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
+
+
+        ! apply per channel detector absorption correction
+        IF (options%verbose == 1_C_INT)&
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
+          CALL xmi_print_progress('Applying per channel detector absorption correction after interactions: '&
+            //C_NULL_CHAR, n_interactions)
+#else
+          WRITE(output_unit,'(A, I2)') 'Applying per channel detector absorption correction after interactions: ',&
+            n_interactions
+#endif
+        DO i=0,inputF%detector%nchannels-1
+                det_corr = 1.0_C_DOUBLE
+                DO j=1,inputF%absorbers%n_det_layers
+                        det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+                        inputF%absorbers%det_layers(j)%density*&
+                        inputF%absorbers%det_layers(j)%thickness*&
+                        xmi_mu_calc(inputF%absorbers%det_layers(j),&
+                        i*inputF%detector%gain+inputF%detector%zero))
+                ENDDO
+                DO j=1,inputF%detector%n_crystal_layers
+                        det_corr = -1.0 * det_corr * EXPM1(-1.0_C_DOUBLE*&
+                        inputF%detector%crystal_layers(j)%density*&
+                        inputF%detector%crystal_layers(j)%thickness*&
+                        xmi_mu_calc(inputF%detector%crystal_layers(j),&
+                        i*inputF%detector%gain+inputF%detector%zero))
+                ENDDO
+                channels_temp(i) = channels_temp(i)*det_corr
+        ENDDO
 
 
         IF (options%use_escape_peaks == 1_C_INT) THEN
@@ -466,7 +579,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         channels_convPtr = C_LOC(channels_conv(0))
 
         RETURN
-ENDSUBROUTINE xmi_detector_convolute
+ENDSUBROUTINE xmi_detector_convolute_spectrum
 
 SUBROUTINE xmi_detector_escape(channels_conv,inputF,escape_ratios)
         IMPLICIT NONE

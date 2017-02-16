@@ -514,7 +514,7 @@ XMI_MAIN
 
 
 		if (options.custom_detector_response == NULL)
-			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 		else {
 			XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
 			GModule *module = NULL;
@@ -533,7 +533,7 @@ XMI_MAIN
 			}
 			else if (options.verbose)
 				g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", options.custom_detector_response);
-			xmi_detector_convolute_all_custom(inputFPtr, channels_def_ptrs, channels_conv, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+			xmi_detector_convolute_all_custom(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 			if (!g_module_close(module)) {
 				fprintf(stderr,"Warning: could not close module %s: %s\n",options.custom_detector_response, g_module_error());
 			}
@@ -657,7 +657,7 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		struct xmi_output *output = xmi_output_raw2struct(input, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
+		struct xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
 		if (xmi_write_output_xml(input->general->outputfile, output) == 0) {
 			return 1;
 		}
@@ -711,11 +711,12 @@ XMI_MAIN
 			xmi_deallocate(channels_conv[i] );
 		}
 		g_free(channels_conv);
+		/* Do not deallocate as problems may arise in OpenMPI mode
 		xmi_deallocate(channelsdef);
 		xmi_deallocate(brute_history);
 		if (options.use_variance_reduction)
 			xmi_deallocate(var_red_history);
-
+		*/
 #ifdef HAVE_OPENMPI
 	}
 #endif

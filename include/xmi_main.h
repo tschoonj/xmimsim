@@ -48,13 +48,15 @@ struct xmi_main_options xmi_get_default_main_options();
 
 int xmi_main_msim (xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, int n_mpi_hosts, double **channels, struct xmi_main_options, double **brute_history, double **var_red_history, struct xmi_solid_angle *solid_angles);
 
-void xmi_detector_convolute(xmi_inputFPtr inputFPtr, double *channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions);
+void xmi_detector_convolute_spectrum(xmi_inputFPtr inputFPtr, double *channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions);
 
-void xmi_detector_convolute_all(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
+void xmi_detector_convolute_all(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
+
+void xmi_detector_convolute_history(xmi_inputFPtr inputFPtr, double *history, struct xmi_main_options);
 
 void xmi_deallocate(void *array);
 
-typedef void (*XmiDetectorConvoluteAll) (xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
+typedef void (*XmiDetectorConvoluteAll) (xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, struct xmi_main_options, struct xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
 
 #ifdef __cplusplus
 }

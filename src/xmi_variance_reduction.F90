@@ -672,9 +672,7 @@ SUBROUTINE xmi_variance_reduction(photon, inputF, hdf5F, rng)
                         photon%var_red_history(layer%Z(i),&
                         ABS(line_new),n_ia) =&
                         photon%var_red_history(layer%Z(i),&
-                        ABS(line_new),n_ia)+temp_weight*&
-                        photon%det_corr_all(layer%Z(i),&
-                        ABS(line_new))
+                        ABS(line_new),n_ia)+temp_weight
 
                         IF (energy_fluo .GE. energy_threshold) THEN
                                 channel = INT((energy_fluo - &

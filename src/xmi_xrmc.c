@@ -37,10 +37,9 @@ static void sarrus_rule(double a[3], double b[3], double c[3]) {
 
 
 static char *xmi_convert_xrmc_path(char *path) {
-	int i,j;
+	int i;
 	GString *new_path = g_string_new(path);
 
-	j = 0;
 	for (i = 0 ; i < new_path->len ; i++) {
 		if (new_path->str[i] == ' ') {
 			g_string_overwrite(new_path, i, "\\ ");

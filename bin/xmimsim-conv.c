@@ -202,7 +202,7 @@ XMI_MAIN
 	double **channels_conv = g_malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
 	if (options.custom_detector_response == NULL)
-		xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+		xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, NULL, NULL, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
 	else {
 		XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
 		GModule *module = NULL;
@@ -221,7 +221,7 @@ XMI_MAIN
 		}
 		else if (options.verbose)
 			g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", options.custom_detector_response);
-		xmi_detector_convolute_all_custom(inputFPtr, xmso_in->channels_unconv, channels_conv, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+		xmi_detector_convolute_all_custom(inputFPtr, xmso_in->channels_unconv, channels_conv, NULL, NULL, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
 		if (!g_module_close(module)) {
 			fprintf(stderr,"Warning: could not close module %s: %s\n",options.custom_detector_response, g_module_error());
 		}

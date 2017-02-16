@@ -106,7 +106,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         INTEGER (C_INT) :: element, line_last, shell_last, shell
         REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
-        REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
+        !REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
@@ -215,10 +215,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 shell_last = L3_SHELL
         ENDIF
 
-        ALLOCATE(det_corr_all(100,ABS(line_last)))
-        ALLOCATE(LineEnergies(100,ABS(line_last)))
+        !ALLOCATE(det_corr_all(100,ABS(line_last)))
+        !ALLOCATE(LineEnergies(100,ABS(line_last)))
 
-        det_corr_all = 1.0_C_DOUBLE
+        !det_corr_all = 1.0_C_DOUBLE
         LineEnergies = 0.0_C_DOUBLE
 
         DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
@@ -228,26 +228,26 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 ENDDO
         ENDDO
         !time_before = TIME()
-        DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
-                DO line=KL1_LINE, line_last, -1
-                        det_corr = 1.0_C_DOUBLE
-                        DO j=1,inputF%absorbers%n_det_layers
-                                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-                                inputF%absorbers%det_layers(j)%density*&
-                                inputF%absorbers%det_layers(j)%thickness*&
-                                xmi_mu_calc(inputF%absorbers%det_layers(j),&
-                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))))
-                        ENDDO
-                        DO j=1,inputF%detector%n_crystal_layers
-                                det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
-                                inputF%detector%crystal_layers(j)%density*&
-                                inputF%detector%crystal_layers(j)%thickness*&
-                                xmi_mu_calc(inputF%detector%crystal_layers(j),&
-                                LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))))
-                        ENDDO
-                        det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
-                ENDDO
-        ENDDO
+        !DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
+        !        DO line=KL1_LINE, line_last, -1
+        !                det_corr = 1.0_C_DOUBLE
+        !                DO j=1,inputF%absorbers%n_det_layers
+        !                        det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+        !                        inputF%absorbers%det_layers(j)%density*&
+        !                        inputF%absorbers%det_layers(j)%thickness*&
+        !                        xmi_mu_calc(inputF%absorbers%det_layers(j),&
+        !                        LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))))
+        !                ENDDO
+        !                DO j=1,inputF%detector%n_crystal_layers
+        !                        det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
+        !                        inputF%detector%crystal_layers(j)%density*&
+        !                        inputF%detector%crystal_layers(j)%thickness*&
+        !                        xmi_mu_calc(inputF%detector%crystal_layers(j),&
+        !                        LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))))
+        !                ENDDO
+        !                det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
+        !        ENDDO
+        !ENDDO
         !time_after = TIME()
         !WRITE (output_unit, '(A,I8, A)') 'Time elapsed: ',&
         !time_after - time_before, ' sec'
@@ -392,7 +392,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
-                        photon%det_corr_all => det_corr_all
+                        !photon%det_corr_all => det_corr_all
                         photon%LineEnergies => LineEnergies
 
 
@@ -514,8 +514,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         ABS(photon_temp%history(k,1)),k) = &
                                                         brute_history(element,&
                                                         ABS(photon_temp%history(k,1)),k) + &
-                                                        photon_temp%weight*det_corr_all&
-                                                        (element,ABS(photon_temp%history(k,1)))
+                                                        photon_temp%weight
 
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
@@ -675,7 +674,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
-                        photon%det_corr_all => det_corr_all
+                        !photon%det_corr_all => det_corr_all
                         photon%LineEnergies => LineEnergies
 
 
@@ -800,8 +799,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                                         ABS(photon_temp%history(k,1)),k) = &
                                                         brute_history(element,&
                                                         ABS(photon_temp%history(k,1)),k) + &
-                                                        photon_temp%weight*det_corr_all&
-                                                        (element,ABS(photon_temp%history(k,1)))
+                                                        photon_temp%weight
 
                                                 ELSEIF &
                                                         (photon_temp%history(k,1) .EQ. RAYLEIGH_INTERACTION) THEN
@@ -913,24 +911,24 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         DEALLOCATE(precalc_mu_cs)
 
         !multiply with detector absorbers and detector crystal
-        DO i=0,inputF%detector%nchannels-1
-                det_corr = 1.0_C_DOUBLE
-                DO j=1,inputF%absorbers%n_det_layers
-                        det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-                        inputF%absorbers%det_layers(j)%density*&
-                        inputF%absorbers%det_layers(j)%thickness*&
-                        xmi_mu_calc(inputF%absorbers%det_layers(j),&
-                        i*inputF%detector%gain+inputF%detector%zero))
-                ENDDO
-                DO j=1,inputF%detector%n_crystal_layers
-                        det_corr = -1.0*det_corr * expm1(-1.0_C_DOUBLE*&
-                        inputF%detector%crystal_layers(j)%density*&
-                        inputF%detector%crystal_layers(j)%thickness*&
-                        xmi_mu_calc(inputF%detector%crystal_layers(j),&
-                        i*inputF%detector%gain+inputF%detector%zero))
-                ENDDO
-                channels(:,i) = channels(:,i)*det_corr
-        ENDDO
+        !DO i=0,inputF%detector%nchannels-1
+        !        det_corr = 1.0_C_DOUBLE
+        !        DO j=1,inputF%absorbers%n_det_layers
+        !                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
+        !                inputF%absorbers%det_layers(j)%density*&
+        !                inputF%absorbers%det_layers(j)%thickness*&
+        !                xmi_mu_calc(inputF%absorbers%det_layers(j),&
+        !                i*inputF%detector%gain+inputF%detector%zero))
+        !        ENDDO
+        !        DO j=1,inputF%detector%n_crystal_layers
+        !                det_corr = -1.0*det_corr * expm1(-1.0_C_DOUBLE*&
+        !                inputF%detector%crystal_layers(j)%density*&
+        !                inputF%detector%crystal_layers(j)%thickness*&
+        !                xmi_mu_calc(inputF%detector%crystal_layers(j),&
+        !                i*inputF%detector%gain+inputF%detector%zero))
+        !        ENDDO
+        !        channels(:,i) = channels(:,i)*det_corr
+        !ENDDO
 
 #if DEBUG == 1
         OPEN(UNIT=500,FILE='rayleigh_theta_hist.txt',STATUS='replace',ACTION='write')
