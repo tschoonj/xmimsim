@@ -487,9 +487,6 @@ TYPE :: xmi_photon
         !channels
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: channels
 
-        !detector absorption correction
-        !REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: det_corr_all
-
         !the XRF line energies
         REAL (C_DOUBLE), DIMENSION(:,:), POINTER :: LineEnergies
 
