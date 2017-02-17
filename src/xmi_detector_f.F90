@@ -315,16 +315,16 @@ SUBROUTINE xmi_detector_convolute_history(&
                   det_corr = 1.0_C_DOUBLE
                   DO l=1,inputF%absorbers%n_det_layers
                           det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-                          inputF%absorbers%det_layers(j)%density*&
-                          inputF%absorbers%det_layers(j)%thickness*&
-                          xmi_mu_calc(inputF%absorbers%det_layers(j),&
+                          inputF%absorbers%det_layers(l)%density*&
+                          inputF%absorbers%det_layers(l)%thickness*&
+                          xmi_mu_calc(inputF%absorbers%det_layers(l),&
                           line_energy))
                   ENDDO
                   DO l=1,inputF%detector%n_crystal_layers
                           det_corr = -1.0 * det_corr * EXPM1(-1.0_C_DOUBLE*&
-                          inputF%detector%crystal_layers(j)%density*&
-                          inputF%detector%crystal_layers(j)%thickness*&
-                          xmi_mu_calc(inputF%detector%crystal_layers(j),&
+                          inputF%detector%crystal_layers(l)%density*&
+                          inputF%detector%crystal_layers(l)%thickness*&
+                          xmi_mu_calc(inputF%detector%crystal_layers(l),&
                           line_energy))
                   ENDDO
                   history(i,j,k) = counts * det_corr
@@ -451,7 +451,6 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
                 ENDDO
                 channels_temp(i) = channels_temp(i)*det_corr
         ENDDO
-
 
         IF (options%use_escape_peaks == 1_C_INT) THEN
 
