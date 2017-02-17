@@ -104,7 +104,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT) :: element, line_last, shell_last, shell
-        REAL (C_DOUBLE) :: exc_corr,det_corr, total_intensity
+        REAL (C_DOUBLE) :: exc_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
         !REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
@@ -227,30 +227,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         LineEnergy(hdf5F%xmi_hdf5_Zs(i)%Z,line)
                 ENDDO
         ENDDO
-        !time_before = TIME()
-        !DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
-        !        DO line=KL1_LINE, line_last, -1
-        !                det_corr = 1.0_C_DOUBLE
-        !                DO j=1,inputF%absorbers%n_det_layers
-        !                        det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-        !                        inputF%absorbers%det_layers(j)%density*&
-        !                        inputF%absorbers%det_layers(j)%thickness*&
-        !                        xmi_mu_calc(inputF%absorbers%det_layers(j),&
-        !                        LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))))
-        !                ENDDO
-        !                DO j=1,inputF%detector%n_crystal_layers
-        !                        det_corr = det_corr * (1.0_C_DOUBLE-EXP(-1.0_C_DOUBLE*&
-        !                        inputF%detector%crystal_layers(j)%density*&
-        !                        inputF%detector%crystal_layers(j)%thickness*&
-        !                        xmi_mu_calc(inputF%detector%crystal_layers(j),&
-        !                        LineEnergies(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line)))))
-        !                ENDDO
-        !                det_corr_all(hdf5F%xmi_hdf5_Zs(i)%Z,ABS(line))=det_corr
-        !        ENDDO
-        !ENDDO
-        !time_after = TIME()
-        !WRITE (output_unit, '(A,I8, A)') 'Time elapsed: ',&
-        !time_after - time_before, ' sec'
 
         !
         !
@@ -288,7 +264,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 !$omp parallel default(shared) private(rng,thread_num,i,j,k,l,m,n,photon,&
 !$omp photon_temp,photon_temp2,hor_ver_ratio,n_photons,iv_start_energy,&
 !$omp iv_end_energy,ipol,cosalfa, c_alfa, c_ae, c_be, initial_mus,channel,&
-!$omp element,exc_corr,det_corr,total_intensity,dirv_z_angle,weight, workspace,&
+!$omp element,exc_corr,total_intensity,dirv_z_angle,weight, workspace,&
 !$omp iv_start_intensity, iv_end_intensity)&
 !$omp reduction(+:photons_simulated,detector_hits, detector_hits2,channels,&
 !$omp rayleighs,comptons,einsteins,brute_history, var_red_history,&
@@ -909,26 +885,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 DEALLOCATE(precalc_mu_cs(k)%mu)
         ENDDO
         DEALLOCATE(precalc_mu_cs)
-
-        !multiply with detector absorbers and detector crystal
-        !DO i=0,inputF%detector%nchannels-1
-        !        det_corr = 1.0_C_DOUBLE
-        !        DO j=1,inputF%absorbers%n_det_layers
-        !                det_corr = det_corr * EXP(-1.0_C_DOUBLE*&
-        !                inputF%absorbers%det_layers(j)%density*&
-        !                inputF%absorbers%det_layers(j)%thickness*&
-        !                xmi_mu_calc(inputF%absorbers%det_layers(j),&
-        !                i*inputF%detector%gain+inputF%detector%zero))
-        !        ENDDO
-        !        DO j=1,inputF%detector%n_crystal_layers
-        !                det_corr = -1.0*det_corr * expm1(-1.0_C_DOUBLE*&
-        !                inputF%detector%crystal_layers(j)%density*&
-        !                inputF%detector%crystal_layers(j)%thickness*&
-        !                xmi_mu_calc(inputF%detector%crystal_layers(j),&
-        !                i*inputF%detector%gain+inputF%detector%zero))
-        !        ENDDO
-        !        channels(:,i) = channels(:,i)*det_corr
-        !ENDDO
 
 #if DEBUG == 1
         OPEN(UNIT=500,FILE='rayleigh_theta_hist.txt',STATUS='replace',ACTION='write')
