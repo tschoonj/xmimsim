@@ -216,7 +216,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         ENDIF
 
         !ALLOCATE(det_corr_all(100,ABS(line_last)))
-        !ALLOCATE(LineEnergies(100,ABS(line_last)))
+        ALLOCATE(LineEnergies(100,ABS(line_last)))
 
         !det_corr_all = 1.0_C_DOUBLE
         LineEnergies = 0.0_C_DOUBLE
