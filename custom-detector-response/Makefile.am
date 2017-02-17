@@ -38,6 +38,7 @@ endif
 
 #C example
 detector_response2_la_SOURCES = detector-response2.c
+detector_response2_la_CFLAGS = @OPENMP_CFLAGS@
 detector_response2_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 if OS_WINDOWS
 detector_response2_la_LIBADD = ../src/libxmimsim.la
