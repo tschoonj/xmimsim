@@ -21,7 +21,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.7-2017-01-19-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.8-2017-02-20-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
   #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
@@ -103,11 +103,12 @@ Source: "{#MY_MINGW}\bin\libhogweed-4.dll" ; DestDir: "{app}\Lib" ; Components: 
 Source: "{#MY_MINGW}\bin\libnettle-6.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libp11-kit-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libtasn1-6.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libunistring-2.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libeasyRNG-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
