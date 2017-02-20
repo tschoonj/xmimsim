@@ -120,6 +120,7 @@ PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.0],
 	# TODO check if the Fortran bindings are available
 	AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
 	AC_SUBST([fortran_rng], "easyRNG >= 1.0")
+	AC_SUBST([RNG], "easyRNG")
 	EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
 	AC_DEFINE_UNQUOTED([EASYRNG_VERSION], $EASYRNG_VERSION, [easyRNG version])
 	EASYRNG_FOUND=yes
@@ -137,6 +138,7 @@ if test x$EASYRNG_FOUND = xno ; then
 		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
 		AC_SUBST([fortran_rng], "fgsl >= 1.1.0")
 		FGSL11_FOUND=yes
+		AC_SUBST([RNG], "fgsl")
 		], [
 		FGSL11_FOUND=no
 		])
@@ -149,6 +151,7 @@ if test x$EASYRNG_FOUND = xno ; then
 		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
 		AC_SUBST([fortran_rng], "fgsl == 1.0.0")
 		FGSL10_FOUND=yes
+		AC_SUBST([RNG], "fgsl")
 		], [
 		FGSL10_FOUND=no
 		])
