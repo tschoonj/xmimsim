@@ -362,8 +362,12 @@ XMI_MAIN
 	MPI_Barrier(MPI_COMM_WORLD);
 	//read solid angles for the other nodes
 	if (options.use_variance_reduction == 1 && rank != 0) {
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def) == 0)
+		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
+
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def, options) == 0)
+			return 1;
+
 		if (solid_angle_def == NULL) {
 			g_fprintf(stdout,"Could not find solid angle in HDF5 file (but it should be there since it was created)\n");
 			return 1;
