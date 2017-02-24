@@ -515,6 +515,33 @@ matrix:
             - hdf5-tools
             - libcurl4-openssl-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # trusty: fgsl
+    # no updater
+    # no gui
+    # no notifications
+    # with MPI!!!
+    - os: linux
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
+              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
+          packages:
+            - libgsl0-dev
+            - libfgsl0
+            - libfgsl0-dev
+            - gfortran
+            - libxslt1-dev
+            - libxml2-utils
+            - libhdf5-serial-dev
+            - hdf5-tools
+            - libxrl7-dev
+            - libcurl4-openssl-dev
+            - libopenmpi-dev
+            - openmpi-bin
+      env: EXTRA='--disable-gui --disable-updater --disable-libnotify --enable-mpi'
     ###
     ###
     ### Mac OS X
