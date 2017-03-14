@@ -457,11 +457,8 @@ static void spectra_color_changed_cb(GtkColorButton *widget, gpointer user_data)
 		return;
 #ifdef HAVE_CXX
 	GdkRGBA color;
-	fprintf(stderr, "Before gtk_color_button_get_rgba\n");
 	gtk_color_button_get_rgba(widget, &color);
-	fprintf(stderr, "Before set_color\n");
 	spectra_properties_dataset_active->set_color(Gdk::RGBA(&color, true));
-	fprintf(stderr, "After set_color\n");
 #else
 	GtkPlotLineStyle line_style;
 	GdkCapStyle cap_style;
@@ -647,7 +644,7 @@ static void spectra_linestyle_changed_cb(GtkComboBox *widget, gpointer user_data
 		return;
 
 #ifdef HAVE_CXX
-	spectra_properties_dataset_active->set_line_style((Gtk::PLplot::LineStyle) (gtk_combo_box_get_active(GTK_COMBO_BOX(spectra_properties_linestyleW)) + 1));
+	spectra_properties_dataset_active->set_line_style((Gtk::PLplot::LineStyle) (gtk_combo_box_get_active(GTK_COMBO_BOX(widget)) + 1));
 
 #else
 	GtkPlotLineStyle line_style;
@@ -1778,10 +1775,4 @@ int plot_spectra_from_file(char *xmsofile) {
 #endif
 
 	return 1;
-}
-
-
-void init_spectra_properties(GtkWidget *parent) {
-
-
 }
