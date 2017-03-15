@@ -64,7 +64,7 @@ if test -z ${PLOT+x} ; then
 	:
 elif test $PLOT = "gtkextra" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtk2
-	wget -T 10 -q https://downloads.sourceforge.net/project/gtkextra/3.3/gtkextra-3.3.3.tar.gz
+	wget -q http://lvserver.ugent.be/~schoon/gtkextra-3.3.3.tar.gz
 	tar xfz gtkextra-3.3.3.tar.gz 
 	cd gtkextra-3.3.3
 	# old libtool was used to generate this tarball :-(
@@ -83,7 +83,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
-	wget http://lvserver.ugent.be/~schoon/plplot-5.12.0.tar.gz
+	wget -q http://lvserver.ugent.be/~schoon/plplot-5.12.0.tar.gz
 	tar xvfz plplot-5.12.0.tar.gz
 	cd plplot-5.12.0
 	cmake -G "MSYS Makefiles" -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .
