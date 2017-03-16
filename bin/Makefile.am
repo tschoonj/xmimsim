@@ -45,6 +45,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-export-canvas-dialog.h \
 	xmimsim-gui-tools.h \
 	xmimsim-gui-sources-dialog.h \
+	xmimsim-gui-discrete-energy-dialog.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -64,6 +65,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-sources-dialog.c \
 	xmimsim-gui-marshal.h \
 	xmimsim-gui-marshal.c \
+	xmimsim-gui-discrete-energy-dialog.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
 	@gtk2_CFLAGS@ \
@@ -172,17 +174,17 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-source-test
+noinst_PROGRAMS += xmimsim-gui-discrete-energy-test
 endif
-xmimsim_gui_source_test_SOURCES = xmimsim-gui-source-test.c
-xmimsim_gui_source_test_CPPFLAGS = \
+xmimsim_gui_discrete_energy_test_SOURCES = xmimsim-gui-discrete-energy-test.c
+xmimsim_gui_discrete_energy_test_CPPFLAGS = \
 	@gtk2_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@gmodule_CFLAGS@ \
 	$(AM_CPPFLAGS) \
 	$(NULL)
-xmimsim_gui_source_test_LDADD = \
+xmimsim_gui_discrete_energy_test_LDADD = \
 	libxmimsim-gui.la \
 	../src/libxmimsim.la \
 	@gmodule_LIBS@ \
@@ -240,6 +242,7 @@ nodist_xmimsim_gui_SOURCES = \
 mkenum_sources = \
 	xmimsim-gui-compound-dialog.h \
 	xmimsim-gui-layer-dialog.h \
+	xmimsim-gui-discrete-energy-dialog.h \
 	$(NULL)
 
 marshal_input = \
@@ -479,7 +482,7 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
 	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"" \
+		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"\n#include \"xmimsim-gui-discrete-energy-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
 		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
 		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
