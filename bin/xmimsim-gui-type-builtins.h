@@ -15,6 +15,9 @@ GType xmi_msim_gui_compound_dialog_type_get_type (void);
 /* enumerations from "xmimsim-gui-layer-dialog.h" */
 GType xmi_msim_gui_layer_dialog_type_get_type (void);
 #define XMI_MSIM_GUI_TYPE_LAYER_DIALOG_TYPE (xmi_msim_gui_layer_dialog_type_get_type())
+/* enumerations from "xmimsim-gui-discrete-energy-dialog.h" */
+GType xmi_msim_gui_discrete_energy_dialog_type_get_type (void);
+#define XMI_MSIM_GUI_TYPE_DISCRETE_ENERGY_DIALOG_TYPE (xmi_msim_gui_discrete_energy_dialog_type_get_type())
 
 G_END_DECLS
 #endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */
