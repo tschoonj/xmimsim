@@ -1444,14 +1444,14 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-	notificationsW = gtk_check_button_new_with_label("Enable notifications");
-	gtk_widget_set_tooltip_text(notificationsW,"Check this button to enable notifications support");
+	pw->notificationsW = gtk_check_button_new_with_label("Enable notifications");
+	gtk_widget_set_tooltip_text(pw->notificationsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(notificationsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),notificationsW, FALSE, FALSE, 3);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->notificationsW), xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->notificationsW, FALSE, FALSE, 3);
 #endif
 
 	//back to master_box
