@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gprintf.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #ifdef MAC_INTEGRATION
 	#import <Foundation/Foundation.h>
 	#include <gtkosxapplication.h>
