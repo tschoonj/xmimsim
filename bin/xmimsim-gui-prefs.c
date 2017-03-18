@@ -29,29 +29,38 @@
         #import <Foundation/Foundation.h>
 #endif
 
-GtkWidget *Mlines_prefsW;
-GtkWidget *rad_cascade_prefsW;
-GtkWidget *nonrad_cascade_prefsW;
-GtkWidget *variance_reduction_prefsW;
-GtkWidget *pile_up_prefsW;
-GtkWidget *poisson_prefsW;
-GtkWidget *escape_peaks_prefsW;
-GtkWidget *advanced_compton_prefsW;
-GtkWidget *default_seeds_prefsW;
-GtkWidget *custom_detector_response_prefsE;
-GtkWidget *custom_detector_response_prefsB;
-GtkWidget *custom_detector_response_prefsC;
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#include "xmimsim-gui-updater.h"
+#endif
+
+struct prefsWidgets {
+	GtkWidget *parent_window;
+	GtkWidget *window;
+	GtkWidget *MlinesW;
+	GtkWidget *rad_cascadeW;
+	GtkWidget *nonrad_cascadeW;
+	GtkWidget *variance_reductionW;
+	GtkWidget *pile_upW;
+	GtkWidget *poissonW;
+	GtkWidget *escape_peaksW;
+	GtkWidget *advanced_comptonW;
+	GtkWidget *default_seedsW;
+	GtkWidget *custom_detector_responseE;
+	GtkWidget *custom_detector_responseB;
+	GtkWidget *custom_detector_responseC;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-GtkWidget *opencl_prefsW;
+	GtkWidget *openclW;
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-GtkWidget *check_updates_prefsW;
-#include "xmimsim-gui-updater.h"
+	GtkWidget *check_updatesW; // checkbutton
+	GtkWidget *update_urlsW;   // treeview
 #endif
+
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-GtkWidget *notifications_prefsW;
+	GtkWidget *notificationsW;
 #endif
+};
 enum {
 	URL_COLUMN_PREFS,
 	STATUS_COLUMN_PREFS,
@@ -59,28 +68,23 @@ enum {
 };
 
 
-static int download_current_index;
-static int download_current_nindices;
-static GtkTreeIter current_iter;
-
-const gchar * const xmimsim_download_locations[] = {
+static const gchar * const xmimsim_download_locations[] = {
 		"http://lvserver.ugent.be/xmi-msim",
 		"https://xmi-msim.tomschoonjans.eu",
 		"http://xmi-msim.s3.amazonaws.com",
 		NULL};
 
 
-static void custom_detector_response_toggled_cb(GtkToggleButton *button, gpointer data) {
+static void custom_detector_response_toggled_cb(GtkToggleButton *button, struct prefsWidgets *data) {
 	if (gtk_toggle_button_get_active(button) == TRUE) {
-		gtk_widget_set_sensitive(custom_detector_response_prefsE, TRUE);
-		gtk_widget_set_sensitive(custom_detector_response_prefsB, TRUE);
+		gtk_widget_set_sensitive(data->custom_detector_responseE, TRUE);
+		gtk_widget_set_sensitive(data->custom_detector_responseB, TRUE);
 	}
 	else {
-		gtk_widget_set_sensitive(custom_detector_response_prefsE, FALSE);
-		gtk_widget_set_sensitive(custom_detector_response_prefsB, FALSE);
+		gtk_widget_set_sensitive(data->custom_detector_responseE, FALSE);
+		gtk_widget_set_sensitive(data->custom_detector_responseB, FALSE);
 	}
 }
-
 
 static gboolean hdf5_file_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
 	int kind = GPOINTER_TO_INT(data);
@@ -230,24 +234,32 @@ static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
 }
 
 
-static void url_delete_button_clicked_cb(GtkWidget *widget, gpointer data) {
-	GtkListStore *store_prefsL = (GtkListStore *) data;
+static void url_delete_button_clicked_cb(GtkWidget *widget, GtkTreeView *tree) {
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
+	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
+	GtkTreeIter iter;
 
-	gtk_list_store_remove(store_prefsL, &current_iter);
+	gtk_tree_selection_get_selected(selection, NULL, &iter);
+
+	gtk_list_store_remove(store, &iter);
 
 	return;
 }
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, gpointer data) {
-	GtkListStore *store_prefsL = (GtkListStore *) data;
+static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, GtkTreeView *tree) {
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
+	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
+	GtkTreeIter iter;
 
-	gtk_list_store_set(store_prefsL, &current_iter, URL_COLUMN_PREFS, new_text, -1);
+	gtk_tree_selection_get_selected(selection, NULL, &iter);
+
+	gtk_list_store_set(store, &iter, URL_COLUMN_PREFS, new_text, -1);
 	if (xmi_msim_gui_utils_check_download_url(new_text) == TRUE) {
-		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
+		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
 	}
 	else {
-		gtk_list_store_set(store_prefsL, &current_iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
 	}
 
 	return;
@@ -274,31 +286,8 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 static void url_selection_changed_cb (GtkTreeSelection *selection, gpointer data) {
 	GtkWidget *removeButton = GTK_WIDGET(data);
-	GtkTreeIter temp_iter;
-	GtkTreeModel *model;
-	gboolean valid;
 
-	if (gtk_tree_selection_get_selected(selection, &model, &current_iter)) {
-		valid = gtk_tree_model_get_iter_first(model, &temp_iter);
-		download_current_index = 0;
-		download_current_nindices = 0;
-		while (valid) {
-			if (gtk_tree_selection_iter_is_selected(selection,&temp_iter)) {
-				download_current_index = download_current_nindices;
-			}
-			download_current_nindices++;
-			valid = gtk_tree_model_iter_next(model, &temp_iter);
-		}
-		if (download_current_nindices > 1) {
-			gtk_widget_set_sensitive(removeButton, TRUE);
-		}
-		else {
-			gtk_widget_set_sensitive(removeButton, FALSE);
-		}
-	}
-	else {
-		gtk_widget_set_sensitive(removeButton, FALSE);
-	}
+	gtk_widget_set_sensitive(removeButton, gtk_tree_selection_get_selected(selection, NULL, NULL));
 
 	return;
 }
@@ -309,13 +298,6 @@ static void preferences_cancel_button_clicked(GtkWidget *button, gpointer data) 
 	gtk_widget_destroy(GTK_WIDGET(data));
 	return;
 }
-
-
-struct preferences_apply {
-	GtkWidget *window;
-	GtkTreeModel *model;
-};
-
 
 void preferences_error_handler(GtkWidget *window) {
 	GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
@@ -330,48 +312,48 @@ void preferences_error_handler(GtkWidget *window) {
 static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	//read everything and store it in the preferences file
 	union xmimsim_prefs_val xpv;
-	struct preferences_apply *pa = (struct preferences_apply *) data;
+	struct prefsWidgets *pw = (struct prefsWidgets *) data;
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Mlines_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->MlinesW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->rad_cascadeW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->nonrad_cascadeW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->variance_reductionW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pile_up_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->pile_upW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_updates_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->check_updatesW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
 	gchar **urls = NULL;
 	GtkTreeIter temp_iter;
-	GtkTreeModel *model = pa->model;
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(pw->update_urlsW));
 	gboolean valid = gtk_tree_model_get_iter_first(model, &temp_iter);
 
 	gint nurls = 0;
@@ -386,64 +368,64 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	xpv.ss = urls;
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
 	g_strfreev(xpv.ss);
 #endif
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(poisson_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->poissonW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->escape_peaksW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->advanced_comptonW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(default_seeds_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->default_seedsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(opencl_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->openclW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 #endif
 
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(notifications_prefsW));
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->notificationsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 #endif
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC)) == TRUE &&
-		strlen(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE))) > 0) {
-		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(custom_detector_response_prefsE)));
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->custom_detector_responseC)) == TRUE &&
+		strlen(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE))) > 0) {
+		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE)));
 	}
 	else
 		xpv.s = NULL;
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, xpv) == 0) {
 		//abort
-		preferences_error_handler(pa->window);
+		preferences_error_handler(pw->window);
 	}
 
-	gtk_widget_destroy(pa->window);
+	gtk_widget_destroy(pw->window);
 	return;
 }
 
@@ -1076,15 +1058,16 @@ static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *
 }
 
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
-	struct xmi_preferences_data *xpd = (struct xmi_preferences_data *) data;
-
 	GtkWidget *window;
-	GtkWidget *main_window = xpd->window;
+	GtkWidget *main_window = GTK_WIDGET(data);
 	GtkWidget *notebook;
 	GtkWidget *master_box;
+	struct prefsWidgets *pw = (struct prefsWidgets *) g_malloc(sizeof(struct prefsWidgets));
+	pw->parent_window = main_window;
 
 	master_box = gtk_vbox_new(FALSE,2);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	pw->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
 	gtk_widget_set_size_request(window,500,500);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
@@ -1118,124 +1101,124 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scrolled_window, label);
 
 
-	Mlines_prefsW = gtk_check_button_new_with_label("Simulate M-lines");
-	gtk_widget_set_tooltip_text(Mlines_prefsW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
+	pw->MlinesW = gtk_check_button_new_with_label("Simulate M-lines");
+	gtk_widget_set_tooltip_text(pw->MlinesW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mlines_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),Mlines_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->MlinesW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->MlinesW, TRUE, FALSE, 0);
 
-	rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
-	gtk_widget_set_tooltip_text(rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
+	pw->rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
+	gtk_widget_set_tooltip_text(pw->rad_cascadeW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),rad_cascade_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->rad_cascadeW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->rad_cascadeW, TRUE, FALSE, 0);
 
-	nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
-	gtk_widget_set_tooltip_text(nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
+	pw->nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
+	gtk_widget_set_tooltip_text(pw->nonrad_cascadeW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(nonrad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),nonrad_cascade_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->nonrad_cascadeW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->nonrad_cascadeW, TRUE, FALSE, 0);
 
-	variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
-	gtk_widget_set_tooltip_text(variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
+	pw->variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
+	gtk_widget_set_tooltip_text(pw->variance_reductionW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(variance_reduction_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),variance_reduction_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->variance_reductionW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->variance_reductionW, TRUE, FALSE, 0);
 
-	pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
-	gtk_widget_set_tooltip_text(pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
+	pw->pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
+	gtk_widget_set_tooltip_text(pw->pile_upW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pile_up_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),pile_up_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->pile_upW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->pile_upW, TRUE, FALSE, 0);
 
-	poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
-	gtk_widget_set_tooltip_text(poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
+	pw->poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
+	gtk_widget_set_tooltip_text(pw->poissonW,"Enabling this feature will add noise according to a Poisson distribution to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(poisson_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),poisson_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->poissonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->poissonW, TRUE, FALSE, 0);
 
-	escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
-	gtk_widget_set_tooltip_text(escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
+	pw->escape_peaksW = gtk_check_button_new_with_label("Enable escape peaks support");
+	gtk_widget_set_tooltip_text(pw->escape_peaksW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(escape_peaks_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe), escape_peaks_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->escape_peaksW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->escape_peaksW, TRUE, FALSE, 0);
 
-	advanced_compton_prefsW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
-	gtk_widget_set_tooltip_text(advanced_compton_prefsW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
+	pw->advanced_comptonW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
+	gtk_widget_set_tooltip_text(pw->advanced_comptonW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(advanced_compton_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe), advanced_compton_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->advanced_comptonW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->advanced_comptonW, TRUE, FALSE, 0);
 
-	default_seeds_prefsW = gtk_check_button_new_with_label("Enable default seeds support");
-	gtk_widget_set_tooltip_text(default_seeds_prefsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
+	pw->default_seedsW = gtk_check_button_new_with_label("Enable default seeds support");
+	gtk_widget_set_tooltip_text(pw->default_seedsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(default_seeds_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe), default_seeds_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->default_seedsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->default_seedsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
-	gtk_widget_set_tooltip_text(opencl_prefsW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
+	pw->openclW = gtk_check_button_new_with_label("Enable OpenCL");
+	gtk_widget_set_tooltip_text(pw->openclW, "Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(opencl_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),opencl_prefsW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->openclW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->openclW, TRUE, FALSE, 0);
 #endif
 
 	GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
-	custom_detector_response_prefsC = gtk_check_button_new_with_label("Custom detector response");
-	gtk_widget_set_tooltip_text(custom_detector_response_prefsC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
-	g_signal_connect(G_OBJECT(custom_detector_response_prefsC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), NULL);
-	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_response_prefsC, FALSE, FALSE, 0);
-	custom_detector_response_prefsE = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(custom_detector_response_prefsE), FALSE);
-	gtk_box_pack_start(GTK_BOX(hbox), custom_detector_response_prefsE, TRUE, TRUE, 3);
-	custom_detector_response_prefsB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	g_signal_connect(G_OBJECT(custom_detector_response_prefsB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), custom_detector_response_prefsE);
-	gtk_box_pack_end(GTK_BOX(hbox), custom_detector_response_prefsB, FALSE, FALSE, 0);
+	pw->custom_detector_responseC = gtk_check_button_new_with_label("Custom detector response");
+	gtk_widget_set_tooltip_text(pw->custom_detector_responseC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
+	g_signal_connect(G_OBJECT(pw->custom_detector_responseC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), (gpointer) pw);
+	gtk_box_pack_start(GTK_BOX(hbox), pw->custom_detector_responseC, FALSE, FALSE, 0);
+	pw->custom_detector_responseE = gtk_entry_new();
+	gtk_editable_set_editable(GTK_EDITABLE(pw->custom_detector_responseE), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), pw->custom_detector_responseE, TRUE, TRUE, 3);
+	pw->custom_detector_responseB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	g_signal_connect(G_OBJECT(pw->custom_detector_responseB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), pw->custom_detector_responseE);
+	gtk_box_pack_end(GTK_BOX(hbox), pw->custom_detector_responseB, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, TRUE, FALSE, 0);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
 	if (xpv.s != NULL) {
-		gtk_widget_set_sensitive(custom_detector_response_prefsE, TRUE);
-		gtk_widget_set_sensitive(custom_detector_response_prefsB, TRUE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC), TRUE);
-		gtk_entry_set_text(GTK_ENTRY(custom_detector_response_prefsE), xpv.s);
+		gtk_widget_set_sensitive(pw->custom_detector_responseE, TRUE);
+		gtk_widget_set_sensitive(pw->custom_detector_responseB, TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->custom_detector_responseC), TRUE);
+		gtk_entry_set_text(GTK_ENTRY(pw->custom_detector_responseE), xpv.s);
 	}
 	else {
-		gtk_widget_set_sensitive(custom_detector_response_prefsE, FALSE);
-		gtk_widget_set_sensitive(custom_detector_response_prefsB, FALSE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(custom_detector_response_prefsC), FALSE);
+		gtk_widget_set_sensitive(pw->custom_detector_responseE, FALSE);
+		gtk_widget_set_sensitive(pw->custom_detector_responseB, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->custom_detector_responseC), FALSE);
 	}
 	g_free(xpv.s);
 
@@ -1267,13 +1250,13 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 #elif defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 
-	check_updates_prefsW = gtk_check_button_new_with_label("Check for updates on startup");
+	pw->check_updatesW = gtk_check_button_new_with_label("Check for updates on startup");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_updates_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe), check_updates_prefsW, TRUE, FALSE, 3);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->check_updatesW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->check_updatesW, TRUE, FALSE, 3);
 
 	label = gtk_label_new("Download locations for updates");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
@@ -1285,16 +1268,16 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	GtkTreeSelection *select;
 	GtkCellRenderer *renderer;
 	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING, G_TYPE_STRING);
-	GtkWidget *tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_prefsL));
+	pw->update_urlsW = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_prefsL));
 
 	renderer = gtk_cell_renderer_text_new();
-	g_signal_connect(renderer, "edited", G_CALLBACK(url_edited_cb), (gpointer) store_prefsL);
+	g_signal_connect(renderer, "edited", G_CALLBACK(url_edited_cb), (gpointer) pw->update_urlsW);
 	g_object_set(renderer, "editable", TRUE, NULL);
 	gtk_cell_renderer_set_alignment(renderer, 0., 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Website", renderer,"text",URL_COLUMN_PREFS,NULL);
 	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
 	gtk_tree_view_column_set_expand(column, TRUE);
 
 	renderer = gtk_cell_renderer_pixbuf_new();
@@ -1303,19 +1286,19 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	column = gtk_tree_view_column_new_with_attributes("Status", renderer,"stock-id",STATUS_COLUMN_PREFS,NULL);
 	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
 	gtk_tree_view_column_set_expand(column, FALSE);
 
 
 
 
-	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(pw->update_urlsW));
 	gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
 
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_widget_set_size_request(scrolled_window, 300,150);
-	gtk_container_add(GTK_CONTAINER(scrolled_window), tree);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), pw->update_urlsW);
 	gtk_box_pack_start(GTK_BOX(updatesboxW),scrolled_window, FALSE, FALSE,3 );
 
 
@@ -1329,8 +1312,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), removeButton, TRUE, FALSE, 3);
 	gtk_widget_set_sensitive(removeButton, FALSE);
-	g_signal_connect(G_OBJECT(removeButton), "clicked", G_CALLBACK(url_delete_button_clicked_cb) , (gpointer) store_prefsL);
-	g_signal_connect(G_OBJECT(addButton), "clicked", G_CALLBACK(url_add_button_clicked_cb) , (gpointer) tree);
+	g_signal_connect(G_OBJECT(removeButton), "clicked", G_CALLBACK(url_delete_button_clicked_cb) , (gpointer) pw->update_urlsW);
+	g_signal_connect(G_OBJECT(addButton), "clicked", G_CALLBACK(url_add_button_clicked_cb) , (gpointer) pw->update_urlsW);
 
 	gtk_box_pack_start(GTK_BOX(updatesboxW),buttonbox, TRUE, FALSE, 3);
 
@@ -1461,14 +1444,14 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-	notifications_prefsW = gtk_check_button_new_with_label("Enable notifications");
-	gtk_widget_set_tooltip_text(notifications_prefsW,"Check this button to enable notifications support");
+	notificationsW = gtk_check_button_new_with_label("Enable notifications");
+	gtk_widget_set_tooltip_text(notificationsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(notifications_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(superframe),notifications_prefsW, FALSE, FALSE, 3);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(notificationsW),xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe),notificationsW, FALSE, FALSE, 3);
 #endif
 
 	//back to master_box
@@ -1486,14 +1469,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(buttonbox), cancelButton, TRUE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 6);
 	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
-	struct preferences_apply *pa = (struct preferences_apply *) g_malloc(sizeof(struct preferences_apply));
-	pa->window = window;
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-	pa->model = GTK_TREE_MODEL(store_prefsL);
-#else
-	pa->model = NULL;
-#endif
-	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pa);
+	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pw);
 
 
 	gtk_widget_show_all(window);
