@@ -5422,10 +5422,7 @@ XMI_MAIN
 
 
 	preferencesW = gtk_image_menu_item_new_from_stock(GTK_STOCK_PREFERENCES,accel_group);
-	struct xmi_preferences_data xpd;
-	xpd.window = window;
-	xpd.page = 0;
-	g_signal_connect(G_OBJECT(preferencesW),"activate",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
+	g_signal_connect(G_OBJECT(preferencesW),"activate",G_CALLBACK(xmimsim_gui_launch_preferences), (gpointer) window);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit),editmenu);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),undoW);
 	gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),redoW);
@@ -5634,7 +5631,7 @@ XMI_MAIN
 	g_signal_connect(G_OBJECT(saveasT),"clicked",G_CALLBACK(saveas_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(saveT),"clicked",G_CALLBACK(save_cb),(gpointer) window);
 	g_signal_connect(G_OBJECT(newT),"clicked",G_CALLBACK(new_cb),(gpointer) window);
-	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), &xpd);
+	g_signal_connect(G_OBJECT(preferencesT),"clicked",G_CALLBACK(xmimsim_gui_launch_preferences), (gpointer) window);
 	g_signal_connect(G_OBJECT(tube_ebelT),"clicked",G_CALLBACK(xray_sources_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(batchmodeT),"clicked",G_CALLBACK(batchmode_button_clicked_cb), (gpointer) window);
 	g_signal_connect(G_OBJECT(cutT),"clicked",G_CALLBACK(cut_button_clicked_cb), (gpointer) window);

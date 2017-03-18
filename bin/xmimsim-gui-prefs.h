@@ -87,11 +87,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs);
 //returns 1 on success, 0 on error
 int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
 
-struct xmi_preferences_data {
-	GtkWidget *window;
-	gint page;
-};
-
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
 void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry);
