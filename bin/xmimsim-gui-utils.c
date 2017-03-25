@@ -280,3 +280,24 @@ void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *contro
 
 	return;
 }
+
+GArray* xmi_msim_gui_utils_tree_view_get_selected_indices(GtkTreeView *tree) {
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	GList *list = gtk_tree_selection_get_selected_rows(selection, NULL);
+
+	guint n_selected = g_list_length(list);
+	guint i;
+
+	GArray *rv = g_array_sized_new(FALSE, FALSE, sizeof(int), n_selected);
+
+	for (i = 0 ; i < n_selected ; i++) {
+		GtkTreePath *path = (GtkTreePath *) g_list_nth_data(list, i);
+		gint *indices = gtk_tree_path_get_indices(path);
+		g_array_append_val(rv, indices[0]);
+	}
+
+	g_list_free_full (list, (GDestroyNotify) gtk_tree_path_free);
+
+	return rv;
+}
+

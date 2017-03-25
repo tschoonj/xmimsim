@@ -21,22 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_ENERGIES_H
 #define XMIMSIM_GUI_ENERGIES_H
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window);
-
-extern struct xmi_energy_discrete *energy_disc;
-extern struct xmi_energy_continuous *energy_cont;
-extern int current_index;
-extern int current_nindices;
-extern int *delete_current_indices;
-extern int delete_current_nindices;
 
 struct energiesWidget {
 	GtkListStore *store;
 	GtkWidget *widget;
 };
 
-extern struct energiesWidget *contWidget;
-extern struct energiesWidget *discWidget;
+GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window, struct energiesWidget **discWidget, struct energiesWidget **contWidget);
 
 enum {
 	ENERGY_COLUMN,
@@ -51,6 +42,17 @@ enum {
 	NCOLUMNS_ENERGIES,
 };
 
+struct energiesUndoInfo {
+	double scale_value;
+	GArray *indices;
+	int index;
+	int n_energy_disc;
+	struct xmi_energy_discrete *energy_disc;
+	int n_energy_cont;
+	struct xmi_energy_continuous *energy_cont;
+};
 
+void repopulate_discrete_energies(GtkListStore *store, struct xmi_excitation *excitation);
+void repopulate_continuous_energies(GtkListStore *store, struct xmi_excitation *excitation);
 
 #endif

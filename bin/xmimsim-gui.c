@@ -168,6 +168,10 @@ static GtkWidget *slit_size_ebW;
 static GtkWidget *geometry_helpW;
 static GtkWidget *cs_window;
 
+//energy
+static struct energiesWidget *contWidget;
+static struct energiesWidget *discWidget;
+
 //detector
 static GtkWidget *detector_typeW;
 static GtkWidget *detector_gainW;
@@ -1285,7 +1289,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 		xmi_msim_gui_utils_ensure_extension(&filename, ".xmso");
 
 		gtk_entry_set_text(GTK_ENTRY(outputfileW), filename);
-		update_undo_buffer(OUTPUTFILE,outputfileW);
+		update_undo_buffer(OUTPUTFILE, (void *) outputfileW);
 
 		g_free (filename);
 	}
@@ -1547,7 +1551,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 
 			g_free(elementString);
-			update_undo_buffer(updateKind, (GtkWidget *) store);
+			update_undo_buffer(updateKind, (void *) store);
 
 			xmi_free_layer(layer);
 			g_free(layer);
@@ -1597,13 +1601,13 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 			gtk_list_store_reorder(mb->store,indices);
 			if (mb->matrixKind == COMPOSITION)
-				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == EXC_COMPOSITION)
-				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
-				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(DET_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (void*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_BOTTOM) {
 			temp = composition->layers[index];
@@ -1624,13 +1628,13 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 			gtk_list_store_reorder(mb->store,indices);
 			if (mb->matrixKind == COMPOSITION)
-				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == EXC_COMPOSITION)
-				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
-				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(DET_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (void*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_UP) {
 			temp = composition->layers[index];
@@ -1649,13 +1653,13 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 			gtk_list_store_reorder(mb->store,indices);
 			if (mb->matrixKind == COMPOSITION)
-				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == EXC_COMPOSITION)
-				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
-				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(DET_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (void*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_DOWN) {
 			temp = composition->layers[index];
@@ -1673,13 +1677,13 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 			gtk_list_store_reorder(mb->store,indices);
 			if (mb->matrixKind == COMPOSITION)
-				update_undo_buffer(COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == EXC_COMPOSITION)
-				update_undo_buffer(EXC_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(EXC_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
-				update_undo_buffer(DET_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(DET_COMPOSITION_ORDER, (void*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (GtkWidget*) mb->store);
+				update_undo_buffer(CRYSTAL_COMPOSITION_ORDER, (void*) mb->store);
 		}
 		else if (mb->buttonKind == BUTTON_DELETE) {
 			//delete the selected line
@@ -1713,14 +1717,14 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					else if (composition->reference_layer > index+1)
 						composition->reference_layer--;
 				}
-				update_undo_buffer(COMPOSITION_DELETE, (GtkWidget*) mb->store);
+				update_undo_buffer(COMPOSITION_DELETE, (void*) mb->store);
 			}
 			else if (mb->matrixKind == EXC_COMPOSITION)
-				update_undo_buffer(EXC_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+				update_undo_buffer(EXC_COMPOSITION_DELETE, (void*) mb->store);
 			else if (mb->matrixKind == DET_COMPOSITION)
-				update_undo_buffer(DET_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+				update_undo_buffer(DET_COMPOSITION_DELETE, (void*) mb->store);
 			else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (GtkWidget*) mb->store);
+				update_undo_buffer(CRYSTAL_COMPOSITION_DELETE, (void*) mb->store);
 			gtk_widget_grab_focus(GTK_WIDGET(gtk_tree_selection_get_tree_view(mb->select)));
 			if (gtk_tree_model_iter_n_children(GTK_TREE_MODEL(mb->store), NULL) == 0) {
 				gtk_widget_set_sensitive(GTK_WIDGET(cutT), FALSE);
@@ -1776,7 +1780,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				}
 
 				g_free(elementString);
-				update_undo_buffer(updateKind, (GtkWidget *) store);
+				update_undo_buffer(updateKind, (void*) store);
 
 				xmi_free_layer(layer);
 				g_free(layer);
@@ -1861,7 +1865,7 @@ static void reference_layer_toggled_cb(GtkCellRendererToggle *renderer, gchar *p
 	if (new_reference != compositionS->reference_layer) {
 		compositionS->reference_layer = new_reference;
 		//update undo buffer
-		update_undo_buffer(COMPOSITION_REFERENCE, (GtkWidget *) rt->store);
+		update_undo_buffer(COMPOSITION_REFERENCE, (void*) rt->store);
 	}
 }
 
@@ -1978,7 +1982,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 	}
 
 	g_free(elementString);
-	update_undo_buffer(updateKind, (GtkWidget *) store);
+	update_undo_buffer(updateKind, (void*) store);
 
 	//if there is one layer now -> activeate copy/cut
 	GtkTreeModel *model = gtk_tree_view_get_model(gtk_tree_selection_get_tree_view(mb->select));
@@ -2117,14 +2121,14 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 			else if (composition->reference_layer > index+1)
 				composition->reference_layer--;
 		}
-		update_undo_buffer(COMPOSITION_CUT, (GtkWidget*) mb->store);
+		update_undo_buffer(COMPOSITION_CUT, (void*) mb->store);
 	}
 	else if (mb->matrixKind == EXC_COMPOSITION)
-		update_undo_buffer(EXC_COMPOSITION_CUT, (GtkWidget*) mb->store);
+		update_undo_buffer(EXC_COMPOSITION_CUT, (void*) mb->store);
 	else if (mb->matrixKind == DET_COMPOSITION)
-		update_undo_buffer(DET_COMPOSITION_CUT, (GtkWidget*) mb->store);
+		update_undo_buffer(DET_COMPOSITION_CUT, (void*) mb->store);
 	else if (mb->matrixKind == CRYSTAL_COMPOSITION)
-		update_undo_buffer(CRYSTAL_COMPOSITION_CUT, (GtkWidget*) mb->store);
+		update_undo_buffer(CRYSTAL_COMPOSITION_CUT, (void*) mb->store);
 
 	//if no layers remain -> disable copy/cut
 	if (gtk_tree_model_iter_n_children(model, NULL) == 0) {
@@ -2568,8 +2572,8 @@ void undo_menu_fix_after_error(void) {
 		gtk_widget_set_sensitive(GTK_WIDGET(redoT),TRUE);
 	}
 
-	gtk_widget_modify_base(undo_error->widget,GTK_STATE_NORMAL,NULL);
-	adjust_control_widgets(undo_error->widget, TRUE);
+	gtk_widget_modify_base(GTK_WIDGET(undo_error->widget), GTK_STATE_NORMAL, NULL);
+	adjust_control_widgets(GTK_WIDGET(undo_error->widget), TRUE);
 	g_free(undo_error->message);
 	g_free(undo_error);
 	undo_error = NULL;
@@ -2927,36 +2931,11 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
-		case SOURCE_SPECTRUM_ADD:
-			gtk_list_store_clear(discWidget->store);
-			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
-				gtk_list_store_append(discWidget->store, &iter);
-				gtk_list_store_set(discWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->discrete[i].energy,
-					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current-1)->xi->excitation->discrete[i].sigma_x,
-					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
-					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
-					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
-					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
-					-1);
-			}
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
+			repopulate_discrete_energies(discWidget->store, (current-1)->xi->excitation);
 			break;
+		case SOURCE_SPECTRUM_ADD:
+		case SOURCE_SPECTRUM_REPLACE:
+			repopulate_discrete_energies(discWidget->store, (current-1)->xi->excitation);
 		case CONTINUOUS_ENERGY_ADD:
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
@@ -2964,49 +2943,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
 		case CONTINUOUS_ENERGY_SCALE:
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
-			break;
-		case SOURCE_SPECTRUM_REPLACE:
-			gtk_list_store_clear(discWidget->store);
-			for (i = 0 ; i < (current-1)->xi->excitation->n_discrete ; i++) {
-				gtk_list_store_append(discWidget->store, &iter);
-				gtk_list_store_set(discWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->discrete[i].energy,
-					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->discrete[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current-1)->xi->excitation->discrete[i].sigma_x,
-					SIGMA_XP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_y,
-					SIGMA_YP_COLUMN,(current-1)->xi->excitation->discrete[i].sigma_yp,
-					DISTRIBUTION_TYPE_COLUMN,(current-1)->xi->excitation->discrete[i].distribution_type,
-					SCALE_PARAMETER_COLUMN,(current-1)->xi->excitation->discrete[i].scale_parameter,
-					-1);
-			}
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current-1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current-1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current-1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current-1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current-1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
+			repopulate_continuous_energies(contWidget->store, (current-1)->xi->excitation);
 			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
@@ -3455,35 +3392,12 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case DISCRETE_ENERGY_EDIT:
 		case DISCRETE_ENERGY_DELETE:
 		case DISCRETE_ENERGY_SCALE:
+			repopulate_discrete_energies(discWidget->store, (current+1)->xi->excitation);
+			break;
 		case SOURCE_SPECTRUM_ADD:
-			gtk_list_store_clear(discWidget->store);
-			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
-				gtk_list_store_append(discWidget->store, &iter);
-				gtk_list_store_set(discWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->discrete[i].energy,
-					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current+1)->xi->excitation->discrete[i].sigma_x,
-					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
-					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
-					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
-					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
-					-1);
-			}
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
+		case SOURCE_SPECTRUM_REPLACE:
+			repopulate_discrete_energies(discWidget->store, (current+1)->xi->excitation);
+			repopulate_continuous_energies(contWidget->store, (current+1)->xi->excitation);
 			break;
 		case CONTINUOUS_ENERGY_ADD:
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
@@ -3492,49 +3406,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 		case CONTINUOUS_ENERGY_EDIT:
 		case CONTINUOUS_ENERGY_DELETE:
 		case CONTINUOUS_ENERGY_SCALE:
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
-			break;
-		case SOURCE_SPECTRUM_REPLACE:
-			gtk_list_store_clear(discWidget->store);
-			for (i = 0 ; i < (current+1)->xi->excitation->n_discrete ; i++) {
-				gtk_list_store_append(discWidget->store, &iter);
-				gtk_list_store_set(discWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->discrete[i].energy,
-					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->discrete[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current+1)->xi->excitation->discrete[i].sigma_x,
-					SIGMA_XP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_y,
-					SIGMA_YP_COLUMN,(current+1)->xi->excitation->discrete[i].sigma_yp,
-					DISTRIBUTION_TYPE_COLUMN,(current+1)->xi->excitation->discrete[i].distribution_type,
-					SCALE_PARAMETER_COLUMN,(current+1)->xi->excitation->discrete[i].scale_parameter,
-					-1);
-			}
-			gtk_list_store_clear(contWidget->store);
-			for (i = 0 ; i < (current+1)->xi->excitation->n_continuous ; i++) {
-				gtk_list_store_append(contWidget->store, &iter);
-				gtk_list_store_set(contWidget->store, &iter,
-					ENERGY_COLUMN, (current+1)->xi->excitation->continuous[i].energy,
-					HOR_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].horizontal_intensity,
-					VER_INTENSITY_COLUMN, (current+1)->xi->excitation->continuous[i].vertical_intensity,
-					SIGMA_X_COLUMN, (current+1)->xi->excitation->continuous[i].sigma_x,
-					SIGMA_XP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_xp,
-					SIGMA_Y_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_y,
-					SIGMA_YP_COLUMN,(current+1)->xi->excitation->continuous[i].sigma_yp,
-					-1);
-			}
+			repopulate_continuous_energies(contWidget->store, (current+1)->xi->excitation);
 			break;
 		case EXC_COMPOSITION_ORDER:
 		case EXC_COMPOSITION_DELETE:
@@ -3749,7 +3621,7 @@ static void redo_menu_click(GtkWidget *widget, gpointer data) {
 static void detector_type_changed(GtkComboBox *widget, gpointer data) {
 
 	//should always work out
-	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
+	update_undo_buffer(GPOINTER_TO_INT(data), (void*) widget);
 
 	return;
 }
@@ -3760,7 +3632,7 @@ static void detector_nchannels_changed(GtkSpinButton *widget, gpointer data) {
 		return;
 
 	//should always work out
-	update_undo_buffer(GPOINTER_TO_INT(data), GTK_WIDGET(widget));
+	update_undo_buffer(GPOINTER_TO_INT(data), (void*) widget);
 
 	return;
 }
@@ -3888,7 +3760,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
-					update_undo_buffer(kind, widget);
+					update_undo_buffer(kind, (void*) widget);
 				else
 					adjust_save_buttons();
 				return;
@@ -3904,7 +3776,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 				gtk_widget_set_sensitive(GTK_WIDGET(undoT), TRUE);
-				update_undo_buffer_with_error(kind, widget, check);
+				update_undo_buffer_with_error(kind, (void*) widget, check);
 			}
 			break;
 		//positive
@@ -3932,7 +3804,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
-					update_undo_buffer(kind, widget);
+					update_undo_buffer(kind, (void*) widget);
 				else
 					adjust_save_buttons();
 				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
@@ -3956,7 +3828,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 				gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
-				update_undo_buffer_with_error(kind, widget, check);
+				update_undo_buffer_with_error(kind, (void*) widget, check);
 			}
 			break;
 
@@ -3992,7 +3864,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (double_changed_current_check(kind,value))
-					update_undo_buffer(kind, widget);
+					update_undo_buffer(kind, (void*) widget);
 				else
 					adjust_save_buttons();
 				if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(redoW)), "Redo") != 0) {
@@ -4016,7 +3888,7 @@ static void double_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_set_sensitive(undoW,TRUE);
 				gtk_widget_set_sensitive(GTK_WIDGET(redoT),FALSE);
 				gtk_widget_set_sensitive(GTK_WIDGET(undoT),TRUE);
-				update_undo_buffer_with_error(kind, widget, check);
+				update_undo_buffer_with_error(kind, (void*) widget, check);
 			}
 			break;
 		default:
@@ -4078,7 +3950,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 				gtk_widget_modify_base(widget,GTK_STATE_NORMAL,NULL);
 				*check = 1;
 				if (pos_int_changed_current_check(kind,value))
-					update_undo_buffer(kind, widget);
+					update_undo_buffer(kind, (void*) widget);
 				else
 					adjust_save_buttons();
 
@@ -4095,7 +3967,7 @@ static void pos_int_changed(GtkWidget *widget, gpointer data) {
 				if (!undo_error) {
 					adjust_control_widgets(widget, FALSE);
 				}
-				update_undo_buffer_with_error(kind, widget, check);
+				update_undo_buffer_with_error(kind, (void*) widget, check);
 			}
 			break;
 		default:
@@ -4282,8 +4154,8 @@ void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 	if (undo_error) {
 		g_free(undo_error->message);
 		g_free(undo_error);
-		gtk_widget_modify_base(undo_error->widget,GTK_STATE_NORMAL,NULL);
-		adjust_control_widgets(undo_error->widget, TRUE);
+		gtk_widget_modify_base(GTK_WIDGET(undo_error->widget), GTK_STATE_NORMAL, NULL);
+		adjust_control_widgets(GTK_WIDGET(undo_error->widget), TRUE);
 		undo_error = NULL;
 	}
 
@@ -4326,7 +4198,7 @@ void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
 	return;
 }
 
-void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
+void update_undo_buffer_with_error(int kind, void *data, int *check) {
 	gchar *buffer;
 	if (undo_error) {
 		//nothing changes while other invalid values are inserted
@@ -4335,7 +4207,7 @@ void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
 
 	undo_error = (struct undo_single *) g_malloc(sizeof(struct undo_single));
 	undo_error->kind = kind;
-	undo_error->widget = widget;
+	undo_error->widget = data;
 	undo_error->message = get_message_string(kind);
 	undo_error->check = check;
 
@@ -4345,7 +4217,7 @@ void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check) {
 	g_free(buffer);
 }
 
-void update_undo_buffer(int kind, GtkWidget *widget) {
+void update_undo_buffer(int kind, void *data) {
 	char *buffer;
 	ptrdiff_t last_diff, current_diff;
 	struct undo_single *tempPtr;
@@ -4387,32 +4259,33 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 	last->filename = g_strdup(UNLIKELY_FILENAME);
 	xmi_copy_input(current->xi, &(last->xi));
 	last->kind = kind;
-	double value;
 	struct xmi_excitation *temp_exc;
+	struct energiesUndoInfo *eui;
+
 	if (kind != IMPORT_FROM_FILE)
 		last->message = get_message_string(kind);
 
 	switch (kind) {
 		case OUTPUTFILE:
 			g_free(last->xi->general->outputfile);
-			last->xi->general->outputfile = g_strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
-			last->widget = widget;
+			last->xi->general->outputfile = g_strdup(gtk_entry_get_text(GTK_ENTRY(data)));
+			last->widget = data;
 			break;
 		case N_PHOTONS_INTERVAL:
-			last->xi->general->n_photons_interval = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);
-			last->widget = widget;
+			last->xi->general->n_photons_interval = strtol((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL,10);
+			last->widget = data;
 			break;
 		case N_PHOTONS_LINE:
-			last->xi->general->n_photons_line = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);
-			last->widget = widget;
+			last->xi->general->n_photons_line = strtol((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL,10);
+			last->widget = data;
 			break;
 		case N_INTERACTIONS_TRAJECTORY:
-			last->xi->general->n_interactions_trajectory = strtol((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL,10);
-			last->widget = widget;
+			last->xi->general->n_interactions_trajectory = strtol((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL,10);
+			last->widget = data;
 			break;
 		case COMPOSITION_REFERENCE:
 			last->xi->composition->reference_layer = compositionS->reference_layer;
-			last->widget = widget;
+			last->widget = data;
 			break;
 		case COMPOSITION_ORDER:
 		case COMPOSITION_DELETE:
@@ -4422,66 +4295,65 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 		case COMPOSITION_CUT:
 			xmi_free_composition(last->xi->composition);
 			xmi_copy_composition(compositionS, &(last->xi->composition));
-			last->widget = widget;
+			last->widget = data;
 			break;
 		case D_SAMPLE_SOURCE:
-			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->d_sample_source = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case N_SAMPLE_ORIENTATION_X:
 		case N_SAMPLE_ORIENTATION_Y:
 		case N_SAMPLE_ORIENTATION_Z:
-			last->xi->geometry->n_sample_orientation[kind-N_SAMPLE_ORIENTATION_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->n_sample_orientation[kind-N_SAMPLE_ORIENTATION_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case P_DETECTOR_WINDOW_X:
 		case P_DETECTOR_WINDOW_Y:
 		case P_DETECTOR_WINDOW_Z:
-			last->xi->geometry->p_detector_window[kind-P_DETECTOR_WINDOW_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->p_detector_window[kind-P_DETECTOR_WINDOW_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case N_DETECTOR_ORIENTATION_X:
 		case N_DETECTOR_ORIENTATION_Y:
 		case N_DETECTOR_ORIENTATION_Z:
-			last->xi->geometry->n_detector_orientation[kind-N_DETECTOR_ORIENTATION_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->n_detector_orientation[kind-N_DETECTOR_ORIENTATION_X] = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case AREA_DETECTOR:
-			last->xi->geometry->area_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->area_detector = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case COLLIMATOR_HEIGHT:
-			last->xi->geometry->collimator_height = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->collimator_height = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case COLLIMATOR_DIAMETER:
-			last->xi->geometry->collimator_diameter = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->collimator_diameter = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case D_SOURCE_SLIT:
-			last->xi->geometry->d_source_slit = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->d_source_slit = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case SLIT_SIZE_X:
-			last->xi->geometry->slit_size_x = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->slit_size_x = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case SLIT_SIZE_Y:
-			last->xi->geometry->slit_size_y = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->geometry->slit_size_y = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DISCRETE_ENERGY_ADD:
+			eui = (struct energiesUndoInfo *) data;
 			//realloc discrete energies
 			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
-			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *energy_disc;
-			g_free(energy_disc);
-			energy_disc = NULL;
+			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *eui->energy_disc;
 			//sort
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case SOURCE_SPECTRUM_ADD:
-			temp_exc = (struct xmi_excitation*) widget;
+			temp_exc = (struct xmi_excitation*) data;
 			last->xi->excitation->n_discrete += temp_exc->n_discrete;
 			//realloc discrete energies
 			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
@@ -4500,23 +4372,21 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 
 			break;
 		case DISCRETE_ENERGY_IMPORT_ADD:
-			last->xi->excitation->n_discrete += GPOINTER_TO_INT(widget);
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->n_discrete += eui->n_energy_disc;
 			//realloc discrete energies
 			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
-			for (i = last->xi->excitation->n_discrete-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_discrete ; i++) {
-				last->xi->excitation->discrete[i] = energy_disc[i-last->xi->excitation->n_discrete+GPOINTER_TO_INT(widget)];
+			for (i = last->xi->excitation->n_discrete - eui->n_energy_disc ; i < last->xi->excitation->n_discrete ; i++) {
+				last->xi->excitation->discrete[i] = eui->energy_disc[i-last->xi->excitation->n_discrete + eui->n_energy_disc];
 			}
-			g_free(energy_disc);
-			energy_disc = NULL;
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_IMPORT_REPLACE:
-			last->xi->excitation->n_discrete = GPOINTER_TO_INT(widget);
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->n_discrete = eui->n_energy_disc;
 			g_free(last->xi->excitation->discrete);
-			last->xi->excitation->discrete = (struct xmi_energy_discrete *) xmi_memdup(energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
-			g_free(energy_disc);
-			energy_disc = NULL;
+			last->xi->excitation->discrete = (struct xmi_energy_discrete *) xmi_memdup(eui->energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
@@ -4526,30 +4396,30 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_discrete = 0;
 			break;
 		case DISCRETE_ENERGY_EDIT:
-			last->xi->excitation->discrete[current_index] = *energy_disc;
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->discrete[eui->index] = *eui->energy_disc;
 			if (last->xi->excitation->n_discrete > 1)
 				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
-			g_free(energy_disc);
-			energy_disc = NULL;
 			break;
 		case DISCRETE_ENERGY_SCALE:
-			value = *((double *) widget);
-			for (i = 0 ; i < delete_current_nindices ; i++) {
-				last->xi->excitation->discrete[delete_current_indices[i]].horizontal_intensity *= value;
-				last->xi->excitation->discrete[delete_current_indices[i]].vertical_intensity *= value;
+			eui = (struct energiesUndoInfo *) data;
+			for (i = 0 ; i < eui->indices->len ; i++) {
+				last->xi->excitation->discrete[g_array_index(eui->indices, int, i)].horizontal_intensity *= eui->scale_value;
+				last->xi->excitation->discrete[g_array_index(eui->indices, int, i)].vertical_intensity *= eui->scale_value;
 			}
 			break;
 		case DISCRETE_ENERGY_DELETE:
-			n = last->xi->excitation->n_discrete;
-			if (n != delete_current_nindices) {
-				for (i = n-1 ; i >= 0 ; i--) {
-					if (i == delete_current_indices[delete_current_nindices-1]) {
-						delete_current_nindices--;
+			eui = (struct energiesUndoInfo *) data;
+			n = eui->indices->len;
+			if (last->xi->excitation->n_discrete != n) {
+				for (i = last->xi->excitation->n_discrete-1 ; i >= 0 ; i--) {
+					if (i == g_array_index(eui->indices, int, n-1)) {
+						n--;
 						//delete this energy
 						for (j = i ; j < last->xi->excitation->n_discrete-1 ; j++)
 							last->xi->excitation->discrete[j] = last->xi->excitation->discrete[j+1];
 						last->xi->excitation->n_discrete--;
-						if (delete_current_nindices < 1)
+						if (n < 1)
 							break;
 					}
 				}
@@ -4563,33 +4433,30 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			}
 			break;
 		case CONTINUOUS_ENERGY_ADD:
+			eui = (struct energiesUndoInfo *) data;
 			//realloc continuous energies
 			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
-			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *energy_cont;
-			g_free(energy_cont);
-			energy_cont = NULL;
+			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *eui->energy_cont;
 			//sort
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
-			last->xi->excitation->n_continuous += GPOINTER_TO_INT(widget);
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->n_continuous += eui->n_energy_cont;
 			//realloc continuous energies
 			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
-			for (i = last->xi->excitation->n_continuous-GPOINTER_TO_INT(widget) ; i < last->xi->excitation->n_continuous ; i++) {
-				last->xi->excitation->continuous[i] = energy_cont[i-last->xi->excitation->n_continuous+GPOINTER_TO_INT(widget)];
+			for (i = last->xi->excitation->n_continuous-GPOINTER_TO_INT(data) ; i < last->xi->excitation->n_continuous ; i++) {
+				last->xi->excitation->continuous[i] = eui->energy_cont[i-last->xi->excitation->n_continuous + eui->n_energy_cont];
 			}
-			g_free(energy_cont);
-			energy_cont = NULL;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
-			last->xi->excitation->n_continuous = GPOINTER_TO_INT(widget);
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->n_continuous = eui->n_energy_cont;
 			g_free(last->xi->excitation->continuous);
-			last->xi->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup(energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
-			g_free(energy_cont);
-			energy_cont = NULL;
+			last->xi->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup(eui->energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
@@ -4599,30 +4466,30 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			last->xi->excitation->n_continuous = 0;
 			break;
 		case CONTINUOUS_ENERGY_SCALE:
-			value = *((double *) widget);
-			for (i = 0 ; i < delete_current_nindices ; i++) {
-				last->xi->excitation->continuous[delete_current_indices[i]].horizontal_intensity *= value;
-				last->xi->excitation->continuous[delete_current_indices[i]].vertical_intensity *= value;
+			eui = (struct energiesUndoInfo *) data;
+			for (i = 0 ; i < eui->indices->len ; i++) {
+				last->xi->excitation->continuous[g_array_index(eui->indices, int, i)].horizontal_intensity *= eui->scale_value;
+				last->xi->excitation->continuous[g_array_index(eui->indices, int, i)].vertical_intensity *= eui->scale_value;
 			}
 			break;
 		case CONTINUOUS_ENERGY_EDIT:
-			last->xi->excitation->continuous[current_index] = *energy_cont;
-			g_free(energy_cont);
-			energy_cont = NULL;
+			eui = (struct energiesUndoInfo *) data;
+			last->xi->excitation->continuous[eui->index] = *eui->energy_cont;
 			if (last->xi->excitation->n_continuous > 1)
 				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
-			n = last->xi->excitation->n_continuous;
-			if (n != delete_current_nindices) {
-				for (i = n-1 ; i >= 0 ; i--) {
-					if (i == delete_current_indices[delete_current_nindices-1]) {
-						delete_current_nindices--;
+			eui = (struct energiesUndoInfo *) data;
+			n = eui->indices->len;
+			if (last->xi->excitation->n_continuous != n) {
+				for (i = last->xi->excitation->n_continuous-1 ; i >= 0 ; i--) {
+					if (i == g_array_index(eui->indices, int, n-1)) {
+						n--;
 						//delete this energy
 						for (j = i ; j < last->xi->excitation->n_continuous-1 ; j++)
 							last->xi->excitation->continuous[j] = last->xi->excitation->continuous[j+1];
 						last->xi->excitation->n_continuous--;
-						if (delete_current_nindices < 1)
+						if (n < 1)
 							break;
 					}
 				}
@@ -4641,7 +4508,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 			if (last->xi->excitation->n_discrete > 0)
 				g_free(last->xi->excitation->discrete);
 			g_free(last->xi->excitation);
-			temp_exc = (struct xmi_excitation*) widget;
+			temp_exc = (struct xmi_excitation*) data;
 			last->xi->excitation = temp_exc;
 			break;
 		case EXC_COMPOSITION_ORDER:
@@ -4656,7 +4523,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				g_free(last->xi->absorbers->exc_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(exc_compositionS, &(last->xi->absorbers->exc_layers),&(last->xi->absorbers->n_exc_layers));
-			last->widget = widget;
+			last->widget = data;
 			break;
 		case DET_COMPOSITION_ORDER:
 		case DET_COMPOSITION_DELETE:
@@ -4670,7 +4537,7 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				g_free(last->xi->absorbers->det_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(det_compositionS, &(last->xi->absorbers->det_layers),&(last->xi->absorbers->n_det_layers));
-			last->widget = widget;
+			last->widget = data;
 			break;
 		case CRYSTAL_COMPOSITION_ORDER:
 		case CRYSTAL_COMPOSITION_DELETE:
@@ -4684,42 +4551,42 @@ void update_undo_buffer(int kind, GtkWidget *widget) {
 				g_free(last->xi->detector->crystal_layers);
 			}
 			xmi_copy_composition2abs_or_crystal(crystal_compositionS, &(last->xi->detector->crystal_layers),&(last->xi->detector->n_crystal_layers));
-			last->widget = widget;
+			last->widget = data;
 			break;
 		case DETECTOR_TYPE:
-			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-			last->widget = widget;
+			last->xi->detector->detector_type = gtk_combo_box_get_active(GTK_COMBO_BOX(data));
+			last->widget = data;
 			break;
 		case DETECTOR_NCHANNELS:
-			last->xi->detector->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
-			last->widget = widget;
+			last->xi->detector->nchannels = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
+			last->widget = data;
 			break;
 		case DETECTOR_GAIN:
-			last->xi->detector->gain = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->gain = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DETECTOR_LIVE_TIME:
-			last->xi->detector->live_time = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->live_time = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DETECTOR_PULSE_WIDTH:
-			last->xi->detector->pulse_width= strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->pulse_width= strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DETECTOR_ZERO:
-			last->xi->detector->zero = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->zero = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DETECTOR_NOISE:
-			last->xi->detector->noise = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->noise = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case DETECTOR_FANO:
-			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(widget)),NULL);
-			last->widget = widget;
+			last->xi->detector->fano = strtod((char *) gtk_entry_get_text(GTK_ENTRY(data)),NULL);
+			last->widget = data;
 			break;
 		case IMPORT_FROM_FILE:
-			iud = (struct import_undo_data *) widget;
+			iud = (struct import_undo_data *) data;
 			last->message = g_strdup_printf("import from %s", g_path_get_basename(iud->filename));
 			last->widget = (GtkWidget *) GINT_TO_POINTER(iud->undo_rv);
 			if (iud->undo_rv & IMPORT_SELECT_COMPOSITION) {
@@ -4914,9 +4781,6 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
-						// these two next lines are bad code
-						g_free(energy_disc);
-						energy_disc = NULL;
 						return;
 					}
 				}
@@ -4927,9 +4791,6 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
-						// these two next lines are bad code
-						g_free(energy_cont);
-						energy_cont = NULL;
 						return;
 					}
 				}
@@ -4939,36 +4800,8 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 			// replace
 			update_undo_buffer(SOURCE_SPECTRUM_REPLACE, (GtkWidget *) excitation);
 		}
-		gtk_list_store_clear(discWidget->store);
-		int i;
-		GtkTreeIter iter;
-		for (i = 0 ; i < (current)->xi->excitation->n_discrete ; i++) {
-			gtk_list_store_append(discWidget->store, &iter);
-			gtk_list_store_set(discWidget->store, &iter,
-			ENERGY_COLUMN, (current)->xi->excitation->discrete[i].energy,
-			HOR_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (current)->xi->excitation->discrete[i].vertical_intensity,
-			SIGMA_X_COLUMN, (current)->xi->excitation->discrete[i].sigma_x,
-			SIGMA_XP_COLUMN,(current)->xi->excitation->discrete[i].sigma_xp,
-			SIGMA_Y_COLUMN,(current)->xi->excitation->discrete[i].sigma_y,
-			SIGMA_YP_COLUMN,(current)->xi->excitation->discrete[i].sigma_yp,
-			DISTRIBUTION_TYPE_COLUMN,(current)->xi->excitation->discrete[i].distribution_type,
-			SCALE_PARAMETER_COLUMN,(current)->xi->excitation->discrete[i].scale_parameter,
-			-1);
-		}
-		gtk_list_store_clear(contWidget->store);
-		for (i = 0 ; i < (current)->xi->excitation->n_continuous ; i++) {
-			gtk_list_store_append(contWidget->store, &iter);
-			gtk_list_store_set(contWidget->store, &iter,
-			ENERGY_COLUMN, (current)->xi->excitation->continuous[i].energy,
-			HOR_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (current)->xi->excitation->continuous[i].vertical_intensity,
-			SIGMA_X_COLUMN, (current)->xi->excitation->continuous[i].sigma_x,
-			SIGMA_XP_COLUMN,(current)->xi->excitation->continuous[i].sigma_xp,
-			SIGMA_Y_COLUMN,(current)->xi->excitation->continuous[i].sigma_y,
-			SIGMA_YP_COLUMN,(current)->xi->excitation->continuous[i].sigma_yp,
-			-1);
-		}
+		repopulate_discrete_energies(discWidget->store, (current)->xi->excitation);
+		repopulate_continuous_energies(contWidget->store, (current)->xi->excitation);
 	}
 	else {
 		gtk_widget_destroy(dialog);
@@ -6067,9 +5900,9 @@ XMI_MAIN
 
 	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Excitation</span>");
-	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
-	gtk_container_add(GTK_CONTAINER(frame),initialize_energies(current->xi->excitation, window));
-	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,5);
+	gtk_container_set_border_width(GTK_CONTAINER(frame), 5);
+	gtk_container_add(GTK_CONTAINER(frame), initialize_energies(current->xi->excitation, window, &discWidget, &contWidget));
+	gtk_box_pack_start(GTK_BOX(superframe), frame, FALSE, FALSE, 5);
 
 
 	//absorbers
@@ -7289,37 +7122,8 @@ static void change_all_values_excitation(struct xmi_input *new_input) {
 	int i;
 	GtkTreeIter iter;
 
-	gtk_list_store_clear(discWidget->store);
-	for (i = 0 ; i < (new_input)->excitation->n_discrete ; i++) {
-		gtk_list_store_append(discWidget->store, &iter);
-		gtk_list_store_set(discWidget->store, &iter,
-			ENERGY_COLUMN, (new_input)->excitation->discrete[i].energy,
-			HOR_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (new_input)->excitation->discrete[i].vertical_intensity,
-			SIGMA_X_COLUMN, (new_input)->excitation->discrete[i].sigma_x,
-			SIGMA_XP_COLUMN,(new_input)->excitation->discrete[i].sigma_xp,
-			SIGMA_Y_COLUMN,(new_input)->excitation->discrete[i].sigma_y,
-			SIGMA_YP_COLUMN,(new_input)->excitation->discrete[i].sigma_yp,
-			DISTRIBUTION_TYPE_COLUMN,(new_input)->excitation->discrete[i].distribution_type,
-			SCALE_PARAMETER_COLUMN,(new_input)->excitation->discrete[i].scale_parameter,
-			-1);
-	}
-	gtk_list_store_clear(contWidget->store);
-	for (i = 0 ; i < (new_input)->excitation->n_continuous ; i++) {
-		gtk_list_store_append(contWidget->store, &iter);
-		gtk_list_store_set(contWidget->store, &iter,
-			ENERGY_COLUMN, (new_input)->excitation->continuous[i].energy,
-			HOR_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].horizontal_intensity,
-			VER_INTENSITY_COLUMN, (new_input)->excitation->continuous[i].vertical_intensity,
-			SIGMA_X_COLUMN, (new_input)->excitation->continuous[i].sigma_x,
-			SIGMA_XP_COLUMN,(new_input)->excitation->continuous[i].sigma_xp,
-			SIGMA_Y_COLUMN,(new_input)->excitation->continuous[i].sigma_y,
-			SIGMA_YP_COLUMN,(new_input)->excitation->continuous[i].sigma_yp,
-			-1);
-	}
-
-
-
+	repopulate_discrete_energies(discWidget->store, (new_input)->excitation);
+	repopulate_continuous_energies(contWidget->store, (new_input)->excitation);
 }
 
 static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
