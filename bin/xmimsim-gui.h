@@ -47,7 +47,7 @@ struct undo_single {
 	struct xmi_input *xi;
 	gchar *message;
 	int kind;
-	GtkWidget *widget;
+	void *widget;
 	char *filename;
 	int *check;
 };
@@ -150,8 +150,8 @@ enum {
 	IMPORT_FROM_FILE,
 };
 
-void update_undo_buffer(int kind, GtkWidget *widget);
-void update_undo_buffer_with_error(int kind, GtkWidget *widget, int *check);
+void update_undo_buffer(int kind, void *data);
+void update_undo_buffer_with_error(int kind, void *data, int *check);
 
 int check_changeables(void);
 

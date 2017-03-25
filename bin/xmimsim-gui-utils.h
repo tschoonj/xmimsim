@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef XMI_MSIM_GUI_COMPOUND_DIALOG_H
-#define XMI_MSIM_GUI_COMPOUND_DIALOG_H
+#ifndef XMI_MSIM_GUI_UTILS_H
+#define XMI_MSIM_GUI_UTILS_H
 
 #include <config.h> // bad, bad, bad!!!
 #include <gtk/gtk.h>
@@ -74,5 +74,7 @@ gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer);
 
 void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *controlsLogW, GTimer *timer, GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 G_END_DECLS
+
+GArray* xmi_msim_gui_utils_tree_view_get_selected_indices(GtkTreeView *tree);
 
 #endif
