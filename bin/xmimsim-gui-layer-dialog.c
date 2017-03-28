@@ -541,8 +541,8 @@ static void predef_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dial
     }
     xmi_free_layer(layer);
     g_free(layer);
-    gtk_widget_destroy(catalog_dialog);
   }
+  gtk_widget_destroy(catalog_dialog);
 }
 
 static void remove_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog) {
