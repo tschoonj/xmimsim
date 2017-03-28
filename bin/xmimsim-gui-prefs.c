@@ -60,6 +60,8 @@ struct prefsWidgets {
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	GtkWidget *notificationsW;
 #endif
+	GArray *deleted_layers;
+	GtkWidget *layers_tree_view;
 };
 enum {
 	URL_COLUMN_PREFS,
@@ -234,6 +236,7 @@ static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
 }
 
 
+#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 static void url_delete_button_clicked_cb(GtkWidget *widget, GtkTreeView *tree) {
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
 	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
@@ -246,7 +249,6 @@ static void url_delete_button_clicked_cb(GtkWidget *widget, GtkTreeView *tree) {
 	return;
 }
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
 static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, GtkTreeView *tree) {
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
 	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
@@ -424,6 +426,29 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
+
+	// delete layers
+	int i;
+
+	for (i = 0 ; i < pw->deleted_layers->len ; i++) {
+		gchar *layer_name = g_array_index(pw->deleted_layers, gchar *, i);
+		if (xmimsim_gui_remove_user_defined_layer(layer_name) != 1) {
+			//something went very wrong!
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(pw->parent_window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+				GTK_BUTTONS_CLOSE,
+				"Error removing layer %s. Please report this incident to the developers.\n",
+				layer_name
+       				);
+     			gtk_dialog_run (GTK_DIALOG (dialog));
+     			gtk_widget_destroy (dialog);
+			return;
+		}
+
+	}
+	g_strfreev((gchar **) pw->deleted_layers->data);
+	g_array_free(pw->deleted_layers, FALSE);
 
 	gtk_widget_destroy(pw->window);
 	return;
@@ -1009,51 +1034,37 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 	return 1;
 }
 
-static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *event, GtkTreeSelection *select_layers) {
-	if (event->keyval == gdk_keyval_from_name("BackSpace")) {
-		GtkTreeModel *model;
-		GList *selected_rows = gtk_tree_selection_get_selected_rows(select_layers, &model);
-		//convert to references
-		int n_selected = gtk_tree_selection_count_selected_rows(select_layers);
-		GtkTreeRowReference **refs = (GtkTreeRowReference**) g_malloc(sizeof(GtkTreeRowReference*)*n_selected);
-		int i;
-		GtkTreeIter iter;
-		for (i = 0 ; i < n_selected ; i++) {
-			refs[i] = gtk_tree_row_reference_new(model, (GtkTreePath *) g_list_nth_data(selected_rows, i));
-		}
-		for (i = 0 ; i < n_selected ; i++) {
-			GtkTreePath *path = gtk_tree_row_reference_get_path(refs[i]);
-			gtk_tree_model_get_iter(model, &iter, path);
-			gchar *layer_name;
-			gtk_tree_model_get(model, &iter, 0, &layer_name, -1);
-			gtk_tree_path_free(path);
-			gtk_tree_row_reference_free(refs[i]);
+static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *event, struct prefsWidgets *ew) {
+	if (event->keyval != gdk_keyval_from_name("BackSpace"))
+		return FALSE;
+	
+	GtkTreeSelection *select_layers = gtk_tree_view_get_selection(GTK_TREE_VIEW(ew->layers_tree_view));
 
-			if (xmimsim_gui_remove_user_defined_layer(layer_name) == 1)
-				gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
-			else {
-				//something went very wrong!
-				GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(widget))),
-					GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_ERROR,
-					GTK_BUTTONS_CLOSE,
-					"Error removing layer %s. Please report this incident to the developers.\n",
-					layer_name
-	       				);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
-				return TRUE;
-			}
-
-			g_free(layer_name);
-		}
-
-		g_free(refs);
-		g_list_free_full (selected_rows, (GDestroyNotify) gtk_tree_path_free);
-		return TRUE;
+	GtkTreeModel *model;
+	GList *selected_rows = gtk_tree_selection_get_selected_rows(select_layers, &model);
+	int n_selected = g_list_length(selected_rows);
+	int i;
+	GtkTreeIter iter;
+	GtkTreeRowReference **refs = (GtkTreeRowReference**) g_malloc(sizeof(GtkTreeRowReference*)*n_selected);
+	for (i = 0 ; i < n_selected ; i++) {
+		refs[i] = gtk_tree_row_reference_new(model, (GtkTreePath *) g_list_nth_data(selected_rows, i));
 	}
 
-	return FALSE;
+	for (i = 0 ; i < n_selected ; i++) {
+		GtkTreePath *path = gtk_tree_row_reference_get_path(refs[i]);;
+		gtk_tree_model_get_iter(model, &iter, path);
+		gchar *layer_name;
+		gtk_tree_model_get(model, &iter, 0, &layer_name, -1);
+		g_array_append_val(ew->deleted_layers, layer_name);
+		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+		gtk_tree_row_reference_free(refs[i]);
+	}
+
+	g_free(refs);
+	g_list_free_full (selected_rows, (GDestroyNotify) gtk_tree_path_free);
+
+	return TRUE;
+
 
 }
 
@@ -1064,6 +1075,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	GtkWidget *master_box;
 	struct prefsWidgets *pw = (struct prefsWidgets *) g_malloc(sizeof(struct prefsWidgets));
 	pw->parent_window = main_window;
+	pw->deleted_layers = g_array_new(TRUE, FALSE, sizeof(gchar *));
 
 	master_box = gtk_vbox_new(FALSE,2);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1357,7 +1369,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">User defined layers</span>");
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
-	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key. This operation cannot be undone.");
+	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key. This operation will be executed when clicking the Apply button.");
 	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
@@ -1376,6 +1388,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_tree_view_column_set_resizable(column_layers,TRUE);
 	gtk_tree_view_column_set_alignment(column_layers, 0.);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_layers), column_layers);
+	pw->layers_tree_view = tree_layers;
 	select_layers = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_layers));
 	gtk_tree_selection_set_mode(select_layers, GTK_SELECTION_MULTIPLE);
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
@@ -1390,7 +1403,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 			gtk_list_store_set(store_layersL, &iter, 0, layer_names[i], -1);
 		}
 	}
-	g_signal_connect(G_OBJECT(tree_layers), "key-press-event", G_CALLBACK(layers_backspace_key_clicked_cb), (gpointer) select_layers);
+	g_signal_connect(G_OBJECT(tree_layers), "key-press-event", G_CALLBACK(layers_backspace_key_clicked_cb), (gpointer) pw);
 
 	//Fourth page: advanced
 	superframe = gtk_vbox_new(FALSE,5);
