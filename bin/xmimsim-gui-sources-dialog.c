@@ -89,6 +89,59 @@ static void scale_toggled_cb(GtkToggleButton *linearW, XmiMsimGuiSourcesDialog *
 	update_plot(dialog, get_active_source(dialog));
 }
 
+static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
+
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+
+	GtkWidget *save_dialog = gtk_file_chooser_dialog_new("Save source parameters", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(save_dialog), TRUE);
+	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(save_dialog), TRUE);
+
+	if (gtk_dialog_run(GTK_DIALOG(save_dialog)) == GTK_RESPONSE_ACCEPT) {
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(save_dialog));
+		GError *error = NULL;
+		if (!xmi_msim_gui_source_abstract_save_parameters(source, (const char *) filename, &error)) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(save_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s parameters to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+
+			g_error_free(error);
+			g_free(filename);
+		}
+	}
+	gtk_widget_destroy(save_dialog);
+
+	return;
+}
+
+static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
+
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+
+	GtkWidget *load_dialog = gtk_file_chooser_dialog_new("Load source parameters", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_window_set_modal(GTK_WINDOW(load_dialog), TRUE);
+
+	if (gtk_dialog_run(GTK_DIALOG(load_dialog)) == GTK_RESPONSE_ACCEPT) {
+		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
+		GError *error = NULL;
+		if (!xmi_msim_gui_source_abstract_load_parameters(source, (const char *) filename, &error)) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(load_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error loading %s parameters from %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+
+			g_error_free(error);
+			g_free(filename);
+		}
+	}
+	gtk_widget_destroy(load_dialog);
+
+	return;
+}
+
 static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
 
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
@@ -96,16 +149,7 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 	GtkWidget *export_dialog = gtk_file_chooser_dialog_new("Export spectrum as ASCII file", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 	gtk_window_set_modal(GTK_WINDOW(export_dialog), TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(export_dialog), TRUE);
-	GtkWidget *label;
-	/*if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 0) {
-		label = gtk_label_new("First the continuous intervals will be printed, marked by their start energy and intensity. This will be followed by a list of discrete lines, each defined by their energy and intensity.");
-		gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);
-		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "tube-spectrum.txt");
-	}
-	else if (gtk_notebook_get_current_page(GTK_NOTEBOOK(gen->notebook)) == 1) {
-		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "nuclide-spectrum.txt");
-	}*/
+
 	if (gtk_dialog_run(GTK_DIALOG(export_dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(export_dialog));
 		GError *error = NULL;
@@ -189,17 +233,23 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	GtkWidget *infoButton = gtk_button_new_from_stock(GTK_STOCK_ABOUT);
 	GtkWidget *exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	GtkWidget *imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
+	GtkWidget *loadButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	GtkWidget *saveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
 	xmi_msim_gui_utils_update_button_text(dialog->generateButton, "Update spectrum");
 	xmi_msim_gui_utils_update_button_text(exportButton, "Export spectrum");
 	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
+	xmi_msim_gui_utils_update_button_text(loadButton, "Load parameters");
+	xmi_msim_gui_utils_update_button_text(saveButton, "Save parameters");
 
 	GtkWidget *tempHBox = gtk_hbox_new(TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(tempHBox), dialog->generateButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), infoButton, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(tempHBox), loadButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
 	tempHBox = gtk_hbox_new(TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(tempHBox), exportButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), imageButton, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(tempHBox), saveButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
 
 	// now the plot canvas
@@ -226,6 +276,8 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	g_signal_connect_swapped(G_OBJECT(infoButton), "clicked", G_CALLBACK(info_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect_swapped(G_OBJECT(dialog->generateButton), "clicked", G_CALLBACK(generate_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect(G_OBJECT(imageButton), "clicked", G_CALLBACK(image_button_clicked_cb), (gpointer) dialog);
+	g_signal_connect(G_OBJECT(loadButton), "clicked", G_CALLBACK(load_button_clicked_cb), (gpointer) dialog);
+	g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(save_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect(G_OBJECT(dialog->linearW), "toggled", G_CALLBACK(scale_toggled_cb), (gpointer) dialog);
 	gtk_widget_show_all(mainHBox);
 }

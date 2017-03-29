@@ -56,6 +56,10 @@ static const gchar *xmi_msim_gui_source_tube_ebel_real_get_name(XmiMsimGuiSource
 
 static const gchar *xmi_msim_gui_source_tube_ebel_real_get_about_text(XmiMsimGuiSourceAbstract *source);
 
+static gboolean xmi_msim_gui_source_tube_ebel_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
+static gboolean xmi_msim_gui_source_tube_ebel_real_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
 static void xmi_msim_gui_source_tube_ebel_dispose(GObject *object);
 
 static void xmi_msim_gui_source_tube_ebel_finalize(GObject *object);
@@ -81,9 +85,11 @@ static void xmi_msim_gui_source_tube_ebel_class_init(XmiMsimGuiSourceTubeEbelCla
 	//parent_klass->save = xmi_msim_gui_source_tube_ebel_real_save; // do not override
 	parent_klass->get_name = xmi_msim_gui_source_tube_ebel_real_get_name;
 	parent_klass->get_about_text = xmi_msim_gui_source_tube_ebel_real_get_about_text;
+	parent_klass->load_parameters = xmi_msim_gui_source_tube_ebel_real_load_parameters;
+	parent_klass->save_parameters = xmi_msim_gui_source_tube_ebel_real_save_parameters;
 }
 
-static struct xmi_ebel_parameters* get_parameters(XmiMsimGuiSourceTubeEbel *source, GError **error) {
+static struct xmi_ebel_parameters* read_parameters_from_source(XmiMsimGuiSourceTubeEbel *source, GError **error) {
 	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
 
 	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->tubeVoltageW));
@@ -168,7 +174,7 @@ static struct xmi_ebel_parameters* get_parameters(XmiMsimGuiSourceTubeEbel *sour
 	return xep;
 }
 
-static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_parameters *xep) {
+static void write_parameters_to_source(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_parameters *xep) {
 	gchar *buf;
 
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->tubeVoltageW), xep->tube_voltage);
@@ -219,18 +225,19 @@ static void set_parameters(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_par
 	}
 }
 
-static void set_preferences(struct xmi_ebel_parameters *xep) {
-	gchar *prefs_file;
+static void write_parameters_to_file(struct xmi_ebel_parameters *xep, gchar *filename, GError **error) {
+	gchar *prefs_file = NULL;
 	GKeyFile *keyfile;
-
-	prefs_file = xmimsim_gui_get_preferences_filename();
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
-		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file)) {
-			g_error("Could not create preferences file %s with default settings!", prefs_file);
-			return;
+	if (filename == NULL) {
+		prefs_file = xmimsim_gui_get_preferences_filename();
+		filename = prefs_file;
+		if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), error)) {
+			if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file)) {
+				g_error("Could not create preferences file %s with default settings!", prefs_file);
+			}
 		}
 	}
 
@@ -253,10 +260,11 @@ static void set_preferences(struct xmi_ebel_parameters *xep) {
 	g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", xep->transmission_efficiency_file);
 
 	//save file
-	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-	GError *error = NULL;
-	if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, &error)) {
-		g_error("Could not write to %s: %s\n", prefs_file, error->message);
+	gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, error);
+	if (prefs_file_contents == NULL)
+		return;
+	if(!g_file_set_contents(filename, prefs_file_contents, -1, error)) {
+		return;
 	}
 	g_free(prefs_file_contents);
 	g_free(prefs_file);
@@ -265,165 +273,257 @@ static void set_preferences(struct xmi_ebel_parameters *xep) {
 	return;
 } 
 
-static struct xmi_ebel_parameters* get_preferences() {
+static struct xmi_ebel_parameters* read_parameters_from_file(gchar *filename, GError **error) {
 	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
 
-	gchar *prefs_file;
+	gchar *prefs_file = NULL;
 	GKeyFile *keyfile;
 
-	prefs_file = xmimsim_gui_get_preferences_filename();
+	if (filename == NULL) {
+		prefs_file = xmimsim_gui_get_preferences_filename();
+		filename = prefs_file;
+	}
 
 	keyfile = g_key_file_new();
 
-	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
-		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
+	if (!g_key_file_load_from_file(keyfile, filename, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), error)) {
+		if (prefs_file != NULL && !xmimsim_gui_create_prefs_file(keyfile, prefs_file))
 			g_error("Could not create preferences file %s with default settings!", prefs_file);
+		else if (prefs_file == NULL) {
+			g_free(xep);
+			return NULL;
+		}
 	}
 	
 	gboolean update_file = FALSE;
-	GError *error = NULL;
+	GError *local_error = NULL;
 
-	xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube voltage not found in preferences file\n");
+	xep->tube_voltage = g_key_file_get_double(keyfile, "Ebel last used", "Tube voltage", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube voltage not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube voltage", 40.0);
 		xep->tube_voltage = 40.0;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube current not found in preferences file\n");
+	xep->tube_current = g_key_file_get_double(keyfile, "Ebel last used", "Tube current", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube current not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube current", 1.0);
 		xep->tube_current = 1.0;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube solid angle not found in preferences file\n");
+	xep->tube_solid_angle = g_key_file_get_double(keyfile, "Ebel last used", "Tube solid angle", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube solid angle not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube solid angle", 1E-10);
 		xep->tube_solid_angle = 1E-10;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->alpha_electron = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha electron", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube alpha electron not found in preferences file\n");
+	xep->alpha_electron = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha electron", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube alpha electron not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha electron", 60.0);
 		xep->alpha_electron = 60.0;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->alpha_xray = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha xray", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube alpha xray not found in preferences file\n");
+	xep->alpha_xray = g_key_file_get_double(keyfile, "Ebel last used", "Tube alpha xray", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube alpha xray not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube alpha xray", 60.0);
 		xep->alpha_xray = 60.0;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube interval width not found in preferences file\n");
+	xep->interval_width = g_key_file_get_double(keyfile, "Ebel last used", "Tube interval width", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube interval width not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube interval width", 0.1);
 		xep->interval_width = 0.1;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube anode element not found in preferences file\n");
+	xep->anode_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube anode element", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube anode element not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube anode element", 47);
 		xep->anode_Z = 47;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube anode density not found in preferences file\n");
+	xep->anode_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode density", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube anode density not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube anode density", 10.5);
 		xep->anode_rho = 10.5;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube anode thickness not found in preferences file\n");
+	xep->anode_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube anode thickness", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube anode thickness not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube anode thickness", 0.0002);
 		xep->anode_thickness = 0.0002;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube window element not found in preferences file\n");
+	xep->window_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube window element", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube window element not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube window element", 4);
 		xep->window_Z= 4;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube window density not found in preferences file\n");
+	xep->window_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube window density", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube window density not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube window density", 1.848);
 		xep->window_rho = 1.848;
 		update_file = TRUE;
-		error = NULL;
+		local_error = NULL;
 	}
-	xep->window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube window thickness not found in preferences file\n");
+	xep->window_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube window thickness", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube window thickness not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube window thickness", 0.0125);
 		xep->window_thickness = 0.0125;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube filter element not found in preferences file\n");
+	xep->filter_Z = g_key_file_get_integer(keyfile, "Ebel last used", "Tube filter element", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube filter element not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_integer(keyfile, "Ebel last used", "Tube filter element", 2);
 		xep->filter_Z = 2;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube filter density not found in preferences file\n");
+	xep->filter_rho = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter density", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube filter density not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube filter density", 0.000166);
 		xep->filter_rho = 0.000166;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube filter thickness not found in preferences file\n");
+	xep->filter_thickness = g_key_file_get_double(keyfile, "Ebel last used", "Tube filter thickness", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube filter thickness not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_double(keyfile, "Ebel last used", "Tube filter thickness", 0);
 		xep->filter_thickness = 0;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube transmission mode not found in preferences file\n");
+	xep->transmission_tube = g_key_file_get_boolean(keyfile, "Ebel last used", "Tube transmission mode", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube transmission mode not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_boolean(keyfile, "Ebel last used", "Tube transmission mode", FALSE);
 		xep->transmission_tube = FALSE;
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
-	xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &error);
-	if (error != NULL) {
-		g_warning("Ebel last used Tube transmission efficiency file not found in preferences file\n");
+	xep->transmission_efficiency_file= g_key_file_get_string(keyfile, "Ebel last used", "Tube transmission efficiency file", &local_error);
+	if (local_error != NULL) {
+		g_warning("Ebel last used Tube transmission efficiency file not found in %s\n", filename);
+		if (prefs_file == NULL) {
+			*error = local_error;
+			g_free(xep);
+			return NULL;
+		}
 		g_key_file_set_string(keyfile, "Ebel last used", "Tube transmission efficiency file", "(None)");
 		xep->transmission_efficiency_file = g_strdup("(None)");
-		error = NULL;
+		local_error = NULL;
 		update_file = TRUE;
 	}
 	if (update_file) {
 		//save file
 		gchar *prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-		if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, &error)) {
-			g_error("Could not write to %s: %s\n", prefs_file, error->message);
+		if(!g_file_set_contents(filename, prefs_file_contents, -1, &local_error)) {
+			g_error("Could not write to %s: %s\n", prefs_file, local_error->message);
 		}
 		g_free(prefs_file_contents);
 	}
@@ -571,9 +671,9 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_widget_show_all(hbox);
 
 	// load the preferences
-	struct xmi_ebel_parameters *xep = get_preferences();
+	struct xmi_ebel_parameters *xep = read_parameters_from_file(NULL, NULL);
 	
-	set_parameters(source, xep);
+	write_parameters_to_source(source, xep);
 
 	g_free(xep->transmission_efficiency_file);
 	g_free(xep);
@@ -634,7 +734,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	GError *error = NULL;
 
 	// read the parameters
-	struct xmi_ebel_parameters *xep = get_parameters(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), &error);
+	struct xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), &error);
 
 	if (xep == NULL) {
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
@@ -823,9 +923,9 @@ static void xmi_msim_gui_source_tube_ebel_dispose(GObject *object) {
 	if (source->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
-		struct xmi_ebel_parameters *xep = get_parameters(source, NULL);
+		struct xmi_ebel_parameters *xep = read_parameters_from_source(source, NULL);
 		if (xep != NULL) {
-			set_preferences(xep);
+			write_parameters_to_file(xep, NULL, NULL);
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
 		}
@@ -847,3 +947,32 @@ static void xmi_msim_gui_source_tube_ebel_class_finalize(XmiMsimGuiSourceTubeEbe
 
 }
 
+static gboolean xmi_msim_gui_source_tube_ebel_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	struct xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), error);
+
+	if (xep == NULL) {
+		return FALSE;
+	}
+	else {
+		write_parameters_to_file(xep, (gchar *) filename, error);
+		g_free(xep->transmission_efficiency_file);
+		g_free(xep);
+	}
+	
+	return TRUE;
+}
+
+static gboolean xmi_msim_gui_source_tube_ebel_real_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	struct xmi_ebel_parameters *xep = read_parameters_from_file((gchar *) filename, error);
+
+	if (xep == NULL) {
+		return FALSE;
+	}
+	else {
+		write_parameters_to_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), xep);
+		g_free(xep->transmission_efficiency_file);
+		g_free(xep);
+	}
+	
+	return TRUE;
+}
