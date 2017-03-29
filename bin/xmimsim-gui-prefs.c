@@ -915,24 +915,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
-		case XMIMSIM_GUI_SOURCES_LAST_USED:
-			prefs->i = g_key_file_get_integer(keyfile, "Sources last used", "Page", &error);
-			if (error != NULL) {
-				//error
-				g_warning("Sources last used Page not found in preferences file\n");
-				g_key_file_set_integer(keyfile, "Sources last used", "Page", 0);
-				//save file
-				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
-				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
-					return 0;
-				g_free(prefs_file_contents);
-				prefs->i = 0;
-			}
-			else if (prefs->i < 0 || prefs->i > 1) {
-				g_warning( "Invalid value detected for Sources last used Page in preferences file\n");
-				return 0;
-			}
-			break;
 		default:
 			g_warning("Unknown preference requested in xmimsim_gui_get_prefs\n");
 			return 0;
@@ -1012,9 +994,6 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
 			break;
 #endif
-		case XMIMSIM_GUI_SOURCES_LAST_USED:
-			g_key_file_set_integer(keyfile, "Sources last used", "Page", prefs.i);
-			break;
 		default:
 			g_warning("Unknown preference requested in xmimsim_gui_set_prefs\n");
 			return 0;
