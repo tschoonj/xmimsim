@@ -45,13 +45,9 @@ enum {
 	//gboolean
 	XMIMSIM_GUI_PREFS_ADVANCED_COMPTON,
 	//gboolean
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	XMIMSIM_GUI_PREFS_OPENCL,
-#endif
-#if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	//gboolean
 	XMIMSIM_GUI_PREFS_NOTIFICATIONS,
-#endif
 	//gboolean
 	XMIMSIM_GUI_PREFS_DEFAULT_SEEDS,
 	//gchar *
