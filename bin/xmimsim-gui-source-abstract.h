@@ -70,6 +70,9 @@ struct _XmiMsimGuiSourceAbstractClass
 
   gchar* (*energy_continuous_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
 
+  gboolean (*save_parameters)  (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
+  gboolean (*load_parameters)  (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 };
 
 GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
@@ -77,6 +80,10 @@ GType xmi_msim_gui_source_abstract_get_type(void) G_GNUC_CONST;
 void xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source);
 
 gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
+gboolean xmi_msim_gui_source_abstract_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
+gboolean xmi_msim_gui_source_abstract_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray**y);
 

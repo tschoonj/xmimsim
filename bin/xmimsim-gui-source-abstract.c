@@ -34,6 +34,10 @@ static gchar *xmi_msim_gui_source_abstract_real_energy_discrete_printf(XmiMsimGu
 
 static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
 
+static gboolean xmi_msim_gui_source_abstract_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
+static gboolean xmi_msim_gui_source_abstract_real_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
+
 static void xmi_msim_gui_source_abstract_dispose(GObject *object);
 
 static void xmi_msim_gui_source_abstract_finalize(GObject *object);
@@ -64,6 +68,8 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 	klass->get_about_text = xmi_msim_gui_source_abstract_real_get_about_text;
 	klass->energy_discrete_printf = xmi_msim_gui_source_abstract_real_energy_discrete_printf;
 	klass->energy_continuous_printf = xmi_msim_gui_source_abstract_real_energy_continuous_printf;
+	klass->save_parameters = xmi_msim_gui_source_abstract_real_save_parameters;
+	klass->load_parameters = xmi_msim_gui_source_abstract_real_load_parameters;
 
 	g_object_class_install_property(object_class,
 		1,
@@ -144,6 +150,18 @@ static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract 
 	g_signal_emit((gpointer) source, signals[AFTER_GENERATE], 0, error);
 
 	return;
+}
+
+static gboolean xmi_msim_gui_source_abstract_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	g_warning("XmiMsimGuiSourceAbstract::save_parameters not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+	g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::save_parameters not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+	return FALSE;
+}
+
+static gboolean xmi_msim_gui_source_abstract_real_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	g_warning("XmiMsimGuiSourceAbstract::load_parameters not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+	g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::load_parameters not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
+	return FALSE;
 }
 
 static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
@@ -230,6 +248,14 @@ void xmi_msim_gui_source_abstract_generate(XmiMsimGuiSourceAbstract *source) {
 
 gboolean xmi_msim_gui_source_abstract_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->save(source, filename, error);
+}
+
+gboolean xmi_msim_gui_source_abstract_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->save_parameters(source, filename, error);
+}
+
+gboolean xmi_msim_gui_source_abstract_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
+	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->load_parameters(source, filename, error);
 }
 
 const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
