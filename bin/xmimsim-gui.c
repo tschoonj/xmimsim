@@ -5485,7 +5485,7 @@ XMI_MAIN
 	gtk_widget_show(notebook);
 
 	frame = gtk_frame_new("General");
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">General</span>");
 
@@ -5607,7 +5607,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Composition");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Composition</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),tempW);
@@ -5885,7 +5885,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Geometry");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Geometry</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
@@ -5895,7 +5895,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Energies");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Excitation</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame), 5);
 	gtk_container_add(GTK_CONTAINER(frame), initialize_energies(current->xi->excitation, window, &discWidget, &contWidget));
@@ -5911,7 +5911,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Beam absorbers");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Beam absorbers</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),tempW);
@@ -5926,7 +5926,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Detection absorbers");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Detection absorbers</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),tempW);
@@ -6066,7 +6066,7 @@ XMI_MAIN
 
 	frame = gtk_frame_new("Detector settings");
 
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Detector settings</span>");
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
