@@ -472,10 +472,10 @@ int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
+	g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 
-	g_key_file_set_integer(keyfile, "Sources last used", "Page", 0);
 
 	//save file
 	//create dir first if necessary
