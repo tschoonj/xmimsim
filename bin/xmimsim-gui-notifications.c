@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-notifications.h"
 #include "xmimsim-gui-prefs.h"
-#include <glib/gprintf.h>
 #include <glib/gstdio.h>
 
 #ifdef MAC_INTEGRATION
@@ -37,17 +36,17 @@ int xmimsim_notifications_init(void) {
 	if (notify_is_initted()) {
 		char *ret_name, *ret_vendor;
 		if (notify_get_server_info(&ret_name, &ret_vendor, NULL, NULL)) {
-			g_fprintf(stdout,"libnotify server name: %s\n", ret_name);
-			g_fprintf(stdout,"libnotify server vendor: %s\n", ret_vendor);
+			g_debug("libnotify server name: %s\n", ret_name);
+			g_debug("libnotify server vendor: %s\n", ret_vendor);
 			g_free(ret_name);
 			g_free(ret_vendor);
 		}
 		else {
-			g_fprintf(stderr, "Could not get notifications server information\n");
+			g_warning("Could not get notifications server information\n");
 		}
 	}
 	else {
-		g_fprintf(stderr, "Could not initiatilize libnotify\n");
+		g_warning("Could not initiatilize libnotify\n");
 	}
 #else
 
@@ -69,7 +68,6 @@ int xmimsim_notifications_deliver(const char *title, const char *text) {
 #endif
 
 #ifdef MAC_INTEGRATION
-//  #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_8
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
   	Class cls = NSClassFromString(@"NSUserNotificationCenter");
   	if (cls) {
@@ -81,7 +79,6 @@ int xmimsim_notifications_deliver(const char *title, const char *text) {
 		[center deliverNotification:notification];
   	}
 	[pool drain];
-//  #endif
 #elif defined(HAVE_LIBNOTIFY)
 	if (notify_is_initted()) {
 		NotifyNotification *notification = notify_notification_new(title, text, XMI_STOCK_LOGO);
@@ -89,7 +86,7 @@ int xmimsim_notifications_deliver(const char *title, const char *text) {
 		notify_notification_set_timeout(notification, NOTIFY_EXPIRES_DEFAULT);
 		GError *error = NULL;
 		if(!notify_notification_show(notification, &error)) {
-			g_fprintf(stderr,"notification show error message: %s\n", error->message);
+			g_warning("notification error message: %s\n", error->message);
 			g_error_free(error);
 		}
 		g_object_unref(G_OBJECT(notification));
