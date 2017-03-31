@@ -125,11 +125,13 @@ Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libgtkextra-win32-3.0-7.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libgtkextra-win32-3.0-8.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 #endif
@@ -354,10 +356,12 @@ begin
      //xraylib was not found or too old
 #ifdef XMI_MSIM64
      ITD_AddFile(ExpandConstant('http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
+     ITD_AddMirror(ExpandConstant('https://xraylib.tomschoonjans.eu/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
      ITD_AddMirror(ExpandConstant('http://xraylib.s3.amazonaws.com/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
      ITD_AddMirror(ExpandConstant('http://10.0.2.2/~schoon/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
 #else
      ITD_AddFile(ExpandConstant('http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
+     ITD_AddMirror(ExpandConstant('https://xraylib.tomschoonjans.eu/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
      ITD_AddMirror(ExpandConstant('http://xraylib.s3.amazonaws.com/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
      ITD_AddMirror(ExpandConstant('http://10.0.2.2/~schoon/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
 #endif
