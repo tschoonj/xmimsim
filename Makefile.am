@@ -24,14 +24,13 @@ pkgconfig_DATA+=libxmimsim-gui.pc
 endif
 
 #libtool archives are evil
+LT_ARCHIVES = $(DESTDIR)$(libdir)/libxmimsim.la
 if ENABLE_OPENCL
-install-exec-hook:
-	rm -f $(DESTDIR)/$(libdir)/libxmimsim.la
-	rm -f $(DESTDIR)/$(libdir)/xmimsim/xmimsim-cl.la
-else
-install-exec-hook:
-	rm -f $(DESTDIR)/$(libdir)/libxmimsim.la
+LT_ARCHIVES += $(DESTDIR)$(libdir)/xmimsim/xmimsim-cl.la
 endif
+
+install-exec-hook:
+	rm -f $(LT_ARCHIVES)
 
 EXTRA_DIST = xmimsim.spec.in License.rtf
 DISTCHECK_CONFIGURE_FLAGS = --enable-custom-detector-response
