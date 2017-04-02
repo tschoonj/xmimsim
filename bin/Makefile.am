@@ -18,7 +18,7 @@
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin -DG_LOG_DOMAIN=\"XmiMsimGui\"
 if ENABLE_MAC_APP
-AM_LDFLAGS = -headerpad_max_install_names -framework Cocoa
+AM_LDFLAGS = -Wl,-headerpad_max_install_names -framework Cocoa
 endif
 
 NULL=
@@ -81,6 +81,7 @@ libxmimsim_gui_la_CFLAGS = \
 libxmimsim_gui_la_LDFLAGS = \
 	@LDFLAGS_XMIMSIM_GUI_LIB@ \
 	$(EXTRA_LDFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LIBADD = \
 	@gtk2_LIBS@ \
@@ -113,6 +114,7 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
 	$(EXTRA_CFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la libxmimsim-gui-spline.la
 
@@ -130,6 +132,7 @@ xmimsim_gui_source_radionuclide_la_SOURCES = \
 xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
 	$(EXTRA_CFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 		    
