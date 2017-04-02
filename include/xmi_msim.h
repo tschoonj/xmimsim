@@ -26,8 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-#define XMI_MSIM_VERSION_MAJOR 5
-#define XMI_MSIM_VERSION_MINOR 1
+#define XMI_MSIM_VERSION_MAJOR 6
+#define XMI_MSIM_VERSION_MINOR 0
 
 #include "xmi_data_structs.h"
 #include "xmi_detector.h"
