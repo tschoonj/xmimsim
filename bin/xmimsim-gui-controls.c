@@ -1315,7 +1315,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
 	gtk_box_pack_start(GTK_BOX(superframe),hbox_controls, FALSE, FALSE,2);
 	frame = gtk_frame_new("Executable");
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Executable</span>");
 
@@ -1356,7 +1356,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	//options
 	union xmimsim_prefs_val xpv;
 	frame = gtk_frame_new("Options");
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Options</span>");
 
@@ -1494,7 +1494,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 
 	//Exports
 	frame = gtk_frame_new("Export results");
-	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.0);
+	gtk_frame_set_label_align(GTK_FRAME(frame),0.5,0.5);
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Export results</span>");
 
