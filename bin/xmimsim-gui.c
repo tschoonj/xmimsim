@@ -121,6 +121,9 @@ GtkWidget *saveW;
 GtkWidget *save_asW;
 #ifndef MAC_INTEGRATION
 static GtkWidget *quitW;
+#else
+static GtkWidget *minimizeW;
+static GtkWidget *bringToFrontW;
 #endif
 static GtkToolItem *newT;
 static GtkToolItem *openT;
@@ -4062,6 +4065,10 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 
 #ifdef MAC_INTEGRATION
 
+static void quartz_minimize(GtkMenuItem *menuitem, gpointer user_data) {
+	[NSApp miniaturizeAll:nil];
+}
+
 struct osx_load_data {
 	GtkWidget *window;
 	gchar *path;
@@ -5309,6 +5316,13 @@ XMI_MAIN
 	windowitem = gtk_menu_item_new_with_label("Window");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menubar),windowitem);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(windowitem), windowmenu);
+#ifdef MAC_INTEGRATION
+	minimizeW = gtk_menu_item_new_with_label("Minimize");
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu), minimizeW);
+	gtk_widget_add_accelerator(minimizeW, "activate", accel_group, GDK_KEY_m, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
+	g_signal_connect(G_OBJECT(minimizeW), "activate", G_CALLBACK(quartz_minimize), NULL);
+	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu), GTK_WIDGET(g_object_ref(gtk_separator_menu_item_new())));
+#endif
 	tab1W= gtk_menu_item_new_with_label("Input parameters");
 	tab2W= gtk_menu_item_new_with_label("Simulation controls");
 	tab3W= gtk_menu_item_new_with_label("Results");
