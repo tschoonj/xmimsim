@@ -58,10 +58,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #import <Foundation/Foundation.h>
 #include <CoreFoundation/CFBundle.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <AvailabilityMacros.h>
 #include <gtkosxapplication.h>
 #include <gdk/gdkquartz.h>
 #include "xmi_resources_mac.h"
 #define PRIMARY_ACCEL_KEY GDK_META_MASK
+
+#if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
+
+@interface NSWindow(AutomaticWindowTabbing)
++ (void)setAllowsAutomaticWindowTabbing:(BOOL)allow;
+@end
+
+#endif
+
 #else
 #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
@@ -5030,6 +5040,10 @@ XMI_MAIN
 #ifdef MAC_INTEGRATION
 	theApp = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
+
+	if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
+		[NSWindow setAllowsAutomaticWindowTabbing:NO];
+	}
 #endif
 
 	g_set_application_name("XMI-MSIM");
