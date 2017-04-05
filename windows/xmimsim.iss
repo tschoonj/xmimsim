@@ -1,4 +1,4 @@
-;Copyright (C) 2010-2014 Tom Schoonjans and Laszlo Vincze
+;Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
 
 ;This program is free software: you can redistribute it and/or modify
 ;it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.8-2017-02-20-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.10-2017-04-05-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
   #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
