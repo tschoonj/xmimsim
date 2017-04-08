@@ -16,7 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-utils.h"
+#ifdef HAVE_LIBCURL
 #include <curl/curl.h>
+#endif
 #include <math.h>
 #include <xraylib.h>
 #include <string.h>
