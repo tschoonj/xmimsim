@@ -201,8 +201,9 @@ XMI_MAIN
 
 	double **channels_conv = g_malloc(sizeof(double *)*(xmso_in->input->general->n_interactions_trajectory+1));
 
-	if (options.custom_detector_response == NULL)
+	if (options.custom_detector_response == NULL) {
 		xmi_detector_convolute_all(inputFPtr, xmso_in->channels_unconv, channels_conv, NULL, NULL, options, escape_ratios_def, xmso_in->input->general->n_interactions_trajectory, xmso_in->use_zero_interactions);
+	}
 	else {
 		XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
 		GModule *module = NULL;

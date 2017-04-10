@@ -2088,6 +2088,7 @@ RESULT(rv)
 
         !set the number of threads right
         rv%omp_num_threads = xmi_omp_get_max_threads()
+        rv%custom_detector_response = C_NULL_PTR
 
         RETURN
 ENDFUNCTION xmi_get_default_main_options

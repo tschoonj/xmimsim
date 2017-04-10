@@ -517,8 +517,9 @@ XMI_MAIN
 			channels_def_ptrs[i] = channelsdef+i*input->detector->nchannels;
 
 
-		if (options.custom_detector_response == NULL)
+		if (options.custom_detector_response == NULL) {
 			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+		}
 		else {
 			XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
 			GModule *module = NULL;
