@@ -263,7 +263,7 @@ SUBROUTINE xmi_detector_convolute_all(&
         IF (options%use_variance_reduction == 1_C_INT .AND. C_ASSOCIATED(var_red_historyPtr)) THEN
           IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-            CALL xmi_print_progress('Calculating variance reduction history detector absorption correction'
+            CALL xmi_print_progress('Calculating variance reduction history detector absorption correction'//C_NULL_CHAR, -1)
 #else
             WRITE(output_unit,'(A, I2)') 'Calculating variance reduction history detector absorption correction'
 #endif
@@ -276,7 +276,7 @@ SUBROUTINE xmi_detector_convolute_all(&
         IF (C_ASSOCIATED(brute_historyPtr)) THEN
           IF (options%verbose == 1_C_INT)&
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-            CALL xmi_print_progress('Calculating brute force history detector absorption correction'
+            CALL xmi_print_progress('Calculating brute force history detector absorption correction'//C_NULL_CHAR, -1)
 #else
             WRITE(output_unit,'(A, I2)') 'Calculating brute force history detector absorption correction'
 #endif
