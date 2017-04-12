@@ -636,7 +636,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	gtk_widget_show_all(hbox);
 
-	source->alphaXrayW = gtk_spin_button_new_with_range(50, 90, 1);
+	source->alphaXrayW = gtk_spin_button_new_with_range(5, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaXrayW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_hbox_new(FALSE, 3);
 	label = gtk_label_new("X-ray take-off angle (degrees)");
