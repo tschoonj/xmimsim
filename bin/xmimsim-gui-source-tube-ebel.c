@@ -837,23 +837,54 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		xmi_cubic_spline_free(spline);
 	}
 
-	// ideally I investigate the intensities and remove those whose intensity is really, really low...
-	GArray *x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
-	GArray *y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube->n_continuous);
-	
+	// investigate the intensities and remove those whose intensity is really, really low...
+	// for discrete energies: delete all less than 
+	struct xmi_excitation* excitation_tube_def = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
+	GArray *discrete_def = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_discrete));
+	GArray *continuous_def = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_continuous));
 
 	int i, j;
+	for (i = 0 ; i < excitation_tube->n_discrete ; i++) {
+		if (excitation_tube->discrete[i].horizontal_intensity > 1.0E-5)
+			g_array_append_val(discrete_def, excitation_tube->discrete[i]);
+	}
+
 	for (i = 0 ; i < excitation_tube->n_continuous ; i++) {
-		g_array_append_val(x, excitation_tube->continuous[i].energy);
-		double intensity = excitation_tube->continuous[i].horizontal_intensity * 2.0 * xep->interval_width;
+		if (excitation_tube->continuous[i].horizontal_intensity >= 0.0)
+			g_array_append_val(continuous_def, excitation_tube->continuous[i]);
+	}
+
+	// sanity check
+	if (discrete_def->len == 0 && continuous_def->len < 2) {
+		g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_NO_DATA_AFTER_FILTER, "No data was found after filtering out energies with too low intensities.\nConsider changing the model parameters.");
+		g_free(xep->transmission_efficiency_file);
+		g_free(xep);
+		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		return;
+	}
+
+	excitation_tube_def->n_discrete = discrete_def->len;
+	excitation_tube_def->n_continuous = continuous_def->len;
+	excitation_tube_def->discrete = (struct xmi_energy_discrete *) g_array_free(discrete_def, FALSE);
+	excitation_tube_def->continuous = (struct xmi_energy_continuous *) g_array_free(continuous_def, FALSE);
+
+	xmi_free_excitation(excitation_tube);
+
+	GArray *x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube_def->n_continuous);
+	GArray *y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube_def->n_continuous);
+	
+
+	for (i = 0 ; i < excitation_tube_def->n_continuous ; i++) {
+		g_array_append_val(x, excitation_tube_def->continuous[i].energy);
+		double intensity = excitation_tube_def->continuous[i].horizontal_intensity * 2.0 * xep->interval_width;
 		g_array_append_val(y, intensity);
 	}
 
-	for (i = 0 ; i < excitation_tube->n_discrete ; i++) {
-		for (j = 0 ; j < excitation_tube->n_continuous ; j++) {
-			if (excitation_tube->discrete[i].energy < excitation_tube->continuous[j].energy && j != 0) {
+	for (i = 0 ; i < excitation_tube_def->n_discrete ; i++) {
+		for (j = 0 ; j < excitation_tube_def->n_continuous ; j++) {
+			if (excitation_tube_def->discrete[i].energy < excitation_tube_def->continuous[j].energy && j != 0) {
 				double *intensity = &g_array_index(y, double, j-1); 
-				*intensity += excitation_tube->discrete[i].horizontal_intensity*2.0;
+				*intensity += excitation_tube_def->discrete[i].horizontal_intensity*2.0;
 				break;
 			}
 		}
@@ -862,7 +893,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	// find the smallest value greater than zero (1E-1)
 	double ymax = xmi_maxval_double((double *) y->data, y->len);
 	if (ymax < 1.0) {
-		g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_MAXIMUM, "Maximum value is too low: %f\nConsider changing the parameters", ymax);
+		g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_MAXIMUM, "Maximum value is too low: %g\nConsider changing the parameters", ymax);
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
 		g_array_free(x, TRUE);
@@ -886,7 +917,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
 		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube;
+	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube_def;
 
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
 		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
