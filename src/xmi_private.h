@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include <glib.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,8 +63,8 @@ ssize_t getline (char **lineptr, size_t *n, FILE *stream);
 
 #endif
 
-extern int XMI_H5T_NATIVE_DOUBLE;
-extern int XMI_H5T_NATIVE_INT;
+extern int64_t XMI_H5T_NATIVE_DOUBLE;
+extern int64_t XMI_H5T_NATIVE_INT;
 
 
 #include <libxml/xmlversion.h>
