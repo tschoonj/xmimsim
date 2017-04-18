@@ -618,9 +618,9 @@ int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, in
 	return 1;
 }
 
-int xmi_db_read_dataset(struct hdf5_vars *hv, void *data, int type) {
+int xmi_db_read_dataset(struct hdf5_vars *hv, void *data, int64_t type) {
 
-	H5Dread(hv->dset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+	H5Dread(hv->dset_id, (hid_t) type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 	H5Sclose(hv->dspace_id);
 	H5Dclose(hv->dset_id);
 

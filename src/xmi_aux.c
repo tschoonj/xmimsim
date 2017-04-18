@@ -477,8 +477,8 @@ void xmi_init_hdf5(void) {
 	//disable HDF5's error messages -> could be a bad idea!
 	H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
-	XMI_H5T_NATIVE_DOUBLE = H5T_NATIVE_DOUBLE;
-	XMI_H5T_NATIVE_INT = H5T_NATIVE_INT;
+	XMI_H5T_NATIVE_DOUBLE = (int64_t) H5T_NATIVE_DOUBLE;
+	XMI_H5T_NATIVE_INT = (int64_t) H5T_NATIVE_INT;
 
 }
 
