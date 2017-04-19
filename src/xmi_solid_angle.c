@@ -1028,9 +1028,8 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 		sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
 
-		if (!(cl_major >= XMI_OPENCL_MAJOR && cl_minor >= XMI_OPENCL_MINOR)) {
+		if (cl_major < XMI_OPENCL_MAJOR || (cl_major == XMI_OPENCL_MAJOR && cl_minor < XMI_OPENCL_MINOR))
 			continue;
-		}
 
 		status = clGetDeviceInfo(devices[i], CL_DEVICE_NAME, info_size, info, NULL);
 		OPENCL_ERROR(clGetDeviceInfo)
