@@ -992,58 +992,62 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	}
 
 	int i, j;
-
-	/*for (i = 0 ; i < numPlatforms ; i++) {
-		status = clGetPlatformInfo(platforms[i], CL_PLATFORM_VERSION, info_size, info, NULL);
-		OPENCL_ERROR(clGetPlatformInfo)
-		fprintf(stdout,"OpenCL platform version %s\n", info);
-	}*/
-
-
-	cl_uint numDevices = 0;
-	cl_device_id *devices = NULL;
 	cl_device_id device;
-	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
-	OPENCL_ERROR(clGetDeviceIDs)
-
-	if (numDevices == 0) {
-		fprintf(stderr,"No OpenCL GPU devices detected\n");
-		return 0;
-	}
-
-	devices = (cl_device_id *) g_malloc(sizeof(cl_device_id)*numDevices);
-	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
-	OPENCL_ERROR(clGetDeviceIDs)
-
 	size_t max_work_group_size = 0;
 
-	//fprintf(stdout,"Number of devices found: %i\n", numDevices);
-	for (i = 0 ; i < numDevices ; i++) {
-		//check implementation... should be 1.1
-		status = clGetDeviceInfo(devices[i], CL_DEVICE_VERSION, info_size, info, NULL);
-		OPENCL_ERROR(clGetDeviceInfo)
-
-		//parse string;
-		int cl_minor, cl_major;
-
-		sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
-
-		if (cl_major < XMI_OPENCL_MAJOR || (cl_major == XMI_OPENCL_MAJOR && cl_minor < XMI_OPENCL_MINOR))
-			continue;
-
-		status = clGetDeviceInfo(devices[i], CL_DEVICE_NAME, info_size, info, NULL);
-		OPENCL_ERROR(clGetDeviceInfo)
+	for (i = 0 ; i < numPlatforms ; i++) {
+		status = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, info_size, info, NULL);
+		OPENCL_ERROR(clGetPlatformInfo)
 		if (xmo.verbose)
-			fprintf(stdout,"Using OpenCL device %i name %s\n", i, info);
+			fprintf(stdout,"Found OpenCL platform %i name %s\n", i, info);
 
-		size_t max_work_group_size_temp;
-		status = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size_temp, NULL);
-		OPENCL_ERROR(clGetDeviceInfo)
-		if (max_work_group_size_temp > max_work_group_size) {
-			device = devices[i];
-			max_work_group_size = max_work_group_size_temp;
+		cl_uint numDevices = 0;
+		cl_device_id *devices = NULL;
+		status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
+
+		if (status == CL_DEVICE_NOT_FOUND || numDevices == 0) {
+			continue;
 		}
+		else if (status != CL_SUCCESS) {
+			OPENCL_ERROR(clGetDeviceIDs)
+		}
+
+		devices = (cl_device_id *) g_malloc(sizeof(cl_device_id)*numDevices);
+		status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
+		OPENCL_ERROR(clGetDeviceIDs)
+
+
+		for (j = 0 ; j < numDevices ; j++) {
+			//check implementation... should be 1.1
+			status = clGetDeviceInfo(devices[j], CL_DEVICE_VERSION, info_size, info, NULL);
+			OPENCL_ERROR(clGetDeviceInfo)
+
+			//parse string;
+			int cl_minor, cl_major;
+
+			sscanf(info, "OpenCL %i.%i ",&cl_major, &cl_minor);
+
+			if (cl_major < XMI_OPENCL_MAJOR || (cl_major == XMI_OPENCL_MAJOR && cl_minor < XMI_OPENCL_MINOR))
+				continue;
+
+			status = clGetDeviceInfo(devices[j], CL_DEVICE_NAME, info_size, info, NULL);
+			OPENCL_ERROR(clGetDeviceInfo)
+			if (xmo.verbose)
+				fprintf(stdout,"Found OpenCL device %i name %s\n", j, info);
+
+			size_t max_work_group_size_temp;
+			status = clGetDeviceInfo(devices[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size_temp, NULL);
+			OPENCL_ERROR(clGetDeviceInfo)
+			if (max_work_group_size_temp > max_work_group_size) {
+				device = devices[j];
+				max_work_group_size = max_work_group_size_temp;
+			}
+		}
+		g_free(devices);
 	}
+	g_free(platforms);
+
+
 
 	if (max_work_group_size == 0) {
 		fprintf(stderr, "No suitable OpenCL GPU devices detected\n");
@@ -1052,7 +1056,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 
 	cl_context context = NULL;
-	context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
+	context = clCreateContext(NULL, 1, &device, NULL, NULL, &status);
 	OPENCL_ERROR(clCreateContext)
 
 	cl_command_queue cmdQueue;
@@ -1076,6 +1080,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	//other arguments needed
 	//	detector%collimator_present
 	//	detector%detector_radius
+	//	q
 	//	detector%collimator_radius
 	//	detector%collimator_height
 	//	hits_per_single
@@ -1325,8 +1330,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	clReleaseContext(context);
 
 	g_free(solid_angles_float);
-	g_free(devices);
-	g_free(platforms);
 
 	if (xmo.verbose)
 		fprintf(stdout,"Solid angle calculation finished\n");
