@@ -252,7 +252,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                 last_shell = L3_SHELL
                 last_line = L3Q1_LINE
         ENDIF
-        ALLOCATE(precalc_xrf_cs_local(ABS(last_line)))
+        ALLOCATE(precalc_xrf_cs_local(ABS(M5P5_LINE)))
 
         !allocate xmi_hdf5 structure
         ALLOCATE(xmi_hdf5F)
@@ -786,7 +786,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
                                 XMI_H5T_NATIVE_DOUBLE)&
                                 .EQ. 0_C_INT) RETURN
                                 xmi_hdf5F%xmi_hdf5_Zs(i)%precalc_xrf_cs(shell,j,:)=&
-                                precalc_xrf_cs_local
+                                precalc_xrf_cs_local(ABS(KL1_LINE):ABS(last_line))
                         ENDDO
 
                         !close group
