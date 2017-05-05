@@ -846,7 +846,7 @@ script:
   - autoreconf -fi || exit 1
   - ./configure ${EXTRA} || exit 1
   - make || exit 1
-  - make check || cat tests/test-xmimsim-cl.log && exit 1
+  - make check || exit 1
   - make distcheck || exit 1
 
 notifications:
