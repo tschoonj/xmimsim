@@ -96,16 +96,21 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			goto fallback;
 		}
 
+		const gchar *opencl_lib_env = g_getenv("XMIMSIM_CL_LIB");
+		if (opencl_lib_env != NULL) {
+			opencl_lib = g_strdup(opencl_lib_env);
+		}
+		else {
 #ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_LIB,&opencl_lib) == 0)
-			goto fallback;
+			if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_LIB, &opencl_lib) == 0)
+				goto fallback;
 #elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_LIB,&opencl_lib) == 0)
-			goto fallback;
+			if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_LIB, &opencl_lib) == 0)
+				goto fallback;
 #else
-		opencl_lib = g_strdup(XMI_OPENCL_LIB);
+			opencl_lib = g_strdup(XMI_OPENCL_LIB);
 #endif
-
+		}
 		module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s",opencl_lib,"xmimsim-cl",G_MODULE_SUFFIX);
 		module = g_module_open(module_path, 0);
 		g_free(module_path);
@@ -137,6 +142,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 	}
 fallback:
 #endif
+	g_setenv("XMIMSIM_CL_FALLBACK", "", TRUE);
 	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, g_strdup(input_string), xmo);
 }
 
