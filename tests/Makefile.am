@@ -19,6 +19,9 @@ if ENABLE_FGSL
   check_PROGRAMS += test-poly-solve-quadratic
 endif
 
+if ENABLE_OPENCL
+  check_PROGRAMS += test-xmimsim-cl
+endif
 
 TESTS = $(check_PROGRAMS)
 
@@ -102,6 +105,11 @@ test_poly_solve_quadratic_LDADD = libxmimsim-test.la @glib2_LIBS@
 test_cubic_spline_SOURCES = test-cubic-spline.c
 test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/bin
 test_cubic_spline_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ $(top_builddir)/bin/libxmimsim-gui-spline.la 
+
+test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
+test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\"
+test_xmimsim_cl_LDADD = libxmimsim-test.la
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe

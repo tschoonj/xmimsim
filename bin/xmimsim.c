@@ -329,7 +329,7 @@ XMI_MAIN
 		//check if solid angles are already precalculated
 		if (options.verbose)
 			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
-		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , input, &solid_angle_def, options) == 0)
+		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options.verbose)

@@ -16,7 +16,6 @@ int main(int argc, char *argv[]) {
 	//download file
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
 
-
 	//read the file
 	g_assert(xmi_read_input_xml(TEST_XMSI, &input) == 1);
 
