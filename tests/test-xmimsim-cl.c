@@ -53,9 +53,11 @@ int main(int argc, char *argv[]) {
 	// run the actual calculation
 	xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
 
-	// confirm that there was no fallback to Fortran -> otherwise skip test
-	if (g_getenv("XMIMSIM_CL_FALLBACK") != NULL)
+	// confirm that there was no fallback to Fortran -> otherwise skip test, which is necessary for Travis-CI
+	if (g_getenv("XMIMSIM_CL_FALLBACK") != NULL) {
+		unlink(xmimsim_hdf5_solid_angles);
 		return 77;
+	}
 
 	// write to hdf5 file
 	g_assert(xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles, solid_angle_def) == 1);
