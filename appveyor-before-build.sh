@@ -48,9 +48,9 @@ if test $RNG = "fgsl" ; then
 	make install
 	cd ..
 elif test $RNG = "easyRNG" ; then
-	wget -q https://easyrng.tomschoonjans.eu/easyRNG-1.0.tar.gz
-	tar xfz easyRNG-1.0.tar.gz
-	cd easyRNG-1.0
+	wget -q https://easyrng.tomschoonjans.eu/easyRNG-1.1.tar.gz
+	tar xfz easyRNG-1.1.tar.gz
+	cd easyRNG-1.1
 	./configure
 	make
 	make install
