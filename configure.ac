@@ -115,11 +115,11 @@ PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.2.0)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 EASYRNG_FOUND=no
-PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.0],
+PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.1],
 	[
 	# TODO check if the Fortran bindings are available
 	AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
-	AC_SUBST([fortran_rng], "easyRNG >= 1.0")
+	AC_SUBST([fortran_rng], "easyRNG >= 1.1")
 	AC_SUBST([RNG], "easyRNG")
 	EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
 	AC_DEFINE_UNQUOTED([EASYRNG_VERSION], $EASYRNG_VERSION, [easyRNG version])
