@@ -2891,7 +2891,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		INPUT_PARAMETER_COLUMN, "slit_size_x",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
-		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size_x",
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size/slit_size_x",
 		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
@@ -2902,7 +2902,7 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 		INPUT_PARAMETER_COLUMN, "slit_size_y",
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
-		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size_y",
+		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size/slit_size_y",
 		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
 		-1
 	);
