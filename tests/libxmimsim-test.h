@@ -2,6 +2,7 @@
 #define LIBXMIMSIM_TEST_H
 
 #include <string.h>
+#include <glib.h>
 
 #define TEST_XMSI_URL "http://github.com/tschoonj/xmimsim/wiki/test.xmsi"
 #define TEST_XMSI "test.xmsi"
@@ -24,6 +25,8 @@
 #define TEST_HTM "test.htm"
 #define TEST_SPE "test.spe"
 
+G_BEGIN_DECLS
+
 int test_download_file(char *file);
 int test_init();
 
@@ -38,4 +41,5 @@ struct spe_data * read_spe(const char *filename);
 
 void free_spe_data(struct spe_data *);
 
+G_END_DECLS
 #endif

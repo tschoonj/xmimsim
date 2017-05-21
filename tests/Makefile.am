@@ -14,6 +14,9 @@ check_PROGRAMS = \
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
+if ENABLE_CXX
+  check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
+endif
 endif
 
 if ENABLE_FGSL
@@ -88,6 +91,15 @@ test_xmso2svg_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@ @gtk2_CFLAGS@ @gtkmm3_CFLAGS@
 test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtk2_LIBS@ @gtkmm3_LIBS@ @glib2_LIBS@ 
+
+test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.cpp
+test_gui_utils_get_solid_angle_from_slits_CXXFLAGS = -I${srcdir} -I${top_srcdir}/bin \
+			-I${top_srcdir}/include @xml2_CFLAGS@ \
+			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@ \
+			-std=gnu++11
+test_gui_utils_get_solid_angle_from_slits_LDADD = ../bin/libxmimsim-gui.la libxmimsim-test.la
+
+
 
 test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
