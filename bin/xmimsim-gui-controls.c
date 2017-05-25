@@ -368,7 +368,6 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	gchar *data = cd->argv[0];
 
 
-	fprintf(stdout,"xmimsim_child_watcher_cb called with status: %i\n",status);
 	gtk_widget_set_sensitive(stopButton,FALSE);
 	if (pauseButton)
 		gtk_widget_set_sensitive(pauseButton,FALSE);
@@ -508,8 +507,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	char *buffer;
 	const gchar *encoding = NULL;
 	struct child_data *cd;
-
-	fprintf(stdout,"Entering start_job\n");
 
 
 
@@ -710,11 +707,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	spawn_rv = g_spawn_async_with_pipes(wd, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL,
 		&xmimsim_pid, NULL, &out_fh, &err_fh, &spawn_error);
 
-	// print fds for debugging purposes
-	g_debug("out_fh: %d\n", out_fh);
-	g_debug("err_fh: %d\n", err_fh);
-
-
 	if (spawn_rv == FALSE) {
 		//couldn't spawn
 		//print messag_ to textbox in red...
@@ -745,8 +737,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	GIOChannel *xmimsim_stderr;
 
 #ifdef G_OS_WIN32
-	g_debug("out_fh before channel: %d\n", out_fh);
-	g_debug("err_fh before channel: %d\n", err_fh);
 	xmimsim_stderr= g_io_channel_win32_new_fd(err_fh);
 	xmimsim_stdout = g_io_channel_win32_new_fd(out_fh);
 #else
@@ -760,7 +750,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	g_get_charset(&encoding);
 
 	g_io_channel_set_encoding(xmimsim_stdout, encoding, NULL);
-	//g_io_channel_set_flags(xmimsim_stdout,G_IO_FLAG_NONBLOCK,NULL);
 	g_io_channel_set_close_on_unref(xmimsim_stdout,TRUE);
 	g_io_add_watch(xmimsim_stdout, (GIOCondition) (G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL), xmimsim_stdout_watcher, argv[0]);
 	g_io_channel_unref(xmimsim_stdout);
@@ -769,9 +758,6 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	g_io_channel_set_close_on_unref(xmimsim_stderr,TRUE);
 	g_io_add_watch(xmimsim_stderr, (GIOCondition) (G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL), xmimsim_stderr_watcher, argv[0]);
 	g_io_channel_unref(xmimsim_stderr);
-
-	//while (gtk_events_pending ())
-	//        gtk_main_iteration ();
 
 
 }
@@ -848,7 +834,6 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #ifdef G_OS_UNIX
 	int kill_rv;
 
-	fprintf(stdout,"stop_button_clicked_cb entered\n");
 	kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
 #if !GLIB_CHECK_VERSION (2, 35, 0)
 	//starting with 2.36.0 (and some unstable versions before),
@@ -857,7 +842,6 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	//wait(NULL);
 	waitpid(xmimsim_pid, NULL, WNOHANG);
 #endif
-	fprintf(stdout,"stop_button_clicked_cb kill: %i\n",kill_rv);
 	if (kill_rv == 0) {
 		buffer = g_strdup_printf( "Process %i was successfully terminated before completion\n", real_xmimsim_pid);
 		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(controlsLogW, timer, controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(controlsLogB),"pause-continue-stopped" ),NULL);
@@ -883,11 +867,6 @@ static void stop_button_clicked_cb(GtkWidget *widget, gpointer data) {
 #endif
 
 	error_spinners();
-
-
-
-
-	fprintf(stdout,"stop_button_clicked_cb exited\n");
 }
 
 static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
@@ -899,10 +878,6 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkWidget *label;
 	GtkTextIter iterb, itere;
 	char *filename;
-
-	fprintf(stdout,"play_button_clicked_cb\n");
-
-	fprintf(stdout,"paused: %i\n",xmimsim_paused);
 
 	if (pauseButton && xmimsim_paused == TRUE) {
 		gtk_widget_set_sensitive(playButton,FALSE);
