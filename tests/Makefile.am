@@ -126,7 +126,7 @@ test_cubic_spline_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS
 
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\"
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\" -DXMIMSIM_CL_INCLUDE=\"${top_srcdir}/src/\"
 test_xmimsim_cl_LDADD = libxmimsim-test.la
 
 test_pile_up_SOURCES = test-pile-up.c

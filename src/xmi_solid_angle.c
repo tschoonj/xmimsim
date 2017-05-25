@@ -1152,15 +1152,19 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 
 	gchar *opencl_code;
+	const gchar *opencl_code_env = g_getenv("XMIMSIM_CL_INCLUDE");
 
+	if (opencl_code_env != NULL)
+		opencl_code = g_strdup(opencl_code_env);
 #ifdef G_OS_WIN32
-	if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_CODE,&opencl_code) == 0)
+	else if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_CODE,&opencl_code) == 0)
 		return 0;
 #elif defined(MAC_INTEGRATION)
-	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_CODE,&opencl_code) == 0)
+	else if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_CODE,&opencl_code) == 0)
 		return 0;
 #else
-	opencl_code = g_strdup(XMI_OPENCL_CODE);
+	else
+		opencl_code = g_strdup(XMI_OPENCL_CODE);
 #endif
 
 	GString *kernel_code = g_string_sized_new(4096);
