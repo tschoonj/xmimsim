@@ -868,13 +868,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			if (error != NULL) {
 				//error
 				g_warning("OpenCL not found in preferences file\n");
-				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
+				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = FALSE;
+				prefs->b = TRUE;
 			}
 			break;
 #endif
