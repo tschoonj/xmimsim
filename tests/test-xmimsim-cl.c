@@ -23,8 +23,9 @@ int main(int argc, char *argv[]) {
 	// init test
 	g_assert(test_init() == 1);
 
-	// set environment variable
+	// set environment variables
 	g_assert(g_setenv("XMIMSIM_CL_LIB", XMIMSIM_CL_LIB, TRUE) == TRUE);
+	g_assert(g_setenv("XMIMSIM_CL_INCLUDE", XMIMSIM_CL_INCLUDE, TRUE) == TRUE);
 
 	// download file
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
