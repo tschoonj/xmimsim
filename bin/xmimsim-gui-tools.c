@@ -537,10 +537,17 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	}
 	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(xt->window),
 		GTK_DIALOG_DESTROY_WITH_PARENT,
-       		GTK_MESSAGE_INFO,
-       		GTK_BUTTONS_CLOSE,
-       		"XMI-MSIM input-file %s was successfully converted to XRMC files in %s\nLaunch the simulation using the command: \n\n<i>xrmc %s</i>",
-               	xmsi_file, xrmc_folder, input_file);
+		GTK_MESSAGE_INFO,
+		GTK_BUTTONS_CLOSE,
+		"XMI-MSIM input-file %s was successfully converted to XRMC input-files in %s.\n\nLaunch the simulation using the command:",
+		xmsi_file, xrmc_folder);
+	GtkWidget *label = gtk_label_new(NULL);
+	gchar *label_text = g_strdup_printf("<i>xrmc %s</i>", input_file);
+	gtk_label_set_markup(GTK_LABEL(label), label_text);
+	g_free(label_text);
+	gtk_label_set_selectable(GTK_LABEL(label), TRUE);
+	gtk_box_pack_start(GTK_BOX(gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog))), label, TRUE, FALSE, 2);
+	gtk_widget_show(label);
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy(dialog);
 
@@ -1385,7 +1392,7 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	GtkWidget *frame = gtk_frame_new(NULL);
 	label = gtk_label_new("Convert XMI-MSIM input-files to the corresponding XRMC input-files. Running these new files requires XRMC's XMI-MSIM plug-in. If a collimator was defined in XMI-MSIM, then an equivalent object will be present in the XRMC input-files too. Its default composition will be Pb: change this in the XRMC input-files if necessary.");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_CENTER);
+	gtk_label_set_justify(GTK_LABEL(label),GTK_JUSTIFY_FILL);
 	gtk_misc_set_padding(GTK_MISC(label),2,2);
 	gtk_container_add(GTK_CONTAINER(frame), label);
 	gtk_table_attach_defaults(GTK_TABLE(table), frame, 0, 2, 0, 1);
