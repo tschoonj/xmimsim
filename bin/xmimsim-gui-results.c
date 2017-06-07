@@ -1056,6 +1056,9 @@ GtkWidget *init_results(GtkWidget *window) {
 	GtkWidget *graphics_hbox;
 	GtkWidget *scrolled_window;
 	GtkWidget *paned = gtk_vpaned_new();
+#if GTK_CHECK_VERSION(3, 16, 0)
+	gtk_paned_set_wide_handle(GTK_PANED(paned), TRUE);
+#endif
 	GtkWidget *frame;
 
 	GtkWidget *spectra_box;//VBox
