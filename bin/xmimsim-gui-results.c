@@ -319,6 +319,9 @@ void cell_visible_toggle(GtkTreeViewColumn *column, GtkCellRenderer *renderer, G
 #ifndef HAVE_CXX
 static void spectra_region_changed_cb(GtkPlotCanvas *widget, gdouble x1, gdouble y1, gdouble x2, gdouble y2, gpointer data) {
 
+	if (plot_window == NULL)
+		return;
+
   	gdouble xmin, ymin, xmax, ymax;
   	gint px1, px2, py1, py2;
 
@@ -437,6 +440,9 @@ static void zoom_out(void) {
 #ifndef HAVE_CXX
 static gboolean spectra_region_double_clicked_cb(GtkWidget *widget, GdkEvent *event, gpointer data) {
 
+	if (plot_window == NULL)
+		return FALSE;
+
 	if (event->type == GDK_2BUTTON_PRESS) {
 		zoom_out();
 	}
@@ -492,6 +498,9 @@ static gboolean spectra_region_mouse_moved_cb(GtkWidget *widget, GdkEvent *event
 	gint x, y;
 	gdouble px,py;
 	gchar *buffer;
+
+	if (plot_window == NULL)
+		return FALSE;
 
 	gtk_widget_get_pointer(canvas, &x, &y);
 	gtk_plot_get_point(GTK_PLOT(plot_window), x, y, &px, &py);
@@ -1181,7 +1190,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	frame = gtk_frame_new(NULL);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 	gtk_container_add(GTK_CONTAINER(frame), graphics_hbox);
-	//gtk_widget_set_size_request(frame,-1, (gint) (595*0.15));
+	gtk_widget_set_size_request(frame,-1, (gint) (595*0.25));
 	gtk_paned_pack1(GTK_PANED(paned), frame, TRUE, FALSE);
 
 	//set current result variable to NULL
