@@ -1181,7 +1181,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	frame = gtk_frame_new(NULL);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 	gtk_container_add(GTK_CONTAINER(frame), graphics_hbox);
-	gtk_widget_set_size_request(frame,-1, (gint) (595*0.25));
+	//gtk_widget_set_size_request(frame,-1, (gint) (595*0.15));
 	gtk_paned_pack1(GTK_PANED(paned), frame, TRUE, FALSE);
 
 	//set current result variable to NULL
@@ -1256,6 +1256,7 @@ GtkWidget *init_results(GtkWidget *window) {
 	frame = gtk_frame_new(NULL);
 	gtk_container_add(GTK_CONTAINER(frame), scrolled_window);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+	gtk_widget_set_size_request(frame,-1, 150);
 	gtk_paned_pack2(GTK_PANED(paned), frame, TRUE, FALSE);
 
 	gtk_widget_show_all(paned);
