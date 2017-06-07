@@ -195,7 +195,8 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 	gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
- 	gtk_window_set_default_size(GTK_WINDOW(dialog), 900, -1);
+	int screen_width = gdk_screen_get_width(gdk_screen_get_default());
+	gtk_window_set_default_size(GTK_WINDOW(dialog), MIN(1400, screen_width), -1);
 	gtk_window_set_title(GTK_WINDOW(dialog), "X-ray sources");
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 
