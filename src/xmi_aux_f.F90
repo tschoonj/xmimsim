@@ -322,7 +322,7 @@ TYPE, BIND(C) :: xmi_main_options
         INTEGER (C_INT) :: escape_ratios_mode = 0_C_INT
         INTEGER (C_INT) :: verbose = 0_C_INT
         INTEGER (C_INT) :: use_poisson = 0_C_INT
-        INTEGER (C_INT) :: use_opencl = 0_C_INT
+        INTEGER (C_INT) :: use_opencl = 1_C_INT
         INTEGER (C_INT) :: omp_num_threads
         INTEGER (C_INT) :: extra_verbose = 0_C_INT
         TYPE (C_PTR) :: custom_detector_response = C_NULL_PTR

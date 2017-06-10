@@ -36,7 +36,7 @@ struct xmi_main_options {
 	int escape_ratios_mode; //default : 0
 	int verbose; //default : 0
 	int use_poisson; //default : 0
-	int use_opencl; //default : 0
+	int use_opencl; //default : 1
 	int omp_num_threads; //default : max
 	int extra_verbose; //default : 0
 	char *custom_detector_response; //default : NULL
