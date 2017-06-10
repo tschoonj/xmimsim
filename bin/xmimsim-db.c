@@ -18,22 +18,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data.h"
 #include "xmi_aux.h"
 #include "xmi_private.h"
+#include <stdlib.h>
 
 XMI_MAIN
 	int rv;
 
 	xmi_init_hdf5();
 
+	const int nZ = 94;
+	int *Zs = malloc(sizeof(int) * nZ);
+	int i;
+	for (i = 0 ; i < nZ ; i++)
+		Zs[i] = i + 1;
+
 	if (argc != 1) {
-		rv = xmi_db(argv[1]);
+		rv = xmi_db(argv[1], Zs, nZ);
 	}
 	else {
-		rv = xmi_db("xmimsimdata.h5");
+		rv = xmi_db("xmimsimdata.h5", Zs, nZ);
 	}
 	if (rv == 1)
 		rv = 0;
 	else if (rv == 0)
 		rv = 1;
+
+	free(Zs);
 
 	return rv;
 }

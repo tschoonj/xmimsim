@@ -878,17 +878,17 @@ SUBROUTINE xmi_free_hdf5_F(xmi_hdf5FPtr) BIND(C,NAME='xmi_free_hdf5_F')
 ENDSUBROUTINE xmi_free_hdf5_F
 
 SUBROUTINE xmi_db_Z_specific(rayleigh_thetaPtr, compton_thetaPtr, energiesPtr, rsPtr,&
-fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, maxz, nintervals_e_ip,&
-precalc_xrf_csPtr, compton_profiles_Ptr, ncompton_profiles) &
+fluor_yield_corrPtr, ipPtr, nintervals_r, nintervals_e, nintervals_e_ip,&
+precalc_xrf_csPtr, compton_profiles_Ptr, ncompton_profiles, ZsPtr, nZs) &
 BIND(C,NAME='xmi_db_Z_specific')
 
 IMPLICIT NONE
 
 TYPE (C_PTR), VALUE, INTENT(IN) :: rayleigh_thetaPtr, compton_thetaPtr, &
 energiesPtr, rsPtr, fluor_yield_corrPtr, ipPtr,&
-precalc_xrf_csPtr, compton_profiles_Ptr
-INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_r, nintervals_e, maxz, &
-nintervals_e_ip, ncompton_profiles
+precalc_xrf_csPtr, compton_profiles_Ptr, ZsPtr
+INTEGER (C_INT), VALUE, INTENT(IN) :: nintervals_r, nintervals_e, &
+nintervals_e_ip, ncompton_profiles, nZs
 
 REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER::&
 rayleigh_theta, compton_theta
@@ -923,19 +923,20 @@ INTEGER (KIND=C_INT), ALLOCATABLE, DIMENSION(:) :: shell_indices, shell_indices_
 REAL (KIND=C_DOUBLE), ALLOCATABLE, DIMENSION(:) :: electron_config,&
 electron_config_temp
 INTEGER (KIND=C_INT) :: pos, old_pos
+INTEGER (KIND=C_INT), POINTER, DIMENSION(:) :: Zs
+INTEGER (KIND=C_INT) :: Z, Z2
 
-
-CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[maxz, nintervals_e,&
+CALL C_F_POINTER(rayleigh_thetaPtr,rayleigh_theta,[nZs, nintervals_e,&
 nintervals_r])
-CALL C_F_POINTER(compton_thetaPtr,compton_theta,[maxz, nintervals_e,&
+CALL C_F_POINTER(compton_thetaPtr,compton_theta,[nZs, nintervals_e,&
 nintervals_r])
 CALL C_F_POINTER(energiesPtr,energies,[nintervals_e])
 CALL C_F_POINTER(rsPtr,rs,[nintervals_r])
-CALL C_F_POINTER(fluor_yield_corrPtr,fluor_yield_corr,[maxz,M5_SHELL+1])
-CALL C_F_POINTER(ipPtr, ip,[maxz])
-CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [maxz, 4, M5_SHELL+1, maxz, ABS(M5P5_LINE)])
-CALL C_F_POINTER(compton_profiles_Ptr, cp,[maxz])
-
+CALL C_F_POINTER(fluor_yield_corrPtr,fluor_yield_corr,[nZs,M5_SHELL+1])
+CALL C_F_POINTER(ipPtr, ip, [nZs])
+CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [nZs, 4, M5_SHELL+1, nZs, ABS(M5P5_LINE)])
+CALL C_F_POINTER(compton_profiles_Ptr, cp, [nZs])
+CALL C_F_POINTER(ZsPtr, Zs, [nZs])
 
 CALL SetErrorMessages(0)
 
@@ -979,7 +980,7 @@ ENDDO
 !$OMP temp_energy,temp_array,ip_temp,temp_total_cs,trapez2,&
 !$OMP energy,PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4,PM5,line, cp_temp, shell_indices,&
 !$OMP shell_indices_temp, electron_config, electron_config_temp,&
-!$OMP profile_partial_cdf_big, pos)
+!$OMP profile_partial_cdf_big, pos, Z, Z2)
 
 ALLOCATE(trapez(nintervals_theta-1))
 ALLOCATE(trapez2(nintervals_pz-1))
@@ -989,8 +990,9 @@ ALLOCATE(profile_partial_cdf_big(nintervals_pz))
 !$OMP DO &
 !$OMP SCHEDULE(dynamic,1)
 
-Zloop:DO i=1,maxz
-        WRITE (output_unit, '(A,I3)') 'Generating datasets for element ', i
+Zloop:DO i=1,nZs
+        Z = Zs(i)
+        WRITE (output_unit, '(A,I3)') 'Generating datasets for element ', Z
         Eloop:DO j=1,nintervals_e
 
                 !
@@ -999,17 +1001,17 @@ Zloop:DO i=1,maxz
 
                 thetaloop: DO k=1,nintervals_theta-1
                         trapez(k) = &
-                        (DCS_Rayl(i,energies(j),&
+                        (DCS_Rayl(Z,energies(j),&
                         thetas(k))*SIN(thetas(k))+&
-                        DCS_Rayl(i,energies(j),&
+                        DCS_Rayl(Z,energies(j),&
                         thetas(k+1))*SIN(thetas(k+1)))&
                         *(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop
                 !to avoid database conflicts -> calculate CS_Rayl yourself...
-                !trapez = trapez*2.0*PI/CS_Rayl(i,REAL(energies(j),KIND=C_FLOAT))
+                !trapez = trapez*2.0*PI/CS_Rayl(Z,REAL(energies(j),KIND=C_FLOAT))
                 trapez = trapez/SUM(trapez)
 #if DEBUG == 2
-                IF (i == 26) THEN
+                IF (Z == 26) THEN
                         sumz(1)=trapez(1)
                         DO l=2,nintervals_theta-1
                                 sumz(l)=sumz(l-1)+trapez(l)
@@ -1041,13 +1043,13 @@ Zloop:DO i=1,maxz
 
                 thetaloop2: DO k=1,nintervals_theta-1
                         trapez(k) = &
-                        (DCS_Compt(i,energies(j),&
+                        (DCS_Compt(Z,energies(j),&
                         thetas(k))*SIN(thetas(k))+&
-                        DCS_Compt(i,energies(j),&
+                        DCS_Compt(Z,energies(j),&
                         thetas(k+1))&
                         *SIN(thetas(k+1)))*(thetas(k+1)-thetas(k))/2.0
                 ENDDO thetaloop2
-                !trapez = trapez*2.0*PI/CS_Compt(i,REAL(energies(j),KIND=C_FLOAT))
+                !trapez = trapez*2.0*PI/CS_Compt(Z,REAL(energies(j),KIND=C_FLOAT))
                 trapez = trapez/SUM(trapez)
                 temp_sum=0.0_C_DOUBLE
                 l=1
@@ -1067,7 +1069,7 @@ Zloop:DO i=1,maxz
                 compton_theta(i,j,1) = 0.0
         ENDDO Eloop
 #if DEBUG == 2
-IF (i == 26) THEN
+IF (Z == 26) THEN
         CLOSE(unit=100)
 ENDIF
 #endif
@@ -1083,7 +1085,7 @@ ENDIF
 
         !add edge energies
         DO k=K_SHELL,M5_SHELL
-                temp_energy = EdgeEnergy(i,k)
+                temp_energy = EdgeEnergy(Z,k)
                 IF (temp_energy < lowe) CYCLE
                 IF (temp_energy > 0.0_C_DOUBLE) THEN
                         !energies_flt = [energies_flt,&
@@ -1105,17 +1107,11 @@ ENDIF
 
 
         ip_temp = energies_flt
-        !ALLOCATE(ip_temp%energies(SIZE(energies_flt)),ip_temp%Rayl_and_Compt(SIZE(energies_flt),2))
-        !DO k=1,SIZE(energies_flt)
-        !        ip_temp%energies(i)=REAL(energies_flt(i),KIND=C_DOUBLE)
-        !ENDDO
-
-
 
         DO k=1,SIZE(energies_flt)
-                temp_total_cs = CS_Total_Kissel(i,energies_flt(k))
-                ip_temp%Rayl_and_Compt(k,1) = CS_Rayl(i,energies_flt(k))/temp_total_cs
-                ip_temp%Rayl_and_Compt(k,2) = CS_Compt(i,energies_flt(k))/temp_total_cs+&
+                temp_total_cs = CS_Total_Kissel(Z,energies_flt(k))
+                ip_temp%Rayl_and_Compt(k,1) = CS_Rayl(Z,energies_flt(k))/temp_total_cs
+                ip_temp%Rayl_and_Compt(k,2) = CS_Compt(Z,energies_flt(k))/temp_total_cs+&
                   ip_temp%Rayl_and_Compt(k,1)
         ENDDO
         ip(i)%len = SIZE(energies_flt)
@@ -1131,9 +1127,9 @@ ENDIF
         !
         ALLOCATE(shell_indices(1), electron_config(1))
         shell_indices(1) = K_SHELL
-        electron_config(1) = ElectronConfig_Biggs(i, K_SHELL)
+        electron_config(1) = ElectronConfig_Biggs(Z, K_SHELL)
         DO j=L1_SHELL,Q3_SHELL
-                IF(ElectronConfig_Biggs(i, j) .GT. 0) THEN
+                IF(ElectronConfig_Biggs(Z, j) .GT. 0) THEN
                         ALLOCATE(shell_indices_temp(SIZE(shell_indices)+1))
                         shell_indices_temp(1:SIZE(shell_indices)) = &
                         shell_indices
@@ -1145,7 +1141,7 @@ ENDIF
                         electron_config
                         CALL MOVE_ALLOC(electron_config_temp,&
                         electron_config)
-                        electron_config(SIZE(electron_config)) = ElectronConfig_Biggs(i,j)
+                        electron_config(SIZE(electron_config)) = ElectronConfig_Biggs(Z,j)
                 ENDIF
         ENDDO
 
@@ -1167,9 +1163,9 @@ ENDIF
 
         DO j=1,nintervals_pz-1
                 trapez2(j) = &
-                (ComptonProfile(i, pzs(j))+&
-                ComptonProfile(i, pzs(j+1)))*&
-                (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(i,KIND=C_DOUBLE)
+                (ComptonProfile(Z, pzs(j))+&
+                ComptonProfile(Z, pzs(j+1)))*&
+                (pzs(j+1)-pzs(j))/2.0_C_DOUBLE/REAL(Z,KIND=C_DOUBLE)
                 !divide by atomic number because we want an average value per
                 !electron
         ENDDO
@@ -1196,8 +1192,8 @@ ENDIF
         DO k=1,SIZE(shell_indices)
           DO j=2,ncompton_profiles
                cp_temp%profile_partial_cdf(k,j) = cp_temp%profile_partial_cdf(k,j-1)+&
-               (Qs(2)-Qs(1))*(ComptonProfile_Partial(i, shell_indices(k), Qs(j))+&
-               ComptonProfile_Partial(i, shell_indices(k), Qs(j-1)))*0.5_C_DOUBLE
+               (Qs(2)-Qs(1))*(ComptonProfile_Partial(Z, shell_indices(k), Qs(j))+&
+               ComptonProfile_Partial(Z, shell_indices(k), Qs(j-1)))*0.5_C_DOUBLE
           ENDDO
           cp_temp%profile_partial_cdf(k,:) =&
           cp_temp%profile_partial_cdf(k,:)*0.5/cp_temp%profile_partial_cdf(k,ncompton_profiles)
@@ -1205,8 +1201,8 @@ ENDIF
           profile_partial_cdf_big(1) = 0.0
           DO j=2,nintervals_pz
                 profile_partial_cdf_big(j) = profile_partial_cdf_big(j-1)+&
-               (Qs_big(2)-Qs_big(1))*(ComptonProfile_Partial(i, shell_indices(k), Qs_big(j))+&
-               ComptonProfile_Partial(i, shell_indices(k), Qs_big(j-1)))*0.5_C_DOUBLE
+               (Qs_big(2)-Qs_big(1))*(ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j))+&
+               ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j-1)))*0.5_C_DOUBLE
           ENDDO
           profile_partial_cdf_big = &
           profile_partial_cdf_big*0.5/profile_partial_cdf_big(nintervals_pz)
@@ -1243,70 +1239,71 @@ ENDIF
         !
         !
 #define CKTB CosKronTransProb
-        fluor_yield_corr(i,K_SHELL+1) = FluorYield(i,K_SHELL)
-        fluor_yield_corr(i,L1_SHELL+1) = FluorYield(i,L1_SHELL)+&
-                        (CKTB(i,FL12_TRANS)*FluorYield(i,L2_SHELL))+&
-                        (CKTB(i,FL13_TRANS)+CKTB(i,FL12_TRANS)*CKTB(i,FL23_TRANS))*&
-                        FluorYield(i,L3_SHELL)
-        fluor_yield_corr(i,L2_SHELL+1) = FluorYield(i,L2_SHELL)+&
-                        (CKTB(i,FL23_TRANS)*FluorYield(i,L3_SHELL))
-        fluor_yield_corr(i,L3_SHELL+1) = FluorYield(i,L3_SHELL)
+        fluor_yield_corr(i,K_SHELL+1) = FluorYield(Z,K_SHELL)
+        fluor_yield_corr(i,L1_SHELL+1) = FluorYield(Z,L1_SHELL)+&
+                        (CKTB(Z,FL12_TRANS)*FluorYield(Z,L2_SHELL))+&
+                        (CKTB(Z,FL13_TRANS)+CKTB(Z,FL12_TRANS)*CKTB(Z,FL23_TRANS))*&
+                        FluorYield(Z,L3_SHELL)
+        fluor_yield_corr(i,L2_SHELL+1) = FluorYield(Z,L2_SHELL)+&
+                        (CKTB(Z,FL23_TRANS)*FluorYield(Z,L3_SHELL))
+        fluor_yield_corr(i,L3_SHELL+1) = FluorYield(Z,L3_SHELL)
         fluor_yield_corr(i,M1_SHELL+1) = &
                         !M1_SHELL
-                        FluorYield(i,M1_SHELL)+&
+                        FluorYield(Z,M1_SHELL)+&
                         !M2_SHELL
-                        CKTB(i,FM12_TRANS)*FluorYield(i,M2_SHELL)+&
+                        CKTB(Z,FM12_TRANS)*FluorYield(Z,M2_SHELL)+&
                         !M3_SHELL
-                        (CKTB(i,FM13_TRANS)+CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS))*&
-                        FluorYield(i,M3_SHELL)+&
+                        (CKTB(Z,FM13_TRANS)+CKTB(Z,FM12_TRANS)*CKTB(Z,FM23_TRANS))*&
+                        FluorYield(Z,M3_SHELL)+&
                         !M4_SHELL
-                        (CKTB(i,FM14_TRANS)+CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
-                        FluorYield(i,M4_SHELL)+&
+                        (CKTB(Z,FM14_TRANS)+CKTB(Z,FM13_TRANS)*CKTB(Z,FM34_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM24_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM23_TRANS)*CKTB(Z,FM34_TRANS))*&
+                        FluorYield(Z,M4_SHELL)+&
                         !M5_SHELL
-                        (CKTB(i,FM15_TRANS)+&
-                        CKTB(i,FM14_TRANS)*CKTB(i,FM45_TRANS)+&
-                        CKTB(i,FM13_TRANS)*CKTB(i,FM35_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM25_TRANS)+&
-                        CKTB(i,FM13_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
-                        CKTB(i,FM12_TRANS)*CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*&
-                        CKTB(i,FM45_TRANS))*&
-                        FluorYield(i,M5_SHELL)
+                        (CKTB(Z,FM15_TRANS)+&
+                        CKTB(Z,FM14_TRANS)*CKTB(Z,FM45_TRANS)+&
+                        CKTB(Z,FM13_TRANS)*CKTB(Z,FM35_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM25_TRANS)+&
+                        CKTB(Z,FM13_TRANS)*CKTB(Z,FM34_TRANS)*CKTB(Z,FM45_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM24_TRANS)*CKTB(Z,FM45_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM23_TRANS)*CKTB(Z,FM35_TRANS)+&
+                        CKTB(Z,FM12_TRANS)*CKTB(Z,FM23_TRANS)*CKTB(Z,FM34_TRANS)*&
+                        CKTB(Z,FM45_TRANS))*&
+                        FluorYield(Z,M5_SHELL)
         fluor_yield_corr(i,M2_SHELL+1) = &
                         !M2_SHELL
-                        FluorYield(i,M2_SHELL)+&
+                        FluorYield(Z,M2_SHELL)+&
                         !M3_SHELL
-                        CKTB(i,FM23_TRANS)*FluorYield(i,M3_SHELL)+&
+                        CKTB(Z,FM23_TRANS)*FluorYield(Z,M3_SHELL)+&
                         !M4_SHELL
-                        (CKTB(i,FM24_TRANS)+CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS))*&
-                        FluorYield(i,M4_SHELL)+&
+                        (CKTB(Z,FM24_TRANS)+CKTB(Z,FM23_TRANS)*CKTB(Z,FM34_TRANS))*&
+                        FluorYield(Z,M4_SHELL)+&
                         !M5_SHELL
-                        (CKTB(i,FM25_TRANS)+CKTB(i,FM24_TRANS)*CKTB(i,FM45_TRANS)+&
-                        CKTB(i,FM23_TRANS)*CKTB(i,FM35_TRANS)+&
-                        CKTB(i,FM23_TRANS)*CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
-                        FluorYield(i,M5_SHELL)
+                        (CKTB(Z,FM25_TRANS)+CKTB(Z,FM24_TRANS)*CKTB(Z,FM45_TRANS)+&
+                        CKTB(Z,FM23_TRANS)*CKTB(Z,FM35_TRANS)+&
+                        CKTB(Z,FM23_TRANS)*CKTB(Z,FM34_TRANS)*CKTB(Z,FM45_TRANS))*&
+                        FluorYield(Z,M5_SHELL)
         fluor_yield_corr(i,M3_SHELL+1) = &
                         !M3_SHELL
-                        FluorYield(i,M3_SHELL)+&
+                        FluorYield(Z,M3_SHELL)+&
                         !M4_SHELL
-                        CKTB(i,FM34_TRANS)*FluorYield(i,M4_SHELL)+&
+                        CKTB(Z,FM34_TRANS)*FluorYield(Z,M4_SHELL)+&
                         !M5_SHELL
-                        (CKTB(i,FM35_TRANS)+CKTB(i,FM34_TRANS)*CKTB(i,FM45_TRANS))*&
-                        FluorYield(i,M5_SHELL)
+                        (CKTB(Z,FM35_TRANS)+CKTB(Z,FM34_TRANS)*CKTB(Z,FM45_TRANS))*&
+                        FluorYield(Z,M5_SHELL)
         fluor_yield_corr(i,M4_SHELL+1) = &
                         !M4_SHELL
-                        FluorYield(i,M4_SHELL)+&
+                        FluorYield(Z,M4_SHELL)+&
                         !M5_SHELL
-                        CKTB(i,FM45_TRANS)*FluorYield(i,M5_SHELL)
+                        CKTB(Z,FM45_TRANS)*FluorYield(Z,M5_SHELL)
         fluor_yield_corr(i,M5_SHELL+1) = &
                         !M5_SHELL
-                        FluorYield(i,M5_SHELL)
+                        FluorYield(Z,M5_SHELL)
 #undef CKTB
 
-        DO j=1,maxz
+        DO j=1,nZs
+                Z2 = Zs(j)
                 DO line=KL1_LINE, M5P5_LINE, -1
                         PK = 0.0_C_DOUBLE
                         PL1 = 0.0_C_DOUBLE
@@ -1317,32 +1314,32 @@ ENDIF
                         PM3 = 0.0_C_DOUBLE
                         PM4 = 0.0_C_DOUBLE
                         PM5 = 0.0_C_DOUBLE
-                        energy = LineEnergy(j, line)
-                        IF (energy .GE. EdgeEnergy(i,K_SHELL)) &
-                                PK = CS_Photo_Partial(i,K_SHELL,&
+                        energy = LineEnergy(Z2, line)
+                        IF (energy .GE. EdgeEnergy(Z,K_SHELL)) &
+                                PK = CS_Photo_Partial(Z,K_SHELL,&
                                 energy)
 
                         !no cascade
-                        PL1 = PL1_pure_kissel(i,&
+                        PL1 = PL1_pure_kissel(Z,&
                         energy)
-                        PL2 = PL2_pure_kissel(i,&
+                        PL2 = PL2_pure_kissel(Z,&
                         energy,PL1)
-                        PL3 = PL3_pure_kissel(i,&
+                        PL3 = PL3_pure_kissel(Z,&
                         energy,PL1,PL2)
-                        PM1 = PM1_pure_kissel(i,&
+                        PM1 = PM1_pure_kissel(Z,&
                         energy)
                         PM2 = &
-                        PM2_pure_kissel(i,&
+                        PM2_pure_kissel(Z,&
                         energy,PM1)
                         PM3 = &
-                        PM3_pure_kissel(i,&
+                        PM3_pure_kissel(Z,&
                         energy,PM1,PM2)
                         PM4 = &
-                        PM4_pure_kissel(i,&
+                        PM4_pure_kissel(Z,&
                         energy,&
                         PM1,PM2,PM3)
                         PM5 = &
-                        PM5_pure_kissel(i,&
+                        PM5_pure_kissel(Z,&
                         energy,&
                         PM1,PM2,PM3,PM4)
 
@@ -1357,31 +1354,31 @@ ENDIF
                         precalc_xrf_cs(i,XMI_CASCADE_NONE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !nonradiative only
-                        PL1 = PL1_auger_cascade_kissel(i,&
+                        PL1 = PL1_auger_cascade_kissel(Z,&
                         energy,PK)
-                        PL2 = PL2_auger_cascade_kissel(i,&
+                        PL2 = PL2_auger_cascade_kissel(Z,&
                         energy,PK,PL1)
-                        PL3 = PL3_auger_cascade_kissel(i,&
+                        PL3 = PL3_auger_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2)
                         PM1 =&
-                        PM1_auger_cascade_kissel(i,&
+                        PM1_auger_cascade_kissel(Z,&
                         energy,&
                         PK, PL1, PL2, PL3)
                         PM2 = &
-                        PM2_auger_cascade_kissel(i,&
+                        PM2_auger_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1)
                         PM3 = &
-                        PM3_auger_cascade_kissel(i,&
+                        PM3_auger_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2)
                         PM4 = &
-                        PM4_auger_cascade_kissel(i,&
+                        PM4_auger_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3)
                         PM5 = &
-                        PM5_auger_cascade_kissel(i,&
+                        PM5_auger_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
 
@@ -1396,31 +1393,31 @@ ENDIF
                         precalc_xrf_cs(i,XMI_CASCADE_NONRADIATIVE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !radiative only
-                        PL1 = PL1_rad_cascade_kissel(i,&
+                        PL1 = PL1_rad_cascade_kissel(Z,&
                         energy,PK)
-                        PL2 = PL2_rad_cascade_kissel(i,&
+                        PL2 = PL2_rad_cascade_kissel(Z,&
                         energy,PK,PL1)
-                        PL3 = PL3_rad_cascade_kissel(i,&
+                        PL3 = PL3_rad_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2)
                         PM1 =&
-                        PM1_rad_cascade_kissel(i,&
+                        PM1_rad_cascade_kissel(Z,&
                         energy,&
                         PK, PL1, PL2, PL3)
                         PM2 = &
-                        PM2_rad_cascade_kissel(i,&
+                        PM2_rad_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1)
                         PM3 = &
-                        PM3_rad_cascade_kissel(i,&
+                        PM3_rad_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2)
                         PM4 = &
-                        PM4_rad_cascade_kissel(i,&
+                        PM4_rad_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3)
                         PM5 = &
-                        PM5_rad_cascade_kissel(i,&
+                        PM5_rad_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
 
@@ -1435,31 +1432,31 @@ ENDIF
                         precalc_xrf_cs(i,XMI_CASCADE_RADIATIVE,M5_SHELL+1,j,ABS(line)) = PM5
 
                         !full cascade
-                        PL1 = PL1_full_cascade_kissel(i,&
+                        PL1 = PL1_full_cascade_kissel(Z,&
                         energy,PK)
-                        PL2 = PL2_full_cascade_kissel(i,&
+                        PL2 = PL2_full_cascade_kissel(Z,&
                         energy,PK,PL1)
-                        PL3 = PL3_full_cascade_kissel(i,&
+                        PL3 = PL3_full_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2)
                         PM1 =&
-                        PM1_full_cascade_kissel(i,&
+                        PM1_full_cascade_kissel(Z,&
                         energy,&
                         PK, PL1, PL2, PL3)
                         PM2 = &
-                        PM2_full_cascade_kissel(i,&
+                        PM2_full_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1)
                         PM3 = &
-                        PM3_full_cascade_kissel(i,&
+                        PM3_full_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2)
                         PM4 = &
-                        PM4_full_cascade_kissel(i,&
+                        PM4_full_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3)
                         PM5 = &
-                        PM5_full_cascade_kissel(i,&
+                        PM5_full_cascade_kissel(Z,&
                         energy,&
                         PK,PL1,PL2,PL3,PM1,PM2,PM3,PM4)
 

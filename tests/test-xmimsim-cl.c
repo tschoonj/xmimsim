@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
 	
 	// set options
 	options = xmi_get_default_main_options();
-	options.use_opencl = 1;
 	options.verbose = 1;
 
 	// init test
@@ -52,6 +51,9 @@ int main(int argc, char *argv[]) {
 
 	// run the actual calculation
 	xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
+
+	// check solid_angle_def is not NULL
+	g_assert(solid_angle_def != NULL);
 
 	// confirm that there was no fallback to Fortran -> otherwise skip test, which is necessary for Travis-CI
 	if (g_getenv("XMIMSIM_CL_FALLBACK") != NULL) {
