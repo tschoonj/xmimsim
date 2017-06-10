@@ -31,7 +31,8 @@ int main(int argc, char **argv) {
 
 	// generate appropriate xmimsimdata.h5 file
 	gchar *data_file = g_strdup_printf("xmimsimdata-%s.h5", compound);
-	g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
+	//if (!g_file_test(data_file, G_FILE_TEST_EXISTS))
+		g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
 
 	// get default input-file
 	struct xmi_input *input = xmi_init_empty_input();
@@ -41,6 +42,8 @@ int main(int argc, char **argv) {
 
 	// add compound to composition
 	struct xmi_layer *layer = compoundData2xmi_layer(cd);
+	layer->thickness = 1.0;
+	layer->density = 1.0;
 	input->composition->n_layers = 1;
 	input->composition->layers = layer;
 	
