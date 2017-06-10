@@ -10,7 +10,8 @@ check_PROGRAMS = \
      test-xmso2htm \
      test-xmso2spe \
      test-cubic-spline \
-     test-pile-up
+     test-pile-up \
+     test-xmimsim-main-CaSO4
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
@@ -131,6 +132,11 @@ test_pile_up_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\"
 test_pile_up_LDADD = libxmimsim-test.la
 
+test_xmimsim_main_CaSO4_SOURCES = test-xmimsim-main.c
+test_xmimsim_main_CaSO4_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+					-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
+					-DCOMPOUND=\"CaSO4\"
+test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe

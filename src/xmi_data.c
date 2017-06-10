@@ -76,7 +76,7 @@ struct hdf5_vars {
 };
 
 //fortran call
-void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int maxz, int nintervals_e_ip, double *precalc_xrf_cs, struct compton_profiles *cp, int ncompton_profiles);
+void xmi_db_Z_specific(double *rayleigh_theta, double *compton_theta, double *energies, double *rs, double *fluor_yield_corr, struct interaction_prob *ip, int nintervals_r, int nintervals_e, int nintervals_e_ip, double *precalc_xrf_cs, struct compton_profiles *cp, int ncompton_profiles, int *Zs, int nZs);
 void xmi_db_Z_independent(double *phi, double *thetas, double *rs, int nintervals_theta2, int nintervals_r);
 
 
@@ -141,8 +141,8 @@ int xmi_get_hdf5_data_file(char **hdf5_filePtr) {
 
 }
 
-int xmi_db(char *filename) {
-	const int nintervals_r = 2000, nintervals_e = 400, maxz = 94,
+int xmi_db(char *filename, int *Zs, int nZ) {
+	const int nintervals_r = 2000, nintervals_e = 400, /* maxz = 94, */
 	nintervals_theta2=200, nintervals_e_ip = 20000;
 	const int ncompton_profiles = 10001;
 
@@ -206,13 +206,13 @@ int xmi_db(char *filename) {
 	H5Gclose(root_group_id);
 
 	//rayleigh_theta
-	rayleigh_theta = g_malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	rayleigh_theta = g_malloc(sizeof(double)*nZ*nintervals_e*nintervals_r);
 	if (rayleigh_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for rayleigh_theta. Aborting\n");
 		return 0;
 	}
 	//compton_theta
-	compton_theta = g_malloc(sizeof(double)*maxz*nintervals_e*nintervals_r);
+	compton_theta = g_malloc(sizeof(double)*nZ*nintervals_e*nintervals_r);
 	if (compton_theta == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for compton_theta. Aborting\n");
 		return 0;
@@ -227,46 +227,46 @@ int xmi_db(char *filename) {
 		g_fprintf(stderr,"Could not allocate memory for rs. Aborting\n");
 		return 0;
 	}
-	fluor_yield_corr = g_malloc(sizeof(double)*maxz*9);
+	fluor_yield_corr = g_malloc(sizeof(double)*nZ*9);
 	if (fluor_yield_corr == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for fluor_yield_corr. Aborting\n");
 		return 0;
 	}
-	ip = g_malloc(sizeof(struct interaction_prob)*maxz);
+	ip = g_malloc(sizeof(struct interaction_prob)*nZ);
 	if (ip == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for ip. Aborting\n");
 		return 0;
 	}
-	precalc_xrf_cs = g_malloc(sizeof(double)*maxz*4*9*maxz*-1*M5P5_LINE);
+	precalc_xrf_cs = g_malloc(sizeof(double)*nZ*4*9*nZ*-1*M5P5_LINE);
 	if (precalc_xrf_cs == NULL) {
 		g_fprintf(stderr,"Could not allocate memory for precalc_xrf_cs. Aborting\n");
 		return 0;
 	}
 
-	cp = g_malloc(sizeof(struct compton_profiles)*maxz);
+	cp = g_malloc(sizeof(struct compton_profiles)*nZ);
 
-	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, fluor_yield_corr, ip, nintervals_r, nintervals_e, maxz, nintervals_e_ip, precalc_xrf_cs, cp, ncompton_profiles);
+	xmi_db_Z_specific(rayleigh_theta, compton_theta, energies, rs, fluor_yield_corr, ip, nintervals_r, nintervals_e, nintervals_e_ip, precalc_xrf_cs, cp, ncompton_profiles, Zs, nZ);
 
 	double *rayleigh_theta_slice = (double*) g_malloc(sizeof(double)*nintervals_r*nintervals_e);
 	double *compton_theta_slice = (double*) g_malloc(sizeof(double)*nintervals_r*nintervals_e);
 	double *fluor_yield_corr_slice = (double*) g_malloc(sizeof(double)*9);
 	double *precalc_xrf_cs_slice = (double*) g_malloc(sizeof(double)*-1*M5P5_LINE);
 
-	for (i = 1 ; i <= maxz ; i++) {
+	for (i = 0 ; i < nZ ; i++) {
 		//these two nested for loops ensure that I extract the data correctly from these fortran column major ordered arrays
 		//AND that they are written to the HDF5 file using column major...
 		for (j = 0 ; j < nintervals_r ; j++) {
 			for (k = 0 ; k < nintervals_e ; k++) {
-				rayleigh_theta_slice[j+k*nintervals_r] = rayleigh_theta[i-1+maxz*j+nintervals_r*maxz*k];
-				compton_theta_slice[j+k*nintervals_r] = compton_theta[i-1+maxz*j+nintervals_r*maxz*k];
+				rayleigh_theta_slice[j+k*nintervals_r] = rayleigh_theta[i+nZ*j+nintervals_r*nZ*k];
+				compton_theta_slice[j+k*nintervals_r] = compton_theta[i+nZ*j+nintervals_r*nZ*k];
 			}
 		}
 		for (j=0 ; j < 9 ; j++)
-			fluor_yield_corr_slice[j] = fluor_yield_corr[i-1+maxz*j];
+			fluor_yield_corr_slice[j] = fluor_yield_corr[i+nZ*j];
 
 
 		//create group for the element
-		elements = g_strdup_printf("%2i", i);
+		elements = g_strdup_printf("%2i", Zs[i]);
 		gcpl = H5Pcreate (H5P_GROUP_CREATE);
 		H5Pset_link_creation_order( gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED );
 		group_id = H5Gcreate(file_id, elements, H5P_DEFAULT, gcpl, H5P_DEFAULT);
@@ -316,15 +316,15 @@ int xmi_db(char *filename) {
 		group_id2 = H5Gcreate(group_id, "Interaction probabilities", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
 		dims_ip[0] = 2;
-		dims_ip[1] = ip[i-1].len;
+		dims_ip[1] = ip[i].len;
 		dspace_id = H5Screate_simple(1, dims_ip+1, dims_ip+1);
 		dset_id = H5Dcreate(group_id2, "Energies",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].energies);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i].energies);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 		dspace_id = H5Screate_simple(2, dims_ip, dims_ip);
 		dset_id = H5Dcreate(group_id2, "Rayleigh and Compton probabilities", H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i-1].Rayl_and_Compt);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, ip[i].Rayl_and_Compt);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
@@ -333,47 +333,47 @@ int xmi_db(char *filename) {
 		//Compton profiles
 		group_id2 = H5Gcreate(group_id, "Compton profiles", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-		dims_cp[0] = cp[i-1].data_len;
-		dims_cp[1] = cp[i-1].shell_indices_len;
+		dims_cp[0] = cp[i].data_len;
+		dims_cp[1] = cp[i].shell_indices_len;
 		dspace_id = H5Screate_simple(1, dims_cp+1, dims_cp+1);
 		dset_id = H5Dcreate(group_id2, "Shell indices",H5T_NATIVE_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].shell_indices);
+		H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].shell_indices);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Qs",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].Qs);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Partial profile CDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].profile_partial_cdf);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Partial profile CDF inverted",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_partial_cdf_inv);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].profile_partial_cdf_inv);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(2, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Qs inverted",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].Qs_inv);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].Qs_inv);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Random numbers",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].random_numbers);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].random_numbers);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
 		dspace_id = H5Screate_simple(1, dims_cp, dims_cp);
 		dset_id = H5Dcreate(group_id2, "Total profile ICDF",H5T_NATIVE_DOUBLE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i-1].profile_total_icdf);
+		H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, cp[i].profile_total_icdf);
 		H5Sclose(dspace_id);
 		H5Dclose(dset_id);
 
@@ -387,14 +387,14 @@ int xmi_db(char *filename) {
 			for (k = 0 ; k <= M5_SHELL ; k++) {
 				group_id4 = H5Gcreate(group_id3, shell_names[k], H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 				//start loop over elements
-				for (l = 1 ; l <= maxz ; l++) {
-					elements = g_strdup_printf("%2i", l);
+				for (l = 0 ; l < nZ ; l++) {
+					elements = g_strdup_printf("%2i", Zs[l]);
 					for (m = 0 ;  m < -1*M5P5_LINE ; m++) {
-						precalc_xrf_cs_slice[m]	= precalc_xrf_cs[i-1+
-									 		maxz*j+
-									 		maxz*4*k+
-									 		maxz*4*(M5_SHELL+1)*(l-1)+
-									 		maxz*4*(M5_SHELL+1)*maxz*m
+						precalc_xrf_cs_slice[m]	= precalc_xrf_cs[i+
+									 		nZ*j+
+									 		nZ*4*k+
+									 		nZ*4*(M5_SHELL+1)*l+
+									 		nZ*4*(M5_SHELL+1)*nZ*m
 									 		];
 					}
 					dspace_id = H5Screate_simple(1, dims_xrf, dims_xrf);
@@ -419,7 +419,7 @@ int xmi_db(char *filename) {
 	g_free(compton_theta);
 	g_free(fluor_yield_corr);
 	g_free(precalc_xrf_cs);
-	for (i=0 ; i < maxz ; i++) {
+	for (i=0 ; i < nZ ; i++) {
 		xmi_deallocate(ip[i].energies);
 		xmi_deallocate(ip[i].Rayl_and_Compt);
 	}
