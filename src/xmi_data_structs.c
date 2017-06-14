@@ -1600,3 +1600,30 @@ int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B) {
 
 	return 0;
 }
+
+static double xmi_get_history_counts_for_element_line(struct xmi_fluorescence_line_counts *history, int nhistory, int Z, int line_macro) {
+	int i, j;
+	
+	for (i = 0 ; i < nhistory ; i++) {
+		struct xmi_fluorescence_line_counts counts = history[i];
+		if (counts.atomic_number != Z)
+			continue;
+		for (j = 0 ; j < counts.n_lines ; j++) {
+			struct xmi_fluorescence_line line = counts.lines[j];
+			if (strcmp(line.line_type, xmi_lines[abs(line_macro)]) != 0)
+				continue;
+			return line.total_counts;
+		}
+	}
+
+	return 0.0;
+}
+double xmi_get_output_counts_for_element_line(struct xmi_output *output, int Z, int line_macro) {
+	// first try variance reduction, if not available use brute force
+	if (output->nvar_red_history > 0) {
+		return xmi_get_history_counts_for_element_line(output->var_red_history, output->nvar_red_history, Z, line_macro);
+	} else if (output->nbrute_force_history > 0) {
+		return xmi_get_history_counts_for_element_line(output->brute_force_history, output->nbrute_force_history, Z, line_macro);
+	}
+	return 0.0;
+}

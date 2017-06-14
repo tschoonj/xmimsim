@@ -33,7 +33,6 @@ struct xmi_general {
 	char *comments;
 };
 
-
 struct xmi_layer {
 	int n_elements;
 	int *Z;
@@ -42,16 +41,11 @@ struct xmi_layer {
 	double thickness;
 };
 
-
-
-
-
 struct xmi_composition {
 	int n_layers;
 	struct xmi_layer *layers;
 	int reference_layer;
 };
-
 
 struct xmi_geometry {
 	double d_sample_source;
@@ -71,8 +65,6 @@ enum {
 	XMI_DISCRETE_GAUSSIAN,
 	XMI_DISCRETE_LORENTZIAN
 };
-
-
 
 struct xmi_energy_discrete {
 	double energy;
@@ -115,8 +107,6 @@ struct xmi_absorbers {
 #define XMI_DETECTOR_GE 1
 #define XMI_DETECTOR_SI_SDD 2
 
-
-
 struct xmi_detector {
 	int detector_type;
 	double live_time;
@@ -129,8 +119,6 @@ struct xmi_detector {
 	int n_crystal_layers;
 	struct xmi_layer *crystal_layers;
 };
-
-
 
 struct xmi_input {
 	struct xmi_general *general;
@@ -274,6 +262,8 @@ void xmi_free_archive(struct xmi_archive *archive);
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
 
 void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
+
+double xmi_get_output_counts_for_element_line(struct xmi_output *output, int Z, int line);
 
 void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B);
 void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B);

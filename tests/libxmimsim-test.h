@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <glib.h>
+#include "xmi_msim.h"
 
 #define TEST_XMSI_URL "http://github.com/tschoonj/xmimsim/wiki/test.xmsi"
 #define TEST_XMSI "test.xmsi"
@@ -41,5 +42,14 @@ struct spe_data * read_spe(const char *filename);
 
 void free_spe_data(struct spe_data *);
 
+double CS_Total_Layer(struct xmi_layer *layer, double E);
+
+double chi(double E0, double E1, struct xmi_layer *layer, double alpha, double beta);
+
+double fpm(struct xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta);
+
+struct xmi_output* run_main(const char *compound);
+
 G_END_DECLS
+
 #endif
