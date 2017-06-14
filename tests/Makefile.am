@@ -132,10 +132,9 @@ test_pile_up_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\"
 test_pile_up_LDADD = libxmimsim-test.la
 
-test_xmimsim_main_CaSO4_SOURCES = test-xmimsim-main.c
+test_xmimsim_main_CaSO4_SOURCES = test-xmimsim-main-CaSO4.c
 test_xmimsim_main_CaSO4_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-					-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
-					-DCOMPOUND=\"CaSO4\"
+					-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 
 clean-local:
