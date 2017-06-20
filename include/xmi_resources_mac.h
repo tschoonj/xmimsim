@@ -26,6 +26,8 @@ extern "C" {
 
 #ifdef MAC_INTEGRATION
 
+#include <glib.h>
+
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
 	XMI_RESOURCES_MAC_XMSO2XMSI,
@@ -50,9 +52,12 @@ enum xmi_resources_mac {
  * On success, resource_file will point to a string containing the requested resource. This string should be freed by the caller after usage
  *
  */
-
-
 int xmi_resources_mac_query(int kind, char **resource_file);
+
+/*
+ * Get bundle resource path
+ */
+gchar* xmi_application_get_resource_path();
 
 #ifdef __cplusplus
 }

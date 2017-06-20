@@ -32,7 +32,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 
 #ifdef MAC_INTEGRATION
-  #import <Foundation/Foundation.h>
   #include "xmi_resources_mac.h"
 #endif
 
