@@ -22,15 +22,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_resources_mac.h"
 #include "xmi_aux.h"
-#include <gtkosxapplication.h>
+#include <Foundation/Foundation.h>
 #include <glib.h>
+
+gchar* xmi_application_get_resource_path() {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	gchar *str = NULL;
+	NSString *path = [[NSBundle mainBundle] resourcePath];
+	if (!path)
+		return NULL;
+	str = g_strdup ([path UTF8String]);
+	[pool release];
+	return str;
+}
+
 
 int xmi_resources_mac_query(int kind, char **resource_file) {
 	gchar *resource_path;
 	gchar *temp;
 
-	resource_path = gtkosx_application_get_resource_path();
-
+	resource_path = xmi_application_get_resource_path();
+	if (resource_path == NULL) {
+		fprintf(stderr, "Could not get resource path!\n");
+		return 0;
+	}
 
 	switch (kind) {
 		case XMI_RESOURCES_MAC_DATA:
@@ -74,9 +89,8 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 			return 0;
 
 	}
-
+	
 	g_free(resource_path);
-
 	*resource_file = temp;
 	return 1;
 }

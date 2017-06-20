@@ -106,15 +106,18 @@ int xmi_xmlLoadCatalog() {
 }
 #elif defined(MAC_INTEGRATION)
 #include "xmi_resources_mac.h"
-#include <gtkosxapplication.h>
+
 int xmi_xmlLoadCatalog() {
 	int rv;
 
 	if (xml_catalog_loaded)
 		return 1;
 
-	gchar *resource_path;
-	resource_path = gtkosx_application_get_resource_path();
+	gchar *resource_path = xmi_application_get_resource_path();
+	if (resource_path == NULL) {
+		return 0;
+	}
+
 	GString *resource_path_string = g_string_new(resource_path);
 	g_free(resource_path);
 	g_string_append(resource_path_string, "/");
