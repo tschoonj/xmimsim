@@ -25,13 +25,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Foundation/Foundation.h>
 #include <glib.h>
 
-gchar* xmi_application_get_resource_path() {
+char* xmi_application_get_resource_path() {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	gchar *str = NULL;
+	char *str = NULL;
 	NSString *path = [[NSBundle mainBundle] resourcePath];
 	if (!path)
 		return NULL;
-	str = g_strdup ([path UTF8String]);
+	str = (char *) g_strdup ([path UTF8String]);
 	[pool release];
 	return str;
 }

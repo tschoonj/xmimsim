@@ -129,10 +129,11 @@ lib_LTLIBRARIES += libxmimsim-ql.la
 libxmimsim_ql_la_SOURCES = \
 	xmi_xml.c \
 	xmi_resources_mac.c
+libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1
+libxmimsim_ql_la_CPPFLAGS += -I${top_srcdir}/include -I${top_builddir}/include
 libxmimsim_ql_la_CFLAGS = \
 	-xobjective-c \
 	@xml2_CFLAGS@ \
-	@glib2_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
