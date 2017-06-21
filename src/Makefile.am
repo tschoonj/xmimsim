@@ -138,8 +138,7 @@ libxmimsim_ql_la_CFLAGS = \
 	@xraylib_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
 	@xml2_LIBS@ \
-	@glib2_LIBS@ \
-	@xraylib_LIBS@
+	@glib2_LIBS@
 libxmimsim_ql_la_LDFLAGS = \
 	-shared \
 	-Wl,-headerpad_max_install_names \
