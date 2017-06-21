@@ -131,12 +131,12 @@ libxmimsim_ql_la_SOURCES = \
 	xmi_resources_mac.c
 libxmimsim_ql_la_CFLAGS = \
 	-xobjective-c \
-	@xslt_CFLAGS@ \
+	@xml2_CFLAGS@ \
 	@glib2_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
-	@xslt_LIBS@ \
+	@xml2_LIBS@ \
 	@glib2_LIBS@ \
 	@xraylib_LIBS@
 libxmimsim_ql_la_LDFLAGS = \

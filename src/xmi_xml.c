@@ -24,12 +24,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxml/parser.h>
 #include <libxml/catalog.h>
 #include <libxml/globals.h>
+#include <libxml/xpath.h>
 #include <math.h>
 #include <glib.h>
-#include <libxslt/xslt.h>
-#include <libxslt/xsltInternals.h>
-#include <libxslt/transform.h>
-#include <libxslt/xsltutils.h>
 #include <xraylib.h>
 #include <search.h>
 
