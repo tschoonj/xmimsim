@@ -2463,3 +2463,27 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 		g_free(msg);
 	}
 }
+
+int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy_discrete *)a)->energy - ((struct xmi_energy_discrete *)b)->energy;
+
+	if (diff > 0.000000001)
+		return 1;
+	else if (diff < -0.000000001)
+		return -1;
+	return 0;
+}
+
+int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
+	double diff;
+
+	diff = ((struct xmi_energy_continuous *)a)->energy - ((struct xmi_energy_continuous *)b)->energy;
+
+	if (diff > 0.000000001)
+		return 1;
+	else if (diff < -0.000000001)
+		return -1;
+	return 0;
+}
