@@ -645,10 +645,11 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 		subnode = xmlNextElementSibling(subnode);
 	}
 
+#ifndef QUICKLOOK
 	//normalize vectors to avoid problems later on...
 	xmi_normalize_vector_double((*geometry)->n_sample_orientation, 3);
 	xmi_normalize_vector_double((*geometry)->n_detector_orientation, 3);
-
+#endif
 	return 1;
 }
 
@@ -1142,7 +1143,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 					//negative values will get caught by xmi_validate
 					//normalization will be performed by xmi_input_C2F
 					if (fabs(weight[n_elements-1]) < 1E-20) {
-						xrlFree(txt);
+						xmlFree(txt);
 						Z = g_realloc(Z, sizeof(int)*--n_elements);
 						weight = g_realloc(weight, sizeof(double)*n_elements);
 						break;
@@ -1172,6 +1173,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 
 	}
 
+#ifndef QUICKLOOK
 	//sort!
 	sorted_Z_ind = xmi_sort_idl_int(Z, n_elements);
 	layer->n_elements = n_elements;
@@ -1187,6 +1189,11 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 	g_free(sorted_Z_ind);
 	g_free(Z);
 	g_free(weight);
+#else
+	layer->n_elements = n_elements;
+	layer->Z = Z;
+	layer->weight = weight;
+#endif
 
 	return 1;
 }
@@ -1239,12 +1246,14 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 	if (xmi_read_input_xml_body(doc, root, *input) == 0)
 		return 0;
 
+#ifndef QUICKLOOK
 	if (xmi_validate_input(*input) != 0) {
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		fprintf(stderr, "Error validating input data\n");
 		return 0;
 	}
+#endif
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
@@ -1252,6 +1261,7 @@ int xmi_read_input_xml (char *xmlfile, struct xmi_input **input) {
 
 }
 
+#ifndef QUICKLOOK
 int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
@@ -1651,7 +1661,7 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input
 
 	return 1;
 }
-
+#endif
 
 int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength) {
 
@@ -1791,7 +1801,7 @@ int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input) {
 
 
 }
-
+#ifndef QUICKLOOK
 int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input, char *name, int interaction,
 double *channels, double maximum2 ) {
 
@@ -1899,6 +1909,7 @@ double *channels, double maximum2 ) {
 
 	return 1;
 }
+#endif
 
 static float e2c(double energy, double * channels, double * energies, int nchannels ){
 	float xval;
@@ -2031,7 +2042,7 @@ int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_input *in
 	}
 	return 1;
 }
-
+#ifndef QUICKLOOK
 int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node) {
 	gchar *timestring;
 	gchar *text;
@@ -2055,6 +2066,7 @@ int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node) {
 
 	return 1;
 }
+#endif
 
 int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2) {
 	xmlNodePtr subroot;
@@ -2120,11 +2132,13 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 	if (xmi_read_input_xml_body(doc, xpathObj->nodesetval->nodeTab[0], op->input) == 0)
 		return 0;
 
+#ifndef QUICKLOOK
 	if (xmi_validate_input(op->input) != 0) {
 		xmlFreeDoc(doc);
 		fprintf(stderr, "Error validating input data\n");
 		return 0;
 	}
+#endif
 	op->ninteractions = op->input->general->n_interactions_trajectory;
 
 	xmlXPathFreeObject(xpathObj);
@@ -2347,6 +2361,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive) {
 	return 1;
 }
 
+#ifndef QUICKLOOK
 int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
@@ -2430,6 +2445,7 @@ int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_layer
 
 	return 1;
 }
+#endif
 
 static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) {
 	//we'll be mixing some glib and libxml strings here, but that should be ok

@@ -66,7 +66,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	*B = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
 
 	//general
-	(*B)->general = (struct xmi_general *) xmi_memdup((A)->general, sizeof(struct xmi_general));
+	(*B)->general = (struct xmi_general *) g_memdup((A)->general, sizeof(struct xmi_general));
 	(*B)->general->outputfile = g_strdup(A->general->outputfile);
 	(*B)->general->comments= g_strdup(A->general->comments);
 
@@ -89,7 +89,7 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	return;
 }
 
-
+#ifndef QUICKLOOK
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	int rv;
 	int i,j;
@@ -191,8 +191,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	}
 
 	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
-	temparr1 = (double *) xmi_memdup(A->geometry->n_sample_orientation,sizeof(double)*3);
-	temparr2 = (double *) xmi_memdup(B->geometry->n_sample_orientation,sizeof(double)*3);
+	temparr1 = (double *) g_memdup(A->geometry->n_sample_orientation,sizeof(double)*3);
+	temparr2 = (double *) g_memdup(B->geometry->n_sample_orientation,sizeof(double)*3);
 	xmi_normalize_vector_double(temparr1, 3);
 	xmi_normalize_vector_double(temparr2, 3);
 
@@ -206,8 +206,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
 	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
 
-	temparr1 = (double *) xmi_memdup(A->geometry->n_detector_orientation,sizeof(double)*3);
-	temparr2 = (double *) xmi_memdup(B->geometry->n_detector_orientation,sizeof(double)*3);
+	temparr1 = (double *) g_memdup(A->geometry->n_detector_orientation,sizeof(double)*3);
+	temparr2 = (double *) g_memdup(B->geometry->n_detector_orientation,sizeof(double)*3);
 	xmi_normalize_vector_double(temparr1, 3);
 	xmi_normalize_vector_double(temparr2, 3);
 
@@ -410,6 +410,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 
 
 }
+#endif
 
 void xmi_free_composition(struct xmi_composition *composition) {
 	int i;
@@ -429,10 +430,10 @@ void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B)
 	*B = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	(*B)->n_layers = A->n_layers;
 	(*B)->reference_layer = A->reference_layer;
-	(*B)->layers = (struct xmi_layer *) xmi_memdup((A)->layers,((A)->n_layers)*sizeof(struct xmi_layer));
+	(*B)->layers = (struct xmi_layer *) g_memdup((A)->layers,((A)->n_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < (A)->n_layers ; i++) {
-		(*B)->layers[i].Z = (int *) xmi_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));
-		(*B)->layers[i].weight = (double *) xmi_memdup((A)->layers[i].weight,((A)->layers[i].n_elements)*sizeof(double));
+		(*B)->layers[i].Z = (int *) g_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));
+		(*B)->layers[i].weight = (double *) g_memdup((A)->layers[i].weight,((A)->layers[i].n_elements)*sizeof(double));
 	}
 
 
@@ -444,8 +445,8 @@ void xmi_copy_layer(struct xmi_layer *A, struct xmi_layer **B) {
 	(*B)->n_elements = A->n_elements;
 	(*B)->density = A->density;
 	(*B)->thickness = A->thickness;
-	(*B)->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
-	(*B)->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
+	(*B)->Z = (int *) g_memdup(A->Z, A->n_elements*sizeof(int));
+	(*B)->weight = (double*) g_memdup(A->weight, A->n_elements*sizeof(double));
 }
 
 
@@ -453,8 +454,8 @@ void xmi_copy_layer2(struct xmi_layer *A, struct xmi_layer *B) {
 	B->n_elements = A->n_elements;
 	B->density = A->density;
 	B->thickness = A->thickness;
-	B->Z = (int *) xmi_memdup(A->Z, A->n_elements*sizeof(int));
-	B->weight = (double*) xmi_memdup(A->weight, A->n_elements*sizeof(double));
+	B->Z = (int *) g_memdup(A->Z, A->n_elements*sizeof(int));
+	B->weight = (double*) g_memdup(A->weight, A->n_elements*sizeof(double));
 }
 
 struct xmi_input *xmi_init_empty_input(void) {
@@ -590,10 +591,10 @@ void xmi_copy_exc_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
 	int i;
 
 	B->n_exc_layers = A->n_exc_layers;
-	B->exc_layers = (struct xmi_layer *) xmi_memdup(A->exc_layers,(A->n_exc_layers)*sizeof(struct xmi_layer));
+	B->exc_layers = (struct xmi_layer *) g_memdup(A->exc_layers,(A->n_exc_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < A->n_exc_layers ; i++) {
-		B->exc_layers[i].Z = (int *) xmi_memdup(A->exc_layers[i].Z,(A->exc_layers[i].n_elements)*sizeof(int));
-		B->exc_layers[i].weight = (double *) xmi_memdup(A->exc_layers[i].weight,(A->exc_layers[i].n_elements)*sizeof(double));
+		B->exc_layers[i].Z = (int *) g_memdup(A->exc_layers[i].Z,(A->exc_layers[i].n_elements)*sizeof(int));
+		B->exc_layers[i].weight = (double *) g_memdup(A->exc_layers[i].weight,(A->exc_layers[i].n_elements)*sizeof(double));
 	}
 }
 
@@ -601,10 +602,10 @@ void xmi_copy_det_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B) {
 	int i;
 
 	B->n_det_layers = A->n_det_layers;
-	B->det_layers = (struct xmi_layer *) xmi_memdup(A->det_layers,(A->n_det_layers)*sizeof(struct xmi_layer));
+	B->det_layers = (struct xmi_layer *) g_memdup(A->det_layers,(A->n_det_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < A->n_det_layers ; i++) {
-		B->det_layers[i].Z = (int *) xmi_memdup(A->det_layers[i].Z,(A->det_layers[i].n_elements)*sizeof(int));
-		B->det_layers[i].weight = (double *) xmi_memdup(A->det_layers[i].weight,(A->det_layers[i].n_elements)*sizeof(double));
+		B->det_layers[i].Z = (int *) g_memdup(A->det_layers[i].Z,(A->det_layers[i].n_elements)*sizeof(int));
+		B->det_layers[i].weight = (double *) g_memdup(A->det_layers[i].weight,(A->det_layers[i].n_elements)*sizeof(double));
 	}
 }
 
@@ -1037,6 +1038,7 @@ void xmi_print_input(FILE *fPtr, struct xmi_input *input) {
 
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 #define ARRAY3D_FORTRAN(array,i,j,k,Ni,Nj,Nk) (array[(Nj)*(Nk)*(i-1)+(Nk)*(j-1)+(k-1)])
+#ifndef QUICKLOOK
 struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions ) {
 
 	struct xmi_output* output = g_malloc(sizeof(struct xmi_output));
@@ -1182,6 +1184,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	g_free(uniqZ);
 	return output;
 }
+#endif
 
 void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory) {
 	int i,j;
@@ -1293,26 +1296,26 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	C->channels_conv = g_malloc(sizeof(double *) * (C->ninteractions+1));
 	C->channels_unconv = g_malloc(sizeof(double *) * (C->ninteractions+1));
 	for (i = (C->use_zero_interactions ? 0 : 1) ; i <= C->ninteractions ; i++) {
-		 C->channels_conv[i] = xmi_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
-		 C->channels_unconv[i] = xmi_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
+		 C->channels_conv[i] = g_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
+		 C->channels_unconv[i] = g_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
 	}
 
-	C->brute_force_history = xmi_memdup(A->brute_force_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nbrute_force_history);
+	C->brute_force_history = g_memdup(A->brute_force_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nbrute_force_history);
 
 	for (i = 0 ; i < C->nbrute_force_history ; i++) {
-		C->brute_force_history[i].lines = xmi_memdup(A->brute_force_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->brute_force_history[i].n_lines);
+		C->brute_force_history[i].lines = g_memdup(A->brute_force_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->brute_force_history[i].n_lines);
 		for (j = 0 ; j < C->brute_force_history[i].n_lines ; j++) {
-			C->brute_force_history[i].lines[j].interactions = xmi_memdup(C->brute_force_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->brute_force_history[i].lines[j].n_interactions);
+			C->brute_force_history[i].lines[j].interactions = g_memdup(C->brute_force_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->brute_force_history[i].lines[j].n_interactions);
 			C->brute_force_history[i].lines[j].line_type = g_strdup(C->brute_force_history[i].lines[j].line_type);
 		}
 	}
 
-	C->var_red_history = xmi_memdup(A->var_red_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nvar_red_history);
+	C->var_red_history = g_memdup(A->var_red_history, sizeof(struct xmi_fluorescence_line_counts ) * C->nvar_red_history);
 
 	for (i = 0 ; i < C->nvar_red_history ; i++) {
-		C->var_red_history[i].lines = xmi_memdup(A->var_red_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->var_red_history[i].n_lines);
+		C->var_red_history[i].lines = g_memdup(A->var_red_history[i].lines, sizeof(struct xmi_fluorescence_line)*C->var_red_history[i].n_lines);
 		for (j = 0 ; j < C->var_red_history[i].n_lines ; j++) {
-			C->var_red_history[i].lines[j].interactions = xmi_memdup(C->var_red_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->var_red_history[i].lines[j].n_interactions);
+			C->var_red_history[i].lines[j].interactions = g_memdup(C->var_red_history[i].lines[j].interactions, sizeof(struct xmi_counts)*C->var_red_history[i].lines[j].n_interactions);
 			C->var_red_history[i].lines[j].line_type = g_strdup(C->var_red_history[i].lines[j].line_type);
 		}
 	}
@@ -1325,7 +1328,7 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 
 void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B) {
 	//allocate space for B
-	*B = (struct xmi_geometry *) xmi_memdup(A,sizeof(struct xmi_geometry));
+	*B = (struct xmi_geometry *) g_memdup(A,sizeof(struct xmi_geometry));
 
 	return;
 }
@@ -1340,12 +1343,12 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 	(*B)->n_continuous = A->n_continuous;
 
 	if ((*B)->n_discrete > 0) {
-		(*B)->discrete = (struct xmi_energy_discrete *) xmi_memdup(A->discrete,A->n_discrete*sizeof(struct xmi_energy_discrete));
+		(*B)->discrete = (struct xmi_energy_discrete *) g_memdup(A->discrete,A->n_discrete*sizeof(struct xmi_energy_discrete));
 	}
 	else
 		(*B)->discrete = NULL;
 	if ((*B)->n_continuous > 0) {
-		(*B)->continuous = (struct xmi_energy_continuous *) xmi_memdup(A->continuous,A->n_continuous*sizeof(struct xmi_energy_continuous));
+		(*B)->continuous = (struct xmi_energy_continuous *) g_memdup(A->continuous,A->n_continuous*sizeof(struct xmi_energy_continuous));
 
 	}
 	else
@@ -1357,11 +1360,11 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B) {
 	int i;
 
-	*B= (struct xmi_detector *) xmi_memdup(A,sizeof(struct xmi_detector));
-	(*B)->crystal_layers = (struct xmi_layer *) xmi_memdup(A->crystal_layers,(A->n_crystal_layers)*sizeof(struct xmi_layer));
+	*B= (struct xmi_detector *) g_memdup(A,sizeof(struct xmi_detector));
+	(*B)->crystal_layers = (struct xmi_layer *) g_memdup(A->crystal_layers,(A->n_crystal_layers)*sizeof(struct xmi_layer));
 	for (i = 0 ; i < A->n_crystal_layers ; i++) {
-		(*B)->crystal_layers[i].Z = (int *) xmi_memdup(A->crystal_layers[i].Z,(A->crystal_layers[i].n_elements)*sizeof(int));
-		(*B)->crystal_layers[i].weight = (double *) xmi_memdup(A->crystal_layers[i].weight,(A->crystal_layers[i].n_elements)*sizeof(double));
+		(*B)->crystal_layers[i].Z = (int *) g_memdup(A->crystal_layers[i].Z,(A->crystal_layers[i].n_elements)*sizeof(int));
+		(*B)->crystal_layers[i].weight = (double *) g_memdup(A->crystal_layers[i].weight,(A->crystal_layers[i].n_elements)*sizeof(double));
 	}
 
 	return;
@@ -1401,6 +1404,7 @@ void xmi_free_excitation(struct xmi_excitation *A) {
 	return;
 }
 
+#ifndef QUICKLOOK
 int xmi_compare_output(struct xmi_output *A, struct xmi_output *B) {
 
 	// lets say the version may differ since it became only recently meaningful
@@ -1544,6 +1548,7 @@ int xmi_compare_output(struct xmi_output *A, struct xmi_output *B) {
 	return 0;
 }
 
+
 int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B) {
 
 	if (A->start_value1 != B->start_value1) {
@@ -1627,3 +1632,9 @@ double xmi_get_output_counts_for_element_line(struct xmi_output *output, int Z, 
 	}
 	return 0.0;
 }
+
+#endif
+int xmi_cmp_int(const void *a, const void *b) {
+	return *((int *) a) - *((int *) b);
+}
+

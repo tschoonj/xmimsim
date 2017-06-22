@@ -70,10 +70,6 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	return rv;
 }
 
-int xmi_cmp_int(const void *a, const void *b) {
-	return *((int *) a) - *((int *) b);
-}
-
 struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 	struct compoundData *rv;
 
