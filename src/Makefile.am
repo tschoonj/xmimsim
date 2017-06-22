@@ -128,6 +128,9 @@ if ENABLE_MAC_APP
 lib_LTLIBRARIES += libxmimsim-ql.la
 libxmimsim_ql_la_SOURCES = \
 	xmi_xml.c \
+	xmi_data_structs.c \
+	xmi_lines.h \
+	xmi_lines.c \
 	xmi_resources_mac.c
 libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1
 libxmimsim_ql_la_CPPFLAGS += -I${top_srcdir}/include -I${top_builddir}/include
