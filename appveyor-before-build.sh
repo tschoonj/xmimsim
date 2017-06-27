@@ -48,7 +48,7 @@ if test $RNG = "fgsl" ; then
 	make install
 	cd ..
 elif test $RNG = "easyRNG" ; then
-	wget -q https://easyrng.tomschoonjans.eu/easyRNG-1.1.tar.gz
+	wget -q https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz
 	tar xfz easyRNG-1.1.tar.gz
 	cd easyRNG-1.1
 	./configure
@@ -91,9 +91,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	make install
 	cd ..
 	# install gtkmm-plplot
-	wget -q https://gtkmm-plplot.tomschoonjans.eu/gtkmm-plplot-2.1.tar.gz
-	tar xfz gtkmm-plplot-2.1.tar.gz
-	cd gtkmm-plplot-2.1	
+	wget -q https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
+	tar xfz gtkmm-plplot-2.2.tar.gz
+	cd gtkmm-plplot-2.2
 	./configure --prefix=/usr/local
 	make
 	make install

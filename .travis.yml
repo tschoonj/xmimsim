@@ -820,7 +820,7 @@ install:
       cd ..
     fi
     if [ "$BUILD_XRL_AND_EASYRNG_FROM_SOURCE" == "yes" ] || [ "$BUILD_EASYRNG_FROM_SOURCE" == "yes" ] ; then
-      wget https://easyrng.tomschoonjans.eu/easyRNG-1.1.tar.gz || exit 1
+      wget https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz || exit 1
       tar xfz easyRNG-1.1.tar.gz || exit 1
       cd easyRNG-1.1
       ./configure --enable-fortran || exit 1
