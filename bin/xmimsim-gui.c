@@ -1294,7 +1294,24 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	if (current->xi->general->outputfile == NULL || strlen(current->xi->general->outputfile) == 0) {
+		union xmimsim_prefs_val prefs;
+		if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, &prefs) == 0) {
+			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
+		}
+		else {
+			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), prefs.s);
+			g_free(prefs.s);
+		}
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "Untitled.xmso");
+	}
+	else {
+		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), current->xi->general->outputfile);
+		gchar *name = g_path_get_basename(current->xi->general->outputfile);
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), name);
+		g_free(name);
+	}
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -6908,7 +6925,16 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 		NULL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+	gchar *inputfile = g_strdup(current->xi->general->outputfile);
+	inputfile[strlen(inputfile)-1] = 'i';
+	gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), inputfile);
+	g_free(inputfile);
+	inputfile = g_path_get_basename(current->xi->general->outputfile);
+	inputfile[strlen(inputfile)-1] = 'i';
+	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), inputfile);
+	g_free(inputfile);
+
 
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 

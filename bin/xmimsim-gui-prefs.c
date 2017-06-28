@@ -60,6 +60,7 @@ struct prefsWidgets {
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 	GtkWidget *notificationsW;
 #endif
+	GtkWidget *default_save_folderW;
 	GArray *deleted_layers;
 	GtkWidget *layers_tree_view;
 };
@@ -419,6 +420,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE))) > 0) {
 		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE)));
+		g_free(xpv.s);
 	}
 	else
 		xpv.s = NULL;
@@ -426,6 +428,13 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
+
+	xpv.s = g_strdup(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(pw->default_save_folderW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, xpv) == 0) {
+		//abort
+		preferences_error_handler(pw->window);
+	}
+	g_free(xpv.s);
 
 	// delete layers
 	int i;
@@ -475,6 +484,7 @@ int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
+	g_key_file_set_string(keyfile, "Preferences","Default save folder", g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
 
 
 	//save file
@@ -899,6 +909,24 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				prefs->s = temps;
 			}
 			break;
+		case XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER:
+			{
+			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Default save folder", &error);
+			if (error != NULL) {
+				//error
+				g_warning("Default save folder not found in preferences file\n");
+				g_key_file_set_string(keyfile, "Preferences","Default save folder", g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+				prefs->s = g_strdup(g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
+				break;
+			}
+			prefs->s = temps;
+			}
+			break;
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
@@ -984,6 +1012,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			else
 				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 			break;
+		case XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER:
+			g_key_file_set_string(keyfile, "Preferences","Default save folder", prefs.s);
+			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL:
 			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
@@ -1060,7 +1091,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	pw->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
-	gtk_widget_set_size_request(window,500,500);
+	gtk_widget_set_size_request(window, 600, 600);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
@@ -1288,9 +1319,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_widget_set_size_request(scrolled_window, 300,150);
+	gtk_widget_set_size_request(scrolled_window, -1,150);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), pw->update_urlsW);
-	gtk_box_pack_start(GTK_BOX(updatesboxW),scrolled_window, FALSE, FALSE,3 );
+	gtk_box_pack_start(GTK_BOX(updatesboxW),scrolled_window, TRUE, TRUE, 3);
 
 
 	buttonbox = gtk_vbox_new(FALSE, 5);
@@ -1300,13 +1331,13 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
 	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
 
-	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, TRUE, FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(buttonbox), removeButton, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(buttonbox), removeButton, FALSE, FALSE, 3);
 	gtk_widget_set_sensitive(removeButton, FALSE);
 	g_signal_connect(G_OBJECT(removeButton), "clicked", G_CALLBACK(url_delete_button_clicked_cb) , (gpointer) pw->update_urlsW);
 	g_signal_connect(G_OBJECT(addButton), "clicked", G_CALLBACK(url_add_button_clicked_cb) , (gpointer) pw->update_urlsW);
 
-	gtk_box_pack_start(GTK_BOX(updatesboxW),buttonbox, TRUE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(updatesboxW),buttonbox, FALSE, FALSE, 3);
 
 
 	//populate tree
@@ -1348,7 +1379,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">User defined layers</span>");
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
-	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key. This operation will be executed when clicking the Apply button.");
+	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key.\nThis operation will be executed when clicking the Apply button.");
 	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
@@ -1432,10 +1463,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_escape_ratios_clicked_cb), (gpointer) window);
 
-
-	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
-
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 	pw->notificationsW = gtk_check_button_new_with_label("Enable notifications");
 	gtk_widget_set_tooltip_text(pw->notificationsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
@@ -1445,6 +1474,21 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->notificationsW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe), pw->notificationsW, FALSE, FALSE, 3);
 #endif
+
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
+	hbox = gtk_hbox_new(FALSE, 0);
+	label = gtk_label_new("Default save folder");
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	pw->default_save_folderW = gtk_file_chooser_button_new("Select the default folder to save new files", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+	gtk_widget_set_tooltip_text(pw->default_save_folderW, "Default folder for saving new files");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, &xpv) == 0) {
+		//abort
+		preferences_error_handler(main_window);
+	}
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(pw->default_save_folderW), xpv.s);
+	g_free(xpv.s);
+	gtk_box_pack_start(GTK_BOX(hbox), pw->default_save_folderW, TRUE, TRUE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 
 	//back to master_box
 	//separator
