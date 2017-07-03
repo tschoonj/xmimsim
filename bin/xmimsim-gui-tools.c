@@ -1409,7 +1409,7 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 
 	label = gtk_label_new("XRMC folder");
 	gtk_table_attach(GTK_TABLE(table), label, 0, 1, 2, 3, (GtkAttachOptions) 0, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
-	xrmc_folderW = gtk_file_chooser_button_new("Select a folder in which the XRMC files will be stored", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+	xrmc_folderW = gtk_file_chooser_button_new("Select a folder in which the XRMC files will be stored", GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER);
 	gtk_table_attach(GTK_TABLE(table), xrmc_folderW, 1, 2, 2, 3, (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL), (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 
 	enable_pileupW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
