@@ -28,7 +28,7 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
-if ENABLE_MAC_APP
+if ENABLE_QUICKLOOK
   check_PROGRAMS += test-libxmimsim-ql
 endif
 

@@ -124,8 +124,8 @@ libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 endif
 
 # quicklook plugin library for macOS bundle
-if ENABLE_MAC_APP
-lib_LTLIBRARIES += libxmimsim-ql.la
+if ENABLE_QUICKLOOK
+noinst_LTLIBRARIES = libxmimsim-ql.la
 libxmimsim_ql_la_SOURCES = \
 	xmi_xml.c \
 	xmi_data_structs.c \
@@ -137,7 +137,7 @@ libxmimsim_ql_la_CPPFLAGS += -I${top_srcdir}/include -I${top_builddir}/include
 libxmimsim_ql_la_CFLAGS = \
 	-xobjective-c \
 	@xml2_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
+	@glib2_CFLAGS@ \
 	@xraylib_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
 	@xml2_LIBS@ \

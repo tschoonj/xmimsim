@@ -275,6 +275,18 @@ if test "x$GTK_FOUND" = xyes ; then
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
+# quicklook support -> need GTKmm3 and PLplot!
+QUICKLOOK_DEPS_FOUND=
+if test "x$GTK_FOUND" = xyes && test "x$CXX_MODE" = xyes ; then
+	PKG_CHECK_MODULES(QUICKLOOK, cairo-quartz libxml-2.0 plplot,[
+		QUICKLOOK_DEPS_FOUND=yes
+		AC_MSG_NOTICE([Building with Quicklook support])
+	], [
+		QUICKLOOK_DEPS_FOUND=no
+	])
+fi
+AM_CONDITIONAL([ENABLE_QUICKLOOK],[test "x$QUICKLOOK_DEPS_FOUND" = xyes])
+
 AC_ARG_ENABLE([libnotify],[AS_HELP_STRING([--disable-libnotify],[build without libnotify])],[enable_libnotify=$enableval],[enable_libnotify=check])
 LIBNOTIFY_FOUND=no
 if test "x$GTK_MAC_INTEGRATION_FOUND" = xno && test "x$enable_libnotify" != xno ; then
@@ -575,6 +587,7 @@ AC_CONFIG_FILES([ 	Makefile
 			libxmimsim.pc
 			osx/Makefile
 			osx/Info.plist
+			osx/quicklook/Makefile
 			custom-detector-response/Makefile
 			examples/Makefile
 			tests/Makefile

@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 
-#ifdef MAC_INTEGRATION
+#if defined(MAC_INTEGRATION) || defined(QUICKLOOK)
 
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
