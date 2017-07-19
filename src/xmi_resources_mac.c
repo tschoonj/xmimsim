@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAC_INTEGRATION
+#if !defined(MAC_INTEGRATION) && !defined(QUICKLOOK)
 #error xmi_resources_mac.c should not be compiled without defining MAC_INTEGRATION
 #endif
 

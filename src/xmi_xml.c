@@ -100,7 +100,7 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 
 }
-#elif defined(MAC_INTEGRATION)
+#elif defined(MAC_INTEGRATION) || defined(QUICKLOOK)
 #include "xmi_resources_mac.h"
 
 int xmi_xmlLoadCatalog() {
