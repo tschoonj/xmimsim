@@ -132,10 +132,9 @@ libxmimsim_ql_la_SOURCES = \
 	xmi_lines.h \
 	xmi_lines.c \
 	xmi_resources_mac.c
-libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1
-libxmimsim_ql_la_CPPFLAGS += -I${top_srcdir}/include -I${top_builddir}/include
+libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1 \
+	-I${top_srcdir}/include -I${top_builddir}/include
 libxmimsim_ql_la_CFLAGS = \
-	-xobjective-c \
 	@xml2_CFLAGS@ \
 	@glib2_CFLAGS@ \
 	@xraylib_CFLAGS@
@@ -145,7 +144,7 @@ libxmimsim_ql_la_LIBADD = \
 libxmimsim_ql_la_LDFLAGS = \
 	-shared \
 	-Wl,-headerpad_max_install_names \
-	-framework Cocoa
+	-framework CoreFoundation
 endif
 
 

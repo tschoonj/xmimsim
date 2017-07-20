@@ -22,17 +22,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config.h"
 #include "xmi_resources_mac.h"
 #include "xmi_aux.h"
-#include <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <glib.h>
 
 char* xmi_application_get_resource_path() {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	char *str = NULL;
-	NSString *path = [[NSBundle mainBundle] resourcePath];
-	if (!path)
+	CFBundleRef bundle = CFBundleGetMainBundle();
+	if (!bundle)
 		return NULL;
-	str = (char *) g_strdup ([path UTF8String]);
-	[pool release];
+	CFURLRef url = CFBundleCopyResourcesDirectoryURL(bundle);
+	CFStringRef path = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle);
+	CFRelease(url);
+	str = g_strdup(CFStringGetCStringPtr(path, kCFStringEncodingUTF8));
+	CFRelease(path);
 	return str;
 }
 
