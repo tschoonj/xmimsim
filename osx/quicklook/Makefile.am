@@ -24,7 +24,6 @@ xmimsim_ql_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include $(QUI
 xmimsim_ql_la_LIBADD = $(top_builddir)/src/libxmimsim-ql.la  $(QUICKLOOK_LIBS)
 xmimsim_ql_la_LDFLAGS = -Wl,-headerpad_max_install_names -framework CoreFoundation -module -avoid-version -shared -rpath /tmp -shrext ""
 
-# TODO: install_name_tool wizardry...
 ql: xmimsim-ql.la
 	rm -rf xmi-msim.qlgenerator
 	$(MKDIR_P) xmi-msim.qlgenerator/Contents
@@ -34,12 +33,13 @@ ql: xmimsim-ql.la
 	cp .libs/xmimsim-ql xmi-msim.qlgenerator/Contents/MacOS/
 	cp $(top_srcdir)/xml/xmimsim-1.0.dtd xmi-msim.qlgenerator/Contents/Resources/ 
 	touch ql
+	python $(srcdir)/finalize-quicklook.py xmi-msim.qlgenerator/Contents/MacOS/xmimsim-ql
 
 ql-test: ql
 	qlmanage -g xmi-msim.qlgenerator -c be.ugent.xmi.xmi-msim.xmso -p $(top_srcdir)/examples/srm1155.xmso
 endif
 
-EXTRA_DIST = Info.plist
+EXTRA_DIST = Info.plist finalize-quicklook.py
 
 clean-local:
 	rm -f ql
