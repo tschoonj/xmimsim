@@ -47,6 +47,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-sources-dialog.h \
 	xmimsim-gui-discrete-energy-dialog.h \
 	xmimsim-gui-continuous-energy-dialog.h \
+	xmimsim-gui-compat.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la

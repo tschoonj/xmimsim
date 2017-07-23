@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
+#include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-sources-dialog.h"
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-utils.h"
@@ -93,15 +94,23 @@ static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
-	GtkWidget *save_dialog = gtk_file_chooser_dialog_new("Save source parameters", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(save_dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *save_dialog =
+		xmimsim_gui_file_chooser_dialog_new(
+			"Save source parameters",
+			GTK_WINDOW(dialog),
+			GTK_FILE_CHOOSER_ACTION_SAVE,
+			GTK_STOCK_SAVE,
+			GTK_STOCK_CANCEL
+		);
+	xmimsim_gui_file_chooser_dialog_set_modal(save_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(save_dialog), TRUE);
 
-	if (gtk_dialog_run(GTK_DIALOG(save_dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(save_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(save_dialog));
+		xmimsim_gui_file_chooser_dialog_destroy(save_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_save_parameters(source, (const char *) filename, &error)) {
-			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(save_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s parameters to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s parameters to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
 			gtk_dialog_run(GTK_DIALOG(info_dialog));
@@ -111,8 +120,9 @@ static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 			g_free(filename);
 		}
 	}
-	gtk_widget_destroy(save_dialog);
-
+	else {
+		xmimsim_gui_file_chooser_dialog_destroy(save_dialog);
+	}
 	return;
 }
 
@@ -120,14 +130,22 @@ static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
-	GtkWidget *load_dialog = gtk_file_chooser_dialog_new("Load source parameters", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(load_dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *load_dialog =
+		xmimsim_gui_file_chooser_dialog_new(
+			"Load source parameters",
+			GTK_WINDOW(dialog),
+			GTK_FILE_CHOOSER_ACTION_OPEN,
+			GTK_STOCK_OPEN,
+			GTK_STOCK_CANCEL
+		);
+	xmimsim_gui_file_chooser_dialog_set_modal(load_dialog, TRUE);
 
-	if (gtk_dialog_run(GTK_DIALOG(load_dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(load_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
+		xmimsim_gui_file_chooser_dialog_destroy(load_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_load_parameters(source, (const char *) filename, &error)) {
-			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(load_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error loading %s parameters from %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error loading %s parameters from %s", xmi_msim_gui_source_abstract_get_name(source), filename);
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
 			gtk_dialog_run(GTK_DIALOG(info_dialog));
@@ -137,8 +155,9 @@ static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 			g_free(filename);
 		}
 	}
-	gtk_widget_destroy(load_dialog);
-
+	else {
+		xmimsim_gui_file_chooser_dialog_destroy(load_dialog);
+	}
 	return;
 }
 
@@ -146,12 +165,20 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
-	GtkWidget *export_dialog = gtk_file_chooser_dialog_new("Export spectrum as ASCII file", GTK_WINDOW(dialog), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(export_dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *export_dialog =
+		xmimsim_gui_file_chooser_dialog_new(
+			"Export spectrum as ASCII file",
+			GTK_WINDOW(dialog),
+			GTK_FILE_CHOOSER_ACTION_SAVE,
+			GTK_STOCK_SAVE,
+			GTK_STOCK_CANCEL
+		);
+	xmimsim_gui_file_chooser_dialog_set_modal(export_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(export_dialog), TRUE);
 
-	if (gtk_dialog_run(GTK_DIALOG(export_dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(export_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(export_dialog));
+		xmimsim_gui_file_chooser_dialog_destroy(export_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_save(source, (const char *) filename, &error)) {
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(export_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting %s spectrum to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
@@ -164,8 +191,9 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 			g_free(filename);
 		}
 	}
-	gtk_widget_destroy(export_dialog);
-
+	else {
+		xmimsim_gui_file_chooser_dialog_destroy(export_dialog);
+	}
 	return;
 }
 

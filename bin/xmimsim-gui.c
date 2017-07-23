@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui.h"
+#include "xmimsim-gui-compat.h"
 #include "xmi_aux.h"
 #include "xmi_private.h"
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -1273,26 +1274,24 @@ struct undo_single *check_changes_saved(int *status) {
 	return temp;
 }
 
-
-
-
 static void select_outputfile_cb(GtkButton *button, gpointer data) {
-	GtkWidget *dialog;
+	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	char *filename;
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
+	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.XMSO");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
-	dialog = gtk_file_chooser_dialog_new("Select the outputfile for the simulation",
+	dialog = xmimsim_gui_file_chooser_dialog_new("Select the outputfile for the simulation",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_SAVE,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL
+		GTK_STOCK_SAVE,
+		GTK_STOCK_CANCEL
 	);
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
 	if (current->xi->general->outputfile == NULL || strlen(current->xi->general->outputfile) == 0) {
 		union xmimsim_prefs_val prefs;
@@ -1313,7 +1312,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 	}
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//check extension
 		xmi_msim_gui_utils_ensure_extension(&filename, ".xmso");
@@ -1324,7 +1323,7 @@ static void select_outputfile_cb(GtkButton *button, gpointer data) {
 		g_free (filename);
 	}
 
-	gtk_widget_destroy (dialog);
+	xmimsim_gui_file_chooser_dialog_destroy(dialog);
 
 	return;
 }
@@ -6437,7 +6436,7 @@ static void paste_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 static void import_cb(GtkWidget *widget, gpointer data) {
 	//launch file selection dialog
-	GtkWidget *dialog = NULL;
+	XmiMsimGuiFileChooserDialog *dialog = NULL;
 	GtkFileFilter *filter;
 	gchar *filename;
 	struct xmi_input *xi = NULL;
@@ -6445,22 +6444,23 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][oO]");
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.XMSI");
+	gtk_file_filter_add_pattern(filter,"*.xmso");
+	gtk_file_filter_add_pattern(filter,"*.XMSO");
 	gtk_file_filter_set_name(filter,"XMI-MSIM input and output files");
-	dialog = gtk_file_chooser_dialog_new ("Select a XMI-MSIM file to import from",
+	dialog = xmimsim_gui_file_chooser_dialog_new ("Select a XMI-MSIM file to import from",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		GTK_STOCK_OPEN,
+		GTK_STOCK_CANCEL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		//open file based on extension
-		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		if (g_ascii_strcasecmp(filename+strlen(filename)-5, ".xmsi") == 0) {
 			//input-file found
 			if (xmi_read_input_xml(filename, &xi) == 0) {
@@ -6481,23 +6481,24 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 			g_fprintf(stderr,"Unsupported filetype selected. This error should never appear\n");
 			exit(1);
 		}
-		gtk_widget_destroy(dialog);
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		GtkWidget *message_dialog;
 		if (xi == NULL) {
-			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			message_dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 		       		GTK_MESSAGE_ERROR,
 		       		GTK_BUTTONS_CLOSE,
 		       		"Could not read file %s: model is incomplete/invalid",filename
 	               	);
-	     		gtk_dialog_run(GTK_DIALOG(dialog));
-			gtk_widget_destroy(dialog);
+	     		gtk_dialog_run(GTK_DIALOG(message_dialog));
+			gtk_widget_destroy(message_dialog);
 			return;
 		}
 		//ok... spawn dialogue with components selection
-		dialog = gtk_dialog_new_with_buttons("Import components", GTK_WINDOW((GtkWidget *) data), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
-		gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+		GtkWidget *import_dialog = gtk_dialog_new_with_buttons("Import components", GTK_WINDOW((GtkWidget *) data), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+		gtk_window_set_modal(GTK_WINDOW(import_dialog), TRUE);
 
-		GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(import_dialog));
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 2);
 		GtkWidget *composition_check = gtk_check_button_new_with_label("Composition");
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(composition_check), TRUE);
@@ -6518,10 +6519,10 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(detectorsettings_check), TRUE);
 		gtk_box_pack_start(GTK_BOX(vbox), detectorsettings_check, FALSE, FALSE, 0);
 		gtk_box_pack_start(GTK_BOX(content_area), vbox, FALSE, FALSE,0);
-		gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
+		gtk_container_set_border_width(GTK_CONTAINER(import_dialog),5);
 		gtk_widget_show_all(vbox);
-		if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_ACCEPT) {
-			gtk_widget_destroy(dialog);\
+		if (gtk_dialog_run(GTK_DIALOG(import_dialog)) != GTK_RESPONSE_ACCEPT) {
+			gtk_widget_destroy(import_dialog);
 			return;
 		}
 		//let's see what was selected
@@ -6553,9 +6554,9 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 			undo_rv |= IMPORT_SELECT_DETECTORSETTINGS;
 			change_all_values_detectorsettings(xi);
 		}
+		gtk_widget_destroy(import_dialog);
 		if (undo_rv == 0) {
 			//nothing selected
-			gtk_widget_destroy(dialog);
 			gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 			return;
 		}
@@ -6574,8 +6575,9 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 		g_free(iud->filename);
 		g_free(iud);
 
+	} else {
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 	}
-	gtk_widget_destroy(dialog);
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 	return;
 }
@@ -6676,35 +6678,34 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 
 void load_from_file_cb(GtkWidget *widget, gpointer data) {
-	GtkWidget *dialog = NULL;
+	XmiMsimGuiFileChooserDialog *dialog = NULL;
 	GtkFileFilter *filter1, *filter2, *filter3;
 	gchar *filename;
 	struct xmi_input *xi;
 	gchar *title;
 
-
-
-
 	filter1 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter1,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_add_pattern(filter1,"*.xmsi");
+	gtk_file_filter_add_pattern(filter1,"*.XMSI");
 	gtk_file_filter_set_name(filter1,"XMI-MSIM inputfiles");
 	filter2 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter2,"*.[xX][mM][sS][oO]");
+	gtk_file_filter_add_pattern(filter2,"*.xmso");
+	gtk_file_filter_add_pattern(filter2,"*.XMSO");
 	gtk_file_filter_set_name(filter2,"XMI-MSIM outputfiles");
 	filter3 = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter3,"*.[xX][mM][sS][aA]");
+	gtk_file_filter_add_pattern(filter3,"*.xmsa");
+	gtk_file_filter_add_pattern(filter3,"*.XMSA");
 	gtk_file_filter_set_name(filter3,"XMI-MSIM archives");
-	dialog = gtk_file_chooser_dialog_new ("Open simulation file",
+	dialog = xmimsim_gui_file_chooser_dialog_new("Open simulation file",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		GTK_STOCK_OPEN,
+		GTK_STOCK_CANCEL);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter3);
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == input_page ||
 	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
@@ -6714,12 +6715,12 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter2);
 
 
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		//get filetype
 		if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter1) {
+			xmimsim_gui_file_chooser_dialog_destroy(dialog);
 			if (process_pre_file_operation((GtkWidget *) data) == FALSE) {
-				gtk_widget_destroy (dialog);
 				return;
 			}
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
@@ -6734,18 +6735,19 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				adjust_save_buttons();
 			}
 			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GtkWidget *message_dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 		        		GTK_MESSAGE_ERROR,
 		        		GTK_BUTTONS_CLOSE,
 		        		"Could not read file %s: model is incomplete/invalid",filename
 	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
+				gtk_widget_destroy(message_dialog);
 			}
 		}
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter2) {
 
+			xmimsim_gui_file_chooser_dialog_destroy(dialog);
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
 			if (plot_spectra_from_file(filename) == 1) {
 				gchar *temp_base = g_path_get_basename(filename);
@@ -6753,18 +6755,18 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				g_free(temp_base);
 			}
 			else {
-				gtk_widget_destroy (dialog);
-				dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+				GtkWidget *message_dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 		        		GTK_MESSAGE_ERROR,
 		        		GTK_BUTTONS_CLOSE,
 		        		"Could not read file %s",filename
 	                	);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
+	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
+				gtk_widget_destroy(message_dialog);
 			}
 		}
 		else if (gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog)) == filter3) {
-			gtk_widget_destroy(dialog);
+			xmimsim_gui_file_chooser_dialog_destroy(dialog);
 			struct dialog_helper_xmsa_data *mydata = (struct dialog_helper_xmsa_data *) g_malloc(sizeof(struct dialog_helper_xmsa_data));
 			mydata->window = (GtkWidget *) data;
 			mydata->filename = filename;
@@ -6772,9 +6774,10 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 			return;
 		}
 		g_free (filename);
+	} else {
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 	}
 
-	gtk_widget_destroy (dialog);
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 }
 
@@ -6898,7 +6901,7 @@ gboolean save_function(GtkWidget *widget, gpointer data) {
 
 gboolean saveas_function(GtkWidget *widget, gpointer data) {
 
-	GtkWidget *dialog;
+	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
 	gchar *title;
@@ -6916,14 +6919,15 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	     return FALSE;
 	}
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.XMSI");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
-	dialog = gtk_file_chooser_dialog_new ("Save simulation inputfile",
+	dialog = xmimsim_gui_file_chooser_dialog_new ("Save simulation inputfile",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_SAVE,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
-		NULL);
+		GTK_STOCK_SAVE,
+		GTK_STOCK_CANCEL
+		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 	gchar *inputfile = g_strdup(current->xi->general->outputfile);
@@ -6936,9 +6940,9 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	g_free(inputfile);
 
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		xmi_msim_gui_utils_ensure_extension(&filename, ".xmsi");
 		//
@@ -6953,9 +6957,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 			current->xi->general->comments = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 		}
 
-
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 		if (xmi_write_input_xml(filename, current->xi) == 1) {
-			gtk_widget_destroy (dialog);
 			if (last_saved != NULL) {
 				g_free(last_saved->filename);
 				xmi_free_input(last_saved->xi);
@@ -6972,22 +6975,20 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 			gtk_widget_set_sensitive(GTK_WIDGET(saveT),FALSE);
 		}
 		else {
-			gtk_widget_destroy (dialog);
-			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+			GtkWidget *message_dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 	        		GTK_MESSAGE_ERROR,
 	        		GTK_BUTTONS_CLOSE,
 	        		"Could not write to file %s: model is incomplete/invalid",filename
                 	);
-     			gtk_dialog_run (GTK_DIALOG (dialog));
-     			gtk_widget_destroy (dialog);
+     			gtk_dialog_run(GTK_DIALOG(message_dialog));
+     			gtk_widget_destroy(message_dialog);
 			g_free (filename);
 			return FALSE;
 		}
-
 	}
 	else
-   		gtk_widget_destroy (dialog);
+   		xmimsim_gui_file_chooser_dialog_destroy (dialog);
 
 	return TRUE;
 }
@@ -7170,9 +7171,6 @@ static void change_all_values_geometry(struct xmi_input *new_input) {
 }
 
 static void change_all_values_excitation(struct xmi_input *new_input) {
-	int i;
-	GtkTreeIter iter;
-
 	repopulate_discrete_energies(discWidget->store, (new_input)->excitation);
 	repopulate_continuous_energies(contWidget->store, (new_input)->excitation);
 }

@@ -17,6 +17,7 @@
 
 #include <config.h>
 #include <stdio.h>
+#include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmi_detector.h"
@@ -100,7 +101,7 @@ static gboolean hdf5_file_filter(const GtkFileFilterInfo *filter_info, gpointer 
 }
 
 static void import_hdf5_data_cb(GtkWidget *window, int kind) {
-	GtkWidget *dialog;
+	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
 
@@ -112,12 +113,12 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS) {
 		gtk_file_filter_set_name(filter,"XMI-MSIM Escape ratios file");
 	}
-	dialog = gtk_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
+	dialog = xmimsim_gui_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
 		GTK_WINDOW(window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		GTK_STOCK_OPEN,
+		GTK_STOCK_CANCEL
+		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	GtkWidget *forceW = gtk_check_button_new_with_label("Force copying");
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(forceW), FALSE);
@@ -125,44 +126,44 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), forceW);
 
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
-		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
 		gboolean forced = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(forceW));
-		gtk_widget_destroy(dialog);
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 		char *target = NULL;
-
+		GtkWidget *message_dialog;
 		if (kind == XMI_HDF5_SOLID_ANGLES) {
 			if (xmi_get_solid_angle_file(&target, 1) == 0) {
-				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+				message_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_ERROR,
 				GTK_BUTTONS_CLOSE,
 				"Could not determine the location of the solid angle grids file."
 	       			);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
+	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
+	     			gtk_widget_destroy(message_dialog);
 	     			return;
 			}
 		}
 		else if (kind == XMI_HDF5_ESCAPE_RATIOS) {
 			if (xmi_get_escape_ratios_file(&target, 1) == 0) {
-				dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+				message_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_ERROR,
 				GTK_BUTTONS_CLOSE,
 				"Could not determine the location of the escape ratios file."
 	       			);
-	     			gtk_dialog_run (GTK_DIALOG (dialog));
-	     			gtk_widget_destroy (dialog);
+	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
+	     			gtk_widget_destroy(message_dialog);
 	     			return;
 			}
 		}
 		int ncopied = xmi_copy_between_hdf5_files(kind, filename, target, NULL, forced ? 1 : 0);
 
 		if (ncopied >=0) {
-			dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+			message_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_INFO,
 			GTK_BUTTONS_CLOSE,
@@ -171,10 +172,9 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 			filename,
 			target
 	       		);
-	     		gtk_dialog_run (GTK_DIALOG (dialog));
 		}
 		else {
-			dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+			message_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_ERROR,
 			GTK_BUTTONS_CLOSE,
@@ -182,13 +182,15 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 			filename,
 			target
 	       		);
-	     		gtk_dialog_run (GTK_DIALOG (dialog));
 		}
+	     	gtk_dialog_run(GTK_DIALOG(message_dialog));
+	     	gtk_widget_destroy(message_dialog);
 
 		g_free(filename);
 		g_free(target);
 	}
-	gtk_widget_destroy(dialog);
+	else
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 
 
 }
@@ -1522,27 +1524,27 @@ static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_inf
 }
 
 void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry) {
-	GtkWidget *dialog;
+	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, detector_response_dlm_filter, NULL, NULL);
 	gtk_file_filter_set_name(filter,"Detector response DLM");
-	dialog = gtk_file_chooser_dialog_new ("Select detector response function DLM",
+	dialog = xmimsim_gui_file_chooser_dialog_new("Select detector response function DLM",
 		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		GTK_STOCK_OPEN,
+		GTK_STOCK_CANCEL
+		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		gtk_entry_set_text(GTK_ENTRY(entry), filename);
 		g_free(filename);
 	}
-	gtk_widget_destroy(dialog);
+	xmimsim_gui_file_chooser_dialog_destroy(dialog);
 }
 
 char *xmimsim_gui_get_preferences_filename() {
