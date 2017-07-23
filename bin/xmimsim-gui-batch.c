@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui.h"
+#include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-energies.h"
@@ -298,22 +299,28 @@ static gboolean wizard_archive_delete_event(GtkWidget *wizard, GdkEvent *event, 
 }
 
 static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiveEntry) {
-	GtkWidget *dialog  = gtk_file_chooser_dialog_new("Select the filename of the XMSA file", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(saveButton))), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *dialog  = xmimsim_gui_file_chooser_dialog_new(
+		"Select the filename of the XMSA file",
+		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(saveButton))),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_SAVE,
+		GTK_STOCK_CANCEL);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][aA]");
+	gtk_file_filter_add_pattern(filter,"*.xmsa");
+	gtk_file_filter_add_pattern(filter,"*.XMSA");
 	gtk_file_filter_set_name(filter,"XMI-MSIM archive files");
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	gchar *filename;
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		xmi_msim_gui_utils_ensure_extension(&filename, ".xmsa");
 		gtk_entry_set_text(archiveEntry, filename);
 		g_free (filename);
 	}
-	gtk_widget_destroy(dialog);
+	xmimsim_gui_file_chooser_dialog_destroy(dialog);
 	return;
 }
 
@@ -1257,19 +1264,24 @@ static void batch_reset_controls(struct batch_window_data *bwd) {
 
 
 static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd) {
-	GtkWidget *dialog;
+	XmiMsimGuiFileChooserDialog *dialog;
 	gchar *filename;
 
-	dialog = gtk_file_chooser_dialog_new("Select a filename for the logfile", GTK_WINDOW(bwd->batch_window), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	dialog = xmimsim_gui_file_chooser_dialog_new(
+		"Select a filename for the logfile",
+		GTK_WINDOW(bwd->batch_window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_SAVE,
+		GTK_STOCK_CANCEL);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		gtk_entry_set_text(GTK_ENTRY(bwd->controlsLogFileW), filename);
 		g_free (filename);
 	}
-	gtk_widget_destroy(dialog);
+	xmimsim_gui_file_chooser_dialog_destroy(dialog);
 	return;
 }
 
@@ -1915,31 +1927,37 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 	//g_fprintf(stdout,"Entering batchnode_button_clicked_cb...\n");
 	//open dialog
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Select one or more files", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *file_dialog = xmimsim_gui_file_chooser_dialog_new(
+		"Select one or more files",
+		GTK_WINDOW(window),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_OPEN, GTK_STOCK_CANCEL);
+	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(file_dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(file_dialog, TRUE);
 	GtkWidget *label = gtk_label_new("If one file is selected then a batch of files will be created based on this file with one or two variable parameters. Selecting multiple files will result in all the selected files being executed.");
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), label);
+	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(file_dialog), label);
 	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.XMSI");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(file_dialog), filter);
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(file_dialog) != GTK_RESPONSE_ACCEPT) {
 		//nothing was selected
-   		gtk_widget_destroy (dialog);
+   		xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
 		return;
 	}
 
 	//extract all selected filenames
-	GSList *filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
+	GSList *filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(file_dialog));
 	int i;
 	//for (i = 0 ; i < g_slist_length(filenames) ; i++) {
 	//	g_fprintf(stdout,"filename: %s\n", (char *) g_slist_nth_data(filenames,i));
 	//}
 
-  gtk_widget_destroy(dialog);
+   	xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
+	GtkWidget *dialog;
 	struct xmi_main_options *options;
 	if (g_slist_length(filenames) > 1) {
 		//more than one file selected
@@ -3764,26 +3782,32 @@ static void save_archive_plot(struct archive_plot_data *apd) {
 
 static void export_archive_plot(struct archive_plot_data *apd) {
 	//fire up file dialog
-	GtkWidget *dialog  = gtk_file_chooser_dialog_new("Select the filename of the CSV file", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(apd->exportButton))), GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	XmiMsimGuiFileChooserDialog *dialog  = xmimsim_gui_file_chooser_dialog_new(
+		"Select the filename of the CSV file",
+		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(apd->exportButton))),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_SAVE,
+		GTK_STOCK_CANCEL);
+	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[cC][sS][vV]");
+	gtk_file_filter_add_pattern(filter,"*.csv");
+	gtk_file_filter_add_pattern(filter,"*.CSV");
 	gtk_file_filter_set_name(filter,"CSV files");
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	gchar *filename;
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 		xmi_msim_gui_utils_ensure_extension(&filename, ".csv");
 		//open file
 		FILE *filePtr;
 		if ((filePtr = fopen(filename, "w")) == NULL) {
-			gtk_widget_destroy(dialog);
-			dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for writing.", filename);
-			gtk_dialog_run(GTK_DIALOG(dialog));
+			GtkWidget *message_dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for writing.", filename);
+			gtk_dialog_run(GTK_DIALOG(message_dialog));
 			g_free (filename);
-			gtk_widget_destroy(dialog);
+			gtk_widget_destroy(message_dialog);
 			return;
 		}
 		int i,j;
@@ -3822,13 +3846,14 @@ static void export_archive_plot(struct archive_plot_data *apd) {
 		}
 		fclose(filePtr);
 
-		gtk_widget_destroy(dialog);
-		dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Successfully created CSV file %s.", filename);
-		gtk_dialog_run(GTK_DIALOG(dialog));
+		GtkWidget *message_dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(apd->exportButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Successfully created CSV file %s.", filename);
+		gtk_dialog_run(GTK_DIALOG(message_dialog));
+		gtk_widget_destroy(message_dialog);
 
 		g_free (filename);
+	} else {
+		xmimsim_gui_file_chooser_dialog_destroy(dialog);
 	}
-	gtk_widget_destroy(dialog);
 	return;
 }
 

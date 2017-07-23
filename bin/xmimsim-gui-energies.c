@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui.h"
+#include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-discrete-energy-dialog.h"
 #include "xmimsim-gui-continuous-energy-dialog.h"
@@ -293,14 +294,14 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 	gtk_widget_destroy(dialog);
 
 	//open filechooser without filters
-	dialog = gtk_file_chooser_dialog_new ("Open File",
+	XmiMsimGuiFileChooserDialog *file_dialog = xmimsim_gui_file_chooser_dialog_new ("Open File",
                  GTK_WINDOW(main_window),
                  GTK_FILE_CHOOSER_ACTION_OPEN,
-                 GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                 GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-                 NULL);
+                 GTK_STOCK_OPEN,
+                 GTK_STOCK_CANCEL
+                 );
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	xmimsim_gui_file_chooser_dialog_set_modal(file_dialog, TRUE);
 
 	//add widget
 	GtkWidget *start_at_begin;
@@ -344,10 +345,10 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 2);
 
 	gtk_widget_show_all(vbox);
-	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), vbox);
+	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(file_dialog), vbox);
 
 
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(file_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename;
 
 		int start_line, nlines;
@@ -366,8 +367,8 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 			nlines = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(read_only_lines_spinner));
 		}
 
-		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		gtk_widget_destroy (dialog);
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_dialog));
+		xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
 		dialog = NULL;
 		int rv;
 		struct energiesUndoInfo *eui = (struct energiesUndoInfo *) g_malloc(sizeof(struct energiesUndoInfo));
@@ -485,9 +486,9 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 		g_free (filename);
 		gtk_dialog_run(GTK_DIALOG(dialog));
   	}
-	if (dialog)
-		gtk_widget_destroy (dialog);
-
+	else {
+		xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
+	}
 	return;
 }
 
