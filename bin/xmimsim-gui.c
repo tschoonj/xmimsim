@@ -6908,15 +6908,15 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	GtkTextIter iterb, itere;
 
 	if (check_changeables() == 0 || xmi_validate_input(current->xi) != 0 )  {
-		dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
+		GtkWidget *message_dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 		        GTK_MESSAGE_ERROR,
 		        GTK_BUTTONS_CLOSE,
 		        "Could not write to file: model is incomplete/invalid"
 	                );
-	     gtk_dialog_run (GTK_DIALOG (dialog));
-	     gtk_widget_destroy (dialog);
-	     return FALSE;
+		gtk_dialog_run(GTK_DIALOG(message_dialog));
+		gtk_widget_destroy(message_dialog);
+		return FALSE;
 	}
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmsi");
