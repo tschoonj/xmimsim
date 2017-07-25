@@ -57,10 +57,6 @@ int test_init () {
 	assert(g_setenv("XMI_XMSO2HTM_XSLT", XMI_XMSO2HTM_XSLT, TRUE) == TRUE);
 	assert(g_setenv("XMI_XMSA2XMSO_XSLT", XMI_XMSA2XMSO_XSLT, TRUE) == TRUE);
 
-#if !GLIB_CHECK_VERSION (2, 35, 3)
-	g_type_init();
-#endif
-	
 
 	return 1;
 }
