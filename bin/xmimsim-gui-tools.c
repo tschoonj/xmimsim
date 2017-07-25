@@ -69,7 +69,7 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_filter_add_pattern(filter,"*.XMSO");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
-	dialog = xmimsim_gui_file_chooser_dialog_new(
+	dialog = xmi_msim_gui_file_chooser_dialog_new(
 		"Select an XMI-MSIM outputfile",
 		GTK_WINDOW(xt->window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -77,15 +77,15 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL
 	);
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free(filename);
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 }
 static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
@@ -100,7 +100,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_filter_add_pattern(filter,"*.XMSO");
 	gtk_file_filter_set_name(filter,"XMI-MSIM outputfiles");
 
-	dialog = xmimsim_gui_file_chooser_dialog_new(
+	dialog = xmi_msim_gui_file_chooser_dialog_new(
 		"Select an XMI-MSIM outputfile",
 		GTK_WINDOW(xt->window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -108,12 +108,12 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL
 	);
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		//read the file
 		if (xmi_read_output_xml(filename, &output) == 0) {
 			GtkWidget *message_dialog = gtk_message_dialog_new(
@@ -139,7 +139,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		g_free(filename);
 	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 	}
 }
 static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
@@ -155,7 +155,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_filter_add_pattern(filter,"*.XMSA");
 	gtk_file_filter_set_name(filter,"XMI-MSIM archives");
 
-	dialog = xmimsim_gui_file_chooser_dialog_new(
+	dialog = xmi_msim_gui_file_chooser_dialog_new(
 		"Select an XMI-MSIM archive",
 		GTK_WINDOW(xt->window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -163,12 +163,12 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GTK_STOCK_CANCEL
 	);
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		//read the file
 		GtkWidget *job_dialog = xmi_msim_gui_utils_long_job_dialog(xt->window, "<b>Reading XMSA file</b>");
 		gtk_widget_show_all(job_dialog);
@@ -240,7 +240,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		g_free(filename);
 	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 	}
 }
 
@@ -256,18 +256,18 @@ static void prefix ## _save_button_clicked_cb(GtkButton *button, gpointer data) 
 	gtk_file_filter_set_name(filter, filter_name); \
 	struct xmi_tools *xt = (struct xmi_tools *) data; \
 	\
-	dialog = xmimsim_gui_file_chooser_dialog_new("Select the name for the new " file_type, \
+	dialog = xmi_msim_gui_file_chooser_dialog_new("Select the name for the new " file_type, \
 		GTK_WINDOW(xt->window), \
 		GTK_FILE_CHOOSER_ACTION_SAVE, \
 		GTK_STOCK_SAVE, \
 		GTK_STOCK_CANCEL \
 	); \
 	\
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE); \
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE); \
 	\
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE); \
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter); \
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) { \
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) { \
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog)); \
 		xmi_msim_gui_utils_ensure_extension(&filename, extension); \
 		\
@@ -275,7 +275,7 @@ static void prefix ## _save_button_clicked_cb(GtkButton *button, gpointer data) 
 		g_free (filename); \
 	} \
 	\
-	xmimsim_gui_file_chooser_dialog_destroy(dialog); \
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog); \
 }
 
 SAVE_BUTTON_CLICKED_CALLBACK(xmsi, "*.xmsi", "*.XMSI", "XMI-MSIM inputfiles", "XMI-MSIM inputfile", ".xmsi")

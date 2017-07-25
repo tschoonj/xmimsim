@@ -294,14 +294,14 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 	gtk_widget_destroy(dialog);
 
 	//open filechooser without filters
-	XmiMsimGuiFileChooserDialog *file_dialog = xmimsim_gui_file_chooser_dialog_new ("Open File",
+	XmiMsimGuiFileChooserDialog *file_dialog = xmi_msim_gui_file_chooser_dialog_new ("Open File",
                  GTK_WINDOW(main_window),
                  GTK_FILE_CHOOSER_ACTION_OPEN,
                  GTK_STOCK_OPEN,
                  GTK_STOCK_CANCEL
                  );
 
-	xmimsim_gui_file_chooser_dialog_set_modal(file_dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(file_dialog, TRUE);
 
 	//add widget
 	GtkWidget *start_at_begin;
@@ -348,7 +348,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(file_dialog), vbox);
 
 
-	if (xmimsim_gui_file_chooser_dialog_run(file_dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(file_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename;
 
 		int start_line, nlines;
@@ -368,7 +368,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 		}
 
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(file_dialog);
 		dialog = NULL;
 		int rv;
 		struct energiesUndoInfo *eui = (struct energiesUndoInfo *) g_malloc(sizeof(struct energiesUndoInfo));
@@ -487,7 +487,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 		gtk_dialog_run(GTK_DIALOG(dialog));
   	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(file_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(file_dialog);
 	}
 	return;
 }

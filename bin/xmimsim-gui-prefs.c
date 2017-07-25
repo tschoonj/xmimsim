@@ -113,7 +113,7 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 	else if (kind == XMI_HDF5_ESCAPE_RATIOS) {
 		gtk_file_filter_set_name(filter,"XMI-MSIM Escape ratios file");
 	}
-	dialog = xmimsim_gui_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
+	dialog = xmi_msim_gui_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
 		GTK_WINDOW(window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_OPEN,
@@ -126,12 +126,12 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 	gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), forceW);
 
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
 		gboolean forced = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(forceW));
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		char *target = NULL;
 		GtkWidget *message_dialog;
 		if (kind == XMI_HDF5_SOLID_ANGLES) {
@@ -190,7 +190,7 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 		g_free(target);
 	}
 	else
-		xmimsim_gui_file_chooser_dialog_destroy(dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 
 
 }
@@ -1531,20 +1531,20 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, detector_response_dlm_filter, NULL, NULL);
 	gtk_file_filter_set_name(filter,"Detector response DLM");
-	dialog = xmimsim_gui_file_chooser_dialog_new("Select detector response function DLM",
+	dialog = xmi_msim_gui_file_chooser_dialog_new("Select detector response function DLM",
 		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_OPEN,
 		GTK_STOCK_CANCEL
 		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		gtk_entry_set_text(GTK_ENTRY(entry), filename);
 		g_free(filename);
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 }
 
 char *xmimsim_gui_get_preferences_filename() {

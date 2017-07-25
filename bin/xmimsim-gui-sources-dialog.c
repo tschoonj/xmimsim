@@ -95,19 +95,19 @@ static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
 	XmiMsimGuiFileChooserDialog *save_dialog =
-		xmimsim_gui_file_chooser_dialog_new(
+		xmi_msim_gui_file_chooser_dialog_new(
 			"Save source parameters",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
 			GTK_STOCK_SAVE,
 			GTK_STOCK_CANCEL
 		);
-	xmimsim_gui_file_chooser_dialog_set_modal(save_dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(save_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(save_dialog), TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(save_dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(save_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(save_dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(save_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(save_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_save_parameters(source, (const char *) filename, &error)) {
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s parameters to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
@@ -121,7 +121,7 @@ static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 		}
 	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(save_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(save_dialog);
 	}
 	return;
 }
@@ -131,18 +131,18 @@ static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
 	XmiMsimGuiFileChooserDialog *load_dialog =
-		xmimsim_gui_file_chooser_dialog_new(
+		xmi_msim_gui_file_chooser_dialog_new(
 			"Load source parameters",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_OPEN,
 			GTK_STOCK_OPEN,
 			GTK_STOCK_CANCEL
 		);
-	xmimsim_gui_file_chooser_dialog_set_modal(load_dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(load_dialog, TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(load_dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(load_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(load_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(load_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_load_parameters(source, (const char *) filename, &error)) {
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error loading %s parameters from %s", xmi_msim_gui_source_abstract_get_name(source), filename);
@@ -156,7 +156,7 @@ static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 		}
 	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(load_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(load_dialog);
 	}
 	return;
 }
@@ -166,19 +166,19 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
 	XmiMsimGuiFileChooserDialog *export_dialog =
-		xmimsim_gui_file_chooser_dialog_new(
+		xmi_msim_gui_file_chooser_dialog_new(
 			"Export spectrum as ASCII file",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
 			GTK_STOCK_SAVE,
 			GTK_STOCK_CANCEL
 		);
-	xmimsim_gui_file_chooser_dialog_set_modal(export_dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(export_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(export_dialog), TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(export_dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(export_dialog) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(export_dialog));
-		xmimsim_gui_file_chooser_dialog_destroy(export_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(export_dialog);
 		GError *error = NULL;
 		if (!xmi_msim_gui_source_abstract_save(source, (const char *) filename, &error)) {
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(export_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting %s spectrum to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
@@ -192,7 +192,7 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 		}
 	}
 	else {
-		xmimsim_gui_file_chooser_dialog_destroy(export_dialog);
+		xmi_msim_gui_file_chooser_dialog_destroy(export_dialog);
 	}
 	return;
 }
@@ -203,10 +203,10 @@ static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *
 		GTK_WINDOW(dialog)
 		);
 
-	if (xmimsim_gui_file_chooser_dialog_run(image_dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(image_dialog) == GTK_RESPONSE_ACCEPT) {
 		GError *error = NULL;
 		if (!xmi_msim_gui_export_canvas_dialog_save(image_dialog, dialog->canvas, &error)) {
-			xmimsim_gui_file_chooser_dialog_destroy(image_dialog);
+			xmi_msim_gui_file_chooser_dialog_destroy(image_dialog);
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s spectrum", xmi_msim_gui_source_abstract_get_name(get_active_source(dialog)));
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
@@ -217,7 +217,7 @@ static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *
 			return;
 		}
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(image_dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(image_dialog);
 	return;
 }
 
