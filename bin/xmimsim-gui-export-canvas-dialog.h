@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_H
 
 #include <gtk/gtk.h>
+#include "xmimsim-gui-compat.h"
 
 
 #if GTK_MAJOR_VERSION == 3
@@ -30,47 +31,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 G_BEGIN_DECLS
 
-#define XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG                  (xmi_msim_gui_export_canvas_dialog_get_type ())
-#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG, XmiMsimGuiExportCanvasDialog))
-#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG, XmiMsimGuiExportCanvasDialogClass))
-#define XMI_MSIM_GUI_IS_EXPORT_CANVAS_DIALOG(obj)               (G_TYPE_CHECK_INSTANCE_TYPE ((obj), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG))
-#define XMI_MSIM_GUI_IS_EXPORT_CANVAS_DIALOG_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG))
-#define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_EXPORT_CANVAS_DIALOG, XmiMsimGuiExportCanvasDialogClass))
-
-typedef struct _XmiMsimGuiExportCanvasDialog        XmiMsimGuiExportCanvasDialog;
-typedef struct _XmiMsimGuiExportCanvasDialogClass   XmiMsimGuiExportCanvasDialogClass;
-
 #define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH  842
 #define XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT 595
 
-struct _XmiMsimGuiExportCanvasDialog
-{
-  GtkFileChooserDialog parent_instance;
-  GtkFileFilter *eps_filter;
-  GtkFileFilter *pdf_filter;
-  GtkFileFilter *png_filter;
-#if GTK_MAJOR_VERSION == 3
-  Gtk::PLplot::Canvas *canvas;
-#else
-  GtkWidget *canvas;
-#endif
-};
-
-struct _XmiMsimGuiExportCanvasDialogClass
-{
-  GtkFileChooserDialogClass parent_class;
-
-};
-
-GType xmi_msim_gui_export_canvas_dialog_get_type(void) G_GNUC_CONST;
+XmiMsimGuiFileChooserDialog *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent);
 
 #if GTK_MAJOR_VERSION == 3
-GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent, Gtk::PLplot::Canvas *canvas);
+gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, Gtk::PLplot::Canvas *canvas, GError **error);
 #else
-GtkWidget *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent, GtkWidget *canvas);
+gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, GtkWidget *canvas, GError **error);
 #endif
-
-gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiExportCanvasDialog *dialog, GError **error);
 
 typedef enum {
 	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO,
