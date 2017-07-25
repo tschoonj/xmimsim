@@ -198,23 +198,26 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 }
 
 static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {
-	GtkWidget *image_dialog = xmi_msim_gui_export_canvas_dialog_new("Save spectrum as image",
-		GTK_WINDOW(dialog), dialog->canvas);
+	XmiMsimGuiFileChooserDialog *image_dialog = xmi_msim_gui_export_canvas_dialog_new(
+		"Save spectrum as image",
+		GTK_WINDOW(dialog)
+		);
 
-	if (gtk_dialog_run(GTK_DIALOG(image_dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (xmimsim_gui_file_chooser_dialog_run(image_dialog) == GTK_RESPONSE_ACCEPT) {
 		GError *error = NULL;
-		if (!xmi_msim_gui_export_canvas_dialog_save(XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG(image_dialog), &error)) {
-			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(image_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s spectrum", xmi_msim_gui_source_abstract_get_name(get_active_source(dialog)));
+		if (!xmi_msim_gui_export_canvas_dialog_save(image_dialog, dialog->canvas, &error)) {
+			xmimsim_gui_file_chooser_dialog_destroy(image_dialog);
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error saving %s spectrum", xmi_msim_gui_source_abstract_get_name(get_active_source(dialog)));
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
 			gtk_dialog_run(GTK_DIALOG(info_dialog));
 			gtk_widget_destroy(info_dialog);
 
 			g_error_free(error);
+			return;
 		}
 	}
-	gtk_widget_destroy(image_dialog);
-
+	xmimsim_gui_file_chooser_dialog_destroy(image_dialog);
 	return;
 }
 
@@ -236,11 +239,8 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	// mainHBox will contain two columns -> one with source parameters (mainVBox), one with plot
 	// 
 	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 5);
-#if GTK_MAJOR_VERSION == 3
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 2);
-#else
-	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, FALSE, 2);
-#endif
+
 	dialog->notebookW = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(mainVBox), dialog->notebookW, TRUE, TRUE, 2);
 
