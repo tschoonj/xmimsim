@@ -823,10 +823,10 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
 	  	g_path_get_dirname(results->input->general->outputfile));
 
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		GError *error = NULL;
 		if (!xmi_msim_gui_export_canvas_dialog_save(dialog, canvas, &error)) {
-			xmimsim_gui_file_chooser_dialog_destroy(dialog);
+			xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(data), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting spectrum");
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
@@ -837,7 +837,7 @@ static void export_button_clicked_cb(GtkButton *button, gpointer data) {
 			return;
 		}
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 
 	return;
 }

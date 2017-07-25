@@ -31,8 +31,8 @@ XmiMsimGuiFileChooserDialog *xmi_msim_gui_export_canvas_dialog_new(const gchar *
 
   g_return_val_if_fail(parent == NULL || GTK_IS_WINDOW(parent), NULL);
 
-  rv = xmimsim_gui_file_chooser_dialog_new(title, parent, GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_OK, GTK_STOCK_CANCEL);
-  xmimsim_gui_file_chooser_dialog_set_modal(rv, TRUE);
+  rv = xmi_msim_gui_file_chooser_dialog_new(title, parent, GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_OK, GTK_STOCK_CANCEL);
+  xmi_msim_gui_file_chooser_dialog_set_modal(rv, TRUE);
 
   GtkFileFilter *filter = gtk_file_filter_new();
   gtk_file_filter_add_pattern(filter, "*.eps");

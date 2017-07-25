@@ -1063,7 +1063,7 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, executable_file_filter, NULL, NULL);
 	gtk_file_filter_set_name(filter,"Executables");
-	dialog = xmimsim_gui_file_chooser_dialog_new ("Open simulation executable",
+	dialog = xmi_msim_gui_file_chooser_dialog_new ("Open simulation executable",
 		GTK_WINDOW((GtkWidget *) data),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_OPEN,
@@ -1071,14 +1071,14 @@ static void select_executable_cb(GtkButton *button, gpointer data) {
 		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		gtk_entry_set_text(GTK_ENTRY(executableW),filename);
 		g_free(filename);
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 
 }
 
@@ -1113,7 +1113,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 		title = g_strdup("Select the name of the HTML report file");
 	}
 
-	dialog = xmimsim_gui_file_chooser_dialog_new(
+	dialog = xmi_msim_gui_file_chooser_dialog_new(
 		title,
 		GTK_WINDOW(we->window),
 		GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -1123,9 +1123,9 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 	if (filter)
 		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog),filter);
 
-	xmimsim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
+	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	if (xmimsim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		if (we->entry == svg_convW) {
 			xmi_msim_gui_utils_ensure_extension(&filename, ".svg");
@@ -1141,7 +1141,7 @@ static void select_extra_output_cb(GtkButton *button, gpointer data) {
 		g_free(filename);
 
 	}
-	xmimsim_gui_file_chooser_dialog_destroy(dialog);
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 
 
 }

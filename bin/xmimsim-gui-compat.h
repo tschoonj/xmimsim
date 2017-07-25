@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // only in 3.22.17 was support for filters added (by me :-D)
 #if GTK_CHECK_VERSION(3, 22, 17)
 	typedef GtkFileChooserNative XmiMsimGuiFileChooserDialog;
-	#define xmimsim_gui_file_chooser_dialog_new(title, window, action, accept_label, cancel_label) \
+	#define xmi_msim_gui_file_chooser_dialog_new(title, window, action, accept_label, cancel_label) \
 		gtk_file_chooser_native_new( \
 			title, \
 			window, \
@@ -32,15 +32,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 			accept_label, \
 			cancel_label \
 		)
-	#define xmimsim_gui_file_chooser_dialog_run(dialog) \
+	#define xmi_msim_gui_file_chooser_dialog_run(dialog) \
 		gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog))
-	#define xmimsim_gui_file_chooser_dialog_destroy(dialog) \
+	#define xmi_msim_gui_file_chooser_dialog_destroy(dialog) \
 		g_object_unref(dialog)
-	#define xmimsim_gui_file_chooser_dialog_set_modal(dialog, boolean) \
+	#define xmi_msim_gui_file_chooser_dialog_set_modal(dialog, boolean) \
 		gtk_native_dialog_set_modal(GTK_NATIVE_DIALOG(dialog), boolean)
 #else
 	typedef GtkWidget XmiMsimGuiFileChooserDialog;
-	#define xmimsim_gui_file_chooser_dialog_new(title, window, action, accept_label, cancel_label) \
+	#define xmi_msim_gui_file_chooser_dialog_new(title, window, action, accept_label, cancel_label) \
 		gtk_file_chooser_dialog_new( \
 			title, \
 			window, \
@@ -51,11 +51,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 			GTK_RESPONSE_CANCEL, \
 			NULL \
 		)
-	#define xmimsim_gui_file_chooser_dialog_run(dialog) \
+	#define xmi_msim_gui_file_chooser_dialog_run(dialog) \
 		gtk_dialog_run(GTK_DIALOG(dialog))
-	#define xmimsim_gui_file_chooser_dialog_destroy(dialog) \
+	#define xmi_msim_gui_file_chooser_dialog_destroy(dialog) \
 		gtk_widget_destroy(dialog)
-	#define xmimsim_gui_file_chooser_dialog_set_modal(dialog, boolean) \
+	#define xmi_msim_gui_file_chooser_dialog_set_modal(dialog, boolean) \
 		gtk_window_set_modal(GTK_WINDOW(dialog), boolean)
 #endif
 
