@@ -29,8 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 			title, \
 			window, \
 			action, \
-			accept_label, \
-			cancel_label \
+			NULL, \
+			NULL \
 		)
 	#define xmi_msim_gui_file_chooser_dialog_run(dialog) \
 		gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog))
