@@ -117,13 +117,17 @@ PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 EASYRNG_FOUND=no
 PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.1],
 	[
-	# TODO check if the Fortran bindings are available
-	AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
-	AC_SUBST([fortran_rng], "easyRNG >= 1.1")
-	AC_SUBST([RNG], "easyRNG")
-	EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
-	AC_DEFINE_UNQUOTED([EASYRNG_VERSION], $EASYRNG_VERSION, [easyRNG version])
-	EASYRNG_FOUND=yes
+	WITH_FORTRAN=`$PKG_CONFIG --variable=with_fortran easyRNG`
+	if test x$WITH_FORTRAN = xyes ; then
+		AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
+		AC_SUBST([fortran_rng], "easyRNG >= 1.1")
+		AC_SUBST([RNG], "easyRNG")
+		EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
+		AC_DEFINE_UNQUOTED([EASYRNG_VERSION], $EASYRNG_VERSION, [easyRNG version])
+		EASYRNG_FOUND=yes
+	else
+		EASYRNG_FOUND=no
+	fi
 	],[
 	EASYRNG_FOUND=no
 	])
