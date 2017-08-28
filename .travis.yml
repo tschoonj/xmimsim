@@ -547,6 +547,26 @@ matrix:
     ### Mac OS X
     ###
     ###
+    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with mac-integration
+    # with openCL
+    # with google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode8 # OS X 10.12 El Capitan
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration libsoup' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
+    # with updater
+    # with gui
+    # with mac-integration
+    # with openCL
+    # with google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode8.2 # OS X 10.12 Sierra
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration libsoup' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # OS X 10.11 El Capitan: fgsl and gtkextra
     # no updater
     # with gui

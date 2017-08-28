@@ -32,6 +32,10 @@ if ENABLE_QUICKLOOK
   check_PROGRAMS += test-libxmimsim-ql
 endif
 
+if ENABLE_GOOGLE_ANALYTICS
+  check_PROGRAMS += test-gui-google-analytics-tracker
+endif
+
 TESTS = $(check_PROGRAMS)
 
 libxmimsim_test_la_SOURCES = \
@@ -144,6 +148,10 @@ test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 test_libxmimsim_ql_SOURCES = test-libxmimsim-ql.c
 test_libxmimsim_ql_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @xml2_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@ -DMAC_INTEGRATION
 test_libxmimsim_ql_LDADD = ../src/libxmimsim-ql.la
+
+test_gui_google_analytics_tracker_SOURCES = test-gui-google-analytics-tracker.c
+test_gui_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/bin @glib2_CFLAGS@
+test_gui_google_analytics_tracker_LDADD = ../bin/libxmimsim-gui-google-analytics.la
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
