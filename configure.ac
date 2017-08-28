@@ -279,6 +279,27 @@ if test "x$GTK_FOUND" = xyes ; then
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
 
+AC_ARG_ENABLE([google-analytics],[AS_HELP_STRING([--disable-google-analytics],[build without google analytics support])],[enable_google_analytics=$enableval],[enable_google_analytics=check])
+
+GOOGLE_ANALYTICS_FOUND=no
+if test "x$enable_google_analytics" != xno ; then
+	PKG_CHECK_MODULES(GOOGLE_ANALYTICS, [libsoup-2.4 gobject-2.0 >= 2.52.0],
+		[
+		GOOGLE_ANALYTICS_FOUND=yes
+		AC_SUBST(GOOGLE_ANALYTICS_PC, "libsoup-2.4 gobject-2.0 >= 2.52.0")
+		AC_DEFINE([HAVE_GOOGLE_ANALYTICS], [], [Google Analytics support present])
+		AC_MSG_NOTICE([Building with support for Google Analytics Event tracking])
+		],
+		[
+		if test "x$enable_google_analytics" = xyes ; then
+			AC_MSG_ERROR([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
+		fi
+		AC_MSG_WARN([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
+		GTK_MAC_INTEGRATION_FOUND=no
+		])
+fi
+AM_CONDITIONAL([ENABLE_GOOGLE_ANALYTICS],[test "x$GOOGLE_ANALYTICS_FOUND" = xyes])
+
 # quicklook support -> need GTKmm3 and PLplot!
 QUICKLOOK_DEPS_FOUND=
 if test "x$GTK_FOUND" = xyes && test "x$CXX_MODE" = xyes ; then

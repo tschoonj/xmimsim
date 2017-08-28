@@ -12,12 +12,17 @@ if test -z ${PLOT+x} ; then
 else
 	CONFIGURE_OPTIONS+="--enable-gui "
 	if test $UPDATER = "true" ; then
-		CONFIGURE_OPTIONS+="--enable-updater"
+		CONFIGURE_OPTIONS+="--enable-updater "
 	else
-		CONFIGURE_OPTIONS+="--disable-updater"
+		CONFIGURE_OPTIONS+="--disable-updater "
 	fi
 fi
 
+if test -z ${GOOGLE_ANALYTICS+x} ; then
+	:
+else
+	CONFIGURE_OPTIONS+="--enable-google-analytics "
+fi
 
 cd $APPVEYOR_BUILD_FOLDER
 autoreconf -fi

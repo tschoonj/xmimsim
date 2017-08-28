@@ -103,3 +103,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	fi
 fi
 
+if test -z ${GOOGLE_ANALYTICS+x} ; then
+	# do nothing
+	:
+else
+	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-libsoup
+fi
