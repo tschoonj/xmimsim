@@ -9,14 +9,17 @@ check_PROGRAMS = \
      test-xmso2csv \
      test-xmso2htm \
      test-xmso2spe \
-     test-cubic-spline \
      test-pile-up \
      test-xmimsim-main-CaSO4
 
 if ENABLE_GUI
+  check_PROGRAMS += test-cubic-spline
   check_PROGRAMS += test-xmso2svg
 if ENABLE_CXX
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
+endif
+if ENABLE_GOOGLE_ANALYTICS
+  check_PROGRAMS += test-gui-google-analytics-tracker
 endif
 endif
 
@@ -32,9 +35,6 @@ if ENABLE_QUICKLOOK
   check_PROGRAMS += test-libxmimsim-ql
 endif
 
-if ENABLE_GOOGLE_ANALYTICS
-  check_PROGRAMS += test-gui-google-analytics-tracker
-endif
 
 TESTS = $(check_PROGRAMS)
 
