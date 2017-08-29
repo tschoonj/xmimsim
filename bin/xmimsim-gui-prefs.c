@@ -422,7 +422,6 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE))) > 0) {
 		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(pw->custom_detector_responseE)));
-		g_free(xpv.s);
 	}
 	else
 		xpv.s = NULL;
@@ -430,6 +429,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
+	g_free(xpv.s);
 
 	xpv.s = g_strdup(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(pw->default_save_folderW)));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, xpv) == 0) {
@@ -482,11 +482,12 @@ int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
-	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", FALSE);
+	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
 	g_key_file_set_string(keyfile, "Preferences","Default save folder", g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
+	g_key_file_set_boolean(keyfile, "Preferences","Notifications", TRUE);
 
 
 	//save file
