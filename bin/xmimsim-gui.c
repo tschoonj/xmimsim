@@ -89,6 +89,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtkmm/main.h>
 #endif
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+#include "xmimsim-gui-google-analytics.h"
+#endif
+
 #define UNLIKELY_FILENAME "Kabouter Wesley rules!"
 
 
@@ -6261,6 +6265,32 @@ XMI_MAIN
 
 	gtk_widget_grab_focus(gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),input_page));
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+	union xmimsim_prefs_val xpv;
+	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP, &xpv);
+	gboolean aid = xpv.b;
+	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID, &xpv);
+	gchar *uuid = xpv.s;
+	xmi_msim_gui_google_analytics_tracker_create_global(uuid, aid);
+	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+
+#ifdef __APPLE__
+	const gchar os[] = "macOS";
+#elif defined(__WIN64)
+	const gchar os[] = "Windows 64-bit";
+#elif defined(__WIN32)
+	const gchar os[] = "Windows 32-bit";
+#elif defined(__linux)
+	const gchar os[] = "Linux";
+#else
+	const gchar os[] = "Unknown";
+#endif
+
+	gchar *event_label = g_strdup_printf("OS: %s VERSION: %s", os, PACKAGE_VERSION);
+
+	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "LAUNCH", event_label, NULL);
+	g_free(event_label);
+#endif
 
 	xmimsim_notifications_init();
 	add_to_control_widgets(superframe);
