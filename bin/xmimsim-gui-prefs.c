@@ -34,6 +34,10 @@
 #include "xmimsim-gui-updater.h"
 #endif
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+#include "xmimsim-gui-google-analytics.h"
+#endif
+
 struct prefsWidgets {
 	GtkWidget *parent_window;
 	GtkWidget *window;
@@ -62,6 +66,9 @@ struct prefsWidgets {
 	GtkWidget *notificationsW;
 #endif
 	GtkWidget *default_save_folderW;
+#ifdef HAVE_GOOGLE_ANALYTICS
+	GtkWidget *google_analytics_anonymize_ipW;
+#endif
 	GArray *deleted_layers;
 	GtkWidget *layers_tree_view;
 };
@@ -437,6 +444,18 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		preferences_error_handler(pw->window);
 	}
 	g_free(xpv.s);
+
+#ifdef HAVE_GOOGLE_ANALYTICS
+	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->google_analytics_anonymize_ipW));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP, xpv) == 0) {
+		//abort
+		preferences_error_handler(pw->window);
+	}
+	xmi_msim_gui_google_analytics_tracker_free_global();
+	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID, &xpv);
+	xmi_msim_gui_google_analytics_tracker_create_global(xpv.s, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->google_analytics_anonymize_ipW)));
+
+#endif
 
 	// delete layers
 	int i;
@@ -946,6 +965,41 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			}
 			break;
 #endif
+#ifdef HAVE_GOOGLE_ANALYTICS
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP:
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Google Analytics Anonymize IP", &error);
+			if (error != NULL) {
+				//error
+				g_warning("Google Analytics Anonymize IP not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Anonymize IP", FALSE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+				prefs->b = FALSE;
+			}
+			break;
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID:
+			{
+			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Google Analytics UUID", &error);
+			if (error != NULL) {
+				//error
+				g_warning("Google Analytics UUID not found in preferences file\n");
+				gchar *uuid = g_uuid_string_random();
+				g_key_file_set_string(keyfile, "Preferences", "Google Analytics UUID", uuid);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+				prefs->s = uuid;
+				break;
+			}
+			prefs->s = temps;
+			}
+			break;
+#endif
 		default:
 			g_warning("Unknown preference requested in xmimsim_gui_get_prefs\n");
 			return 0;
@@ -1026,6 +1080,14 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
 			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
+			break;
+#endif
+#ifdef HAVE_GOOGLE_ANALYTICS
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP:
+			g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Anonymize IP", prefs.b);
+			break;
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID:
+			g_key_file_set_string(keyfile, "Preferences","Google Analytics UUID", prefs.s);
 			break;
 #endif
 		default:
@@ -1497,10 +1559,17 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(hbox), pw->default_save_folderW, TRUE, TRUE, 3);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 
-	//back to master_box
-	//separator
-	//GtkWidget *separator = gtk_hseparator_new();
-	//gtk_box_pack_start(GTK_BOX(master_box), separator, FALSE, FALSE, 3);
+#ifdef HAVE_GOOGLE_ANALYTICS
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
+	pw->google_analytics_anonymize_ipW = gtk_check_button_new_with_label("Enable Google Analytics IP address anonymization");
+	gtk_widget_set_tooltip_text(pw->google_analytics_anonymize_ipW, "Check this button to enable Google Analytics IP address anonymization. Please note that the IP address is only used to get an approximate geographical location. At no point is the actual IP address available to the developers");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP, &xpv) == 0) {
+		//abort
+		preferences_error_handler(main_window);
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->google_analytics_anonymize_ipW), xpv.b);
+	gtk_box_pack_start(GTK_BOX(superframe), pw->google_analytics_anonymize_ipW, FALSE, FALSE, 3);
+#endif
 
 	//button box
 	buttonbox = gtk_hbox_new(TRUE, 2);
