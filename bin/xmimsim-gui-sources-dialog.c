@@ -24,6 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+#include <xmimsim-gui-google-analytics.h>
+#endif
+
 #if GTK_MAJOR_VERSION == 3
 class Plot2DSources : public Gtk::PLplot::Plot2D {
 	public:
@@ -81,6 +85,10 @@ static void generate_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
 
 	// get currently active notebook page
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+#ifdef HAVE_GOOGLE_ANALYTICS
+	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SOURCES-DIALOG-GENERATE", xmi_msim_gui_source_abstract_get_name(source), NULL);
+#endif
 	xmi_msim_gui_source_abstract_generate(source);
 
 }

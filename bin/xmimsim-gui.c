@@ -7676,6 +7676,11 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 #undef EB_CONNECT
 
 	gtk_widget_show_all(cs_window);
+
+#ifdef HAVE_GOOGLE_ANALYTICS
+	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SHOW-GEOMETRY-HELP", NULL, NULL);
+#endif
 }
 
 #if !GLIB_CHECK_VERSION (2, 28, 0)

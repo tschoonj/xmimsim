@@ -260,12 +260,13 @@ if ENABLE_GUI
 noinst_LTLIBRARIES += libxmimsim-gui-spline.la
 libxmimsim_gui_include_HEADERS += xmimsim-gui-spline.h
 libxmimsim_gui_spline_la_SOURCES = \
-		      xmimsim-gui-spline.h \
-		      xmimsim-gui-spline.c
+		xmimsim-gui-spline.h \
+		xmimsim-gui-spline.c
 libxmimsim_gui_spline_la_CPPFLAGS = \
-		     -I$(top_srcdir)/include \
-		     @xraylib_CFLAGS@ \
-		     @glib2_CFLAGS@
+		-I$(top_srcdir)/include \
+		@xraylib_CFLAGS@ \
+		$(AM_CPPFLAGS) \
+		@glib2_CFLAGS@
 libxmimsim_gui_spline_la_LIBADD = ../src/libxmimsim.la
 libxmimsim_gui_la_LIBADD += libxmimsim-gui-spline.la 
 endif
@@ -278,8 +279,9 @@ libxmimsim_gui_google_analytics_la_SOURCES = \
 		      xmimsim-gui-google-analytics.h \
 		      xmimsim-gui-google-analytics.c
 libxmimsim_gui_google_analytics_la_CPPFLAGS = \
-		     -I$(top_srcdir)/include \
-		     @GOOGLE_ANALYTICS_CFLAGS@
+		$(AM_CPPFLAGS) \
+		-I$(top_srcdir)/include \
+		@GOOGLE_ANALYTICS_CFLAGS@
 libxmimsim_gui_google_analytics_la_LIBADD = @GOOGLE_ANALYTICS_LIBS@
 libxmimsim_gui_la_LIBADD += libxmimsim-gui-google-analytics.la 
 endif

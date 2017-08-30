@@ -22,6 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include "xmimsim-gui-prefs.h"
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+  #include "xmimsim-gui-google-analytics.h"
+#endif
+
 G_DEFINE_TYPE(XmiMsimGuiCatalogDialog, xmi_msim_gui_catalog_dialog, GTK_TYPE_DIALOG)
 
 static void combo_changed(GtkWidget *comboBox, GtkToggleButton *radio);
@@ -114,6 +118,9 @@ static void combo_changed(GtkWidget *comboBox, GtkToggleButton *radio) {
 
 struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog) {
   struct xmi_layer *rv;
+#ifdef HAVE_GOOGLE_ANALYTICS
+  gchar *event_label = NULL;
+#endif
   if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->nist_radioW))) {
     int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->nist_comboW));
     struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
@@ -127,6 +134,9 @@ struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog 
     rv = compoundDataNIST2xmi_layer(cdn);
     rv->thickness = 0.0;
     FreeCompoundDataNIST(cdn);
+#ifdef HAVE_GOOGLE_ANALYTICS
+    event_label = g_strdup("XRAYLIB-NIST");
+#endif
   }
   else {
     gchar *user_comp;
@@ -137,6 +147,14 @@ struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog 
       fprintf(stderr,"Fatal error in xmimsim_gui_get_user_defined_layer\n");
       return NULL;
     }
+#ifdef HAVE_GOOGLE_ANALYTICS
+    event_label = g_strdup("USER_DEFINED");
+#endif
   }
+#ifdef HAVE_GOOGLE_ANALYTICS
+  const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+  xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-CATALOG-DIALOG", event_label, NULL);
+  g_free(event_label);
+#endif
   return rv;
 }

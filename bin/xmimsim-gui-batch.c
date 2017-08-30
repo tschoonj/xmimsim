@@ -85,7 +85,9 @@ xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPath
 
 #endif
 
-
+#ifdef HAVE_GOOGLE_ANALYTICS
+  #include "xmimsim-gui-google-analytics.h"
+#endif
 
 struct canvas_data {
 	double width;
@@ -1980,6 +1982,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				//g_fprintf(stdout,"wizard aborted\n");
 				return;
 			}
+#ifdef HAVE_GOOGLE_ANALYTICS
+			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-MULTIPLE-OPTIONS", NULL);
+#endif
 		}
 		else if (response == GTK_RESPONSE_NO) {
 			//options apply to all
@@ -1991,6 +1997,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				return;
 			}
 			//options are set
+#ifdef HAVE_GOOGLE_ANALYTICS
+			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-SINGLE-OPTION", NULL);
+#endif
 		}
 		else {
    			gtk_widget_destroy (dialog);
@@ -2019,12 +2029,22 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		int rv = select_parameter(window, input, &xpath1, &xpath2, &allowed1, &allowed2);
 		//g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
-			g_fprintf(stdout, "xpath1: %s\n", xpath1);
-			g_fprintf(stdout, "allowed1: %i\n", allowed1);
+			g_debug("xpath1: %s", xpath1);
+			g_debug("allowed1: %i", allowed1);
 			if (xpath2) {
-				g_fprintf(stdout, "xpath2: %s\n", xpath2);
-				g_fprintf(stdout, "allowed2: %i\n", allowed2);
+				g_debug("xpath2: %s", xpath2);
+				g_debug("allowed2: %i", allowed2);
 			}
+#ifdef HAVE_GOOGLE_ANALYTICS
+			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+			gchar *event_label = NULL;
+			if (xpath2)
+				event_label = g_strdup_printf("SINGLE-FILE-%s-%s", xpath1, xpath2);
+			else
+				event_label = g_strdup_printf("SINGLE-FILE-%s", xpath1);
+			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", event_label, NULL);
+			g_free(event_label);
+#endif
 		}
 		else
 			return;

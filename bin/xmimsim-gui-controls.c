@@ -47,7 +47,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #define real_xmimsim_pid ((int) GetProcessId((HANDLE) xmimsim_pid))
 #endif
 
-
+#ifdef HAVE_GOOGLE_ANALYTICS
+  #include "xmimsim-gui-google-analytics.h"
+#endif
 
 
 #ifdef MAC_INTEGRATION
@@ -509,7 +511,11 @@ void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	const gchar *encoding = NULL;
 	struct child_data *cd;
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SIMULATION-START", NULL, NULL);
 
+#endif
 
 	//freeze gui except for pause and stop buttons
 	gtk_widget_set_sensitive(playButton,FALSE);
