@@ -966,6 +966,20 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			break;
 #endif
 #ifdef HAVE_GOOGLE_ANALYTICS
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG:
+			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Google Analytics Show Startup Dialog", &error);
+			if (error != NULL) {
+				//error
+				g_warning("Google Analytics Show Startup Dialog not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Show Startup Dialog", TRUE);
+				//save file
+				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
+				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
+					return 0;
+				g_free(prefs_file_contents);
+				prefs->b = TRUE;
+			}
+			break;
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP:
 			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Google Analytics Anonymize IP", &error);
 			if (error != NULL) {
@@ -1083,6 +1097,9 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 			break;
 #endif
 #ifdef HAVE_GOOGLE_ANALYTICS
+		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG:
+			g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Show Startup Dialog", prefs.b);
+			break;
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP:
 			g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Anonymize IP", prefs.b);
 			break;
@@ -1562,7 +1579,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 #ifdef HAVE_GOOGLE_ANALYTICS
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
 	pw->google_analytics_anonymize_ipW = gtk_check_button_new_with_label("Enable Google Analytics IP address anonymization");
-	gtk_widget_set_tooltip_text(pw->google_analytics_anonymize_ipW, "Check this button to enable Google Analytics IP address anonymization. Please note that the IP address is only used to get an approximate geographical location. At no point is the actual IP address available to the developers");
+	gtk_widget_set_tooltip_text(pw->google_analytics_anonymize_ipW, "Check this button to enable Google Analytics IP address anonymization. Please note that the IP address is only used by Google Analytics to get an approximate geographical location of the machine that launched the XMI-MSIM session. Even when this setting is set to false (the default), the developers of XMI-MSIM do not have access to the actual IP addresses through the Google Analytics interface.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP, &xpv) == 0) {
 		//abort
 		preferences_error_handler(main_window);
