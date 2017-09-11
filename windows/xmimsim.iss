@@ -21,7 +21,7 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.10-2017-04-05-ts-win64.exe"
+  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.19-2017-09-11-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
   #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
@@ -87,23 +87,16 @@ Name: "source" ; Description: "Source code" ; Types: full
 [Files]
 Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 #ifdef XMI_MSIM64
-Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgfortran-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libidn-11.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libnghttp2-14.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\librtmp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libssh2-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgmp-10.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgnutls-30.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libhogweed-4.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libnettle-6.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libp11-kit-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libtasn1-6.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libunistring-2.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libidn2-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
