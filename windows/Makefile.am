@@ -13,6 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+GTK3_RUNTIME_TAG = 2017-09-11
+GTK3_RUNTIME_FILE = gtk3-runtime-3.22.19-2017-09-11-ts-win64.exe
+
 common:
 	cp ../src/libxmimsim-0.def .
 	cp ../bin/libxmimsim-gui-0.def .
@@ -52,11 +55,18 @@ iss:
 endif
 
 if OS_WINDOWS_64
-iss:
+
+gtk3_runtime_file_stamp:
+	wget  https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/download/$(GTK3_RUNTIME_TAG)/$(GTK3_RUNTIME_FILE)
+	touch gtk3_runtime_file_stamp
+
+iss: gtk3_runtime_file_stamp
 	$(MAKE) common
 	lib /machine:X64 /def:libxmimsim-0.def
 	lib /machine:X64 /def:libxmimsim-gui-0.def
-	iscc.exe "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dXMI_MSIM64" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "$(srcdir)/xmimsim.iss"
+	iscc.exe "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dXMI_MSIM64" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
 endif
 
 EXTRA_DIST = xmimsim.iss GPLv3.rtf
+clean-local:
+	rm -f gtk3_runtime_file_stamp $(GTK3_RUNTIME_FILE)

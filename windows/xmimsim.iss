@@ -21,7 +21,6 @@
 
 #ifdef XMI_MSIM64
   #define MyAppName "XMI-MSIM 64-bit"
-  #define GTK_INSTALLER_EXE "gtk3-runtime-3.22.19-2017-09-11-ts-win64.exe"
   #define MY_MINGW "C:\msys64\mingw64\"
   #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 #else
@@ -85,8 +84,8 @@ Name: "examples" ; Description: "Examples" ; Types: full
 Name: "source" ; Description: "Source code" ; Types: full
 
 [Files]
-Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 #ifdef XMI_MSIM64
+Source: "{#builddir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 Source: "{#MY_MINGW}\bin\libgfortran-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -109,6 +108,7 @@ Source: "{#MY_HOME}\install\share\plplot5.11.1\*.*" ; DestDir: "{app}\Share\plpl
 Source: "{#MY_HOME}\install\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 #else
+Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgcc_s_sjlj-1.dll" ; DestDir: "{app}\Lib" ; Components: core
