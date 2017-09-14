@@ -932,7 +932,9 @@ static struct energiesWidget *initialize_single_energies(void *energies, int n_e
 	//gtk_widget_size_request(scrolledWindow,&size);
 	gtk_widget_set_size_request(scrolledWindow, -1,230);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
-	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
+	GtkWidget *tree_frame = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(tree_frame), scrolledWindow);
+	gtk_box_pack_start(GTK_BOX(mainbox), tree_frame, TRUE, TRUE, 3);
 
 	eb = (struct energyWidget *) g_malloc(sizeof(struct energyWidget));
 	eb->kind = kind;

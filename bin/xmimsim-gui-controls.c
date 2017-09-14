@@ -1286,8 +1286,9 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), controlsLogW);
-	gtk_box_pack_start(GTK_BOX(hbox_controls), scrolled_window, TRUE, TRUE, 3);
-
+	GtkWidget *controls_frameW = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(controls_frameW), scrolled_window);
+	gtk_box_pack_start(GTK_BOX(hbox_controls), controls_frameW, TRUE, TRUE, 3);
 
 	gtk_container_set_border_width(GTK_CONTAINER(hbox_controls),10);
 	gtk_box_pack_start(GTK_BOX(superframe),hbox_controls, FALSE, FALSE,2);

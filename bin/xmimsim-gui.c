@@ -2415,7 +2415,9 @@ GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
 	//gtk_widget_size_request(scrolledWindow,&size);
 	//gtk_widget_set_size_request(scrolledWindow, 550,100);
 	gtk_container_add(GTK_CONTAINER(scrolledWindow), tree);
-	gtk_box_pack_start(GTK_BOX(mainbox),scrolledWindow, TRUE, TRUE,3 );
+	GtkWidget *tree_frameW = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(tree_frameW), scrolledWindow);
+	gtk_box_pack_start(GTK_BOX(mainbox), tree_frameW, TRUE, TRUE, 3);
 
 	select = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
@@ -5621,7 +5623,9 @@ XMI_MAIN
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), commentsW);
 	gtk_widget_set_size_request(scrolled_window,700,100);
-	gtk_box_pack_end(GTK_BOX(hbox_text_label),scrolled_window,TRUE,TRUE,0);
+	GtkWidget *comments_frameW = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(comments_frameW), scrolled_window);
+	gtk_box_pack_end(GTK_BOX(hbox_text_label), comments_frameW, TRUE, TRUE, 0);
 
 	gtk_container_add(GTK_CONTAINER(frame),vbox_notebook);
 
