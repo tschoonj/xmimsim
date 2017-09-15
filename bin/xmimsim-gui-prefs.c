@@ -1409,9 +1409,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	//gtk_widget_set_size_request(scrolled_window, 300,150);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_layers);
-	frame = gtk_frame_new(NULL);
-	gtk_container_add(GTK_CONTAINER(frame), scrolled_window);
-	gtk_box_pack_start(GTK_BOX(superframe), frame, TRUE, TRUE, 3);
+	GtkWidget *frame2 = gtk_frame_new(NULL);
+	gtk_container_add(GTK_CONTAINER(frame2), scrolled_window);
+	gtk_box_pack_start(GTK_BOX(superframe), frame2, TRUE, TRUE, 3);
 	//populate tree
 	if (layer_names != NULL && g_strv_length(layer_names) > 0) {
 		for (i= 0 ; i < g_strv_length(layer_names) ; i++) {
