@@ -55,10 +55,11 @@
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/printbackends/*.so</binary>
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/immodules/*.so</binary>-->
 <binary>${prefix:macports}/lib/gdk-pixbuf-2.0/${pkg:gtk+-2.0:gtk_binary_version}/loaders/*.so</binary>
+<binary>${prefix:macports}/lib/gio/modules/*.so</binary>
 
 <data>${prefix:macports}/share/themes</data>
 <data>${prefix:install}/share/icons</data>
-<data>${prefix:install}/share/plplot5.11.1/</data>
+<data>${prefix:macports}/share/plplot5.12.0/</data>
 <data>${prefix:macports}/share/glib-2.0/schemas/</data>
 <data>${prefix:macports}/share/mime/packages/freedesktop.org.xml</data>
 <data dest="${bundle}/Contents/Resources/share/mime/packages/applications-x-xmimsim.xml">${prefix:source}/icons/applications-x-xmimsim.xml</data>

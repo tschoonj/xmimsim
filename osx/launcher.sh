@@ -27,7 +27,7 @@ export XDG_DATA_DIRS="$bundle_data"
 export GTK_DATA_PREFIX="$bundle_res"
 export GTK_EXE_PREFIX="$bundle_res"
 export GTK_PATH="$bundle_res"
-export PLPLOT_LIB="$bundle_data"/plplot5.11.1/
+export PLPLOT_LIB="$bundle_data"/plplot5.12.0/
 
 export GDK_PIXBUF_MODULE_FILE="$bundle_lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
 if [ `uname -r | cut -d . -f 1` -ge 10 ]; then
