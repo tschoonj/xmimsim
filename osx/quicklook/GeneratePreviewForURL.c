@@ -47,6 +47,11 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
     CFRelease(bundleUrl);
     char *resourcesPath = g_strdup_printf("%s/Contents/Resources/", bundlePath);
     
+    //ensure plplot finds its files
+    char *plplotPath = g_strdup_printf("%s/Contents/plplot", bundlePath);
+    g_setenv("PLPLOT_LIB", plplotPath, TRUE);
+    g_free(plplotPath);
+
     const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
     xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resourcesPath, NULL, NULL);
     g_free(resourcesPath);
