@@ -1,8 +1,11 @@
+set -e
+set -x
+export PATH=$PATH:$HOME/.local/bin
 rm -rf .xmimsim-gui.app 
 gtk-mac-bundler xmimsim.bundle || exit 1
 #find XMI-MSIM.app -name '*.svg' | xargs rm
-gtk-update-icon-cache --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/hicolor
-gtk-update-icon-cache --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/Adwaita
+gtk-update-icon-cache-3.0 --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/hicolor
+gtk-update-icon-cache-3.0 --include-image-data --quiet XMI-MSIM.app/Contents/Resources/share/icons/Adwaita
 update-mime-database XMI-MSIM.app/Contents/Resources/share/mime
 mkdir -p XMI-MSIM.app/Contents/Resources/etc/gtk-3.0
 cp settings.ini XMI-MSIM.app/Contents/Resources/etc/gtk-3.0/

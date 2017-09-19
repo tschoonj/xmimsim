@@ -38,6 +38,19 @@ char* xmi_application_get_resource_path() {
 	return str;
 }
 
+char* xmi_application_get_bundle_path() {
+	char *str = NULL;
+	CFBundleRef bundle = CFBundleGetMainBundle();
+	if (!bundle)
+		return NULL;
+	CFURLRef url = CFBundleCopyBundleURL(bundle);
+	CFStringRef path = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle);
+	CFRelease(url);
+	str = g_strdup(CFStringGetCStringPtr(path, kCFStringEncodingUTF8));
+	CFRelease(path);
+	return str;
+}
+
 
 int xmi_resources_mac_query(int kind, char **resource_file) {
 	gchar *resource_path;

@@ -22,6 +22,7 @@ bundle_bin="$bundle_res"/bin
 bundle_data="$bundle_res"/share
 bundle_etc="$bundle_res"/etc
 
+export GIO_MODULE_DIR="$bundle_lib"/gio/modules
 export XDG_CONFIG_DIRS="$bundle_etc"
 export XDG_DATA_DIRS="$bundle_data"
 export GTK_DATA_PREFIX="$bundle_res"

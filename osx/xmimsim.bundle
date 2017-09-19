@@ -11,7 +11,7 @@
 	<destination overwrite="yes">${env:PWD}</destination>
 	<launcher-script>${prefix:source}/osx/launcher.sh</launcher-script>
 	<run-install-name-tool/>
-	<gtk>gtk+3.0</gtk>
+	<gtk>gtk+-3.0</gtk>
 </meta>
 
 <plist>${prefix:build}/osx/Info.plist</plist>
@@ -30,7 +30,6 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSI.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSO.icns</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim_MacOSX_XMSA.icns</data>
-<data dest="${bundle}/Contents/Resources">${prefix:build}/xmimsim-6.0.tar.gz</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/License.rtf</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
@@ -43,9 +42,9 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/sse.h</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/threefry.h</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/src/xmi_kernels.cl</data>
-<data dest="${bundle}/Contents/Resources">${prefix:install}/lib/xmimsim/xmimsim-cl.so</data>
-<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-radionuclide.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-radionuclide.so</data>
-<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-tube-ebel.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-tube-ebel.so</data>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/lib/xmimsim/xmimsim-cl.so</binary>
+<binary dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-radionuclide.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-radionuclide.so</binary>
+<binary dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-tube-ebel.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-tube-ebel.so</binary>
 <data dest="${bundle}/Contents/Resources/include/xmimsim">${prefix:install}/include/xmimsim</data>
 <data dest="${bundle}/Contents/Resources/include/xmimsim-gui">${prefix:install}/include/xmimsim-gui</data>
 
@@ -54,9 +53,10 @@
 <binary>${prefix:macports}/lib/gtk-2.0/modules/*.so</binary>
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/printbackends/*.so</binary>
 <binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/immodules/*.so</binary>-->
-<binary>${prefix:macports}/lib/gdk-pixbuf-2.0/${pkg:gtk+-2.0:gtk_binary_version}/loaders/*.so</binary>
-<binary>${prefix:macports}/lib/gio/modules/*.so</binary>
+<binary>${prefix:macports}/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.so</binary>
+<binary>${prefix:macports}/lib/gio/modules/libgiognutls.so</binary>
 
+<data>${prefix:macports}/share/curl/curl-ca-bundle.crt</data>
 <data>${prefix:macports}/share/themes</data>
 <data>${prefix:install}/share/icons</data>
 <data>${prefix:macports}/share/plplot5.12.0/</data>
