@@ -34,6 +34,8 @@ ql: xmimsim-ql.la
 	cp $(top_srcdir)/xml/xmimsim-1.0.dtd xmi-msim.qlgenerator/Contents/Resources/ 
 	touch ql
 	python $(srcdir)/finalize-quicklook.py xmi-msim.qlgenerator/Contents/MacOS/xmimsim-ql
+	$(MKDIR_P) xmi-msim.qlgenerator/Contents/plplot
+	cp -a `pkg-config --variable=libdir plplot`/../share/plplot*/* xmi-msim.qlgenerator/Contents/plplot
 
 ql-test: ql
 	qlmanage -g xmi-msim.qlgenerator -c be.ugent.xmi.xmi-msim.xmso -p $(top_srcdir)/examples/srm1155.xmso
