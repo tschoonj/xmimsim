@@ -57,6 +57,11 @@ int xmi_resources_mac_query(int kind, char **resource_file);
  */
 char* xmi_application_get_resource_path();
 
+/*
+ * Get bundle path
+ */
+char* xmi_application_get_bundle_path();
+
 #ifdef __cplusplus
 }
 #endif
