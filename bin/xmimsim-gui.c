@@ -5038,7 +5038,6 @@ XMI_MAIN
 
 #ifdef MAC_INTEGRATION
 	char *bundle_path = xmi_application_get_bundle_path();
-	fprintf(stdout, "bundle_path: %s\n", bundle_path);
 	char *gtls_system_ca_file = g_strdup_printf("%s/Contents/Resources/share/curl/curl-ca-bundle.crt", bundle_path);
 	g_setenv("GTLS_SYSTEM_CA_FILE", gtls_system_ca_file, TRUE);
 	g_free(bundle_path);
