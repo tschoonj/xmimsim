@@ -53,9 +53,9 @@ enum xmi_resources_mac {
 int xmi_resources_mac_query(int kind, char **resource_file);
 
 /*
- * Get bundle path
+ * Get resources path
  */
-char* xmi_application_get_bundle_path();
+char* xmi_application_get_resource_path();
 
 #ifdef __cplusplus
 }
