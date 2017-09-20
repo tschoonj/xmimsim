@@ -15,75 +15,73 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MAC_INTEGRATION) && !defined(QUICKLOOK)
+#if !defined(MAC_INTEGRATION)
 #error xmi_resources_mac.c should not be compiled without defining MAC_INTEGRATION
 #endif
 
 #include "config.h"
 #include "xmi_resources_mac.h"
 #include "xmi_aux.h"
-#include <CoreFoundation/CoreFoundation.h>
+#include <Foundation/Foundation.h>
 #include <glib.h>
 
-char* xmi_application_get_bundle_path() {
+char* xmi_application_get_resource_path() {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	char *str = NULL;
-	CFBundleRef bundle = CFBundleGetMainBundle();
-	if (!bundle)
+	NSString *path = [[NSBundle mainBundle] resourcePath];
+	if (!path)
 		return NULL;
-	CFURLRef url = CFBundleCopyBundleURL(bundle);
-	CFStringRef path = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle);
-	CFRelease(url);
-	str = g_strdup(CFStringGetCStringPtr(path, kCFStringEncodingUTF8));
-	CFRelease(path);
+	str = strdup ([path UTF8String]);
+	[pool release];
 	return str;
 }
 
 int xmi_resources_mac_query(int kind, char **resource_file) {
-	gchar *bundle_path;
+	gchar *resource_path;
 	gchar *temp;
 
-	bundle_path = xmi_application_get_bundle_path();
-	if (bundle_path == NULL) {
+	resource_path = xmi_application_get_resource_path();
+	if (resource_path == NULL) {
 		fprintf(stderr, "Could not get bundle path!\n");
 		return 0;
 	}
 
 	switch (kind) {
 		case XMI_RESOURCES_MAC_DATA:
-			temp = g_strdup_printf("%s/Contents/Resources/xmimsimdata.h5",bundle_path);
+			temp = g_strdup_printf("%s/xmimsimdata.h5",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSO2XMSI:
-			temp = g_strdup_printf("%s/Contents/Resources/xmso2xmsi.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmso2xmsi.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSO2SVG:
-			temp = g_strdup_printf("%s/Contents/Resources/xmso2svg.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmso2svg.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSO2SPE:
-			temp = g_strdup_printf("%s/Contents/Resources/xmso2spe.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmso2spe.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSO2CSV:
-			temp = g_strdup_printf("%s/Contents/Resources/xmso2csv.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmso2csv.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSO2HTM:
-			temp = g_strdup_printf("%s/Contents/Resources/xmso2htm.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmso2htm.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMIMSIM_EXEC:
-			temp = g_strdup_printf("%s/Contents/Resources/xmimsim",bundle_path);
+			temp = g_strdup_printf("%s/xmimsim",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_OPENCL_CODE:
-			temp = g_strdup_printf("%s/Contents/Resources/",bundle_path);
+			temp = g_strdup_printf("%s/",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_OPENCL_LIB:
-			temp = g_strdup_printf("%s/Contents/Resources/",bundle_path);
+			temp = g_strdup_printf("%s/",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_XMSA2XMSO:
-			temp = g_strdup_printf("%s/Contents/Resources/xmsa2xmso.xml",bundle_path);
+			temp = g_strdup_printf("%s/xmsa2xmso.xml",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_SOURCES:
-			temp = g_strdup_printf("%s/Contents/Resources/sources",bundle_path);
+			temp = g_strdup_printf("%s/sources",resource_path);
 			break;
 		case XMI_RESOURCES_MAC_COORDINATE_SYSTEM:
-			temp = g_strdup_printf("%s/Contents/Resources/coordinate_system.png",bundle_path);
+			temp = g_strdup_printf("%s/coordinate_system.png",resource_path);
 			break;
 		default:
 			fprintf(stderr,"Invalid kind in xmi_resources_mac_query\n");
@@ -91,7 +89,7 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 
 	}
 	
-	g_free(bundle_path);
+	g_free(resource_path);
 	*resource_file = temp;
 	return 1;
 }
