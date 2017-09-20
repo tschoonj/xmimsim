@@ -100,7 +100,7 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 
 }
-#elif defined(MAC_INTEGRATION) || defined(QUICKLOOK)
+#elif defined(MAC_INTEGRATION)
 #include "xmi_resources_mac.h"
 
 int xmi_xmlLoadCatalog() {
@@ -109,17 +109,17 @@ int xmi_xmlLoadCatalog() {
 	if (xml_catalog_loaded)
 		return 1;
 
-	gchar *resource_path = xmi_application_get_resource_path();
-	if (resource_path == NULL) {
+	gchar *bundle_path = xmi_application_get_bundle_path();
+	if (bundle_path == NULL) {
 		return 0;
 	}
 
-	GString *resource_path_string = g_string_new(resource_path);
-	g_free(resource_path);
-	g_string_append(resource_path_string, "/");
+	GString *bundle_path_string = g_string_new(bundle_path);
+	g_free(bundle_path);
+	g_string_append(bundle_path_string, "/Contents/Resources/");
 
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path_string->str, NULL, NULL);
+	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(bundle_path_string->str, NULL, NULL);
 
 
 	if (xmlCatalogAdd(BAD_CAST "catalog", NULL, NULL) == -1) {
@@ -136,7 +136,7 @@ int xmi_xmlLoadCatalog() {
 	else
 		rv =1;
 
-	g_string_free(resource_path_string, TRUE);
+	g_string_free(bundle_path_string, TRUE);
 
 
 	xml_catalog_loaded = TRUE;
@@ -144,6 +144,8 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 
 }
+#elif defined(QUICKLOOK)
+// this function is not required for the quicklook plugin
 #else
 int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;

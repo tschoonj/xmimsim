@@ -130,8 +130,7 @@ libxmimsim_ql_la_SOURCES = \
 	xmi_xml.c \
 	xmi_data_structs.c \
 	xmi_lines.h \
-	xmi_lines.c \
-	xmi_resources_mac.c
+	xmi_lines.c
 libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1 \
 	-I${top_srcdir}/include -I${top_builddir}/include
 libxmimsim_ql_la_CFLAGS = \
