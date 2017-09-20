@@ -811,9 +811,9 @@ before_install:
 install:
   - |
     if [ "$BUILD_XRL_AND_EASYRNG_FROM_SOURCE" == "yes" ] || [ "$BUILD_XRL_FROM_SOURCE" == "yes" ] || [ "$BUILD_XRL_AND_FGSL_FROM_SOURCE" == "yes" ] ; then
-      wget https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz || exit 1
-      tar xfz xraylib-3.2.0.tar.gz || exit 1
-      cd xraylib-3.2.0
+      wget https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz || exit 1
+      tar xfz xraylib-3.3.0.tar.gz || exit 1
+      cd xraylib-3.3.0
       ./configure --enable-fortran2003 || exit 1
       make || exit 1
       sudo make install || exit 1
