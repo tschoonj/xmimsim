@@ -33,8 +33,8 @@
 
 #define MyAppPublisher "Tom Schoonjans"
 #define MyAppURL "http://github.com/tschoonj/xmimsim"
-#define XRAYLIB_VERSION '3.2.0'
-#define XRAYLIB_VERSION_MIN '3.2.0'
+#define XRAYLIB_VERSION '3.3.0'
+#define XRAYLIB_VERSION_MIN '3.3.0'
 
 
 [Setup]

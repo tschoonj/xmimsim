@@ -9,8 +9,8 @@ URL: http://github.com/tschoonj/xmimsim
 Source: xmimsim-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 #libnotify is optional actually. If the version encountered by configure is too old for me, it won't be used
-BuildRequires: gcc gcc-gfortran >= 4.4.0 xraylib-fortran >= 3.2.0 xraylib-devel >= 3.2.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils libnotify-devel
-Requires: libgfortran >= 4.4.0 xraylib >= 3.2.0 hdf5 libxml2 libxslt xraylib-fortran >= 3.2.0 desktop-file-utils
+BuildRequires: gcc gcc-gfortran >= 4.4.0 xraylib-fortran >= 3.3.0 xraylib-devel >= 3.3.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils libnotify-devel
+Requires: libgfortran >= 4.4.0 xraylib >= 3.3.0 hdf5 libxml2 libxslt xraylib-fortran >= 3.3.0 desktop-file-utils
 
 # RHEL 6 is the last release to use gtkextra and fgsl
 # RHEL 7 is the last release to use gtkmm-plplot and fgsl
@@ -31,12 +31,17 @@ BuildRequires: gtkmm-plplot-devel
 Requires: gtkmm-plplot
 %endif
 
+%if 0%{?fedora} >= 26
+BuildRequires: libsoup-devel
+Requires: libsoup
+%endif
+
 %description
 XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sample when irradiated with an X-ray beam.
 
 %package devel
 Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers: development package
-Requires: gcc gcc-gfortran >= 4.4.0 xraylib-devel >= 3.2.0 libxml2-devel xraylib-fortran >= 3.2.0 xmimsim == @VERSION@
+Requires: gcc gcc-gfortran >= 4.4.0 xraylib-devel >= 3.3.0 libxml2-devel xraylib-fortran >= 3.3.0 xmimsim == @VERSION@
 
 %if 0%{?rhel} == 6 || 0%{?rhel} == 7
 Requires: fgsl-devel
@@ -192,6 +197,9 @@ fi || :
 
 
 %changelog
+* Wed Sep 20 2017 Tom Schoonjans
+- Add support for xraylib 3.3.0
+- Add support for google analytics event tracking
 * Fri Mar 31 2017 Tom Schoonjans
 - Add support for libxmimsim-gui
 - Add support for X-ray source dlms

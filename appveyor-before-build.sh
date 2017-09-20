@@ -6,9 +6,9 @@ set -x
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 # install xraylib
-wget -q https://xraylib.tomschoonjans.eu/xraylib-3.2.0.tar.gz
-tar xfz xraylib-3.2.0.tar.gz
-cd xraylib-3.2.0
+wget -q https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
+tar xfz xraylib-3.3.0.tar.gz
+cd xraylib-3.3.0
 ./configure
 make
 make install
