@@ -41,7 +41,6 @@ struct _XmiMsimGuiGoogleAnalyticsTracker {
 	GObject parent_instance;
 	gchar *uuid;
 	SoupSession *session;
-	gboolean anonymize_ip;
 };
 
 G_DEFINE_TYPE(XmiMsimGuiGoogleAnalyticsTracker, xmi_msim_gui_google_analytics_tracker, G_TYPE_OBJECT)
@@ -84,7 +83,7 @@ static void xmi_msim_gui_google_analytics_tracker_init(XmiMsimGuiGoogleAnalytics
 	self->session = soup_session_new();
 }
 
-XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(const gchar *uuid, gboolean anonymize_ip) {
+XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(const gchar *uuid) {
 	XmiMsimGuiGoogleAnalyticsTracker *tracker = XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_GUI_TYPE_GOOGLE_ANALYTICS_TRACKER, NULL));
 	
 	// existing UUIDs must be valid
@@ -99,16 +98,14 @@ XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(cons
 		tracker->uuid = g_strdup(uuid);
 	}
 
-	tracker->anonymize_ip = anonymize_ip;
-
 	return tracker;
 }
 
-void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid, gboolean anonymize_ip) {
+void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid) {
 	if (global_tracker != NULL) 
 		g_object_unref(global_tracker);
 
-	global_tracker = xmi_msim_gui_google_analytics_tracker_new(uuid, anonymize_ip);
+	global_tracker = xmi_msim_gui_google_analytics_tracker_new(uuid);
 }
 
 const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global() {
@@ -146,8 +143,6 @@ gboolean xmi_msim_gui_google_analytics_tracker_send_event(const XmiMsimGuiGoogle
 	GHashTable *hash = g_hash_table_new(g_str_hash, g_str_equal);
 	g_hash_table_replace(hash, "v", "1"); // protocol version
 	g_hash_table_replace(hash, "tid", GOOGLE_ANALYTICS_TRACKING_ID); // tracking id
-	if (tracker->anonymize_ip)
-		g_hash_table_replace(hash, "aid", "1"); // anonymize ip
 	g_hash_table_replace(hash, "cid", tracker->uuid); // client id
 	g_hash_table_replace(hash, "t", GOOGLE_ANALYTICS_HIT_TYPE); // hit type
 	g_hash_table_replace(hash, "an", GOOGLE_ANALYTICS_APPLICATION_NAME); // app name
