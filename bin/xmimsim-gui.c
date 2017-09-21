@@ -894,7 +894,7 @@ static gboolean launch_google_analytics(GtkWidget *main_window) {
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_INFO,
 			GTK_BUTTONS_CLOSE,
-			"XMI-MSIM 7.0 introduces Google Analytics event tracking to give the developers some insight into how often this package is used as well as which of its features are popular. This information may be used in the future to decide where to focus further development.\n\nCurrently the following events are tracked: XMI-MSIM startup, Simulation start, Batch mode start, Geometry dialog open, Catalog dialog open and Sources dialog Update spectrum button clicks. By default, the developers will also have access to the approximate geographical location (the name of the city) of where the XMI-MSIM session was started. If this is deemed to be unacceptable, check \"Enable Google Analytics IP address anonymization\" in the Preferences dialog.\n\nDisabling all Google Analytics event tracking is only possible by recompiling XMI-MSIM from source by passing --disable-google-analytics to the configure script.");
+			"XMI-MSIM 7.0 introduces Google Analytics event tracking to give the developers some insight into how often this package is used as well as which of its features are popular. This information may be used in the future to decide where to focus further development on.\n\nCurrently the following events are tracked: XMI-MSIM startup, Simulation start, Batch mode start, Geometry dialog open, Catalog dialog open and Sources dialog Update spectrum button clicks. The developers will also have access to the approximate geographical location (the name of the city) of where the XMI-MSIM session was started, but not the IP address.\n\nDisabling all Google Analytics event tracking is only possible by recompiling XMI-MSIM from source with the --disable-google-analytics option of the configure script.");
 		gtk_window_set_title(GTK_WINDOW(dialog), "Google Analytics Event Tracking");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
@@ -903,11 +903,9 @@ static gboolean launch_google_analytics(GtkWidget *main_window) {
 		xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG, xpv);
 	}
 
-	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_ANONYMIZE_IP, &xpv);
-	gboolean aid = xpv.b;
 	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID, &xpv);
 	gchar *uuid = xpv.s;
-	xmi_msim_gui_google_analytics_tracker_create_global(uuid, aid);
+	xmi_msim_gui_google_analytics_tracker_create_global(uuid);
 	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
 
 #ifdef __APPLE__

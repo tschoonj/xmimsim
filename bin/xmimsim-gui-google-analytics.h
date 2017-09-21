@@ -27,9 +27,9 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE(XmiMsimGuiGoogleAnalyticsTracker, xmi_msim_gui_google_analytics_tracker, XMI_MSIM_GUI, GOOGLE_ANALYTICS_TRACKER, GObject)
 
-XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(const gchar *uuid, gboolean anonymize_ip);
+XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(const gchar *uuid);
 
-void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid, gboolean anonymize_ip);
+void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid);
 
 const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global();
 
