@@ -6340,7 +6340,6 @@ XMI_MAIN
 	g_object_unref(theApp);
 #endif
 
-	xmimsim_notifications_close();
 
 
 	return 0;
@@ -6740,11 +6739,11 @@ void quit_program_cb(GtkWidget *widget, gpointer data) {
 
 	kill_current_job();
 
+	xmimsim_notifications_close();
+
 	g_debug("quitting\n");
 
-	gtk_main_quit();
-
-	return;
+	exit(0);
 }
 
 
