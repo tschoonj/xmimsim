@@ -32,5 +32,5 @@ endif
 install-exec-hook:
 	rm -f $(LT_ARCHIVES)
 
-EXTRA_DIST = xmimsim.spec.in License.rtf
+EXTRA_DIST = xmimsim.spec.in License.rtf Changelog
 DISTCHECK_CONFIGURE_FLAGS = --enable-custom-detector-response

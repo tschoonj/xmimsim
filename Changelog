@@ -1,0 +1,101 @@
+2017-09-22  Tom Schoonjans  <Tom.Schoonjans@diamond.ac.uk>
+	* XMI-MSIM 7.0
+	* Ebel X-ray tube source: fix minimum take-off angle (reported by Andreas Karydas)
+	* Ebel X-ray tube source: filter out very low intensities (reported by Andreas Karydas)
+	* HDF5: add support for 1.10.0
+	* OpenCL: add support for 2.x (reported by Dima Docenko)
+	* xmimsim: fix --disable-M-lines (reported by Pieter Tack)
+	* OpenCL: properly deal with platforms without GPU devices (reported by Dima Docenko)
+	* Pile-up: fix bug in underlying library easyRNG (reported by Dima Docenko)
+	* Batch mode: fix XPath expression for slit_size_(x|y)
+	* GUI utils: fix bug in xmi_msim_gui_utils_get_solid_angle_from_slits (reported by Dima Docenko)
+	* macOS: drop gtk-mac-integration dependency in libxmimsim.la
+	* macOS: add QuickLook plugin for XMSO files
+	* Preferences: OpenCL is on by default
+	* X-ray Sources dialog: increase default size
+	* GUI: add support for native dialogs
+	* GUI: add frames where necessary to make things look more pretty for most themes
+	* xraylib: 3.3.0 is now required
+	* Google Analytics: track certain events to analyze usage
+
+2017-04-11  Tom Schoonjans  <Tom.Schoonjans@diamond.ac.uk>
+	* XMI-MSIM 6.0
+	* xmi_xml.c: major rewrite + API breakage, mostly for the sake of simplification and ensuring code compatibility with libxml++
+	* Add configure options to disable Mac integration and notifications support
+	* macOS app: use LSItemContentTypes to define our file types
+	* Layer dialog: when adding a single element, set the density correspondingly
+	* xmsa2xmso: new utility to extract XMSO files from an XMSA file. Also has a dialog in the GUI.
+	* Tabs can be switches using Ctrl-1, Ctrl-2 and Ctrl-3 (use Cmd on Mac!)
+	* Radionuclides: add solid angle (requested by Kathleen Anne Thompson)
+	* xmsi2xrmc: add option for rotating sample, source and detector around Z-axis
+	* Add unit tests for file IO operations
+	* Add support for FGSL 1.1.0
+	* Remove Compton fluorescence contribution calculation. It was wrong and pointless.
+	* Add support for easyRNG (https://github.com/tschoonj/easyRNG), as an alternative for FGSL
+	* Drop use of GSL
+	* Port to Gtk3, while maintaining support for Gtk2. Use gtkmm-plplot (https://github.com/tschoonj/gtkmm-plplot) for plotting when using Gtk3
+	* GUI: ensure it can be compiled by a C++ compiler (g++ and clang++ tested)
+	* Rewrite several dialogs and compile them into a separate library libxmimsim-gui.la. All dialogs are now destroyed instead of hidden, which caused problems on macOS and in one reported case, also Windows
+	* Github repository now uses Travis-CI and AppVeyor for continuous integration
+	* New download mirror: xmi-msim.tomschoonjans.eu
+	* New option: use default seeds. Useful if reproducible simulations are required.
+	* X-ray sources dialog: completely rewritten. Add support for sources that can be loaded at runtime as plugins. Add support for saving and loading settings (optional source feature, currently implemented for Ebel model)
+	* GUI: improved error handling. More meaningful messages should be displayed in many places.
+	* Use exclusively glib memory API
+	* Detector transmission and absorption correction now occurs in detector response function, which means that the contributions per XRF line will need to be corrected in the detector response function as well! (Requested by Andreas Karydas and Mateusz Czyzycki)
+	* Custom detector response plugins can now be easily built on GitHub and exported to e.g. S3 buckets. An example can be found at https://github.com/tschoonj/xmimsim-detector-response-ap3
+	* Generally speaking: large parts of the GUI code are now in much better shape, especially those that ended up in libxmimsim-gui.la.
+	* Do not install icons when using command-line only install
+	* Ebel source: fix transmission efficiency bug (Thanks to Eric Esbelin for the bug report!)
+	* macOS app: support multiple videocards
+	* Batch mode: plot XMSA files even when history is empty (Reported by Anne Dreissigacker)
+	* Batch mode: fix reading of individual contributions for 1D data
+	* xmimsim: deal properly with zero distances
+	* GUI: clipboard should be disable when not available (reported by Alexandre Simionovici)
+	* xmi_ebel: remove hack which was not liked by gfortran 6
+	* macOS app: ensure support for shared-mime-info
+	* xmi_layer2compoundData: bugfix (Reported by Andreas Fittschen)
+	* Handle gdk-pixbuf’s drop of PixData support
+	* MPI: restore support
+	* For those that compiled XMI-MSIM from source: you will need to regenerate the xmimsimdata.h5 file with xmimsim-db. Old versions of this file will not work with XMI-MSIM 6.0.
+	* This may very well be the last 32-bit Windows release of XMI-MSIM. Whenever possible, please use the 64-bit release.
+	* The macOS app requires Mountain Lion or more recent. Support for Snow Leopard and Lion has been dropped.
+
+2014-10-16  Tom Schoonjans  <Tom.Schoonjans@bam.de>
+	* XMI-MSIM 5.0
+	* Custom detector response function: build a own plug-in containing your own detector response function and load it at run-time to override the builtin routines. Instructions can be found in the manual.
+	* Escape peak improvements: new algorithm is used to calculate the escape peak ratios based on a combined brute-force and variance-reduction approach. Ensures high accuracy even at high incoming photon energies and thin detector crystals. Downside: it's slower…
+	* Removed maximum convolution energy option. Was a bit confusing anyway.
+	* Number of channels: moved from simulation controls into input-file
+	* Radionuclide support added: Now you can select one or more commonly used radionuclide sources from the X-ray sources widget.
+	* Advanced Compton scattering simulation: a new alternative implementation of the Compton scattering has been implemented based on the work of Fernandez and Scot (http://dx.doi.org/10.1016/j.nimb.2007.04.203), which takes into account unpopulated atomic orbitals. Provides an improved simulation of the Compton profile, as well as fluorescence contributions due to Compton effect (extremely low!), but slows the code down considerably. Advanced users only. Default: OFF
+	* Plot spectra before convolution in results
+	* Windows: new Inno Setup installers. Contains the headers and import libraries
+	* Windows: compilers changed to GCC 4.8.1 (TDM-GCC)
+	* Windows: rand_s used to generate seeds on 64-bit version (requires Vista or later)
+	* Windows: new gtk runtime for the 64-bit version (see also https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer)
+	* Mac OS X: compilers changed to clang 5.1 (Xcode) and gfortran 4.9.1 (MacPorts)
+	* Original input-files from our 2012 publication (http://dx.doi.org/10.1016/j.sab.2012.03.011) added to examples
+	* Updater performs checksum verification after download
+	* X-ray sources last used values stored in preferences.ini
+	* xmimsimdata.h5 modified: even bigger now...
+	* Windows: support for usernames with unicode characters. Fixed using customized builds of HDF5. Thanks to Takashi Omori of Techno-X for the report!
+	* Spectrum import from file fixes. Was never properly tested apparently
+	* For those that compiled XMI-MSIM from source: you will need to regenerate the xmimsimdata.h5 file with xmimsim-db. Old versions of this file will not work with XMI-MSIM 5.0.
+
+2014-06-12  Tom Schoonjans  <Tom.Schoonjans@me.com>
+	* XMI-MSIM 4.0
+	* Simulation speedup through the use of precalculated tables of XRF production cross-sections at XRF line energies in the variance reduction routines for second and higher order interactions.
+	* xmimsim-conv: a new utility that allows to redo a simulation with different detector parameters based on an existing XMSO file.
+	* xmsi2xrmc: a command-line utility that produces equivalent XRMC input files based on a XMSI file. Also implemented as an option from the Tools menu of the graphical user interface. In order to use the XRMC input files, a complete installation of XRMC is required, including the XMI-MSIM bindings!
+	* Simulation option added: “Enable escape peaks support” (—enable-escape-peaks in command-line version). Default is ON.
+	* Ebel settings are now stored across invocations both within a session as well as between sessions.
+	* User defined compositions added: store layer compositions in the layer modification dialog and reuse them later by fetching them from the catalog. Remove layers from within a new pane in the preferences dialog.
+	* Switch between linear and logarithmic representation in the graphs of the results pane as well as the X-ray tube dialog.
+	* User interface improvements: right click pop up menus for the layers and energy tree views. Copy-pasting support!!! Undo support when introducing invalid input in the text entries, combined with desensitizing the rest of the simulation input.
+	* Updater improved: contains textview with tag message.
+	* X-ray tube routine: crash when generated spectrum has no discrete lines. Thanks to Takashi Omori of Techno-X for the report!
+	* Edit button in layer modification widget fixed. Thanks to Jan Garrevoet for the report.
+	* Interaction orders display fixed in results pane. Thanks to Jan Garrevoet for the report.
+	* Several memory leaks fixed
+	* For those that compiled XMI-MSIM from source: you will need to regenerate the xmimsimdata.h5 file with xmimsim-db. Old versions of this file will not work with XMI-MSIM 4.0.
