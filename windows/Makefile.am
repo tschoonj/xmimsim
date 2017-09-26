@@ -13,8 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2017-09-11
-GTK3_RUNTIME_FILE = gtk3-runtime-3.22.19-2017-09-11-ts-win64.exe
+GTK3_RUNTIME_TAG = 2017-09-25
+GTK3_RUNTIME_VERSION = 3.22.21
+GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
 common:
 	cp ../src/libxmimsim-0.def .
