@@ -93,12 +93,12 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	return 1;
 }
 
-char *xmi_resources_mac_get_user_data_dir() {
+const char *xmi_resources_mac_get_user_data_dir() {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
 	NSString *documentsDirectory = [paths objectAtIndex:0];
-	char *rv = g_strdup([documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding]);
+	const char *rv = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
 
 	[pool drain];
 
