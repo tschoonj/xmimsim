@@ -29,6 +29,7 @@ AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 plugindir = $(libdir)/xmimsim
 
 lib_LTLIBRARIES = libxmimsim.la
+noinst_LTLIBRARIES =
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
@@ -56,10 +57,6 @@ libxmimsim_la_SOURCES += xmi_random.c \
 else
 libxmimsim_la_SOURCES += xmi_random_win.c \
 			 xmi_registry_win.c
-endif
-
-if ENABLE_MAC_APP
-libxmimsim_la_SOURCES += xmi_resources_mac.c
 endif
 
 libxmimsim_la_CFLAGS =  \
@@ -118,13 +115,20 @@ if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS
 endif
 if ENABLE_MAC_APP
-libxmimsim_la_CFLAGS += -xobjective-c
 libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
+
+noinst_LTLIBRARIES += libxmimsim-osx.la
+libxmimsim_osx_la_SOURCES = xmi_resources_mac.m
+libxmimsim_osx_la_CPPFLAGS = -DMAC_INTEGRATION $(AM_CPPFLAGS)
+libxmimsim_osx_la_OBJCFLAGS =  \
+	@glib2_CFLAGS@
+
+libxmimsim_la_LIBADD +=	libxmimsim-osx.la
 endif
 
 # quicklook plugin library for macOS bundle
 if ENABLE_QUICKLOOK
-noinst_LTLIBRARIES = libxmimsim-ql.la
+noinst_LTLIBRARIES += libxmimsim-ql.la
 libxmimsim_ql_la_SOURCES = \
 	xmi_xml.c \
 	xmi_data_structs.c \
