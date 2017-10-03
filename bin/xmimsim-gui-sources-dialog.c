@@ -28,7 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xmimsim-gui-google-analytics.h>
 #endif
 
-#if GTK_MAJOR_VERSION == 3
 class Plot2DSources : public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DSources(
@@ -39,7 +38,6 @@ class Plot2DSources : public Gtk::PLplot::Plot2D {
 		// do nothing -> we will connect a signal handler
 	}
 };
-#endif
 
 G_DEFINE_TYPE(XmiMsimGuiSourcesDialog, xmi_msim_gui_sources_dialog, GTK_TYPE_DIALOG)
 
@@ -290,7 +288,6 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
 
 	// now the plot canvas
-#if GTK_MAJOR_VERSION == 3
 	dialog->canvas = Gtk::manage(new Gtk::PLplot::Canvas());
 	dialog->canvas->set_hexpand(true);
 	dialog->canvas->set_vexpand(true);
@@ -299,14 +296,6 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_widget_set_vexpand(aspect_frame, TRUE);
 	gtk_container_add(GTK_CONTAINER(aspect_frame), GTK_WIDGET(dialog->canvas->gobj()));
 	gtk_box_pack_start(GTK_BOX(mainHBox), aspect_frame, TRUE, TRUE, 2);
-#else
-	dialog->canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 0.9);
-	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(dialog->canvas), (GtkPlotCanvasFlags) (GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM)); //probably needs to be unset when initializing, but set when data is available
-	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(dialog->canvas),&white_plot);
-	gtk_box_pack_start(GTK_BOX(mainHBox), dialog->canvas,FALSE,FALSE,2);
-#endif
-	
-
 
 	// finish off with the signal handlers
 	g_signal_connect(G_OBJECT(exportButton), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) dialog);
@@ -321,25 +310,12 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 
 static void clear_plot(XmiMsimGuiSourcesDialog *dialog) {
 	// start by removing the current plot
-#ifdef HAVE_CXX
 	try {
 		dialog->canvas->remove_plot(0);
 	}
 	catch (Gtk::PLplot::Exception &e) {
 		//this will fail if there's no plot available
 	}
-#else
-	GtkPlotCanvasChild *child;
-
-	GList *list;
-	list = GTK_PLOT_CANVAS(dialog->canvas)->childs;
-	while (list) {
-		child = GTK_PLOT_CANVAS_CHILD(list->data);
-		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(dialog->canvas), child);
-		list = GTK_PLOT_CANVAS(dialog->canvas)->childs;
-	}
-#endif
-
 }
 
 static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source) {
@@ -358,17 +334,11 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
 
 	// add plot
-#ifdef HAVE_CXX
 	dialog->plot_window = Gtk::manage(new Plot2DSources("Energy (keV)", "Intensity (photons/s)"));
 	dialog->plot_window->hide();
 	dialog->plot_window->hide_legend();
 	dialog->plot_window->set_box_style(Gtk::PLplot::BoxStyle::BOX_TICKS_TICK_LABELS_MAIN_AXES_MAJOR_TICK_GRID);
 	dialog->canvas->add_plot(*(dialog->plot_window));
-#else
-	dialog->plot_window = gtk_plot_new_with_size(NULL,.65,.45);
-	gtk_plot_set_background(GTK_PLOT(dialog->plot_window), &white_plot);
-	gtk_plot_hide_legends(GTK_PLOT(dialog->plot_window));
-#endif
 
 	// determine extents of the plot
 	double plot_xmin = 0.0;
@@ -377,63 +347,18 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	double plot_ymax = xmi_maxval_double((double *) y->data, y->len) * 1.2;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->linearW))) {
-#ifdef HAVE_CXX
 		dialog->plot_window->set_axis_logarithmic_y(false);
-#else
-		gtk_plot_set_ticks(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_Y, xmi_msim_gui_utils_get_tickstep(plot_ymin, plot_ymax), 5);
-		gtk_plot_set_yscale(GTK_PLOT(dialog->plot_window), GTK_PLOT_SCALE_LINEAR);
-#endif
 	}
 	else {
-#ifdef HAVE_CXX
 		dialog->plot_window->set_axis_logarithmic_y(true);
-#else
-		gtk_plot_set_yscale(GTK_PLOT(dialog->plot_window), GTK_PLOT_SCALE_LOG10);
-#endif
 	}
 
-#ifdef HAVE_CXX
 	dialog->plot_window->signal_double_press().connect([dialog, plot_xmin, plot_xmax, plot_ymin, plot_ymax](double x, double y){
 		dialog->plot_window->set_region(plot_xmin, plot_xmax,
 						plot_ymin, plot_ymax);
 	});
 	dialog->plot_window->show();
-#else
-	gtk_plot_set_ticks(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_X, xmi_msim_gui_utils_get_tickstep(plot_xmin, plot_xmax), 5);
-	gtk_plot_set_range(GTK_PLOT(dialog->plot_window), plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-	gtk_plot_clip_data(GTK_PLOT(dialog->plot_window), TRUE);
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP));
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_RIGHT));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), "Intensity (photons/s)");
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_BOTTOM), "Energy (keV)");
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), "Helvetica", SOURCE_PLOT_TITLE, 90, NULL, NULL, TRUE, GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_BOTTOM), "Helvetica", SOURCE_PLOT_TITLE, 0, NULL, NULL, TRUE, GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_BOTTOM), GTK_PLOT_LABEL_FLOAT,0);
-        gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP), GTK_PLOT_LABEL_FLOAT,0);
-
-	if (plot_ymax < 10000.0 && plot_ymin >= 10.0) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), GTK_PLOT_LABEL_FLOAT, 0);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT, 0);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), "Helvetica", RESULTS_PLOT_LABELS_LR_FLOAT, 0, NULL, NULL, TRUE, GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_RIGHT), "Helvetica", RESULTS_PLOT_LABELS_LR_FLOAT, 0, NULL, NULL, TRUE, GTK_JUSTIFY_LEFT);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), GTK_PLOT_LABEL_EXP, 1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_RIGHT), GTK_PLOT_LABEL_EXP, 1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_LEFT), "Helvetica", SOURCE_PLOT_LABELS_LR_EXP, 0, NULL, NULL, TRUE, GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_RIGHT), "Helvetica", SOURCE_PLOT_LABELS_LR_EXP, 0, NULL, NULL, TRUE, GTK_JUSTIFY_LEFT);
-	}
-
-	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_BOTTOM), "Helvetica", SOURCE_PLOT_LABELS_TP, 0, NULL, NULL, TRUE, GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP), "Helvetica", SOURCE_PLOT_LABELS_TP, 0, NULL, NULL, TRUE, GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(dialog->plot_window), GTK_PLOT_AXIS_TOP), 0);
-        gtk_plot_grids_set_visible(GTK_PLOT(dialog->plot_window), TRUE, FALSE, TRUE, FALSE);
-	GtkPlotCanvasChild* child = gtk_plot_canvas_plot_new(GTK_PLOT(dialog->plot_window));
-        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(dialog->canvas), child, .15, .05, .90, .85);
-        gtk_widget_show(dialog->plot_window);
-#endif
 	// add data to plot_window
-#ifdef HAVE_CXX
 	std::vector<double> x_vals((double *) x->data, (double *) x->data + x->len);
 	std::vector<double> y_vals((double *) y->data, (double *) y->data + y->len);
 
@@ -449,21 +374,6 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	dialog->plot_window->add_data(*dataset);
 	dialog->plot_window->set_region(plot_xmin, plot_xmax,
 				plot_ymin, plot_ymax);
-#else
-	GtkPlotData *dataset;
-	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
-	gtk_plot_add_data(GTK_PLOT(dialog->plot_window), dataset);
-	gtk_plot_data_set_numpoints(dataset, x->len);
-	gtk_plot_data_set_x(dataset, (double *) x->data);
-	gtk_plot_data_set_y(dataset, (double *) y->data);
-	gtk_widget_show(GTK_WIDGET(dataset));
-	gtk_plot_data_set_line_attributes(dataset, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0, 1, &blue_plot);
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(dialog->canvas));
-	gtk_widget_queue_draw(GTK_WIDGET(dialog->canvas));
-	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(dialog->canvas));
-	gtk_plot_paint(GTK_PLOT(dialog->plot_window));
-	gtk_plot_refresh(GTK_PLOT(dialog->plot_window),NULL);
-#endif
 }
 
 static void switch_page_cb(GtkNotebook *notebook, XmiMsimGuiSourceAbstract *source, guint page_num, XmiMsimGuiSourcesDialog *dialog) {

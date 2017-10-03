@@ -105,9 +105,7 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 		(gpointer) source,
 		"spacing", 2,
 		"homogeneous", FALSE,
-#if GTK_MAJOR_VERSION >= 3
 		"expand", FALSE,
-#endif
 		NULL
 	);
 	

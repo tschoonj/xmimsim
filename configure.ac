@@ -192,30 +192,19 @@ if test "x$LIBCURL_FOUND" = xyes ; then
 		;;
 	esac
 fi
-CXX_MODE=no
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.1],
 		[
 			GTK_FOUND=yes
-			CXX_MODE=yes
-			AC_DEFINE([HAVE_CXX], [], [building in C++ mode])
-			#PKG_CHECK_MODULES([gtk], gtk+-3.0)
 			AC_SUBST(GTK_PC, "gtkmm-plplot-2.0 >= 2.1")
 		],[
-		PKG_CHECK_MODULES([gtk2], gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.2.0,
-			[
-			GTK_FOUND=yes
-			AC_SUBST(GTK_PC, "gtk+-2.0 >= 2.24.0 gtkextra-3.0 >= 3.2.0")
-			#PKG_CHECK_MODULES([gtk], gtk+-2.0)
-			],[
 			GTK_FOUND=no
-			])
 		])
 	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
-		AC_MSG_ERROR([no gtk and/or gtkextra found on the system.])
+		AC_MSG_ERROR([no gtkmm-plplot found on the system.])
 	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
-		AC_MSG_WARN([no gtk and/or gtkextra found on the system. The GUI will not be built.])
+		AC_MSG_WARN([no gtkmm-plplot found on the system. The GUI will not be built.])
 	else
 		AC_MSG_NOTICE([Building with GUI])
 		AC_DEFINE([HAVE_GUI],[],[building with GUI])
@@ -223,7 +212,6 @@ if test "x$enable_gui" != xno ; then
 fi
 
 AM_CONDITIONAL([ENABLE_GUI],[test "x$GTK_FOUND" = xyes])
-AM_CONDITIONAL([ENABLE_CXX],[test "x$CXX_MODE" = xyes])
 
 JSONGLIB_FOUND=no
 
@@ -251,30 +239,18 @@ GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes ; then
 	#check for quartz backend
 	_gdk_tgt=""
-	if test "x$CXX_MODE" = xyes ; then
-		_gdk_tgt_all=`$PKG_CONFIG --variable=targets gdk-3.0`
-		case "$_gdk_tgt_all" in
-			quartz)
-				_gdk_tgt=quartz
-			;;
-		esac
+	_gdk_tgt_all=`$PKG_CONFIG --variable=targets gdk-3.0`
+	case "$_gdk_tgt_all" in
+		quartz)
+			_gdk_tgt=quartz
+		;;
+	esac
 
-	else
-		_gdk_tgt=`$PKG_CONFIG --variable=target gdk-2.0`
-	fi
-	#AM_CONDITIONAL([GDK_TARGET_QUARTZ], [test x$_gdk_tgt = xquartz])
 	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" != xno ; then
-		if test "x$CXX_MODE" = xyes ; then
 	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8,[
 			GTK_MAC_INTEGRATION_FOUND=yes
 			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk3 >= 2.0.8")
 			],[GTK_MAC_INTEGRATION_FOUND=no])
-		else
-	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk2 >= 2.0.8,[
-			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk2 >= 2.0.8")
-			],[GTK_MAC_INTEGRATION_FOUND=no])
-		fi
 	fi
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
@@ -302,7 +278,7 @@ AM_CONDITIONAL([ENABLE_GOOGLE_ANALYTICS],[test "x$GOOGLE_ANALYTICS_FOUND" = xyes
 
 # quicklook support -> need GTKmm3 and PLplot!
 QUICKLOOK_DEPS_FOUND=
-if test "x$GTK_FOUND" = xyes && test "x$CXX_MODE" = xyes ; then
+if test "x$GTK_FOUND" = xyes ; then
 	PKG_CHECK_MODULES(QUICKLOOK, cairo-quartz libxml-2.0 plplot,[
 		QUICKLOOK_DEPS_FOUND=yes
 		AC_MSG_NOTICE([Building with Quicklook support])

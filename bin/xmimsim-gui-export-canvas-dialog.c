@@ -52,11 +52,7 @@ XmiMsimGuiFileChooserDialog *xmi_msim_gui_export_canvas_dialog_new(const gchar *
   return rv;
 }
 
-#if GTK_MAJOR_VERSION == 3
 gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, Gtk::PLplot::Canvas *canvas, GError **error)
-#else
-gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, GtkWidget *canvas, GError **error)
-#endif
 {
   gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
   //get selected filter
@@ -105,14 +101,9 @@ gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dia
     return FALSE;
   }
   cairo = cairo_create(surface);
-#ifdef HAVE_CXX
   canvas->draw_plot(Cairo::RefPtr<Cairo::Context>(new Cairo::Context(cairo)),
     XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_WIDTH,
     XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_A4_HEIGHT);
-#else
-  gtk_plot_canvas_export_cairo(GTK_PLOT_CANVAS(canvas),cairo);
-  gtk_plot_canvas_paint(GTK_PLOT_CANVAS(canvas));
-#endif
   if (g_strcmp0(gtk_file_filter_get_name(filter), PNG_FILTER) == 0) {
     cairo_status_t status = cairo_surface_write_to_png(surface, filename);
     if (status != CAIRO_STATUS_SUCCESS) {

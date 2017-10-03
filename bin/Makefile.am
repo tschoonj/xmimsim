@@ -71,7 +71,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-continuous-energy-dialog.c \
 	$(NULL)
 libxmimsim_gui_la_CFLAGS = \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
@@ -85,7 +84,6 @@ libxmimsim_gui_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LIBADD = \
-	@gtk2_LIBS@ \
 	@gtkmm3_LIBS@ \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
@@ -102,7 +100,6 @@ plugin_LTLIBRARIES = \
 	$(NULL)
 
 xmimsim_gui_source_tube_ebel_la_CFLAGS = \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
@@ -120,7 +117,6 @@ xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 
 xmimsim_gui_source_radionuclide_la_CFLAGS = \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
@@ -140,7 +136,6 @@ xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.
 noinst_LTLIBRARIES += \
 	xmimsim-gui-source-random.la
 xmimsim_gui_source_random_la_CFLAGS = \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@fgsl_CFLAGS@ \
@@ -184,7 +179,6 @@ noinst_PROGRAMS += xmimsim-gui-continuous-energy-test
 endif
 xmimsim_gui_continuous_energy_test_SOURCES = xmimsim-gui-continuous-energy-test.c
 xmimsim_gui_continuous_energy_test_CPPFLAGS = \
-	@gtk2_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@gmodule_CFLAGS@ \
@@ -194,7 +188,6 @@ xmimsim_gui_continuous_energy_test_LDADD = \
 	libxmimsim-gui.la \
 	../src/libxmimsim.la \
 	@gmodule_LIBS@ \
-	@gtk2_LIBS@ \
 	@gtkmm3_LIBS@ \
 	@xml2_LIBS@ \
 	$(NULL)
@@ -289,7 +282,6 @@ endif
 
 
 xmimsim_gui_CFLAGS = \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
@@ -303,7 +295,6 @@ xmimsim_gui_CFLAGS = \
 
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
-if ENABLE_CXX
 XMICCLD = $(CXX)
 if ENABLE_MAC_APP
 EXTRA_CFLAGS = -xobjective-c++ -std=gnu++11 -stdlib=libc++
@@ -311,16 +302,9 @@ EXTRA_LDFLAGS = -stdlib=libc++
 else
 EXTRA_CFLAGS = -xc++ -std=gnu++11
 endif
-else
-XMICCLD = $(CCLD)
-if ENABLE_MAC_APP
-EXTRA_CFLAGS = -xobjective-c
-endif
-endif
 
 
 xmimsim_gui_LDADD = libxmimsim-gui.la \
-		    @gtk2_LIBS@ \
 		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \

@@ -22,11 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 
-#if GTK_MAJOR_VERSION == 3
-  #include <gtkmm-plplot.h>
-#else
-  #include <gtkextra/gtkextra.h>
-#endif
+#include <gtkmm-plplot.h>
 
 G_BEGIN_DECLS
 

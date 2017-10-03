@@ -39,11 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_private.h"
-#ifdef HAVE_CXX
 #include <gtkmm-plplot.h>
-#else
-#include <gtkextra/gtkextra.h>
-#endif
 #include "xmimsim-gui-results.h"
 #include <math.h>
 #include <string.h>
@@ -2478,12 +2474,8 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, 
 
 	//add progressbar
 	GtkWidget *progressbarW = gtk_progress_bar_new();
-#if GTK_MAJOR_VERSION == 3
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(progressbarW), GTK_ORIENTATION_HORIZONTAL);
 	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbarW), TRUE);
-#else
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(progressbarW), GTK_PROGRESS_LEFT_TO_RIGHT);
-#endif
 	//gtk_widget_set_size_request(progressbarW,-1,10);
 	GtkWidget *pvbox = gtk_vbox_new(TRUE,1);
 	gtk_box_pack_start(GTK_BOX(pvbox), progressbarW, FALSE, FALSE, 0);
@@ -3590,10 +3582,8 @@ GtkWidget *get_inputfile_treeview(struct xmi_input *input, int with_colors) {
 	}
 
 	// ensure scrolled_window expands on Gtk3
-#if GTK_MAJOR_VERSION == 3
 	gtk_widget_set_hexpand(scrolled_window, TRUE);
 	gtk_widget_set_vexpand(scrolled_window, TRUE);
-#endif
 	gtk_container_set_border_width(GTK_CONTAINER(scrolled_window), 5);
 
 	return scrolled_window;
@@ -3696,7 +3686,6 @@ static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo,
 	return;
 }
 
-#ifdef HAVE_CXX
 class Plot2DBatch: public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DBatch(
@@ -3708,7 +3697,6 @@ class Plot2DBatch: public Gtk::PLplot::Plot2D {
 	}
 
 };
-#endif
 
 struct archive_plot_data {
 	GtkWidget *window;
@@ -3747,13 +3735,8 @@ struct archive_plot_data {
 	GtkWidget *okButton;
 	GtkWidget *imageButton;
 	GtkWidget *exportButton;
-#ifdef HAVE_CXX
 	Gtk::PLplot::Canvas *canvas;
 	Gtk::PLplot::Plot *plot_window;
-#else
-	GtkWidget *canvas;
-	GtkWidget *plot_window;
-#endif
 	struct xmi_archive *archive;
 	struct fluor_data *fd;
 	int nfd;
@@ -4044,18 +4027,8 @@ static void roi_xrf_toggled_cb(GtkToggleButton *roi_radioW, struct archive_plot_
 }
 
 static void axis_title_changed_cb(GtkEntry *axis_titleW, struct archive_plot_data *apd) {
-#ifdef HAVE_CXX
 	apd->plot_window->set_axis_title_x(gtk_entry_get_text(GTK_ENTRY(apd->xaxis_titleW)));
 	apd->plot_window->set_axis_title_y(gtk_entry_get_text(GTK_ENTRY(apd->yaxis_titleW)));
-#else
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(apd->plot_window), GTK_PLOT_AXIS_LEFT), gtk_entry_get_text(GTK_ENTRY(apd->yaxis_titleW)));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(apd->plot_window), GTK_PLOT_AXIS_BOTTOM), gtk_entry_get_text(GTK_ENTRY(apd->xaxis_titleW)));
-
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
-	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_plot_paint(GTK_PLOT(apd->plot_window));
-#endif
 }
 
 void destroy_archive_plot(struct archive_plot_data *apd) {
@@ -4361,7 +4334,6 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_box_pack_start(GTK_BOX(mainHBox), gtk_vseparator_new(), FALSE, FALSE, 4);
 	//canvas
 	mainVBox = gtk_vbox_new(FALSE, 2);
-#ifdef HAVE_CXX
 	Gtk::PLplot::Canvas *canvas = Gtk::manage(new Gtk::PLplot::Canvas());
 	canvas->set_hexpand(true);
 	canvas->set_vexpand(true);
@@ -4370,12 +4342,6 @@ void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
 	gtk_widget_set_vexpand(aspect_frame, TRUE);
 	gtk_container_add(GTK_CONTAINER(aspect_frame), GTK_WIDGET(canvas->gobj()));
 	gtk_box_pack_start(GTK_BOX(mainVBox), aspect_frame, TRUE, TRUE, 2);
-#else
-	GtkWidget *canvas = gtk_plot_canvas_new(GTK_PLOT_A4_H, GTK_PLOT_A4_W, 1.0);
-	GTK_PLOT_CANVAS_UNSET_FLAGS(GTK_PLOT_CANVAS(canvas), (GtkPlotCanvasFlags) (GTK_PLOT_CANVAS_CAN_SELECT | GTK_PLOT_CANVAS_CAN_SELECT_ITEM)); //probably needs to be unset when initializing, but set when data is available
-	gtk_plot_canvas_set_background(GTK_PLOT_CANVAS(canvas),&white_plot);
-	gtk_box_pack_start(GTK_BOX(mainVBox),canvas,FALSE,FALSE,2);
-#endif
 
 	lilHBox = gtk_hbox_new(FALSE, 2);
 	label = gtk_label_new("X-axis title");
@@ -4697,37 +4663,18 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 
 
 	//y values have been calculated -> plot
-#ifdef HAVE_CXX
 	try {
 		apd->canvas->remove_plot(0);
 	}
 	catch (Gtk::PLplot::Exception &e) {
 		//this will fail if there's no plot available
 	}
-#else
-	GtkPlotCanvasChild *child;
-
-	GList *list;
-	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	while (list) {
-		child = GTK_PLOT_CANVAS_CHILD(list->data);
-		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
-		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	}
-#endif
 	//add box with default settings
-#ifdef HAVE_CXX
 	Plot2DBatch *plot_window = Gtk::manage(new Plot2DBatch(gtk_entry_get_text(GTK_ENTRY(apd->xaxis_titleW)), gtk_entry_get_text(GTK_ENTRY(apd->yaxis_titleW))));
 	plot_window->hide();
 	plot_window->hide_legend();
 	plot_window->set_box_style(Gtk::PLplot::BoxStyle::BOX_TICKS_TICK_LABELS_MAIN_AXES_MAJOR_TICK_GRID);
 	apd->canvas->add_plot(*plot_window);
-#else
-	GtkWidget *plot_window;
-	plot_window = gtk_plot_new_with_size(NULL,.65,.45);
-	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
-	gtk_plot_hide_legends(GTK_PLOT(plot_window));
-#endif
 
 	double real_ymax = xmi_maxval_double(y,apd->archive->nsteps1+1);
 	double real_ymin = xmi_minval_double(y,apd->archive->nsteps1+1);
@@ -4748,72 +4695,9 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		plot_ymin = 0.0;
 	}
 
-#ifndef HAVE_CXX
-	double tickstep = xmi_msim_gui_utils_get_tickstep(plot_ymin, plot_ymax);
-	double tickstep2 = xmi_msim_gui_utils_get_tickstep(plot_xmin, plot_xmax);
-
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X,tickstep2,5);
-
-	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_linearW))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_linearW)))) {
-		gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y,tickstep,5);
-		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LINEAR);
-		gtk_plot_set_range(GTK_PLOT(plot_window), plot_xmin, plot_xmax, plot_ymin, plot_ymax);
-	}
-	else {
-		gtk_plot_set_yscale(GTK_PLOT(plot_window), GTK_PLOT_SCALE_LOG10);
-		gtk_plot_set_range(GTK_PLOT(plot_window),plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
-	}
-#endif
-
-#ifdef HAVE_CXX
 	plot_window->show();
-#else
-	gtk_plot_clip_data(GTK_PLOT(plot_window), TRUE);
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT), gtk_entry_get_text(GTK_ENTRY(apd->yaxis_titleW)));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), gtk_entry_get_text(GTK_ENTRY(apd->xaxis_titleW)));
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_2D_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-
-	if (fabs(plot_ymax) <= 1000.0 && fabs(plot_ymin) >= 0.1) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,1);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,1);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_2D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-
-	if (fabs(plot_xmax) <= 1000.0 && fabs(plot_xmin) >= 0.01) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_2D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_2D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_2D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-
-
-	gtk_plot_axis_show_labels(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),0);
-        gtk_plot_grids_set_visible(GTK_PLOT(plot_window),TRUE,FALSE,TRUE,FALSE);
-
-	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
-        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
-        gtk_widget_show(plot_window);
-#endif
 	apd->plot_window = plot_window;
 
-
-#ifdef HAVE_CXX
 	std::vector<double> x_vals(x, x + apd->archive->nsteps1+1);
 	std::vector<double> y_vals(y, y + apd->archive->nsteps1+1);
 	if (plot_window->get_axis_logarithmic_y()) {
@@ -4847,22 +4731,6 @@ static void plot_archive_data_2D(struct archive_plot_data *apd) {
 		});
 		plot_window->set_region(plot_xmin, plot_xmax, MAX(pow(10.0,log10(real_ymin)*0.95), 1.0), pow(10.0,log10(real_ymax)*1.05));
 	}
-#else
-	GtkPlotData *dataset;
-	dataset = GTK_PLOT_DATA(gtk_plot_data_new());
-	gtk_plot_add_data(GTK_PLOT(plot_window),dataset);
-	gtk_plot_data_set_numpoints(dataset, apd->archive->nsteps1+1);
-	gtk_plot_data_set_x(dataset, x);
-	gtk_plot_data_set_y(dataset, y);
-	gtk_widget_show(GTK_WIDGET(dataset));
-	gtk_plot_data_set_line_attributes(dataset, (GtkPlotLineStyle) GTK_PLOT_LINE_SOLID, (GdkCapStyle) 0, (GdkJoinStyle) 0,2,&blue_plot);
-	gtk_plot_data_set_symbol(dataset, GTK_PLOT_SYMBOL_CIRCLE, GTK_PLOT_SYMBOL_FILLED, 5, 1.0, &red_plot, &red_plot);
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
-	gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
-	gtk_plot_paint(GTK_PLOT(plot_window));
-	gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-#endif
 
 	return;
 }
@@ -4878,15 +4746,12 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	y = apd->y;
 	z = apd->z;
 
-#ifdef HAVE_CXX
 	double *xx = (double *) g_malloc(sizeof(double ) * (apd->archive->nsteps1+1));
 	double **zz = (double **) g_malloc(sizeof(double *) * (apd->archive->nsteps1+1));
 	for (i = 0 ; i <= apd->archive->nsteps1 ; i++) {
 		zz[i] = z + i * (apd->archive->nsteps2+1);
 		xx[i] = apd->archive->start_value1 + (apd->archive->end_value1 - apd->archive->start_value1)*i/apd->archive->nsteps1;
 	}
-#endif
-
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW))) {
 		//ROI mode
@@ -5047,7 +4912,6 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 		}
 	}
 
-#ifdef HAVE_CXX
 	try {
 		apd->canvas->remove_plot(0);
 	}
@@ -5078,101 +4942,4 @@ static void plot_archive_data_3D(struct archive_plot_data *apd) {
 	g_free(xx);
 
 
-#else
-	//z values have been calculated -> plot
-	GtkPlotCanvasChild *child;
-
-	GList *list;
-	list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	while (list) {
-		child = GTK_PLOT_CANVAS_CHILD(list->data);
-		gtk_plot_canvas_remove_child(GTK_PLOT_CANVAS(apd->canvas), child);
-		list = GTK_PLOT_CANVAS(apd->canvas)->childs;
-	}
-	//add box with default settings
-	GtkWidget *plot_window;
-
-	plot_window = gtk_plot_new_with_size(NULL,1,1);
-
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_X, xmi_msim_gui_utils_get_tickstep(apd->archive->start_value1, apd->archive->end_value1), 5);
-	gtk_plot_set_ticks(GTK_PLOT(plot_window), GTK_PLOT_AXIS_Y, xmi_msim_gui_utils_get_tickstep(apd->archive->start_value2, apd->archive->end_value2), 5);
-	gtk_plot_set_range(GTK_PLOT(plot_window),apd->archive->start_value1, apd->archive->end_value1, apd->archive->start_value2, apd->archive->end_value2);
-	gtk_plot_set_background(GTK_PLOT(plot_window),&white_plot);
-	//gtk_plot_hide_legends(GTK_PLOT(plot_window));
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP));
-	gtk_plot_axis_hide_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT), gtk_entry_get_text(GTK_ENTRY(apd->yaxis_titleW)));
-	gtk_plot_axis_set_title(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM), gtk_entry_get_text(GTK_ENTRY(apd->xaxis_titleW)));
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_3D_PLOT_TITLE,90,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	gtk_plot_axis_title_set_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_3D_PLOT_TITLE,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-
-	if (fabs(apd->archive->end_value2) <= 1000.0 && fabs(apd->archive->start_value2) >= 0.01) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_FLOAT,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_FLOAT,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),GTK_PLOT_LABEL_EXP,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),GTK_PLOT_LABEL_EXP,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_LEFT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_RIGHT);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_RIGHT),"Helvetica",BATCH_3D_PLOT_LABELS_LR_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_LEFT);
-	}
-
-	if (fabs(apd->archive->end_value1) <= 1000.0 && fabs(apd->archive->start_value1) >= 0.01) {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_FLOAT,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_FLOAT,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_3D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_3D_PLOT_LABELS_TB_FLOAT,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-	else {
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),GTK_PLOT_LABEL_EXP,2);
-        	gtk_plot_axis_set_labels_style(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),GTK_PLOT_LABEL_EXP,2);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_TOP),"Helvetica",BATCH_3D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-		gtk_plot_axis_set_labels_attributes(gtk_plot_get_axis(GTK_PLOT(plot_window), GTK_PLOT_AXIS_BOTTOM),"Helvetica",BATCH_3D_PLOT_LABELS_TB_EXP,0,NULL,NULL,TRUE,GTK_JUSTIFY_CENTER);
-	}
-
-	GtkWidget *surface;
-	surface = gtk_plot_csurface_new();
-	double minz = xmi_minval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-	double maxz = xmi_maxval_double(z,(apd->archive->nsteps1+1)*(apd->archive->nsteps2+1));
-
-	//g_fprintf(stdout, "minz: %g\n", minz);
-	//g_fprintf(stdout, "maxz: %g\n", maxz);
-
-	gtk_plot_data_set_gradient(GTK_PLOT_DATA(surface),minz,maxz, 4, 4);
-	//gtk_plot_data_set_gradient_outer_colors(GTK_PLOT_DATA(surface), &blue_plot, &red_plot);
-	//gtk_plot_data_set_gradient_show_lt_gt(GTK_PLOT_DATA(surface), FALSE);
-	gtk_plot_surface_set_points(GTK_PLOT_SURFACE(surface), x, y, z, NULL, NULL, NULL, apd->archive->nsteps1+1, apd->archive->nsteps2+1);
-	gtk_plot_surface_set_xstep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value1 - apd->archive->start_value1)/apd->archive->nsteps1);
-	gtk_plot_surface_set_ystep(GTK_PLOT_SURFACE(surface), (apd->archive->end_value2 - apd->archive->start_value2)/apd->archive->nsteps2);
-	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->roi_log10W))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apd->xrf_log10W)))) {
-		gtk_plot_data_gradient_set_scale(GTK_PLOT_DATA(surface), GTK_PLOT_SCALE_LOG10);
-	}
-	else {
-		gtk_plot_data_gradient_set_scale(GTK_PLOT_DATA(surface), GTK_PLOT_SCALE_LINEAR);
-	}
-	if (maxz <= 10000.0 && maxz >= 10.0)
-		gtk_plot_data_gradient_set_style(GTK_PLOT_DATA(surface), GTK_PLOT_LABEL_FLOAT, 2);
-	else
-		gtk_plot_data_gradient_set_style(GTK_PLOT_DATA(surface), GTK_PLOT_LABEL_EXP, 2);
-
-	gtk_plot_data_gradient_set_title(GTK_PLOT_DATA(surface), (gchar *) "Intensity");
-
-
-	gtk_plot_surface_set_grid_visible(GTK_PLOT_SURFACE(surface), FALSE);
-	gtk_plot_surface_set_transparent(GTK_PLOT_SURFACE(surface), TRUE);
-	gtk_plot_csurface_set_projection(GTK_PLOT_CSURFACE(surface), GTK_PLOT_PROJECT_FULL);
-	gtk_plot_add_data(GTK_PLOT(plot_window), GTK_PLOT_DATA(surface));
-	gtk_widget_show(surface);
-	child = gtk_plot_canvas_plot_new(GTK_PLOT(plot_window));
-        gtk_plot_canvas_put_child(GTK_PLOT_CANVAS(apd->canvas), child, .15,.05,.90,.85);
-	apd->plot_window = plot_window;
-        gtk_widget_show(plot_window);
-	gtk_plot_canvas_paint(GTK_PLOT_CANVAS(apd->canvas));
-	//gtk_widget_queue_draw(GTK_WIDGET(apd->canvas));
-	//gtk_plot_canvas_refresh(GTK_PLOT_CANVAS(apd->canvas));
-	//gtk_plot_paint(GTK_PLOT(plot_window));
-	//gtk_plot_refresh(GTK_PLOT(plot_window),NULL);
-#endif
 }

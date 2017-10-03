@@ -23,11 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-compat.h"
 
 
-#if GTK_MAJOR_VERSION == 3
-	#include <gtkmm-plplot.h>
-#else
-	#include <gtkextra/gtkextra.h>
-#endif
+#include <gtkmm-plplot.h>
 
 G_BEGIN_DECLS
 
@@ -36,11 +32,7 @@ G_BEGIN_DECLS
 
 XmiMsimGuiFileChooserDialog *xmi_msim_gui_export_canvas_dialog_new(const gchar *title, GtkWindow *parent);
 
-#if GTK_MAJOR_VERSION == 3
 gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, Gtk::PLplot::Canvas *canvas, GError **error);
-#else
-gboolean xmi_msim_gui_export_canvas_dialog_save(XmiMsimGuiFileChooserDialog *dialog, GtkWidget *canvas, GError **error);
-#endif
 
 typedef enum {
 	XMI_MSIM_GUI_EXPORT_CANVAS_DIALOG_ERROR_CAIRO,

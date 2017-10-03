@@ -15,9 +15,7 @@ check_PROGRAMS = \
 if ENABLE_GUI
   check_PROGRAMS += test-cubic-spline
   check_PROGRAMS += test-xmso2svg
-if ENABLE_CXX
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
-endif
 if ENABLE_GOOGLE_ANALYTICS
   check_PROGRAMS += test-gui-google-analytics-tracker
 endif
@@ -93,8 +91,8 @@ test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@
 test_xmso2svg_SOURCES = test-xmso2svg.c
 test_xmso2svg_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@ @gtk2_CFLAGS@ @gtkmm3_CFLAGS@
-test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtk2_LIBS@ @gtkmm3_LIBS@ @glib2_LIBS@ 
+			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
+test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtkmm3_LIBS@ @glib2_LIBS@ 
 
 test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.cpp
 test_gui_utils_get_solid_angle_from_slits_CXXFLAGS = -I${srcdir} -I${top_srcdir}/bin \
