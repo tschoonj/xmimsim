@@ -69,7 +69,6 @@ libxmimsim_la_CFLAGS =  \
 	@glib2_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
-	@gtk2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@JsonGlib_CFLAGS@ \
 	@libcurl_CFLAGS@ \

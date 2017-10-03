@@ -142,12 +142,8 @@ void xmi_print_progress(char *string, int progress) {
 #include <xraylib.h>
 #ifdef HAVE_GUI
 #include <gtk/gtk.h>
-  #ifdef HAVE_CXX
-   #include <gtkmm-plplotconfig.h>
-   #include <gtkmmconfig.h>
-  #else
-    #include <gtkextra/gtkextra.h>
-  #endif
+#include <gtkmm-plplotconfig.h>
+#include <gtkmmconfig.h>
 #endif
 #include <hdf5.h>
 #include <libxml/xmlversion.h>
@@ -169,9 +165,7 @@ char *xmi_version_string() {
 	//gtk2
 #ifdef HAVE_GUI
 	g_string_append_printf(string, "gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-  #ifdef HAVE_CXX
 	g_string_append_printf(string, "gtkmm %i.%i.%i, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
-  #endif
 #endif
 	//hdf5
 	g_string_append_printf(string, "HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
@@ -187,13 +181,7 @@ char *xmi_version_string() {
 	g_string_append_printf(string, "easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
 #endif
 #ifdef HAVE_GUI
-  #ifdef HAVE_CXX
-	//gtkextra
 	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
-  #else
-	//gtkextra
-	g_string_append_printf(string, "gtkextra %i.%i.%i", GTKEXTRA_MAJOR_VERSION, GTKEXTRA_MINOR_VERSION, GTKEXTRA_MICRO_VERSION);
-  #endif
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)

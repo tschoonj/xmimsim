@@ -85,9 +85,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-notifications.h"
 
 
-#ifdef HAVE_CXX
 #include <gtkmm/main.h>
-#endif
 
 #ifdef HAVE_GOOGLE_ANALYTICS
 #include "xmimsim-gui-google-analytics.h"
@@ -5119,9 +5117,7 @@ XMI_MAIN
 
 
 	gtk_init(&argc, &argv);
-#ifdef HAVE_CXX
 	Gtk::Main::init_gtkmm_internals();
-#endif
 	LayerAtom = gdk_atom_intern("xmi-msim-layer", FALSE);
 
 	xmi_msim_gui_utils_init_colors();
@@ -5142,10 +5138,8 @@ XMI_MAIN
 		chartreuse_green = green;
 	}
 
-#if GTK_MAJOR_VERSION == 3
 	g_type_class_unref(g_type_class_ref(GTK_TYPE_IMAGE_MENU_ITEM));
 	g_object_set(gtk_settings_get_default(), "gtk-menu-images", TRUE, NULL);
-#endif
 	//iconfactory stuff
 	//based on http://www.gtkforums.com/viewtopic.php?t=7654
 	static GtkStockItem stock_items[] = {
@@ -7518,14 +7512,7 @@ static gboolean coordinate_system_motion_cb(GtkWidget *event_box, GdkEvent *even
 static gint old_width;
 static gint old_height;
 
-#if GTK_MAJOR_VERSION == 3
-static gboolean image_draw_event(GtkWidget *image, cairo_t *event, struct coordinate_pixbufs *cp)
-#else
-static gboolean image_expose_event(GtkWidget *image, GdkEvent *event, struct coordinate_pixbufs *cp)
-#define gtk_widget_get_allocated_width(widget) widget->allocation.width
-#define gtk_widget_get_allocated_height(widget) widget->allocation.height
-#endif
-	{
+static gboolean image_draw_event(GtkWidget *image, cairo_t *event, struct coordinate_pixbufs *cp) {
 	gint new_width = gtk_widget_get_allocated_width(image);
 	gint new_height = gtk_widget_get_allocated_height(image);
 
@@ -7690,11 +7677,7 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	geometry.max_aspect = (double) gdk_pixbuf_get_width(orig_pixbuf)/(double) gdk_pixbuf_get_height(orig_pixbuf);
 
 	gtk_window_set_geometry_hints(GTK_WINDOW(cs_window), cs_window, &geometry, GDK_HINT_ASPECT);
-#if GTK_MAJOR_VERSION == 3
 	g_signal_connect(G_OBJECT(coordinate_system_image), "draw", G_CALLBACK(image_draw_event), cp);
-#else
-	g_signal_connect(G_OBJECT(coordinate_system_image), "expose-event", G_CALLBACK(image_expose_event), cp);
-#endif
 	gtk_widget_set_size_request(cs_window, gdk_pixbuf_get_width(orig_pixbuf)/geometry_help_scale_factor, gdk_pixbuf_get_height(orig_pixbuf)/geometry_help_scale_factor);
 
 	//activate all signals for *_ebW
@@ -7718,13 +7701,3 @@ static void geometry_help_clicked_cb(GtkWidget *window) {
 	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SHOW-GEOMETRY-HELP", NULL, NULL);
 #endif
 }
-
-#if !GLIB_CHECK_VERSION (2, 28, 0)
-void
-g_list_free_full (GList          *list,
-                  GDestroyNotify  free_func)
-{
-  g_list_foreach (list, (GFunc) free_func, NULL);
-  g_list_free (list);
-	}
-#endif

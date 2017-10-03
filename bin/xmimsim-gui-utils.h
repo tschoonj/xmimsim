@@ -24,9 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 
-#if GTK_MAJOR_VERSION == 3
 #include <gdkmm/rgba.h>
-#endif
 
 G_BEGIN_DECLS
 
@@ -34,11 +32,7 @@ void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text)
 
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry);
 
-#if GTK_MAJOR_VERSION == 3
-	#define XmiColor Gdk::RGBA *
-#else
-	#define XmiColor GdkColor
-#endif
+#define XmiColor Gdk::RGBA *
 
 extern XmiColor white_plot;
 extern XmiColor blue_plot;
@@ -65,8 +59,6 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
 #endif
 
 void xmi_msim_gui_utils_open_url(const char *link);
-
-double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax);
 
 void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension);
 

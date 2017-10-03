@@ -21,11 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
-#if GTK_MAJOR_VERSION == 3
-  #include <gtkmm-plplot.h>
-#else
-  #include <gtkextra/gtkextra.h>
-#endif
+#include <gtkmm-plplot.h>
 
 G_BEGIN_DECLS
 
@@ -36,9 +32,7 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_IS_SOURCES_DIALOG_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG))
 #define XMI_MSIM_GUI_SOURCES_DIALOG_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, XmiMsimGuiSourcesDialogClass))
 
-#if GTK_MAJOR_VERSION == 3
 class Plot2DSources;
-#endif
 
 typedef struct _XmiMsimGuiSourcesDialog        XmiMsimGuiSourcesDialog;
 typedef struct _XmiMsimGuiSourcesDialogClass   XmiMsimGuiSourcesDialogClass;
@@ -51,13 +45,8 @@ struct _XmiMsimGuiSourcesDialog
   GtkWidget *linearW;
   GtkWidget *log10W;
   GtkWidget *generateButton;
-#if GTK_MAJOR_VERSION == 3
   Gtk::PLplot::Canvas *canvas;
   Plot2DSources *plot_window;
-#else
-  GtkWidget *canvas;
-  GtkWidget *plot_window;
-#endif
 };
 
 struct _XmiMsimGuiSourcesDialogClass

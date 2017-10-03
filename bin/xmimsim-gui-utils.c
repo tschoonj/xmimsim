@@ -63,12 +63,7 @@ XmiColor purple_plot;
 XmiColor yellow_plot;
 XmiColor pink_plot;
 
-#if GTK_MAJOR_VERSION == 3
-	#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
-#else
-	#define COLOR_INIT(color) gdk_color_parse(#color, &color ## _plot);\
-			gdk_colormap_alloc_color(gdk_colormap_get_system(), &color ## _plot,FALSE,TRUE);
-#endif
+#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
 
 void xmi_msim_gui_utils_init_colors() {
 	/*initialize colors*/
@@ -184,24 +179,6 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
 	}
 }
 #endif
-
-double xmi_msim_gui_utils_get_tickstep(double xmin, double xmax) {
-	double tickstep = 1E-10;
-	int nticks = (int) floor((xmax-xmin)/tickstep);
-
-	while (nticks < 1 || nticks >= 10) {
-		tickstep *= 10.0;
-		nticks = (int) floor((xmax-xmin)/tickstep);
-	}
-
-	if (nticks == 1) {
-		tickstep /= 5.0;
-	}
-	else if (nticks == 2) {
-		tickstep /= 2.0;
-	}
-	return tickstep;
-}
 
 void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension) {
 	GString *string = g_string_new(*filename);
