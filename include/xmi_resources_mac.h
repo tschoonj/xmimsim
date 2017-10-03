@@ -60,7 +60,7 @@ char* xmi_application_get_resource_path();
 /*
  * Get user data dir
  */
-char* xmi_resources_mac_get_user_data_dir();
+const char* xmi_resources_mac_get_user_data_dir();
 
 #ifdef __cplusplus
 }
