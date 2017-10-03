@@ -62,20 +62,6 @@ fi
 if test -z ${PLOT+x} ; then
 	# do nothing
 	:
-elif test $PLOT = "gtkextra" ; then
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtk2
-	wget -q http://lvserver.ugent.be/~schoon/gtkextra-3.3.3.tar.gz
-	tar xfz gtkextra-3.3.3.tar.gz 
-	cd gtkextra-3.3.3
-	# old libtool was used to generate this tarball :-(
-	autoreconf -i
-	./configure --disable-tests
-	make
-	make install
-	cd ..
-	if test $UPDATER = "true" ; then
-		pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
-	fi
 elif test $PLOT = "gtkmm-plplot" ; then
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost

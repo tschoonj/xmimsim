@@ -4,32 +4,6 @@ shallow_clone: true
 
 environment:
   matrix:
-    # 1
-    # fgsl
-    # gtkextra
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: false
-      RNG: fgsl
-      PLOT: gtkextra
-    # 2
-    # fgsl
-    # gtkextra
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: fgsl
-      PLOT: gtkextra
     # 3
     # fgsl
     # gtkmm-plplot
@@ -65,32 +39,6 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: fgsl
-    # 6
-    # easyRNG
-    # gtkextra
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: false
-      RNG: easyRNG
-      PLOT: gtkextra
-    # 7
-    # easyRNG
-    # gtkextra
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: easyRNG
-      PLOT: gtkextra
     # 8
     # easyRNG
     # gtkmm-plplot
@@ -141,37 +89,6 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW64
       RNG: easyRNG
-#    - compiler: msvc_msys2
-#      ARCH: x86
-#      MSYS2_ARCH: i686
-#      MSYS2_DIR: msys64
-#      MSYSTEM: MINGW32
-    # 11
-    # fgsl
-    # gtkextra
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x86
-      MSYS2_ARCH: i686
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW32
-      UPDATER: false
-      RNG: fgsl
-      PLOT: gtkextra
-    # 12
-    # fgsl
-    # gtkextra
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x86
-      MSYS2_ARCH: i686
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW32
-      UPDATER: true
-      RNG: fgsl
-      PLOT: gtkextra
     # 13
     # fgsl
     # gtkmm-plplot
@@ -207,32 +124,6 @@ environment:
       MSYS2_DIR: msys64
       MSYSTEM: MINGW32
       RNG: fgsl
-    # 16
-    # easyRNG
-    # gtkextra
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x86
-      MSYS2_ARCH: i686
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW32
-      UPDATER: false
-      RNG: easyRNG
-      PLOT: gtkextra
-    # 17
-    # easyRNG
-    # gtkextra
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x86
-      MSYS2_ARCH: i686
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW32
-      UPDATER: true
-      RNG: easyRNG
-      PLOT: gtkextra
     # 18
     # easyRNG
     # gtkmm-plplot
