@@ -95,6 +95,7 @@ AC_PROG_LIBTOOL
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
+AC_PROG_OBJC
 
 #this next line may never be reached...
 if test -z $CC ; then

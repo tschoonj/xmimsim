@@ -29,8 +29,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <glib/gstdio.h>
 #include <string.h>
+
 #ifdef MAC_INTEGRATION
-	#import <Foundation/Foundation.h>
+	#include "xmi_resources_mac.h"
 #endif
 
 
@@ -577,16 +578,10 @@ int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 
 	char *file = *filePtr;
 	char *dir;
-#ifdef MAC_INTEGRATION
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-#endif
-
 
 	if (file == NULL) {
 #ifdef MAC_INTEGRATION
-		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-		NSString *documentsDirectory = [paths objectAtIndex:0];
-		const gchar *data_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+		const gchar *data_dir = xmi_resources_mac_get_user_data_dir();
 #else
 		const gchar *data_dir = g_get_user_data_dir();
 #endif
@@ -605,9 +600,6 @@ int xmi_get_escape_ratios_file(char **filePtr, int create_file) {
 		g_free(dir);
 		return xmi_create_empty_escape_ratios_hdf5_file(file);
 	}
-#ifdef MAC_INTEGRATION
-	[pool drain];
-#endif
 
 	return 1;
 }

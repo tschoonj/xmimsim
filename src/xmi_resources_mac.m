@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config.h"
 #include "xmi_resources_mac.h"
-#include "xmi_aux.h"
 #include <Foundation/Foundation.h>
 #include <glib.h>
 
@@ -31,7 +30,7 @@ char* xmi_application_get_resource_path() {
 	NSString *path = [[NSBundle mainBundle] resourcePath];
 	if (!path)
 		return NULL;
-	str = strdup ([path UTF8String]);
+	str = g_strdup([path UTF8String]);
 	[pool release];
 	return str;
 }
@@ -92,4 +91,16 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	g_free(resource_path);
 	*resource_file = temp;
 	return 1;
+}
+
+char *xmi_resources_mac_get_user_data_dir() {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+	NSString *documentsDirectory = [paths objectAtIndex:0];
+	char *rv = g_strdup([documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding]);
+
+	[pool drain];
+
+	return rv;
 }

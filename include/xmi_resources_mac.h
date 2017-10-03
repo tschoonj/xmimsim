@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 
-#if defined(MAC_INTEGRATION) || defined(QUICKLOOK)
+#if defined(MAC_INTEGRATION)
 
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
@@ -56,6 +56,11 @@ int xmi_resources_mac_query(int kind, char **resource_file);
  * Get resources path
  */
 char* xmi_application_get_resource_path();
+
+/*
+ * Get user data dir
+ */
+char* xmi_resources_mac_get_user_data_dir();
 
 #ifdef __cplusplus
 }
