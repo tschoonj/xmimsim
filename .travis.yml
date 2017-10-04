@@ -538,6 +538,7 @@ before_install:
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       export CC=$MYCC
+      export OBJC=$MYCC
       export CXX=$MYCXX
       export FC=$MYFC
       export LIBS=$MYLIBS
