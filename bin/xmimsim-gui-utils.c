@@ -27,7 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <windows.h>
 #include <Shellapi.h>
 #elif defined(MAC_INTEGRATION)
-#import <Foundation/Foundation.h>
 #include <CoreFoundation/CFBundle.h>
 #include <ApplicationServices/ApplicationServices.h>
 #else
@@ -100,6 +99,39 @@ GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *me
 
 gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
 	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));
+}
+
+void xmi_msim_gui_utils_open_email(const char *address) {
+	char *link;
+
+	link = g_strdup_printf("mailto:%s",address);
+
+#ifdef MAC_INTEGRATION
+	CFURLRef url = CFURLCreateWithBytes (
+      	NULL,
+      	(UInt8*)link,
+      	strlen(link),
+      	kCFStringEncodingASCII,
+      	NULL
+    	);
+  	LSOpenCFURLRef(url,NULL);
+  	CFRelease(url);
+#elif defined(G_OS_WIN32)
+	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
+#else
+	pid_t pid;
+	char * const argv[] = {(char *) "xdg-email", link, NULL};
+	//argv[0] = "xdg-email";
+	//argv[1] = link;
+	//argv[2] = NULL;
+
+	pid = fork();
+	if (!pid)
+		execvp(argv[0], argv);
+#endif
+	g_free(link);
+	return;
+
 }
 
 void xmi_msim_gui_utils_open_url(const char *link) {

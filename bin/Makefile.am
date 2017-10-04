@@ -296,11 +296,18 @@ xmimsim_gui_CFLAGS = \
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
 XMICCLD = $(CXX)
+if ENABLE_GUI
 if ENABLE_MAC_APP
-EXTRA_CFLAGS = -xobjective-c++ -std=gnu++11 -stdlib=libc++
+EXTRA_CFLAGS = -xc++ -std=gnu++11 -stdlib=libc++
 EXTRA_LDFLAGS = -stdlib=libc++
+
+noinst_LTLIBRARIES += libxmimsim-gui-osx.la
+libxmimsim_gui_osx_la_SOURCES = xmimsim-gui-osx.m xmimsim-gui-osx.h
+libxmimsim_gui_osx_la_OBJCFLAGS = @GTK_MAC_CFLAGS@ 
+libxmimsim_gui_la_LIBADD += libxmimsim-gui-osx.la
 else
 EXTRA_CFLAGS = -xc++ -std=gnu++11
+endif
 endif
 
 
