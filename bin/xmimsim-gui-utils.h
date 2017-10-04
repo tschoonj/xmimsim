@@ -60,6 +60,8 @@ gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
 
 void xmi_msim_gui_utils_open_url(const char *link);
 
+void xmi_msim_gui_utils_open_email(const char *address);
+
 void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension);
 
 gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer);

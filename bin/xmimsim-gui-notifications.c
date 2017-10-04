@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 
 #ifdef MAC_INTEGRATION
-   #import <Foundation/Foundation.h>
+   #include "xmimsim-gui-osx.h"
 #elif defined(HAVE_LIBNOTIFY)
    #include <libnotify/notify.h>
 #endif
@@ -68,17 +68,7 @@ int xmimsim_notifications_deliver(const char *title, const char *text) {
 #endif
 
 #ifdef MAC_INTEGRATION
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-  	Class cls = NSClassFromString(@"NSUserNotificationCenter");
-  	if (cls) {
-		NSUserNotification *notification = [[NSUserNotification alloc] init];
- 		[notification setTitle:[NSString stringWithUTF8String:title]];
-		[notification setInformativeText:[NSString stringWithUTF8String:text]];
-		[notification setSoundName:NSUserNotificationDefaultSoundName];
-		NSUserNotificationCenter *center = [NSUserNotificationCenter defaultUserNotificationCenter];
-		[center deliverNotification:notification];
-  	}
-	[pool drain];
+	xmi_msim_gui_osx_app_send_notification(title, text);
 #elif defined(HAVE_LIBNOTIFY)
 	if (notify_is_initted()) {
 		NotifyNotification *notification = notify_notification_new(title, text, XMI_STOCK_LOGO);

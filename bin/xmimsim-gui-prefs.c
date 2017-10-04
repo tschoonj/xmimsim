@@ -26,8 +26,9 @@
 #include <glib/gstdio.h>
 #include <xmi_aux.h>
 #include <string.h>
+
 #ifdef MAC_INTEGRATION
-        #import <Foundation/Foundation.h>
+#include "xmi_resources_mac.h"
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
@@ -513,13 +514,7 @@ static gchar *xmimsim_gui_get_user_defined_layer_filename(void) {
 	gchar *file;
 
 #ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-#endif
-
-#ifdef MAC_INTEGRATION
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+        const gchar *config_dir = xmi_resources_mac_get_user_data_dir();
 #else
         const gchar *config_dir = g_get_user_config_dir();
 #endif
@@ -528,9 +523,6 @@ static gchar *xmimsim_gui_get_user_defined_layer_filename(void) {
 	file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "user-defined-layers.ini",prefs_dir);
 	g_free(prefs_dir);
 
-#ifdef MAC_INTEGRATION
-        [pool drain];
-#endif
 	return file;
 }
 
@@ -711,9 +703,11 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
 
+
 	prefs_file = xmimsim_gui_get_preferences_filename();
 
 	keyfile = g_key_file_new();
+	GError *error = NULL;
 
 	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
@@ -721,7 +715,6 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	}
 
 	//extract required information from keyfile
-	GError *error = NULL;
 	gchar *prefs_file_contents;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
@@ -1597,10 +1590,7 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 char *xmimsim_gui_get_preferences_filename() {
 
 #ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+        const gchar *config_dir = xmi_resources_mac_get_user_data_dir();
 #else
         const gchar *config_dir = g_get_user_config_dir();
 #endif
@@ -1610,9 +1600,5 @@ char *xmimsim_gui_get_preferences_filename() {
 	gchar *prefs_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "preferences.ini",prefs_dir);
 	g_free(prefs_dir);
 
-
-#ifdef MAC_INTEGRATION
-        [pool drain];
-#endif
 	return prefs_file;
 }

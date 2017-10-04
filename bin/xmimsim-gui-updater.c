@@ -28,7 +28,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdlib.h>
 #ifdef MAC_INTEGRATION
-	#import <Foundation/Foundation.h>
+	#include "xmi_resources_mac.h"
+	#include <CoreFoundation/CoreFoundation.h>
+	#include <CoreServices/CoreServices.h>
 	#include <gtkosxapplication.h>
 #endif
 
@@ -486,13 +488,6 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	char curlerrors[CURL_ERROR_SIZE];
 	CURL *curl;
 
-#ifdef MAC_INTEGRATION
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-#endif
-
-
-
-
 	//spawn dialog
 	//write your own code for this
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
@@ -605,9 +600,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	//Mac OS X
 	filename = g_strdup_printf("XMI-MSIM-%s.dmg",max_version);
 	//filename = g_strdup_printf("XMI-MSIM.dmg");
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
-	NSString *documentsDirectory = [paths objectAtIndex:0];
-	downloadfolder = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+	downloadfolder = xmi_resources_mac_get_user_downloads_dir();
 
 #elif defined(G_OS_WIN32)
 	//Win 32
@@ -678,9 +671,6 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 		rv = 0;
 
 	gtk_widget_destroy(update_dialog);
-#ifdef MAC_INTEGRATION
-	[pool drain];
-#endif
 
 
 	return rv;

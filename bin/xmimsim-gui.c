@@ -56,25 +56,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #ifdef MAC_INTEGRATION
-#import <Foundation/Foundation.h>
-#include <CoreFoundation/CFBundle.h>
-#include <ApplicationServices/ApplicationServices.h>
-#include <AvailabilityMacros.h>
-#include <gtkosxapplication.h>
-#include <gdk/gdkquartz.h>
-#include "xmi_resources_mac.h"
-#define PRIMARY_ACCEL_KEY GDK_META_MASK
-
-#if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
-
-@interface NSWindow(AutomaticWindowTabbing)
-+ (void)setAllowsAutomaticWindowTabbing:(BOOL)allow;
-@end
-
-#endif
-
+  #include <gtkosxapplication.h>
+  #include "xmi_resources_mac.h"
+  #include "xmimsim-gui-osx.h"
+  #define PRIMARY_ACCEL_KEY GDK_META_MASK
 #else
-#define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
+  #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
 
 #if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
@@ -392,10 +379,10 @@ struct matrix_data {
 	GtkWidget *bottomButton;
 };
 
-char *xmimsim_title_xmsi = NULL;
-char *xmimsim_title_xmso = NULL;
-char *xmimsim_filename_xmsi = NULL;
-char *xmimsim_filename_xmso = NULL;
+static char *xmimsim_title_xmsi = NULL;
+static char *xmimsim_title_xmso = NULL;
+static char *xmimsim_filename_xmsi = NULL;
+static char *xmimsim_filename_xmso = NULL;
 
 struct control_widget *control_array = NULL;
 int control_array_elements = 0;
@@ -947,10 +934,7 @@ static gboolean query_source_modules(void) {
 	g_free(sources_dir);
 
 #ifdef MAC_INTEGRATION
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        const gchar *config_dir = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+        const gchar *config_dir = xmi_resources_mac_get_user_data_dir();
 #else
         const gchar *config_dir = g_get_user_config_dir();
 #endif
@@ -970,10 +954,6 @@ static gboolean query_source_modules(void) {
 	for (i = 0 ; i < ntypes ; i++)
 		g_debug("source %s found\n", g_type_name(source_types[i]));
 
-
-#ifdef MAC_INTEGRATION
-        [pool drain];
-#endif
 	return FALSE;
 }
 
@@ -1173,16 +1153,7 @@ void update_xmimsim_title_xmsi(const char *new_title, GtkWidget *my_window, cons
 	  gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == control_page) {
 		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmsi);
 #ifdef MAC_INTEGRATION
-		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
-		if (filename != NULL) {
-			gchar *uri = g_filename_to_uri(filename,NULL, NULL);
-			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
-			[qwindow setRepresentedURL:nsurl];
-			g_free(uri);
-		}
-		else {
-			[qwindow setRepresentedURL:nil];
-		}
+		xmi_msim_gui_osx_nswindow_set_file(my_window, filename);
 #endif
 	}
 	return;
@@ -1207,16 +1178,7 @@ void update_xmimsim_title_xmso(const char *new_title, GtkWidget *my_window, cons
 	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)) == results_page) {
 		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmso);
 #ifdef MAC_INTEGRATION
-		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
-		if (filename != NULL) {
-			gchar *uri = g_filename_to_uri(filename,NULL, NULL);
-			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
-			[qwindow setRepresentedURL:nsurl];
-			g_free(uri);
-		}
-		else {
-			[qwindow setRepresentedURL:nil];
-		}
+		xmi_msim_gui_osx_nswindow_set_file(my_window, filename);
 #endif
 	}
 	return;
@@ -1228,41 +1190,18 @@ static void notebook_page_changed_cb(GtkNotebook *my_notebook, gpointer pageptr,
 
 
 	if ((gint) page == results_page) {
-		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmso);
+		gtk_window_set_title(GTK_WINDOW(my_window), xmimsim_title_xmso);
 #ifdef MAC_INTEGRATION
-		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
-		if (xmimsim_filename_xmso != NULL) {
-			gchar *uri = g_filename_to_uri(xmimsim_filename_xmso,NULL, NULL);
-			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
-			[qwindow setRepresentedURL:nsurl];
-			g_free(uri);
-		}
-		else {
-			[qwindow setRepresentedURL:nil];
-		}
+		xmi_msim_gui_osx_nswindow_set_file(my_window, xmimsim_filename_xmso);
 #endif
 
 	}
 	else if ((gint) page == control_page || (gint) page == input_page) {
 		gtk_window_set_title(GTK_WINDOW(my_window),xmimsim_title_xmsi);
 #ifdef MAC_INTEGRATION
-		NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(my_window));
-		if (xmimsim_filename_xmsi!= NULL) {
-			gchar *uri = g_filename_to_uri(xmimsim_filename_xmsi,NULL, NULL);
-			NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
-			[qwindow setRepresentedURL:nsurl];
-			g_free(uri);
-		}
-		else {
-			[qwindow setRepresentedURL:nil];
-		}
+		xmi_msim_gui_osx_nswindow_set_file(my_window, xmimsim_filename_xmsi);
 #endif
-
-
 	}
-
-
-
 
 	current_page = (gint) page;
 
@@ -3251,7 +3190,7 @@ static void about_activate_link(GtkAboutDialog *about, const gchar *url, gpointe
 		xmi_msim_gui_utils_open_url(url);
 	}
 	else {
-		xmi_open_email(url);
+		xmi_msim_gui_utils_open_email(url);
 	}
 	return;
 }
@@ -3261,7 +3200,7 @@ static void url_click(GtkWidget *widget, const char *url) {
 }
 
 static void email_click(GtkWidget *widget, const char *url) {
-	xmi_open_email(url);
+	xmi_msim_gui_utils_open_email(url);
 }
 
 
@@ -4136,11 +4075,7 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 
 #ifdef MAC_INTEGRATION
 
-static void quartz_minimize(GtkMenuItem *menuitem, gpointer user_data) {
-	[NSApp miniaturizeAll:nil];
-}
-
-struct osx_load_data {
+struct xmi_msim_gui_osx_load_data {
 	GtkWidget *window;
 	gchar *path;
 };
@@ -4149,17 +4084,10 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	GtkWidget *dialog = NULL;
 	struct xmi_input *xi;
 	gchar *title;
-	struct osx_load_data *old = (struct osx_load_data *) data;
+	struct xmi_msim_gui_osx_load_data *old = (struct xmi_msim_gui_osx_load_data *) data;
 	gchar *filename = old->path;
-	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(old->window));
 
-	//bring window to front if necessary
-	if ([NSApp isHidden] == YES)
-		[NSApp unhide: nil];
-	else if ([qwindow isMiniaturized])
-		[qwindow deminiaturize:nil];
-
-
+	xmi_msim_gui_osx_app_bring_to_front(old->window);
 
 	//check for filetype
 	if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
@@ -4221,7 +4149,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 
 static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpointer data) {
-	struct osx_load_data *old = (struct osx_load_data *) g_malloc(sizeof(struct osx_load_data));
+	struct xmi_msim_gui_osx_load_data *old = (struct xmi_msim_gui_osx_load_data *) g_malloc(sizeof(struct xmi_msim_gui_osx_load_data));
 
 	old->window = (GtkWidget *) data;
 	old->path = g_strdup(path);
@@ -5125,10 +5053,8 @@ XMI_MAIN
 #ifdef MAC_INTEGRATION
 	theApp = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
 	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
-
-	if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
-		[NSWindow setAllowsAutomaticWindowTabbing:NO];
-	}
+	
+	xmi_msim_gui_osx_app_disable_tabbing();
 #endif
 
 	g_set_application_name("XMI-MSIM");
@@ -5396,7 +5322,7 @@ XMI_MAIN
 	minimizeW = gtk_menu_item_new_with_label("Minimize");
 	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu), minimizeW);
 	gtk_widget_add_accelerator(minimizeW, "activate", accel_group, GDK_KEY_m, PRIMARY_ACCEL_KEY, GTK_ACCEL_VISIBLE);
-	g_signal_connect(G_OBJECT(minimizeW), "activate", G_CALLBACK(quartz_minimize), NULL);
+	g_signal_connect(G_OBJECT(minimizeW), "activate", G_CALLBACK(xmi_msim_gui_osx_app_minimize_all), NULL);
 	gtk_menu_shell_append(GTK_MENU_SHELL(windowmenu), GTK_WIDGET(g_object_ref(gtk_separator_menu_item_new())));
 #endif
 	tab1W= gtk_menu_item_new_with_label("Input parameters");
@@ -6211,9 +6137,7 @@ XMI_MAIN
 
 #ifdef MAC_INTEGRATION
 	gtkosx_application_ready(theApp);
-	//only works in Lion and newer
-	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
-	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+	xmi_msim_gui_osx_app_enable_full_screen(window);
 #endif
 
 	struct xmi_input *xi;
@@ -7057,38 +6981,6 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	return TRUE;
 }
 
-void xmi_open_email(const char *address) {
-	char *link;
-
-	link = g_strdup_printf("mailto:%s",address);
-
-#ifdef MAC_INTEGRATION
-	CFURLRef url = CFURLCreateWithBytes (
-      	NULL,
-      	(UInt8*)link,
-      	strlen(link),
-      	kCFStringEncodingASCII,
-      	NULL
-    	);
-  	LSOpenCFURLRef(url,NULL);
-  	CFRelease(url);
-#elif defined(G_OS_WIN32)
-	ShellExecute(NULL, "open", link, NULL, NULL, SW_SHOWNORMAL);
-#else
-	pid_t pid;
-	char * const argv[] = {(char *) "xdg-email", link, NULL};
-	//argv[0] = "xdg-email";
-	//argv[1] = link;
-	//argv[2] = NULL;
-
-	pid = fork();
-	if (!pid)
-		execvp(argv[0], argv);
-#endif
-	g_free(link);
-	return;
-
-}
 
 static void change_all_values_general(struct xmi_input *new_input) {
 	char *buffer;
