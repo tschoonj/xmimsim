@@ -93,14 +93,43 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 	return 1;
 }
 
+G_LOCK_DEFINE_STATIC(global);
+
+static char *global_user_data_dir = NULL;
+static char *global_user_downloads_dir = NULL;
+
 const char *xmi_resources_mac_get_user_data_dir() {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
-	NSString *documentsDirectory = [paths objectAtIndex:0];
-	const char *rv = [documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding];
+	G_LOCK(global);
 
-	[pool drain];
+	if (!global_user_data_dir) {
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-	return rv;
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask,TRUE);
+		NSString *documentsDirectory = [paths objectAtIndex:0];
+		global_user_data_dir = g_strdup([documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding]);
+		[pool drain];
+	}
+
+	G_UNLOCK(global);
+
+	return global_user_data_dir;
+}
+
+const char* xmi_resources_mac_get_user_downloads_dir() {
+
+	G_LOCK(global);
+
+	if (!global_user_downloads_dir) {
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask,TRUE);
+		NSString *documentsDirectory = [paths objectAtIndex:0];
+		global_user_downloads_dir = g_strdup([documentsDirectory cStringUsingEncoding:NSUTF8StringEncoding]);
+		[pool drain];
+	}
+
+	G_UNLOCK(global);
+
+	return global_user_downloads_dir;
 }
