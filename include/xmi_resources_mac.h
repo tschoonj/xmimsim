@@ -62,6 +62,11 @@ char* xmi_application_get_resource_path();
  */
 const char* xmi_resources_mac_get_user_data_dir();
 
+/*
+ * Get user downloads dir
+ */
+const char* xmi_resources_mac_get_user_downloads_dir();
+
 #ifdef __cplusplus
 }
 #endif
