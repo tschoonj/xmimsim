@@ -133,7 +133,9 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_widget_set_size_request(scrolledWindow, 220, 150);
   gtk_container_add(GTK_CONTAINER(scrolledWindow), compositionTreeView);
-  gtk_box_pack_start(GTK_BOX(HBox), scrolledWindow, FALSE, FALSE, 3);
+  GtkWidget *frame = gtk_frame_new(NULL);
+  gtk_container_add(GTK_FRAME(frame), scrolledWindow);
+  gtk_box_pack_start(GTK_BOX(HBox), frame, FALSE, FALSE, 3);
 
   //selections
   GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(compositionTreeView));
