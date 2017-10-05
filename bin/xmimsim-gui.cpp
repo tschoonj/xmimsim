@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-utils.h"
+#include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-sources-dialog.h"
 #include "xmimsim-gui-layer-dialog.h"
 #include "xmimsim-gui-source-module.h"

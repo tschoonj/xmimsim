@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <unistd.h>
 #endif
+
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(geometry->slit_size_x * geometry->slit_size_y/(2.0*geometry->d_source_slit*sqrt(4.0 * geometry->d_source_slit * geometry->d_source_slit + geometry->slit_size_x * geometry->slit_size_x + geometry->slit_size_y * geometry->slit_size_y)));
@@ -51,29 +52,6 @@ void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text)
 	gtk_label_set_text(GTK_LABEL((GtkWidget *) g_list_nth_data(children,1)), text);
 	g_list_free(children);
 	return;
-}
-
-XmiColor white_plot;
-XmiColor blue_plot;
-XmiColor red_plot;
-XmiColor green_plot;
-XmiColor black_plot;
-XmiColor purple_plot;
-XmiColor yellow_plot;
-XmiColor pink_plot;
-
-#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
-
-void xmi_msim_gui_utils_init_colors() {
-	/*initialize colors*/
-	COLOR_INIT(white);
-	COLOR_INIT(blue);
-	COLOR_INIT(red);
-	COLOR_INIT(green);
-	COLOR_INIT(black);
-	COLOR_INIT(purple);
-	COLOR_INIT(yellow);
-	COLOR_INIT(pink);
 }
 
 GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *message_with_markup) {

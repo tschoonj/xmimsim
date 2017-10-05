@@ -24,26 +24,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 
-#include <gdkmm/rgba.h>
 
 G_BEGIN_DECLS
 
 void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text);
 
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry);
-
-#define XmiColor Gdk::RGBA *
-
-extern XmiColor white_plot;
-extern XmiColor blue_plot;
-extern XmiColor red_plot;
-extern XmiColor green_plot;
-extern XmiColor black_plot;
-extern XmiColor purple_plot;
-extern XmiColor yellow_plot;
-extern XmiColor pink_plot;
-
-void xmi_msim_gui_utils_init_colors();
 
 GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *message_with_markup);
 

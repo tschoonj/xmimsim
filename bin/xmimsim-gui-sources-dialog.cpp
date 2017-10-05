@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-sources-dialog.h"
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-utils.h"
-#include "xmimsim-gui-fonts.h"
+#include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
 
