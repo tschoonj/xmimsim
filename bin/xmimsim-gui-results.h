@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 
+G_BEGIN_DECLS
+
 /*
  * current results variables
  */
@@ -43,5 +45,7 @@ extern int results_use_zero_interactions;
 GtkWidget *init_results(GtkWidget *window);
 
 int plot_spectra_from_file(char *xmsofile);
+
+G_END_DECLS
 
 #endif

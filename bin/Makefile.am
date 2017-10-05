@@ -17,6 +17,7 @@
 
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_srcdir}/src -I${top_builddir}/src -I${top_srcdir}/bin -DG_LOG_DOMAIN=\"XmiMsimGui\"
+AM_CXXFLAGS = -std=gnu++11
 if ENABLE_MAC_APP
 AM_LDFLAGS = -Wl,-headerpad_max_install_names -framework Cocoa
 endif
@@ -25,11 +26,6 @@ NULL=
 
 noinst_LTLIBRARIES=$(NULL)
 
-#TODO:
-# 1) create shared lib containing abstract source code
-# 2) when compiling against gtkmm3, get also gtk3 headers from configure pkg-config
-# 3) ensure this shared lib is pure C, just like the plugins that will link against it
-# 4) install abstract source header
 if ENABLE_GUI
 libxmimsim_gui_includedir = ${includedir}/xmimsim-gui
 
@@ -48,6 +44,8 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-discrete-energy-dialog.h \
 	xmimsim-gui-continuous-energy-dialog.h \
 	xmimsim-gui-compat.h \
+	xmimsim-gui-colors.h \
+	xmimsim-gui-notifications.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -62,15 +60,19 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-source-module.c \
 	xmimsim-gui-utils.c \
-	xmimsim-gui-export-canvas-dialog.c \
+	xmimsim-gui-export-canvas-dialog.cpp \
 	xmimsim-gui-tools.c \
-	xmimsim-gui-sources-dialog.c \
+	xmimsim-gui-sources-dialog.cpp \
 	xmimsim-gui-marshal.h \
 	xmimsim-gui-marshal.c \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
+	xmimsim-gui-colors.cpp \
+	xmimsim-gui-notifications.c \
 	$(NULL)
-libxmimsim_gui_la_CFLAGS = \
+
+libxmimsim_gui_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
@@ -219,19 +221,16 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 
 xmimsim_gui_SOURCES = \
-	xmimsim-gui.c \
+	xmimsim-gui.cpp \
 	xmimsim-gui.h \
 	xmimsim-gui-energies.c \
 	xmimsim-gui-energies.h \
 	xmimsim-gui-controls.c \
 	xmimsim-gui-controls.h \
-	xmimsim-gui-results.c \
+	xmimsim-gui-results.cpp \
 	xmimsim-gui-results.h \
-	xmimsim-gui-notifications.c \
-	xmimsim-gui-notifications.h \
-	xmimsim-gui-fonts.h \
 	xmimsim-gui-batch.h \
-	xmimsim-gui-batch.c \
+	xmimsim-gui-batch.cpp \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -281,7 +280,8 @@ endif
 endif
 
 
-xmimsim_gui_CFLAGS = \
+xmimsim_gui_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@GTK_MAC_CFLAGS@ \
@@ -295,18 +295,14 @@ xmimsim_gui_CFLAGS = \
 
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
-XMICCLD = $(CXX)
 if ENABLE_GUI
 if ENABLE_MAC_APP
-EXTRA_CFLAGS = -xc++ -std=gnu++11 -stdlib=libc++
 EXTRA_LDFLAGS = -stdlib=libc++
 
 noinst_LTLIBRARIES += libxmimsim-gui-osx.la
 libxmimsim_gui_osx_la_SOURCES = xmimsim-gui-osx.m xmimsim-gui-osx.h
 libxmimsim_gui_osx_la_OBJCFLAGS = @GTK_MAC_CFLAGS@ 
 libxmimsim_gui_la_LIBADD += libxmimsim-gui-osx.la
-else
-EXTRA_CFLAGS = -xc++ -std=gnu++11
 endif
 endif
 
@@ -323,7 +319,7 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 
 if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
-xmimsim_gui_CFLAGS += \
+xmimsim_gui_CPPFLAGS += \
 	@JsonGlib_CFLAGS@ \
 	@libcurl_CFLAGS@ \
 	$(NULL)
@@ -339,14 +335,8 @@ if OS_WINDOWS
 xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
-xmimsim_gui_CFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
+xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
-
-#next line is necessary to avoid the -xobjective-c flag to be passed to the linker
-xmimsim_gui_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(XMICCLD) \
-	$(AM_LDFLAGS) $(LDFLAGS) \
-	$(xmimsim_gui_LDFLAGS) -o $@
 
 #xmimsim_test_SOURCES = xmimsim-test.c
 #xmimsim_test_LDADD = ../src/libxmimsim.la

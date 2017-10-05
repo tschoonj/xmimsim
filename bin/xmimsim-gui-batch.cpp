@@ -20,10 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-utils.h"
+#include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-controls.h"
-#include "xmimsim-gui-fonts.h"
 #include "xmimsim-gui-utils.h"
 #include "xmi_main.h"
 #include <stdio.h>

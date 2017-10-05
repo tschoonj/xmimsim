@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,19 +15,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMIMSIM_GUI_NOTIFICATIONS_H
-#define XMIMSIM_GUI_NOTIFICATIONS_H
 
-#include <glib.h>
+#ifndef XMI_MSIM_GUI_COLORS_H
+#define XMI_MSIM_GUI_COLORS_H
+
+#include <gdkmm/rgba.h>
 
 G_BEGIN_DECLS
 
-int xmimsim_notifications_init(void);
+#define XmiColor Gdk::RGBA *
 
-int xmimsim_notifications_deliver(const char *title, const char *text);
+extern XmiColor white_plot;
+extern XmiColor blue_plot;
+extern XmiColor red_plot;
+extern XmiColor green_plot;
+extern XmiColor black_plot;
+extern XmiColor purple_plot;
+extern XmiColor yellow_plot;
+extern XmiColor pink_plot;
 
-int xmimsim_notifications_close(void);
+void xmi_msim_gui_utils_init_colors();
 
 G_END_DECLS
 
 #endif
+

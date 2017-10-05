@@ -22,8 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 
-#include <gtkmm-plplot.h>
-
 G_BEGIN_DECLS
 
 #include "xmi_data_structs.h"

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_ENERGIES_H
 #define XMIMSIM_GUI_ENERGIES_H
 
+G_BEGIN_DECLS
 
 struct energiesWidget {
 	GtkListStore *store;
@@ -54,5 +55,7 @@ struct energiesUndoInfo {
 
 void repopulate_discrete_energies(GtkListStore *store, struct xmi_excitation *excitation);
 void repopulate_continuous_energies(GtkListStore *store, struct xmi_excitation *excitation);
+
+G_END_DECLS
 
 #endif
