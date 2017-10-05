@@ -121,8 +121,8 @@ static void import_hdf5_data_cb(GtkWidget *window, int kind) {
 	dialog = xmi_msim_gui_file_chooser_dialog_new ("Open XMI-MSIM HDF5 file",
 		GTK_WINDOW(window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_OPEN,
-		GTK_STOCK_CANCEL
+		"document-open",
+		"_Cancel"
 		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	GtkWidget *forceW = gtk_check_button_new_with_label("Force copying");
@@ -266,10 +266,10 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	gtk_list_store_set(store, &iter, URL_COLUMN_PREFS, new_text, -1);
 	if (xmi_msim_gui_utils_check_download_url(new_text) == TRUE) {
-		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
+		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, "face-cool", -1);
 	}
 	else {
-		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
 	}
 
 	return;
@@ -282,7 +282,7 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 
 	gtk_list_store_append(store_prefsL, &iter);
 	gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, "http://", -1);
-	gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+	gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
 
 	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
 	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);
@@ -1130,7 +1130,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	pw->parent_window = main_window;
 	pw->deleted_layers = g_array_new(TRUE, FALSE, sizeof(gchar *));
 
-	master_box = gtk_vbox_new(FALSE,2);
+	master_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(master_box), FALSE);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	pw->window = window;
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
@@ -1154,11 +1155,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	union xmimsim_prefs_val xpv;
 
-	GtkWidget *superframe = gtk_vbox_new(TRUE,0);
+	GtkWidget *superframe = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_set_homogeneous(GTK_BOX(superframe), TRUE);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), superframe);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), superframe);
 
 	label = gtk_label_new("Simulation default options");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Simulation defaults</span>");
@@ -1258,7 +1260,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), pw->openclW, TRUE, FALSE, 0);
 #endif
 
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	pw->custom_detector_responseC = gtk_check_button_new_with_label("Custom detector response");
 	gtk_widget_set_tooltip_text(pw->custom_detector_responseC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
 	g_signal_connect(G_OBJECT(pw->custom_detector_responseC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), (gpointer) pw);
@@ -1266,7 +1269,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	pw->custom_detector_responseE = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(pw->custom_detector_responseE), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), pw->custom_detector_responseE, TRUE, TRUE, 3);
-	pw->custom_detector_responseB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	pw->custom_detector_responseB = gtk_button_new_from_icon_name("document-open", GTK_ICON_SIZE_BUTTON);
 	g_signal_connect(G_OBJECT(pw->custom_detector_responseB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), pw->custom_detector_responseE);
 	gtk_box_pack_end(GTK_BOX(hbox), pw->custom_detector_responseB, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, TRUE, FALSE, 0);
@@ -1289,7 +1292,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 
 	//second page
-	superframe = gtk_vbox_new(FALSE,5);
+	superframe = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(superframe), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 
 	label = gtk_label_new("");
@@ -1302,14 +1306,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 #if defined(RPM_BUILD)
 	label = gtk_label_new("XMI-MSIM was built with Redhat Package Manager. All updates should be installed with yum.");
-	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 
 #elif defined(DEB_BUILD)
 	label = gtk_label_new("XMI-MSIM was built with Debian Package Manager. All updates should be installed with apt-get or aptitude.");
-	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
@@ -1324,10 +1326,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), pw->check_updatesW, TRUE, FALSE, 3);
 
 	label = gtk_label_new("Download locations for updates");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(superframe), label, FALSE, FALSE, 2);
 
-	GtkWidget *updatesboxW = gtk_hbox_new(FALSE,5);
+	GtkWidget *updatesboxW = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(updatesboxW), FALSE);
 	GtkListStore *store_prefsL;
 	GtkTreeViewColumn *column;
 	GtkTreeSelection *select;
@@ -1348,7 +1350,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	g_object_set(renderer, "stock-size", GTK_ICON_SIZE_SMALL_TOOLBAR, NULL);
-	column = gtk_tree_view_column_new_with_attributes("Status", renderer,"stock-id",STATUS_COLUMN_PREFS,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Status", renderer, "icon-name",STATUS_COLUMN_PREFS,NULL);
 	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
@@ -1369,12 +1371,13 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(updatesboxW), frame, TRUE, TRUE, 3);
 
 
-	buttonbox = gtk_vbox_new(FALSE, 5);
+	buttonbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(buttonbox), FALSE);
 	GtkWidget *addButton;
 	GtkWidget *removeButton;
 
-	addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
-	removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+	addButton = gtk_button_new_from_icon_name("list-add", GTK_ICON_SIZE_BUTTON);
+	removeButton = gtk_button_new_from_icon_name("list-remove", GTK_ICON_SIZE_BUTTON);
 
 	gtk_box_pack_start(GTK_BOX(buttonbox), addButton, FALSE, FALSE, 3);
 	gtk_box_pack_start(GTK_BOX(buttonbox), removeButton, FALSE, FALSE, 3);
@@ -1394,10 +1397,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		gtk_list_store_append(store_prefsL,&iter);
 		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
 		if (xmi_msim_gui_utils_check_download_url(xpv.ss[i]) == TRUE) {
-			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_YES, -1);
+			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-cool", -1);
 		}
 		else {
-			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, GTK_STOCK_NO, -1);
+			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
 		}
 	}
 
@@ -1410,14 +1413,14 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 #else
 	label = gtk_label_new("XMI-MSIM was built without support for automatic updates. Consider recompiling after installing libcurl and json-glib.");
-	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
 #endif
 
 	//Third page: user-defined layers
-	superframe = gtk_vbox_new(FALSE,5);
+	superframe = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(superframe), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 
 	label = gtk_label_new("");
@@ -1425,7 +1428,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 	label = gtk_label_new("Delete layers by selecting them and hitting the backspace key.\nThis operation will be executed when clicking the Apply button.");
-	//gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
@@ -1463,7 +1465,8 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	g_signal_connect(G_OBJECT(tree_layers), "key-press-event", G_CALLBACK(layers_backspace_key_clicked_cb), (gpointer) pw);
 
 	//Fourth page: advanced
-	superframe = gtk_vbox_new(FALSE,5);
+	superframe = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(superframe), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(superframe),10);
 
 	label = gtk_label_new("");
@@ -1472,8 +1475,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), superframe, label);
 
 
-	hbox = gtk_hbox_new(FALSE,2);
-	GtkWidget *button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+	GtkWidget *button = gtk_button_new_from_icon_name("edit-delete", GTK_ICON_SIZE_BUTTON);
 	label = gtk_label_new("Remove the solid angles HDF5 file");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
 	gtk_widget_set_tooltip_text(label,"It is recommended to remove this file when a definitive uninstallation of XMI-MSIM is required, or when this file got somehow corrupted.");
@@ -1481,8 +1485,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_solid_angles_clicked_cb), (gpointer) window);
 
-	hbox = gtk_hbox_new(FALSE,2);
-	button = gtk_button_new_from_stock(GTK_STOCK_DELETE);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+	button = gtk_button_new_from_icon_name("edit-delete", GTK_ICON_SIZE_BUTTON);
 	label = gtk_label_new("Remove the escape ratios HDF5 file");
 	gtk_widget_set_tooltip_text(label,"It is recommended to remove this file when a definitive uninstallation of XMI-MSIM is required, or when this file got somehow corrupted.");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
@@ -1490,10 +1495,11 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(delete_escape_ratios_clicked_cb), (gpointer) window);
 
-	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
 
-	hbox = gtk_hbox_new(FALSE,2);
-	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+	button = gtk_button_new_from_icon_name("document-open", GTK_ICON_SIZE_BUTTON);
 	label = gtk_label_new("Import solid angle grids");
 	gtk_widget_set_tooltip_text(label,"Use this feature to import solid angle grids into your personal default HDF5 file.");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
@@ -1501,8 +1507,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_solid_angles_clicked_cb), (gpointer) window);
 
-	hbox = gtk_hbox_new(FALSE,2);
-	button = gtk_button_new_from_stock(GTK_STOCK_OPEN);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+	button = gtk_button_new_from_icon_name("document-open", GTK_ICON_SIZE_BUTTON);
 	label = gtk_label_new("Import escape ratios");
 	gtk_widget_set_tooltip_text(label,"Use this feature to import detector specific escape ratios into your personal default HDF5 file.");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 1);
@@ -1511,7 +1518,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(import_escape_ratios_clicked_cb), (gpointer) window);
 
 #if defined(MAC_INTEGRATION) || defined(HAVE_LIBNOTIFY)
-	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
 	pw->notificationsW = gtk_check_button_new_with_label("Enable notifications");
 	gtk_widget_set_tooltip_text(pw->notificationsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
@@ -1522,8 +1529,9 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), pw->notificationsW, FALSE, FALSE, 3);
 #endif
 
-	gtk_box_pack_start(GTK_BOX(superframe), gtk_hseparator_new(), FALSE, FALSE, 3);
-	hbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(superframe), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	label = gtk_label_new("Default save folder");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 	pw->default_save_folderW = gtk_file_chooser_button_new("Select the default folder to save new files", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
@@ -1538,11 +1546,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 
 	//button box
-	buttonbox = gtk_hbox_new(TRUE, 2);
+	buttonbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(buttonbox), TRUE);
 	GtkWidget *applyButton, *cancelButton;
 
-	applyButton = gtk_button_new_from_stock(GTK_STOCK_APPLY);
-	cancelButton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+	applyButton = gtk_button_new_with_mnemonic("_Apply");
+	cancelButton = gtk_button_new_with_mnemonic("_Cancel");
 	gtk_box_pack_start(GTK_BOX(buttonbox), applyButton, TRUE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(buttonbox), cancelButton, TRUE,FALSE,2);
 	gtk_box_pack_start(GTK_BOX(master_box),buttonbox, FALSE, FALSE, 6);
@@ -1574,8 +1583,8 @@ void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *ent
 	dialog = xmi_msim_gui_file_chooser_dialog_new("Select detector response function DLM",
 		GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_OPEN,
-		GTK_STOCK_CANCEL
+		"document-open",
+		"_Cancel"
 		);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
