@@ -32,11 +32,6 @@ G_BEGIN_DECLS
 #endif
 
 
-#if !GLIB_CHECK_VERSION (2, 28, 0)
-void g_list_free_full (GList *list, GDestroyNotify  free_func);
-#endif
-
-
 struct undo_single {
 	struct xmi_input *xi;
 	gchar *message;
