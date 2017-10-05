@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-notifications.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui.h" // this is harmless as I am only using XMI_STOCK_LOGO
 #include <glib/gstdio.h>
 
 #ifdef MAC_INTEGRATION
