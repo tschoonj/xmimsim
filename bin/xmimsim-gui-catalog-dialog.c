@@ -38,12 +38,13 @@ static void xmi_msim_gui_catalog_dialog_init(XmiMsimGuiCatalogDialog *dialog) {
   gtk_window_set_title(GTK_WINDOW(dialog), "Select a layer from the catalogs");
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-  gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+  gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 
   GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
-  GtkWidget *vbox = gtk_vbox_new(FALSE,2);
+  GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(vbox), FALSE);
 
   GtkWidget *nist_radioW = gtk_radio_button_new_with_label_from_widget(NULL, "NIST compositions");
   gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
@@ -62,7 +63,7 @@ static void xmi_msim_gui_catalog_dialog_init(XmiMsimGuiCatalogDialog *dialog) {
   gtk_box_pack_start(GTK_BOX(vbox), nist_radioW, TRUE, FALSE, 2);
   gtk_box_pack_start(GTK_BOX(vbox), nist_comboW, TRUE, FALSE, 2);
 
-  gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), TRUE, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), TRUE, FALSE, 2);
 
   GtkWidget *user_radioW = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(nist_radioW), "User-defined compositions");
   GtkWidget *user_comboW = gtk_combo_box_text_new();
