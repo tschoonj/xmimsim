@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-colors.h"
+#include <gdkmm/screen.h>
+#include <gtkmm/cssprovider.h>
+#include <gtkmm/stylecontext.h>
 
 XmiColor white_plot;
 XmiColor blue_plot;
@@ -38,5 +41,20 @@ void xmi_msim_gui_utils_init_colors() {
 	COLOR_INIT(purple);
 	COLOR_INIT(yellow);
 	COLOR_INIT(pink);
+
+
+	// CSS stuff
+	// after https://stackoverflow.com/a/39066419
+	Glib::RefPtr<Gdk::Screen> screen = Gdk::Screen::get_default();
+	Glib::RefPtr<Gtk::CssProvider> gtk_provider = Gtk::CssProvider::create();
+	Glib::RefPtr<Gtk::StyleContext> gtk_context = Gtk::StyleContext::create();
+	gtk_context->add_provider_for_screen(screen, gtk_provider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+	if (not gtk_provider->load_from_data(
+		"#color_entry.red { background-image: linear-gradient(red,red); }"
+	)) {
+		g_warning("xmi_msim_gui_utils_init_colors -> could not load CSS data!");
+	}
+	
 }
 

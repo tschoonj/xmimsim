@@ -22,8 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <string.h>
 
-static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
-
 static void xmi_msim_compound_dialog_set_property (GObject          *object,
                                                    guint             prop_id,
                                                    const GValue     *value,
@@ -64,7 +62,7 @@ static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClas
 static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) {
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-  gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+  gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 
   GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
   GtkWidget *HBox;
@@ -74,9 +72,11 @@ static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) 
 
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Compound");
   compoundEntry = gtk_entry_new();
+  gtk_widget_set_name(compoundEntry, "color_entry");
   dialog->compoundEntry = compoundEntry;
   gtk_entry_set_activates_default(GTK_ENTRY(compoundEntry), TRUE);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -85,9 +85,11 @@ static void xmi_msim_gui_compound_dialog_init(XmiMsimGuiCompoundDialog *dialog) 
   gtk_box_pack_start(GTK_BOX(contentArea), HBox, FALSE, FALSE, 1);
   gtk_widget_show_all(HBox);
 
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Weight fraction (%)");
   weightEntry = gtk_entry_new();
+  gtk_widget_set_name(weightEntry, "color_entry");
   dialog->weightEntry = weightEntry;
   gtk_entry_set_activates_default(GTK_ENTRY(weightEntry), TRUE);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -130,13 +132,15 @@ static void compound_changed(GtkEditable *widget, gpointer data) {
 
   lastPtr = textPtr2 + strlen(textPtr2);
 
+  GtkStyleContext *style_context = gtk_widget_get_style_context(GTK_WIDGET(widget));
+
   if (GTK_WIDGET(widget) == dialog->compoundEntry) {
     if (cd) {
-      gtk_widget_modify_base(GTK_WIDGET(widget), GTK_STATE_NORMAL, NULL);
+      gtk_style_context_remove_class(style_context, "red");
     }
     else {
       //bad value
-      gtk_widget_modify_base(GTK_WIDGET(widget), GTK_STATE_NORMAL, &red);
+      gtk_style_context_add_class(style_context, "red");
       gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), FALSE);
     }
     if (cd && lastPtr == endPtr && weight > 0.0) {
@@ -145,11 +149,11 @@ static void compound_changed(GtkEditable *widget, gpointer data) {
   }
   else if (GTK_WIDGET(widget) == dialog->weightEntry) {
     if (lastPtr == endPtr && weight > 0.0) {
-      gtk_widget_modify_base(GTK_WIDGET(widget), GTK_STATE_NORMAL, NULL);
+      gtk_style_context_remove_class(style_context, "red");
     }
     else {
       //bad value
-      gtk_widget_modify_base(GTK_WIDGET(widget), GTK_STATE_NORMAL, &red);
+      gtk_style_context_add_class(style_context, "red");
       gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), FALSE);
     }
     if (cd && lastPtr == endPtr && weight > 0.0) {
