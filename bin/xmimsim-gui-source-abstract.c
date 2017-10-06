@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xmimsim-gui-marshal.h"
 
-G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_VBOX)
+G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_BOX)
 
 static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source);
 
@@ -106,6 +106,7 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 		"spacing", 2,
 		"homogeneous", FALSE,
 		"expand", FALSE,
+		"orientation", GTK_ORIENTATION_VERTICAL,
 		NULL
 	);
 	
