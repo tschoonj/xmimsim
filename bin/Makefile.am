@@ -54,6 +54,7 @@ libxmimsim_gui_la_SOURCES = \
 	$(libxmimsim_gui_include_HEADERS) \
 	xmimsim-gui-prefs.c \
 	xmimsim-gui-source-abstract.c \
+	xmimsim-gui-colors.cpp \
 	xmimsim-gui-compound-dialog.c \
 	xmimsim-gui-catalog-dialog.c \
 	xmimsim-gui-layer-dialog.c \
@@ -67,7 +68,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-marshal.c \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
-	xmimsim-gui-colors.cpp \
 	xmimsim-gui-notifications.c \
 	$(NULL)
 
