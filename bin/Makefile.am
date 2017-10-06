@@ -78,6 +78,7 @@ libxmimsim_gui_la_CPPFLAGS = \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@libcurl_CFLAGS@ \
+	@libnotify_CFLAGS@ \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
@@ -91,6 +92,7 @@ libxmimsim_gui_la_LIBADD = \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
 	@libcurl_LIBS@ \
+	@libnotify_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
 
@@ -289,7 +291,6 @@ xmimsim_gui_CPPFLAGS = \
 	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 	-DXMIMSIM_COORDINATE_SYSTEM=\"$(datadir)/xmimsim/coordinate_system.png\" \
 	-DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
-	@libnotify_CFLAGS@ \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
 
@@ -313,7 +314,6 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @xraylib_LIBS@ \
 		    @gthread2_LIBS@ \
 		    @xml2_LIBS@ \
-		    @libnotify_LIBS@ \
 		    ../src/libxmimsim.la
 
 
