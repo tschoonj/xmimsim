@@ -47,7 +47,7 @@ typedef struct _XmiMsimGuiSourceAbstractClass   XmiMsimGuiSourceAbstractClass;
 
 struct _XmiMsimGuiSourceAbstract
 {
-  GtkVBox parent_instance;
+  GtkBox parent_instance;
   GArray *x;
   GArray *y;
   struct xmi_excitation *raw_data;
@@ -56,7 +56,7 @@ struct _XmiMsimGuiSourceAbstract
 
 struct _XmiMsimGuiSourceAbstractClass
 {
-  GtkVBoxClass parent_class;
+  GtkBoxClass parent_class;
 
   void (*generate)  (XmiMsimGuiSourceAbstract *source);
 
