@@ -181,13 +181,7 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		struct read_xmsa_data *rxd = (struct read_xmsa_data *) g_malloc(sizeof(struct read_xmsa_data));
 		rxd->filename = filename;
 		rxd->archive = &archive;
-#if GLIB_CHECK_VERSION (2, 32, 0)
-		//new API
 		GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd);
-#else
-		//old API
-		GThread *xmsa_thread = g_thread_create((GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
-#endif
 		while(gtk_events_pending())
 			gtk_main_iteration();
 
