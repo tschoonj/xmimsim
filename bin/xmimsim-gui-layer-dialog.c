@@ -26,8 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "xmi_aux.h"
 
-static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
-
 static void xmi_msim_layer_dialog_set_property (GObject          *object,
                                                 guint             prop_id,
                                                 const GValue     *value,
@@ -102,18 +100,20 @@ static void xmi_msim_gui_layer_dialog_class_init(XmiMsimGuiLayerDialogClass *kla
 static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-  gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+  gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
   gtk_window_set_default_size(GTK_WINDOW(dialog), 200, 200);
 
   GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-  GtkWidget *mainVBox = gtk_vbox_new(FALSE, 5);
+  GtkWidget *mainVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_set_homogeneous(GTK_BOX(mainVBox), FALSE);
   gtk_container_set_border_width(GTK_CONTAINER(mainVBox),5);
   gtk_container_add(GTK_CONTAINER(contentArea), mainVBox);
 
   GtkListStore *store = gtk_list_store_new(N_COLUMNS_LAYER, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_INT);
   //construct tree
-  GtkWidget *HBox = gtk_hbox_new(FALSE,5);
+  GtkWidget *HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   GtkWidget *compositionTreeView = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
   GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
   gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
@@ -134,7 +134,7 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   gtk_widget_set_size_request(scrolledWindow, 220, 150);
   gtk_container_add(GTK_CONTAINER(scrolledWindow), compositionTreeView);
   GtkWidget *frame = gtk_frame_new(NULL);
-  gtk_container_add(GTK_FRAME(frame), scrolledWindow);
+  gtk_container_add(GTK_CONTAINER(frame), scrolledWindow);
   gtk_box_pack_start(GTK_BOX(HBox), frame, FALSE, FALSE, 3);
 
   //selections
@@ -144,10 +144,11 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
 
 
   //add/edit/remove
-  GtkWidget *VBox = gtk_vbox_new(FALSE,5);
-  GtkWidget *addButton = gtk_button_new_from_stock(GTK_STOCK_ADD);
-  GtkWidget *editButton = gtk_button_new_from_stock(GTK_STOCK_EDIT);
-  GtkWidget *removeButton = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+  GtkWidget *VBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_set_homogeneous(GTK_BOX(VBox), FALSE);
+  GtkWidget *addButton = gtk_button_new_with_mnemonic("_Add");
+  GtkWidget *editButton = gtk_button_new_with_mnemonic("_Edit");
+  GtkWidget *removeButton = gtk_button_new_with_mnemonic("_Remove");
   GtkWidget *predefButton = gtk_button_new_with_label("Load from catalog");
   GtkWidget *addToCatalogButton = gtk_button_new_with_label("Add to catalog");
 
@@ -174,7 +175,8 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   g_signal_connect(G_OBJECT(compositionTreeView), "row-activated", G_CALLBACK(element_row_activated), (gpointer) dialog);
 
   //Sum and normalize
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   GtkWidget *label = gtk_label_new("Weights sum (%)");
   GtkWidget *sumLabel = gtk_label_new("");
   gtk_label_set_justify(GTK_LABEL(sumLabel), GTK_JUSTIFY_CENTER);
@@ -186,22 +188,26 @@ static void xmi_msim_gui_layer_dialog_init(XmiMsimGuiLayerDialog *dialog) {
   g_signal_connect(G_OBJECT(normalizeButton), "clicked", G_CALLBACK(normalize_button_clicked), (gpointer) dialog);
 
   //separator
-  GtkWidget *separator = gtk_hseparator_new();
+  GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
   gtk_box_pack_start(GTK_BOX(mainVBox), separator, FALSE, FALSE, 3);
 
   //Density and thickness
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new(NULL);
   gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
   GtkWidget *densityEntry = gtk_entry_new();
+  gtk_widget_set_name(densityEntry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(densityEntry), TRUE);
   gulong density_changed = g_signal_connect(G_OBJECT(densityEntry), "changed", G_CALLBACK(density_thickness_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
   gtk_box_pack_end(GTK_BOX(HBox), densityEntry, FALSE, FALSE, 2);
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Thickness (cm)");
   GtkWidget *thicknessEntry = gtk_entry_new();
+  gtk_widget_set_name(thicknessEntry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(thicknessEntry), TRUE);
   gulong thickness_changed = g_signal_connect(G_OBJECT(thicknessEntry), "changed", G_CALLBACK(density_thickness_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -298,6 +304,8 @@ static void density_thickness_changed(GtkWidget *widget, XmiMsimGuiLayerDialog *
   lastPtr2 = textPtr2 + strlen(textPtr2);
   lastPtr3 = textPtr3 + strlen(textPtr3);
 
+  GtkStyleContext *style_context = gtk_widget_get_style_context(GTK_WIDGET(widget));
+
   if (lastPtr == endPtr && density > 0.0)
     density_ok = 1;
   else
@@ -315,18 +323,18 @@ static void density_thickness_changed(GtkWidget *widget, XmiMsimGuiLayerDialog *
 
   if (widget == dialog->densityEntry) {
     if (density_ok)
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL, NULL);
+      gtk_style_context_remove_class(style_context, "red");
     else {
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL, &red);
+      gtk_style_context_add_class(style_context, "red");
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
       gtk_widget_set_sensitive(dialog->addToCatalogButton, FALSE);
     }
   }
   else if (widget == dialog->thicknessEntry) {
     if (thickness_ok)
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL, NULL);
+      gtk_style_context_remove_class(style_context, "red");
     else {
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL, &red);
+      gtk_style_context_add_class(style_context, "red");
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
       gtk_widget_set_sensitive(dialog->addToCatalogButton,FALSE);
     }
@@ -477,11 +485,12 @@ static void add_to_catalog_button_clicked(GtkButton *button, XmiMsimGuiLayerDial
   update_dialog = gtk_dialog_new_with_buttons("Add current layer to the catalog",
     GTK_WINDOW(dialog),
     (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
-    GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+    "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
   gtk_widget_set_size_request(update_dialog, 300,-1);
 
   content_area = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
-  vbox = gtk_vbox_new(FALSE,2);
+  vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(vbox), FALSE);
   gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("Choose a name for the layer"), TRUE, FALSE, 2);
   gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
   GtkWidget *nameEntry = gtk_entry_new();
