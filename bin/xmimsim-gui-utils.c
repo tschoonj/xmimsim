@@ -61,7 +61,8 @@ GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *me
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	GtkWidget *main_vbox = gtk_vbox_new(FALSE,0);
+	GtkWidget *main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_set_homogeneous(GTK_BOX(main_vbox), FALSE);
 	GtkWidget *label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label), message_with_markup);
 	gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
