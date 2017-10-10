@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-type-builtins.h"
 #include <string.h>
 
-static GdkColor red = {(guint32) 0, (guint16) 65535, (guint16) 1000, (guint16) 1000};
-
 static void xmi_msim_discrete_energy_dialog_set_property (GObject          *object,
                                                           guint             prop_id,
                                                           const GValue     *value,
@@ -65,19 +63,22 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE); // in order to have the scale parameter show and hide while automatically resizing the dialog
-  gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+  gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
   gtk_window_set_default_size(GTK_WINDOW(dialog), 420, 300);
 
   GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-  GtkWidget *mainVBox = gtk_vbox_new(FALSE, 5);
+  GtkWidget *mainVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_set_homogeneous(GTK_BOX(mainVBox), FALSE);
   gtk_container_set_border_width(GTK_CONTAINER(mainVBox), 5);
   gtk_container_add(GTK_CONTAINER(contentArea), mainVBox);
 
   //Energy
-  GtkWidget *HBox = gtk_hbox_new(FALSE, 2);
+  GtkWidget *HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   GtkWidget *label = gtk_label_new("Energy (keV)");
   GtkWidget *energy_entry = gtk_entry_new();
+  gtk_widget_set_name(energy_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(energy_entry), TRUE);
   gulong energy_changed = g_signal_connect(G_OBJECT(energy_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -85,9 +86,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //horizontal intensity
-  HBox = gtk_hbox_new(FALSE, 2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Horizontally polarized intensity (ph/s)");
   GtkWidget *hor_intensity_entry = gtk_entry_new();
+  gtk_widget_set_name(hor_intensity_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(hor_intensity_entry), TRUE);
   gulong hor_intensity_changed = g_signal_connect(G_OBJECT(hor_intensity_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -95,9 +98,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //vertical intensity
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Vertically polarized intensity (ph/s)");
   GtkWidget *ver_intensity_entry = gtk_entry_new();
+  gtk_widget_set_name(ver_intensity_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(ver_intensity_entry), TRUE);
   gulong ver_intensity_changed = g_signal_connect(G_OBJECT(ver_intensity_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -105,9 +110,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //source size x
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Source size x (cm)");
   GtkWidget *sigma_x_entry = gtk_entry_new();
+  gtk_widget_set_name(sigma_x_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(sigma_x_entry), TRUE);
   gulong sigma_x_changed = g_signal_connect(G_OBJECT(sigma_x_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -115,9 +122,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //source size y
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Source size y (cm)");
   GtkWidget *sigma_y_entry = gtk_entry_new();
+  gtk_widget_set_name(sigma_y_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(sigma_y_entry), TRUE);
   gulong sigma_y_changed = g_signal_connect(G_OBJECT(sigma_y_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -125,9 +134,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //source divergence x
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Source divergence x (rad)");
   GtkWidget *sigma_xp_entry = gtk_entry_new();
+  gtk_widget_set_name(sigma_xp_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(sigma_xp_entry), TRUE);
   gulong sigma_xp_changed = g_signal_connect(G_OBJECT(sigma_xp_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -135,9 +146,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //source divergence y
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Source divergence y (rad)");
   GtkWidget *sigma_yp_entry = gtk_entry_new();
+  gtk_widget_set_name(sigma_yp_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(sigma_yp_entry), TRUE);
   gulong sigma_yp_changed = g_signal_connect(G_OBJECT(sigma_yp_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(HBox), label, FALSE, FALSE, 2);
@@ -145,7 +158,8 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //distribution type
-  HBox = gtk_hbox_new(FALSE,2);
+  HBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(HBox), FALSE);
   label = gtk_label_new("Energy distribution type");
   GtkWidget *distribution_type_combo = gtk_combo_box_text_new();
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(distribution_type_combo), "Monochromatic");
@@ -157,9 +171,11 @@ static void xmi_msim_gui_discrete_energy_dialog_init(XmiMsimGuiDiscreteEnergyDia
   gtk_box_pack_start(GTK_BOX(mainVBox), HBox, FALSE, FALSE, 3);
 
   //scale parameter
-  GtkWidget *scale_parameter_box = gtk_hbox_new(FALSE,2);
+  GtkWidget *scale_parameter_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(scale_parameter_box), FALSE);
   GtkWidget *scale_parameter_label = gtk_label_new("Scale parameter (keV)");
   GtkWidget *scale_parameter_entry = gtk_entry_new();
+  gtk_widget_set_name(scale_parameter_entry, "color_entry");
   gtk_entry_set_activates_default(GTK_ENTRY(scale_parameter_entry), TRUE);
   gulong scale_parameter_changed = g_signal_connect(G_OBJECT(scale_parameter_entry), "changed", G_CALLBACK(entry_value_changed), (gpointer) dialog);
   gtk_box_pack_start(GTK_BOX(scale_parameter_box), scale_parameter_label, FALSE, FALSE, 2);
@@ -249,8 +265,10 @@ static void distribution_type_combo_changed(GtkComboBox *combobox, XmiMsimGuiDis
 
   gint active = gtk_combo_box_get_active(combobox);
 
+  GtkStyleContext *style_context = gtk_widget_get_style_context(dialog->scale_parameter_entry);
+
   g_signal_handler_block(G_OBJECT(dialog->scale_parameter_entry), dialog->scale_parameter_changed);
-  gtk_widget_modify_base(dialog->scale_parameter_entry, GTK_STATE_NORMAL, NULL);
+  gtk_style_context_remove_class(style_context, "red");
   gtk_entry_set_text(GTK_ENTRY(dialog->scale_parameter_entry), "");
   g_signal_handler_unblock(G_OBJECT(dialog->scale_parameter_entry), dialog->scale_parameter_changed);
 
@@ -279,6 +297,10 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
   int ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8;
   double value1, value2, value3, value4, value5, value6, value7, value8;
 
+  GtkStyleContext *style_context = NULL;
+  if (widget != NULL)
+    style_context = gtk_widget_get_style_context(GTK_WIDGET(widget));
+
   textPtr1 = (char *) gtk_entry_get_text(GTK_ENTRY(dialog->energy_entry));
   textPtr2 = (char *) gtk_entry_get_text(GTK_ENTRY(dialog->hor_intensity_entry));
   textPtr3 = (char *) gtk_entry_get_text(GTK_ENTRY(dialog->ver_intensity_entry));
@@ -300,9 +322,9 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
     ok ## n = 0;\
   if (widget == my_entry) {\
     if (ok ## n)\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
+      gtk_style_context_remove_class(style_context, "red"); \
     else {\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+      gtk_style_context_add_class(style_context, "red"); \
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);\
     }\
   }
@@ -315,9 +337,9 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
     ok ## n = 0;\
   if (widget == my_entry) {\
     if (ok ## n)\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
+      gtk_style_context_remove_class(style_context, "red"); \
     else {\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+      gtk_style_context_add_class(style_context, "red"); \
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);\
     }\
   }
@@ -330,9 +352,9 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
     ok ## n = 0;\
   if (widget == my_entry) {\
     if (ok ## n)\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,NULL);\
+      gtk_style_context_remove_class(style_context, "red"); \
     else {\
-      gtk_widget_modify_base(widget, GTK_STATE_NORMAL,&red);\
+      gtk_style_context_add_class(style_context, "red"); \
       gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);\
     }\
   }
@@ -378,24 +400,24 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
 
 
   if (ok2 == 1 || ok2 == 0)
-    gtk_widget_modify_base(dialog->hor_intensity_entry, GTK_STATE_NORMAL,NULL);
+    gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
   else if (ok2 == -1)
-    gtk_widget_modify_base(dialog->hor_intensity_entry, GTK_STATE_NORMAL,&red);
+    gtk_style_context_add_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
 
   if (ok3 == 1 || ok3 == 0)
-    gtk_widget_modify_base(dialog->ver_intensity_entry, GTK_STATE_NORMAL,NULL);
+    gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
   else if (ok3 == -1)
-    gtk_widget_modify_base(dialog->ver_intensity_entry, GTK_STATE_NORMAL,&red);
+    gtk_style_context_add_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
 
   if ((ok2 == 1 && ok3 == -2) || (ok2 == -2 && ok3 == 1)) {
     ok2 = ok3 = 1;
-    gtk_widget_modify_base(dialog->hor_intensity_entry, GTK_STATE_NORMAL,NULL);
-    gtk_widget_modify_base(dialog->ver_intensity_entry, GTK_STATE_NORMAL,NULL);
+    gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
+    gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
   }
   else if ((ok2 == -2 && ok3 == -2)) {
     ok2 = ok3 = 0;
-    gtk_widget_modify_base(dialog->hor_intensity_entry, GTK_STATE_NORMAL,&red);
-    gtk_widget_modify_base(dialog->ver_intensity_entry, GTK_STATE_NORMAL,&red);
+    gtk_style_context_add_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
+    gtk_style_context_add_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
   }
 
   if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8)
