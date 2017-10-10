@@ -105,8 +105,8 @@ static void save_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 			"Save source parameters",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
-			GTK_STOCK_SAVE,
-			GTK_STOCK_CANCEL
+			"_Save",
+			"_Cancel"
 		);
 	xmi_msim_gui_file_chooser_dialog_set_modal(save_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(save_dialog), TRUE);
@@ -141,8 +141,8 @@ static void load_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *d
 			"Load source parameters",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_OPEN,
-			GTK_STOCK_OPEN,
-			GTK_STOCK_CANCEL
+			"_Open",
+			"_Cancel"
 		);
 	xmi_msim_gui_file_chooser_dialog_set_modal(load_dialog, TRUE);
 
@@ -176,8 +176,8 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 			"Export spectrum as ASCII file",
 			GTK_WINDOW(dialog),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
-			GTK_STOCK_SAVE,
-			GTK_STOCK_CANCEL
+			"_Save",
+			"_Cancel"
 		);
 	xmi_msim_gui_file_chooser_dialog_set_modal(export_dialog, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(export_dialog), TRUE);
@@ -230,28 +230,36 @@ static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *
 static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-	gtk_dialog_add_buttons(GTK_DIALOG(dialog), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
+	gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+#if GTK_CHECK_VERSION(3, 22, 0) 
+	GdkMonitor *monitor = gdk_display_get_primary_monitor(gdk_display_get_default());
+	GdkRectangle workarea;
+	gdk_monitor_get_workarea(monitor, &workarea);
+	int screen_width = workarea.width;
+#else
 	int screen_width = gdk_screen_get_width(gdk_screen_get_default());
+#endif
 	gtk_window_set_default_size(GTK_WINDOW(dialog), MIN(1400, screen_width), -1);
 	gtk_window_set_title(GTK_WINDOW(dialog), "X-ray sources");
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 
 	GtkWidget *contentArea = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	GtkWidget *mainHBox = gtk_hbox_new(FALSE, 5);
+	GtkWidget *mainHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(mainHBox), FALSE);
  	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
 	gtk_container_add(GTK_CONTAINER(contentArea), mainHBox);
 
 	// mainHBox will contain two columns -> one with source parameters (mainVBox), one with plot
-	// 
-	GtkWidget *mainVBox = gtk_vbox_new(FALSE, 5);
+	GtkWidget *mainVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(mainVBox), FALSE);
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, FALSE, FALSE, 2);
 
 	dialog->notebookW = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(mainVBox), dialog->notebookW, TRUE, TRUE, 2);
 
 	// add separator
-	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
 
 	// add y-axis mode radiobuttons
 	dialog->linearW= gtk_radio_button_new_with_label_from_widget(NULL,"Linear scaling");
@@ -261,27 +269,24 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->log10W), TRUE);
 	
 	// add separator
-	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_hseparator_new(), FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(mainVBox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
 
 	// add buttons
-	dialog->generateButton = gtk_button_new_from_stock(GTK_STOCK_EXECUTE);
-	GtkWidget *infoButton = gtk_button_new_from_stock(GTK_STOCK_ABOUT);
-	GtkWidget *exportButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	GtkWidget *imageButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	GtkWidget *loadButton = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	GtkWidget *saveButton = gtk_button_new_from_stock(GTK_STOCK_SAVE_AS);
-	xmi_msim_gui_utils_update_button_text(dialog->generateButton, "Update spectrum");
-	xmi_msim_gui_utils_update_button_text(exportButton, "Export spectrum");
-	xmi_msim_gui_utils_update_button_text(imageButton, "Save image");
-	xmi_msim_gui_utils_update_button_text(loadButton, "Load parameters");
-	xmi_msim_gui_utils_update_button_text(saveButton, "Save parameters");
+	dialog->generateButton = gtk_button_new_with_label("Update spectrum");
+	GtkWidget *infoButton = gtk_button_new_with_label("About source");
+	GtkWidget *exportButton = gtk_button_new_with_label("Export spectrum");
+	GtkWidget *imageButton = gtk_button_new_with_label("Save image");
+	GtkWidget *loadButton = gtk_button_new_with_label("Load parameters");
+	GtkWidget *saveButton = gtk_button_new_with_label("Save parameters");
 
-	GtkWidget *tempHBox = gtk_hbox_new(TRUE, 5);
+	GtkWidget *tempHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(tempHBox), TRUE);
 	gtk_box_pack_start(GTK_BOX(tempHBox), dialog->generateButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), infoButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), loadButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(mainVBox), tempHBox, FALSE, FALSE, 3);
-	tempHBox = gtk_hbox_new(TRUE, 5);
+	tempHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	gtk_box_set_homogeneous(GTK_BOX(tempHBox), TRUE);
 	gtk_box_pack_start(GTK_BOX(tempHBox), exportButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), imageButton, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tempHBox), saveButton, TRUE, TRUE, 0);
