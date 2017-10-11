@@ -267,7 +267,8 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	// construct the widgets, and set them to their values as we go along...
 	GtkWidget *mainVBox = GTK_WIDGET(source);
 
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 3);
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Radionuclide"), FALSE, FALSE, 2);
 	source->radioNuclideW = gtk_combo_box_text_new();
 
@@ -284,7 +285,8 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	gtk_widget_show_all(hbox);
 
 
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Activity"), FALSE, FALSE, 2);
 	source->activityW = gtk_entry_new();
 
@@ -298,7 +300,8 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	gtk_widget_show_all(hbox);
 
 	source->nuclideSolidAngleW = gtk_entry_new();
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	GtkWidget *label = gtk_label_new("Source solid angle (sr)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
