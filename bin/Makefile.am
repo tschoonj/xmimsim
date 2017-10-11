@@ -46,6 +46,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-compat.h \
 	xmimsim-gui-colors.h \
 	xmimsim-gui-notifications.h \
+	xmimsim-gui-xmsi-scrolled-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -69,6 +70,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
 	xmimsim-gui-notifications.c \
+	xmimsim-gui-xmsi-scrolled-window.c \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \
