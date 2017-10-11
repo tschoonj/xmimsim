@@ -545,7 +545,8 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	label = gtk_label_new("Tube voltage (kV)");
 	source->tubeVoltageW = gtk_spin_button_new_with_range(5, 100, 1.0);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->tubeVoltageW), GTK_UPDATE_IF_VALID);
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeVoltageW, FALSE, FALSE, 2);
 	gtk_widget_show_all(hbox);
@@ -554,14 +555,16 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	label = gtk_label_new("Tube current (mA)");
 	source->tubeCurrentW = gtk_spin_button_new_with_range(0.001, 1000, 0.1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->tubeCurrentW), GTK_UPDATE_IF_VALID);
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->tubeCurrentW, FALSE, FALSE, 2);
 	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	source->tubeSolidAngleW = gtk_entry_new();
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	label = gtk_label_new("Tube solid angle (sr)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
@@ -570,19 +573,20 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_widget_show_all(hbox);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
-	GtkWidget *table = gtk_table_new(4, 4, FALSE);
-	gtk_table_set_row_spacings(GTK_TABLE(table), 2);
-	gtk_table_set_col_spacings(GTK_TABLE(table), 2);
+	GtkWidget *grid = gtk_grid_new();
+	gtk_container_set_border_width(GTK_CONTAINER(grid), 2);
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
 
 	//row 0
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Material"), 1, 2, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Material"), 1, 0, 1, 1);
 	label = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label),"Density (g/cm<sup>3</sup>)");
-	gtk_table_attach(GTK_TABLE(table), label, 2, 3, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Thickness (cm)"), 3, 4, 0, 1, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), label, 2, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Thickness (cm)"), 3, 0, 1, 1);
 
 	//row 1
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Anode"), 0, 1, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Anode"), 0, 1, 1, 1);
 	source->anodeDensityW = gtk_entry_new();
 	source->anodeMaterialW = gtk_combo_box_text_new();
 	int i;
@@ -592,13 +596,13 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->anodeMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_table_attach(GTK_TABLE(table), source->anodeMaterialW, 1, 2, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_table_attach(GTK_TABLE(table), source->anodeDensityW, 2, 3, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->anodeMaterialW, 1, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->anodeDensityW, 2, 1, 1, 1);
 	source->anodeThicknessW = gtk_entry_new();
-	gtk_table_attach(GTK_TABLE(table), source->anodeThicknessW, 3, 4, 1, 2, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->anodeThicknessW, 3, 1, 1, 1);
 
 	//row 2
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Window"), 0, 1, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Window"), 0, 2, 1, 1);
 	source->windowMaterialW = gtk_combo_box_text_new();
 	source->windowDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(source->windowMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->windowDensityW);
@@ -607,13 +611,13 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->windowMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_table_attach(GTK_TABLE(table), source->windowMaterialW, 1, 2, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_table_attach(GTK_TABLE(table), source->windowDensityW, 2, 3, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->windowMaterialW, 1, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->windowDensityW, 2, 2, 1, 1);
 	source->windowThicknessW = gtk_entry_new();
-	gtk_table_attach(GTK_TABLE(table), source->windowThicknessW, 3, 4, 2, 3, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->windowThicknessW, 3, 2, 1, 1);
 
 	//row 3
-	gtk_table_attach(GTK_TABLE(table), gtk_label_new("Filter"), 0, 1, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Filter"), 0, 3, 1, 1);
 	source->filterMaterialW = gtk_combo_box_text_new();
 	source->filterDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(source->filterMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->filterDensityW);
@@ -622,14 +626,15 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->filterMaterialW), symbol);
 		xrlFree(symbol);
 	}
-	gtk_table_attach(GTK_TABLE(table), source->filterMaterialW, 1, 2, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
-	gtk_table_attach(GTK_TABLE(table), source->filterDensityW, 2, 3, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->filterMaterialW, 1, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->filterDensityW, 2, 3, 1, 1);
 	source->filterThicknessW = gtk_entry_new();
-	gtk_table_attach(GTK_TABLE(table), source->filterThicknessW, 3, 4, 3, 4, GTK_EXPAND, GTK_EXPAND, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), source->filterThicknessW, 3, 3, 1, 1);
 
 	source->alphaElectronW = gtk_spin_button_new_with_range(50, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaElectronW), GTK_UPDATE_IF_VALID);
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	label = gtk_label_new("Electron incidence angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaElectronW, FALSE, FALSE, 2);
@@ -638,7 +643,8 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 
 	source->alphaXrayW = gtk_spin_button_new_with_range(5, 90, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->alphaXrayW), GTK_UPDATE_IF_VALID);
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	label = gtk_label_new("X-ray take-off angle (degrees)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->alphaXrayW, FALSE, FALSE, 2);
@@ -647,14 +653,15 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 
 	source->deltaEnergyW = gtk_spin_button_new_with_range(0.0001, 10.0, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->deltaEnergyW), GTK_UPDATE_IF_VALID);
-	hbox = gtk_hbox_new(FALSE, 3);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	label = gtk_label_new("Interval width (keV)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(hbox), source->deltaEnergyW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 	gtk_widget_show_all(hbox);
-	gtk_box_pack_start(GTK_BOX(mainVBox), table, TRUE, FALSE, 2);
-	gtk_widget_show_all(table);
+	gtk_box_pack_start(GTK_BOX(mainVBox), grid, TRUE, FALSE, 2);
+	gtk_widget_show_all(grid);
 
 	source->transmissionW = gtk_check_button_new_with_label("Transmission tube");
 
@@ -662,7 +669,8 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_widget_show_all(source->transmissionW);
 
 	source->transmissionEffW = gtk_check_button_new_with_label("Transmission efficiency file");
-	hbox = gtk_hbox_new(FALSE, 0);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), source->transmissionEffW, FALSE, FALSE, 0);
 	source->transmissionEffFileW = gtk_file_chooser_button_new("Select a transmission efficiency file", GTK_FILE_CHOOSER_ACTION_OPEN);
 	gtk_widget_set_sensitive(source->transmissionEffFileW, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(source->transmissionEffW)));
