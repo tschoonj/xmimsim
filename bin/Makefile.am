@@ -47,12 +47,14 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-colors.h \
 	xmimsim-gui-notifications.h \
 	xmimsim-gui-xmsi-scrolled-window.h \
+	xmimsim-gui-options-box.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
 
 libxmimsim_gui_la_SOURCES = \
 	$(libxmimsim_gui_include_HEADERS) \
+	xmimsim-gui-options-box.c \
 	xmimsim-gui-prefs.c \
 	xmimsim-gui-source-abstract.c \
 	xmimsim-gui-colors.cpp \
