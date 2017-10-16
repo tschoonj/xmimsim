@@ -65,8 +65,6 @@ union xmimsim_prefs_val{
 	gint i;
 	gchar **ss;
 	gchar *s;
-	//struct xmi_ebel_parameters *xep;
-	//struct xmi_nuclide_parameters *xnp;
 };
 
 //user defined layers manipulation
@@ -74,8 +72,6 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void);
 struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name);
 int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name);
 int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name);
-
-
 
 //returns 1 on success, 0 on error
 int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs);
@@ -85,11 +81,11 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
 
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
-void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry);
 
 char *xmimsim_gui_get_preferences_filename();
 
 int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file);
 
 G_END_DECLS
+
 #endif

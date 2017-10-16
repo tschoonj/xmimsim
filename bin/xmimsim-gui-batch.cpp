@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-controls.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-xmsi-scrolled-window.h"
+#include "xmimsim-gui-options-box.h"
 #include "xmi_main.h"
 #include <stdio.h>
 #include <glib.h>
@@ -91,25 +92,6 @@ struct canvas_data {
 	double height;
 };
 
-struct options_widget {
-	GtkWidget *Mlines_prefsW;
-	GtkWidget *rad_cascade_prefsW;
-	GtkWidget *nonrad_cascade_prefsW;
-	GtkWidget *variance_reduction_prefsW;
-	GtkWidget *pile_up_prefsW;
-	GtkWidget *poisson_prefsW;
-	GtkWidget *escape_peaks_prefsW;
-	GtkWidget *advanced_compton_prefsW;
-	GtkWidget *default_seeds_prefsW;
-	GtkWidget *custom_detector_response_prefsE;
-	GtkWidget *custom_detector_response_prefsB;
-	GtkWidget *custom_detector_response_prefsC;
-	GtkWidget *superframe;
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	GtkWidget *opencl_prefsW;
-#endif
-};
-
 enum xmi_msim_batch_options{
 	XMI_MSIM_BATCH_MULTIPLE_OPTIONS,
 	XMI_MSIM_BATCH_ONE_OPTION
@@ -129,7 +111,7 @@ struct batch_window_data {
 	GtkWidget *controlsLogFileW;
 	GtkWidget *verboseW;
 	GtkWidget *exitButton;
-	struct xmi_main_options *options;
+	struct xmi_main_options **options;
 	GSList *filenames;
 	enum xmi_msim_batch_options batch_options;
 	gboolean paused;
@@ -150,6 +132,7 @@ struct archive_options_data {
 	double end_value2;
 	int nsteps2;
 	gchar *xmsa_file;
+	struct xmi_main_options *xmo;
 };
 
 struct fluor_data {
@@ -168,20 +151,7 @@ static int compare_fluor_data(const void *f1, const void *f2) {
 static void xmimsim_child_watcher_cb(GPid pid, gint status, struct batch_window_data *bwd);
 static gboolean xmimsim_stdout_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
 static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition condition, struct batch_window_data *bwd);
-static struct options_widget *create_options_frame(GtkWidget *main_window);
 static void get_fluor_data(struct xmi_archive *archive, struct fluor_data **fdo, int *nfdo);
-
-static void custom_detector_response_toggled_cb(GtkToggleButton *button, struct options_widget *rv) {
-	if (gtk_toggle_button_get_active(button) == TRUE) {
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, TRUE);
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, FALSE);
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, FALSE);
-	}
-}
-
 
 struct wizard_range_data {
 	GtkWidget *wizard;
@@ -202,9 +172,8 @@ struct wizard_range_data {
 
 struct wizard_archive_close_data {
 	struct wizard_range_data *wrd;
-	struct options_widget *ow;
+	GtkWidget *ow;
 	struct archive_options_data *aod;
-	struct xmi_main_options *xmo;
 	int *rv;
 };
 
@@ -217,59 +186,8 @@ static void wizard_archive_cancel(GtkAssistant *wizard, struct wizard_archive_cl
 static void wizard_archive_close(GtkAssistant *wizard, struct wizard_archive_close_data *wacd) {
 
 	//first read the general options
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->Mlines_prefsW)))
-		wacd->xmo->use_M_lines = 1;
-	else
-		wacd->xmo->use_M_lines = 0;
+	wacd->aod->xmo = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(wacd->ow));
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->rad_cascade_prefsW)))
-		wacd->xmo->use_cascade_radiative = 1;
-	else
-		wacd->xmo->use_cascade_radiative = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->nonrad_cascade_prefsW)))
-		wacd->xmo->use_cascade_auger = 1;
-	else
-		wacd->xmo->use_cascade_auger = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->variance_reduction_prefsW)))
-		wacd->xmo->use_variance_reduction = 1;
-	else
-		wacd->xmo->use_variance_reduction = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->pile_up_prefsW)))
-		wacd->xmo->use_sum_peaks = 1;
-	else
-		wacd->xmo->use_sum_peaks = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->poisson_prefsW)))
-		wacd->xmo->use_poisson = 1;
-	else
-		wacd->xmo->use_poisson = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->escape_peaks_prefsW)))
-		wacd->xmo->use_escape_peaks = 1;
-	else
-		wacd->xmo->use_escape_peaks = 0;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->advanced_compton_prefsW)))
-		wacd->xmo->use_advanced_compton = 1;
-	else
-		wacd->xmo->use_advanced_compton = 0;
-
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->opencl_prefsW)))
-		wacd->xmo->use_opencl = 1;
-	else
-		wacd->xmo->use_opencl = 0;
-#endif
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wacd->ow->custom_detector_response_prefsC)) == TRUE &&
-		strlen(gtk_entry_get_text(GTK_ENTRY(wacd->ow->custom_detector_response_prefsE))) > 0) {
-		wacd->xmo->custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(wacd->ow->custom_detector_response_prefsE)));
-	}
-	else
-		wacd->xmo->custom_detector_response = NULL;
 	//range parameters
 	wacd->aod->start_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->start1Entry)), NULL);
 	wacd->aod->end_value1 = strtod(gtk_entry_get_text(GTK_ENTRY(wacd->wrd->end1Entry)), NULL);
@@ -497,7 +415,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 	return;
 }
 
-static int archive_options(GtkWidget *main_window, struct xmi_input *input, struct xmi_main_options *xmo, gchar *filename, gchar *xpath1, gchar *xpath2, int allowed1, int allowed2, struct archive_options_data *aod) {
+static int archive_options(GtkWidget *main_window, struct xmi_input *input, gchar *filename, gchar *xpath1, gchar *xpath2, int allowed1, int allowed2, struct archive_options_data *aod) {
 	int rv = 0;
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
@@ -515,11 +433,11 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), introLabel, "Introduction");
 
 	//general options
-	struct options_widget *ow = create_options_frame(main_window);
-	gtk_assistant_append_page(GTK_ASSISTANT(wizard), ow->superframe);
-	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ow->superframe, GTK_ASSISTANT_PAGE_CONTENT);
-	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ow->superframe, "General options");
-	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), ow->superframe, TRUE);
+	GtkWidget *ow = xmi_msim_gui_options_box_new(main_window);
+	gtk_assistant_append_page(GTK_ASSISTANT(wizard), ow);
+	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ow, GTK_ASSISTANT_PAGE_CONTENT);
+	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ow, "General options");
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), ow, TRUE);
 
 	//set range
 	struct wizard_range_data *wrd = (struct wizard_range_data *) g_malloc(sizeof(struct wizard_range_data));
@@ -783,7 +701,6 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, stru
 	wacd->wrd = wrd;
 	wacd->aod = aod;
 	wacd->ow = ow;
-	wacd->xmo = xmo;
 	wacd->rv = &rv;
 
 	g_signal_connect(G_OBJECT(wizard), "cancel", G_CALLBACK(wizard_archive_cancel), (gpointer) wacd);
@@ -980,37 +897,37 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	argv = (gchar **) g_malloc(sizeof(gchar *)*11);
 	argv[0] = g_strdup(xmimsim_executable);
 
-	if (bwd->options[j].use_M_lines) {
+	if (bwd->options[j]->use_M_lines) {
 		argv[1] = g_strdup("--enable-M-lines");
 	}
 	else
 		argv[1] = g_strdup("--disable-M-lines");
 
-	if (bwd->options[j].use_cascade_radiative) {
+	if (bwd->options[j]->use_cascade_radiative) {
 		argv[2] = g_strdup("--enable-radiative-cascade");
 	}
 	else
 		argv[2] = g_strdup("--disable-radiative-cascade");
 
-	if (bwd->options[j].use_cascade_auger) {
+	if (bwd->options[j]->use_cascade_auger) {
 		argv[3] = g_strdup("--enable-auger-cascade");
 	}
 	else
 		argv[3] = g_strdup("--disable-auger-cascade");
 
-	if (bwd->options[j].use_variance_reduction) {
+	if (bwd->options[j]->use_variance_reduction) {
 		argv[4] = g_strdup("--enable-variance-reduction");
 	}
 	else
 		argv[4] = g_strdup("--disable-variance-reduction");
 
-	if (bwd->options[j].use_sum_peaks) {
+	if (bwd->options[j]->use_sum_peaks) {
 		argv[5] = g_strdup("--enable-pile-up");
 	}
 	else
 		argv[5] = g_strdup("--disable-pile-up");
 
-	if (bwd->options[j].use_poisson) {
+	if (bwd->options[j]->use_poisson) {
 		argv[6] = g_strdup("--enable-poisson");
 	}
 	else
@@ -1022,13 +939,13 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 	else {
 		argv[7] = g_strdup("--very-verbose");
 	}
-	if (bwd->options[j].use_escape_peaks) {
+	if (bwd->options[j]->use_escape_peaks) {
 		argv[8] = g_strdup("--enable-escape-peaks");
 	}
 	else
 		argv[8] = g_strdup("--disable-escape-peaks");
 
-	if (bwd->options[j].use_advanced_compton) {
+	if (bwd->options[j]->use_advanced_compton) {
 		argv[9] = g_strdup("--enable-advanced-compton");
 	}
 	else
@@ -1067,16 +984,16 @@ static void batch_start_job_recursive(struct batch_window_data *bwd) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
-	if (bwd->options[j].use_opencl) {
+	if (bwd->options[j]->use_opencl) {
 		argv[arg_counter++] = g_strdup("--enable-opencl");
 	}
 	else {
 		argv[arg_counter++] = g_strdup("--disable-opencl");
 	}
 #endif
-	if (bwd->options[j].custom_detector_response != NULL) {
+	if (bwd->options[j]->custom_detector_response != NULL) {
 		argv = (gchar **) g_realloc(argv,sizeof(gchar *)*(arg_counter+3));
-		argv[arg_counter++] = g_strdup_printf("--custom-detector-response=%s", bwd->options[j].custom_detector_response);
+		argv[arg_counter++] = g_strdup_printf("--custom-detector-response=%s", bwd->options[j]->custom_detector_response);
 	}
 	//number of threads
 	if (bwd->nthreadsW != NULL) {
@@ -1244,7 +1161,7 @@ static gboolean xmimsim_stderr_watcher(GIOChannel *source, GIOCondition conditio
 	return TRUE;
 }
 
-static int batch_mode(GtkWidget * main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2);
+static int batch_mode(GtkWidget * main_window, struct xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2);
 
 static void batch_reset_controls(struct batch_window_data *bwd) {
 	GtkTextIter start, end;
@@ -1565,142 +1482,9 @@ static void pause_button_clicked(GtkButton *button, struct batch_window_data *bw
 
 }
 
-static struct options_widget *create_options_frame(GtkWidget *main_window) {
-	union xmimsim_prefs_val xpv;
-	struct options_widget *rv = (struct options_widget *) g_malloc(sizeof(struct options_widget));
-
-	rv->superframe = gtk_vbox_new(TRUE, 0);
-	gtk_container_set_border_width(GTK_CONTAINER(rv->superframe),10);
-
-	rv->Mlines_prefsW = gtk_check_button_new_with_label("Simulate M-lines");
-	gtk_widget_set_tooltip_text(rv->Mlines_prefsW,"Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->Mlines_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->Mlines_prefsW, TRUE, FALSE, 0);
-
-	rv->rad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
-	gtk_widget_set_tooltip_text(rv->rad_cascade_prefsW,"Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->rad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->rad_cascade_prefsW, TRUE, FALSE, 0);
-
-	rv->nonrad_cascade_prefsW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
-	gtk_widget_set_tooltip_text(rv->nonrad_cascade_prefsW,"Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->nonrad_cascade_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->nonrad_cascade_prefsW, TRUE, FALSE, 0);
-
-	rv->variance_reduction_prefsW = gtk_check_button_new_with_label("Enable variance reduction techniques");
-	gtk_widget_set_tooltip_text(rv->variance_reduction_prefsW,"Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->variance_reduction_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->variance_reduction_prefsW, TRUE, FALSE, 0);
-
-	rv->pile_up_prefsW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
-	gtk_widget_set_tooltip_text(rv->pile_up_prefsW,"When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->pile_up_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->pile_up_prefsW, TRUE, FALSE, 0);
-
-
-	rv->poisson_prefsW = gtk_check_button_new_with_label("Enable Poisson noise generation");
-	gtk_widget_set_tooltip_text(rv->poisson_prefsW,"Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->poisson_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->poisson_prefsW, TRUE, FALSE, 0);
-
-	rv->escape_peaks_prefsW = gtk_check_button_new_with_label("Enable escape peaks support");
-	gtk_widget_set_tooltip_text(rv->escape_peaks_prefsW,"Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->escape_peaks_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe),rv->escape_peaks_prefsW, TRUE, FALSE, 0);
-
-	rv->advanced_compton_prefsW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
-	gtk_widget_set_tooltip_text(rv->advanced_compton_prefsW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->advanced_compton_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->advanced_compton_prefsW, TRUE, FALSE, 0);
-
-	rv->default_seeds_prefsW = gtk_check_button_new_with_label("Enable default seeds support");
-	gtk_widget_set_tooltip_text(rv->default_seeds_prefsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->default_seeds_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->default_seeds_prefsW, TRUE, FALSE, 0);
-
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	rv->opencl_prefsW = gtk_check_button_new_with_label("Enable OpenCL");
-	gtk_widget_set_tooltip_text(rv->opencl_prefsW,"Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->opencl_prefsW),xpv.b);
-	gtk_box_pack_start(GTK_BOX(rv->superframe), rv->opencl_prefsW, TRUE, FALSE, 0);
-#endif
-
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(rv->superframe), hbox, TRUE, FALSE, 0);
-	rv->custom_detector_response_prefsC = gtk_check_button_new_with_label("Custom detector response");
-	gtk_widget_set_tooltip_text(rv->custom_detector_response_prefsC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
-	g_signal_connect(G_OBJECT(rv->custom_detector_response_prefsC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), rv);
-	gtk_box_pack_start(GTK_BOX(hbox), rv->custom_detector_response_prefsC, FALSE, FALSE, 0);
-	rv->custom_detector_response_prefsE = gtk_entry_new();
-	gtk_editable_set_editable(GTK_EDITABLE(rv->custom_detector_response_prefsE), FALSE);
-	gtk_box_pack_start(GTK_BOX(hbox), rv->custom_detector_response_prefsE, TRUE, TRUE, 3);
-	rv->custom_detector_response_prefsB = gtk_button_new_from_stock(GTK_STOCK_OPEN);
-	g_signal_connect(G_OBJECT(rv->custom_detector_response_prefsB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), rv->custom_detector_response_prefsE);
-	gtk_box_pack_end(GTK_BOX(hbox), rv->custom_detector_response_prefsB, FALSE, FALSE, 0);
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
-		//abort
-		preferences_error_handler(main_window);
-	}
-	if (xpv.s != NULL) {
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, TRUE);
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, TRUE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->custom_detector_response_prefsC), TRUE);
-		gtk_entry_set_text(GTK_ENTRY(rv->custom_detector_response_prefsE), xpv.s);
-	}
-	else {
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsE, FALSE);
-		gtk_widget_set_sensitive(rv->custom_detector_response_prefsB, FALSE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rv->custom_detector_response_prefsC), FALSE);
-	}
-	g_free(xpv.s);
-
-
-	return rv;
-}
-
 struct wizard_close_data {
-	struct xmi_main_options *options;
-	struct options_widget **ows;
+	struct xmi_main_options **options;
+	GtkWidget **ows;
 	int *rv;
 };
 
@@ -1715,59 +1499,8 @@ static void wizard_close(GtkAssistant *wizard, struct wizard_close_data *wcd) {
 	int i;
 
 	for (i = 0 ; i < gtk_assistant_get_n_pages(wizard)-2 ; i++) {
-		g_fprintf(stdout, "Processing file %i\n",i);
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->Mlines_prefsW)))
-			wcd->options[i].use_M_lines = 1;
-		else
-			wcd->options[i].use_M_lines = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->rad_cascade_prefsW)))
-			wcd->options[i].use_cascade_radiative = 1;
-		else
-			wcd->options[i].use_cascade_radiative = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->nonrad_cascade_prefsW)))
-			wcd->options[i].use_cascade_auger = 1;
-		else
-			wcd->options[i].use_cascade_auger = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->variance_reduction_prefsW)))
-			wcd->options[i].use_variance_reduction = 1;
-		else
-			wcd->options[i].use_variance_reduction = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->pile_up_prefsW)))
-			wcd->options[i].use_sum_peaks = 1;
-		else
-			wcd->options[i].use_sum_peaks = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->poisson_prefsW)))
-			wcd->options[i].use_poisson = 1;
-		else
-			wcd->options[i].use_poisson = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->escape_peaks_prefsW)))
-			wcd->options[i].use_escape_peaks = 1;
-		else
-			wcd->options[i].use_escape_peaks = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->advanced_compton_prefsW)))
-			wcd->options[i].use_advanced_compton = 1;
-		else
-			wcd->options[i].use_advanced_compton = 0;
-
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->opencl_prefsW)))
-			wcd->options[i].use_opencl = 1;
-		else
-			wcd->options[i].use_opencl = 0;
-#endif
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wcd->ows[i]->custom_detector_response_prefsC)) == TRUE &&
-			strlen(gtk_entry_get_text(GTK_ENTRY(wcd->ows[i]->custom_detector_response_prefsE))) > 0) {
-			wcd->options[i].custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(wcd->ows[i]->custom_detector_response_prefsE)));
-		}
-		else
-			wcd->options[i].custom_detector_response = NULL;
+		g_debug("Processing file %i\n", i);
+		wcd->options[i] = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(wcd->ows[i]));
 	}
 	*(wcd->rv) = 1;
 	gtk_widget_destroy(GTK_WIDGET(wizard));
@@ -1795,7 +1528,7 @@ static gboolean batch_window_delete_event(GtkWidget *batch_window, GdkEvent *eve
 	return TRUE;
 }
 
-static int specific_options(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames) {
+static int specific_options(GtkWidget *main_window, struct wizard_close_data *wcd, GSList *filenames) {
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
 	gtk_window_set_modal(GTK_WINDOW(wizard), TRUE);
@@ -1813,15 +1546,15 @@ static int specific_options(GtkWidget *main_window, struct xmi_main_options *opt
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), introLabel, "Introduction");
 
 	unsigned int i;
-	struct options_widget **ows = (struct options_widget **) g_malloc(sizeof(struct options_widget*)*g_slist_length(filenames));
+	GtkWidget **ows = (GtkWidget **) g_malloc(sizeof(GtkWidget *) * g_slist_length(filenames));
 	for (i = 0 ; i < g_slist_length(filenames) ; i++) {
-		ows[i] = create_options_frame(main_window);
-		gtk_assistant_append_page(GTK_ASSISTANT(wizard), ows[i]->superframe);
-		gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ows[i]->superframe, GTK_ASSISTANT_PAGE_CONTENT);
-		gchar *filename = g_strdup_printf("File %i: %s",i+1, g_path_get_basename((char *) g_slist_nth_data(filenames,i)));
-		gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ows[i]->superframe, filename);
+		ows[i] = xmi_msim_gui_options_box_new(main_window);
+		gtk_assistant_append_page(GTK_ASSISTANT(wizard), ows[i]);
+		gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ows[i], GTK_ASSISTANT_PAGE_CONTENT);
+		gchar *filename = g_strdup_printf("File %d: %s",i+1, g_path_get_basename((char *) g_slist_nth_data(filenames,i)));
+		gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ows[i], filename);
 		g_free(filename);
-		gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), ows[i]->superframe, TRUE);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(wizard), ows[i], TRUE);
 	}
 
 	//add confirmation page
@@ -1832,8 +1565,7 @@ static int specific_options(GtkWidget *main_window, struct xmi_main_options *opt
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), confirmationLabel, "Confirmation");
 
 	//signal handlers
-	struct wizard_close_data *wcd = (struct wizard_close_data *) g_malloc(sizeof(struct wizard_close_data));
-	wcd->options = options;
+	wcd->options = (struct xmi_main_options **) g_malloc(sizeof(struct xmi_main_options *) * g_slist_length(filenames));
 	wcd->ows = ows;
 	int rv;
 	wcd->rv = &rv;
@@ -1848,69 +1580,17 @@ static int specific_options(GtkWidget *main_window, struct xmi_main_options *opt
 
 
 
-static int general_options(GtkWidget *main_window, struct xmi_main_options *options) {
+static int general_options(GtkWidget *main_window, struct xmi_main_options **options) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Set the options for the simulations batch", GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	struct options_widget *ow = create_options_frame(main_window);
-	gtk_container_add(GTK_CONTAINER(content_area), ow->superframe);
-	gtk_widget_show_all(ow->superframe);
+	GtkWidget *ow = xmi_msim_gui_options_box_new(main_window);
+	gtk_container_add(GTK_CONTAINER(content_area), ow);
+	gtk_widget_show_all(ow);
 	int dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));
 
 	if (dialog_rv == GTK_RESPONSE_ACCEPT) {
 		//accepted -> read options from dialog
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->Mlines_prefsW)))
-			options->use_M_lines = 1;
-		else
-			options->use_M_lines = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->rad_cascade_prefsW)))
-			options->use_cascade_radiative = 1;
-		else
-			options->use_cascade_radiative = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->nonrad_cascade_prefsW)))
-			options->use_cascade_auger = 1;
-		else
-			options->use_cascade_auger = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->variance_reduction_prefsW)))
-			options->use_variance_reduction = 1;
-		else
-			options->use_variance_reduction = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->pile_up_prefsW)))
-			options->use_sum_peaks = 1;
-		else
-			options->use_sum_peaks = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->poisson_prefsW)))
-			options->use_poisson = 1;
-		else
-			options->use_poisson = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->escape_peaks_prefsW)))
-			options->use_escape_peaks = 1;
-		else
-			options->use_escape_peaks = 0;
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->advanced_compton_prefsW)))
-			options->use_advanced_compton = 1;
-		else
-			options->use_advanced_compton = 0;
-
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->opencl_prefsW)))
-			options->use_opencl = 1;
-		else
-			options->use_opencl = 0;
-#endif
-
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ow->custom_detector_response_prefsC)) == TRUE &&
-			strlen(gtk_entry_get_text(GTK_ENTRY(ow->custom_detector_response_prefsE))) > 0) {
-			options->custom_detector_response = g_strdup(gtk_entry_get_text(GTK_ENTRY(ow->custom_detector_response_prefsE)));
-		}
-		else
-			options->custom_detector_response = NULL;
+		options[0] = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(ow));
 	}
 	else {
 		gtk_widget_destroy(dialog);
@@ -1956,7 +1636,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
    	xmi_msim_gui_file_chooser_dialog_destroy(file_dialog);
 	GtkWidget *dialog;
-	struct xmi_main_options *options;
+	struct xmi_main_options **options;
 	if (g_slist_length(filenames) > 1) {
 		//more than one file selected
 		//1) ask if the options will apply to all or if individual job options will be used
@@ -1966,16 +1646,14 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		if (response == GTK_RESPONSE_YES) {
    			gtk_widget_destroy (dialog);
 			//file specific options
-			//g_fprintf(stdout, "yes clicked\n");
-			options = (struct xmi_main_options *) g_malloc(sizeof(struct xmi_main_options)*g_slist_length(filenames));
-			int rv = specific_options(window, options, filenames);
+			struct wizard_close_data *wcd = (struct wizard_close_data *) g_malloc(sizeof(struct wizard_close_data));
+			int rv = specific_options(window, wcd, filenames);
 			if (rv == 1) {
 				//wizard completed
-				//g_fprintf(stdout,"wizard completed\n");
+				options = wcd->options;
 			}
 			else if (rv == 0) {
 				//wizard aborted
-				//g_fprintf(stdout,"wizard aborted\n");
 				return;
 			}
 #ifdef HAVE_GOOGLE_ANALYTICS
@@ -1986,8 +1664,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		else if (response == GTK_RESPONSE_NO) {
 			//options apply to all
    			gtk_widget_destroy (dialog);
-			//g_fprintf(stdout, "no clicked\n");
-			options = (struct xmi_main_options *) g_malloc(sizeof(struct xmi_main_options));
+			options = (struct xmi_main_options **) g_malloc(sizeof(struct xmi_main_options *));
 			int rv = general_options(window, options);
 			if (rv == 0) {
 				return;
@@ -2048,9 +1725,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//1) options
 		//2) range of parameter
 		//3) plot afterwards? Requires saving to XMSA file as well as selecting a particular line
-		options = (struct xmi_main_options *) g_malloc(sizeof(struct xmi_main_options));
 		struct archive_options_data *aod = (struct archive_options_data *) g_malloc(sizeof(struct archive_options_data));
-		rv = archive_options(window, input, options, (gchar *) g_slist_nth_data(filenames, 0), xpath1, xpath2, allowed1, allowed2, aod);
+		rv = archive_options(window, input, (gchar *) g_slist_nth_data(filenames, 0), xpath1, xpath2, allowed1, allowed2, aod);
 		if (rv == 0) {
 			return;
 		}
@@ -2338,7 +2014,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		struct xmi_output ***output = (struct xmi_output ***) g_malloc(sizeof(struct xmi_output **)*(aod->nsteps1+1));
 		for (i = 0 ; i <= aod->nsteps1 ; i++)
 			output[i] = (struct xmi_output **) g_malloc(sizeof(struct xmi_output *)*(aod->nsteps2+1));
-		int exec_rv = batch_mode(window, options, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso, aod->nsteps2);
+		int exec_rv = batch_mode(window, &aod->xmo, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso, aod->nsteps2);
 		if (exec_rv == 0) {
 			return;
 		}
@@ -2414,7 +2090,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	return;
 }
 
-static int batch_mode(GtkWidget *main_window, struct xmi_main_options *options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2) {
+static int batch_mode(GtkWidget *main_window, struct xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2) {
 	int rv = 0;
 	GtkWidget *batch_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_transient_for(GTK_WINDOW(batch_window), GTK_WINDOW(main_window));
