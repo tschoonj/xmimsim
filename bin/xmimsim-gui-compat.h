@@ -59,4 +59,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 		gtk_window_set_modal(GTK_WINDOW(dialog), boolean)
 #endif
 
+
+#if !GTK_CHECK_VERSION(3, 12, 0)
+	#define gtk_widget_set_margin_start(widget, margin) (gtk_widget_set_margin_left(widget, margin))
+#endif
 #endif

@@ -22,9 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
+G_BEGIN_DECLS
+
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window);
 
 void launch_archive_plot(struct xmi_archive *archive, GtkWidget *window);
 
+G_END_DECLS
 
 #endif

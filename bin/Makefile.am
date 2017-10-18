@@ -48,6 +48,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-notifications.h \
 	xmimsim-gui-xmsi-scrolled-window.h \
 	xmimsim-gui-options-box.h \
+	xmimsim-gui-xmsa-viewer-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -73,6 +74,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-continuous-energy-dialog.c \
 	xmimsim-gui-notifications.c \
 	xmimsim-gui-xmsi-scrolled-window.c \
+	xmimsim-gui-xmsa-viewer-window.cpp \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \
@@ -236,7 +238,7 @@ xmimsim_gui_SOURCES = \
 	xmimsim-gui-results.cpp \
 	xmimsim-gui-results.h \
 	xmimsim-gui-batch.h \
-	xmimsim-gui-batch.cpp \
+	xmimsim-gui-batch.c \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
