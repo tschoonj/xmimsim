@@ -19,11 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-controls.h"
-#include "xmimsim-gui-results.h"
+#include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-notifications.h"
 #include "xmimsim-gui-options-box.h"
+#include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 #include "xmi_detector.h"
@@ -427,7 +428,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-	if(plot_spectra_from_file(cd->outputfile) == 1) {
+	if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), cd->outputfile) == TRUE) {
 		gchar *temp_base = g_path_get_basename(cd->outputfile);
 		update_xmimsim_title_xmso(temp_base, cd->window, cd->outputfile);
 		g_free(temp_base);
