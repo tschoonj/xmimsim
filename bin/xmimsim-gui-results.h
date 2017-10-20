@@ -19,28 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMIMSIM_GUI_RESULTS_H
 
 #include <gtk/gtk.h>
-#include "xmi_data_structs.h"
-#include "xmi_xml.h"
 
 G_BEGIN_DECLS
-
-/*
- * current results variables
- */
-
-extern struct xmi_input *results_input;
-extern struct xmi_fluorescence_line_counts *results_brute_force_history;
-extern int results_nbrute_force_history;
-extern struct xmi_fluorescence_line_counts *results_var_red_history;
-extern int results_nvar_red_history;
-extern double **results_channels_conv;
-extern double **results_channels_unconv;
-extern int results_ninteractions;
-extern int results_nchannels;
-extern char *results_inputfile;
-extern int results_use_zero_interactions;
-
-
 
 GtkWidget *init_results(GtkWidget *window);
 

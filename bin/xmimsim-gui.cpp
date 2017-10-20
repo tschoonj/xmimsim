@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-controls.h"
-#include "xmimsim-gui-results.h"
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-batch.h"
 #include "xmimsim-gui-utils.h"
@@ -32,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-layer-dialog.h"
 #include "xmimsim-gui-source-module.h"
 #include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include <stdio.h>
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
@@ -132,6 +132,8 @@ static GtkToolItem *pasteT;
 #ifdef XMIMSIM_GUI_UPDATER_H
 static GtkWidget *updatesW;
 #endif
+
+GtkWidget *resultsPageW;
 
 //composition
 static GtkListStore *compositionL;
@@ -808,7 +810,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	}
 	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-		if (plot_spectra_from_file(filename) == 1) {
+		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
 			gchar *temp_base = g_path_get_basename(filename);
 			update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
 			g_free(temp_base);
@@ -4121,7 +4123,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-		if (plot_spectra_from_file(filename) == 1) {
+		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
 			gchar *temp_base = g_path_get_basename(filename);
 			update_xmimsim_title_xmso(temp_base, old->window, filename);
 			g_free(temp_base);
@@ -6119,7 +6121,7 @@ XMI_MAIN
 	//third notebook page: Results
 	label = gtk_label_new("Results");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
-	resultsPageW = init_results(window);
+	resultsPageW = xmi_msim_gui_xmso_results_scrolled_window_new(window);
 	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
 	gtk_container_child_set(GTK_CONTAINER(notebook), resultsPageW, "tab-expand", TRUE, "tab-fill", TRUE, NULL);
 	gtk_widget_show_all(resultsPageW);
@@ -6177,7 +6179,7 @@ XMI_MAIN
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSO file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-			if (plot_spectra_from_file(filename) == 1) {
+			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
 				gchar *temp_base = g_path_get_basename(filename);
 				update_xmimsim_title_xmso(temp_base, window, filename);
 				g_free(temp_base);
@@ -6738,7 +6740,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 			xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-			if (plot_spectra_from_file(filename) == 1) {
+			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
 				gchar *temp_base = g_path_get_basename(filename);
 				update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
 				g_free(temp_base);

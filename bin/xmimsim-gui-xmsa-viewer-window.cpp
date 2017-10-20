@@ -884,8 +884,6 @@ GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(GtkWidget *parent_window, struct 
 					NULL)
 				);
 
-	
-
 	return GTK_WIDGET(rv);
 }
 

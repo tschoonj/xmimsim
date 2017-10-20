@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include "xmimsim-gui.h"
 #include "xmimsim-gui-results.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-colors.h"
@@ -81,8 +80,6 @@ enum {
 	N_COLUMNS
 };
 
-
-gchar *get_style_font(GtkWidget *widget);
 static void zoom_out(void);
 
 class Plot2D : public Gtk::PLplot::Plot2D {
@@ -615,7 +612,6 @@ GtkWidget *init_results(GtkWidget *window) {
 
 	GtkWidget *spectra_box;//VBox
 	GtkWidget *entry;
-	gdouble magnifier;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
 
@@ -624,8 +620,6 @@ GtkWidget *init_results(GtkWidget *window) {
 	yaxis_title = g_strdup("Intensity (counts/channel)");
 	current_scale = true;
 	current_conv = XMI_PLOT_CONVOLUTED;
-
-	magnifier = 0.75;
 
 	//superframe = gtk_vbox_new(FALSE,2);
 	graphics_hbox = gtk_hbox_new(FALSE,2);

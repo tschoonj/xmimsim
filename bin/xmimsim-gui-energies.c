@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies.h"
 #include "xmimsim-gui-discrete-energy-dialog.h"
 #include "xmimsim-gui-continuous-energy-dialog.h"
-#include "xmimsim-gui-results.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include <math.h>

@@ -150,6 +150,8 @@ extern GtkToolItem *saveasT;
 extern GtkToolItem *saveT;
 extern GtkWidget *commentsW;
 
+extern GtkWidget *resultsPageW;
+
 //notebookpages
 extern GtkWidget *notebook;
 extern gint input_page;
