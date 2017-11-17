@@ -67,7 +67,7 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
     g_free(rewritePrefix);
     
     struct xmi_output *output = NULL;
-    if (xmi_read_output_xml(path, &output) == 0)
+    if (xmi_read_output_xml(path, &output, NULL) == 0)
         return noErr;
     
     CGSize size;

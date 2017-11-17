@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
   assert(test_init() == 1);
 
   //read in the xmso file
-  assert(xmi_read_output_xml(TEST_XMSO, &output) == 1);
+  assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
 
   for (i = output->use_zero_interactions ? 0 : 1 ; i <= output->ninteractions ; i++) {
     //convoluted

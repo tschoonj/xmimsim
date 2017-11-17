@@ -77,7 +77,7 @@ GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *me
 }
 
 gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
-	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive));
+	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive, NULL));
 }
 
 void xmi_msim_gui_utils_open_email(const char *address) {

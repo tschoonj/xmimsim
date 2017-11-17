@@ -332,7 +332,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
 		return -1;
 
 

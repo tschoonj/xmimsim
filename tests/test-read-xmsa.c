@@ -4,6 +4,7 @@
 #include "xmi_aux.h"
 #include <glib.h>
 #include <math.h>
+#include <unistd.h>
 
 
 int main(int argc, char *argv[]) {
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
 	g_assert(test_download_file(TEST_XMSA_URL_1) == 1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive) == 1);
+	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive, NULL) == 1);
 
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
@@ -36,7 +37,7 @@ int main(int argc, char *argv[]) {
 	g_assert(test_download_file(TEST_XMSA_URL_2) == 1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_2, &archive) == 1);
+	g_assert(xmi_read_archive_xml(TEST_XMSA_2, &archive, NULL) == 1);
 
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
@@ -50,6 +51,28 @@ int main(int argc, char *argv[]) {
 	}
 
 	xmi_free_archive(archive);
+
+	// now some tests that are supposed to fail
+	GError *error = NULL;
+	g_assert(xmi_read_archive_xml("non-existent-file.xmsa", &archive, &error) == 0);
+	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
+	fprintf(stdout, "message: %s\n", error->message);
+	g_error_free(error);
+
+	/* TODO: enable when check for xpath1 validity is added to xmi_read_archive_xml
+	g_assert(replace_xml_tag(TEST_XMSA_1, TEST_XMSA_COPY_1, "/xmimsim-archive/xpath1", "hsdhodhoosda") == 1);
+	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive, &error) == 0);
+	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
+	fprintf(stdout, "message: %s\n", error->message);
+	g_error_free(error);
+	unlink(TEST_XMSA_COPY_1);
+	*/
+	g_assert(remove_xml_tags(TEST_XMSA_1, TEST_XMSA_COPY_1, "/xmimsim-archive/end_value1") == 1);
+	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive, &error) == 0);
+	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
+	fprintf(stdout, "message: %s\n", error->message);
+	g_error_free(error);
+	unlink(TEST_XMSA_COPY_1);
 	return 0;
 }
 

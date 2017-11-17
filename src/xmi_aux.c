@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_msim.h"
 #include "xmi_aux.h"
 #include "xmi_data_structs.h"
+#include "xmi_error.h"
 #include <stdio.h>
 #include <glib/gstdio.h>
 #include <hdf5.h>
@@ -482,7 +483,7 @@ static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5
 
 	struct xmi_input *temp_input;
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
 		return -1;
 
 	herr_t rv = 0;
@@ -554,7 +555,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 
 	struct xmi_input *temp_input;
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input) == 0)
+	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
 		return -1;
 
 	chd->temp_input = temp_input;
@@ -806,4 +807,8 @@ int xmi_get_hdf5_kind(char *name) {
 }
 int compare_string(const void *a, const void *b) {
    return g_strcmp0(*(char **)a, *(char **)b);
+}
+
+GQuark xmi_msim_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-error-quark");
 }

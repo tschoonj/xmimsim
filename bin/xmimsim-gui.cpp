@@ -787,7 +787,8 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 		if (process_pre_file_operation((GtkWidget *) data) == FALSE)
 			return;
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
-		if (xmi_read_input_xml(filename, &xi) == 1) {
+		GError *error = NULL;
+		if (xmi_read_input_xml(filename, &xi, &error) == 1) {
 			//success reading it in...
 			change_all_values(xi);
 			//reset redo_buffer
@@ -804,13 +805,16 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	        		GTK_BUTTONS_CLOSE,
 	        		"Could not read file %s: model is incomplete/invalid",filename
 	                	);
-	    gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
+	    		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy (dialog);
 		}
 	}
 	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
+		GError *error = NULL;
+		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename, &error) == TRUE) {
 			gchar *temp_base = g_path_get_basename(filename);
 			update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
 			g_free(temp_base);
@@ -822,6 +826,8 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	        		GTK_BUTTONS_CLOSE,
 	        		"Could not read file %s",filename
 	               	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
 			gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy (dialog);
 		}
@@ -4099,7 +4105,8 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 		//XMSI file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
-		if (xmi_read_input_xml(filename, &xi) == 1) {
+		GError *error = NULL;
+		if (xmi_read_input_xml(filename, &xi, &error) == 1) {
 			//success reading it in...
 			change_all_values(xi);
 			//reset redo_buffer
@@ -4116,6 +4123,8 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		       		GTK_BUTTONS_CLOSE,
 		       		"Could not read file %s: model is incomplete/invalid",filename
 	                	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
 		}
@@ -4123,7 +4132,8 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	else if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmso") == 0) {
 		//XMSO file
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
+		GError *error = NULL;
+		if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename, &error) == TRUE) {
 			gchar *temp_base = g_path_get_basename(filename);
 			update_xmimsim_title_xmso(temp_base, old->window, filename);
 			g_free(temp_base);
@@ -4135,6 +4145,8 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 		       		GTK_BUTTONS_CLOSE,
 		       		"Could not read file %s",filename
 	               	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy (dialog);
 		}
@@ -6151,7 +6163,8 @@ XMI_MAIN
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSI file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
-			if (xmi_read_input_xml(filename, &xi) == 1) {
+			GError *error = NULL;
+			if (xmi_read_input_xml(filename, &xi, NULL) == 1) {
 				//success reading it in...
 				change_all_values(xi);
 				//reset redo_buffer
@@ -6168,8 +6181,8 @@ XMI_MAIN
 			       		GTK_BUTTONS_CLOSE,
 			       		"Could not read file %s: model is incomplete/invalid",filename
 	        	        	);
-	     			//gtk_dialog_run (GTK_DIALOG (dialog));
-				//gtk_widget_destroy(dialog);
+				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+				g_error_free(error);
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 			adjust_save_buttons();
@@ -6179,7 +6192,8 @@ XMI_MAIN
 			update_xmimsim_title_xmso("No simulation data available", window, NULL);
 			//XMSO file
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
+			GError *error = NULL;
+			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename, &error) == TRUE) {
 				gchar *temp_base = g_path_get_basename(filename);
 				update_xmimsim_title_xmso(temp_base, window, filename);
 				g_free(temp_base);
@@ -6193,6 +6207,8 @@ XMI_MAIN
 	               		);
 	     			//gtk_dialog_run (GTK_DIALOG (dialog));
 				//gtk_widget_destroy (dialog);
+				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+				g_error_free(error);
 				g_idle_add(dialog_helper_cb,(gpointer) dialog);
 			}
 		}
@@ -6452,15 +6468,16 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		//open file based on extension
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		GError *error = NULL;
 		if (g_ascii_strcasecmp(filename+strlen(filename)-5, ".xmsi") == 0) {
 			//input-file found
-			if (xmi_read_input_xml(filename, &xi) == 0) {
+			if (xmi_read_input_xml(filename, &xi, &error) == 0) {
 				xi = NULL;
 			}
 		}
 		else if (g_ascii_strcasecmp(filename+strlen(filename)-5, ".xmso") == 0) {
 			//output-file found
-			if (xmi_read_output_xml(filename, &xo) == 0) {
+			if (xmi_read_output_xml(filename, &xo, &error) == 0) {
 				xo = NULL;
 				xi = NULL;
 			}
@@ -6481,6 +6498,8 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 		       		GTK_BUTTONS_CLOSE,
 		       		"Could not read file %s: model is incomplete/invalid",filename
 	               	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+			g_error_free(error);
 	     		gtk_dialog_run(GTK_DIALOG(message_dialog));
 			gtk_widget_destroy(message_dialog);
 			return;
@@ -6715,7 +6734,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 				return;
 			}
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
-			if (xmi_read_input_xml(filename, &xi) == 1) {
+			GError *error = NULL;
+			if (xmi_read_input_xml(filename, &xi, &error) == 1) {
 				//success reading it in...
 				change_all_values(xi);
 				//reset redo_buffer
@@ -6732,6 +6752,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		        		GTK_BUTTONS_CLOSE,
 		        		"Could not read file %s: model is incomplete/invalid",filename
 	                	);
+				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+				g_error_free(error);
 	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
 				gtk_widget_destroy(message_dialog);
 			}
@@ -6740,7 +6762,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 
 			xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename) == TRUE) {
+			GError *error = NULL;
+			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), filename, &error) == TRUE) {
 				gchar *temp_base = g_path_get_basename(filename);
 				update_xmimsim_title_xmso(temp_base, (GtkWidget *) data, filename);
 				g_free(temp_base);
@@ -6752,6 +6775,8 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 		        		GTK_BUTTONS_CLOSE,
 		        		"Could not read file %s",filename
 	                	);
+				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+				g_error_free(error);
 	     			gtk_dialog_run(GTK_DIALOG(message_dialog));
 				gtk_widget_destroy(message_dialog);
 			}
@@ -6852,13 +6877,16 @@ gboolean save_function(GtkWidget *widget, gpointer data) {
 			g_free(current->xi->general->comments);
 			current->xi->general->comments = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 		}
-		if (xmi_write_input_xml(check_rv->filename, current->xi) != 1) {
+		GError *error = NULL;
+		if (xmi_write_input_xml(check_rv->filename, current->xi, &error) != 1) {
 			dialog = gtk_message_dialog_new (GTK_WINDOW((GtkWidget *)data),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 		       		GTK_MESSAGE_ERROR,
 		       		GTK_BUTTONS_CLOSE,
 		       		"Could not write to file %s: file writeable?",check_rv->filename
 	               	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
 			return FALSE;
@@ -6949,7 +6977,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 		}
 
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
-		if (xmi_write_input_xml(filename, current->xi) == 1) {
+		GError *error = NULL;
+		if (xmi_write_input_xml(filename, current->xi, &error) == 1) {
 			if (last_saved != NULL) {
 				g_free(last_saved->filename);
 				xmi_free_input(last_saved->xi);
@@ -6972,6 +7001,8 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 	        		GTK_BUTTONS_CLOSE,
 	        		"Could not write to file %s: model is incomplete/invalid",filename
                 	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+			g_error_free(error);
      			gtk_dialog_run(GTK_DIALOG(message_dialog));
      			gtk_widget_destroy(message_dialog);
 			g_free (filename);
