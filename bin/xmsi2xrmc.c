@@ -129,7 +129,7 @@ XMI_MAIN
 	}
 
 	//read in the inputfile
-	rv = xmi_read_input_xml(argv[1],&input);
+	rv = xmi_read_input_xml(argv[1],&input, NULL);
 
 	if (rv != 1) {
 		return 1;

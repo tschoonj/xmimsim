@@ -268,7 +268,7 @@ XMI_MAIN
 	struct xmi_input *override = NULL;
 	int override_rv;
 	if (excitation_file) {
-		override_rv = xmi_read_input_xml(excitation_file, &override);
+		override_rv = xmi_read_input_xml(excitation_file, &override, NULL);
 		if (override_rv == 0) {
 			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
 			return 1;
@@ -282,7 +282,7 @@ XMI_MAIN
 	}
 
 	if (geometry_file) {
-		override_rv = xmi_read_input_xml(geometry_file, &override);
+		override_rv = xmi_read_input_xml(geometry_file, &override, NULL);
 		if (override_rv == 0) {
 			g_fprintf(stderr, "Override geometry file %s could not be parsed\n", geometry_file);
 			return 1;
@@ -296,7 +296,7 @@ XMI_MAIN
 	}
 
 	if (excitation_file) {
-		override_rv = xmi_read_input_xml(excitation_file, &override);
+		override_rv = xmi_read_input_xml(excitation_file, &override, NULL);
 		if (override_rv == 0) {
 			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
 			return 1;
@@ -354,7 +354,7 @@ XMI_MAIN
 				g_fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
-			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+			if (xmi_write_input_xml_to_string(&xmi_input_string, xi, NULL) == 0) {
 				return 1;
 			}
 			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
@@ -394,7 +394,7 @@ XMI_MAIN
 					g_fprintf(stdout,"Precalculating escape peak ratios\n");
 				//doesn't exist yet
 				//convert input to string
-				if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+				if (xmi_write_input_xml_to_string(&xmi_input_string, xi, NULL) == 0) {
 					return 1;
 				}
 				xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
@@ -492,7 +492,7 @@ XMI_MAIN
 			g_fprintf(stdout,"Precalculating solid angle grid\n");
 		//doesn't exist yet
 		//convert input to string
-		if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+		if (xmi_write_input_xml_to_string(&xmi_input_string, xi, NULL) == 0) {
 			return 1;
 		}
 		xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
@@ -538,7 +538,7 @@ XMI_MAIN
 				g_fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
-			if (xmi_write_input_xml_to_string(&xmi_input_string,xi) == 0) {
+			if (xmi_write_input_xml_to_string(&xmi_input_string, xi, NULL) == 0) {
 				return 1;
 			}
 			xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
@@ -617,7 +617,7 @@ XMI_MAIN
 		}
 #if DEBUG == 1
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmsi",i);
-		xmi_write_input_xml(tempFile, xi);
+		xmi_write_input_xml(tempFile, xi, NULL);
 #endif
 
 
@@ -645,7 +645,7 @@ XMI_MAIN
 		}
 		//write to xml outputfile
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
-		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xi->detector->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0) == 0) {
+		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xi->detector->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0, NULL) == 0) {
 			return 1;
 		}
 
@@ -861,7 +861,7 @@ single_run:
 
 	//write to xml outputfile
 	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
-	if (xmi_write_output_xml(argv[2], output) == 0) {
+	if (xmi_write_output_xml(argv[2], output, NULL) == 0) {
 		return 1;
 	}
 	else if (options.verbose)

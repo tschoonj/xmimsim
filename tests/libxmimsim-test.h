@@ -50,6 +50,10 @@ double fpm(struct xmi_layer *layer, int Z, int line, double w, double E0, double
 
 struct xmi_output* run_main(const char *compound);
 
+int replace_xml_tag(const char *filename_old, const char *filename_new, const char *xpath_expression, const char *new_value);
+
+int remove_xml_tags(const char *filename_old, const char *filename_new, const char *xpath_expression);
+
 G_END_DECLS
 
 #endif

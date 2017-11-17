@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <assert.h>
 #include "libxml/catalog.h"
+#include <libxml/xpath.h>
 
 #if !GLIB_CHECK_VERSION (2, 35, 3)
 #include <glib-object.h>
@@ -39,7 +40,6 @@ int test_init () {
 	LIBXML_TEST_VERSION
 	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
 	char *rewritePrefix = g_filename_to_uri(CATALOGPATH, NULL, NULL);
-	fprintf(stdout, "rewritePrefix: %s\n", rewritePrefix);
 
 	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
 		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
@@ -274,4 +274,123 @@ struct xmi_output* run_main(const char *compound) {
 
 	g_assert(xmi_end_random_acquisition() == 1);
 	return output;
+}
+
+int replace_xml_tag(const char *filename_old, const char *filename_new,  const char *xpath_expression, const char *new_value) {
+
+	xmlDocPtr doc;
+	xmlParserCtxtPtr ctx;
+	xmlNodePtr root;
+
+	LIBXML_TEST_VERSION
+
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx, filename_old, NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}
+
+	if (ctx->valid == 0) {
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
+
+	if ((root = xmlDocGetRootElement(doc)) == NULL) {
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	xmlXPathContextPtr xpathCtx;
+	xmlXPathObjectPtr xpathObj;
+	xpathCtx = xmlXPathNewContext(doc);
+	if(xpathCtx == NULL) {
+		xmlFreeDoc(doc);
+        	return 0;
+	}
+	xpathObj = xmlXPathNodeEval(root, BAD_CAST xpath_expression, xpathCtx);
+	if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
+		xmlXPathFreeContext(xpathCtx);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	xmlNodePtr node = xpathObj->nodesetval->nodeTab[0];
+	
+	xmlXPathFreeObject(xpathObj);
+	xmlXPathFreeContext(xpathCtx);
+
+	xmlNodeSetContent(node, BAD_CAST new_value);
+
+	xmlThrDefIndentTreeOutput(2);
+
+	if (xmlSaveFormatFileEnc(filename_new, doc, NULL, 1) == -1) {
+		return 0;
+	}
+	xmlFreeDoc(doc);
+	return 1;
+}
+
+int remove_xml_tags(const char *filename_old, const char *filename_new,  const char *xpath_expression) {
+
+	xmlDocPtr doc;
+	xmlParserCtxtPtr ctx;
+	xmlNodePtr root;
+
+	LIBXML_TEST_VERSION
+
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
+		return 0;
+	}
+
+	if ((doc = xmlCtxtReadFile(ctx, filename_old, NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+		xmlFreeParserCtxt(ctx);
+		return 0;
+	}
+
+	if (ctx->valid == 0) {
+		xmlFreeDoc(doc);
+		return 0;
+	}
+	xmlFreeParserCtxt(ctx);
+
+	if ((root = xmlDocGetRootElement(doc)) == NULL) {
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	xmlXPathContextPtr xpathCtx;
+	xmlXPathObjectPtr xpathObj;
+	xpathCtx = xmlXPathNewContext(doc);
+	if(xpathCtx == NULL) {
+		xmlFreeDoc(doc);
+        	return 0;
+	}
+	xpathObj = xmlXPathNodeEval(root, BAD_CAST xpath_expression, xpathCtx);
+	if(xpathObj == NULL || xpathObj->nodesetval->nodeNr == 0) {
+		xmlXPathFreeContext(xpathCtx);
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	int i;
+	for (i = 0 ; i < xpathObj->nodesetval->nodeNr ; i++) {
+		xmlNodePtr node = xpathObj->nodesetval->nodeTab[i];
+		xmlUnlinkNode(node);	
+		xmlFreeNode(node);	
+	}
+	
+	xmlXPathFreeObject(xpathObj);
+	xmlXPathFreeContext(xpathCtx);
+
+	xmlThrDefIndentTreeOutput(2);
+
+	if (xmlSaveFormatFileEnc(filename_new, doc, NULL, 1) == -1) {
+		return 0;
+	}
+	xmlFreeDoc(doc);
+	return 1;
 }

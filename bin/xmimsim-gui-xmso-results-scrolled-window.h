@@ -36,7 +36,7 @@ typedef struct _XmiMsimGuiXmsoResultsScrolledWindowClass   	XmiMsimGuiXmsoResult
 
 GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new(GtkWidget *parent_window);
 
-gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile);
+gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofilei, GError **error);
 
 GType xmi_msim_gui_xmso_results_scrolled_window_get_type(void) G_GNUC_CONST;
 

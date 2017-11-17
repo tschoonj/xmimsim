@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
 	g_assert(test_init() == 1);
 
 	// read the files
-	g_assert(xmi_read_input_xml(SRM1155_XMSI, &input) == 1);
-	g_assert(xmi_read_output_xml(SRM1155_XMSO, &output) == 1);
+	g_assert(xmi_read_input_xml(SRM1155_XMSI, &input, NULL) == 1);
+	g_assert(xmi_read_output_xml(SRM1155_XMSO, &output, NULL) == 1);
 
 	// copy to the corresponding fortran variable
 	xmi_input_C2F(input, &inputFPtr);

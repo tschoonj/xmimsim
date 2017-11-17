@@ -145,7 +145,8 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		//read the file
-		if (xmi_read_output_xml(filename, &output) == 0) {
+		GError *error = NULL;
+		if (xmi_read_output_xml(filename, &output, &error) == 0) {
 			GtkWidget *message_dialog = gtk_message_dialog_new(
 				GTK_WINDOW(xt->window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -153,6 +154,8 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	       			GTK_BUTTONS_CLOSE,
 	       			"An error occured while processing %s", filename
                 		);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
      			gtk_dialog_run(GTK_DIALOG(message_dialog));
 			gtk_widget_destroy(message_dialog);
 			return ;
@@ -362,7 +365,8 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	//
 	//read in the inputfile
 	struct xmi_input *input;
-	int rv = xmi_read_input_xml(xmsi_file, &input);
+	GError *error = NULL;
+	int rv = xmi_read_input_xml(xmsi_file, &input, &error);
 
 	if (rv != 1) {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -371,6 +375,8 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	       		GTK_BUTTONS_CLOSE,
 	       		"Could not read in XMSI file %s\nAborting...",
                 	xmsi_file);
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+		g_error_free(error);
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
 		return ;

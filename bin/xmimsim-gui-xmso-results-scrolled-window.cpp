@@ -257,6 +257,10 @@ GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new(GtkWidget *parent_windo
 	return GTK_WIDGET(scrolled_window);
 }
 
-gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile) {
+gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile, GError **error) {
+
+	if (window->results != NULL)
+		xmi_free_output(window->results);
+
 	return TRUE;
 }

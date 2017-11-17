@@ -428,7 +428,8 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 
 	//if successful, read the spectrum in
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),results_page);
-	if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), cd->outputfile) == TRUE) {
+	GError *error = NULL;
+	if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(resultsPageW), cd->outputfile, &error) == TRUE) {
 		gchar *temp_base = g_path_get_basename(cd->outputfile);
 		update_xmimsim_title_xmso(temp_base, cd->window, cd->outputfile);
 		g_free(temp_base);
@@ -440,9 +441,10 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 		        GTK_BUTTONS_CLOSE,
 		        "Could not read file %s",cd->outputfile
 	                );
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+		g_error_free(error);
 	     	gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
-
 	}
 
 
@@ -925,7 +927,8 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 					current->xi->general->comments = g_strdup(gtk_text_buffer_get_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(commentsW)),&iterb, &itere, FALSE));
 				}
 				//update file
-				if (xmi_write_input_xml(check_rv->filename, current->xi) == 1) {
+				GError *error = NULL;
+				if (xmi_write_input_xml(check_rv->filename, current->xi, &error) == 1) {
 					filename = g_strdup(last_saved->filename);
 					g_free(last_saved->filename);
 					xmi_free_input(last_saved->xi);
@@ -948,8 +951,10 @@ static void play_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		        			GTK_BUTTONS_CLOSE,
 		        			"Could not write to file %s: model is incomplete/invalid",check_rv->filename
 	                		);
-	     				gtk_dialog_run (GTK_DIALOG (dialog));
-	     				gtk_widget_destroy (dialog);
+					gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+					g_error_free(error);
+	     				gtk_dialog_run(GTK_DIALOG(dialog));
+	     				gtk_widget_destroy(dialog);
 					//g_signal_handler_block(G_OBJECT(notebook), notebookG);
 					gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),input_page);
 					//g_signal_handler_unblock(G_OBJECT(notebook), notebookG);
