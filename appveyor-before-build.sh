@@ -4,6 +4,7 @@ set -e
 set -x
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+export GTKMM_PLPLOT_BRANCH=plot-objects
 
 # install xraylib
 wget -q https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
@@ -77,9 +78,15 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	make install
 	cd ..
 	# install gtkmm-plplot
-	wget -q https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
-	tar xfz gtkmm-plplot-2.2.tar.gz
-	cd gtkmm-plplot-2.2
+        if [ -n "$GTKMM_PLPLOT_BRANCH" ] ; then
+          git clone -b $GTKMM_PLPLOT_BRANCH --single-branch --depth=1 https://github.com/tschoonj/gtkmm-plplot.git
+          cd gtkmm-plplot
+          autoreconf -i
+        else
+	  wget -q https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
+	  tar xfz gtkmm-plplot-2.2.tar.gz
+	  cd gtkmm-plplot-2.2
+        fi
 	./configure --prefix=/usr/local
 	make
 	make install

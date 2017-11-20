@@ -7,6 +7,7 @@ env:
     - CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Wimplicit  -Wimplicit-function-declaration  -Wimplicit-int"
     - LD_LIBRARY_PATH='/usr/local/lib'
     - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
+    - GTKMM_PLPLOT_BRANCH='plot-objects'
 
 matrix:
   include:
@@ -534,7 +535,7 @@ before_install:
       brew update || exit 1
       brew cleanup -s || exit 1
       rm -rf $(brew --cache) || exit 1
-      brew install gsl autoconf automake libtool libxslt hdf5 curl wget || exit 1
+      brew install git gsl autoconf automake libtool libxslt hdf5 curl wget || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       export CC=$MYCC
@@ -544,6 +545,9 @@ before_install:
       export LIBS=$MYLIBS
       brew cleanup -s || exit 1
       rm -rf $(brew --cache) || exit 1
+      if [ -n "$GTKMM_PLPLOT_BRANCH" ] ; then
+        brew uninstall --force gtkmm-plplot
+      fi
     fi
 
 install:
@@ -573,6 +577,15 @@ install:
       ./configure || exit 1
       make || exit 1
       sudo make install || exit 1
+      cd ..
+    fi
+    if [ -n "$GTKMM_PLPLOT_BRANCH" ] ; then
+      git clone -b $GTKMM_PLPLOT_BRANCH --single-branch --depth=1 https://github.com/tschoonj/gtkmm-plplot.git
+      cd gtkmm-plplot
+      autoreconf -i
+      ./configure
+      make
+      sudo make install
       cd ..
     fi
 
