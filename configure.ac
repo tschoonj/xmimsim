@@ -195,10 +195,10 @@ if test "x$LIBCURL_FOUND" = xyes ; then
 fi
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.1],
+	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3],
 		[
 			GTK_FOUND=yes
-			AC_SUBST(GTK_PC, "gtkmm-plplot-2.0 >= 2.1")
+			AC_SUBST(GTK_PC, "gtkmm-plplot-2.0 >= 2.3")
 		],[
 			GTK_FOUND=no
 		])
