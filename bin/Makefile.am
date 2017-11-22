@@ -187,16 +187,16 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-continuous-energy-test
+noinst_PROGRAMS += xmimsim-gui-xmso-viewer-test
 endif
-xmimsim_gui_continuous_energy_test_SOURCES = xmimsim-gui-continuous-energy-test.c
-xmimsim_gui_continuous_energy_test_CPPFLAGS = \
+xmimsim_gui_xmso_viewer_test_SOURCES = xmimsim-gui-xmso-viewer-test.cpp
+xmimsim_gui_xmso_viewer_test_CPPFLAGS = \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@gmodule_CFLAGS@ \
 	$(AM_CPPFLAGS) \
 	$(NULL)
-xmimsim_gui_continuous_energy_test_LDADD = \
+xmimsim_gui_xmso_viewer_test_LDADD = \
 	libxmimsim-gui.la \
 	../src/libxmimsim.la \
 	@gmodule_LIBS@ \
