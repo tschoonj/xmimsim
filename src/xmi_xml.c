@@ -1335,7 +1335,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 }
 
 
-int xmi_read_input_xml (char *xmlfile, struct xmi_input **input, GError **error) {
+int xmi_read_input_xml (const char *xmlfile, struct xmi_input **input, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -1438,7 +1438,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input, GEr
 	return 1;
 }
 
-int xmi_write_input_xml(char *xmlfile, struct xmi_input *input, GError **error) {
+int xmi_write_input_xml(const char *xmlfile, struct xmi_input *input, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -1642,7 +1642,7 @@ after_svg:
 	return 1;
 }
 
-int xmi_write_output_xml(char *xmlfile, struct xmi_output *output, GError **error) {
+int xmi_write_output_xml(const char *xmlfile, struct xmi_output *output, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -1811,7 +1811,7 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input
 }
 #endif
 
-int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength, GError **error) {
+int xmi_xmlfile_to_string(const char *xmlfile, char **xmlstring, int *xmlstringlength, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -1852,7 +1852,7 @@ int xmi_xmlfile_to_string(char *xmlfile, char **xmlstring, int *xmlstringlength,
 	return 1;
 }
 
-int xmi_read_input_xml_from_string(char *xmlstring, struct xmi_input **input, GError **error) {
+int xmi_read_input_xml_from_string(const char *xmlstring, struct xmi_input **input, GError **error) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
@@ -2101,7 +2101,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 }
 
 
-int xmi_read_output_xml(char *xmsofile, struct xmi_output **output, GError **error) {
+int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -2363,7 +2363,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 	return 1;
 }
 
-int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive, GError **error) {
+int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -2556,7 +2556,7 @@ int xmi_read_archive_xml(char *xmsafile, struct xmi_archive **archive, GError **
 }
 
 #ifndef QUICKLOOK
-int xmi_write_archive_xml(char *xmlfile, struct xmi_archive *archive, GError **error) {
+int xmi_write_archive_xml(const char *xmlfile, struct xmi_archive *archive, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
