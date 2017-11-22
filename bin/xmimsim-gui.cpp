@@ -4894,7 +4894,7 @@ XMI_MAIN
 	gint main_height=900;
 	gint main_width=950;
 	gint main_temp;
-	GtkWidget *resultsPageW, *controlsPageW;
+	GtkWidget *controlsPageW;
 	GtkAccelGroup *accel_group = NULL;
 	GtkWidget *aboutW;
 	GtkWidget *userguideW;
@@ -6133,7 +6133,7 @@ XMI_MAIN
 	//third notebook page: Results
 	label = gtk_label_new("Results");
 	gtk_label_set_markup(GTK_LABEL(label),"<span size=\"large\">Results</span>");
-	resultsPageW = xmi_msim_gui_xmso_results_scrolled_window_new(window);
+	resultsPageW = xmi_msim_gui_xmso_results_scrolled_window_new();
 	results_page = gtk_notebook_append_page(GTK_NOTEBOOK(notebook), resultsPageW, label);
 	gtk_container_child_set(GTK_CONTAINER(notebook), resultsPageW, "tab-expand", TRUE, "tab-fill", TRUE, NULL);
 	gtk_widget_show_all(resultsPageW);
