@@ -4,6 +4,24 @@ shallow_clone: true
 
 environment:
   matrix:
+    # 
+    # easyRNG
+    # gtkmm-plplot
+    # with updater
+    # with gui
+    # with google analytics
+    # deploy!!!
+    - compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: true
+      RNG: easyRNG
+      PLOT: gtkmm-plplot
+      GOOGLE_ANALYTICS: true
+      DEPLOY: true
+      DO_NOT_USE_DATA: true
     # 3
     # fgsl
     # gtkmm-plplot
@@ -65,21 +83,6 @@ environment:
       UPDATER: true
       RNG: easyRNG
       PLOT: gtkmm-plplot
-    # 
-    # easyRNG
-    # gtkmm-plplot
-    # with updater
-    # with gui
-    # with google analytics
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: easyRNG
-      PLOT: gtkmm-plplot
-      GOOGLE_ANALYTICS: true
     # 10
     # easyRNG
     # no gui
@@ -91,7 +94,10 @@ environment:
       RNG: easyRNG
 
 before_build:
+    - choco install innosetup
     - set PATH=C:\%MSYS2_DIR%\%MSYSTEM%\bin;C:\%MSYS2_DIR%\usr\bin;%PATH%
+    - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+    - echo %path%
     - bash -lc "for i in {1..3}; do pacman -Syyuu --noconfirm && break || sleep 15; done"
     - bash -lc "for i in {1..3}; do pacman -Suu --noconfirm && break || sleep 15; done"
     - bash -lc "for i in {1..3}; do pacman --noconfirm -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2} automake autoconf make wget tar && break || sleep 15; done"
@@ -104,3 +110,18 @@ branches:
   only:
     - master
 
+artifacts:
+  - path: windows\XMI-MSIM-*.exe
+    name: installer
+
+deploy:
+  provider: S3
+  access_key_id:
+    secure: BxnXPTzYGoSe3q5D5k1BivFjTvskiM4mUC52CQuGoB4=
+  secret_access_key:
+    secure: yzBbtFYpQm/xot3RF30rskZf8C8UAsQMgN4IxWz1BEbct23Youi9AwF121vTQacb
+  bucket: xmi-msim
+  region: us-east-1
+  set_public: true
+  folder: nightly
+  artifact: installer

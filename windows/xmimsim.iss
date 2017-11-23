@@ -13,28 +13,22 @@
 ;You should have received a copy of the GNU General Public License
 ;along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include ReadReg(HKEY_LOCAL_MACHINE,'Software\Sherlock Software\InnoTools\Downloader','ScriptPath','')
-
 #define MyAppId "XMI-MSIM"
 #define srcdir abs_top_srcdir_win
 #define builddir abs_top_builddir_win
 
-#ifdef XMI_MSIM64
-  #define MyAppName "XMI-MSIM 64-bit"
-  #define MY_MINGW "C:\msys64\mingw64\"
-  #define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
-#else
-  #define MyAppName "XMI-MSIM 32-bit"
-  #define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
-  #define MY_MINGW "C:\MinGW32\"
-  #define MY_HOME "C:\msys\1.0\home\schoon\"
-#endif
+#define MyAppName "XMI-MSIM 64-bit"
+#define MY_MINGW "C:\msys64\mingw64\"
+#define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 
 #define MyAppPublisher "Tom Schoonjans"
 #define MyAppURL "http://github.com/tschoonj/xmimsim"
 #define XRAYLIB_VERSION '3.3.0'
 #define XRAYLIB_VERSION_MIN '3.3.0'
 
+#define MyInstCreationDateTime GetDateTimeString ('yyyymmdd-hhnnss', '', '');
+
+#define USER_AGENT 'InnoSetup XMI-MSIM installer'
 
 [Setup]
 AppName={#MyAppName}
@@ -49,23 +43,20 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile={#srcdir}\License.rtf
 OutputDir={#builddir}\windows
-#ifdef XMI_MSIM64
+#if Len(GetEnv("DEPLOY")) == 0
 OutputBaseFilename={#MyAppId}-{#MyAppVersion}-win64
+#else
+OutputBaseFilename={#MyAppId}-{#MyAppVersion}-{#MyInstCreationDateTime}-win64
+#endif
+
 ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
-#else
-OutputBaseFilename={#MyAppId}-{#MyAppVersion}-win32
-#endif
 Compression=lzma
 ChangesEnvironment=yes
 SetupLogging=yes
 ChangesAssociations=yes
-SetupIconFile="{#MY_HOME}github\xmimsim\icons\Logo_xmi_msim_Win7.ico"
-#ifdef XMI_MSIM64
+SetupIconFile="{#srcdir}\icons\Logo_xmi_msim_Win7.ico"
 MinVersion=6.0
-#else
-MinVersion=5.1
-#endif
 VersionInfoVersion={#MyAppVersion}
 DisableWelcomePage=no
 
@@ -84,7 +75,6 @@ Name: "examples" ; Description: "Examples" ; Types: full
 Name: "source" ; Description: "Source code" ; Types: full
 
 [Files]
-#ifdef XMI_MSIM64
 Source: "{#builddir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
 Source: "{#MY_MINGW}\bin\libgfortran-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -93,40 +83,18 @@ Source: "{#MY_MINGW}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: cor
 Source: "{#MY_MINGW}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libnghttp2-14.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\librtmp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libssh2-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libeasyRNG-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-1.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-2.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\share\plplot5.11.1\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
-Source: "{#MY_HOME}\install\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-#else
-Source: "{#srcdir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
-Source: "{#MY_MINGW}\bin\libgfortran-3.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgcc_s_sjlj-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxml2-2.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libjson-glib-1.0-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxslt-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libgtkextra-win32-3.0-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libgslcblas-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libfgsl-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\bin\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-#endif
+Source: "{#MY_HOME}\install\share\plplot5.13.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
+Source: "{#builddir}\src\.libs\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#builddir}\bin\.libs\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 
 Source: "{#builddir}\bin\.libs\xmimsim.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-cli.exe" ; DestDir: "{app}\Bin" ; Components: core
@@ -141,44 +109,40 @@ Source: "{#builddir}\bin\.libs\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components
 Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
 
-#if Len(GetEnv("DO_NOT_USE_DATA")) == 0
-Source: "{#MY_HOME}\github\xmimsim\build\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
-#endif
+Source: "{#srcdir}\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmso2xmsi.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmso2spe.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmso2csv.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmso2svg.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmso2htm.xml" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\xml\xmsa2xmso.xml" ; DestDir: "{app}\Share" ; Components: core
 
-Source: "{#MY_HOME}\github\xmimsim\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmso2xmsi.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmso2spe.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmso2csv.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmso2svg.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmso2htm.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\xml\xmsa2xmso.xml" ; DestDir: "{app}\Share" ; Components: core
-
-Source: "{#MY_HOME}\github\xmimsim\src\array.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\src\compilerfeatures.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\src\openclfeatures.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\src\sse.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\src\threefry.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\src\xmi_kernels.cl" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\array.h" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\compilerfeatures.h" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\openclfeatures.h" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\sse.h" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\threefry.h" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\src\xmi_kernels.cl" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
 
-Source: "{#MY_HOME}\github\xmimsim\icons\256x256\Logo_xmi_msim.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\icons\256x256\Logo_xmi_msim_red.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\icons\256x256\Logo_xmi_msim_archive.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\icons\256x256\Radiation_warning_symbol.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#MY_HOME}\github\xmimsim\bin\coordinate_system.png" ; DestDir: "{app}\Share" ; Components: core
+Source: "{#srcdir}\icons\256x256\Logo_xmi_msim.png" ; DestDir: "{app}\Share\Icons" ; Components: core
+Source: "{#srcdir}\icons\256x256\Logo_xmi_msim_red.png" ; DestDir: "{app}\Share\Icons" ; Components: core
+Source: "{#srcdir}\icons\256x256\Logo_xmi_msim_archive.png" ; DestDir: "{app}\Share\Icons" ; Components: core
+Source: "{#srcdir}\icons\256x256\Radiation_warning_symbol.png" ; DestDir: "{app}\Share\Icons" ; Components: core
+Source: "{#srcdir}\bin\coordinate_system.png" ; DestDir: "{app}\Share" ; Components: core
 
-Source: "{#MY_HOME}\github\xmimsim\build\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
+Source: "{#builddir}\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1155.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1132.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1412.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\In.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1155.xmso" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1132.xmso" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\srm1412.xmso" ; DestDir: "{app}\Examples" ; Components: examples
-Source: "{#MY_HOME}\github\xmimsim\examples\In.xmso" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1155.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1132.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1412.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\In.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1155.xmso" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1132.xmso" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\srm1412.xmso" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#srcdir}\examples\In.xmso" ; DestDir: "{app}\Examples" ; Components: examples
 
 Source: "{#builddir}\windows\xmi*.h" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\xmimsim*mod" ; DestDir: "{app}\SDK\Include" ; Components: sdk
@@ -186,6 +150,15 @@ Source: "{#builddir}\src\.libs\libxmimsim.dll.a" ; DestDir: "{app}\SDK\Lib" ; Co
 Source: "{#builddir}\bin\.libs\libxmimsim-gui.dll.a" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 Source: "{#builddir}\windows\libxmimsim-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 Source: "{#builddir}\windows\libxmimsim-gui-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
+Source: "{tmp}\xraylib.exe" ; DestDir: "{tmp}" ; Components: core ; Flags: external ; Check: InstallXraylibCheck and DwinsHs_Check(ExpandConstant('{tmp}\xraylib.exe'), \
+    'http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win64.exe', '{#USER_AGENT}', 'get', 0, 0)
+
+#if Len(GetEnv("DO_NOT_USE_DATA")) == 0
+Source: "{#builddir}\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
+#elif Len(GetEnv("DEPLOY")) > 0
+Source: "{app}\Share\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core ; Flags: external ; Check: DwinsHs_Check(ExpandConstant('{app}\Share\xmimsimdata.h5'), \
+    'https://xmi-msim.tomschoonjans.eu/nightly/xmimsimdata.h5', '{#USER_AGENT}', 'get', 0, 0)
+#endif
 
 [Icons]
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"
@@ -197,15 +170,11 @@ Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Addi
 
 [Run]
 Filename: "{tmp}\{#GTK_INSTALLER_EXE}" ; Parameters: "/sideeffects=no /dllpath=root /translations=no /S /D={app}\GTK" ; StatusMsg: "Installing GTK runtime libraries..." ; Components: core
-Filename: "{tmp}\xraylib-{#XRAYLIB_VERSION}.exe" ; Parameters: "/VERYSILENT /SP- /SUPPRESSMSGBOXES" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
+Filename: "{tmp}\xraylib.exe" ; Parameters: "/VERYSILENT /SP- /SUPPRESSMSGBOXES" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
 ;Filename: "{app}\Bin\xmimsim-gui.exe"; Description: "Launch XMI-MSIM"; Flags: postinstall nowait skipifsilent 
 
 [UninstallRun]
-#ifdef XMI_MSIM64
 Filename: "{app}\GTK\gtk3_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
-#else
-Filename: "{app}\GTK\gtk2_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
-#endif
 
 [UninstallDelete]
 Type: filesandordirs ; Name: "{app}\GTK"
@@ -260,6 +229,9 @@ Root: HKCR; Subkey: "{#MyAppName} archive\shell\edit\command" ; ValueType: strin
 
 
 [Code]
+
+#define DwinsHs_Use_Predefined_Downloading_WizardPage
+#include "dwinshs.iss"
 
 //taken from http://blog.lextudio.com/2007/08/inno-setup-script-sample-for-version-comparison-2/
 
@@ -320,45 +292,24 @@ begin
     temp2 := str2;
     Result := CompareInner(temp1, temp2);
 end;
-procedure InitializeWizard();
+
+function InstallXraylibCheck() : Boolean;
 var subkeyName: String;
 var value: String;
   
 begin
-  ITD_Init;
-
   //do we need to install or update xraylib?
   Log('Checking for xraylib');
   value := '';
-#ifdef XMI_MSIM64
   subkeyName := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_64_is1');
   RegQueryStringValue(HKLM, subkeyName, 'DisplayVersion', value);
+  Result := ((value <> '') and (CompareVersion(value, '{#XRAYLIB_VERSION_MIN}') < 0)) or (value = '')
+end;
 
-#else
-  subkeyName := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib_is1');
-  if not RegQueryStringValue(HKLM, subkeyName, 'DisplayVersion', value) then
-    begin
-    subkeyName := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\xraylib');
-    RegQueryStringValue(HKLM, subkeyName, 'DisplayVersion', value);
-  end;
-#endif
+procedure InitializeWizard();
+begin
 
-  if (((value <> '') and (CompareVersion(value, '{#XRAYLIB_VERSION_MIN}') < 0)) or (value = '')) then
-  begin
-     //xraylib was not found or too old
-#ifdef XMI_MSIM64
-     ITD_AddFile(ExpandConstant('http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('https://xraylib.tomschoonjans.eu/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('http://xraylib.s3.amazonaws.com/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('http://10.0.2.2/~schoon/xraylib-{#XRAYLIB_VERSION}-win64.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-#else
-     ITD_AddFile(ExpandConstant('http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('https://xraylib.tomschoonjans.eu/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('http://xraylib.s3.amazonaws.com/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-     ITD_AddMirror(ExpandConstant('http://10.0.2.2/~schoon/xraylib-{#XRAYLIB_VERSION}-win32.exe'), ExpandConstant('{tmp}\xraylib-{#XRAYLIB_VERSION}.exe'));
-#endif
-     ITD_DownloadAfter(wpReady);
-  end;
+  DwinsHs_InitializeWizard(wpPreparing);
 
 end;
 
@@ -422,7 +373,6 @@ function InitializeSetup(): Boolean;
 begin
   Result := True;
 
-#ifdef XMI_MSIM64
   //check if the 32-bit version is installed
       if (GetUninstallString(HKLM32) <> '') then
       begin
@@ -444,30 +394,6 @@ begin
 	end;
       end;
       end;
-#else
-  //check if the 64-bit version is installed
-      if (IsWin64 and (GetUninstallString(HKLM64) <> '')) then
-      begin
-      if (WizardSilent()) then
-      begin
-        UnInstallOldVersion(HKLM64);
-      end
-      else
-      begin
-	//display msgbox
-	if (MsgBox('A previously installed 64-bit version of XMI-MSIM was found on the system. It has to be uninstalled before the installation can proceed.', mbConfirmation, MB_OKCANCEL)) = IDOK then
-	begin
-        	UnInstallOldVersion(HKLM64);
-	end
-	else
-	begin
-  		Result := False;
-		Exit;
-	end;
-      end;
-      end;
-#endif
-  
 
   if (IsUpgrade()) then
   begin
@@ -494,21 +420,43 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 
 begin
-//  if (CurStep=ssInstall) then
-//  begin
-//	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', '', ExpandConstant('{app}\Bin\xmimsim-gui.exe'));	
-//	RegWriteStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe', 'Path', ExpandConstant('{app}\Bin;{app}\Lib;{app}\GTK'));	
-//  end;
     if (CurStep=ssPostInstall) then
     begin
 	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH=%PATH%;{app}\Bin;{app}\Lib;{app}\GTK'), False);
     end;
 end;
 
-//procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-//begin
-//  if (CurUninstallStep = usUninstall) then
-//  begin
-//	RegDeleteKeyIncludingSubkeys(HKLM, 'Software\Microsoft\Windows\CurrentVersion\App Paths\xmimsim-gui.exe');
-//  end;
-//end;
+function BeforeDownload(): Boolean;
+begin
+  DwinsHs_AppendMirrorFile(ExpandConstant('{tmp}\xraylib.exe'), 'https://xraylib.tomschoonjans.eu/xraylib-{#XRAYLIB_VERSION}-win64.exe', '{#USER_AGENT}', rmGet);
+  Result := True;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  DwinsHs_CurPageChanged(CurPageID, @BeforeDownload, nil);
+end;
+
+function ShouldSkipPage(CurPageId: Integer): Boolean;
+begin
+  Result := False;
+  DwinsHs_ShouldSkipPage(CurPageId, Result);
+end;
+
+function BackButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  DwinsHs_BackButtonClick(CurPageID);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  DwinsHs_NextButtonClick(CurPageID, Result);
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  DwinsHs_CancelButtonClick(CurPageID, Cancel, Confirm);
+end;
+
