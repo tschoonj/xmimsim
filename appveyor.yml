@@ -111,7 +111,7 @@ branches:
     - master
 
 artifacts:
-  - path: windows\XMI-MSIM-*.exe
+  - path: XMI-MSIM-*.exe
     name: installer
 
 deploy:

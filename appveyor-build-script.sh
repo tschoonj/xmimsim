@@ -49,4 +49,6 @@ else
 	export DO_NOT_USE_DATA=1
 	cd windows
 	make iss
+	mv XMI-MSIM*exe ..
+	cd ..
 fi
