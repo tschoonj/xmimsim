@@ -156,7 +156,7 @@ Source: "{tmp}\xraylib.exe" ; DestDir: "{tmp}" ; Components: core ; Flags: exter
 #if Len(GetEnv("DO_NOT_USE_DATA")) == 0
 Source: "{#builddir}\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
 #elif Len(GetEnv("DEPLOY")) > 0
-Source: "{app}\Share\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core ; Flags: external ; Check: DwinsHs_Check(ExpandConstant('{app}\Share\xmimsimdata.h5'), \
+Source: "{tmp}\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core ; Flags: external ; Check: DwinsHs_Check(ExpandConstant('{tmp}\xmimsimdata.h5'), \
     'https://xmi-msim.tomschoonjans.eu/nightly/xmimsimdata.h5', '{#USER_AGENT}', 'get', 0, 0)
 #endif
 
