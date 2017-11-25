@@ -127,6 +127,8 @@ deploy:
   set_public: true
   folder: nightly
   artifact: installer
+  reduced_redundancy: true
 
+# this should not be necessary as new files will be visible on cloudfront soon after uploading to the bucket, even without invalidating...
 #after_deploy:
 #  - aws cloudfront create-invalidation --distribution-id E37CS1EID6VGVO --paths '/*'
