@@ -156,8 +156,9 @@ Source: "{tmp}\xraylib.exe" ; DestDir: "{tmp}" ; Components: core ; Flags: exter
 #if Len(GetEnv("DO_NOT_USE_DATA")) == 0
 Source: "{#builddir}\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core
 #elif Len(GetEnv("DEPLOY")) > 0
-Source: "{tmp}\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core ; Flags: external ; Check: DwinsHs_Check(ExpandConstant('{tmp}\xmimsimdata.h5'), \
-    'https://xmi-msim.tomschoonjans.eu/nightly/xmimsimdata.h5', '{#USER_AGENT}', 'get', 0, 0)
+Source: "{tmp}\xmimsimdata.7z" ; DestDir: "{tmp}" ; Components: core ; Flags: external ; Check: DwinsHs_Check(ExpandConstant('{tmp}\xmimsimdata.7z'), \
+    'https://xmi-msim.tomschoonjans.eu/nightly/xmimsimdata.7z', '{#USER_AGENT}', 'get', 0, 0)
+Source: "{#srcdir}\windows\7za.exe"; DestDir: "{tmp}" ; Components: core
 #endif
 
 [Icons]
@@ -172,6 +173,10 @@ Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Addi
 Filename: "{tmp}\{#GTK_INSTALLER_EXE}" ; Parameters: "/sideeffects=no /dllpath=root /translations=no /S /D={app}\GTK" ; StatusMsg: "Installing GTK runtime libraries..." ; Components: core
 Filename: "{tmp}\xraylib.exe" ; Parameters: "/VERYSILENT /SP- /SUPPRESSMSGBOXES" ; Flags: skipifdoesntexist ; StatusMsg: "Installing xraylib..."
 ;Filename: "{app}\Bin\xmimsim-gui.exe"; Description: "Launch XMI-MSIM"; Flags: postinstall nowait skipifsilent 
+#if Len(GetEnv("DEPLOY")) > 0
+Filename: {tmp}\7za.exe; Parameters: "x ""{tmp}\xmimsimdata.7z"" -o""{app}\Share\"" * -aoa"; Flags: runhidden runascurrentuser ; StatusMsg: "Decompressing data"
+
+#endif
 
 [UninstallRun]
 Filename: "{app}\GTK\gtk3_runtime_uninst.exe" ; Parameters: "/remove_config=yes /sideeffects=no /dllpath=root /translations=no /compatdlls=no /S" 
