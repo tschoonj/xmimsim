@@ -1,3 +1,5 @@
+NULL =
+
 check_LTLIBRARIES = libxmimsim-test.la
 check_PROGRAMS = \
      test-read-xmsi \
@@ -10,7 +12,9 @@ check_PROGRAMS = \
      test-xmso2htm \
      test-xmso2spe \
      test-pile-up \
-     test-xmimsim-main-CaSO4
+     test-xmimsim-main-CaSO4 \
+     test-version \
+     $(NULL)
 
 if ENABLE_GUI
   check_PROGRAMS += test-cubic-spline
@@ -141,6 +145,10 @@ test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 test_gui_google_analytics_tracker_SOURCES = test-gui-google-analytics-tracker.c
 test_gui_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/bin @glib2_CFLAGS@
 test_gui_google_analytics_tracker_LDADD = ../bin/libxmimsim-gui-google-analytics.la
+
+test_version_SOURCES = test-version.c
+test_version_CPPFLAGS = -I${top_builddir} -I${top_srcdir}/include @xml2_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@
+test_version_LDADD = @glib2_LIBS@
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
