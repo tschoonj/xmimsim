@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmimsim-gui-colors.h"
+#include "xmimsim-gui-export-canvas-dialog.h"
 #include <xraylib.h>
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
@@ -484,6 +485,38 @@ static void radio_conv_changed_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, Gtk
 
 }
 
+static void export_button_clicked_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, gpointer data) {
+	XmiMsimGuiFileChooserDialog *dialog = xmi_msim_gui_export_canvas_dialog_new("Export spectra", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(self))));
+
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), g_path_get_dirname(self->results->input->general->outputfile));
+
+	gchar *basename = g_path_get_basename(self->results->input->general->outputfile);
+
+	if (g_ascii_strcasecmp(basename + strlen(basename) - 5, ".xmso") == 0)
+		strcpy(basename + strlen(basename) - 5, ".eps");
+
+	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), basename);
+	g_free(basename);
+
+	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+		GError *error = NULL;
+		if (!xmi_msim_gui_export_canvas_dialog_save(dialog, self->canvas, &error)) {
+			xmi_msim_gui_file_chooser_dialog_destroy(dialog);
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(self))), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting spectrum");
+			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+
+			g_error_free(error);
+			return;
+		}
+	}
+	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
+
+	return;
+}
+
 static void settings_button_clicked_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, gpointer data) {
 	//For now: lin/log, and titles
 	GtkWidget *dialog= gtk_dialog_new_with_buttons("Plot properties", GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(self))), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Close", GTK_RESPONSE_ACCEPT,NULL);
@@ -612,7 +645,7 @@ static void xmi_msim_gui_xmso_results_scrolled_window_init(XmiMsimGuiXmsoResults
 	gtk_grid_attach(GTK_GRID(grid), self->settings_button, 0, 1, 2, 1);
 	gtk_widget_set_sensitive(self->settings_button, FALSE);
 	self->export_button = gtk_button_new_with_label("Export plot");
-	//g_signal_connect(G_OBJECT(export_button),"clicked",G_CALLBACK(export_button_clicked_cb),(gpointer)window);
+	g_signal_connect_swapped(G_OBJECT(self->export_button), "clicked", G_CALLBACK(export_button_clicked_cb), (gpointer) self);
 	gtk_grid_attach(GTK_GRID(grid), self->export_button, 0, 2, 2, 1);
 	gtk_widget_set_sensitive(self->export_button, FALSE);
 	label = gtk_label_new("Energy (keV)");
