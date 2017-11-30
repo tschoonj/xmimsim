@@ -184,6 +184,9 @@ Filename: "{app}\GTK\gtk3_runtime_uninst.exe" ; Parameters: "/remove_config=yes 
 [UninstallDelete]
 Type: filesandordirs ; Name: "{app}\GTK"
 Type: files ; Name: "{app}\Bin\set_xmi_msim_path.bat"
+#if Len(GetEnv("DEPLOY")) > 0
+Type: files ; Name: "{app}\Share\xmimsimdata.h5"
+#endif
 Type: dirifempty ; Name: "{app}"
 
 [Registry]
