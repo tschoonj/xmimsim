@@ -557,7 +557,7 @@ install:
       tar xfz xraylib-3.3.0.tar.gz || exit 1
       cd xraylib-3.3.0
       ./configure --enable-fortran2003 || exit 1
-      make || exit 1
+      make -j2 || exit 1
       sudo make install || exit 1
       cd ..
     fi
@@ -566,7 +566,7 @@ install:
       tar xfz easyRNG-1.1.tar.gz || exit 1
       cd easyRNG-1.1
       ./configure --enable-fortran || exit 1
-      make || exit 1
+      make -j2 || exit 1
       sudo make install || exit 1
       cd ..
     fi
@@ -584,7 +584,7 @@ install:
       cd gtkmm-plplot
       autoreconf -i
       ./configure
-      make
+      make -j2
       sudo make install
       cd ..
     fi
