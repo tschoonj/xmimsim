@@ -60,25 +60,21 @@ int main(int argc, char *argv[]) {
 
 	g_test_init(&argc, &argv, NULL);
 	
-	data = g_slice_new(SetupData);
-
 	g_test_add("/google-analytics-tracker/send-from-local-tracker-fixed-uuid",
 			SetupData,
-			data,
+			NULL,
 			setup_data,
 			test_send_from_local_tracker_fixed_uuid,
 			teardown_data
 			);
 	g_test_add("/google-analytics-tracker/send-from-global-tracker-fixed-uuid",
 			SetupData,
-			data,
+			NULL,
 			setup_data,
 			test_send_from_global_tracker_fixed_uuid,
 			teardown_data
 			);
 
-
-	g_slice_free(SetupData, data);
 
 	return g_test_run();
 }

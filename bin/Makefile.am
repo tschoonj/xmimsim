@@ -50,6 +50,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
 	xmimsim-gui-xmso-results-scrolled-window.h \
+	xmimsim-gui-job.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -77,6 +78,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmsi-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
+	xmimsim-gui-job.c \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \
