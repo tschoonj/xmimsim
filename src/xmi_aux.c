@@ -805,6 +805,7 @@ int xmi_get_hdf5_kind(char *name) {
 	H5Fclose(file_id);
 	return  rv;
 }
+
 int compare_string(const void *a, const void *b) {
    return g_strcmp0(*(char **)a, *(char **)b);
 }

@@ -1,20 +1,38 @@
+
+/*
+Copyright (C) 2017 Tom Schoonjans and Laszlo Vincze
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 #include <QuickLook/QuickLook.h>
-
 #include <cairo.h>
 #include <cairo-quartz.h>
-
 #include <xmi_xml.h>
 #include <xmi_resources_mac.h>
-
 #include <glib.h>
-
-#include <libxml/catalog.h>
-
 #include <plplot.h>
 
 OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview, CFURLRef url, CFStringRef contentTypeUTI, CFDictionaryRef options);
+
+GQuark xmi_msim_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-error-quark");
+}
 
 static void transform(double x_old, double y_old, double *x_new, double *y_new, PLPointer object) {
     *x_new = x_old;
@@ -52,19 +70,10 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
     g_setenv("PLPLOT_LIB", plplotPath, TRUE);
     g_free(plplotPath);
 
-    const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-    xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resourcesPath, NULL, NULL);
+    g_setenv("XMI_CATALOG_PATH", resourcesPath, TRUE);
     g_free(resourcesPath);
-    
-    if (xmlCatalogAdd(BAD_CAST "catalog", NULL, NULL) == -1) {
+    if (xmi_xmlLoadCatalog() == 0)
         return noErr;
-    }
-    
-    if (xmlCatalogAdd(BAD_CAST "rewriteURI", uriStartString, rewritePrefix) == -1) {
-        return noErr;
-    }
-    
-    g_free(rewritePrefix);
     
     struct xmi_output *output = NULL;
     if (xmi_read_output_xml(path, &output, NULL) == 0)

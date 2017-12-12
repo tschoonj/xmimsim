@@ -29,7 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "libxml/catalog.h"
 #include <libxml/xpath.h>
 
 #if !GLIB_CHECK_VERSION (2, 35, 3)
@@ -38,17 +37,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int test_init () {
 	LIBXML_TEST_VERSION
-	char uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	char *rewritePrefix = g_filename_to_uri(CATALOGPATH, NULL, NULL);
 
-	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
-		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
-		return 0;
-	}
-	if (xmlCatalogAdd(BAD_CAST "rewriteURI", BAD_CAST uriStartString, BAD_CAST rewritePrefix) == -1) {
-		fprintf(stderr, "xmlCatalogAdd error: rewriteURI\n");
-		return 0;
-	}
+	// load our xml catalog
+	assert(g_setenv("XMI_CATALOG_PATH", CATALOGPATH, TRUE) == TRUE);
+	assert(xmi_xmlLoadCatalog() == 1);
 
 	assert(g_setenv("XMI_XMSO2XMSI_XSLT", XMI_XMSO2XMSI_XSLT, TRUE) == TRUE);
 	assert(g_setenv("XMI_XMSO2SVG_XSLT", XMI_XMSO2SVG_XSLT, TRUE) == TRUE);
