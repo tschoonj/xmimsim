@@ -30,6 +30,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include <search.h>
 
+#ifdef G_OS_WIN32
+#include "xmi_registry_win.h"
+#elif defined(MAC_INTEGRATION)
+#include "xmi_resources_mac.h"
+#endif
 
 #define SVG_DEFAULT_WIDTH 540
 #define SVG_DEFAULT_HEIGHT 300
@@ -67,53 +72,49 @@ static void handle_error(GError **error) {
 	*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "%s", xmlGetLastError()->message);
 }
 
-#ifdef G_OS_WIN32
-#include "xmi_registry_win.h"
+static int xmi_xmlCatalogAdd(const gchar *path) {
+	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
+	char *rewritePrefix = g_filename_to_uri(path, NULL, NULL);
+
+	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
+		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
+		return 0;
+	}
+
+	if (xmlCatalogAdd(BAD_CAST "rewriteURI", BAD_CAST uriStartString, BAD_CAST rewritePrefix) == -1) {
+		fprintf(stderr, "xmlCatalogAdd error: rewriteURI\n");
+		return 0;
+	}
+
+	g_free(rewritePrefix);
+
+	return 1;
+}
 
 int xmi_xmlLoadCatalog() {
-	char *share;
-	int rv;
+	int rv = 0;
 
 	if (xml_catalog_loaded)
 		return 1;
+
+	// look first for environment variable
+	const gchar *xmi_catalog_path = g_getenv("XMI_CATALOG_PATH");
+	if (xmi_catalog_path != NULL) {
+		return xmi_xmlCatalogAdd(xmi_catalog_path);
+	}
+
+#ifdef G_OS_WIN32
+
+	char *share;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SHARE, &share) == 0) {
 		return 0;
 	}
 
-	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(share,NULL,NULL);
-
-
-	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
-		fprintf(stderr,"Could not add catalog\n");
-		rv = 0;
-	}
-	else
-		rv =1;
-
-	if (xmlCatalogAdd(BAD_CAST "rewriteURI",uriStartString,rewritePrefix) == -1) {
-		fprintf(stderr,"Could not add catalog rewriteURI\n");
-		rv = 0;
-	}
-	else
-		rv =1;
-
+	rv = xmi_xmlCatalogAdd(share);
 	g_free(share);
 
-	xml_catalog_loaded = TRUE;
-
-	return rv;
-
-}
 #elif defined(MAC_INTEGRATION)
-#include "xmi_resources_mac.h"
-
-int xmi_xmlLoadCatalog() {
-	int rv;
-
-	if (xml_catalog_loaded)
-		return 1;
 
 	gchar *resource_path = xmi_application_get_resource_path();
 	if (resource_path == NULL) {
@@ -124,41 +125,14 @@ int xmi_xmlLoadCatalog() {
 	g_free(resource_path);
 	g_string_append(resource_path_string, "/");
 
-	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	const xmlChar *rewritePrefix = (xmlChar*) g_filename_to_uri(resource_path_string->str, NULL, NULL);
-
-
-	if (xmlCatalogAdd(BAD_CAST "catalog", NULL, NULL) == -1) {
-		fprintf(stderr,"Could not add catalog\n");
-		rv = 0;
-	}
-	else
-		rv =1;
-
-	if (xmlCatalogAdd(BAD_CAST "rewriteURI", uriStartString, rewritePrefix) == -1) {
-		fprintf(stderr,"Could not add catalog rewriteURI\n");
-		rv = 0;
-	}
-	else
-		rv =1;
+	rv = xmi_xmlCatalogAdd(resource_path_string->str);
 
 	g_string_free(resource_path_string, TRUE);
 
-
-	xml_catalog_loaded = TRUE;
-
-	return rv;
-
-}
 #elif defined(QUICKLOOK)
 // this function is not required for the quicklook plugin
 #else
-int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;
-	int rv;
-
-	if (xml_catalog_loaded)
-		return 1;
 
 	if (xmlLoadCatalog(catalog) != 0) {
 		fprintf(stderr,"Could not load %s\n",catalog);
@@ -167,11 +141,13 @@ int xmi_xmlLoadCatalog() {
 	else
 		rv=1;
 
-	xml_catalog_loaded = TRUE;
+#endif
+
+	if (rv == 1)
+		xml_catalog_loaded = TRUE;
 
 	return rv;
 }
-#endif
 
 static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv, GError **error) {
 	double **channels_loc;
