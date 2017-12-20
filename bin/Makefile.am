@@ -235,12 +235,12 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 
 xmimsim_gui_SOURCES = \
+	xmimsim-gui-controls.c \
+	xmimsim-gui-controls.h \
 	xmimsim-gui.cpp \
 	xmimsim-gui.h \
 	xmimsim-gui-energies.c \
 	xmimsim-gui-energies.h \
-	xmimsim-gui-controls.c \
-	xmimsim-gui-controls.h \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \

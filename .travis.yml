@@ -556,7 +556,7 @@ install:
       wget https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz || exit 1
       tar xfz xraylib-3.3.0.tar.gz || exit 1
       cd xraylib-3.3.0
-      ./configure --enable-fortran2003 || exit 1
+      ./configure --enable-fortran2003 --disable-static || exit 1
       make -j2 || exit 1
       sudo make install || exit 1
       cd ..
@@ -565,7 +565,7 @@ install:
       wget https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz || exit 1
       tar xfz easyRNG-1.1.tar.gz || exit 1
       cd easyRNG-1.1
-      ./configure --enable-fortran || exit 1
+      ./configure --enable-fortran --disable-static || exit 1
       make -j2 || exit 1
       sudo make install || exit 1
       cd ..
@@ -574,7 +574,7 @@ install:
       wget http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.2.0.tar.gz || exit 1
       tar xfz fgsl-1.2.0.tar.gz || exit 1
       cd fgsl-1.2.0
-      ./configure || exit 1
+      ./configure --disable-static || exit 1
       make || exit 1
       sudo make install || exit 1
       cd ..
@@ -583,7 +583,7 @@ install:
       git clone -b $GTKMM_PLPLOT_BRANCH --single-branch --depth=1 https://github.com/tschoonj/gtkmm-plplot.git
       cd gtkmm-plplot
       autoreconf -i
-      ./configure
+      ./configure --disable-static
       make -j2
       sudo make install
       cd ..
@@ -593,7 +593,7 @@ install:
 
 script:
   - autoreconf -fi || exit 1
-  - ./configure ${EXTRA} || exit 1
+  - ./configure ${EXTRA} --disable-static || exit 1
   - make || exit 1
   - make check || exit 1
   - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then make distcheck || exit 1 ; fi
