@@ -38,7 +38,7 @@ export CPPFLAGS="-I/usr/local/include -I$HOME/install/include"
 export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 export LIBS="-L/usr/local/lib/nvidia"
-./configure --prefix=$HOME/install $CONFIGURE_OPTIONS
+./configure --prefix=$HOME/install $CONFIGURE_OPTIONS --disable-static
 make
 if test -z ${DEPLOY+x} ; then
 	make check
