@@ -60,6 +60,7 @@ struct _XmiMsimGuiJob {
 	gboolean successful;
 	gboolean do_not_emit;
 	gboolean killed;
+	gboolean send_all_stdout_events;
 	GPtrArray *argv;
 	gchar *wd;
 	GIOChannel *stdout_channel;
@@ -71,6 +72,11 @@ struct _XmiMsimGuiJobClass {
 };
 
 G_DEFINE_TYPE(XmiMsimGuiJob, xmi_msim_gui_job, G_TYPE_OBJECT)
+
+gboolean xmi_msim_gui_job_kill(XmiMsimGuiJob *job, GError **error) {
+	job->do_not_emit = TRUE;
+	return xmi_msim_gui_job_stop(job, error);
+}
 
 gboolean xmi_msim_gui_job_stop(XmiMsimGuiJob *job, GError **error) {
 	// difference UNIX <-> Windows
@@ -514,6 +520,7 @@ XmiMsimGuiJob* xmi_msim_gui_job_new(
 static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimGuiJob *job) {
 	// called when the child dies, either by natural causes or if it is killed
 	// either way, this function must finish with a signal being emitted
+	job->killed = TRUE; // to ensure that the IO watcher gets deactivated
 	char *buffer;
 	gboolean success;
 	int pid = job->pid;
@@ -687,7 +694,7 @@ static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, X
 			pipe_string = g_strchomp(pipe_string);
 			if (source == job->stdout_channel) {
 				// if stdout -> parse and send out specific event signal if necessary
-				if (process_stdout_channel_string(job, pipe_string))
+				if (process_stdout_channel_string(job, pipe_string) || job->send_all_stdout_events)
 					g_signal_emit(job, signals[STDOUT_EVENT], 0, pipe_string);
 			}
 			else if (source == job->stderr_channel) {
@@ -831,6 +838,10 @@ gboolean xmi_msim_gui_job_was_successful(XmiMsimGuiJob *job) {
 	return rv;
 }
 
+void xmi_msim_gui_job_send_all_stdout_events(XmiMsimGuiJob *job, gboolean setting) {
+	job->send_all_stdout_events = setting;
+}
+
 GQuark xmi_msim_gui_job_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-job-error-quark");
 }
@@ -839,10 +850,7 @@ void xmi_msim_gui_job_kill_all() {
 	// no further processing will be triggered, just a clean kill
 	G_LOCK(current_job);
 	if (current_job != NULL) {
-		g_mutex_lock(&current_job->job_mutex);
-		current_job->do_not_emit = TRUE;
-		g_mutex_unlock(&current_job->job_mutex);
-		xmi_msim_gui_job_stop(current_job, NULL);
+		xmi_msim_gui_job_kill(current_job, NULL);
 	}
 	current_job = NULL;
 	G_UNLOCK(current_job);

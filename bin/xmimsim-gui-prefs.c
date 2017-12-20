@@ -1341,17 +1341,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
-	GtkFileFilter *filter = gtk_file_filter_new();
-
-	gtk_file_filter_add_pattern(filter, "*." G_MODULE_SUFFIX);
-	if (gtk_file_filter_filter(filter, filter_info) == TRUE && xmi_check_detector_convolute_plugin((char *) filter_info->filename) == 1)
-		return TRUE;
-
-	return FALSE;
-}
-
-
 char *xmimsim_gui_get_preferences_filename() {
 
 #ifdef MAC_INTEGRATION
