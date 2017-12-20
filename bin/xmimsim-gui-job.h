@@ -49,6 +49,7 @@ XmiMsimGuiJob* xmi_msim_gui_job_new(
 
 gboolean xmi_msim_gui_job_start(XmiMsimGuiJob *job, GError **error);
 gboolean xmi_msim_gui_job_stop(XmiMsimGuiJob *job, GError **error);
+gboolean xmi_msim_gui_job_kill(XmiMsimGuiJob *job, GError **error);
 gboolean xmi_msim_gui_job_suspend(XmiMsimGuiJob *job, GError **error);
 gboolean xmi_msim_gui_job_resume(XmiMsimGuiJob *job, GError **error);
 gboolean xmi_msim_gui_job_is_running(XmiMsimGuiJob *job); // if paused, it will return TRUE!
@@ -57,6 +58,8 @@ gboolean xmi_msim_gui_job_has_finished(XmiMsimGuiJob *job);
 gboolean xmi_msim_gui_job_was_successful(XmiMsimGuiJob *job);
 
 gboolean xmi_msim_gui_job_get_pid(XmiMsimGuiJob *job, gint *pid, GError **error);
+
+void xmi_msim_gui_job_send_all_stdout_events(XmiMsimGuiJob *job, gboolean setting);
 
 void xmi_msim_gui_job_kill_all();
 

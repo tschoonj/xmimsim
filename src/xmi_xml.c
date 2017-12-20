@@ -58,11 +58,13 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv, GError **error);
 static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory, GError **error);
 
+#ifndef QUICKLOOK
 static float e2c(double energy, double * channels, double * energies, int nchannels );
 static float i2c(double intensity, double maximum_log, double minimum_log);
 
 static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
 static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
+#endif
 
 static gboolean xml_catalog_loaded = FALSE;
 
@@ -2039,7 +2041,6 @@ double *channels, double maximum2, GError **error) {
 
 	return 1;
 }
-#endif
 
 static float e2c(double energy, double * channels, double * energies, int nchannels ){
 	float xval;
@@ -2075,7 +2076,7 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 
 	return val;
 }
-
+#endif
 
 int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError **error) {
 
@@ -2618,7 +2619,6 @@ int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_layer
 
 	return 1;
 }
-#endif
 
 static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) {
 	//we'll be mixing some glib and libxml strings here, but that should be ok
@@ -2648,6 +2648,7 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 		g_free(msg);
 	}
 }
+#endif
 
 int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 	double diff;
