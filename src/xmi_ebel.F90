@@ -20,7 +20,6 @@ MODULE xmimsim_ebel
 
 USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
-USE :: omp_lib
 
 REAL (C_DOUBLE), PARAMETER :: DEG2RAD=0.01745329
 
@@ -41,9 +40,32 @@ REAL (C_DOUBLE), PARAMETER, DIMENSION(100) :: omegaL = [&
 0.486, 0.499, 0.511, 0.524, 0.536, 0.548, 0.560, 0.572, 0.583, 0.595&
 ]
 
-
-
 INTERFACE
+
+FUNCTION xmi_cubic_spline_init(x, y, n)&
+BIND(C, NAME='xmi_cubic_spline_init')&
+RESULT(spline)
+        USE, INTRINSIC :: ISO_C_BINDING
+        TYPE (C_PTR), INTENT(IN), VALUE :: x, y
+        INTEGER (C_SIZE_T), INTENT(IN), VALUE :: n
+        TYPE (C_PTR) :: spline
+ENDFUNCTION xmi_cubic_spline_init
+
+SUBROUTINE xmi_cubic_spline_free(spline)&
+BIND(C, NAME='xmi_cubic_spline_free')
+        USE, INTRINSIC :: ISO_C_BINDING
+        TYPE (C_PTR), INTENT(IN), VALUE :: spline
+ENDSUBROUTINE xmi_cubic_spline_free
+
+FUNCTION xmi_cubic_spline_eval(spline, x)&
+BIND(C, NAME='xmi_cubic_spline_eval')&
+RESULT(y)
+        USE, INTRINSIC :: ISO_C_BINDING
+        TYPE (C_PTR), INTENT(IN), VALUE :: spline
+        REAL (C_DOUBLE), INTENT(IN), VALUE :: x
+        REAL (C_DOUBLE) :: y
+ENDFUNCTION xmi_cubic_spline_eval
+
 FUNCTION xmi_cmp_struct_xmi_energy_discrete(a, b)&
 BIND(C,NAME='xmi_cmp_struct_xmi_energy_discrete')&
 RESULT(rv)
@@ -64,7 +86,6 @@ RESULT(rv)
         INTEGER (C_INT) :: rv
 ENDFUNCTION xmi_cmp_struct_xmi_energy_continuous
 ENDINTERFACE
-
 
 CONTAINS
 
@@ -93,7 +114,8 @@ ENDFUNCTION fcorr
 INTEGER (C_INT) FUNCTION xmi_tube_ebel (tube_anode,tube_window,&
 tube_filter,tube_voltage, tube_current, tube_angle_electron, &
 tube_angle_xray, tube_delta_energy, tube_solid_angle, &
-tube_transmission, ebel_excitation)&
+tube_transmission, nefficiencies, energies, efficiencies,&
+ebel_excitation)&
 BIND(C,NAME='xmi_tube_ebel')
 
 !Reference:
@@ -111,12 +133,15 @@ BIND(C,NAME='xmi_tube_ebel')
 
 IMPLICIT NONE
 
-TYPE (C_PTR), VALUE, INTENT(IN) :: tube_anode,tube_window,tube_filter
+TYPE (C_PTR), VALUE, INTENT(IN) :: tube_anode,tube_window,tube_filter,energies,efficiencies
 REAL (C_DOUBLE), VALUE, INTENT(IN) :: tube_voltage, tube_current, &
 tube_angle_electron, tube_angle_xray, tube_delta_energy, tube_solid_angle
 TYPE (C_PTR), INTENT(INOUT) :: ebel_excitation
 TYPE (xmi_excitationC), POINTER :: ebel_excitation_rv
 INTEGER (C_INT), VALUE, INTENT(IN) :: tube_transmission
+INTEGER (C_SIZE_T), VALUE, INTENT(IN) :: nefficiencies
+
+
 TYPE (xmi_energy_continuous), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_cont
 TYPE (xmi_energy_discrete), ALLOCATABLE, DIMENSION(:) :: ebel_spectrum_disc
 TYPE (xmi_energy_continuous), POINTER, DIMENSION(:) :: ebel_spectrum_cont_rv
@@ -137,6 +162,7 @@ disc_edge_energy,disc_edge_energy_temp
 INTEGER (C_INT), ALLOCATABLE, DIMENSION(:) :: disc_lines, disc_lines_temp
 REAL (C_DOUBLE) :: my_disc_edge_energy
 
+TYPE (C_PTR) :: spline
 
 !
 INTEGER (C_INT) :: i, ndisc, ncont, shell1, shell2
@@ -189,8 +215,6 @@ IF (C_ASSOCIATED(tube_filter)) THEN
         CALL C_F_POINTER(tube_filterC%weight, weight, [tube_filterC%n_elements])
         tube_filterF%weight = weight
 ENDIF
-
-
 
 
 !angles
@@ -446,6 +470,22 @@ ebel_spectrum_disc(:)%sigma_x = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_y = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_xp = 0.0_C_DOUBLE
 ebel_spectrum_disc(:)%sigma_yp = 0.0_C_DOUBLE
+ENDIF
+
+! apply transmission efficiency profile (if provided)
+IF (nefficiencies .GT. 0) THEN
+        spline = xmi_cubic_spline_init(energies, efficiencies, nefficiencies)
+        DO i=1,ncont
+                ebel_spectrum_cont(i)%horizontal_intensity = ebel_spectrum_cont(i)%horizontal_intensity*&
+                xmi_cubic_spline_eval(spline, ebel_spectrum_cont(i)%energy)
+                ebel_spectrum_cont(i)%vertical_intensity = ebel_spectrum_cont(i)%horizontal_intensity
+        ENDDO
+        DO i=1,ndisc
+                ebel_spectrum_disc(i)%horizontal_intensity = ebel_spectrum_disc(i)%horizontal_intensity*&
+                xmi_cubic_spline_eval(spline, ebel_spectrum_disc(i)%energy)
+                ebel_spectrum_disc(i)%vertical_intensity = ebel_spectrum_disc(i)%horizontal_intensity
+        ENDDO
+        CALL xmi_cubic_spline_free(spline)
 ENDIF
 
 ALLOCATE(ebel_excitation_rv)

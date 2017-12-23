@@ -28,8 +28,10 @@ int xmi_tube_ebel(struct xmi_layer *tube_anode, struct xmi_layer *tube_window,
 		  double tube_current, double tube_angle_electron,
 		  double tube_angle_xray, double tube_delta_energy,
 		  double tube_solid_angle, int tube_transmission,
+		  size_t tube_nefficiencies, double *tube_energies, double *tube_efficiencies,
 		  struct xmi_excitation **ebel_spectrum
 		  );
+
 #ifdef __cplusplus
 }
 #endif
