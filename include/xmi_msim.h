@@ -42,6 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include "xmi_xrmc.h"
 #include "xmi_error.h"
+#include "xmi_spline.h"
 
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"

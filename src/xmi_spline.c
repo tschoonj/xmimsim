@@ -15,10 +15,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "xmimsim-gui-spline.h"
+#include "xmi_spline.h"
 #include "xmi_aux.h"
 #include <stdio.h>
 #include <glib.h>
+
+struct xmi_cubic_spline_coeffs {
+	double a;
+	double b;
+	double c;
+	double d;
+	double x;
+};
+
+struct xmi_cubic_spline {
+	size_t n;
+	double *x;
+	double *y;
+	struct xmi_cubic_spline_coeffs *all_coeffs;
+};
 
 struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 

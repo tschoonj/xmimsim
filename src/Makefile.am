@@ -13,6 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+NULL =
+
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
@@ -48,8 +50,9 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_detector.c \
 			xmi_ebel.F90 \
 			xmi_xrmc.c \
-			xmi_private.h
-
+			xmi_private.h \
+			xmi_spline.c \
+			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
 			 xmi_random_dev.c \

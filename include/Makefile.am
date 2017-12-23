@@ -15,6 +15,8 @@
 
 xmimsimincludedir = ${includedir}/xmimsim
 
+NULL =
+
 xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_data_structs.h \
 			 xmi_xml.h \
@@ -28,7 +30,9 @@ xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_ebel.h \
 			 xmi_aux.h \
 			 xmi_xrmc.h \
-			 xmi_error.h
+			 xmi_error.h \
+			 xmi_spline.h \
+			 $(NULL)
 
 if OS_WINDOWS
 xmimsiminclude_HEADERS += xmi_registry_win.h

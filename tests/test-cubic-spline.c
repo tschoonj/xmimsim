@@ -1,4 +1,4 @@
-#include "xmimsim-gui-spline.h"
+#include "xmi_spline.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
