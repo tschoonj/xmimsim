@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /* Based on the code found at https://github.com/JamesBremner/raven-cSpline */
 
-#ifndef XMIMSIM_GUI_SPLINE_H
-#define XMIMSIM_GUI_SPLINE_H
+#ifndef XMI_SPLINE_H
+#define XMI_SPLINE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,20 +26,7 @@ extern "C" {
 
 #include <stddef.h>
 
-struct xmi_cubic_spline_coeffs {
-	double a;
-	double b;
-	double c;
-	double d;
-	double x;
-};
-
-struct xmi_cubic_spline {
-	size_t n;
-	double *x;
-	double *y;
-	struct xmi_cubic_spline_coeffs *all_coeffs;
-};
+struct xmi_cubic_spline;
 
 struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n);
 

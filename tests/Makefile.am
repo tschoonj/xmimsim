@@ -14,10 +14,10 @@ check_PROGRAMS = \
      test-pile-up \
      test-xmimsim-main-CaSO4 \
      test-version \
+     test-cubic-spline \
      $(NULL)
 
 if ENABLE_GUI
-  check_PROGRAMS += test-cubic-spline
   check_PROGRAMS += test-xmso2svg
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
   check_PROGRAMS += test-gui-job
@@ -123,8 +123,8 @@ test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@
 test_poly_solve_quadratic_LDADD = libxmimsim-test.la @glib2_LIBS@
 
 test_cubic_spline_SOURCES = test-cubic-spline.c
-test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/bin
-test_cubic_spline_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ $(top_builddir)/bin/libxmimsim-gui-spline.la 
+test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/include
+test_cubic_spline_LDADD = libxmimsim-test.la
 
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \

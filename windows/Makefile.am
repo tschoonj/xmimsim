@@ -34,6 +34,8 @@ common:
 	unix2dos -n $(top_srcdir)/include/xmi_aux.h xmi_aux.h
 	unix2dos -n $(top_srcdir)/include/xmi_xrmc.h xmi_xrmc.h
 	unix2dos -n $(top_srcdir)/include/xmi_registry_win.h xmi_registry_win.h
+	unix2dos -n $(top_srcdir)/include/xmi_error.h xmi_error.h
+	unix2dos -n $(top_srcdir)/include/xmi_spline.h xmi_spline.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-prefs.h xmimsim-gui-prefs.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-source-abstract.h xmimsim-gui-source-abstract.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-compound-dialog.h  xmimsim-gui-compound-dialog.h
