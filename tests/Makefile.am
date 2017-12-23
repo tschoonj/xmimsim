@@ -15,6 +15,7 @@ check_PROGRAMS = \
      test-xmimsim-main-CaSO4 \
      test-version \
      test-cubic-spline \
+     test-ebel \
      $(NULL)
 
 if ENABLE_GUI
@@ -125,6 +126,11 @@ test_poly_solve_quadratic_LDADD = libxmimsim-test.la @glib2_LIBS@
 test_cubic_spline_SOURCES = test-cubic-spline.c
 test_cubic_spline_CPPFLAGS = -I$(top_srcdir)/include
 test_cubic_spline_LDADD = libxmimsim-test.la
+
+test_ebel_SOURCES = test-ebel.c
+test_ebel_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_ebel_LDADD = libxmimsim-test.la
 
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \

@@ -25,13 +25,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 
 void xmi_free_layer (struct xmi_layer *layer) {
+	if (layer == NULL)
+		return;
 	g_free(layer->Z);
 	g_free(layer->weight);
 }
-
-
-
-
 
 void xmi_free_input(struct xmi_input *input) {
 	//general
