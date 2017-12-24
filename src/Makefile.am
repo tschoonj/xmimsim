@@ -52,6 +52,7 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_xrmc.c \
 			xmi_private.h \
 			xmi_spline.c \
+			xmi_transmission_efficiency.c \
 			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
