@@ -107,8 +107,6 @@ test_gui_utils_get_solid_angle_from_slits_CXXFLAGS = -I${srcdir} -I${top_srcdir}
 			-std=gnu++11
 test_gui_utils_get_solid_angle_from_slits_LDADD = ../bin/libxmimsim-gui.la libxmimsim-test.la
 
-
-
 test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
@@ -129,7 +127,8 @@ test_cubic_spline_LDADD = libxmimsim-test.la
 
 test_ebel_SOURCES = test-ebel.c
 test_ebel_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
+			-DTRANSMISSION_FILE=\"${srcdir}/transmission-efficiency.txt\"
 test_ebel_LDADD = libxmimsim-test.la
 
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
@@ -163,3 +162,5 @@ test_version_LDADD = @glib2_LIBS@
 
 clean-local:
 	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
+
+EXTRA_DIST = transmission-efficiency.txt

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_ERROR_H
-#define XMI_ERROR_H
+#ifndef XMI_TRANSMISSION_EFFICIENCY_H
+#define XMI_TRANSMISSION_EFFICIENCY_H
 
 #include <glib.h>
 
@@ -24,14 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-typedef enum {
-	XMI_MSIM_ERROR_XML,
-	XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY,
-} XmiMsimError;
-
-#define XMI_MSIM_ERROR (xmi_msim_error_quark())
-
-GQuark xmi_msim_error_quark(void);
+gboolean xmi_transmission_efficiency_read(const char *filename, size_t *nefficiencies, double **energies, double **efficiencies, GError **error);
 
 #ifdef __cplusplus
 }

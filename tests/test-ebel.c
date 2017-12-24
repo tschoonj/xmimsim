@@ -53,6 +53,16 @@ static void setup_data_good_with_window_with_filter_without_efficiency(SetupData
 	data->tube_filter = create_layer(6, ElementDensity(6), 1E-3);
 }
 
+static void setup_data_good_with_window_with_filter_with_efficiency(SetupData *data, gconstpointer user_data) {
+	setup_data_good_with_window_with_filter_without_efficiency(data, user_data);
+	g_assert_true(xmi_transmission_efficiency_read(TRANSMISSION_FILE, &data->tube_nefficiencies, &data->tube_energies, &data->tube_efficiencies, NULL));
+}
+
+static void setup_data_bad_with_window_with_filter_with_efficiency(SetupData *data, gconstpointer user_data) {
+	setup_data_good_with_window_with_filter_without_efficiency(data, user_data);
+	g_assert_false(xmi_transmission_efficiency_read("non-existent-file.txt", &data->tube_nefficiencies, &data->tube_energies, &data->tube_efficiencies, NULL));
+}
+
 static void test(SetupData *data, gconstpointer user_data) {
 	struct xmi_excitation *ebel_spectrum;
 	g_assert(xmi_tube_ebel(
@@ -112,6 +122,20 @@ int main(int argc, char *argv[]) {
 		SetupData,
 		NULL,
 		setup_data_good_with_window_with_filter_without_efficiency,
+		test,
+		teardown_data
+	);
+	g_test_add("/ebel/good-with-window-with-filter-with-efficiency",
+		SetupData,
+		NULL,
+		setup_data_good_with_window_with_filter_with_efficiency,
+		test,
+		teardown_data
+	);
+	g_test_add("/ebel/bad-with-window-with-filter-with-efficiency",
+		SetupData,
+		NULL,
+		setup_data_bad_with_window_with_filter_with_efficiency,
 		test,
 		teardown_data
 	);

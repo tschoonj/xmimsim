@@ -20,10 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmi_ebel.h"
+#include "xmi_error.h"
 #include "xmi_aux.h"
 #include "xmi_private.h"
+#include "xmi_transmission_efficiency.h"
 #include <xraylib.h>
-#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -748,10 +749,6 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		return;
 	}
 
-	struct xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
-	struct xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
-	struct xmi_layer *filter = xep->filter_thickness > 0 && xep->filter_rho > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
-
 	double *energies = NULL;
 	double *efficiencies = NULL;
 	size_t nefficiencies = 0;
@@ -761,60 +758,27 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	    strlen(xep->transmission_efficiency_file) > 0 &&
 	    strcmp(xep->transmission_efficiency_file, "(None)") != 0) {
 
-		GArray *eff_x = g_array_new(FALSE, FALSE, sizeof(double));
-		GArray *eff_y = g_array_new(FALSE, FALSE, sizeof(double));
-
-		FILE *fp;
-		if ((fp = fopen(xep->transmission_efficiency_file, "r")) == NULL) {
-			g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Could not open %s for reading", xep->transmission_efficiency_file);
-			g_free(xep->transmission_efficiency_file);
-			g_free(xep);
-			g_array_free(eff_x, TRUE);
-			g_array_free(eff_y, TRUE);
-			g_signal_emit_by_name((gpointer) source, "after-generate", error);
-			return;
-		}
-
-		char *line = NULL;
-		double energy, efficiency;
-		ssize_t linelen;
-		size_t linecap = 0;
-		int values;
-		while ((linelen = getline(&line, &linecap, fp)) > -1) {
-			if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
-				continue;
-			}
-			values = sscanf(line,"%lg %lg", &energy, &efficiency);
-			if (values != 2 || energy < 0.0 || efficiency < 0.0 || efficiency > 1.0 || (eff_x->len > 0 && energy <= g_array_index(eff_x, double, eff_x->len - 1)) || (eff_x->len == 0 && energy >= 1.0)) {
-				g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
-				g_free(xep->transmission_efficiency_file);
-				g_free(xep);
-				g_array_free(eff_x, TRUE);
-				g_array_free(eff_y, TRUE);
-				g_signal_emit_by_name((gpointer) source, "after-generate", error);
-				return;
-			}
-			g_array_append_val(eff_x, energy);
-			g_array_append_val(eff_y, efficiency);
-			g_free(line);
-			line = NULL;
-		}
-		fclose(fp);
-
-		if (eff_x->len < 10 || xep->tube_voltage > g_array_index(eff_x, double, eff_x->len - 1)) {
-			g_set_error(&error, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR, XMI_MSIM_GUI_SOURCE_TUBE_EBEL_ERROR_TRANSMISSION_FILE, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
+		if (xmi_transmission_efficiency_read(xep->transmission_efficiency_file, &nefficiencies, &energies, &efficiencies, &error) == FALSE) {
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
 			g_signal_emit_by_name((gpointer) source, "after-generate", error);
 			return;
 		}
-
-		nefficiencies = eff_x->len;
-		energies = (double *) g_array_free(eff_x, FALSE);
-		efficiencies = (double *) g_array_free(eff_y, FALSE);
+		if (xep->tube_voltage > energies[nefficiencies-1]) {
+			g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
+			g_free(xep->transmission_efficiency_file);
+			g_free(xep);
+			g_free(energies);
+			g_free(efficiencies);
+			g_signal_emit_by_name((gpointer) source, "after-generate", error);
+			return;
+		}
 	}
 
 	struct xmi_excitation* excitation_tube = NULL;
+	struct xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
+	struct xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
+	struct xmi_layer *filter = xep->filter_thickness > 0 && xep->filter_rho > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
 
 	// prepare arguments for the fortran function call
 	int ebel_rv = xmi_tube_ebel(anode, window, filter, xep->tube_voltage, xep->tube_current, xep->alpha_electron, xep->alpha_xray, xep->interval_width, xep->tube_solid_angle, xep->transmission_tube, nefficiencies, energies, efficiencies, &excitation_tube);
