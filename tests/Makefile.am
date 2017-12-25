@@ -100,11 +100,10 @@ test_xmso2svg_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
 test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtkmm3_LIBS@ @glib2_LIBS@ 
 
-test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.cpp
-test_gui_utils_get_solid_angle_from_slits_CXXFLAGS = -I${srcdir} -I${top_srcdir}/bin \
+test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.c
+test_gui_utils_get_solid_angle_from_slits_CFLAGS = -I${srcdir} -I${top_srcdir}/bin \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@ \
-			-std=gnu++11
+			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
 test_gui_utils_get_solid_angle_from_slits_LDADD = ../bin/libxmimsim-gui.la libxmimsim-test.la
 
 test_xmso2htm_SOURCES = test-xmso2htm.c
