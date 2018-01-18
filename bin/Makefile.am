@@ -89,7 +89,7 @@ libxmimsim_gui_la_CPPFLAGS = \
 	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
-	@libcurl_CFLAGS@ \
+	@libsoup_CFLAGS@ \
 	@libnotify_CFLAGS@ \
 	$(EXTRA_CFLAGS) \
 	$(NULL)
@@ -103,7 +103,7 @@ libxmimsim_gui_la_LIBADD = \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
-	@libcurl_LIBS@ \
+	@libsoup_LIBS@ \
 	@libnotify_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
@@ -313,11 +313,9 @@ if ENABLE_UPDATER
 xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
 xmimsim_gui_CPPFLAGS += \
 	@JsonGlib_CFLAGS@ \
-	@libcurl_CFLAGS@ \
 	$(NULL)
 xmimsim_gui_LDADD += \
 	@JsonGlib_LIBS@ \
-	@libcurl_LIBS@ \
 	$(NULL)
 endif
 

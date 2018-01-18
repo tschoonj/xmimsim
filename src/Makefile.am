@@ -72,7 +72,7 @@ libxmimsim_la_CFLAGS =  \
 	@GTK_MAC_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@JsonGlib_CFLAGS@ \
-	@libcurl_CFLAGS@ \
+	@libsoup_CFLAGS@ \
 	@gmodule_CFLAGS@ \
 	@OPENMP_CFLAGS@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
