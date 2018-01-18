@@ -174,26 +174,15 @@ PKG_CHECK_MODULES([gobject],gobject-2.0)
 PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.36.0)
 
 
-#libcurl is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)
-LIBCURL_FOUND=no
-PKG_CHECK_MODULES([libcurl],libcurl >= 7.18.2,
-[LIBCURL_FOUND=yes],[LIBCURL_FOUND=no])
+#libsoup is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)
+#google analytics support also relies on it
+LIBSOUP_FOUND=no
+PKG_CHECK_MODULES([libsoup], libsoup-2.4,
+[
+ LIBSOUP_FOUND=yes
+ AC_DEFINE([HAVE_LIBSOUP],[],[libsoup present])
+],[LIBSOUP_FOUND=no])
 
-if test "x$LIBCURL_FOUND" = xyes ; then
-	#test if HTTPS is supported
-	AC_MSG_CHECKING([whether libcurl has https support])
-	CURL_SUPPORT=`$PKG_CONFIG --variable=supported_protocols libcurl`
-	case "$CURL_SUPPORT" in
-		*HTTPS*)
-		AC_DEFINE([HAVE_LIBCURL],[],[libcurl present])
-		AC_MSG_RESULT(yes)
-		;;
-		*)
-		LIBCURL_FOUND=no
-		AC_MSG_RESULT(no)
-		;;
-	esac
-fi
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
 	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3],
@@ -223,17 +212,17 @@ if test "x$GTK_FOUND" = xyes && test "x$enable_updater" != xno ; then
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
 
-	if test "x$enable_updater" = "xyes" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
-		AC_MSG_ERROR([no Json-Glib and/or no libcurl were found on the system, which are required to compile the updater routines])
-	elif test "x$enable_updater" = "xcheck" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBCURL_FOUND" = "xno") ; then
-		AC_MSG_WARN([no Json-Glib and/or no libcurl were found on the system. The updater routines will not be compiled])
+	if test "x$enable_updater" = "xyes" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBSOUP_FOUND" = "xno") ; then
+		AC_MSG_ERROR([no Json-Glib and/or no libsoup were found on the system, which are required to compile the updater routines])
+	elif test "x$enable_updater" = "xcheck" && (test "x$JSONGLIB_FOUND" = "xno" || test "x$LIBSOUP_FOUND" = "xno") ; then
+		AC_MSG_WARN([no Json-Glib and/or no libsoup were found on the system. The updater routines will not be compiled])
 	else
-		AC_SUBST(UPDATER_PC, "json-glib-1.0 >= 0.8 libcurl >= 7.18.2")
+		AC_SUBST(UPDATER_PC, "json-glib-1.0 >= 0.8 libsoup-2.4")
 		AC_MSG_NOTICE([Building with support for automatic updates])
 	fi
 fi
 
-AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBCURL_FOUND" = xyes])
+AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBSOUP_FOUND" = xyes])
 
 AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--disable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=check])
 

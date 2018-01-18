@@ -19,14 +19,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <unistd.h>
 
-#ifndef HAVE_LIBCURL
-#error "CURL is required to run the testsuite!"
+#ifndef HAVE_LIBSOUP
+#error "libsoup is required to run the testsuite!"
 #endif
 
 #include "libxmimsim-test.h"
-#include <curl/curl.h>
+#include <libsoup/soup.h>
 #include <stdio.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <libxml/xpath.h>
@@ -55,39 +56,35 @@ int test_init () {
 
 int test_download_file(char *url) {
 	FILE *fp;
-	CURLcode res;
-	char curlerrors[CURL_ERROR_SIZE];
+	int rv = 1;
 
 	gchar *outputfile = g_path_get_basename(url);
+	SoupSession *session = soup_session_new();
+	SoupMessage *msg = soup_message_new ("GET", url);
+	soup_session_send_message (session, msg); // blocking!
 
-	CURL *curl = curl_easy_init();
-
-	if (curl) {
-		fp = fopen(outputfile, "wb");
-		if (fp == NULL)
-			return 0;
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-        	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-        	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-
-        	res = curl_easy_perform(curl);
-		if (res != CURLE_OK) {
-			fprintf(stderr, "CURL error: %s\n", curlerrors);
-			return 0;
+	if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
+		fp = g_fopen(outputfile, "wb");
+		if (!fp) {
+			g_warning("Could not open %s for writing!", outputfile);
 		}
-        	curl_easy_cleanup(curl);
-        	fclose(fp);
+		else {
+			fwrite (msg->response_body->data,
+				1,
+				msg->response_body->length,
+				fp);
+			fclose (fp);
+			rv = 1;
+		}
 	}
-	else
-		return 0;
+	else {
+		g_warning("libsoup error message: %s", msg->reason_phrase);
+	}
 
+	g_object_unref(msg);
+	g_object_unref(session);
 	g_free(outputfile);
-	return 1;
+	return rv;
 }
 
 struct spe_data * read_spe(const char *filename) {

@@ -40,7 +40,7 @@ TESTS = $(check_PROGRAMS)
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
 	libxmimsim-test.c
-libxmimsim_test_la_CFLAGS = @glib2_CFLAGS@ @libcurl_CFLAGS@ \
+libxmimsim_test_la_CFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
 			    @xraylib_CFLAGS@ \
 			    -DCATALOGPATH=\"$(abs_top_srcdir)/xml/\" \
@@ -50,7 +50,7 @@ libxmimsim_test_la_CFLAGS = @glib2_CFLAGS@ @libcurl_CFLAGS@ \
 			    -DXMI_XMSO2CSV_XSLT=\"$(abs_top_srcdir)/xml/xmso2csv.xml\" \
 			    -DXMI_XMSO2HTM_XSLT=\"$(abs_top_srcdir)/xml/xmso2htm.xml\" \
 			    -DXMI_XMSA2XMSO_XSLT=\"$(abs_top_srcdir)/xml/xmsa2xmso.xml\"
-libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libcurl_LIBS@ ../src/libxmimsim.la
+libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libsoup_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c
 test_read_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
