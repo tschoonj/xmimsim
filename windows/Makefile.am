@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2017-11-15
+GTK3_RUNTIME_TAG = 2018-01-18
 GTK3_RUNTIME_VERSION = 3.22.26
 GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
