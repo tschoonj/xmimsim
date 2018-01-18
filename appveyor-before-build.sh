@@ -8,7 +8,7 @@ export PATH=$HOME/install/bin:$PATH
 export GTKMM_PLPLOT_BRANCH=plot-objects
 
 # install xraylib
-wget -q https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
+curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
 tar xfz xraylib-3.3.0.tar.gz
 cd xraylib-3.3.0
 ./configure --prefix=$HOME/install --disable-static
@@ -17,11 +17,11 @@ make install
 cd ..
 
 # install hdf5
-wget -q https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.12/src/hdf5-1.8.12.tar.gz
-tar xfz hdf5-1.8.12.tar.gz 
+curl -L -s -O https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.12/src/hdf5-1.8.12.tar.gz
+tar xfz hdf5-1.8.12.tar.gz
 cd hdf5-1.8.12
 # add support for UTF-8 filenames
-wget -q https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5-1.8.12.diff
+curl -L -s -O https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5-1.8.12.diff
 patch -p1 < hdf5-1.8.12.diff
 autoreconf -i
 ./configure --disable-fortran --disable-cxx --disable-hl --prefix=$HOME/install --disable-static CPPFLAGS=-D_GNU_SOURCE=1
@@ -47,7 +47,7 @@ cd ..
 if test $RNG = "fgsl" ; then
 	#install gsl
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
-	wget -q http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.1.0.tar.gz
+	curl -L -s -O http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.1.0.tar.gz
 	tar xfz fgsl-1.1.0.tar.gz
 	cd fgsl-1.1.0
 	./configure --prefix=$HOME/install --disable-static
@@ -55,7 +55,7 @@ if test $RNG = "fgsl" ; then
 	make install
 	cd ..
 elif test $RNG = "easyRNG" ; then
-	wget -q https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz
+	curl -L -s -O https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz
 	tar xfz easyRNG-1.1.tar.gz
 	cd easyRNG-1.1
 	./configure --prefix=$HOME/install --disable-static
@@ -76,7 +76,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
-	wget -q http://lvserver.ugent.be/~schoon/plplot-5.13.0.tar.gz
+	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.13.0.tar.gz
 	tar xfz plplot-5.13.0.tar.gz
 	cd plplot-5.13.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
@@ -89,7 +89,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
           cd gtkmm-plplot
           autoreconf -i
         else
-	  wget -q https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
+	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
 	  tar xfz gtkmm-plplot-2.2.tar.gz
 	  cd gtkmm-plplot-2.2
         fi
@@ -108,7 +108,7 @@ if test -z ${GOOGLE_ANALYTICS+x} ; then
 else
 	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-libsoup
 	pushd /usr/local
-	wget -q https://www.dropbox.com/s/l6pw1dupx81ulzv/opencl-win64-devel.tar.gz
+	curl -L -s -O https://www.dropbox.com/s/l6pw1dupx81ulzv/opencl-win64-devel.tar.gz
 	tar xfz opencl-win64-devel.tar.gz
 	popd
 fi
