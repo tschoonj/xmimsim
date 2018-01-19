@@ -765,7 +765,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 			return;
 		}
 		if (xep->tube_voltage > energies[nefficiencies-1]) {
-			g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
+			g_set_error(&error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY, "Error reading %s. The transmission efficiency file should contain two columns with energies (keV) in the left column and the transmission efficiency (value between 0 and 1) in the second column. Empty lines are ignored. First energy must be between 0 and 1 keV. The last value must be greater or equal to the tube voltage. At least 10 values are required.", xep->transmission_efficiency_file);
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
 			g_free(energies);
