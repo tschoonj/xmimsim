@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_private.h"
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef MAC_INTEGRATION
 	#include "xmi_resources_mac.h"

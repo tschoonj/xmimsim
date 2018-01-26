@@ -20,8 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #error _WIN32 macro is not defined in xmi_random_win.c
 #endif
 
-#define _CRT_RAND_S
 #include "config.h"
+#define _CRT_RAND_S
+#include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
 
