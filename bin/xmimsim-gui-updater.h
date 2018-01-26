@@ -35,6 +35,9 @@ XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *
 
 int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_version, gchar *message);
 
+void     xmi_msim_gui_updater_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data);
+gboolean xmi_msim_gui_updater_check_download_url_finish(GtkListStore *store, GAsyncResult *result);
+
 typedef enum {
 	XMI_MSIM_GUI_UPDATER_JSON_TYPE_MISMATCH,
 	XMI_MSIM_GUI_UPDATER_JSON_MISSING_MEMBER,

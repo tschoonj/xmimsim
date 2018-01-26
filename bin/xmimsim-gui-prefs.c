@@ -36,10 +36,6 @@
 #include "xmimsim-gui-updater.h"
 #endif
 
-#ifdef HAVE_GOOGLE_ANALYTICS
-#include "xmimsim-gui-google-analytics.h"
-#endif
-
 struct prefsWidgets {
 	GtkWidget *parent_window;
 	GtkWidget *window;
@@ -238,7 +234,7 @@ static void check_download_ready_cb(GtkListStore *store, GAsyncResult *result, g
 	GtkTreeIter iter;
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
 	gtk_tree_path_free(path);
-	if (xmi_msim_gui_utils_check_download_url_finish(store, result)) {
+	if (xmi_msim_gui_updater_check_download_url_finish(store, result)) {
 		// perhaps some markup here?
 		gtk_list_store_set(store, &iter,
 			STATUS_COLUMN_PREFS, "Online",
@@ -266,7 +262,7 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 		BACKGROUND_COLUMN_PREFS, NULL,
 		-1);
 
-	xmi_msim_gui_utils_check_download_url_async(store, new_text, (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter));
+	xmi_msim_gui_updater_check_download_url_async(store, new_text, (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter));
 }
 
 static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
@@ -1203,7 +1199,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 			STATUS_COLUMN_PREFS, "Checking...",
 			BACKGROUND_COLUMN_PREFS, NULL,
 			-1);
-		xmi_msim_gui_utils_check_download_url_async(store_prefsL, xpv.ss[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
+		xmi_msim_gui_updater_check_download_url_async(store_prefsL, xpv.ss[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
 	}
 
 	g_strfreev(xpv.ss);
