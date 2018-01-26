@@ -16,11 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include "xmimsim-gui.h"
 #include "xmimsim-gui-updater.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-utils.h"
 #include "xmi_aux.h"
-#include <curl/curl.h>
+#include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -36,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #ifdef G_OS_WIN32
+	#include <windows.h>
 	#include <Shellapi.h>
 #endif
 
@@ -50,20 +51,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define GTK_RESPONSE_QUIT 7
-
-
-
 #define XMIMSIM_GITHUB_TAGS_LOCATION "https://api.github.com/repos/tschoonj/xmimsim/git/refs/tags"
-#define XMIMSIM_DOWNLOADS_LOCATION "http://lvserver.ugent.be/xmi-msim"
 
-
-struct MemoryStruct {
- 	char *memory;
-	size_t size;
-};
 
 struct DownloadVars {
-	gboolean started;
+	SoupSession *session;
+	SoupMessage *msg;
+	GMainLoop *loop;
+	goffset content_length;
+	goffset content_downloaded;
 	GtkWidget *progressbar;
 	GtkWidget *update_dialog;
 	GtkWidget *button;
@@ -71,103 +67,32 @@ struct DownloadVars {
 	gulong downloadG;
 	gulong stopG;
 	gulong exitG;
-	CURL *curl;
-	FILE *fp;
 	gchar *download_location;
 	gchar *filename;
 	GChecksum *md5sum_comp;
 	char *md5sum_tag;
-
+	guint status_code;
+	gchar *reason_phrase;
+	GFileOutputStream *stream;
 };
 
-static void my_gtk_text_buffer_insert_at_cursor_with_tags_updater(GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...) {
-	GtkTextIter iter, start;
-	va_list args;
-	GtkTextTag *tag;
-	gint start_offset;
-
-	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
-	g_return_if_fail(text != NULL);
-
-	gchar *to_print = g_strdup_printf("%s\n", text);
-
-	gtk_text_buffer_get_end_iter(buffer, &iter);
-
-	start_offset = gtk_text_iter_get_offset(&iter);
-	gtk_text_buffer_insert(buffer, &iter, to_print,len);
-
-	g_free(to_print);
-
-	if (first_tag == NULL) {
-		gtk_text_buffer_get_end_iter(buffer, &iter);
-		gtk_text_buffer_get_insert(buffer);
-		gtk_text_buffer_place_cursor(buffer,&iter);
-		return;
-	}
-
-	gtk_text_buffer_get_iter_at_offset (buffer, &start, start_offset);
-
-	va_start(args, first_tag);
-	tag = first_tag;
-	while (tag) {
-		gtk_text_buffer_apply_tag(buffer, tag, &start, &iter);
-		tag = va_arg(args, GtkTextTag*);
-	}
-	va_end(args);
-
-	gtk_text_buffer_get_end_iter(buffer, &iter);
-	gtk_text_buffer_get_insert(buffer);
-	gtk_text_buffer_place_cursor(buffer,&iter);
-
-	return;
-}
-
-static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *window) {
+static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *update_dialog) {
 
 	union xmimsim_prefs_val prefs;
 
 	prefs.b = gtk_toggle_button_get_active(checkbutton);
 
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, prefs) == 0) {
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(update_dialog),
 			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 		exit(1);
 	}
-
-
-}
-
-
-static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
-
-	mem->memory = (char *) g_realloc(mem->memory, mem->size + realsize + 1);
-
-	memcpy(&(mem->memory[mem->size]), contents, realsize);
-	mem->size += realsize;
-	mem->memory[mem->size] = 0;
-
-	return realsize;
-}
-
-
-static size_t WriteData(void *ptr, size_t size, size_t nmemb, struct DownloadVars *dv) {
-	size_t written;
-	written = fwrite(ptr, size, nmemb, dv->fp);
-	if (dv->md5sum_comp != NULL) {
-		g_checksum_update(dv->md5sum_comp, (const guchar *) ptr, size*nmemb);
-	}
-	return written;
-
 }
 
 static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
-	dv->started=FALSE;
-
-	return;
+	soup_session_cancel_message(dv->session, dv->msg, SOUP_STATUS_CANCELLED);
 }
 
 static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
@@ -192,52 +117,108 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	return;
 }
 
-static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
-	FILE *fp;
-	CURLcode res;
+static void download_got_headers(SoupMessage *msg, struct DownloadVars *dv) {
+	dv->content_length = soup_message_headers_get_content_length(msg->response_headers);
+}
 
-	dv->started=TRUE;
+static gboolean download_update_progressbar(struct DownloadVars *dv) {
+
+	double ratio = (double) dv->content_downloaded / (double) dv->content_length;
+	gchar *buffer = g_strdup_printf("%.2f %%",ratio*100.0);
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar), buffer);
+	g_free(buffer);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(dv->progressbar), ratio);
+	
+	return FALSE;
+}
+
+static void download_got_chunk (SoupMessage *msg, SoupBuffer *chunk, struct DownloadVars *dv) {
+	GError *error = NULL;
+	GBytes *bytes = soup_buffer_get_as_bytes (chunk);
+
+	g_output_stream_write_bytes(G_OUTPUT_STREAM(dv->stream), bytes, NULL, &error);
+
+	if (error) {
+		dv->reason_phrase = g_strdup(error->message);
+		soup_session_cancel_message(dv->session, msg, SOUP_STATUS_IO_ERROR);
+	}
+
+	dv->content_downloaded += g_bytes_get_size(bytes);
+
+	if (dv->md5sum_comp != NULL) {
+		g_checksum_update(dv->md5sum_comp, g_bytes_get_data(bytes, NULL), g_bytes_get_size(bytes));
+	}
+	// update progressbar!
+	gdk_threads_add_idle((GSourceFunc) download_update_progressbar, dv);
+}
+
+static void download_finished(SoupSession *session, SoupMessage *msg, struct DownloadVars *dv) {
+	dv->status_code = msg->status_code;
+	dv->reason_phrase = g_strdup(msg->reason_phrase);
+	g_main_loop_quit(dv->loop);
+}
+
+static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
+	GError *error = NULL;
+
+	unsigned int i;
+	int rv;
+
+	GFile *gfile = g_file_new_for_path(dv->download_location);
+
+	gchar *user_agent = g_strdup_printf("XMI-MSIM " PACKAGE_VERSION " updater using libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+	SoupSession *session = soup_session_new_with_options(
+		SOUP_SESSION_USER_AGENT, user_agent,
+		SOUP_SESSION_TIMEOUT, 5u,
+		NULL);
+	g_free(user_agent);
+	dv->session = session;
+	dv->content_downloaded = 0;
+
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
 	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
 	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0.00 %%");
-	while(gtk_events_pending())
-	    gtk_main_iteration();
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0.00 %");
 
 	//get download locations
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &prefs) == 0) {
 		g_warning("Get preferences error\n");
+		// show error dialog
 		return;
 	}
 
-	unsigned int i;
-	int rv;
 	for (i = 0 ; i < g_strv_length(prefs.ss) ; i++) {
-		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i],dv->filename);
-		curl_easy_setopt(dv->curl, CURLOPT_URL,url);
+		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i], dv->filename);
 		g_debug("Trying url %s\n",url);
 
-		fp = fopen(dv->download_location, "wb");
-		dv->fp = fp;
-		if (fp == NULL) {
-			g_warning("download_updates: Could not open %s for writing\n",dv->download_location);
-			//set buttons ok
+		GFileOutputStream *stream = g_file_replace(gfile, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 
-
-			return;
+		if (!stream) {
+			rv = 0;
+			break;
 		}
+		dv->stream = stream;
+		SoupMessage *msg = soup_message_new("GET", url);
+		dv->msg = msg;
+		soup_message_body_set_accumulate (msg->response_body, FALSE);
+		g_signal_connect (msg, "got-headers", G_CALLBACK(download_got_headers), dv);
+		g_signal_connect (msg, "got-chunk", G_CALLBACK(download_got_chunk), dv);
 
-		res = curl_easy_perform(dv->curl);
-		gchar *buffer = NULL;
+		soup_session_queue_message(session, msg, (SoupSessionCallback) download_finished, dv);
+		dv->loop = g_main_loop_new(NULL, TRUE);
+		g_main_loop_run(dv->loop);
 
-		switch (res) {
-		case CURLE_OK:
-			dv->started=FALSE;
-			fclose(fp);
+		if (!g_output_stream_close(G_OUTPUT_STREAM(dv->stream), NULL, &error)) {
+			rv = 0;
+			break;
+		}
+		g_object_unref(dv->stream);
+
+		if (SOUP_STATUS_IS_SUCCESSFUL(dv->status_code)) {
 			//checksum check
 			if (dv->md5sum_comp != NULL && strcmp(g_checksum_get_string(dv->md5sum_comp), dv->md5sum_tag) != 0) {
 				//checksums don't match!
@@ -253,18 +234,19 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			else if (dv->md5sum_comp != NULL) {
 				g_checksum_free(dv->md5sum_comp);
 			}
-			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
-			buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
+			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
 			gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
+			g_free(buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
 			rv = 1;
+			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download finished");
 			break;
-		case CURLE_ABORTED_BY_CALLBACK:
+		}
+		else if (dv->status_code == SOUP_STATUS_CANCELLED) {
 			//aborted
-			fclose(fp);
 			unlink(dv->download_location);
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download aborted");
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
@@ -272,47 +254,32 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			gtk_label_set_text(GTK_LABEL(dv->label),"Download aborted.\nTry again at a later time.");
 			rv = 0;
 			break;
-		default:
-			g_debug("curl_easy_perform error code: %i\n", res);
-			fclose(fp);
-			unlink(dv->download_location);
-			rv = -1;
-
 		}
-		if (rv == 1 || rv == 0)
-			break;
+		else {
+			unlink(dv->download_location);
+			g_debug("%s could not be downloaded: %s", url, dv->reason_phrase);
+			rv = -1;
+		}
+		// cleanup should happen here...
 	}
-
-	//if update_progressbar is still running somehow -> kill it
-	/*GSource *source = g_main_context_find_source_by_id(NULL, source_id);
-	if (source != NULL && !g_source_is_destroyed(source)) {
-		g_source_destroy(source);
-	}
-	*/
 
 	if (rv == -1) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download failed");
 		gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 		gtk_widget_set_sensitive(dv->button, FALSE);
-		gchar *text = g_strdup_printf("Download failed with error message: %s.", curl_easy_strerror(res));
+		gchar *text = g_strdup_printf("Last attempt failed with error message: %s.", dv->reason_phrase);
 		gtk_label_set_text(GTK_LABEL(dv->label), text);
 		g_free(text);
 	}
 
 	g_strfreev(prefs.ss);
-	while(gtk_events_pending())
-	    gtk_main_iteration();
-	curl_easy_cleanup(dv->curl);
-
-
-	return;
 }
 
 
 
 struct json_loop_data {
-	char *max_version;
-	char *url;
+	gchar *max_version;
+	gchar *url;
 };
 
 
@@ -328,7 +295,7 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 	if (strncmp(ref_string,"refs/tags/XMI-MSIM-",strlen("refs/tags/XMI-MSIM-")) != 0)
 		return;
 
-	char *tag_version_str = (char *) strrchr(ref_string,'-')+1;
+	gchar *tag_version_str = strrchr(ref_string,'-')+1;
 	gdouble tag_version = g_ascii_strtod(tag_version_str,NULL);
 	if (tag_version > g_ascii_strtod(jld->max_version,NULL)) {
 		g_free(jld->max_version);
@@ -337,156 +304,194 @@ static void check_version_of_tag(JsonArray *array, guint index, JsonNode *node, 
 		JsonObject *urlObject = json_object_get_object_member(object, "object");
 		jld->url = g_strdup(json_object_get_string_member(urlObject, "url"));
 	}
-
-	return;
 }
 
-static int DownloadProgress(void *dvvoid, double dltotal, double dlnow, double ultotal, double ulnow) {
-	struct DownloadVars *dv = (struct DownloadVars *) dvvoid;
-	if (dv->started == FALSE)
-		return -1;
+struct update_data {
+	gchar *max_version;
+	gchar *message;
+};
 
-
-	if (dltotal < 1000)
-		return 0;
-
-	double ratio = dlnow/dltotal;
-	gchar *buffer;
-	if (floor(ratio*10000.0)/10000.0 > floor(gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(dv->progressbar))*10000.0)/10000.0) {
-		//update progress bar
-		buffer = g_strdup_printf("%.2f %%",ratio*100.0);
-		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),buffer);
-		g_free(buffer);
-		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(dv->progressbar),ratio);
-		while(gtk_events_pending())
-		    gtk_main_iteration();
-	}
-
-
-
-
-
-	return 0;
-}
-
-int check_for_updates(char **max_version_rv, char **message) {
+static void check_for_updates_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
 	GError *error = NULL;
-	JsonParser *parser;
-	char curlerrors[CURL_ERROR_SIZE];
-
-
-	CURL *curl;
-	CURLcode res;
-	struct MemoryStruct chunk;
-
-	chunk.memory = (char *) g_malloc(1);
-	chunk.size = 0;
-
-	g_debug("checking for updates...\n");
-
-
-	curl = curl_easy_init();
-	if (!curl) {
-		g_warning("Could not initialize cURL\n");
-		return XMIMSIM_UPDATES_ERROR;
-	}
-
-	curl_easy_setopt(curl, CURLOPT_URL,XMIMSIM_GITHUB_TAGS_LOCATION);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
-	char *user_agent = g_strdup_printf("XMI-MSIM %s updater using curl %i.%i.%i", PACKAGE_VERSION, LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
+	gchar *user_agent = g_strdup_printf("XMI-MSIM " PACKAGE_VERSION " updater using libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+	SoupSession *session = soup_session_new_with_options(
+		SOUP_SESSION_USER_AGENT, user_agent,
+		SOUP_SESSION_TIMEOUT, 5u,
+		NULL);
 	g_free(user_agent);
-	res = curl_easy_perform(curl);
-	if (res != 0) {
-		g_warning("check_for_updates: %s\n",curlerrors);
-		return XMIMSIM_UPDATES_ERROR;
+
+	SoupRequestHTTP *request = soup_session_request_http(
+		session,
+		"GET",
+		XMIMSIM_GITHUB_TAGS_LOCATION,
+		&error);
+	if (!request) {
+		g_object_unref(session);
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
 	}
 
-
-
-
-	parser = json_parser_new();
-	if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
-		if (error) {
-			g_warning("check_for_updates: %s\n",error->message);
-			return XMIMSIM_UPDATES_ERROR;
-		}
+	GInputStream *stream = soup_request_send(SOUP_REQUEST(request), NULL, &error);
+	if (!stream) {
+		g_object_unref(request);
+		g_object_unref(session);
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
 	}
+
+	g_object_unref(request);
+
+	JsonParser *parser = json_parser_new();
+	if (!json_parser_load_from_stream(parser, stream, NULL, &error)) {
+		g_object_unref(session);
+		g_object_unref(parser);
+		g_input_stream_close(stream, NULL, NULL);
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+
+	if(!g_input_stream_close(stream, NULL, &error)) {
+		g_object_unref(parser);
+		g_object_unref(session);
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+	g_object_unref(stream);
+
 	JsonNode *rootNode = json_parser_get_root(parser);
 	if(json_node_get_node_type(rootNode) != JSON_NODE_ARRAY) {
-		g_warning("check_for_updates: rootNode is not an Array\n");
-		return XMIMSIM_UPDATES_ERROR;
+		g_object_unref(session);
+		g_object_unref(parser);
+		g_task_return_new_error(
+			task,
+			XMI_MSIM_GUI_UPDATER_ERROR,
+			XMI_MSIM_GUI_UPDATER_JSON_TYPE_MISMATCH,
+			"json stream root node is not an array"
+			);
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
 	}
 	JsonArray *rootArray = json_node_get_array(rootNode);
-	char *max_version = g_strdup(PACKAGE_VERSION);
-	char *current_version = g_strdup(max_version);
-	struct json_loop_data *jld = (struct json_loop_data *) g_malloc(sizeof(struct json_loop_data));
+	gchar *max_version = g_strdup(PACKAGE_VERSION);
+	gchar *current_version = g_strdup(max_version);
+	struct json_loop_data *jld = g_malloc(sizeof(struct json_loop_data));
 	jld->max_version = max_version;
 	jld->url = NULL;
 	json_array_foreach_element(rootArray, (JsonArrayForeach) check_version_of_tag, jld);
 
-	g_free(chunk.memory);
-	int rv;
+	g_object_unref(parser);
+
+	struct update_data *ud = NULL;
+
 	if (g_ascii_strtod(jld->max_version, NULL) > g_ascii_strtod(current_version, NULL)) {
-		rv = XMIMSIM_UPDATES_AVAILABLE;
+		ud = g_malloc(sizeof(struct update_data));
 		//get tag message
-		g_object_unref(parser);
-		chunk.memory = (char *) g_malloc(1);
-		chunk.size = 0;
-		curl_easy_setopt(curl, CURLOPT_URL, jld->url);
-		res = curl_easy_perform(curl);
-		if (res != 0) {
-			g_warning("check_for_updates: %s\n",curlerrors);
-			return XMIMSIM_UPDATES_ERROR;
+		request = soup_session_request_http(
+			session,
+			"GET",
+			jld->url,
+			&error);
+
+		if (!request) {
+			g_object_unref(session);
+			g_task_return_error(task, error);
+			g_object_unref(task);
+			return;
 		}
+
+		stream = soup_request_send(SOUP_REQUEST(request), NULL, &error);
+		if (!stream) {
+			g_object_unref(request);
+			g_object_unref(session);
+			g_task_return_error(task, error);
+			g_object_unref(task);
+			return;
+		}
+
+		g_object_unref(request);
+
 		parser = json_parser_new();
-		if (json_parser_load_from_data(parser, chunk.memory, -1,&error) ==  FALSE) {
-			if (error) {
-				g_warning("check_for_updates: %s\n",error->message);
-				return XMIMSIM_UPDATES_ERROR;
-			}
+		if (!json_parser_load_from_stream(parser, stream, NULL, &error)) {
+			g_object_unref(session);
+			g_object_unref(parser);
+			g_input_stream_close(stream, NULL, NULL);
+			g_task_return_error(task, error);
+			g_object_unref(task);
+			return;
 		}
+
+		if (!g_input_stream_close(stream, NULL, &error)) {
+			g_object_unref(parser);
+			g_object_unref(session);
+			g_task_return_error(task, error);
+			g_object_unref(task);
+			return;
+		}
+		g_object_unref(stream);
+
 		rootNode = json_parser_get_root(parser);
 		JsonObject *object = json_node_get_object(rootNode);
 		if (!json_object_has_member(object,"message")) {
-			return XMIMSIM_UPDATES_ERROR;
+			g_object_unref(session);
+			g_object_unref(parser);
+			g_task_return_new_error(
+				task,
+				XMI_MSIM_GUI_UPDATER_ERROR,
+				XMI_MSIM_GUI_UPDATER_JSON_MISSING_MEMBER,
+				"tag root object has no member called message"
+				);
+			g_task_return_error(task, error);
+			g_object_unref(task);
+			return;
 		}
 
-		*message = g_strdup(json_object_get_string_member(object, "message"));
-		g_free(chunk.memory);
-
-	}
-	else {
-		rv = XMIMSIM_UPDATES_NONE;
+		ud->message = g_strdup(json_object_get_string_member(object, "message"));
+		ud->max_version = g_strdup(g_strstrip(jld->max_version));
+		g_object_unref(parser);
 	}
 
-	*max_version_rv = g_strdup(g_strstrip(jld->max_version));
-	//g_fprintf(stdout, "tag url: %s\n", jld->url);
 	g_free(jld->max_version);
 	g_free(jld->url);
 	g_free(jld);
 
-	g_object_unref(parser);
-	curl_easy_cleanup(curl);
-	//fprintf(stdout, "message: %s\n", *message);
 	g_debug("done checking for updates\n");
 
-	return rv;
+	g_object_unref(session);
+
+	g_task_return_pointer(task, ud, g_free);
 }
 
+void xmi_msim_gui_updater_check_for_updates_async(GtkWidget *window, GAsyncReadyCallback callback, gpointer user_data) {
 
+	g_debug("checking for updates...\n");
 
-int download_updates(GtkWidget *window, char *max_version, char *message) {
+	GTask *task = g_task_new(window, NULL, callback, user_data);
+	g_task_run_in_thread (task, check_for_updates_thread);
+	g_object_unref (task);
+}
+
+XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *window, GAsyncResult *result, gchar **max_version, gchar **message, GError **error) {
+	struct update_data *ud = g_task_propagate_pointer(G_TASK(result), error);
+	if (g_task_had_error(G_TASK(result)))
+		return XMI_MSIM_UPDATES_ERROR;
+	if (ud) {
+		*max_version = ud->max_version;
+		*message = ud->message;
+		g_free(ud);
+		return XMI_MSIM_UPDATES_AVAILABLE;
+	}
+	return XMI_MSIM_UPDATES_NONE;
+}
+
+int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_version, gchar *message) {
 
 	//should only be called when there is actually a new version available...
 	//so call check_for_updates before
-
-	char curlerrors[CURL_ERROR_SIZE];
-	CURL *curl;
 
 	//spawn dialog
 	//write your own code for this
@@ -495,7 +500,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	gtk_window_set_default_size(GTK_WINDOW(update_dialog), 600, 600);
 
-	struct DownloadVars dv;
+	struct DownloadVars *dv = g_malloc(sizeof(struct DownloadVars));
 
 	GtkWidget *update_content = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
 	GtkWidget *label_and_button_hbox = gtk_hbox_new(FALSE,5);
@@ -508,7 +513,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, FALSE, FALSE, 5);
 	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), FALSE, FALSE, 5);
-	dv.label = label;
+	dv->label = label;
 
 	GtkWidget *messageBox = gtk_text_view_new();
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(messageBox),GTK_WRAP_WORD);
@@ -526,7 +531,7 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	int i;
 
 	gchar **splitted = g_strsplit_set(message, "\n", -1);
-	my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[0], -1, tag, NULL);
+	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(NULL, NULL, textBuffer, splitted[0], -1, tag, NULL);
 
 	for (i = 1 ; splitted[i] != NULL ; i++) {
 		if (g_ascii_strncasecmp(splitted[i], "Changes", strlen("Changes")) == 0 ||
@@ -537,10 +542,10 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 		   g_ascii_strncasecmp(splitted[i], "Note", strlen("Note")) == 0// ||
 		   //g_ascii_strncasecmp(splitted[i], "-----BEGIN PGP SIGNATURE-----", strlen("-----BEGIN PGP SIGNATURE-----")) == 0
 		) {
-			my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[i], -1, tag2, NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(NULL, NULL, textBuffer, splitted[i], -1, tag2, NULL);
 		}
 		else {
-			my_gtk_text_buffer_insert_at_cursor_with_tags_updater(textBuffer, splitted[i], -1, NULL);
+			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(NULL, NULL, textBuffer, splitted[i], -1, NULL);
 		}
 	}
 
@@ -548,7 +553,8 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	label = gtk_label_new("Download progress");
 	gtk_box_pack_start(GTK_BOX(update_content), label, FALSE, FALSE, 2);
 	GtkWidget *progressbar = gtk_progress_bar_new();
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar), "Download not started");
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressbar), "Download has not started yet");
+	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressbar), TRUE);
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar), 0.0);
 
 	gtk_box_pack_start(GTK_BOX(update_content), progressbar, FALSE, FALSE, 5);
@@ -567,30 +573,18 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 		exit(1);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),prefs.b);
-	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), window);
-
-
-
-	//signal
-
+	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), update_dialog);
 
 	gtk_container_set_border_width(GTK_CONTAINER(update_dialog), 10);
 
 	gtk_widget_show_all(update_content);
 
-	dv.started = FALSE;
-	dv.progressbar = progressbar;
-	dv.button = button;
-	dv.update_dialog = update_dialog;
+	dv->progressbar = progressbar;
+	dv->button = button;
+	dv->update_dialog = update_dialog;
 
-	dv.downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), &dv);
+	dv->downloadG = g_signal_connect(button, "clicked", G_CALLBACK(download_button_clicked_cb), dv);
 
-	curl = curl_easy_init();
-	if (!curl) {
-		g_warning("Could not initialize cURL\n");
-		return 0;
-	}
-	dv.curl = curl;
 	//construct filename -> platform dependent!!!
 	gchar *filename;
 	const gchar *downloadfolder;
@@ -604,29 +598,24 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 #elif defined(G_OS_WIN32)
 	//Win 32
-#ifdef _WIN64
+  #ifdef _WIN64
 	filename = g_strdup_printf("XMI-MSIM-%s-win64.exe",max_version);
-#elif defined(_WIN32)
-	filename = g_strdup_printf("XMI-MSIM-%s-win32.exe",max_version);
-#else
-#error Unknown Windows architecture detected
-#endif
-
+  #else
+    #error UnsupportedWindows architecture detected
+  #endif
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-
 #else
 	//Linux??
 	filename = g_strdup_printf("xmimsim-%s.tar.gz",max_version);
 	downloadfolder = g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD);
-
 #endif
 
-	dv.md5sum_tag = g_strdup("none");
-	dv.md5sum_tag = (char *) g_realloc((void *) dv.md5sum_tag, (32+1) * sizeof(gchar));
-	char *pattern = g_strdup_printf("MD5 (%s) = %%32s", filename);
+	dv->md5sum_tag = g_strdup("none");
+	dv->md5sum_tag = g_realloc(dv->md5sum_tag, (32+1) * sizeof(gchar));
+	gchar *pattern = g_strdup_printf("MD5 (%s) = %%32s", filename);
 
 	for (i = 1 ; splitted[i] != NULL ; i++) {
-		if (sscanf(splitted[i], pattern, dv.md5sum_tag) > 0) {
+		if (sscanf(splitted[i], pattern, dv->md5sum_tag) > 0) {
 			break;
 		}
 
@@ -634,31 +623,17 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 	g_strfreev(splitted);
 	g_free(pattern);
 
-	if (strcmp(dv.md5sum_tag, "none") != 0) {
-		dv.md5sum_comp = g_checksum_new(G_CHECKSUM_MD5);
+	if (strcmp(dv->md5sum_tag, "none") != 0) {
+		dv->md5sum_comp = g_checksum_new(G_CHECKSUM_MD5);
 	}
 	else {
-		dv.md5sum_comp = NULL;
+		dv->md5sum_comp = NULL;
 	}
 
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &dv);
-	char *user_agent = g_strdup_printf("XMI-MSIM %s updater using curl %i.%i.%i", PACKAGE_VERSION, LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
-	g_free(user_agent);
-	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerrors);
-	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-	curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, DownloadProgress);
-	curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &dv);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 4L);
-	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
 	//construct download location
 	gchar *download_location = g_strdup_printf("%s%s%s",downloadfolder,G_DIR_SEPARATOR_S,filename);
-	dv.download_location = download_location;
-	dv.filename = filename;
-
+	dv->download_location = download_location;
+	dv->filename = filename;
 
 	gint result = gtk_dialog_run(GTK_DIALOG(update_dialog));
 	int rv;
@@ -672,8 +647,10 @@ int download_updates(GtkWidget *window, char *max_version, char *message) {
 
 	gtk_widget_destroy(update_dialog);
 
-
 	return rv;
 }
 
+GQuark xmi_msim_gui_updater_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-gui-updater-error-quark");
+}
 

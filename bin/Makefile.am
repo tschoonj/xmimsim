@@ -309,17 +309,18 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    ../src/libxmimsim.la
 
 
+if ENABLE_GUI
 if ENABLE_UPDATER
-xmimsim_gui_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
-xmimsim_gui_CPPFLAGS += \
+libxmimsim_gui_include_HEADERS += xmimsim-gui-updater.h
+libxmimsim_gui_la_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
+libxmimsim_gui_la_CPPFLAGS += \
 	@JsonGlib_CFLAGS@ \
 	$(NULL)
-xmimsim_gui_LDADD += \
+libxmimsim_gui_la_LIBADD += \
 	@JsonGlib_LIBS@ \
 	$(NULL)
 endif
-
-
+endif
 
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
