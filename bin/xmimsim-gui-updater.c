@@ -176,8 +176,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	dv->content_downloaded = 0;
 
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
-	gtk_button_set_use_stock(GTK_BUTTON(dv->button), TRUE);
-	gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_STOP);
+	gtk_button_set_label(GTK_BUTTON(dv->button), "_Stop");
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
@@ -237,7 +236,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
-			gtk_button_set_label(GTK_BUTTON(dv->button), GTK_STOCK_QUIT);
+			gtk_button_set_label(GTK_BUTTON(dv->button), "_Quit");
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 			g_free(buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
@@ -496,14 +495,14 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	//spawn dialog
 	//write your own code for this
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
-		window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,NULL);
+		window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, "_Cancel", GTK_RESPONSE_REJECT,NULL);
 
 	gtk_window_set_default_size(GTK_WINDOW(update_dialog), 600, 600);
 
 	struct DownloadVars *dv = g_malloc(sizeof(struct DownloadVars));
 
 	GtkWidget *update_content = gtk_dialog_get_content_area(GTK_DIALOG(update_dialog));
-	GtkWidget *label_and_button_hbox = gtk_hbox_new(FALSE,5);
+	GtkWidget *label_and_button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	gchar *label_text = g_strdup_printf("<span weight=\"bold\">XMI-MSIM %s is now available.\nYou are currently running version %s.\nPlease update in order to take advantage of bugfixes and new features.</span>",max_version, PACKAGE_VERSION);
 	GtkWidget *label = gtk_label_new(label_text);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
@@ -512,7 +511,7 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	gtk_box_pack_start(GTK_BOX(label_and_button_hbox), label, TRUE, TRUE, 1);
 	gtk_box_pack_end(GTK_BOX(label_and_button_hbox), button, FALSE, TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(update_content),label_and_button_hbox, FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 5);
 	dv->label = label;
 
 	GtkWidget *messageBox = gtk_text_view_new();
@@ -525,7 +524,7 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), messageBox);
 	gtk_box_pack_start(GTK_BOX(update_content),scrolled_window, TRUE, TRUE, 5);
-	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 5);
 	GtkTextTag *tag = gtk_text_buffer_create_tag(textBuffer, NULL, "font", "20", NULL);
 	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textBuffer, NULL, "font", "16", NULL);
 	int i;
@@ -558,7 +557,7 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressbar), 0.0);
 
 	gtk_box_pack_start(GTK_BOX(update_content), progressbar, FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(update_content),gtk_hseparator_new(), FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(update_content), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 5);
 
 	//Check for updates on startup preference
 	GtkWidget *checkbutton = gtk_check_button_new_with_label("Check for updates on startup?");
