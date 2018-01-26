@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2016-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2016-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_UTILS_H
 #define XMI_MSIM_GUI_UTILS_H
 
-#include <config.h> // bad, bad, bad!!!
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
@@ -39,11 +38,6 @@ struct read_xmsa_data {
 };
 
 gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
-
-#ifdef HAVE_LIBSOUP
-void     xmi_msim_gui_utils_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data);
-gboolean xmi_msim_gui_utils_check_download_url_finish(GtkListStore *store, GAsyncResult *result);
-#endif
 
 void xmi_msim_gui_utils_open_url(const char *link);
 

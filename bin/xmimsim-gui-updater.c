@@ -649,6 +649,48 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	return rv;
 }
 
+static void download_url_cb(SoupSession *session, SoupMessage *msg, gpointer user_data) {
+	GTask *task = user_data;
+	gboolean rv = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
+	if (!rv) {
+		g_warning("soup failure: %s", msg->reason_phrase);
+	}
+
+	g_object_unref(session);
+	g_task_return_boolean(task, rv);
+	g_object_unref(task);
+}
+
+void xmi_msim_gui_updater_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data) {
+	gchar *url = NULL;
+#if defined(MAC_INTEGRATION)
+	//Mac OS X
+	url = g_strdup_printf("%s/XMI-MSIM-%s.dmg", download_url, VERSION);
+#elif defined(G_OS_WIN32)
+	url = g_strdup_printf("%s/XMI-MSIM-%s-win64.exe", download_url, VERSION);
+#else
+	//Linux??
+	url = g_strdup_printf("%s/xmimsim-%s.tar.gz", download_url, VERSION);
+#endif
+	g_debug("download_url: %s", url);
+	GTask *task = g_task_new(store, NULL, callback, user_data);
+
+	gchar *user_agent = g_strdup_printf("XMI-MSIM " PACKAGE_VERSION " updater using libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+	SoupSession *session = soup_session_new_with_options(
+		SOUP_SESSION_USER_AGENT, user_agent,
+		SOUP_SESSION_TIMEOUT, 10u,
+		NULL);
+	g_free(user_agent);
+	SoupMessage *msg = soup_message_new("HEAD", url);
+	soup_session_queue_message (session, msg, download_url_cb, task); // non-blocking!
+
+}
+
+gboolean xmi_msim_gui_updater_check_download_url_finish(GtkListStore *store, GAsyncResult *result) {
+	g_return_val_if_fail(g_task_is_valid(result, store), FALSE);
+	return g_task_propagate_boolean(G_TASK(result), NULL);
+}
+
 GQuark xmi_msim_gui_updater_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-updater-error-quark");
 }
