@@ -35,7 +35,7 @@ cd $APPVEYOR_BUILD_FOLDER
 
 autoreconf -fi
 export CPPFLAGS="-I/usr/local/include -I$HOME/install/include"
-export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
+export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Werror=implicit"
 export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 export LIBS="-L/usr/local/lib/nvidia"
 ./configure --prefix=$HOME/install $CONFIGURE_OPTIONS --disable-static

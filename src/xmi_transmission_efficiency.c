@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <string.h>
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include "xmi_error.h"
 
 gboolean xmi_transmission_efficiency_read(const char *filename, size_t *nefficiencies, double **energies, double **efficiencies, GError **error) {
