@@ -36,7 +36,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
     # trusty: fgsl and gtkmm-plplot
     # with updater
@@ -62,7 +62,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
@@ -88,7 +88,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
@@ -113,7 +113,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
@@ -138,7 +138,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
@@ -162,7 +162,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
@@ -187,7 +187,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
@@ -212,7 +212,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
@@ -236,7 +236,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
@@ -261,7 +261,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
@@ -286,7 +286,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
             - libjson-glib-dev
             - libnotify-dev
       env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
@@ -310,7 +310,7 @@ matrix:
             - libxml2-utils
             - libhdf5-serial-dev
             - hdf5-tools
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: fgsl
     # no updater
@@ -335,7 +335,7 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libxrl7-dev
-            - libcurl4-openssl-dev
+            - libsoup2.4-dev
             - libopenmpi-dev
             - openmpi-bin
       env: EXTRA='--disable-gui --disable-updater --disable-libnotify --enable-mpi'
@@ -535,7 +535,7 @@ before_install:
       brew update || exit 1
       brew cleanup -s || exit 1
       rm -rf $(brew --cache) || exit 1
-      brew install git gsl autoconf automake libtool libxslt hdf5 curl wget || exit 1
+      brew install git gsl autoconf automake libtool libxslt hdf5 libsoup wget || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       export CC=$MYCC

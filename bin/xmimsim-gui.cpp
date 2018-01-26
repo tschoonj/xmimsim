@@ -65,7 +65,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #define PRIMARY_ACCEL_KEY GDK_CONTROL_MASK
 #endif
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 	#include "xmimsim-gui-updater.h"
 #endif
 
@@ -968,11 +968,62 @@ static gboolean query_source_modules(void) {
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 
+static gboolean check_for_updates_on_init_cb(GtkWidget *window);
+static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window);
+
+static void check_for_updates_callback(GtkWidget *window, GAsyncResult *result, gpointer user_data) {
+	gchar *max_version = NULL;
+	gchar *message = NULL;
+	GError *error = NULL;
+	int rv = 0;
+
+	XmiMsimGuiUpdaterCheck check = xmi_msim_gui_updater_check_for_updates_finish(window, result, &max_version, &message, &error);
+
+	if (check == XMI_MSIM_UPDATES_AVAILABLE) {
+		rv = xmi_msim_gui_updater_download_updates_dialog(window, max_version, message);
+
+	}
+	else if (user_data == check_for_updates_on_click_cb){
+		if (check == XMI_MSIM_UPDATES_ERROR) {
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not check for updates"
+	                	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
+		}
+		else if (check == XMI_MSIM_UPDATES_NONE) {
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_INFO,
+		       		GTK_BUTTONS_CLOSE,
+		       		"No updates available at this moment..."
+	                	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "Please check again later");
+	     		gtk_dialog_run (GTK_DIALOG (dialog));
+			gtk_widget_destroy(dialog);
+
+		}
+	}
+
+	gtk_widget_set_sensitive(updatesW,TRUE);
+
+	if (rv == 1) {
+		//exit XMI-MSIM
+#ifdef MAC_INTEGRATION
+		GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
+		quit_program_cb(app, window);
+#else
+		quit_program_cb(window, window);
+#endif
+	}
+}
+
 static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
-	char *max_version;
-
-	int rv;
-
 	//do this only if it is allowed by the preferences
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
@@ -992,30 +1043,7 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 
 	gtk_widget_set_sensitive(updatesW,FALSE);
-	char *message = NULL;
-	rv = check_for_updates(&max_version, &message);
-	if (rv == XMIMSIM_UPDATES_ERROR) {
-		//do nothing
-	}
-	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
-		rv = download_updates(window, max_version, message);
-		if (rv == 1) {
-			//exit XMI-MSIM
-#ifdef MAC_INTEGRATION
-			GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
-			quit_program_cb(app, window);
-#else
-			quit_program_cb(window, window);
-#endif
-		}
-	}
-	else if (rv == XMIMSIM_UPDATES_NONE) {
-		//do nothing
-	}
-	gtk_widget_set_sensitive(updatesW,TRUE);
-
-
-
+	xmi_msim_gui_updater_check_for_updates_async(window, (GAsyncReadyCallback) check_for_updates_callback, (gpointer) check_for_updates_on_init_cb);
 
 	return FALSE;
 }
@@ -1023,43 +1051,8 @@ static gboolean check_for_updates_on_init_cb(GtkWidget *window) {
 
 
 static void check_for_updates_on_click_cb(GtkWidget *widget, GtkWidget *window) {
-	char *max_version, *message = NULL;
-
-	int rv;
-
 	gtk_widget_set_sensitive(updatesW,FALSE);
-	rv = check_for_updates(&max_version, &message);
-
-	if (rv == XMIMSIM_UPDATES_ERROR) {
-		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
-		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "An error occurred while checking for updates.\nCheck your internet connection\nor try again later.");
-		gtk_dialog_run(GTK_DIALOG(update_dialog));
-		gtk_widget_destroy(update_dialog);
-	}
-	else if (rv == XMIMSIM_UPDATES_AVAILABLE) {
-		rv = download_updates(window, max_version, message);
-		if (rv == 1) {
-			//exit XMI-MSIM
-#ifdef MAC_INTEGRATION
-			GtkosxApplication *app = (GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL);
-			quit_program_cb(app, window);
-#else
-			quit_program_cb(window, window);
-#endif
-		}
-	}
-	else if (rv == XMIMSIM_UPDATES_NONE) {
-		GtkWidget *update_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
-		GTK_DIALOG_MODAL, GTK_MESSAGE_INFO , GTK_BUTTONS_CLOSE, "No updates are available at this time.\nPlease check again later.");
-		gtk_dialog_run(GTK_DIALOG(update_dialog));
-		gtk_widget_destroy(update_dialog);
-	}
-
-
-	gtk_widget_set_sensitive(updatesW,TRUE);
-
-
-	return;
+	xmi_msim_gui_updater_check_for_updates_async(window, (GAsyncReadyCallback) check_for_updates_callback, (gpointer) check_for_updates_on_click_cb);
 }
 #endif
 

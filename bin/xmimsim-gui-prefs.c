@@ -32,7 +32,7 @@
 #include "xmi_resources_mac.h"
 #endif
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 #include "xmimsim-gui-updater.h"
 #endif
 
@@ -44,7 +44,7 @@ struct prefsWidgets {
 	GtkWidget *parent_window;
 	GtkWidget *window;
 	GtkWidget *options_boxW;
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 	GtkWidget *check_updatesW; // checkbutton
 	GtkWidget *update_urlsW;   // treeview
 #endif
@@ -60,6 +60,7 @@ struct prefsWidgets {
 enum {
 	URL_COLUMN_PREFS,
 	STATUS_COLUMN_PREFS,
+	BACKGROUND_COLUMN_PREFS,
 	N_COLUMNS_PREFS
 };
 
@@ -219,7 +220,7 @@ static void delete_escape_ratios_clicked_cb(GtkWidget *button, gpointer data) {
 }
 
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 static void url_delete_button_clicked_cb(GtkWidget *widget, GtkTreeView *tree) {
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
 	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
@@ -232,6 +233,26 @@ static void url_delete_button_clicked_cb(GtkWidget *widget, GtkTreeView *tree) {
 	return;
 }
 
+static void check_download_ready_cb(GtkListStore *store, GAsyncResult *result, gpointer user_data) {
+	GtkTreePath *path = user_data;
+	GtkTreeIter iter;
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
+	gtk_tree_path_free(path);
+	if (xmi_msim_gui_utils_check_download_url_finish(store, result)) {
+		// perhaps some markup here?
+		gtk_list_store_set(store, &iter,
+			STATUS_COLUMN_PREFS, "Online",
+			BACKGROUND_COLUMN_PREFS, "green",
+			-1);
+	}
+	else {
+		gtk_list_store_set(store, &iter,
+			STATUS_COLUMN_PREFS, "Offline",
+			BACKGROUND_COLUMN_PREFS, "red",
+			-1);
+	}
+}
+
 static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *new_text, GtkTreeView *tree) {
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree);
 	GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
@@ -239,15 +260,13 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	gtk_tree_selection_get_selected(selection, NULL, &iter);
 
-	gtk_list_store_set(store, &iter, URL_COLUMN_PREFS, new_text, -1);
-	if (xmi_msim_gui_utils_check_download_url(new_text) == TRUE) {
-		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, "face-cool", -1);
-	}
-	else {
-		gtk_list_store_set(store, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
-	}
+	gtk_list_store_set(store, &iter,
+		URL_COLUMN_PREFS, new_text,
+		STATUS_COLUMN_PREFS, "Checking...",
+		BACKGROUND_COLUMN_PREFS, NULL,
+		-1);
 
-	return;
+	xmi_msim_gui_utils_check_download_url_async(store, new_text, (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter));
 }
 
 static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
@@ -256,8 +275,11 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkListStore *store_prefsL = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)));
 
 	gtk_list_store_append(store_prefsL, &iter);
-	gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, "http://", -1);
-	gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
+	gtk_list_store_set(store_prefsL, &iter,
+		URL_COLUMN_PREFS, "http://",
+		STATUS_COLUMN_PREFS, "Checking...",
+		BACKGROUND_COLUMN_PREFS, NULL,
+		-1);
 
 	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
 	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter);
@@ -301,7 +323,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 
 	xmi_msim_gui_options_box_save_to_prefs(XMI_MSIM_GUI_OPTIONS_BOX(pw->options_boxW));	
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->check_updatesW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
 		//abort
@@ -1094,7 +1116,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);
-#elif defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
+#elif defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 
 	pw->check_updatesW = gtk_check_button_new_with_label("Check for updates on startup");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
@@ -1126,10 +1148,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
 	gtk_tree_view_column_set_expand(column, TRUE);
 
-	renderer = gtk_cell_renderer_pixbuf_new();
+	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	g_object_set(renderer, "stock-size", GTK_ICON_SIZE_SMALL_TOOLBAR, NULL);
-	column = gtk_tree_view_column_new_with_attributes("Status", renderer, "icon-name",STATUS_COLUMN_PREFS,NULL);
+	column = gtk_tree_view_column_new_with_attributes("Status", renderer,
+		"text", STATUS_COLUMN_PREFS,
+		"background", BACKGROUND_COLUMN_PREFS,
+		NULL);
 	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
@@ -1174,13 +1198,12 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	}
 	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
 		gtk_list_store_append(store_prefsL,&iter);
-		gtk_list_store_set(store_prefsL, &iter, URL_COLUMN_PREFS, xpv.ss[i], -1);
-		if (xmi_msim_gui_utils_check_download_url(xpv.ss[i]) == TRUE) {
-			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-cool", -1);
-		}
-		else {
-			gtk_list_store_set(store_prefsL, &iter, STATUS_COLUMN_PREFS, "face-angry", -1);
-		}
+		gtk_list_store_set(store_prefsL, &iter,
+			URL_COLUMN_PREFS, xpv.ss[i],
+			STATUS_COLUMN_PREFS, "Checking...",
+			BACKGROUND_COLUMN_PREFS, NULL,
+			-1);
+		xmi_msim_gui_utils_check_download_url_async(store_prefsL, xpv.ss[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
 	}
 
 	g_strfreev(xpv.ss);
@@ -1191,7 +1214,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	g_signal_connect(G_OBJECT(select), "changed", G_CALLBACK(url_selection_changed_cb), (gpointer) removeButton);
 
 #else
-	label = gtk_label_new("XMI-MSIM was built without support for automatic updates. Consider recompiling after installing libcurl and json-glib.");
+	label = gtk_label_new("XMI-MSIM was built without support for automatic updates. Consider recompiling after installing libsoup and json-glib.");
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	gtk_box_pack_start(GTK_BOX(superframe), label, TRUE, FALSE,1);

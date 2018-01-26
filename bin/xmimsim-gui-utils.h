@@ -40,8 +40,9 @@ struct read_xmsa_data {
 
 gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
 
-#ifdef HAVE_LIBCURL
-gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url);
+#ifdef HAVE_LIBSOUP
+void     xmi_msim_gui_utils_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data);
+gboolean xmi_msim_gui_utils_check_download_url_finish(GtkListStore *store, GAsyncResult *result);
 #endif
 
 void xmi_msim_gui_utils_open_url(const char *link);

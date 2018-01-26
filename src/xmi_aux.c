@@ -149,8 +149,10 @@ void xmi_print_progress(char *string, int progress) {
 #include <hdf5.h>
 #include <libxml/xmlversion.h>
 #include <libxslt/xsltconfig.h>
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-#include <curl/curl.h>
+#ifdef HAVE_LIBSOUP
+#include <libsoup/soup.h>
+#endif
+#ifdef HAVE_JSONGLIB
 #include <json-glib/json-glib.h>
 #endif
 
@@ -185,13 +187,17 @@ char *xmi_version_string() {
 	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
 #endif
 
-#if defined(HAVE_LIBCURL) && defined(HAVE_JSONGLIB)
-	g_string_append_printf(string, ", curl %i.%i.%i", LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+#ifdef HAVE_LIBSOUP
+	g_string_append_printf(string, ", libsoup %i.%i.%i", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+#endif
+
+#ifdef HAVE_JSONGLIB
 	g_string_append_printf(string, ", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
 #endif
+
 	g_string_append(string, "\n\n");
 	g_string_append(string,
-"Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"

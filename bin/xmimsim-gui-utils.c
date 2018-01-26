@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-utils.h"
-#ifdef HAVE_LIBCURL
-#include <curl/curl.h>
+#ifdef HAVE_LIBSOUP
+#include <libsoup/soup.h>
 #endif
 #include <math.h>
 #include <xraylib.h>
@@ -140,54 +140,47 @@ void xmi_msim_gui_utils_open_url(const char *link) {
 	return;
 }
 
-#ifdef HAVE_LIBCURL
-gboolean xmi_msim_gui_utils_check_download_url(gchar *download_url) {
-	CURL *curl;
-	gchar *url;
-	CURLcode res;
+#ifdef HAVE_LIBSOUP
+static void download_url_cb(SoupSession *session, SoupMessage *msg, gpointer user_data) {
+	GTask *task = user_data;
+	gboolean rv = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
+	if (!rv) {
+		g_warning("soup failure: %s", msg->reason_phrase);
+	}
 
+	g_object_unref(session);
+	g_task_return_boolean(task, rv);
+	g_object_unref(task);
+}
 
+void xmi_msim_gui_utils_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data) {
+	gchar *url = NULL;
 #if defined(MAC_INTEGRATION)
 	//Mac OS X
 	url = g_strdup_printf("%s/XMI-MSIM-%s.dmg", download_url, VERSION);
 #elif defined(G_OS_WIN32)
-	//Win 32
-  #ifdef _WIN64
 	url = g_strdup_printf("%s/XMI-MSIM-%s-win64.exe", download_url, VERSION);
-  #elif defined(_WIN32)
-	url = g_strdup_printf("%s/XMI-MSIM-%s-win32.exe", download_url, VERSION);
-  #else
-    #error Unknown Windows architecture detected
-  #endif
 #else
 	//Linux??
 	url = g_strdup_printf("%s/xmimsim-%s.tar.gz", download_url, VERSION);
 #endif
+	g_debug("download_url: %s", url);
+	GTask *task = g_task_new(store, NULL, callback, user_data);
 
-	curl = curl_easy_init();
-	if (!curl) {
-		g_free(url);
-		return FALSE;
-	}
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION , 1);
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 1000L);
-	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
-	curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+	gchar *user_agent = g_strdup_printf("XMI-MSIM " PACKAGE_VERSION " updater using libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+	SoupSession *session = soup_session_new_with_options(
+		SOUP_SESSION_USER_AGENT, user_agent,
+		SOUP_SESSION_TIMEOUT, 10u,
+		NULL);
+	g_free(user_agent);
+	SoupMessage *msg = soup_message_new("HEAD", url);
+	soup_session_queue_message (session, msg, download_url_cb, task); // non-blocking!
 
-	res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
-	if (res == CURLE_OK) {
-		//fprintf(stdout, "%s ok\n", url);
-		g_free(url);
-		return TRUE;
-	}
-	else {
-		g_warning("%s not ok: %s\n", url, curl_easy_strerror(res));
-		g_free(url);
-		return FALSE;
-	}
+}
+
+gboolean xmi_msim_gui_utils_check_download_url_finish(GtkListStore *store, GAsyncResult *result) {
+	g_return_val_if_fail(g_task_is_valid(result, store), FALSE);
+	return g_task_propagate_boolean(G_TASK(result), NULL);
 }
 #endif
 
@@ -221,18 +214,23 @@ void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *contro
 	GtkTextTag *tag;
 	GtkTextMark *insert_mark;
 	gint start_offset;
+	gchar *to_print;
 
 	g_return_if_fail(GTK_IS_TEXT_BUFFER(buffer));
 	g_return_if_fail(text != NULL);
 
-	glong time_elapsed = (glong) g_timer_elapsed(timer,NULL);
-	glong hours = time_elapsed / 3600;
-	time_elapsed = time_elapsed % 3600;
-	glong minutes = time_elapsed / 60;
-	glong seconds = time_elapsed % 60;
+	if (timer != NULL) {
+		glong time_elapsed = (glong) g_timer_elapsed(timer,NULL);
+		glong hours = time_elapsed / 3600;
+		time_elapsed = time_elapsed % 3600;
+		glong minutes = time_elapsed / 60;
+		glong seconds = time_elapsed % 60;
 
-
-	gchar *to_print = g_strdup_printf("%02i:%02i:%02i %s",(int) hours, (int) minutes, (int) seconds,text);
+		to_print = g_strdup_printf("%02ld:%02ld:%02ld %s", hours, minutes, seconds, text);
+	}
+	else {
+		to_print = g_strdup_printf("%s\n", text);
+	}
 
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 
@@ -245,8 +243,8 @@ void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *contro
 		gtk_text_buffer_get_end_iter(buffer, &iter);
 		insert_mark = gtk_text_buffer_get_insert(buffer);
 		gtk_text_buffer_place_cursor(buffer,&iter);
-        	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	        insert_mark, 0.0, FALSE, 0, 1.0);
+		if (controlsLogW)
+        		gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(controlsLogW), insert_mark, 0.0, FALSE, 0, 1.0);
 		return;
 	}
 
@@ -263,12 +261,9 @@ void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *contro
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	insert_mark = gtk_text_buffer_get_insert(buffer);
 	gtk_text_buffer_place_cursor(buffer,&iter);
-       	gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW),
-	        insert_mark, 0.0, FALSE, 0, 1.0);
+	if (controlsLogW)
+       		gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (controlsLogW), insert_mark, 0.0, FALSE, 0, 1.0);
 
-
-
-	return;
 }
 
 GArray* xmi_msim_gui_utils_tree_view_get_selected_indices(GtkTreeView *tree) {

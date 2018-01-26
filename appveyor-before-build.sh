@@ -106,7 +106,6 @@ if test -z ${GOOGLE_ANALYTICS+x} ; then
 	# do nothing
 	:
 else
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-libsoup
 	pushd /usr/local
 	curl -L -s -O https://www.dropbox.com/s/l6pw1dupx81ulzv/opencl-win64-devel.tar.gz
 	tar xfz opencl-win64-devel.tar.gz
