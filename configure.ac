@@ -171,7 +171,6 @@ AM_CONDITIONAL([ENABLE_FGSL],[test "x$FGSL10_FOUND" = xyes || test "x$FGSL11_FOU
 PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.36.0)
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gobject],gobject-2.0)
-PKG_CHECK_MODULES([gthread2],gthread-2.0 >= 2.36.0)
 
 
 #libsoup is optional but is required for the automatic updater as well as to run the testsuite (make check/distcheck dependency!)

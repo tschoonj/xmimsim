@@ -1778,6 +1778,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			return;
 		}
 
+		// TODO: ideally this should be rewritten using two (or three) GTasks... 
 		dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 		gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
 		gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(window));

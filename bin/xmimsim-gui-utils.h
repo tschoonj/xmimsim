@@ -32,12 +32,8 @@ double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geomet
 
 GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *message_with_markup);
 
-struct read_xmsa_data {
-	gchar *filename;
-	struct xmi_archive **archive;
-};
-
-gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd);
+void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename, GAsyncReadyCallback callback, gpointer user_data);
+struct xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error);
 
 void xmi_msim_gui_utils_open_url(const char *link);
 

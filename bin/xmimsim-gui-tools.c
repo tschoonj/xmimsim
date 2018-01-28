@@ -54,6 +54,12 @@ struct xmsa_to_xmso_data {
 	int step2;
 };
 
+static void xmsa_to_xmso_data_free(struct xmsa_to_xmso_data *data) {
+	g_free(data->xmsafile);
+	g_free(data->xmsofile);
+	g_free(data);
+}
+
 static GtkWidget *get_window(const gchar *title, GtkWidget *main_window) {
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), title);
@@ -84,9 +90,12 @@ static GtkWidget* get_description_frame(const gchar *description) {
 	return frame;
 }
 
-static gpointer xmsa_to_xmso_thread(struct xmsa_to_xmso_data *xtxd) {
-	return GINT_TO_POINTER(xmi_xmsa_to_xmso_xslt(xtxd->xmsafile, xtxd->xmsofile, xtxd->step1, xtxd->step2));
+static void xmsa_to_xmso_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
+	struct xmsa_to_xmso_data *xtxd = task_data;
+
+	g_task_return_boolean(task, xmi_xmsa_to_xmso_xslt(xtxd->xmsafile, xtxd->xmsofile, xtxd->step1, xtxd->step2));
 }
+
 static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	XmiMsimGuiFileChooserDialog *dialog;
@@ -175,12 +184,65 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 	}
 }
+
+static void read_xmsa_callback(GtkWidget *job_dialog, GAsyncResult *result, struct xmi_tools *xt) {
+	GError *error = NULL;
+	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(job_dialog, result, &error);
+	GTask *task = G_TASK(result);
+
+	gdk_window_set_cursor(gtk_widget_get_window(job_dialog), NULL);
+	gtk_widget_destroy(job_dialog);
+
+	if (!archive) {
+		GtkWidget *message_dialog = gtk_message_dialog_new(
+			GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR,
+			GTK_BUTTONS_CLOSE,
+			"Could not read file %s", g_task_get_task_data(task)
+		);
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+	    	gtk_dialog_run(GTK_DIALOG(message_dialog));
+		gtk_widget_destroy(message_dialog);
+		return ;
+	}
+
+	//set the spinner
+	gtk_widget_set_sensitive(xt->spinner1, TRUE);
+	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0));
+	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner1), GTK_ADJUSTMENT(adj));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner1), 0);
+	gchar *label_text = g_strdup_printf("XPath1: %s", archive->xpath1);
+	gtk_label_set_text(GTK_LABEL(xt->label1), label_text);
+	g_free(label_text);
+
+	if (archive->xpath2) {
+		gtk_widget_set_sensitive(xt->spinner2, TRUE);
+		adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
+		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner2), GTK_ADJUSTMENT(adj));
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner2), 0);
+		label_text = g_strdup_printf("XPath2: %s", archive->xpath2);
+		gtk_label_set_text(GTK_LABEL(xt->label2), label_text);
+		g_free(label_text);
+	}
+	else {
+		gtk_widget_set_sensitive(xt->spinner2, FALSE);
+		gtk_label_set_text(GTK_LABEL(xt->label2), "XPath2: not found");
+	}
+	gtk_widget_set_sensitive(xt->button1, TRUE);
+	gtk_widget_set_sensitive(xt->button2, TRUE);
+
+	//free everything
+	xmi_free_archive(archive);
+	gtk_entry_set_text(GTK_ENTRY(xt->entry), g_task_get_task_data(task));
+}
+
 static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	struct xmi_tools *xt = data;
 	struct xmi_archive *archive;
 
 	filter = gtk_file_filter_new();
@@ -208,63 +270,9 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
 		gdk_window_set_cursor(gtk_widget_get_window(job_dialog), watchCursor);
 
-		while(gtk_events_pending())
-			gtk_main_iteration();
-
-		struct read_xmsa_data *rxd = (struct read_xmsa_data *) g_malloc(sizeof(struct read_xmsa_data));
-		rxd->filename = filename;
-		rxd->archive = &archive;
-		GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd);
-		while(gtk_events_pending())
-			gtk_main_iteration();
-
-		int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
-		g_free(rxd);
-		gdk_window_set_cursor(gtk_widget_get_window(job_dialog), NULL);
-		if (!xmsa_thread_rv) {
-			gtk_widget_destroy(job_dialog);
-			GtkWidget *message_dialog = gtk_message_dialog_new(
-				GTK_WINDOW(xt->window),
-				GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_ERROR,
-				GTK_BUTTONS_CLOSE,
-				"Could not read file %s", filename
-			);
-	    		gtk_dialog_run(GTK_DIALOG(message_dialog));
-			gtk_widget_destroy(message_dialog);
-			return ;
-		}
-
-		//set the spinner
-		gtk_widget_set_sensitive(xt->spinner1, TRUE);
-		GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0));
-		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner1), GTK_ADJUSTMENT(adj));
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner1), 0);
-		gchar *label_text = g_strdup_printf("XPath1: %s", archive->xpath1);
-		gtk_label_set_text(GTK_LABEL(xt->label1), label_text);
-		g_free(label_text);
-
-		if (archive->xpath2) {
-			gtk_widget_set_sensitive(xt->spinner2, TRUE);
-			adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
-			gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner2), GTK_ADJUSTMENT(adj));
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner2), 0);
-			label_text = g_strdup_printf("XPath2: %s", archive->xpath2);
-			gtk_label_set_text(GTK_LABEL(xt->label2), label_text);
-			g_free(label_text);
-		}
-		else {
-			gtk_widget_set_sensitive(xt->spinner2, FALSE);
-			gtk_label_set_text(GTK_LABEL(xt->label2), "XPath2: not found");
-		}
-		gtk_widget_set_sensitive(xt->button1, TRUE);
-		gtk_widget_set_sensitive(xt->button2, TRUE);
-
-		//free everything
-		xmi_free_archive(archive);
-		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
-
+		xmi_msim_gui_utils_read_xmsa_async(job_dialog, filename, (GAsyncReadyCallback) read_xmsa_callback, xt);
 		g_free(filename);
+
 	}
 	else {
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
@@ -717,6 +725,36 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	}
 }
+
+static void xmsa_to_xmso_callback(GtkWidget *job_dialog, GAsyncResult *result, struct xmi_tools *xt) {
+
+	gdk_window_set_cursor(gtk_widget_get_window(job_dialog), NULL);
+	gtk_widget_destroy(job_dialog);
+
+	if (!g_task_propagate_boolean(G_TASK(result), NULL)) {
+		GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"An error occured while performing the conversion"
+                	);
+     		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
+	}
+	else {
+		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(xt->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_INFO,
+	       		GTK_BUTTONS_CLOSE,
+	       		"The conversion was successfully performed."
+                	);
+     		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy(dialog);
+		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
+	}
+}
+
 static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	struct xmi_tools *xt = (struct xmi_tools *) data;
 	GtkWidget *dialog;
@@ -734,8 +772,8 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
-	gchar *xmsafile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	const gchar *xmsafile = gtk_entry_get_text(GTK_ENTRY(xt->entry1));
+	gchar *xmsofile = g_strdup(gtk_entry_get_text(GTK_ENTRY(xt->entry2)));
 	int step1 = -1, step2 = -1;
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1))) {
@@ -751,15 +789,13 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button2))) {
 		//convert all
 		//default values to be used
-		xmsofile = g_strdup(xmsofile);
+		xmsofile = xmsofile;
 		gchar *dotPtr = strrchr(xmsofile, '.');
 		*dotPtr = '\0';
 	}
 	else {
 		fprintf(stderr,"Neither button is active. Should not occur\n");
 	}
-
-
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -768,54 +804,18 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
 	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
 
-	while(gtk_events_pending())
-		gtk_main_iteration();
-
-	struct xmsa_to_xmso_data *xtxd = (struct xmsa_to_xmso_data *) g_malloc(sizeof(struct xmsa_to_xmso_data));
-	xtxd->xmsafile = xmsafile;
+	struct xmsa_to_xmso_data *xtxd = g_malloc(sizeof(struct xmsa_to_xmso_data));
+	xtxd->xmsafile = g_strdup(xmsafile);
 	xtxd->xmsofile = xmsofile;
 	xtxd->step1 = step1;
 	xtxd->step2 = step2;
 
-	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmsa_to_xmso_thread, (gpointer) xtxd);
-
-	while(gtk_events_pending())
-		gtk_main_iteration();
-
-	int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
-	g_free(xtxd);
-	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
-	gtk_widget_destroy(dialog);
-
-	if (!xmsa_thread_rv) {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_ERROR,
-	       		GTK_BUTTONS_CLOSE,
-	       		"An error occured while performing the conversion"
-                	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
-	}
-	else {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_INFO,
-	       		GTK_BUTTONS_CLOSE,
-	       		"The conversion was successfully performed."
-                	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
-
-	}
-
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button2))) {
-		g_free(xmsofile);
-	}
+	GTask *task = g_task_new(dialog, NULL, (GAsyncReadyCallback) xmsa_to_xmso_callback, xt);
+	g_task_set_task_data(task, xtxd, (GDestroyNotify) xmsa_to_xmso_data_free);
+	g_task_run_in_thread(task, xmsa_to_xmso_thread);
+	g_object_unref(task);
 }
+
 void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 
 	GtkWidget *main_window = (GtkWidget *) data;
