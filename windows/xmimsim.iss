@@ -79,11 +79,6 @@ Source: "{#builddir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ;
 Source: "{#MY_MINGW}\bin\libgfortran-4.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libcurl-4.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libeay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\ssleay32.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libnghttp2-14.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\bin\libssh2-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
