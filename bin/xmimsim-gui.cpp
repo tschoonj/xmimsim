@@ -4031,6 +4031,32 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
+static void read_xmsa_callback(GtkWidget *dialog, GAsyncResult *result, struct dialog_helper_xmsa_data *data) {
+
+	GError *error = NULL;
+	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(dialog, result, &error);
+	GTask *task = G_TASK(result);
+
+	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
+	gtk_widget_destroy(dialog);
+
+	if (!archive) {
+		GtkWidget *message_dialog = gtk_message_dialog_new(
+			GTK_WINDOW(data->window),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR,
+			GTK_BUTTONS_CLOSE,
+			"Could not read file %s", g_task_get_task_data(task)
+		);
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+	    	gtk_dialog_run(GTK_DIALOG(message_dialog));
+		gtk_widget_destroy(message_dialog);
+		return ;
+	}
+	launch_archive_plot(archive, data->window);
+	g_free(data->filename);
+	g_free(data);
+}
 
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	struct xmi_archive *archive;
@@ -4039,38 +4065,8 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
 	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
 
-	while(gtk_events_pending())
-	    gtk_main_iteration();
+	xmi_msim_gui_utils_read_xmsa_async(dialog, data->filename, (GAsyncReadyCallback) read_xmsa_callback, data);
 
-	struct read_xmsa_data *rxd = (struct read_xmsa_data *) g_malloc(sizeof(struct read_xmsa_data));
-	rxd->filename = data->filename;
-	rxd->archive = &archive;
-#if GLIB_CHECK_VERSION (2, 32, 0)
-	//new API
-	GThread *xmsa_thread = g_thread_new(NULL, (GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd);
-#else
-	//old API
-	GThread *xmsa_thread = g_thread_create((GThreadFunc) xmi_msim_gui_utils_read_xmsa_thread, (gpointer) rxd, TRUE, NULL);
-#endif
-	int xmsa_thread_rv = GPOINTER_TO_INT(g_thread_join(xmsa_thread));
-	g_free(rxd);
-	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
-	gtk_widget_destroy(dialog);
-	if (!xmsa_thread_rv) {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(data->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_ERROR,
-	       		GTK_BUTTONS_CLOSE,
-	       		"Could not read file %s",data->filename
-	       	);
-	    	gtk_dialog_run (GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-	}
-	else {
-		launch_archive_plot(archive, data->window);
-	}
-	g_free(data->filename);
-	g_free(data);
 	return FALSE;
 }
 

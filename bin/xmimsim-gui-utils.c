@@ -73,8 +73,26 @@ GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *me
 	return dialog;
 }
 
-gpointer xmi_msim_gui_utils_read_xmsa_thread(struct read_xmsa_data *rxd) {
-	return GINT_TO_POINTER(xmi_read_archive_xml(rxd->filename, rxd->archive, NULL));
+static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
+	GError *error = NULL;
+	struct xmi_archive *archive = NULL;
+	if (!xmi_read_archive_xml(task_data, &archive, &error)) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_free_archive);
+}
+
+void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename, GAsyncReadyCallback callback, gpointer user_data) {
+	GTask *task = g_task_new(dialog, NULL, callback, user_data);
+	g_task_set_task_data(task, g_strdup(filename), g_free);
+	g_task_run_in_thread(task, read_xmsa_thread);
+	g_object_unref(task);
+}
+
+struct xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error) {
+	return g_task_propagate_pointer(G_TASK(result), error);
 }
 
 void xmi_msim_gui_utils_open_email(const char *address) {

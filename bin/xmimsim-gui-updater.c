@@ -327,7 +327,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 	if (!request) {
 		g_object_unref(session);
 		g_task_return_error(task, error);
-		g_object_unref(task);
 		return;
 	}
 
@@ -336,7 +335,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 		g_object_unref(request);
 		g_object_unref(session);
 		g_task_return_error(task, error);
-		g_object_unref(task);
 		return;
 	}
 
@@ -348,7 +346,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 		g_object_unref(parser);
 		g_input_stream_close(stream, NULL, NULL);
 		g_task_return_error(task, error);
-		g_object_unref(task);
 		return;
 	}
 
@@ -356,7 +353,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 		g_object_unref(parser);
 		g_object_unref(session);
 		g_task_return_error(task, error);
-		g_object_unref(task);
 		return;
 	}
 	g_object_unref(stream);
@@ -372,7 +368,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 			"json stream root node is not an array"
 			);
 		g_task_return_error(task, error);
-		g_object_unref(task);
 		return;
 	}
 	JsonArray *rootArray = json_node_get_array(rootNode);
@@ -399,7 +394,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 		if (!request) {
 			g_object_unref(session);
 			g_task_return_error(task, error);
-			g_object_unref(task);
 			return;
 		}
 
@@ -408,7 +402,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 			g_object_unref(request);
 			g_object_unref(session);
 			g_task_return_error(task, error);
-			g_object_unref(task);
 			return;
 		}
 
@@ -420,7 +413,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 			g_object_unref(parser);
 			g_input_stream_close(stream, NULL, NULL);
 			g_task_return_error(task, error);
-			g_object_unref(task);
 			return;
 		}
 
@@ -428,7 +420,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 			g_object_unref(parser);
 			g_object_unref(session);
 			g_task_return_error(task, error);
-			g_object_unref(task);
 			return;
 		}
 		g_object_unref(stream);
@@ -445,7 +436,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 				"tag root object has no member called message"
 				);
 			g_task_return_error(task, error);
-			g_object_unref(task);
 			return;
 		}
 
@@ -470,8 +460,8 @@ void xmi_msim_gui_updater_check_for_updates_async(GtkWidget *window, GAsyncReady
 	g_debug("checking for updates...\n");
 
 	GTask *task = g_task_new(window, NULL, callback, user_data);
-	g_task_run_in_thread (task, check_for_updates_thread);
-	g_object_unref (task);
+	g_task_run_in_thread(task, check_for_updates_thread);
+	g_object_unref(task);
 }
 
 XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *window, GAsyncResult *result, gchar **max_version, gchar **message, GError **error) {

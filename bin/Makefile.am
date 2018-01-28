@@ -304,7 +304,6 @@ xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @gtkmm3_LIBS@ \
 		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
-		    @gthread2_LIBS@ \
 		    @xml2_LIBS@ \
 		    ../src/libxmimsim.la
 
