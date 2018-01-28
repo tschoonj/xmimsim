@@ -4975,14 +4975,6 @@ XMI_MAIN
 	gtk_disable_setlocale();
 	setbuf(stdout,NULL);
 	//let's use the default C locale
-	//g_type_init
-#if !GLIB_CHECK_VERSION (2, 35, 3)
-	g_type_init();
-#endif
-
-#if !GLIB_CHECK_VERSION (2, 32, 0)
-	g_thread_init(NULL);
-#endif
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
@@ -6617,13 +6609,6 @@ int kill_current_job(void) {
 
 		g_debug("killing %i UNIX style\n", (int) xmimsim_pid);
 		kill_rv = kill((pid_t) xmimsim_pid, SIGTERM);
-#if !GLIB_CHECK_VERSION (2, 35, 0)
-		//starting with 2.36.0 (and some unstable versions before),
-		//waitpid is called from within the main loop
-		//causing all kinds of trouble if I would call wait here
-		//wait(NULL);
-		waitpid(xmimsim_pid, NULL, WNOHANG);
-#endif
 		if (kill_rv == 0) {
 			g_debug("Process %i was successfully terminated before completion\n",(int) xmimsim_pid);
 		}
