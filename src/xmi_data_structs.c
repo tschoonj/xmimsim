@@ -648,7 +648,7 @@ void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, st
 }
 
 int xmi_validate_input(struct xmi_input *a) {
-	int i,j;
+	unsigned int i,j;
 	int rv = 0;
 	double sum;
 
@@ -804,9 +804,31 @@ after_geometry:
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
-		else if (i < a->excitation->n_continuous-1 && a->excitation->continuous[i].horizontal_intensity + a->excitation->continuous[i].vertical_intensity + a->excitation->continuous[i+1].horizontal_intensity + a->excitation->continuous[i+1].vertical_intensity == 0.0) {
+	}
+	if (a->excitation->n_continuous == 2) {
+		if (a->excitation->continuous[0].horizontal_intensity + a->excitation->continuous[0].vertical_intensity +
+		    a->excitation->continuous[1].horizontal_intensity + a->excitation->continuous[1].vertical_intensity == 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
+		}
+	}
+	else if (a->excitation->n_continuous > 2) {
+		for (i = 1 ; i < a->excitation->n_continuous-1 ; i++) {
+			int before = (a->excitation->continuous[i-1].horizontal_intensity + a->excitation->continuous[i-1].vertical_intensity) > 0.0;
+			int current = (a->excitation->continuous[i].horizontal_intensity + a->excitation->continuous[i].vertical_intensity) > 0.0;
+			int after = (a->excitation->continuous[i+1].horizontal_intensity + a->excitation->continuous[i+1].vertical_intensity) > 0.0;
+			if (i == 1 && before + current == 0) {
+				rv |= XMI_CONFLICT_EXCITATION;
+				goto after_excitation;
+			}
+			else if (i == a->excitation->n_continuous - 2 && current + after == 0) {
+				rv |= XMI_CONFLICT_EXCITATION;
+				goto after_excitation;
+			}
+			else if (before + current + after == 0) {
+				rv |= XMI_CONFLICT_EXCITATION;
+				goto after_excitation;
+			}
 		}
 	}
 

@@ -2961,6 +2961,7 @@ static void undo_menu_click(GtkWidget *widget, gpointer data) {
 		case SOURCE_SPECTRUM_ADD:
 		case SOURCE_SPECTRUM_REPLACE:
 			repopulate_discrete_energies(discWidget->store, (current-1)->xi->excitation);
+			break;
 		case CONTINUOUS_ENERGY_ADD:
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
@@ -4764,11 +4765,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(main_window), current->xi);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		// get the excitation data from the dialog
-		struct xmi_excitation *excitation_orig = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
-		struct xmi_excitation *excitation;
-
-		// a copy is necessary since the original data will get destroyed when the dialog is destroyed
-		xmi_copy_excitation(excitation_orig, &excitation);
+		struct xmi_excitation *excitation = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
 
 		gtk_widget_destroy(dialog);
 
@@ -4808,7 +4805,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 			if (current->xi->excitation->n_continuous > 0) {
 				for (i = 0 ; i < current->xi->excitation->n_continuous ; i++) {
 					if (bsearch(excitation->continuous+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
-						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
+						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy intervals: one or more of the new energies exist already in the list of intervals.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
 						return;

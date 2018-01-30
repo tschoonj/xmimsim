@@ -464,11 +464,49 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, struct xmi_input *
 struct xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog *dialog) {
 	struct xmi_excitation *rv = NULL;
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+	unsigned int i;
 
-	if (source == NULL)
+	if (source == NULL || source->raw_data == NULL)
 		return NULL;
 
-	xmi_copy_excitation(source->raw_data, &rv);
+	//xmi_copy_excitation(source->raw_data, &rv);
+	// copy only those that make sense (intensity > 1)
+	GArray *disc = g_array_sized_new(FALSE, FALSE, sizeof(struct xmi_energy_discrete), source->raw_data->n_discrete);
+
+	for (i = 0 ; i < source->raw_data->n_discrete ; i++) {
+		if (source->raw_data->discrete[i].horizontal_intensity +
+		    source->raw_data->discrete[i].vertical_intensity >= 1.0)
+			g_array_append_val(disc, source->raw_data->discrete[i]);
+	}
+
+	GArray *cont = g_array_sized_new(FALSE, FALSE, sizeof(struct xmi_energy_continuous), source->raw_data->n_continuous);
+
+	guint skipped_zeroes = 0u;
+	for (i = 0 ; i < source->raw_data->n_continuous ; i++) {
+		if (source->raw_data->continuous[i].horizontal_intensity +
+		    source->raw_data->continuous[i].vertical_intensity < 1.0) {
+			if (++skipped_zeroes == 1 && i > 0) {
+				struct xmi_energy_continuous temp = source->raw_data->continuous[i];
+				temp.horizontal_intensity = temp.vertical_intensity = 0.0;
+				g_array_append_val(cont, temp);
+			}
+		}
+		else {
+			if (skipped_zeroes >= 2) {
+				struct xmi_energy_continuous temp = source->raw_data->continuous[i-1];
+				temp.horizontal_intensity = temp.vertical_intensity = 0.0;
+				g_array_append_val(cont, temp);
+			}
+			skipped_zeroes = 0;
+			g_array_append_val(cont, source->raw_data->continuous[i]);
+		}
+	}
+
+	rv = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
+	rv->n_discrete = (int) disc->len;
+	rv->discrete = (struct xmi_energy_discrete *) g_array_free(disc, FALSE); 
+	rv->n_continuous = (int) cont->len;
+	rv->continuous = (struct xmi_energy_continuous *) g_array_free(cont, FALSE); 
 
 	return rv;
 }
