@@ -715,13 +715,12 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 	int distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 	double scale_parameter = 0.0;
 
-	*excitation = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
+	struct xmi_excitation *excitation_rv = g_malloc(sizeof(struct xmi_excitation));
 
-	(*excitation)->n_discrete = 0;
-	(*excitation)->discrete = NULL;
-	(*excitation)->n_continuous = 0;
-	(*excitation)->continuous = NULL;
-
+	excitation_rv->n_discrete = 0;
+	excitation_rv->discrete = NULL;
+	excitation_rv->n_continuous = 0;
+	excitation_rv->continuous = NULL;
 
 	subnode = xmlFirstElementChild(node);
 
@@ -847,11 +846,11 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			xed.energy = energy;
 			struct xmi_energy_discrete *xed_match;
 #ifdef G_OS_WIN32
-			unsigned int n_discrete = (*excitation)->n_discrete;
-			if ((xed_match = _lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
+			unsigned int n_discrete = excitation_rv->n_discrete;
+			if ((xed_match = _lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
 #else
-			size_t n_discrete = (*excitation)->n_discrete;
-			if ((xed_match = lfind(&xed, (*excitation)->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
+			size_t n_discrete = excitation_rv->n_discrete;
+			if ((xed_match = lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
 #endif
 				{
 				fprintf(stderr,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
@@ -867,16 +866,16 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 				}
 			}
 			else if (energy > 0.0 && energy <= 200.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
-				(*excitation)->discrete = (struct xmi_energy_discrete *) g_realloc((*excitation)->discrete,++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
-				(*excitation)->discrete[(*excitation)->n_discrete-1].energy= energy ;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].horizontal_intensity = horizontal_intensity;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].vertical_intensity = vertical_intensity;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_x = sigma_x;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_xp = sigma_xp;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_y = sigma_y;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].sigma_yp = sigma_yp;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].scale_parameter = scale_parameter;
-				(*excitation)->discrete[(*excitation)->n_discrete-1].distribution_type = distribution_type;
+				excitation_rv->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_rv->discrete,++(excitation_rv->n_discrete)*sizeof(struct xmi_energy_discrete));
+				excitation_rv->discrete[excitation_rv->n_discrete-1].energy= energy ;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].horizontal_intensity = horizontal_intensity;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].vertical_intensity = vertical_intensity;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].sigma_x = sigma_x;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].sigma_xp = sigma_xp;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].sigma_y = sigma_y;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].sigma_yp = sigma_yp;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].scale_parameter = scale_parameter;
+				excitation_rv->discrete[excitation_rv->n_discrete-1].distribution_type = distribution_type;
 			}
 			else {
 				fprintf(stderr,"Error: Invalid discrete energy detected\n");
@@ -962,11 +961,11 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			}
 			xec.energy = energy;
 #ifdef G_OS_WIN32
-			unsigned int n_continuous = (*excitation)->n_continuous;
-			if (_lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			unsigned int n_continuous = excitation_rv->n_continuous;
+			if (_lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #else
-			size_t n_continuous = (*excitation)->n_continuous;
-			if (lfind(&xec, (*excitation)->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			size_t n_continuous = excitation_rv->n_continuous;
+			if (lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #endif
 				fprintf(stderr,"Error: Duplicate continuous energy interval energy detected\n");
 				if (error != NULL)
@@ -974,14 +973,14 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 				return 0;
 			}
 			else if (energy >= 0.0 && energy <= 200.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) >= 0.0) {
-				(*excitation)->continuous = (struct xmi_energy_continuous *) g_realloc((*excitation)->continuous,++((*excitation)->n_continuous)*sizeof(struct xmi_energy_continuous));
-				(*excitation)->continuous[(*excitation)->n_continuous-1].energy= energy ;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].horizontal_intensity = horizontal_intensity;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].vertical_intensity = vertical_intensity;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_x = sigma_x;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_xp = sigma_xp;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_y = sigma_y;
-				(*excitation)->continuous[(*excitation)->n_continuous-1].sigma_yp = sigma_yp;
+				excitation_rv->continuous = (struct xmi_energy_continuous *) g_realloc(excitation_rv->continuous,++(excitation_rv->n_continuous)*sizeof(struct xmi_energy_continuous));
+				excitation_rv->continuous[excitation_rv->n_continuous-1].energy= energy ;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].horizontal_intensity = horizontal_intensity;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].vertical_intensity = vertical_intensity;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].sigma_x = sigma_x;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].sigma_xp = sigma_xp;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].sigma_y = sigma_y;
+				excitation_rv->continuous[excitation_rv->n_continuous-1].sigma_yp = sigma_yp;
 			}
 			else {
 				fprintf(stderr,"Error: Invalid continuous interval detected\n");
@@ -993,13 +992,13 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 		subnode = xmlNextElementSibling(subnode);
 	}
 
-	if ((*excitation)->n_continuous < 2 && (*excitation)->n_discrete == 0) {
+	if (excitation_rv->n_continuous < 2 && excitation_rv->n_discrete == 0) {
 		fprintf(stderr,"Error: Found no valid discrete or continuous energies in xml file\n");
 		if (error != NULL)
 			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found no valid discrete or continuous energies in xml file");
 		return 0;
 	}
-	else if ((*excitation)->n_continuous == 1) {
+	else if (excitation_rv->n_continuous == 1) {
 		fprintf(stderr,"Error: Found only one continuous interval in xml file\nMust be either none or at least two\n");
 		if (error != NULL)
 			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found only one continuous interval in xml file\nMust be either none or at least two");
@@ -1007,28 +1006,48 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 	}
 
 
-	//sort!
-	if ((*excitation)->n_continuous > 1) {
-		qsort((*excitation)->continuous,(*excitation)->n_continuous,sizeof(struct xmi_energy_continuous),xmi_cmp_struct_xmi_energy_continuous);
+	// sort!
+	if (excitation_rv->n_continuous > 1) {
+		qsort(excitation_rv->continuous,excitation_rv->n_continuous,sizeof(struct xmi_energy_continuous),xmi_cmp_struct_xmi_energy_continuous);
 	}
-	if ((*excitation)->n_discrete > 1) {
-		qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
+	if (excitation_rv->n_discrete > 1) {
+		qsort(excitation_rv->discrete,excitation_rv->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
 	}
 
-	//make sure that two consecutive intervals do not have zero intensity
-	if ((*excitation)->n_continuous > 2) {
-		int i;
-		for (i = 0 ; i < (*excitation)->n_continuous-1 ; i++) {
-			if ((*excitation)->continuous[i].horizontal_intensity + (*excitation)->continuous[i].vertical_intensity +
-			(*excitation)->continuous[i+1].horizontal_intensity + (*excitation)->continuous[i+1].vertical_intensity == 0.0
-			) {
-				fprintf(stderr, "Error: Two consecutive continuous intensity densities cannot both have a total intensity of zero\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Two consecutive continuous intensity densities cannot both have a total intensity of zero");
+	// sanity check
+	if (excitation_rv->n_continuous == 2) {
+		if (excitation_rv->continuous[0].horizontal_intensity + excitation_rv->continuous[0].vertical_intensity +
+		    excitation_rv->continuous[1].horizontal_intensity + excitation_rv->continuous[1].vertical_intensity == 0.0) {
+			fprintf(stderr, "With only two continuous intervals, both cannot have zero intensity\n");
+			g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "With only two continuous intervals, both cannot have zero intensity\n");
+			return 0;
+		}
+	}
+	else if (excitation_rv->n_continuous > 2) {
+		unsigned int i;
+		for (i = 1 ; i < excitation_rv->n_continuous-1 ; i++) {
+			int before = (excitation_rv->continuous[i-1].horizontal_intensity + excitation_rv->continuous[i-1].vertical_intensity) > 0.0;
+			int current = (excitation_rv->continuous[i].horizontal_intensity + excitation_rv->continuous[i].vertical_intensity) > 0.0;
+			int after = (excitation_rv->continuous[i+1].horizontal_intensity + excitation_rv->continuous[i+1].vertical_intensity) > 0.0;
+			if (i == 1 && before + current == 0) {
+				fprintf(stderr, "First two continuous intensity densities cannot have a total intensity of zero\n");
+				g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "First two continuous intensity densities cannot have a total intensity of zero");
+				return 0;
+			}
+			else if (i == excitation_rv->n_continuous - 2 && current + after == 0) {
+				fprintf(stderr, "Last two continuous intensity densities cannot have a total intensity of zero\n");
+				g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Last two continuous intensity densities cannot have a total intensity of zero");
+				return 0;
+			}
+			else if (before + current + after == 0) {
+				fprintf(stderr, "Three consecutive continuous intensity densities cannot have a total intensity of zero\n");
+				g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Three consecutive continuous intensity densities cannot have a total intensity of zero");
 				return 0;
 			}
 		}
 	}
+
+	*excitation = excitation_rv;
 
 	return 1;
 }

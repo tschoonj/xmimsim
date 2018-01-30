@@ -315,6 +315,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 total_intensity = (iv_start_intensity+iv_end_intensity)* &
                 (iv_end_energy-iv_start_energy)/2.0_C_DOUBLE
 
+                IF (total_intensity == 0.0_C_DOUBLE) THEN
+                        CYCLE cont
+                ENDIF
+
                 IF (xmi_ran_trap_workspace_init(iv_start_energy, iv_end_energy,&
                 iv_start_intensity, iv_end_intensity,workspace) == 0_C_INT) THEN
                         CALL xmi_exit(1)
