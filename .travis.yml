@@ -344,187 +344,125 @@ matrix:
     ### Mac OS X
     ###
     ###
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # with updater
+    # OS X 10.10 Yosemite: fgsl
+    # no gui
+    # no openCL
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: fgsl
+    # no gui
+    # with openCL
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # no gui
+    # no openCL
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # no gui
+    # with openCL
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
     # with gui
+    # no updater
+    # no mac-integration
+    # no openCL
+    # no google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl --disable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # with updater
+    # with mac-integration
+    # no openCL
+    # no google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl --disable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # no updater
+    # no mac-integration
+    # with openCL
+    # no google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl --disable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # with updater
+    # with mac-integration
+    # with openCL
+    # no google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --disable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # no updater
+    # no mac-integration
+    # no openCL
+    # with google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # with updater
+    # with mac-integration
+    # no openCL
+    # with google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # no updater
+    # no mac-integration
+    # with openCL
+    # with google analytics
+    - os: osx
+      sudo: required
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+
+    # OS X 10.10 Yosemite: easyRNG
+    # with gui
+    # with updater
     # with mac-integration
     # with openCL
     # with google analytics
     - os: osx
       sudo: required
-      osx_image: xcode8 # OS X 10.12 El Capitan
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration libsoup' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # with openCL
-    # with google analytics
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration libsoup' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: fgsl
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: fgsl
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.11 El Capitan: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8 # OS X 10.11 El Capitan
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: fgsl
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: fgsl
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_FGSL_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --disable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # no openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --disable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--enable-gui --disable-updater --disable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # no updater
-    # no gui
-    # no mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--disable-gui --disable-updater --disable-mac-integration --enable-opencl' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
-    # OS X 10.12 Sierra: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    # with mac-integration
-    # with openCL
-    - os: osx
-      sudo: required
-      osx_image: xcode8.2 # OS X 10.12 Sierra
-      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-
+      osx_image: xcode6.4 # OS X 10.10 Yosemite
+      env: EXTRA='--enable-gui --enable-updater --enable-mac-integration --enable-opencl --enable-google-analytics' HOMEBREW_EXTRA='tschoonj/tap/gtkmm-plplot json-glib gtk-mac-integration' MYCC='/usr/local/opt/llvm/bin/clang' MYCXX='/usr/local/opt/llvm/bin/clang++' MYFC='gfortran' HOMEBREW_GCC='gcc llvm' MYLIBS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
 
 
 before_install:
