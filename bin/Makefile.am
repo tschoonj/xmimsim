@@ -52,6 +52,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-xmso-results-scrolled-window.h \
 	xmimsim-gui-job.h \
 	xmimsim-gui-batch.h \
+	xmimsim-gui-undo-manager.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -81,6 +82,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
 	xmimsim-gui-job.c \
 	xmimsim-gui-batch.c \
+	xmimsim-gui-undo-manager.c \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \
