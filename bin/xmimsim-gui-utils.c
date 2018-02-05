@@ -37,6 +37,7 @@ double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geomet
 	return solid_angle;
 }
 
+// TODO: remove this function as soon as all references to it have been removed
 void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text) {
 	//this function is a hack and may not work on Gtk3
 	GList *children = gtk_container_get_children(GTK_CONTAINER(button));
