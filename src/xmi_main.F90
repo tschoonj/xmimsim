@@ -115,7 +115,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !begin...
         REAL(C_DOUBLE) :: dirv_z_angle
         INTEGER, PARAMETER :: maxz = 94
-        INTEGER (C_INT64_T) :: n_photons_tot, n_photons_sim
+        INTEGER (C_INT64_T) :: n_photons_disc_tot, n_photons_cont_tot, n_photons_tot, n_photons_sim
+        INTEGER (C_INT) :: n_valid_cont_intervals
 
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
@@ -139,7 +140,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         comptons = 0
         einsteins = 0
         detector_solid_angle_not_found = 0
-        progress_percentage = 1
+        progress_percentage = 0
 
 
 
@@ -254,10 +255,35 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         !ENDIF
 
         rng_type = xmi_rng_mt19937
-        n_photons_sim = 0_C_LONG
-        n_photons_tot = inputF%excitation%n_discrete*inputF%general%n_photons_line +&
-                        inputF%excitation%n_continuous*inputF%general%n_photons_interval
-        n_photons_tot = n_photons_tot/options%omp_num_threads
+
+        n_photons_sim = 0_C_INT64_T
+
+#define exc inputF%excitation
+
+        n_photons_disc_tot = inputF%general%n_photons_line
+        n_photons_disc_tot = n_photons_disc_tot/options%omp_num_threads
+        n_photons_disc_tot = n_photons_disc_tot + MOD(inputF%general%n_photons_line, options%omp_num_threads)
+        n_photons_disc_tot = n_photons_disc_tot * exc%n_discrete
+
+        n_photons_cont_tot = 0_C_INT64_T
+        n_valid_cont_intervals = 0_C_INT
+
+        IF (inputF%excitation%n_continuous .GT. 2) THEN
+                DO i=1,inputF%excitation%n_continuous-1
+                        total_intensity = &
+                                exc%continuous(i)%vertical_intensity+ &
+                                exc%continuous(i)%horizontal_intensity+ &
+                                exc%continuous(i+1)%vertical_intensity+ &
+                                exc%continuous(i+1)%horizontal_intensity
+                        IF (total_intensity .GT. 0.0_C_DOUBLE) &
+                                n_valid_cont_intervals = n_valid_cont_intervals + 1
+                ENDDO
+        ENDIF
+        n_photons_cont_tot = inputF%general%n_photons_interval
+        n_photons_cont_tot = n_photons_cont_tot/options%omp_num_threads
+        n_photons_cont_tot = n_photons_cont_tot + MOD(inputF%general%n_photons_interval, options%omp_num_threads)
+        n_photons_cont_tot = n_photons_cont_tot * n_valid_cont_intervals 
+        n_photons_tot = n_photons_cont_tot + n_photons_disc_tot
 
         !time_before = TIME()
 
@@ -295,15 +321,12 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 !
 
 
+        n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
+        IF (omp_get_thread_num() == 0) THEN
+                n_photons = n_photons + MOD(inputF%general%n_photons_interval, omp_get_num_threads())
+        ENDIF
 
-#define exc inputF%excitation
         cont:DO i=1,exc%n_continuous-1
-                n_photons = inputF%general%n_photons_interval/omp_get_num_threads()/n_mpi_hosts
-                !total_intensity=exc%continuous(i)%vertical_intensity+ &
-                !exc%continuous(i)%horizontal_intensity
-                !hor_ver_ratio = &
-                !exc%continuous(i)%horizontal_intensity*n_photons/ &
-                !total_intensity
                 !Calculate the initial energy -> interval boundaries
                 iv_start_energy = exc%continuous(i)%energy
                 iv_end_energy = exc%continuous(i+1)%energy
@@ -545,9 +568,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDDO photon_eval_cont
 
                         IF (omp_get_thread_num() == 0) THEN
-                          n_photons_sim = n_photons_sim+1_C_INT64_T
+                          n_photons_sim = n_photons_sim+1
                           IF (REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE)&
-                          .GE. progress_percentage .AND. options%verbose == 1_C_INT) THEN
+                          .GE. progress_percentage + 1 .AND. options%verbose == 1_C_INT) THEN
+                            progress_percentage = progress_percentage + 1
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                             CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
                             progress_percentage)
@@ -555,14 +579,17 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                             WRITE(output_unit,'(A,I3,A)')&
                             'Simulating interactions at ',progress_percentage,' %'
 #endif
-                            progress_percentage = progress_percentage+1
                           ENDIF
                         ENDIF
                 ENDDO photons_cont
         ENDDO cont
 
+        n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
+        IF (omp_get_thread_num() == 0) THEN
+                n_photons = n_photons + MOD(inputF%general%n_photons_line, omp_get_num_threads())
+        ENDIF
+
         disc:DO i=1,exc%n_discrete
-                n_photons = inputF%general%n_photons_line/omp_get_num_threads()/n_mpi_hosts
                 total_intensity=exc%discrete(i)%vertical_intensity+ &
                 exc%discrete(i)%horizontal_intensity
                 hor_ver_ratio = &
@@ -830,9 +857,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         ENDDO photon_eval_disc
 
                         IF (omp_get_thread_num() == 0) THEN
-                          n_photons_sim = n_photons_sim+1_C_INT64_T
-                          IF ((n_photons_sim*100_C_INT64_T)/n_photons_tot&
-                          .GE. progress_percentage .AND. options%verbose == 1_C_INT) THEN
+                          n_photons_sim = n_photons_sim+1
+                          IF (REAL(n_photons_sim*100_C_INT64_T,C_DOUBLE)/REAL(n_photons_tot,C_DOUBLE)&
+                          .GE. progress_percentage + 1.AND. options%verbose == 1_C_INT) THEN
+                            progress_percentage = progress_percentage + 1
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                             CALL xmi_print_progress('Simulating interactions at'//C_NULL_CHAR,&
                             progress_percentage)
@@ -840,7 +868,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                             WRITE(output_unit,'(A,I3,A)')&
                             'Simulating interactions at ',progress_percentage,' %'
 #endif
-                            progress_percentage = progress_percentage+1
                           ENDIF
                         ENDIF
                 ENDDO photons_disc
