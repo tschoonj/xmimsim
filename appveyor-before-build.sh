@@ -46,7 +46,7 @@ cd ..
 
 if test $RNG = "fgsl" ; then
 	#install gsl
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
+ 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
 	curl -L -s -O http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.1.0.tar.gz
 	tar xfz fgsl-1.1.0.tar.gz
 	cd fgsl-1.1.0
@@ -70,9 +70,9 @@ if test -z ${PLOT+x} ; then
 	# do nothing
 	:
 elif test $PLOT = "gtkmm-plplot" ; then
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
-	pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
+	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
+	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
+	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
@@ -98,7 +98,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	make install
 	cd ..
 	if test $UPDATER = "true" ; then
-		pacman --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
+		pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-json-glib
 	fi
 fi
 
