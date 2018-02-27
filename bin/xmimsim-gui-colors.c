@@ -16,20 +16,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-colors.h"
-#include <gdkmm/screen.h>
-#include <gtkmm/cssprovider.h>
-#include <gtkmm/stylecontext.h>
+#include <gtk/gtk.h>
 
-XmiColor white_plot;
-XmiColor blue_plot;
-XmiColor red_plot;
-XmiColor green_plot;
-XmiColor black_plot;
-XmiColor purple_plot;
-XmiColor yellow_plot;
-XmiColor pink_plot;
+GdkRGBA white_plot;
+GdkRGBA blue_plot;
+GdkRGBA red_plot;
+GdkRGBA green_plot;
+GdkRGBA black_plot;
+GdkRGBA purple_plot;
+GdkRGBA yellow_plot;
+GdkRGBA pink_plot;
 
-#define COLOR_INIT(color) color ## _plot = new Gdk::RGBA(#color);
+#define COLOR_INIT(color) gdk_rgba_parse(&color ## _plot, #color);
 
 void xmi_msim_gui_utils_init_colors() {
 	/*initialize colors*/
@@ -42,19 +40,24 @@ void xmi_msim_gui_utils_init_colors() {
 	COLOR_INIT(yellow);
 	COLOR_INIT(pink);
 
-
 	// CSS stuff
 	// after https://stackoverflow.com/a/39066419
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Screen::get_default();
-	Glib::RefPtr<Gtk::CssProvider> gtk_provider = Gtk::CssProvider::create();
-	Glib::RefPtr<Gtk::StyleContext> gtk_context = Gtk::StyleContext::create();
-	gtk_context->add_provider_for_screen(screen, gtk_provider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	GdkScreen *screen = gdk_screen_get_default();
+	GtkCssProvider *gtk_provider = gtk_css_provider_new();
+	GtkStyleContext *gtk_context = gtk_style_context_new();
+	gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(gtk_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	GError *error = NULL;
 
-	if (not gtk_provider->load_from_data(
-		"#color_entry.red { background-image: linear-gradient(red,red); }"
+	if (!gtk_css_provider_load_from_data(gtk_provider,
+		"#color_entry.red { background-image: linear-gradient(red,red); }",
+		-1,
+		&error
 	)) {
 		g_warning("xmi_msim_gui_utils_init_colors -> could not load CSS data!");
+		if (error) {
+			g_warning("error message: %s", error->message);
+			g_error_free(error);
+		}
 	}
-	
 }
 

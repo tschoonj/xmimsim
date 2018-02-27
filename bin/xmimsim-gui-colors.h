@@ -19,20 +19,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_MSIM_GUI_COLORS_H
 #define XMI_MSIM_GUI_COLORS_H
 
-#include <gdkmm/rgba.h>
+#include <gdk/gdk.h>
 
 G_BEGIN_DECLS
 
-#define XmiColor Gdk::RGBA *
-
-extern XmiColor white_plot;
-extern XmiColor blue_plot;
-extern XmiColor red_plot;
-extern XmiColor green_plot;
-extern XmiColor black_plot;
-extern XmiColor purple_plot;
-extern XmiColor yellow_plot;
-extern XmiColor pink_plot;
+extern GdkRGBA white_plot;
+extern GdkRGBA blue_plot;
+extern GdkRGBA red_plot;
+extern GdkRGBA green_plot;
+extern GdkRGBA black_plot;
+extern GdkRGBA purple_plot;
+extern GdkRGBA yellow_plot;
+extern GdkRGBA pink_plot;
 
 void xmi_msim_gui_utils_init_colors();
 

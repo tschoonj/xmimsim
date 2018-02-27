@@ -62,7 +62,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-options-box.c \
 	xmimsim-gui-prefs.c \
 	xmimsim-gui-source-abstract.c \
-	xmimsim-gui-colors.cpp \
+	xmimsim-gui-colors.c \
 	xmimsim-gui-compound-dialog.c \
 	xmimsim-gui-catalog-dialog.c \
 	xmimsim-gui-layer-dialog.c \
