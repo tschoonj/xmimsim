@@ -88,6 +88,49 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 }
 
 #ifndef QUICKLOOK
+
+int xmi_equal_energy_discrete(struct xmi_energy_discrete *a, struct xmi_energy_discrete *b) {
+	if (fabs(a->energy - b->energy) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->horizontal_intensity - b->horizontal_intensity) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->vertical_intensity - b->vertical_intensity) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_x - b->sigma_x) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_xp - b->sigma_xp) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_y - b->sigma_y) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_yp - b->sigma_yp) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (a->distribution_type != b->distribution_type)
+		return 0;
+	if (a->distribution_type != XMI_DISCRETE_MONOCHROMATIC && fabs(a->scale_parameter - b->scale_parameter) > XMI_COMPARE_THRESHOLD)
+		return 0;
+
+	return 1;
+}
+
+int xmi_equal_energy_continuous(struct xmi_energy_continuous *a, struct xmi_energy_continuous *b) {
+	if (fabs(a->energy - b->energy) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->horizontal_intensity - b->horizontal_intensity) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->vertical_intensity - b->vertical_intensity) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_x - b->sigma_x) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_xp - b->sigma_xp) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_y - b->sigma_y) > XMI_COMPARE_THRESHOLD)
+		return 0;
+	if (fabs(a->sigma_yp - b->sigma_yp) > XMI_COMPARE_THRESHOLD)
+		return 0;
+
+	return 1;
+}
+
 int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	int rv;
 	int i,j;
@@ -154,16 +197,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 						rv |= XMI_CONFLICT_COMPOSITION;
 						goto after_composition;
 					}
-					else if (fabsl(A->composition->layers[i].weight[j]- B->composition->layers[i].weight[j])/A->composition->layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
+					else if (fabs(A->composition->layers[i].weight[j]- B->composition->layers[i].weight[j])/A->composition->layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_COMPOSITION;
 						goto after_composition;
 					}
 				}
-				if (fabsl(A->composition->layers[i].density - B->composition->layers[i].density)/A->composition->layers[i].density > XMI_COMPARE_THRESHOLD) {
+				if (fabs(A->composition->layers[i].density - B->composition->layers[i].density)/A->composition->layers[i].density > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_COMPOSITION;
 					break;
 				}
-				if (fabsl(A->composition->layers[i].thickness- B->composition->layers[i].thickness)/A->composition->layers[i].thickness > XMI_COMPARE_THRESHOLD) {
+				if (fabs(A->composition->layers[i].thickness- B->composition->layers[i].thickness)/A->composition->layers[i].thickness > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_COMPOSITION;
 					break;
 				}
@@ -174,16 +217,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 	after_composition:
 
 	//geometry
-#define XMI_IF_COMPARE_GEOMETRY(a) if (fabsl(A->geometry->a - B->geometry->a)/fabs(A->geometry->a) > XMI_COMPARE_THRESHOLD){\
+#define XMI_IF_COMPARE_GEOMETRY(a) if (fabs(A->geometry->a - B->geometry->a)/fabs(A->geometry->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
 	}
-#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabsl(A->geometry->a - B->geometry->a) > XMI_COMPARE_THRESHOLD){\
+#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabs(A->geometry->a - B->geometry->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
 	}
 
-#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabsl(a - b) > XMI_COMPARE_THRESHOLD){\
+#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabs(a - b) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_GEOMETRY;\
 	goto after_geometry;\
 	}
@@ -224,7 +267,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 
 	after_geometry:
 
-#define XMI_IF_COMPARE_EXCITATION_DISCRETE(a) if (fabsl(A->excitation->discrete[i].a-B->excitation->discrete[i].a)/A->excitation->discrete[i].a > XMI_COMPARE_THRESHOLD) {\
+#define XMI_IF_COMPARE_EXCITATION_DISCRETE(a) if (fabs(A->excitation->discrete[i].a-B->excitation->discrete[i].a)/A->excitation->discrete[i].a > XMI_COMPARE_THRESHOLD) {\
 					rv |= XMI_CONFLICT_EXCITATION;\
 					break;\
 				}
@@ -254,7 +297,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		}
 	}
 
-#define XMI_IF_COMPARE_EXCITATION_CONTINUOUS(a) if (fabsl(A->excitation->continuous[i].a-B->excitation->continuous[i].a)/A->excitation->continuous[i].a > XMI_COMPARE_THRESHOLD) {\
+#define XMI_IF_COMPARE_EXCITATION_CONTINUOUS(a) if (fabs(A->excitation->continuous[i].a-B->excitation->continuous[i].a)/A->excitation->continuous[i].a > XMI_COMPARE_THRESHOLD) {\
 					rv |= XMI_CONFLICT_EXCITATION;\
 					break;\
 				}
@@ -292,16 +335,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 							rv |= XMI_CONFLICT_ABSORBERS;
 							goto after_absorbers;
 						}
-						else if (fabsl(A->absorbers->exc_layers[i].weight[j]- B->absorbers->exc_layers[i].weight[j])/A->absorbers->exc_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
+						else if (fabs(A->absorbers->exc_layers[i].weight[j]- B->absorbers->exc_layers[i].weight[j])/A->absorbers->exc_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 							rv |= XMI_CONFLICT_ABSORBERS;
 							goto after_absorbers;
 						}
 					}
-					if (fabsl(A->absorbers->exc_layers[i].density - B->absorbers->exc_layers[i].density)/A->absorbers->exc_layers[i].density > XMI_COMPARE_THRESHOLD) {
+					if (fabs(A->absorbers->exc_layers[i].density - B->absorbers->exc_layers[i].density)/A->absorbers->exc_layers[i].density > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
 					}
-					if (fabsl(A->absorbers->exc_layers[i].thickness- B->absorbers->exc_layers[i].thickness)/A->absorbers->exc_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
+					if (fabs(A->absorbers->exc_layers[i].thickness- B->absorbers->exc_layers[i].thickness)/A->absorbers->exc_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
 					}
@@ -325,16 +368,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 							rv |= XMI_CONFLICT_ABSORBERS;
 							goto after_absorbers;
 						}
-						else if (fabsl(A->absorbers->det_layers[i].weight[j]- B->absorbers->det_layers[i].weight[j])/A->absorbers->det_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
+						else if (fabs(A->absorbers->det_layers[i].weight[j]- B->absorbers->det_layers[i].weight[j])/A->absorbers->det_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 							rv |= XMI_CONFLICT_ABSORBERS;
 							goto after_absorbers;
 						}
 					}
-					if (fabsl(A->absorbers->det_layers[i].density - B->absorbers->det_layers[i].density)/A->absorbers->det_layers[i].density > XMI_COMPARE_THRESHOLD) {
+					if (fabs(A->absorbers->det_layers[i].density - B->absorbers->det_layers[i].density)/A->absorbers->det_layers[i].density > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
 					}
-					if (fabsl(A->absorbers->det_layers[i].thickness- B->absorbers->det_layers[i].thickness)/A->absorbers->det_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
+					if (fabs(A->absorbers->det_layers[i].thickness- B->absorbers->det_layers[i].thickness)/A->absorbers->det_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_ABSORBERS;
 						break;
 					}
@@ -351,7 +394,7 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 		goto after_detector;
 	}
 
-#define XMI_IF_COMPARE_DETECTOR(a) if (fabsl(A->detector->a - B->detector->a) > XMI_COMPARE_THRESHOLD){\
+#define XMI_IF_COMPARE_DETECTOR(a) if (fabs(A->detector->a - B->detector->a) > XMI_COMPARE_THRESHOLD){\
 	rv |= XMI_CONFLICT_DETECTOR;\
 	goto after_detector;\
 	}
@@ -383,16 +426,16 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 						rv |= XMI_CONFLICT_DETECTOR;
 						goto after_detector;
 					}
-					else if (fabsl(A->detector->crystal_layers[i].weight[j]- B->detector->crystal_layers[i].weight[j])/A->detector->crystal_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
+					else if (fabs(A->detector->crystal_layers[i].weight[j]- B->detector->crystal_layers[i].weight[j])/A->detector->crystal_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
 						rv |= XMI_CONFLICT_DETECTOR;
 						goto after_detector;
 					}
 				}
-				if (fabsl(A->detector->crystal_layers[i].density - B->detector->crystal_layers[i].density)/A->detector->crystal_layers[i].density > XMI_COMPARE_THRESHOLD) {
+				if (fabs(A->detector->crystal_layers[i].density - B->detector->crystal_layers[i].density)/A->detector->crystal_layers[i].density > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_DETECTOR;
 					break;
 				}
-				if (fabsl(A->detector->crystal_layers[i].thickness- B->detector->crystal_layers[i].thickness)/A->detector->crystal_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
+				if (fabs(A->detector->crystal_layers[i].thickness- B->detector->crystal_layers[i].thickness)/A->detector->crystal_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
 					rv |= XMI_CONFLICT_DETECTOR;
 					break;
 				}

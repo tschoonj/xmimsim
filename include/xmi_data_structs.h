@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -212,6 +212,12 @@ int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B);
 
 //returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
 int xmi_validate_input(struct xmi_input *);
+
+// returns 1 when equal, 0 otherwise
+int xmi_equal_energy_discrete(struct xmi_energy_discrete *a, struct xmi_energy_discrete *b);
+
+// returns 1 when equal, 0 otherwise
+int xmi_equal_energy_continuous(struct xmi_energy_continuous *a, struct xmi_energy_continuous *b);
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
 
