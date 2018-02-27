@@ -1113,9 +1113,9 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 			y_vals
 		)
 	);
-	dataset->set_color(*blue_plot);
+	dataset->set_color(Gdk::RGBA(&blue_plot));
 	dataset->set_line_width(2.0);
-	dataset->set_symbol_color(*red_plot);
+	dataset->set_symbol_color(Gdk::RGBA(&red_plot));
 	dataset->set_symbol("•");
 	dataset->set_symbol_height_scale_factor(2.0);
 	dataset->show();

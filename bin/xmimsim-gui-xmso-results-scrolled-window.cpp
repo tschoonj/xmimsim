@@ -855,7 +855,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 		dataset_unconv->hide();
 		plot_window->add_data(*dataset_unconv);
 
-		XmiColor color_plot;
+		GdkRGBA color_plot;
 		gchar *buffer;
 
 		switch (i - (window->results->use_zero_interactions ? 0 : 1)) {
@@ -923,8 +923,8 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 				}
 				break;
 		}
-		dataset_conv->set_color(*color_plot);
-		dataset_unconv->set_color(*color_plot);
+		dataset_conv->set_color(Gdk::RGBA(&color_plot));
+		dataset_unconv->set_color(Gdk::RGBA(&color_plot));
 		if (window->plot_mode == CONVOLUTED) {
 			dataset_conv->show();
 		}

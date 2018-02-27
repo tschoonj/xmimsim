@@ -373,7 +373,7 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 			y_vals
 		)
 	);
-	dataset->set_color(*blue_plot);
+	dataset->set_color(Gdk::RGBA(&blue_plot));
 	dataset->set_line_width(2.0);
 	dataset->show();
 	dialog->plot_window->add_data(*dataset);
