@@ -21,8 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
 
-#include <gtkmm-plplot.h>
-
 G_BEGIN_DECLS
 
 #define XMI_MSIM_GUI_TYPE_SOURCES_DIALOG                  (xmi_msim_gui_sources_dialog_get_type ())
@@ -32,28 +30,8 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_IS_SOURCES_DIALOG_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG))
 #define XMI_MSIM_GUI_SOURCES_DIALOG_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, XmiMsimGuiSourcesDialogClass))
 
-class Plot2DSources;
-
 typedef struct _XmiMsimGuiSourcesDialog        XmiMsimGuiSourcesDialog;
 typedef struct _XmiMsimGuiSourcesDialogClass   XmiMsimGuiSourcesDialogClass;
-
-struct _XmiMsimGuiSourcesDialog
-{
-  GtkDialog parent_instance;
-  struct xmi_input *current;
-  GtkWidget *notebookW;
-  GtkWidget *linearW;
-  GtkWidget *log10W;
-  GtkWidget *generateButton;
-  Gtk::PLplot::Canvas *canvas;
-  Plot2DSources *plot_window;
-};
-
-struct _XmiMsimGuiSourcesDialogClass
-{
-  GtkDialogClass parent_class;
-
-};
 
 GType xmi_msim_gui_sources_dialog_get_type(void) G_GNUC_CONST;
 
