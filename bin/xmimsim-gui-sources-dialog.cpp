@@ -39,6 +39,23 @@ class Plot2DSources : public Gtk::PLplot::Plot2D {
 	}
 };
 
+extern "C" struct _XmiMsimGuiSourcesDialog
+{
+  GtkDialog parent_instance;
+  struct xmi_input *current;
+  GtkWidget *notebookW;
+  GtkWidget *linearW;
+  GtkWidget *log10W;
+  GtkWidget *generateButton;
+  Gtk::PLplot::Canvas *canvas;
+  Plot2DSources *plot_window;
+};
+
+extern "C" struct _XmiMsimGuiSourcesDialogClass
+{
+  GtkDialogClass parent_class;
+};
+
 G_DEFINE_TYPE(XmiMsimGuiSourcesDialog, xmi_msim_gui_sources_dialog, GTK_TYPE_DIALOG)
 
 static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source);

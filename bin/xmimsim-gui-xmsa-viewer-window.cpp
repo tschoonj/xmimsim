@@ -50,7 +50,7 @@ static int compare_fluor_data(const void *f1, const void *f2) {
 	return (*ff1)->atomic_number - (*ff2)->atomic_number;
 }
 
-struct _XmiMsimGuiXmsaViewerWindow {
+extern "C" struct _XmiMsimGuiXmsaViewerWindow {
 	GtkWindow parent_instance;
 	GtkWidget *parent_windowW;
 	GtkWidget *roi_radioW;
@@ -101,7 +101,7 @@ struct _XmiMsimGuiXmsaViewerWindow {
 	struct xmi_archive *archive;
 };
 
-struct _XmiMsimGuiXmsaViewerWindowClass {
+extern "C" struct _XmiMsimGuiXmsaViewerWindowClass {
 	GtkWindowClass parent_class;
 };
 

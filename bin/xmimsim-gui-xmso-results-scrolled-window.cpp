@@ -210,7 +210,7 @@ enum {
 	N_COLUMNS
 };
 
-struct _XmiMsimGuiXmsoResultsScrolledWindow {
+extern "C" struct _XmiMsimGuiXmsoResultsScrolledWindow {
 	GtkWindow parent_instance;
 	struct xmi_output *results;	
 	/*double plot_xmin;
@@ -236,7 +236,7 @@ struct _XmiMsimGuiXmsoResultsScrolledWindow {
 	std::vector<SpectraDataBox *> spectra_data_boxes;
 };
 
-struct _XmiMsimGuiXmsoResultsScrolledWindowClass
+extern "C" struct _XmiMsimGuiXmsoResultsScrolledWindowClass
 {
 	GtkScrolledWindowClass parent_class;
 };
