@@ -386,7 +386,7 @@ fi
 
 
 #search for HDF5...
-AC_CHECK_PROGS([H5CC],[h5cc-64 h5cc],["fail"])
+AC_PATH_PROGS([H5CC],[h5cc-64 h5cc],["fail"])
 if test x$H5CC = xfail ; then
 	AC_MSG_ERROR([An installation of HDF5 is required, including the headers])
 fi
@@ -401,10 +401,16 @@ H5CC_PARSED=$($H5CC -show -shlib)
 
 COUNTER="0"
 
-AC_CHECK_PROGS([BASENAME], [basename gbasename],["fail"])
+AC_CHECK_PROGS([BASENAME], [gbasename basename],["fail"])
 
 if test x"$BASENAME" = xfail ; then
 	AC_MSG_ERROR([basename shell command not found])
+fi
+
+AC_CHECK_PROGS([DIRNAME], [gdirname dirname],["fail"])
+
+if test x"$DIRNAME" = xfail ; then
+	AC_MSG_ERROR([dirname shell command not found])
 fi
 
 for i in $H5CC_PARSED
@@ -422,6 +428,10 @@ do
 #		AC_MSG_ERROR([Unrecognized output from $H5FC: $i])
 	fi
 done
+
+# h5cc sucks something awful and will not find the headers if they are not in a location that's in the preprocessor's search path
+# use h5cc' location to add one more folder to the path
+H5CC_INCLUDE+=" -I$($DIRNAME $($DIRNAME $H5CC))/include"
 
 
 AC_SUBST(H5CC_LINKER)
