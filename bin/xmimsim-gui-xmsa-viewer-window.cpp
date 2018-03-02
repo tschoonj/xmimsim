@@ -446,6 +446,16 @@ static void save_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 	return;
 }
 
+static void export_archive_plot_printf_error_dialog(XmiMsimGuiXmsaViewerWindow *self, gchar *filename, GError *error, GFileOutputStream *file_stream) {
+	GtkWidget *message_dialog = gtk_message_dialog_new(GTK_WINDOW(self), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not write to %s.", filename);
+	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
+	gtk_dialog_run(GTK_DIALOG(message_dialog));
+	g_error_free(error);
+	g_free(filename);
+	g_object_unref(file_stream);
+	gtk_widget_destroy(message_dialog);
+}
+
 static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 	//fire up file dialog
 	XmiMsimGuiFileChooserDialog *dialog  = xmi_msim_gui_file_chooser_dialog_new(
@@ -468,11 +478,16 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		xmi_msim_gui_utils_ensure_extension(&filename, ".csv");
 		//open file
-		FILE *filePtr;
-		if ((filePtr = fopen(filename, "w")) == NULL) {
+		GFile *file = g_file_new_for_path(filename);
+		GError *error = NULL;
+		GFileOutputStream *file_stream = g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+		g_object_unref(file);
+		if (file_stream == NULL) {
 			GtkWidget *message_dialog = gtk_message_dialog_new(GTK_WINDOW(self), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not open %s for writing.", filename);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
 			gtk_dialog_run(GTK_DIALOG(message_dialog));
-			g_free (filename);
+			g_error_free(error);
+			g_free(filename);
 			gtk_widget_destroy(message_dialog);
 			return;
 		}
@@ -481,25 +496,51 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 			//3D
 			//ROW1
 			//start with an empty block
-			fprintf(filePtr, ",");
+			if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, ",")) {
+				export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+				return;
+			}
 			for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-				//this %g may cause serious trouble on Windows...
-				fprintf(filePtr, "%g", self->x[i*(self->archive->nsteps2+1)]);
-				if (i == self->archive->nsteps1)
-					fprintf(filePtr, "\n");
-				else
-					fprintf(filePtr, ",");
+				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->x[i*(self->archive->nsteps2+1)])) {
+					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+					return;
+				}
+				if (i == self->archive->nsteps1) {
+					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "\n")) {
+						export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+						return;
+					}
+				}
+				else {
+					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, ",")) {
+						export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+						return;
+					}
+				}
 			}
 			//OTHER ROWS
 			for (j = 0 ; j <= self->archive->nsteps2 ; j++) {
-				fprintf(filePtr, "%g,", self->y[j]);
+				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g,", self->y[j])) {
+					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+					return;
+				}
 				for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-					fprintf(filePtr, "%g", self->z[i*(self->archive->nsteps2+1)+j]);
-					if (i == self->archive->nsteps1)
-						fprintf(filePtr, "\n");
-					else
-						fprintf(filePtr, ",");
-
+					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->z[i*(self->archive->nsteps2+1)+j])) {
+						export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+						return;
+					}
+					if (i == self->archive->nsteps1) {
+						if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "\n")) {
+							export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+							return;
+						}
+					}
+					else {
+						if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, ",")) {
+							export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+							return;
+						}
+					}
 				}
 			}
 		}
@@ -507,10 +548,13 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 			//2D
 			for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
 				//this %g may cause serious trouble on Windows...
-				fprintf(filePtr, "%g,%g\n", self->x[i], self->y[i]);
+				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g,%g\n", self->x[i], self->y[i])) {
+					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
+					return;
+				}
 			}
 		}
-		fclose(filePtr);
+		g_object_unref(file_stream);
 
 		GtkWidget *message_dialog = gtk_message_dialog_new(GTK_WINDOW(self), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Successfully created CSV file %s.", filename);
 		gtk_dialog_run(GTK_DIALOG(message_dialog));
