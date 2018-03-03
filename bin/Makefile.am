@@ -54,6 +54,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-undo-manager.h \
 	xmimsim-gui-energies-box.h \
+	xmimsim-gui-layer-box.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -85,6 +86,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-batch.c \
 	xmimsim-gui-undo-manager.c \
 	xmimsim-gui-energies-box.c \
+	xmimsim-gui-layer-box.c \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \
@@ -111,7 +113,6 @@ libxmimsim_gui_la_LIBADD = \
 	@libnotify_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
-
 
 plugindir = $(libdir)/xmimsim-gui/sources
 plugin_LTLIBRARIES = \
@@ -195,15 +196,15 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-energies-box-test
+noinst_PROGRAMS += xmimsim-gui-layer-box-test
 endif
-xmimsim_gui_energies_box_test_SOURCES = xmimsim-gui-energies-box-test.c
-xmimsim_gui_energies_box_test_CPPFLAGS = \
+xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
+xmimsim_gui_layer_box_test_CPPFLAGS = \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	$(AM_CPPFLAGS) \
 	$(NULL)
-xmimsim_gui_energies_box_test_LDADD = \
+xmimsim_gui_layer_box_test_LDADD = \
 	libxmimsim-gui.la \
 	../src/libxmimsim.la \
 	@gtkmm3_LIBS@ \
@@ -254,6 +255,7 @@ mkenum_sources = \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-discrete-energy-dialog.h \
 	xmimsim-gui-continuous-energy-dialog.h \
+	xmimsim-gui-layer-box.h \
 	$(NULL)
 
 marshal_input = \
@@ -481,7 +483,7 @@ xmimsim-gui-type-builtins.c: $(mkenum_sources)
 		--symbol-prefix "xmi_msim_gui" \
 		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
 	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"\n#include \"xmimsim-gui-discrete-energy-dialog.h\"\n#include \"xmimsim-gui-continuous-energy-dialog.h\"" \
+		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-layer-box.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"\n#include \"xmimsim-gui-discrete-energy-dialog.h\"\n#include \"xmimsim-gui-continuous-energy-dialog.h\"" \
 		--fprod "\n/* enumerations from \"@filename@\" */" \
 		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
 		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
