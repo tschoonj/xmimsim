@@ -55,6 +55,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-undo-manager.h \
 	xmimsim-gui-energies-box.h \
 	xmimsim-gui-layer-box.h \
+	xmimsim-gui-clipboard-manager.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -87,6 +88,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-undo-manager.c \
 	xmimsim-gui-energies-box.c \
 	xmimsim-gui-layer-box.c \
+	xmimsim-gui-clipboard-manager.c \
 	$(NULL)
 
 libxmimsim_gui_la_CPPFLAGS = \

@@ -47,6 +47,12 @@ void xmi_msim_gui_layer_box_set_layers(XmiMsimGuiLayerBox *self, guint n_layers,
 
 // to be used by the UndoManager
 void xmi_msim_gui_layer_box_get_layers(XmiMsimGuiLayerBox *self, guint *n_layers, struct xmi_layer **layers, int *reference_layer);
+
+// to be used by the ClipboardManager
+void xmi_msim_gui_layer_box_clipboard_copy(XmiMsimGuiLayerBox *self);
+void xmi_msim_gui_layer_box_clipboard_cut(XmiMsimGuiLayerBox *self);
+void xmi_msim_gui_layer_box_clipboard_paste(XmiMsimGuiLayerBox *self);
+
 XmiMsimGuiLayerBoxType xmi_msim_gui_layer_box_get_layers_type(XmiMsimGuiLayerBox *self);
 
 GType xmi_msim_gui_layer_box_get_type(void) G_GNUC_CONST;
