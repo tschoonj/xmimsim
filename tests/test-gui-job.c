@@ -44,6 +44,7 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 	layer->density = 1.0;
 	data->input->composition->n_layers = 1;
 	data->input->composition->layers = layer;
+	data->input->composition->reference_layer = 1;
 }
 
 static void teardown_data(SetupData *data, gconstpointer user_data) {

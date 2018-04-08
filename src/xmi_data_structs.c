@@ -32,6 +32,8 @@ void xmi_free_layer (struct xmi_layer *layer) {
 }
 
 void xmi_free_input(struct xmi_input *input) {
+	if (input == NULL)
+		return;
 	//general
 	g_free(input->general->outputfile);
 	g_free(input->general->comments);
@@ -54,10 +56,7 @@ void xmi_free_input(struct xmi_input *input) {
 
 	//input
 	g_free(input);
-
-
 }
-
 
 void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 	//allocate space for B
@@ -82,9 +81,6 @@ void xmi_copy_input(struct xmi_input *A, struct xmi_input **B) {
 
 	//detector
 	xmi_copy_detector(A->detector, &((*B)->detector));
-
-
-	return;
 }
 
 #ifndef QUICKLOOK
@@ -454,6 +450,8 @@ int xmi_compare_input(struct xmi_input *A, struct xmi_input *B) {
 #endif
 
 void xmi_free_composition(struct xmi_composition *composition) {
+	if (composition == NULL)
+		return;
 	int i;
 
 	for (i = 0 ; i < composition->n_layers ; i++)
@@ -518,7 +516,7 @@ struct xmi_input *xmi_init_empty_input(void) {
 	rv->composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
 	rv->composition->n_layers = 0;
 	rv->composition->layers = NULL;
-	rv->composition->reference_layer = 1;
+	rv->composition->reference_layer = -1;
 
 	//geometry
 	rv->geometry = (struct xmi_geometry *) g_malloc(sizeof(struct xmi_geometry));
@@ -598,6 +596,8 @@ struct xmi_input *xmi_init_empty_input(void) {
 
 
 void xmi_free_exc_absorbers(struct xmi_absorbers *A) {
+	if (A == NULL)
+		return;
 	int i;
 
 	if (A->n_exc_layers > 0) {
@@ -610,6 +610,8 @@ void xmi_free_exc_absorbers(struct xmi_absorbers *A) {
 }
 
 void xmi_free_det_absorbers(struct xmi_absorbers *A) {
+	if (A == NULL)
+		return;
 	int i;
 
 	if (A->n_det_layers > 0) {
@@ -622,6 +624,8 @@ void xmi_free_det_absorbers(struct xmi_absorbers *A) {
 }
 
 void xmi_free_absorbers(struct xmi_absorbers *A) {
+	if (A == NULL)
+		return;
 	xmi_free_exc_absorbers(A);
 	xmi_free_det_absorbers(A);
 
@@ -1266,6 +1270,9 @@ void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *hist
 }
 
 void xmi_free_output(struct xmi_output *output) {
+	if (output == NULL)
+		return;
+
 	if (output->inputfile)
 		g_free(output->inputfile);
 	int i;
@@ -1281,11 +1288,12 @@ void xmi_free_output(struct xmi_output *output) {
 
 	xmi_free_input(output->input);
 	g_free(output);
-
-	return;
 }
 
 void xmi_free_archive(struct xmi_archive *archive) {
+	if (archive == NULL)
+		return;
+
 	g_free(archive->xpath1);
 	if (archive->xpath2 != NULL)
 		g_free(archive->xpath2);
@@ -1386,14 +1394,11 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 
 
 	*B = C;
-	return;
 }
 
 void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B) {
 	//allocate space for B
 	*B = (struct xmi_geometry *) g_memdup(A,sizeof(struct xmi_geometry));
-
-	return;
 }
 
 void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
@@ -1416,8 +1421,6 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 	}
 	else
 		(*B)->continuous = NULL;
-
-	return;
 }
 
 void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B) {
@@ -1429,11 +1432,12 @@ void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B) {
 		(*B)->crystal_layers[i].Z = (int *) g_memdup(A->crystal_layers[i].Z,(A->crystal_layers[i].n_elements)*sizeof(int));
 		(*B)->crystal_layers[i].weight = (double *) g_memdup(A->crystal_layers[i].weight,(A->crystal_layers[i].n_elements)*sizeof(double));
 	}
-
-	return;
 }
 
 void xmi_free_detector(struct xmi_detector *A) {
+	if (A == NULL)
+		return;
+
 	int i;
 
 	if (A->n_crystal_layers > 0) {
@@ -1443,14 +1447,12 @@ void xmi_free_detector(struct xmi_detector *A) {
 	}
 
 	g_free(A);
-
-	return;
 }
 
 void xmi_free_geometry(struct xmi_geometry *A) {
+	if (A == NULL)
+		return;
 	g_free(A);
-
-	return;
 }
 
 void xmi_free_excitation(struct xmi_excitation *A) {
@@ -1463,8 +1465,6 @@ void xmi_free_excitation(struct xmi_excitation *A) {
 		g_free(A->continuous);
 
 	g_free(A);
-
-	return;
 }
 
 #ifndef QUICKLOOK

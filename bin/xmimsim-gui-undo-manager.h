@@ -34,12 +34,61 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiUndoManager		XmiMsimGuiUndoManager;
 typedef struct _XmiMsimGuiUndoManagerClass   	XmiMsimGuiUndoManagerClass;
 
+// update value with data from input
+typedef void (*XmiMsimGuiUndoManagerValueWriter) (GValue *value, const struct xmi_input *input);
+// update input with data from value
+typedef void (*XmiMsimGuiUndoManagerValueReader) (const GValue *value, struct xmi_input *input);
+
+typedef enum {
+	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_VALID,
+	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_INVALID,
+	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_EQUAL,
+} XmiMsimGuiUndoManagerValueValidatorResult;
+
+typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (const gchar *value_string, struct xmi_input *current_input, GValue *value);
 
 XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new();
 
-gboolean xmi_msim_gui_undo_manager_add_entry(XmiMsimGuiUndoManager *manager, GtkEntry *entry, const gchar *message, GError **error);
+void xmi_msim_gui_undo_manager_create_new_file(XmiMsimGuiUndoManager *manager);
+
+gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);
+
+void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager);
+
+void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager);
+
+typedef enum {
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_VALID,
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID,
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES,
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_VALID,
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_INVALID,
+} XmiMsimGuiUndoManagerStatus;
+
+XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoManager *manager);
+
+gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GError **error);
+
+gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);
+
+gboolean xmi_msim_gui_undo_manager_register_entry(
+	XmiMsimGuiUndoManager *manager,
+	GtkEntry *entry,
+	const gchar *message,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader,
+	XmiMsimGuiUndoManagerValueValidator validator
+	);
 
 GType xmi_msim_gui_undo_manager_get_type(void) G_GNUC_CONST;
+
+typedef enum {
+	XMI_MSIM_GUI_UNDO_MANAGER_ERROR_FLOW,
+} XmiMsimGuiUndoManagerError;
+
+#define XMI_MSIM_GUI_UNDO_MANAGER_ERROR (xmi_msim_gui_undo_manager_error_quark())
+
+GQuark xmi_msim_gui_undo_manager_error_quark(void);
 
 G_END_DECLS
 
