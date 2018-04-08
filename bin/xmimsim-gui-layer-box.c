@@ -193,7 +193,7 @@ static void append_layer(XmiMsimGuiLayerBox *self, struct xmi_layer *layer) {
 	GtkListStore *store = self->store;
 
 	gchar *element_string = xmi_msim_gui_utils_get_layer_element_string(layer);
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION && self->layer_array->len == 1)
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION && self->layer_array->len == 1)
 		self->reference_layer = 0;
 
 	GtkTreeIter iter;
@@ -207,7 +207,7 @@ static void append_layer(XmiMsimGuiLayerBox *self, struct xmi_layer *layer) {
 		);
 	g_free(element_string);
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 		gtk_list_store_set(store, &iter,
 			REFERENCE_COLUMN, self->layer_array->len == 1 ? TRUE : FALSE,
 			-1
@@ -292,7 +292,7 @@ static void layers_delete_button_clicked_cb(GtkWidget *widget, XmiMsimGuiLayerBo
 	g_array_remove_index(self->layer_array, selected_index);
 	gtk_list_store_remove(self->store, &iter);
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 		//reference layer may have to be updated
 		if (selected_index == self->reference_layer) {
 			self->reference_layer = -1;
@@ -392,7 +392,7 @@ static void layer_cut_cb(GtkWidget *button, XmiMsimGuiLayerBox *self) {
 	g_array_remove_index(self->layer_array, selected_index);
 	gtk_list_store_remove(self->store, &iter);
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 		//reference layer may have to be updated
 		if (selected_index == self->reference_layer) {
 			self->reference_layer = -1;
@@ -539,7 +539,7 @@ static gboolean layers_right_click_cb(GtkWidget *tree, GdkEventButton *event, Xm
 static void xmi_msim_gui_layer_box_constructed(GObject *obj) {
 	XmiMsimGuiLayerBox *self = XMI_MSIM_GUI_LAYER_BOX(obj);
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 		self->store = gtk_list_store_new(NCOLUMNS_MATRIX, G_TYPE_INT, G_TYPE_STRING, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_BOOLEAN);
 		GtkCellRenderer *renderer = gtk_cell_renderer_toggle_new();
 		gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
@@ -605,7 +605,7 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		}
 		g_array_prepend_val(self->layer_array, temp);
 
-		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
 				//reference_layer is moved...
 				self->reference_layer = 0;
@@ -622,7 +622,7 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		}
 		g_array_append_val(self->layer_array, temp);
 
-		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
 				//reference_layer is moved...
 				self->reference_layer = self->layer_array->len - 1;
@@ -637,7 +637,7 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		indices[selected_index] = selected_index - 1;
 		g_array_insert_val(self->layer_array, selected_index - 1, temp);
 
-		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
 				//reference_layer is moved...
 				self->reference_layer = selected_index - 1;
@@ -652,7 +652,7 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		indices[selected_index] = selected_index + 1;
 		g_array_insert_val(self->layer_array, selected_index + 1, temp);
 
-		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
 				//reference_layer is moved...
 				self->reference_layer = selected_index + 1;
@@ -824,7 +824,7 @@ static void xmi_msim_gui_layer_box_class_init(XmiMsimGuiLayerBoxClass *klass) {
 		"Layer Box Type",
 		"The type of the layer box",
 		XMI_MSIM_GUI_TYPE_LAYER_BOX_TYPE,
-		XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION,
+		XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION,
 		G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 	);
 
@@ -864,42 +864,43 @@ XmiMsimGuiLayerBoxType xmi_msim_gui_layer_box_get_layers_type(XmiMsimGuiLayerBox
 	return self->type;
 }
 
-void xmi_msim_gui_layer_box_get_layers(XmiMsimGuiLayerBox *self, guint *n_layers, struct xmi_layer **layers, int *reference_layer) {
+struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self) {
 	if (self->layer_array->len == 0) {
-		*n_layers = 0;
-		*layers = NULL;
-		*reference_layer = -1;
-		return;
+		return NULL;
 	}
 
-	*n_layers = self->layer_array->len;
+	struct xmi_composition *rv = g_malloc(sizeof(struct xmi_composition));
+	rv->n_layers = self->layer_array->len;
 
-	if (layers != NULL) {
-		struct xmi_layer *rv = g_malloc(sizeof(struct xmi_layer) * self->layer_array->len);
-		unsigned int i;
-		for (i = 0 ; i < self->layer_array->len ; i++) {
-			xmi_copy_layer2(&g_array_index(self->layer_array, struct xmi_layer, i), &rv[i]);
-		}
-		*layers = rv;
+	rv->layers = g_malloc(sizeof(struct xmi_layer) * self->layer_array->len);
+	unsigned int i;
+
+	for (i = 0 ; i < self->layer_array->len ; i++) {
+		xmi_copy_layer2(&g_array_index(self->layer_array, struct xmi_layer, i), &rv->layers[i]);
 	}
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION && reference_layer != NULL) {
-		*reference_layer = self->reference_layer;
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
+		rv->reference_layer = self->reference_layer;
 	}
+	else {
+		rv->reference_layer = -1;
+	}
+
+	return rv;
 }
 
-void xmi_msim_gui_layer_box_set_layers(XmiMsimGuiLayerBox *self, guint n_layers, struct xmi_layer *layers, int reference_layer) {
+void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const struct xmi_composition *composition) {
 	gtk_list_store_clear(self->store);
 	g_array_ref(self->layer_array);
 	g_array_free(self->layer_array, TRUE);
 
 	int i;
 
-	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION)
-		self->reference_layer = reference_layer;
+	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION)
+		self->reference_layer = composition->reference_layer;
 
-	for (i = 0 ; i < n_layers ; i++) {
-		struct xmi_layer layer = layers[i];
+	for (i = 0 ; i < composition->n_layers ; i++) {
+		struct xmi_layer layer = composition->layers[i];
 		layer.Z = g_memdup(layer.Z, sizeof(int) * layer.n_elements);
 		layer.weight = g_memdup(layer.weight, sizeof(double) * layer.n_elements);
 		g_array_append_val(self->layer_array, layer);
@@ -917,7 +918,7 @@ void xmi_msim_gui_layer_box_set_layers(XmiMsimGuiLayerBox *self, guint n_layers,
 		);
 		g_free(element_string);
 
-		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION) {
+		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			gtk_list_store_set(self->store, &iter,
 				REFERENCE_COLUMN, self->reference_layer == i ? TRUE : FALSE,
 				-1

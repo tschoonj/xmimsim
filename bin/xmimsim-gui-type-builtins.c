@@ -63,7 +63,7 @@ xmi_msim_gui_layer_box_type_get_type (void)
   static GType etype = 0;
   if (etype == 0) {
     static const GEnumValue values[] = {
-      { XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION, "XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION", "composition" },
+      { XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION, "XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION", "sample-composition" },
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS", "excitation-absorbers" },
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS", "detector-absorbers" },
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_ABSORBERS", "crystal-absorbers" },

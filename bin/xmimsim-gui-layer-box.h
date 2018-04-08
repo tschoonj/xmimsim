@@ -34,7 +34,7 @@ typedef struct _XmiMsimGuiLayerBox		XmiMsimGuiLayerBox;
 typedef struct _XmiMsimGuiLayerBoxClass   	XmiMsimGuiLayerBoxClass;
 
 typedef enum {
-	XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION,
+	XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION,
 	XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS,
 	XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS,
 	XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_ABSORBERS,
@@ -43,10 +43,10 @@ typedef enum {
 GtkWidget* xmi_msim_gui_layer_box_new(XmiMsimGuiLayerBoxType layers_type);
 
 // this method does not emit a signal!!!
-void xmi_msim_gui_layer_box_set_layers(XmiMsimGuiLayerBox *self, guint n_layers, struct xmi_layer *layers, int reference_layer);
+void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const struct xmi_composition *composition);
 
 // to be used by the UndoManager
-void xmi_msim_gui_layer_box_get_layers(XmiMsimGuiLayerBox *self, guint *n_layers, struct xmi_layer **layers, int *reference_layer);
+struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self);
 
 // to be used by the ClipboardManager
 void xmi_msim_gui_layer_box_clipboard_copy(XmiMsimGuiLayerBox *self);

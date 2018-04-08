@@ -34,22 +34,15 @@ static void destroy( GtkWidget *widget,
 }
 
 static void changed(XmiMsimGuiLayerBox *lb, gchar *change, gpointer data) {
-	guint n_layers;
-	struct xmi_layer *layers = NULL;
-	int reference_layer = -1;
-	xmi_msim_gui_layer_box_get_layers(lb, &n_layers, &layers, &reference_layer);
+	struct xmi_composition *composition = xmi_msim_gui_layer_box_get_composition(lb);
 
 	fprintf(stdout, "change: %s\n", change);
-	xmi_print_layer(stdout, layers, n_layers);
-	if (xmi_msim_gui_layer_box_get_layers_type(lb) == XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION)
-		fprintf(stdout, "reference_layer: %d\n", reference_layer);
+	xmi_print_layer(stdout, composition->layers, composition->n_layers);
+	if (xmi_msim_gui_layer_box_get_layers_type(lb) == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION)
+		fprintf(stdout, "reference_layer: %d\n", composition->reference_layer);
 	fprintf(stdout, "\n");
 
-	int i;
-	for (i = 0 ; i < n_layers ; i++) {
-		xmi_free_layer(&layers[i]);
-	}
-	g_free(layers);
+	xmi_free_composition(composition);
 }
 
 void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_copy_val, gboolean paste_val, gpointer data) {
@@ -104,11 +97,12 @@ int main(int argc, char *argv[]) {
 	gtk_widget_set_can_focus(cut, FALSE);
 	gtk_widget_set_can_focus(paste, FALSE);
 
-	GtkWidget *lb = xmi_msim_gui_layer_box_new(XMI_MSIM_GUI_LAYER_BOX_TYPE_COMPOSITION);
+	GtkWidget *lb = xmi_msim_gui_layer_box_new(XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION);
 	int Z[3] = {12, 18, 26};
 	double weight[3] = {0.3, 0.5, 0.2};
 	struct xmi_layer layer = {.n_elements = 3, .Z = Z, .weight = weight, .density = 4.5, .thickness = 1.3};
-	xmi_msim_gui_layer_box_set_layers(XMI_MSIM_GUI_LAYER_BOX(lb), 1, &layer, 0);
+	struct xmi_composition composition = {.n_layers = 1, .layers = &layer, .reference_layer = 0};
+	xmi_msim_gui_layer_box_set_composition(XMI_MSIM_GUI_LAYER_BOX(lb), &composition);
 	g_signal_connect(G_OBJECT(lb), "changed", G_CALLBACK(changed), NULL);
 	gtk_grid_attach(GTK_GRID(grid), lb, 0, 1, 3, 1);
 	

@@ -203,6 +203,7 @@ struct xmi_output* run_main(const char *compound) {
 	layer->density = 1.0;
 	input->composition->n_layers = 1;
 	input->composition->layers = layer;
+	input->composition->reference_layer = 1;
 	
 	// increase sample-detector distance to have more reliable fundamental parameter calculation
 	input->geometry->p_detector_window[1] = 10.0;
