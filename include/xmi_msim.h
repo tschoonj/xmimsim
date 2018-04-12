@@ -44,6 +44,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_error.h"
 #include "xmi_spline.h"
 #include "xmi_transmission_efficiency.h"
+#include "xmi_gobject.h"
 
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"
