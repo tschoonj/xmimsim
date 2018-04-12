@@ -33,6 +33,7 @@ xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_error.h \
 			 xmi_spline.h \
 			 xmi_transmission_efficiency.h \
+			 xmi_gobject.h \
 			 $(NULL)
 
 if OS_WINDOWS

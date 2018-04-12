@@ -16,6 +16,7 @@ check_PROGRAMS = \
      test-version \
      test-cubic-spline \
      test-ebel \
+     test-gobject \
      $(NULL)
 
 if ENABLE_GUI
@@ -129,6 +130,11 @@ test_ebel_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
 			-DTRANSMISSION_FILE=\"${srcdir}/transmission-efficiency.txt\"
 test_ebel_LDADD = libxmimsim-test.la
+
+test_gobject_SOURCES = test-gobject.c
+test_gobject_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_gobject_LDADD = libxmimsim-test.la
 
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
