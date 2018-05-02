@@ -16,11 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-#include <gtk/gtk.h>
-#include "xmi_data_structs.h"
-
 #ifndef XMI_MSIM_GUI_UNDO_MANAGER_H
 #define XMI_MSIM_GUI_UNDO_MANAGER_H
+
+#include <gtk/gtk.h>
+#include "xmi_data_structs.h"
+#include "xmimsim-gui-layer-box.h"
+#include "xmimsim-gui-energies-box.h"
 
 G_BEGIN_DECLS
 
@@ -45,7 +47,7 @@ typedef enum {
 	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_EQUAL,
 } XmiMsimGuiUndoManagerValueValidatorResult;
 
-typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (const gchar *value_string, struct xmi_input *current_input, GValue *value);
+typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (GtkWidget *widget, struct xmi_input *current_input, GValue *value);
 
 XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new();
 
@@ -67,6 +69,8 @@ typedef enum {
 
 XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoManager *manager);
 
+const gchar* xmi_msim_gui_undo_manager_get_filename(XmiMsimGuiUndoManager *manager);
+
 gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GError **error);
 
 gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);
@@ -79,6 +83,35 @@ gboolean xmi_msim_gui_undo_manager_register_entry(
 	XmiMsimGuiUndoManagerValueReader reader,
 	XmiMsimGuiUndoManagerValueValidator validator
 	);
+
+gboolean xmi_msim_gui_undo_manager_register_layer_box(
+	XmiMsimGuiUndoManager *manager,
+	XmiMsimGuiLayerBox *box
+	);
+
+gboolean xmi_msim_gui_undo_manager_register_energies_box(
+	XmiMsimGuiUndoManager *manager,
+	XmiMsimGuiEnergiesBox *box
+	);
+
+gboolean xmi_msim_gui_undo_manager_register_text_view(
+	XmiMsimGuiUndoManager *manager,
+	GtkTextView *text_view,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	);
+
+typedef struct _XmiMsimGuiUndoManagerTextViewInsertData XmiMsimGuiUndoManagerTextViewInsertData;
+typedef struct _XmiMsimGuiUndoManagerTextViewDeleteData XmiMsimGuiUndoManagerTextViewDeleteData;
+
+#define XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA (xmi_msim_gui_undo_manager_text_view_insert_data_get_type())
+#define XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_DELETE_DATA (xmi_msim_gui_undo_manager_text_view_delete_data_get_type())
+
+GType xmi_msim_gui_undo_manager_text_view_insert_data_get_type(void) G_GNUC_CONST;
+GType xmi_msim_gui_undo_manager_text_view_delete_data_get_type(void) G_GNUC_CONST;
+
+const gchar* xmi_msim_gui_undo_manager_text_view_insert_data_get_all_text(XmiMsimGuiUndoManagerTextViewInsertData *data);
+const gchar* xmi_msim_gui_undo_manager_text_view_delete_data_get_all_text(XmiMsimGuiUndoManagerTextViewDeleteData *data);
 
 GType xmi_msim_gui_undo_manager_get_type(void) G_GNUC_CONST;
 

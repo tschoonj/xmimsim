@@ -66,7 +66,7 @@ xmi_msim_gui_layer_box_type_get_type (void)
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION, "XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION", "sample-composition" },
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS", "excitation-absorbers" },
       { XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS", "detector-absorbers" },
-      { XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_ABSORBERS, "XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_ABSORBERS", "crystal-absorbers" },
+      { XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_COMPOSITION, "XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_COMPOSITION", "crystal-composition" },
       { 0, NULL, NULL }
     };
     etype = g_enum_register_static(g_intern_static_string("XmiMsimGuiLayerBoxType"), values);
