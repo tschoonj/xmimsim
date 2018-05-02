@@ -48,6 +48,15 @@ void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN (GClosure     *closure,
                                          gpointer      invocation_hint,
                                          gpointer      marshal_data);
 
+/* VOID:BOOLEAN,BOOLEAN,STRING,STRING (xmimsim-gui-marshal.list:7) */
+extern
+void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
+                                                       GValue       *return_value,
+                                                       guint         n_param_values,
+                                                       const GValue *param_values,
+                                                       gpointer      invocation_hint,
+                                                       gpointer      marshal_data);
+
 
 G_END_DECLS
 

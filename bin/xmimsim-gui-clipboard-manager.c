@@ -137,6 +137,37 @@ static void entry_notify_cursor_position_cb(GObject *entry, GParamSpec *pspec, X
 	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, paste_status);
 }
 
+static gboolean text_view_focus_out_cb(GtkTextView *text_view, GdkEvent *event, XmiMsimGuiClipboardManager *manager) {
+	//make sure possible selections are removed
+	manager->focus_widget = NULL;
+
+	GtkTextBuffer *text_buffer = gtk_text_view_get_buffer(text_view);
+	GtkTextIter start;
+	if (gtk_text_buffer_get_selection_bounds(text_buffer, &start, NULL)) {
+		gtk_text_buffer_select_range(text_buffer, &start, &start);
+	}
+
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE);
+
+	return FALSE;
+}
+
+static gboolean text_view_focus_in_cb(GtkTextView *text_view, GdkEvent *event, XmiMsimGuiClipboardManager *manager) {
+	manager->focus_widget = GTK_WIDGET(text_view);
+	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, paste_status);
+
+	return FALSE;
+}
+
+static void text_buffer_notify_has_selection_cb(GtkTextBuffer *buffer, GParamSpec *pspec, XmiMsimGuiClipboardManager *manager) {
+	gboolean cut_copy_status = gtk_text_buffer_get_has_selection(buffer);
+	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, paste_status);
+}
+
 void xmi_msim_gui_clipboard_manager_register_widget(XmiMsimGuiClipboardManager *manager, GtkWidget *widget) {
 	g_return_if_fail(XMI_MSIM_GUI_IS_CLIPBOARD_MANAGER(manager));
 	g_return_if_fail(GTK_IS_WIDGET(widget));
@@ -155,6 +186,13 @@ void xmi_msim_gui_clipboard_manager_register_widget(XmiMsimGuiClipboardManager *
 		signal_ids[2] = g_signal_connect(G_OBJECT(widget), "notify::cursor-position", G_CALLBACK(entry_notify_cursor_position_cb), manager);
 		signal_ids[3] = g_signal_connect(G_OBJECT(widget), "notify::selection-bound", G_CALLBACK(entry_notify_cursor_position_cb), manager);
 		g_array_append_vals(hv->signal_ids, signal_ids, 4);
+	}
+	else if (GTK_IS_TEXT_VIEW(widget)) {
+		gulong signal_ids[3];
+		signal_ids[0] = g_signal_connect(G_OBJECT(widget), "focus-out-event", G_CALLBACK(text_view_focus_out_cb), manager);
+		signal_ids[1] = g_signal_connect(G_OBJECT(widget), "focus-in-event", G_CALLBACK(text_view_focus_in_cb), manager);
+		signal_ids[2] = g_signal_connect(G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget))), "notify::has-selection", G_CALLBACK(text_buffer_notify_has_selection_cb), manager);
+		g_array_append_vals(hv->signal_ids, signal_ids, 3);
 	}
 	else {
 		g_critical("xmi_msim_gui_clipboard_manager_register_widget: unsupported widget type %s detected", g_type_name(G_OBJECT_TYPE(widget)));

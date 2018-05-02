@@ -68,7 +68,7 @@ enum {
 
 static guint signals[LAST_SIGNAL];
 
-static const gchar* const type_names[4] = {"composition", "excitation absorbers", "detector absorbers", "detector crystal"};
+static const gchar* const type_names[4] = {"sample composition", "excitation absorbers", "detector absorbers", "detector crystal"};
 
 G_DEFINE_TYPE(XmiMsimGuiLayerBox, xmi_msim_gui_layer_box, GTK_TYPE_BOX)
 
@@ -452,6 +452,7 @@ static void layer_paste_cb(GtkWidget *button, XmiMsimGuiLayerBox *self) {
 }
 
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, XmiMsimGuiLayerBox *self) {
+	gtk_widget_grab_focus(tree);
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 	if (!clipboard)
 		return;
@@ -880,7 +881,7 @@ struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBo
 	}
 
 	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
-		rv->reference_layer = self->reference_layer;
+		rv->reference_layer = self->reference_layer + 1;
 	}
 	else {
 		rv->reference_layer = -1;
@@ -897,7 +898,10 @@ void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const stru
 	int i;
 
 	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION)
-		self->reference_layer = composition->reference_layer;
+		self->reference_layer = composition->reference_layer - 1;
+
+	g_debug("xmi_msim_gui_layer_box_set_composition: self->type -> %d", self->type);
+	g_debug("xmi_msim_gui_layer_box_set_composition: self->reference_layer -> %d", self->reference_layer);
 
 	for (i = 0 ; i < composition->n_layers ; i++) {
 		struct xmi_layer layer = composition->layers[i];

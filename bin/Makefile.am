@@ -204,6 +204,7 @@ xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
 xmimsim_gui_layer_box_test_CPPFLAGS = \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
+	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 xmimsim_gui_layer_box_test_LDADD = \

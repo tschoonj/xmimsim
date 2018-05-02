@@ -17,8 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-undo-manager.h"
+#include "xmimsim-gui-marshal.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
+#include "xmi_gobject.h"
 
 typedef struct {
 	gchar *message;
@@ -79,26 +81,84 @@ static void xmi_msim_gui_undo_manager_finalize(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_gui_undo_manager_parent_class)->finalize(gobject);
 }
 
+enum {
+	UPDATE_BUTTONS,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 static void xmi_msim_gui_undo_manager_class_init(XmiMsimGuiUndoManagerClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_gui_undo_manager_dispose;
 	object_class->finalize = xmi_msim_gui_undo_manager_finalize;
 	
-	// several signals will need to be added: for the save/save as buttons, undo/redo buttons, etc...
-	/*signals[AFTER_EVENT] = g_signal_new(
-		"after-event",
+	signals[UPDATE_BUTTONS] = g_signal_new(
+		"update-status-buttons",
 		G_TYPE_FROM_CLASS(klass),
 		G_SIGNAL_RUN_LAST,
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__POINTER,
+		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING,
 		G_TYPE_NONE,
-		1,
-		G_TYPE_POINTER // GError *
-	);*/
+		4,
+		G_TYPE_BOOLEAN, // save-as
+		G_TYPE_BOOLEAN, // save
+		G_TYPE_STRING, // undo
+		G_TYPE_STRING  // redo
+	);
+}
 
+static void manager_emit_update_buttons(XmiMsimGuiUndoManager *manager) {
+	gboolean save_as_status = FALSE;
+	gboolean save_status = FALSE;
+	gchar *undo_status = NULL;
+	gchar *redo_status = NULL;
+
+	g_debug("manager_emit_update_buttons: stack len -> %d", manager->undo_stack->len);
+	g_debug("manager_emit_update_buttons: current_index -> %d", manager->current_index);
+
+	// first see if all widgets are in a valid state -> if not, turn them all off
+	// next save status is determined by validity of current input -> use xmi_msim_gui_undo_manager_get_status
+	// undo status is on if current_index > 0
+	// redo status is on if current_index < stack_len - 1
+	
+	GHashTableIter iter;
+	XmiMsimGuiUndoManagerWidgetData *value;
+	gboolean valid = TRUE;
+
+	g_hash_table_iter_init(&iter, manager->widget_table);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &value)) {
+		if (!value->valid) {
+			valid = FALSE;
+			break;
+		}
+	}
+
+	if (valid) {
+		// undo	
+		if (manager->current_index > 0) {
+			XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+			undo_status = stack_data->message;
+		}
+		// redo
+		if (manager->current_index < manager->undo_stack->len - 1) {
+			XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index + 1);
+			redo_status = stack_data->message;
+		}
+		// save
+		XmiMsimGuiUndoManagerStatus status = xmi_msim_gui_undo_manager_get_status(manager);
+		if (status == XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_VALID || status == XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_VALID) {
+			save_status = save_as_status = TRUE;
+		}
+		else if (status == XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES) {
+			save_as_status = TRUE;
+		}
+	}
+
+	g_signal_emit(manager, signals[UPDATE_BUTTONS], 0, save_as_status, save_status, undo_status, redo_status);
 }
 
 static void xmi_msim_gui_undo_manager_init(XmiMsimGuiUndoManager *manager) {
@@ -108,32 +168,58 @@ static void xmi_msim_gui_undo_manager_init(XmiMsimGuiUndoManager *manager) {
 	manager->current_index = -1;
 	manager->last_saved_input = NULL;
 	g_ptr_array_ref(manager->undo_stack);
-	/* XmiMsimGuiUndoManagerStackData *stack_data = g_malloc(sizeof(XmiMsimGuiUndoManagerStackData));
-	memset(&stack_data->value, 0, sizeof(GValue));
-	stack_data->input = xmi_init_empty_input();
-	stack_data->widget = NULL;
-	stack_data->message = NULL;
-	g_ptr_array_add(manager->undo_stack, stack_data);*/
 }
 
 XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new() {
 	return XMI_MSIM_GUI_UNDO_MANAGER(g_object_new(XMI_MSIM_GUI_TYPE_UNDO_MANAGER, NULL));
 }
 
-static void widget_set_sensitive_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, gpointer data) {
-	gtk_widget_set_sensitive(widget, GPOINTER_TO_INT(data));
+static void widget_set_sensitive_hash_true(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, gpointer ignored_data) {
+	gtk_widget_set_sensitive(widget, TRUE);
 }
+
+static void widget_set_sensitive_hash_false(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, GtkWidget *keep_true_widget) {
+	if (widget == keep_true_widget)
+		gtk_widget_set_sensitive(widget, TRUE);
+	else
+		gtk_widget_set_sensitive(widget, FALSE);
+}
+
+static void extend_undo_stack(XmiMsimGuiUndoManager *manager, GtkWidget *widget, GValue *value, const gchar *message, struct xmi_input *current_input) {
+	g_debug("extend_undo_stack: %s", message);
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, widget);
+	XmiMsimGuiUndoManagerStackData *stack_data = g_malloc(sizeof(XmiMsimGuiUndoManagerStackData));
+
+	memset(&stack_data->value, 0, sizeof(GValue));
+	g_value_init(&stack_data->value, G_VALUE_TYPE(value));
+	g_value_copy(value, &stack_data->value);
+	xmi_copy_input(current_input, &stack_data->input);
+	widget_data->reader(value, stack_data->input);
+	g_value_unset(value);
+
+	stack_data->widget = widget;
+	stack_data->message = g_strdup(message);
+	// if in redo mode -> remove everything more recent than current_index
+	if (manager->current_index < manager->undo_stack->len - 1)
+		g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
+	g_ptr_array_add(manager->undo_stack, stack_data);
+	manager->current_index++;
+
+	// emit signal for save / save as / undo redo buttons	
+	manager_emit_update_buttons(manager);
+}
+
 
 static void entry_changed_cb(GtkEntry *entry, XmiMsimGuiUndoManager *manager) {
 	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, entry);
 	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for entry
 	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
 
-	XmiMsimGuiUndoManagerStackData *stack_data_last = g_ptr_array_index(manager->undo_stack, manager->undo_stack->len - 1);
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
 
-	const gchar *text = gtk_entry_get_text(entry);
 	GValue value = G_VALUE_INIT;
-	XmiMsimGuiUndoManagerValueValidatorResult validator_result = widget_data->validator(text, stack_data_last->input, &value);
+	XmiMsimGuiUndoManagerValueValidatorResult validator_result = widget_data->validator(GTK_WIDGET(entry), current_stack_data->input, &value);
 
 	GtkStyleContext *style_context = gtk_widget_get_style_context(GTK_WIDGET(entry));
 
@@ -141,38 +227,24 @@ static void entry_changed_cb(GtkEntry *entry, XmiMsimGuiUndoManager *manager) {
 		if (!widget_data->valid) {
 			widget_data->valid = TRUE;
 			// foreach widget set sensitive TRUE
-			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash, GINT_TO_POINTER(TRUE));
+			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash_true, NULL);
 			// update entry background color
 			gtk_style_context_remove_class(style_context, "red");
 		}
 
 		// extend undo stack
-		XmiMsimGuiUndoManagerStackData *stack_data = g_malloc(sizeof(XmiMsimGuiUndoManagerStackData));
-		memset(&stack_data->value, 0, sizeof(GValue));
-		g_value_init(&stack_data->value, G_VALUE_TYPE(&value));
-		g_value_copy(&value, &stack_data->value);
-		xmi_copy_input(stack_data_last->input, &stack_data->input);
-		widget_data->reader(&value, stack_data->input);
-		g_value_unset(&value);
-		stack_data->widget = GTK_WIDGET(entry);
-		stack_data->message = g_strdup(widget_data->message);
-		// if in redo mode -> remove everything more recent than current_index
-		if (manager->current_index < manager->undo_stack->len - 1)
-			g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
-		g_ptr_array_add(manager->undo_stack, stack_data);
-		manager->current_index++;
-
-		// emit signal for save / save as / undo redo buttons	
+		extend_undo_stack(manager, GTK_WIDGET(entry), &value, widget_data->message, current_stack_data->input);
 	}
 	else if (validator_result == XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_INVALID) {
 		if (widget_data->valid) {
 			widget_data->valid = FALSE;
 			// foreach widget set sensitive FALSE
-			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash, GINT_TO_POINTER(FALSE));
+			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash_false, entry);
 			// update entry background color
 			gtk_style_context_add_class(style_context, "red");
 			
 			// emit signal for save / save as / undo redo buttons	
+			manager_emit_update_buttons(manager);
 		}
 
 	}
@@ -181,10 +253,11 @@ static void entry_changed_cb(GtkEntry *entry, XmiMsimGuiUndoManager *manager) {
 		if (!widget_data->valid) {
 			widget_data->valid = TRUE;
 			// foreach widget set sensitive TRUE
-			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash, GINT_TO_POINTER(TRUE));
+			g_hash_table_foreach(manager->widget_table, (GHFunc) widget_set_sensitive_hash_true, NULL);
 			// update entry background color
 			gtk_style_context_remove_class(style_context, "red");
 			// emit signal for save / save as / undo redo buttons	
+			manager_emit_update_buttons(manager);
 		}
 	}
 }
@@ -200,7 +273,7 @@ gboolean xmi_msim_gui_undo_manager_register_entry(
 	g_return_val_if_fail(GTK_IS_ENTRY(entry), FALSE);
 
 	if (g_hash_table_contains(manager->widget_table, entry)) {
-		g_warning("xmi_msim_gui_undo_manager_add_entry: entry already registered by manager");
+		g_warning("xmi_msim_gui_undo_manager_register_entry: entry already registered by manager");
 		return FALSE;
 	}
 
@@ -223,15 +296,508 @@ gboolean xmi_msim_gui_undo_manager_register_entry(
 	return TRUE;
 }
 
+static void layer_box_changed_cb(XmiMsimGuiLayerBox *box, gchar *message, XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, box);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+	g_return_if_fail(message != NULL);
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+	
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(&value, xmi_msim_gui_layer_box_get_composition(box));
+
+	extend_undo_stack(manager, GTK_WIDGET(box), &value, message, current_stack_data->input);
+}
+
+static void sample_composition_writer(GValue *value, const struct xmi_input *input) {
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_set_boxed(value, input->composition);
+}
+
+static void sample_composition_reader(const GValue *value, struct xmi_input *input) {
+	xmi_free_composition(input->composition);
+	input->composition = g_value_dup_boxed(value);
+}
+
+static void excitation_absorbers_composition_writer(GValue *value, const struct xmi_input *input) {
+	struct xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->absorbers->exc_layers, input->absorbers->n_exc_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void excitation_absorbers_composition_reader(const GValue *value, struct xmi_input *input) {
+	xmi_free_exc_absorbers(input->absorbers);
+	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->exc_layers, &input->absorbers->n_exc_layers);
+}
+
+static void detector_absorbers_composition_writer(GValue *value, const struct xmi_input *input) {
+	struct xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->absorbers->det_layers, input->absorbers->n_det_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void detector_absorbers_composition_reader(const GValue *value, struct xmi_input *input) {
+	xmi_free_det_absorbers(input->absorbers);
+	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->det_layers, &input->absorbers->n_det_layers);
+}
+
+static void crystal_composition_writer(GValue *value, const struct xmi_input *input) {
+	struct xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->detector->crystal_layers, input->detector->n_crystal_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void crystal_composition_reader(const GValue *value, struct xmi_input *input) {
+	int i;
+	if (input->detector->n_crystal_layers > 0) {
+		for (i = 0 ; i < input->detector->n_crystal_layers ; i++)
+			xmi_free_layer(input->detector->crystal_layers+i);
+		g_free(input->detector->crystal_layers);
+	}
+	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->detector->crystal_layers, &input->detector->n_crystal_layers);
+}
+
+gboolean xmi_msim_gui_undo_manager_register_layer_box(
+	XmiMsimGuiUndoManager *manager,
+	XmiMsimGuiLayerBox *box
+	) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_LAYER_BOX(box), FALSE);
+
+	XmiMsimGuiUndoManagerValueWriter writer;
+	XmiMsimGuiUndoManagerValueReader reader;
+
+	XmiMsimGuiLayerBoxType box_type = xmi_msim_gui_layer_box_get_layers_type(box);
+
+	switch (box_type) {
+		case XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION:
+			writer = sample_composition_writer;
+			reader = sample_composition_reader;
+			break;
+		case XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS:
+			writer = excitation_absorbers_composition_writer;
+			reader = excitation_absorbers_composition_reader;
+			break;
+		case XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS:
+			writer = detector_absorbers_composition_writer;
+			reader = detector_absorbers_composition_reader;
+			break;
+		case XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_COMPOSITION:
+			writer = crystal_composition_writer;
+			reader = crystal_composition_reader;
+			break;
+		default:
+			g_warning("xmi_msim_gui_undo_manager_register_layer_box: unknown box type");
+			return FALSE;
+	}
+
+	if (g_hash_table_contains(manager->widget_table, box)) {
+		g_warning("xmi_msim_gui_undo_manager_register_layer_box: layer_box already registered by manager");
+		return FALSE;
+	}
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_malloc(sizeof(XmiMsimGuiUndoManagerWidgetData));
+	widget_data->message = NULL;
+	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
+	widget_data->valid = TRUE; // don't think I will be using this for layer_box
+	widget_data->writer = writer;
+	widget_data->reader = reader;
+
+	gulong signal_id = g_signal_connect(box, "changed", G_CALLBACK(layer_box_changed_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_id);
+
+	g_hash_table_insert(manager->widget_table, box, widget_data);
+
+	return TRUE;
+}
+
+static void energies_box_writer(GValue *value, const struct xmi_input *input) {
+	g_value_init(value, XMI_MSIM_TYPE_EXCITATION);
+	g_value_set_boxed(value, input->excitation);
+}
+
+static void energies_box_reader(const GValue *value, struct xmi_input *input) {
+	xmi_free_excitation(input->excitation);
+	input->excitation = g_value_dup_boxed(value);
+}
+
+static void energies_box_changed_cb(XmiMsimGuiEnergiesBox *box, gchar *message, XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, box);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+	g_return_if_fail(message != NULL);
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+	
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, XMI_MSIM_TYPE_EXCITATION);
+	g_value_take_boxed(&value, xmi_msim_gui_energies_box_get_excitation(box));
+
+	extend_undo_stack(manager, GTK_WIDGET(box), &value, message, current_stack_data->input);
+}
+
+gboolean xmi_msim_gui_undo_manager_register_energies_box(
+	XmiMsimGuiUndoManager *manager,
+	XmiMsimGuiEnergiesBox *box
+	) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_ENERGIES_BOX(box), FALSE);
+
+	if (g_hash_table_contains(manager->widget_table, box)) {
+		g_warning("xmi_msim_gui_undo_manager_register_layer_box: layer_box already registered by manager");
+		return FALSE;
+	}
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_malloc(sizeof(XmiMsimGuiUndoManagerWidgetData));
+	widget_data->message = NULL;
+	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
+	widget_data->valid = TRUE; // don't think I will be using this for layer_box
+	widget_data->writer = energies_box_writer;
+	widget_data->reader = energies_box_reader;
+
+	gulong signal_id = g_signal_connect(box, "changed", G_CALLBACK(energies_box_changed_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_id);
+
+	g_hash_table_insert(manager->widget_table, box, widget_data);
+
+	return TRUE;
+}
+
+struct _XmiMsimGuiUndoManagerTextViewInsertData {
+	int offset;
+	gchar *text;
+	gchar *all_text; // not sure if this is necessary
+	int length;
+	gboolean mergeable;
+};
+
+static gpointer insert_data_copy(gpointer boxed) {
+	XmiMsimGuiUndoManagerTextViewInsertData *insert_data = boxed;
+	XmiMsimGuiUndoManagerTextViewInsertData *copy = g_memdup(insert_data, sizeof(XmiMsimGuiUndoManagerTextViewInsertData));
+	copy->text = g_strdup(insert_data->text);
+	copy->all_text = g_strdup(insert_data->all_text);
+
+	return copy;
+}
+
+static void insert_data_free(gpointer boxed) {
+	XmiMsimGuiUndoManagerTextViewInsertData *insert_data = boxed;
+	g_free(insert_data->text);
+	g_free(insert_data->all_text);
+	g_free(insert_data);
+}
+
+static XmiMsimGuiUndoManagerTextViewInsertData* insert_data_new(GtkTextIter *text_iter, gchar *text, int length) {
+	XmiMsimGuiUndoManagerTextViewInsertData *data = g_malloc(sizeof(XmiMsimGuiUndoManagerTextViewInsertData));
+	GtkTextBuffer *text_buffer = gtk_text_iter_get_buffer(text_iter);
+	data->offset = gtk_text_iter_get_offset(text_iter);
+	data->text = g_strdup(text);
+	data->all_text = NULL;
+	data->length = length;
+	if (length > 1)
+		data->mergeable = FALSE;
+	else
+		data->mergeable = TRUE;
+	return data;
+} 
+
+const gchar* xmi_msim_gui_undo_manager_text_view_insert_data_get_all_text(XmiMsimGuiUndoManagerTextViewInsertData *data) {
+	return data->all_text;
+}
+
+G_DEFINE_BOXED_TYPE(XmiMsimGuiUndoManagerTextViewInsertData, xmi_msim_gui_undo_manager_text_view_insert_data, insert_data_copy, insert_data_free);
+
+struct _XmiMsimGuiUndoManagerTextViewDeleteData {
+	gchar *text;
+	gchar *all_text; // not sure if this is necessary
+	int start;
+	int end;
+	gboolean delete_key_used;
+	gboolean mergeable;
+};
+
+static gpointer delete_data_copy(gpointer boxed) {
+	XmiMsimGuiUndoManagerTextViewDeleteData *delete_data = boxed;
+	XmiMsimGuiUndoManagerTextViewDeleteData *copy = g_memdup(delete_data, sizeof(XmiMsimGuiUndoManagerTextViewDeleteData));
+	copy->text = g_strdup(delete_data->text);
+	copy->all_text = g_strdup(delete_data->all_text);
+
+	return copy;
+}
+
+static void delete_data_free(gpointer boxed) {
+	XmiMsimGuiUndoManagerTextViewDeleteData *delete_data = boxed;
+	g_free(delete_data->text);
+	g_free(delete_data->all_text);
+	g_free(delete_data);
+}
+
+static XmiMsimGuiUndoManagerTextViewDeleteData* delete_data_new(GtkTextBuffer *text_buffer, GtkTextIter *start_iter, GtkTextIter *end_iter) {
+	XmiMsimGuiUndoManagerTextViewDeleteData *data = g_malloc(sizeof(XmiMsimGuiUndoManagerTextViewDeleteData));
+	data->text = gtk_text_buffer_get_text(text_buffer, start_iter, end_iter, TRUE);
+	data->all_text = NULL;
+	data->start = gtk_text_iter_get_offset(start_iter);
+	data->end = gtk_text_iter_get_offset(end_iter);
+
+	GtkTextIter insert_iter;
+	gtk_text_buffer_get_iter_at_mark(text_buffer, &insert_iter, gtk_text_buffer_get_insert(text_buffer));
+
+	if (gtk_text_iter_get_offset(&insert_iter) <= data->start)
+		data->delete_key_used = TRUE;
+	else
+		data->delete_key_used = FALSE;
+	
+	if ((data->end - data->start > 1) || (strlen(data->text) == 1 && strchr("\r\n ", data->text[0]) != NULL))
+		data->mergeable = FALSE;
+	else
+		data->mergeable = TRUE;
+
+	return data;
+}
+
+const gchar* xmi_msim_gui_undo_manager_text_view_delete_data_get_all_text(XmiMsimGuiUndoManagerTextViewDeleteData *data) {
+	return data->all_text;
+}
+
+G_DEFINE_BOXED_TYPE(XmiMsimGuiUndoManagerTextViewDeleteData, xmi_msim_gui_undo_manager_text_view_delete_data, delete_data_copy, delete_data_free);
+
+#define WHITESPACE "\r\n\t "
+
+static gboolean insert_text_can_be_merged(XmiMsimGuiUndoManagerTextViewInsertData *prev, XmiMsimGuiUndoManagerTextViewInsertData *cur) {
+	if (!cur->mergeable || !prev->mergeable)
+		return FALSE;
+	else if (cur->offset != (prev->offset + prev->length))
+		return FALSE;
+	else if ((strlen(cur->text) == 1 && strchr(WHITESPACE, cur->text[0]) != NULL) && !(strlen(prev->text) == 1 && strchr(WHITESPACE, prev->text[0]) != NULL))
+		return FALSE;
+	else if ((strlen(prev->text) == 1 && strchr(WHITESPACE, prev->text[0]) != NULL) && !(strlen(cur->text) == 1 && strchr(WHITESPACE, cur->text[0]) != NULL))
+		return FALSE;
+	return TRUE;
+}
+
+static void text_buffer_insert_text_cb(GtkTextBuffer *textbuffer, GtkTextIter *text_iter, gchar *text, gint length, XmiMsimGuiUndoManager *manager) {
+	GtkTextView *text_view = g_object_get_data(G_OBJECT(textbuffer), "text-view");
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, text_view);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+
+	XmiMsimGuiUndoManagerTextViewInsertData *insert_data = insert_data_new(text_iter, text, length);
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA);
+	g_value_take_boxed(&value, insert_data);
+
+	if (manager->current_index == 0 || !(
+			current_stack_data->widget == GTK_WIDGET(text_view) && 
+			G_VALUE_HOLDS(&current_stack_data->value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA) &&
+			insert_text_can_be_merged(g_value_get_boxed(&current_stack_data->value), insert_data))) {
+		XmiMsimGuiUndoManagerStackData *stack_data = g_malloc(sizeof(XmiMsimGuiUndoManagerStackData));
+
+		memset(&stack_data->value, 0, sizeof(GValue));
+		g_value_init(&stack_data->value, G_VALUE_TYPE(&value));
+		g_value_copy(&value, &stack_data->value);
+		xmi_copy_input(current_stack_data->input, &stack_data->input);
+		g_value_unset(&value);
+
+		stack_data->widget = GTK_WIDGET(text_view);
+		stack_data->message = g_strdup("text inserted");
+		// if in redo mode -> remove everything more recent than current_index
+		if (manager->current_index < manager->undo_stack->len - 1)
+			g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
+		g_ptr_array_add(manager->undo_stack, stack_data);
+		manager->current_index++;
+	}
+	else {
+		// do not extend undo stack -> modify current instead
+		XmiMsimGuiUndoManagerTextViewInsertData *current_insert_data = g_value_get_boxed(&current_stack_data->value);
+		current_insert_data->length += insert_data->length;
+		gchar *temp = current_insert_data->text;
+		current_insert_data->text = g_strdup_printf("%s%s", temp, insert_data->text);
+		g_free(temp);
+		g_value_unset(&value);
+
+		// if in redo mode -> remove everything more recent than current_index
+		if (manager->current_index < manager->undo_stack->len - 1)
+			g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
+
+	}
+}
+
+static void text_buffer_insert_text_after_cb(GtkTextBuffer *textbuffer, GtkTextIter *text_iter, gchar *text, gint length, XmiMsimGuiUndoManager *manager) {
+	GtkTextView *text_view = g_object_get_data(G_OBJECT(textbuffer), "text-view");
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, text_view);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	// get the last stack data
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->undo_stack->len - 1);
+	XmiMsimGuiUndoManagerTextViewInsertData *current_insert_data = g_value_get_boxed(&current_stack_data->value);
+	
+	GtkTextIter start_iter, end_iter;
+	gtk_text_buffer_get_bounds(textbuffer, &start_iter, &end_iter);
+	current_insert_data->all_text = gtk_text_buffer_get_text(textbuffer, &start_iter, &end_iter, TRUE);
+
+	widget_data->reader(&current_stack_data->value, current_stack_data->input);
+
+	manager_emit_update_buttons(manager);
+}
+
+#undef WHITESPACE
+#define WHITESPACE "\t "
+
+static gboolean delete_text_can_be_merged(XmiMsimGuiUndoManagerTextViewDeleteData *prev, XmiMsimGuiUndoManagerTextViewDeleteData *cur) {
+	if (!cur->mergeable || !prev->mergeable)
+		return FALSE;
+	else if (prev->delete_key_used != cur->delete_key_used)
+		return FALSE;
+	else if (prev->start != cur->start && prev->start != cur->end)
+		return FALSE;
+	else if (!(strlen(cur->text) == 1 && strchr(WHITESPACE, cur->text[0]) != NULL) && (strlen(prev->text) == 1 && strchr(WHITESPACE, prev->text[0]) != NULL))
+		return FALSE;
+	else if ((strlen(cur->text) == 1 && strchr(WHITESPACE, cur->text[0]) != NULL) && !(strlen(prev->text) == 1 && strchr(WHITESPACE, prev->text[0]) != NULL))
+		return FALSE;
+	return TRUE;
+}
+
+static void text_buffer_delete_range_cb(GtkTextBuffer *textbuffer, GtkTextIter *start, GtkTextIter *end, XmiMsimGuiUndoManager *manager) {
+	GtkTextView *text_view = g_object_get_data(G_OBJECT(textbuffer), "text-view");
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, text_view);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+
+	XmiMsimGuiUndoManagerTextViewDeleteData *delete_data = delete_data_new(textbuffer, start, end);
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_DELETE_DATA);
+	g_value_take_boxed(&value, delete_data);
+
+	if (manager->current_index == 0 || !(
+			current_stack_data->widget == GTK_WIDGET(text_view) && 
+			G_VALUE_HOLDS(&current_stack_data->value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_DELETE_DATA) &&
+			delete_text_can_be_merged(g_value_get_boxed(&current_stack_data->value), delete_data))) {
+		XmiMsimGuiUndoManagerStackData *stack_data = g_malloc(sizeof(XmiMsimGuiUndoManagerStackData));
+
+		memset(&stack_data->value, 0, sizeof(GValue));
+		g_value_init(&stack_data->value, G_VALUE_TYPE(&value));
+		g_value_copy(&value, &stack_data->value);
+		xmi_copy_input(current_stack_data->input, &stack_data->input);
+		g_value_unset(&value);
+
+		stack_data->widget = GTK_WIDGET(text_view);
+		stack_data->message = g_strdup("text delete");
+		// if in redo mode -> remove everything more recent than current_index
+		if (manager->current_index < manager->undo_stack->len - 1)
+			g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
+		g_ptr_array_add(manager->undo_stack, stack_data);
+		manager->current_index++;
+	}
+	else {
+		// do not extend undo stack -> modify current instead
+		XmiMsimGuiUndoManagerTextViewDeleteData *current_delete_data = g_value_get_boxed(&current_stack_data->value);
+		if (current_delete_data->start == delete_data->start) { // delete key used
+			gchar *temp = current_delete_data->text;
+			current_delete_data->text = g_strdup_printf("%s%s", temp, delete_data->text);
+			g_free(temp);
+			current_delete_data->end += (delete_data->end - delete_data->start);
+		}
+		else { // backspace used
+			gchar *temp = current_delete_data->text;
+			current_delete_data->text = g_strdup_printf("%s%s", delete_data->text, temp);
+			g_free(temp);
+			current_delete_data->start = delete_data->start;
+		}
+		g_value_unset(&value);
+
+		// if in redo mode -> remove everything more recent than current_index
+		if (manager->current_index < manager->undo_stack->len - 1)
+			g_ptr_array_remove_range(manager->undo_stack, manager->current_index + 1, manager->undo_stack->len - 1 - manager->current_index);
+
+	}
+}
+
+static void text_buffer_delete_range_after_cb(GtkTextBuffer *textbuffer, GtkTextIter *start, GtkTextIter *end, XmiMsimGuiUndoManager *manager) {
+	GtkTextView *text_view = g_object_get_data(G_OBJECT(textbuffer), "text-view");
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, text_view);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	// get the last stack data
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->undo_stack->len - 1);
+	XmiMsimGuiUndoManagerTextViewDeleteData *current_delete_data = g_value_get_boxed(&current_stack_data->value);
+	
+	GtkTextIter start_iter, end_iter;
+	gtk_text_buffer_get_bounds(textbuffer, &start_iter, &end_iter);
+	current_delete_data->all_text = gtk_text_buffer_get_text(textbuffer, &start_iter, &end_iter, TRUE);
+
+	widget_data->reader(&current_stack_data->value, current_stack_data->input);
+
+	manager_emit_update_buttons(manager);
+}
+
+gboolean xmi_msim_gui_undo_manager_register_text_view(
+	XmiMsimGuiUndoManager *manager,
+	GtkTextView *text_view,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
+	g_return_val_if_fail(GTK_IS_TEXT_VIEW(text_view), FALSE);
+
+	if (g_hash_table_contains(manager->widget_table, text_view)) {
+		g_warning("xmi_msim_gui_undo_manager_register_text_view: text_view already registered by manager");
+		return FALSE;
+	}
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_malloc(sizeof(XmiMsimGuiUndoManagerWidgetData));
+	widget_data->message = NULL;
+	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
+	widget_data->valid = TRUE; // unused
+	widget_data->writer = writer;
+	widget_data->reader = reader;
+
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer(text_view);
+	g_object_set_data(G_OBJECT(buffer), "text-view", text_view); // ensure buffer has access to the text_view it belongs to
+
+	gulong signal_insert_id = g_signal_connect(buffer, "insert-text", G_CALLBACK(text_buffer_insert_text_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_insert_id);
+	gulong signal_insert_after_id = g_signal_connect_after(buffer, "insert-text", G_CALLBACK(text_buffer_insert_text_after_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_insert_after_id);
+	gulong signal_delete_id = g_signal_connect(buffer, "delete-range", G_CALLBACK(text_buffer_delete_range_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_delete_id);
+	gulong signal_delete_after_id = g_signal_connect_after(buffer, "delete-range", G_CALLBACK(text_buffer_delete_range_after_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_delete_after_id);
+
+	g_hash_table_insert(manager->widget_table, text_view, widget_data);
+
+	return TRUE;
+}
+
 static void widget_block_signals_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, gpointer data) {
 	gboolean block = GPOINTER_TO_INT(data);
 	unsigned int i;
+	GObject *object = G_OBJECT(widget);
+	if (GTK_IS_TEXT_VIEW(widget))
+		object = G_OBJECT(gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget)));
 
-	for (i = 0 ; widget_data->signal_ids->len ; i++) {
+
+	for (i = 0 ; i < widget_data->signal_ids->len ; i++) {
 		if (block)
-			g_signal_handler_block(widget, g_array_index(widget_data->signal_ids, gulong, i));
+			g_signal_handler_block(object, g_array_index(widget_data->signal_ids, gulong, i));
 		else
-			g_signal_handler_unblock(widget, g_array_index(widget_data->signal_ids, gulong, i));
+			g_signal_handler_unblock(object, g_array_index(widget_data->signal_ids, gulong, i));
 	}
 }
 
@@ -258,6 +824,9 @@ static void widget_populate_hash_with_value(GtkWidget *widget, GValue *value) {
 		if (G_VALUE_HOLDS_INT(value)) {
 			buffer = g_strdup_printf("%d", g_value_get_int(value));
 		}
+		else if (G_VALUE_HOLDS_LONG(value)) {
+			buffer = g_strdup_printf("%ld", g_value_get_long(value));
+		}
 		else if (G_VALUE_HOLDS_STRING(value)) {
 			buffer = g_value_get_string(value) == NULL ? g_strdup_printf("") : g_value_dup_string(value);
 		}
@@ -273,7 +842,40 @@ static void widget_populate_hash_with_value(GtkWidget *widget, GValue *value) {
 
 		g_free(buffer);
 	}
-
+	else if (XMI_MSIM_GUI_IS_LAYER_BOX(widget)) {
+		if (G_VALUE_HOLDS(value, XMI_MSIM_TYPE_COMPOSITION)){
+			xmi_msim_gui_layer_box_set_composition(XMI_MSIM_GUI_LAYER_BOX(widget), g_value_get_boxed(value));
+		}
+		else {
+			g_warning("widget_populate_hash_with_value: widget is layer_box with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
+		}
+	}
+	else if (XMI_MSIM_GUI_IS_ENERGIES_BOX(widget)) {
+		if (G_VALUE_HOLDS(value, XMI_MSIM_TYPE_EXCITATION)){
+			xmi_msim_gui_energies_box_set_excitation(XMI_MSIM_GUI_ENERGIES_BOX(widget), g_value_get_boxed(value));
+		}
+		else {
+			g_warning("widget_populate_hash_with_value: widget is energies_box with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
+		}
+	}
+	else if (GTK_IS_TEXT_VIEW(widget)) {
+		GtkTextBuffer *text_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+		
+		if (G_VALUE_HOLDS(value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA)) {
+			XmiMsimGuiUndoManagerTextViewInsertData *data = g_value_get_boxed(value);
+			gtk_text_buffer_set_text(text_buffer, data->all_text, -1);
+		}
+		else if (G_VALUE_HOLDS(value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_DELETE_DATA)) {
+			XmiMsimGuiUndoManagerTextViewDeleteData *data = g_value_get_boxed(value);
+			gtk_text_buffer_set_text(text_buffer, data->all_text, -1);
+		}
+		else if (G_VALUE_HOLDS_STRING(value)) {
+			gtk_text_buffer_set_text(text_buffer, g_value_get_string(value), -1);
+		}
+		else {
+			g_warning("widget_populate_hash_with_value: widget is text_view with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
+		}
+	}
 }
 
 static void widget_populate_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, struct xmi_input *current_input) {
@@ -321,7 +923,6 @@ static void xmi_msim_gui_undo_manager_reset(XmiMsimGuiUndoManager *manager, stru
 	// finish by unblocking all signals
 	g_hash_table_foreach(manager->widget_table, (GHFunc) widget_block_signals_hash, GINT_TO_POINTER(FALSE));
 
-	// emit signal
 }
 
 void xmi_msim_gui_undo_manager_create_new_file(XmiMsimGuiUndoManager *manager) {
@@ -329,6 +930,8 @@ void xmi_msim_gui_undo_manager_create_new_file(XmiMsimGuiUndoManager *manager) {
 	struct xmi_input *input = xmi_init_empty_input();
 	xmi_msim_gui_undo_manager_reset(manager, input);
 	xmi_free_input(input);
+	// emit signal
+	manager_emit_update_buttons(manager);
 }
 
 gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error) {
@@ -343,6 +946,8 @@ gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, con
 	xmi_msim_gui_undo_manager_reset(manager, input);
 	manager->last_saved_input = input;
 	manager->inputfile = g_strdup(filename);
+	// emit signal
+	manager_emit_update_buttons(manager);
 
 	return TRUE;
 }
@@ -373,11 +978,12 @@ void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager) {
 	manager->current_index--;
 
 	// emit signal for save / save as / undo redo buttons	
+	manager_emit_update_buttons(manager);
 }
 
 void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager) {
 	g_return_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager));
-	g_return_if_fail(manager->current_index >= manager->undo_stack->len - 1);
+	g_return_if_fail(manager->current_index <= manager->undo_stack->len - 1);
 
 	// to return to next state, use the input in current_index + 1
 	// TODO: use value in stackdata!!!
@@ -401,7 +1007,7 @@ void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager) {
 	manager->current_index++;
 
 	// emit signal for save / save as / undo redo buttons	
-
+	manager_emit_update_buttons(manager);
 }
 
 XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoManager *manager) {
@@ -420,7 +1026,7 @@ XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoM
 			status = XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID; 
 		}
 	}
-	else if (xmi_compare_input(manager->last_saved_input, current_input) == 0) {
+	else if (manager->last_saved_input != NULL && xmi_compare_input(manager->last_saved_input, current_input) == 0) {
 		status = XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES;
 	}
 	else {
@@ -453,6 +1059,7 @@ gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GEr
 	xmi_copy_input(current_input, &manager->last_saved_input);
 
 	// emit signal
+	manager_emit_update_buttons(manager);
 
 	return TRUE;
 }
@@ -477,8 +1084,26 @@ gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, c
 	manager->inputfile = g_strdup(filename);
 
 	// emit signal
+	manager_emit_update_buttons(manager);
 
 	return TRUE;
+}
+
+const gchar* xmi_msim_gui_undo_manager_get_filename(XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerStatus status = xmi_msim_gui_undo_manager_get_status(manager);
+
+	gchar* rv = NULL;
+
+	switch (status) {
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_VALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_VALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_INVALID:
+			break;
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES:
+			rv = manager->inputfile;
+	}
+	return rv;
 }
 
 GQuark xmi_msim_gui_undo_manager_error_quark(void) {

@@ -463,6 +463,11 @@ void xmi_free_composition(struct xmi_composition *composition) {
 }
 
 void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
+
 	int i;
 
 	//allocate space for B
@@ -679,6 +684,12 @@ void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers,
 
 void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers) {
 	int i;
+
+	if (composition == NULL) {
+		*layers = NULL;
+		*n_layers = 0;
+		return;
+	}
 
 	*n_layers = composition->n_layers;
 
@@ -1406,6 +1417,7 @@ void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B) {
 		*B = NULL;
 		return;
 	}
+
 	*B = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
 	(*B)->n_discrete = A->n_discrete;
 	(*B)->n_continuous = A->n_continuous;

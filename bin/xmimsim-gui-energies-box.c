@@ -651,6 +651,7 @@ static gboolean energy_backspace_key_clicked(GtkWidget *widget, GdkEventKey *eve
 }
 
 static void create_popup_menu(GtkWidget *tree, GdkEventButton *event, XmiMsimGuiEnergiesSingleBox *single_box) {
+	gtk_widget_grab_focus(tree);
 	GtkWidget *menu, *menuitem;
 
 	menu = gtk_menu_new();
@@ -1185,10 +1186,14 @@ static GtkWidget *initialize_single_energies(XmiMsimGuiEnergiesBox *self, XmiMsi
 
 	GtkListStore *store;
 
-	if (type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE)
+	if (type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
 		store = gtk_list_store_new(NCOLUMNS_ENERGIES, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_INT, G_TYPE_DOUBLE);
-	else if (type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS)
+		self->discrete_box = single_box;
+	}
+	else if (type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
 		store = gtk_list_store_new(NCOLUMNS_ENERGIES-2, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+		self->continuous_box = single_box;
+	}
 
 	single_box->store = store;
 
