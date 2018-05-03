@@ -91,6 +91,10 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-clipboard-manager.c \
 	$(NULL)
 
+nodist_libxmimsim_gui_la_SOURCES = \
+	xmimsim-gui-resources.c \
+	$(NULL)
+
 libxmimsim_gui_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -218,6 +222,7 @@ if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 BUILT_SOURCES = \
 	$(nodist_xmimsim_gui_SOURCES) \
+	$(nodist_libxmimsim_gui_la_SOURCES) \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-marshal.h \
@@ -507,11 +512,13 @@ xmimsim-gui-marshal.c: $(marshal_input)
 		--body \
 		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.c
 
+xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmimsim-gui.gresource.xml)
+	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi_msim_gui --generate-source $(srcdir)/xmimsim-gui.gresource.xml
 
 clean-local:
-	rm -rf $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
+	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
 
-EXTRA_DIST = xmimsim-gui-marshal.list
+EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png
 
 #install-data-hook:
 #	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

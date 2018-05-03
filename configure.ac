@@ -18,7 +18,7 @@ AC_PREREQ([2.67])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Wno-portability -Werror foreign])
 
 
 AC_CANONICAL_HOST
@@ -376,6 +376,10 @@ fi
 AC_CHECK_PROG([GLIB_GENMARSHAL],[glib-genmarshal],[glib-genmarshal],[fail])
 if test x$GLIB_GENMARSHAL = xfail ; then
 	AC_MSG_WARN([glib-genmarshal was not found. Though not required for a regular build, it will impact developers of the GUI.])
+fi
+AC_CHECK_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[glib-compile-resources],[fail])
+if test x$GLIB_COMPILE_RESOURCES = xfail ; then
+	AC_MSG_ERROR([glib-compile-resources was not found.])
 fi
 #search for chmod
 AC_CHECK_PROG([CHMOD],[chmod],[chmod],[fail])

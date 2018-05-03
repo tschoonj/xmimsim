@@ -33,4 +33,4 @@ install-exec-hook:
 	rm -f $(LT_ARCHIVES)
 
 EXTRA_DIST = xmimsim.spec.in License.rtf Changelog
-DISTCHECK_CONFIGURE_FLAGS = --enable-custom-detector-response
+DISTCHECK_CONFIGURE_FLAGS = --enable-custom-detector-response --disable-mac-integration

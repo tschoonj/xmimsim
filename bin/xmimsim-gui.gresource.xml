@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<gresources>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons">
+		<file>gtk-yes.png</file>
+		<file>gtk-no.png</file>
+	</gresource>
+</gresources>

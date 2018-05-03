@@ -56,7 +56,6 @@ struct prefsWidgets {
 enum {
 	URL_COLUMN_PREFS,
 	STATUS_COLUMN_PREFS,
-	BACKGROUND_COLUMN_PREFS,
 	N_COLUMNS_PREFS
 };
 
@@ -235,16 +234,9 @@ static void check_download_ready_cb(GtkListStore *store, GAsyncResult *result, g
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
 	gtk_tree_path_free(path);
 	if (xmi_msim_gui_updater_check_download_url_finish(store, result)) {
-		// perhaps some markup here?
+		GdkPixbuf *gtk_yes  = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-yes.png", NULL);
 		gtk_list_store_set(store, &iter,
-			STATUS_COLUMN_PREFS, "Online",
-			BACKGROUND_COLUMN_PREFS, "green",
-			-1);
-	}
-	else {
-		gtk_list_store_set(store, &iter,
-			STATUS_COLUMN_PREFS, "Offline",
-			BACKGROUND_COLUMN_PREFS, "red",
+			STATUS_COLUMN_PREFS, gtk_yes,
 			-1);
 	}
 }
@@ -256,10 +248,10 @@ static void url_edited_cb(GtkCellRendererText *cell, gchar *path_string, gchar *
 
 	gtk_tree_selection_get_selected(selection, NULL, &iter);
 
+	GdkPixbuf *gtk_no = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-no.png", NULL);
 	gtk_list_store_set(store, &iter,
 		URL_COLUMN_PREFS, new_text,
-		STATUS_COLUMN_PREFS, "Checking...",
-		BACKGROUND_COLUMN_PREFS, NULL,
+		STATUS_COLUMN_PREFS, gtk_no,
 		-1);
 
 	xmi_msim_gui_updater_check_download_url_async(store, new_text, (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter));
@@ -269,12 +261,12 @@ static void url_add_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	GtkTreeIter iter;
 	GtkWidget *tree = GTK_WIDGET(data);
 	GtkListStore *store_prefsL = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)));
+	GdkPixbuf *gtk_no = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-no.png", NULL);
 
 	gtk_list_store_append(store_prefsL, &iter);
 	gtk_list_store_set(store_prefsL, &iter,
 		URL_COLUMN_PREFS, "http://",
-		STATUS_COLUMN_PREFS, "Checking...",
-		BACKGROUND_COLUMN_PREFS, NULL,
+		STATUS_COLUMN_PREFS, gtk_no,
 		-1);
 
 	GtkTreeViewColumn *column = gtk_tree_view_get_column(GTK_TREE_VIEW(tree), 0);
@@ -1131,7 +1123,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	GtkTreeViewColumn *column;
 	GtkTreeSelection *select;
 	GtkCellRenderer *renderer;
-	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING, G_TYPE_STRING);
+	store_prefsL = gtk_list_store_new(N_COLUMNS_PREFS, G_TYPE_STRING, GDK_TYPE_PIXBUF);
 	pw->update_urlsW = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_prefsL));
 
 	renderer = gtk_cell_renderer_text_new();
@@ -1144,11 +1136,10 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_tree_view_append_column(GTK_TREE_VIEW(pw->update_urlsW), column);
 	gtk_tree_view_column_set_expand(column, TRUE);
 
-	renderer = gtk_cell_renderer_text_new();
+	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Status", renderer,
-		"text", STATUS_COLUMN_PREFS,
-		"background", BACKGROUND_COLUMN_PREFS,
+		"pixbuf", STATUS_COLUMN_PREFS,
 		NULL);
 	gtk_tree_view_column_set_resizable(column, FALSE);
 	gtk_tree_view_column_set_alignment(column, 0.5);
@@ -1192,12 +1183,14 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 		//abort
 		preferences_error_handler(main_window);
 	}
+
+	GdkPixbuf *gtk_no = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-no.png", NULL);
+
 	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
 		gtk_list_store_append(store_prefsL,&iter);
 		gtk_list_store_set(store_prefsL, &iter,
 			URL_COLUMN_PREFS, xpv.ss[i],
-			STATUS_COLUMN_PREFS, "Checking...",
-			BACKGROUND_COLUMN_PREFS, NULL,
+			STATUS_COLUMN_PREFS, gtk_no,
 			-1);
 		xmi_msim_gui_updater_check_download_url_async(store_prefsL, xpv.ss[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
 	}
