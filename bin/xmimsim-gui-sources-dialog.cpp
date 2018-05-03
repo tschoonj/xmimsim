@@ -414,8 +414,6 @@ static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, X
 		gtk_dialog_run(GTK_DIALOG(info_dialog));
 		gtk_widget_destroy(info_dialog);
 
-		g_error_free(error);
-
 		// set source data to NULL
 		if (source->raw_data) {
 			xmi_free_excitation(source->raw_data);

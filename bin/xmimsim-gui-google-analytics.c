@@ -128,6 +128,7 @@ static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGuiGoo
 		g_warning("libsoup error message: %s", msg->reason_phrase);
 		GError *error = g_error_new(XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER_ERROR, XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER_LIBSOUP, "libsoup error message: %s", msg->reason_phrase);
 		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, error);
+		g_error_free(error);
 	}
 }
 

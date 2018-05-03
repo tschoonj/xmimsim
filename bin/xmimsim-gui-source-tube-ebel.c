@@ -746,6 +746,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 
 	if (xep == NULL) {
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 
@@ -762,6 +763,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 			g_free(xep->transmission_efficiency_file);
 			g_free(xep);
 			g_signal_emit_by_name((gpointer) source, "after-generate", error);
+			g_error_free(error);
 			return;
 		}
 		if (xep->tube_voltage > energies[nefficiencies-1]) {
@@ -771,6 +773,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 			g_free(energies);
 			g_free(efficiencies);
 			g_signal_emit_by_name((gpointer) source, "after-generate", error);
+			g_error_free(error);
 			return;
 		}
 	}
@@ -802,6 +805,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 
@@ -828,6 +832,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		g_free(xep->transmission_efficiency_file);
 		g_free(xep);
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 
@@ -867,6 +872,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		g_array_free(x, TRUE);
 		g_array_free(y, TRUE);
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 	double new_min = ymax;
