@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <xmi_aux.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #define SMALL_VALUE 1E-7
 
@@ -57,7 +58,7 @@ static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_composition
 	FILE *filePtr;
 	char *temp;
 
-	if ((filePtr = fopen(xrmc_inputfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_inputfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_inputfile);
 		return 0;
 	}
@@ -102,7 +103,7 @@ static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_composition
 static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *input, double rotate_angle_z) {
 	FILE *filePtr;
 
-	if ((filePtr = fopen(xrmc_sourcefile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_sourcefile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_sourcefile);
 		return 0;
 	}
@@ -134,7 +135,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, struct xmi_input
 	FILE *filePtr;
 	int i, j, k;
 
-	if ((filePtr = fopen(xrmc_spectrumfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_spectrumfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_spectrumfile);
 		return 0;
 	}
@@ -185,7 +186,7 @@ static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *in
 	FILE *filePtr;
 	int i;
 
-	if ((filePtr = fopen(xrmc_samplefile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_samplefile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_samplefile);
 		return 0;
 	}
@@ -211,7 +212,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	FILE *filePtr;
 	int i;
 
-	if ((filePtr = fopen(xrmc_quadricfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_quadricfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_quadricfile);
 		return 0;
 	}
@@ -419,7 +420,7 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 	FILE *filePtr;
 	int i;
 
-	if ((filePtr = fopen(xrmc_geom3dfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_geom3dfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_geom3dfile);
 		return 0;
 	}
@@ -476,7 +477,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	FILE *filePtr;
 	int i,j;
 
-	if ((filePtr = fopen(xrmc_compositionfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_compositionfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_compositionfile);
 		return 0;
 	}
@@ -548,7 +549,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input *input, struct xmi_main_options options, double rotate_angle_z) {
 	FILE *filePtr;
 
-	if ((filePtr = fopen(xrmc_detectorfile, "w")) == NULL) {
+	if ((filePtr = g_fopen(xrmc_detectorfile, "w")) == NULL) {
 		fprintf(stderr, "Could not write to %s\n", xrmc_detectorfile);
 		return 0;
 	}
