@@ -131,6 +131,7 @@ static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *s
 		g_array_free(x, TRUE);
 		g_array_free(y, TRUE);
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 	double new_min = ymax;

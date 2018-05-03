@@ -340,6 +340,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 
 	if (xnp == NULL) {
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 
@@ -439,6 +440,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		g_array_free(x, TRUE);
 		g_array_free(y, TRUE);
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
+		g_error_free(error);
 		return;
 	}
 	double new_min = ymax;
@@ -468,7 +470,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
 
 	g_free(xnp);
-	g_signal_emit_by_name((gpointer) source, "after-generate", error);
+	g_signal_emit_by_name((gpointer) source, "after-generate", NULL);
 
 	return;
 }

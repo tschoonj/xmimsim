@@ -147,6 +147,7 @@ static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract 
 	GError *error = g_error_new(XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED, "XmiMsimGuiSourceAbstract::generate not implemented for '%s'", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 
 	g_signal_emit((gpointer) source, signals[AFTER_GENERATE], 0, error);
+	g_error_free(error);
 
 	return;
 }
