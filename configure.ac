@@ -387,7 +387,10 @@ if test x$CHMOD = xfail ; then
 	AC_MSG_ERROR([chmod was not found.])
 fi
 
+AC_ARG_VAR(HDF5_CFLAGS, [C compiler flags for HDF5])
+AC_ARG_VAR(HDF5_LIBS, [linker flags for HDF5])
 
+if test "x$HDF5_CFLAGS" = "x" && test "x$HDF5_LIBS" = "x" ; then
 
 #search for HDF5...
 AC_PATH_PROGS([H5CC],[h5cc-64 h5cc],["fail"])
@@ -396,9 +399,8 @@ if test x$H5CC = xfail ; then
 fi
 
 H5CC_CC=
-H5CC_INCLUDE=
-H5CC_LINKER=
-H5CC_STATIC=
+HDF5_CFLAGS=
+HDF5_LIBS=
 
 H5CC_PARSED=$($H5CC -show -shlib)
 
@@ -423,11 +425,9 @@ do
 		H5CC_CC=$($BASENAME $i)
 		COUNTER="1"
 	elif test x${i:0:2} = "x-L" || test x${i:0:2} = "x-l" ; then
-		H5CC_LINKER+="$i "
+		HDF5_LIBS+="$i "
 	elif test x${i:0:2} = "x-I" ; then
-		H5CC_INCLUDE+="$i "
-	elif test x${i:0:1} = "x/" && test x${i:${#i}-2:2} = "x.a" ; then
-		H5CC_STATIC+="$i "
+		HDF5_CFLAGS+="$i "
 #	else
 #		AC_MSG_ERROR([Unrecognized output from $H5FC: $i])
 	fi
@@ -435,13 +435,13 @@ done
 
 # h5cc sucks something awful and will not find the headers if they are not in a location that's in the preprocessor's search path
 # use h5cc' location to add one more folder to the path
-H5CC_INCLUDE+=" -I$($DIRNAME $($DIRNAME $H5CC))/include"
+HDF5_CFLAGS+=" -I$($DIRNAME $($DIRNAME $H5CC))/include"
 
 
-AC_SUBST(H5CC_LINKER)
-AC_SUBST(H5CC_INCLUDE)
-AC_SUBST(H5CC_STATIC)
+AC_SUBST(HDF5_LIBS)
+AC_SUBST(HDF5_CFLAGS)
 
+fi
 
 #search for a fortran compiler (do not check explicitly for the 2003 features yet)
 AC_PROG_FC

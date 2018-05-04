@@ -20,7 +20,8 @@ else
 fi
 
 if test -z ${GOOGLE_ANALYTICS+x} ; then
-	:
+	export HDF5_CFLAGS="-I/mingw64/include"
+	export HDF5_LIBS="-L/mingw64/lib -lhdf5"
 else
 	CONFIGURE_OPTIONS+="--enable-google-analytics "
 fi
