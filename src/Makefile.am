@@ -65,7 +65,7 @@ libxmimsim_la_SOURCES += xmi_random_win.c \
 endif
 
 libxmimsim_la_CFLAGS =  \
-	@H5CC_INCLUDE@ \
+	@HDF5_CFLAGS@ \
 	@PTHREAD_CFLAGS@ \
 	@xslt_CFLAGS@ \
 	@glib2_CFLAGS@ \
@@ -94,11 +94,10 @@ libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
 
 libxmimsim_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ @LDFLAGS_XMIMSIM_LIB@
-libxmimsim_la_LIBADD = 	@H5CC_LINKER@ \
+libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 			@PTHREAD_LIBS@ \
 			@xslt_LIBS@ \
 			@xraylib_f2003_LIBS@ \
-			@H5CC_STATIC@ \
 			@fgsl_LIBS@ \
 			@easyRNG_LIBS@ \
 			@glib2_LIBS@ \
