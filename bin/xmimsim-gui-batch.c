@@ -173,6 +173,7 @@ static void archivesaveButton_clicked_cb(GtkButton *saveButton, GtkEntry *archiv
 	gtk_file_filter_set_name(filter,"XMI-MSIM archive files");
 	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), gtk_entry_get_text(GTK_ENTRY(archiveEntry)));
 	gchar *filename;
 
 	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
