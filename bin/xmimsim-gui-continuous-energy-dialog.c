@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-continuous-energy-dialog.h"
 #include "xmimsim-gui-type-builtins.h"
 #include <string.h>
+#include <stdlib.h>
 
 static void xmi_msim_continuous_energy_dialog_set_property (GObject          *object,
                                                           guint             prop_id,
@@ -288,38 +289,41 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiContinuousEnergyDia
   value2 = g_ascii_strtod(textPtr2, &endPtr2);
   value3 = g_ascii_strtod(textPtr3, &endPtr3);
 
-  if (value2 > 0.0)
-    ok2 = 1;
+  if (textPtr2 + strlen(textPtr2) == endPtr2 && value2 > 0.0)
+    ok2 = 2; // proper strictly positive value
+  else if (textPtr2 + strlen(textPtr2) == endPtr2 && strlen(textPtr2) > 0 && value2 == 0.0)
+    ok2 = 1; // proper 0
   else if (strlen(textPtr2) == 0)
-    ok2 = 0;
-  else if (textPtr2 + strlen(textPtr2) != endPtr2)
-    ok2 = -1;
-  else if (value2 == 0.0)
-    ok2 = -2;
+    ok2 = -1; // empty
   else
-    ok2 = -1;
+    ok2 = 0; // bad
 
-  if (value3 > 0.0)
-    ok3 = 1;
+  if (textPtr3 + strlen(textPtr3) == endPtr3 && value3 > 0.0)
+    ok3 = 2; // proper strictly positive value
+  else if (textPtr3 + strlen(textPtr3) == endPtr3 && strlen(textPtr3) > 0 && value3 == 0.0)
+    ok3 = 1; // proper 0
   else if (strlen(textPtr3) == 0)
-    ok3 = 0;
-  else if (textPtr3 + strlen(textPtr3) != endPtr3)
-    ok3 = -1;
-  else if (value3 == 0.0)
-    ok3 = -2;
+    ok3 = -1; // empty
   else
-    ok3 = -1;
+    ok3 = 0; // bad
 
-
-  if (ok2 == 1 || ok2 == 0)
+  if (abs(ok2) > 0)
     gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
-  else if (ok2 == -1)
+  else 
     gtk_style_context_add_class(gtk_widget_get_style_context(dialog->hor_intensity_entry), "red");
 
-  if (ok3 == 1 || ok3 == 0)
+  if (abs(ok3) > 0)
     gtk_style_context_remove_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
-  else if (ok3 == -1)
+  else
     gtk_style_context_add_class(gtk_widget_get_style_context(dialog->ver_intensity_entry), "red");
+
+  // if both are zeroes, that's fine
+
+  if (ok2 < 0)
+    ok2 = 0;
+
+  if (ok3 < 0)
+    ok3 = 0;
 
   if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7)
     gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
