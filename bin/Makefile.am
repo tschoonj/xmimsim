@@ -56,6 +56,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-energies-box.h \
 	xmimsim-gui-layer-box.h \
 	xmimsim-gui-clipboard-manager.h \
+	xmimsim-gui-long-task-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -89,6 +90,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-energies-box.c \
 	xmimsim-gui-layer-box.c \
 	xmimsim-gui-clipboard-manager.c \
+	xmimsim-gui-long-task-window.c \
 	$(NULL)
 
 nodist_libxmimsim_gui_la_SOURCES = \

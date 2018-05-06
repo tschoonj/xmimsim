@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-source-module.h"
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-xmso-results-scrolled-window.h"
+#include "xmimsim-gui-long-task-window.h"
 #include <stdio.h>
 #include "xmi_xml.h"
 #include "xmi_data_structs.h"
@@ -4032,14 +4033,14 @@ static gboolean dialog_helper_cb(gpointer data) {
 	return FALSE;
 }
 
-static void read_xmsa_callback(GtkWidget *dialog, GAsyncResult *result, struct dialog_helper_xmsa_data *data) {
+static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct dialog_helper_xmsa_data *data) {
 
 	GError *error = NULL;
-	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(dialog, result, &error);
+	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
 	GTask *task = G_TASK(result);
 
-	gdk_window_set_cursor(gtk_widget_get_window(dialog), NULL);
-	gtk_widget_destroy(dialog);
+	gdk_window_set_cursor(gtk_widget_get_window(window), NULL);
+	gtk_widget_destroy(window);
 
 	if (!archive) {
 		GtkWidget *message_dialog = gtk_message_dialog_new(
@@ -4061,12 +4062,13 @@ static void read_xmsa_callback(GtkWidget *dialog, GAsyncResult *result, struct d
 
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 	struct xmi_archive *archive;
-	GtkWidget *dialog = xmi_msim_gui_utils_long_job_dialog(data->window, "<b>Reading XMSA file</b>");
-	gtk_widget_show_all(dialog);
+	GtkWidget *window = xmi_msim_gui_long_task_window_new(GTK_WINDOW(data->window));
+	xmi_msim_gui_long_task_window_set_text(XMI_MSIM_GUI_LONG_TASK_WINDOW(window), "<b>Reading XMSA file</b>");
+	gtk_widget_show(window);
 	GdkCursor* watchCursor = gdk_cursor_new(GDK_WATCH);
-	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+	gdk_window_set_cursor(gtk_widget_get_window(window), watchCursor);
 
-	xmi_msim_gui_utils_read_xmsa_async(dialog, data->filename, (GAsyncReadyCallback) read_xmsa_callback, data);
+	xmi_msim_gui_utils_read_xmsa_async(window, data->filename, (GAsyncReadyCallback) read_xmsa_callback, data);
 
 	return FALSE;
 }

@@ -52,28 +52,6 @@ void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text)
 	return;
 }
 
-GtkWidget *xmi_msim_gui_utils_long_job_dialog(GtkWidget *parent, const gchar *message_with_markup) {
-	GtkWidget *dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(parent));
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	GtkWidget *main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_box_set_homogeneous(GTK_BOX(main_vbox), FALSE);
-	GtkWidget *label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), message_with_markup);
-	gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
-	label = gtk_label_new("This may take a while...");
-	gtk_box_pack_start(GTK_BOX(main_vbox), label, FALSE, FALSE, 10);
-	gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
-	gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
-	gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
-	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
-
-	return dialog;
-}
-
 static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
 	GError *error = NULL;
 	struct xmi_archive *archive = NULL;
