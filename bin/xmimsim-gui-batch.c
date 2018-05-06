@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-xmsi-scrolled-window.h"
 #include "xmimsim-gui-options-box.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
+#include "xmimsim-gui-long-task-window.h"
 #include "xmimsim-gui-job.h"
 #include <stdio.h>
 #include <glib.h>
@@ -805,12 +806,10 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 		//extract xpath expression
 		gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath1, INPUT_ALLOWED_COLUMN, allowed1, -1);
 		if ((path = (GtkTreePath *) g_list_nth_data(paths, 1)) == NULL) {
-			g_fprintf(stdout, "One row selected after OK click\n");
 			*xpath2 = NULL;
 			*allowed2 = 0;
 		}
 		else {
-			g_fprintf(stdout, "Two rows selected after OK click\n");
 			gtk_tree_model_get_iter(model, &iter, path);
 			gtk_tree_model_get(model, &iter, INPUT_XPATH_COLUMN, xpath2, INPUT_ALLOWED_COLUMN, allowed2, -1);
 		}
@@ -1357,10 +1356,104 @@ static int general_options(GtkWidget *main_window, struct xmi_main_options **opt
 	return 1;
 }
 
+static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, gpointer data) {
+	GtkWindow *window = gtk_window_get_transient_for(GTK_WINDOW(task_window));
+	gdk_window_set_cursor(gtk_widget_get_window(task_window), NULL);
+	gtk_widget_destroy(task_window);
+
+	GError *error = NULL;
+
+	struct xmi_archive *archive = g_task_propagate_pointer(G_TASK(result), &error);
+
+	if (!archive) {
+		GtkWidget *dialog = gtk_message_dialog_new(window,
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+	       		GTK_MESSAGE_ERROR,
+	       		GTK_BUTTONS_CLOSE,
+	       		"An error occured while performing the conversion"
+                	);
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+		g_error_free(error);
+     		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	launch_archive_plot(archive, GTK_WIDGET(window));
+}
+
+struct save_archive_data {
+	struct archive_options_data *aod;
+	gchar *xpath1;
+       	gchar *xpath2;
+	struct xmi_output ***output;
+};
+
+struct save_archive_update_task_window_data {
+	XmiMsimGuiLongTaskWindow *window;
+	gchar *text;
+};
+
+static gboolean save_archive_update_task_window(struct save_archive_update_task_window_data *data) {
+	xmi_msim_gui_long_task_window_set_text(data->window, data->text);
+	g_free(data->text);
+
+	return FALSE;
+}
+
+static void save_archive_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
+	XmiMsimGuiLongTaskWindow *task_window = source_object;
+	struct save_archive_data *sad = task_data;
+	
+	//convert to an archive struct -> this should never fail
+	struct xmi_archive *archive = xmi_archive_raw2struct(
+		sad->output,
+		sad->aod->start_value1,
+		sad->aod->end_value1,
+		sad->aod->nsteps1,
+		sad->xpath1,
+		sad->aod->start_value2,
+		sad->aod->end_value2,
+		sad->aod->nsteps2,
+		sad->xpath2);
+	
+	
+	//save to XMSA file
+	struct save_archive_update_task_window_data update_data;
+	update_data.window = task_window;
+	update_data.text = g_strdup("<b>Saving XMSA file</b>");
+
+	gdk_threads_add_idle((GSourceFunc) save_archive_update_task_window, &update_data);
+
+	GError *error = NULL;
+
+	if (xmi_write_archive_xml(sad->aod->xmsa_file, archive, &error) == 0) {
+		xmi_free_archive(archive);
+		g_task_return_error(task, error);
+		return;
+	}
+
+	update_data.text = g_strdup("<b>Freeing XMSO memory</b>");
+	gdk_threads_add_idle((GSourceFunc) save_archive_update_task_window, &update_data);
+
+	int i, j;
+	for (i = 0 ; i <= sad->aod->nsteps1 ; i++) {
+		for (j = 0 ; j <= sad->aod->nsteps2 ; j++) {
+			xmi_free_output(sad->output[i][j]);
+		}
+		g_free(sad->output[i]);
+	}
+	g_free(sad->output);
+	g_free(sad->aod->xmsa_file);
+	g_free(sad->aod->xmo);
+	g_free(sad->aod);
+	g_free(sad->xpath1);
+	g_free(sad->xpath2);
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_free_archive);
+}
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
-	//g_fprintf(stdout,"Entering batchnode_button_clicked_cb...\n");
 	//open dialog
 	XmiMsimGuiFileChooserDialog *file_dialog = xmi_msim_gui_file_chooser_dialog_new(
 		"Select one or more files",
@@ -1387,11 +1480,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 	//extract all selected filenames
 	GSList *filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(file_dialog));
-	int i;
-	//for (i = 0 ; i < g_slist_length(filenames) ; i++) {
-	//	g_fprintf(stdout,"filename: %s\n", (char *) g_slist_nth_data(filenames,i));
-	//}
 
+	int i;
    	xmi_msim_gui_file_chooser_dialog_destroy(file_dialog);
 	GtkWidget *dialog;
 	struct xmi_main_options **options;
@@ -1440,12 +1530,10 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//3) launch execution window
 		batch_mode(window, options, filenames, response == GTK_RESPONSE_YES ? XMI_MSIM_BATCH_MULTIPLE_OPTIONS : XMI_MSIM_BATCH_ONE_OPTION, NULL, NULL, 0);
 		//4) display message with result
-		//g_fprintf(stdout,"exec_rv: %i\n", exec_rv);
 	}
 	else {
 		//one file selected
 		//options apply to all
-		//g_fprintf(stdout, "no clicked\n");
 		gchar *xpath1, *xpath2;
 		struct xmi_input *input;
 		GError *error = NULL;
@@ -1461,7 +1549,6 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 
 		int allowed1, allowed2;
 		int rv = select_parameter(window, input, &xpath1, &xpath2, &allowed1, &allowed2);
-		//g_fprintf(stdout,"select_parameter rv: %i\n", rv);
 		if (rv == 1) {
 			g_debug("xpath1: %s", xpath1);
 			g_debug("allowed1: %i", allowed1);
@@ -1486,7 +1573,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//1) options
 		//2) range of parameter
 		//3) plot afterwards? Requires saving to XMSA file as well as selecting a particular line
-		struct archive_options_data *aod = (struct archive_options_data *) g_malloc(sizeof(struct archive_options_data));
+		struct archive_options_data *aod = g_malloc(sizeof(struct archive_options_data));
 		rv = archive_options(window, input, (gchar *) g_slist_nth_data(filenames, 0), xpath1, xpath2, allowed1, allowed2, aod);
 		if (rv == 0) {
 			return;
@@ -1775,82 +1862,33 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		for (i = 0 ; i <= aod->nsteps1 ; i++)
 			output[i] = (struct xmi_output **) g_malloc(sizeof(struct xmi_output *)*(aod->nsteps2+1));
 		int exec_rv = batch_mode(window, &aod->xmo, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso, aod->nsteps2);
-		if (exec_rv == 0) {
-			return;
-		}
-
-		// TODO: ideally this should be rewritten using two (or three) GTasks... 
-		dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-		gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-		gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(window));
-		gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-		gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-		gtk_window_set_position (GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-		GtkWidget *main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-		label = gtk_label_new(NULL);
-		gtk_label_set_markup(GTK_LABEL(label),"<b>Converting XMSO files to archive</b>");
-		gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-		gtk_box_pack_start(GTK_BOX(main_vbox), label, TRUE, FALSE, 10);
-		gtk_widget_show(label);
-		GtkWidget *label2 = gtk_label_new("This may take a while...");
-		gtk_box_pack_start(GTK_BOX(main_vbox), label2, FALSE, FALSE, 10);
-		gtk_widget_show(label2);
-		gtk_widget_show(main_vbox);
-		gtk_container_add(GTK_CONTAINER(dialog), main_vbox);
-		gtk_container_set_border_width(GTK_CONTAINER(dialog),5);
-		gtk_window_set_default_size(GTK_WINDOW(dialog),200,50);
-		g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_true), NULL);
-		gtk_widget_show_all(dialog);
-		GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
-		gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
-		while(gtk_events_pending())
-		    gtk_main_iteration();
-
-		//convert to an archive struct
-		struct xmi_archive *archive = xmi_archive_raw2struct(output, aod->start_value1, aod->end_value1, aod->nsteps1, xpath1, aod->start_value2, aod->end_value2, aod->nsteps2, xpath2);
-		//save to XMSA file
-		//g_fprintf(stdout, "Writing %s\n", aod->xmsa_file);
-
-		gtk_label_set_markup(GTK_LABEL(label),"<b>Saving XMSA file</b>");
-		while(gtk_events_pending())
-		    gtk_main_iteration();
-
-		error = NULL;
-		if (xmi_write_archive_xml(aod->xmsa_file, archive, &error) == 0) {
-			gtk_widget_destroy(dialog);
-			dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error writing to archive-file %s. Aborting batch mode", aod->xmsa_file);
-			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
-			g_error_free(error);
-			gtk_dialog_run(GTK_DIALOG(dialog));
-			gtk_widget_destroy(dialog);
-			return;
-		}
-
-		gtk_label_set_markup(GTK_LABEL(label),"<b>Freeing XMSO memory</b>");
-		while(gtk_events_pending())
-		    gtk_main_iteration();
-
-		//g_fprintf(stdout, "Freeing output\n");
-		for (i = 0 ; i <= aod->nsteps1 ; i++) {
-			for (j = 0 ; j <= aod->nsteps2 ; j++) {
-				xmi_free_output(output[i][j]);
-			}
-			g_free(output[i]);
-		}
-		g_free(output);
 
 		g_strfreev(filenames_xmsi);
 		g_strfreev(filenames_xmso);
 		g_slist_free(filenames_xmsiGSL);
 
-		//and plot!
-		gtk_widget_destroy(dialog);
-		launch_archive_plot(archive, window);
+		if (exec_rv == 0) {
+			return;
+		}
+
+		GtkWidget *task_window = xmi_msim_gui_long_task_window_new(GTK_WINDOW(window));
+		xmi_msim_gui_long_task_window_set_text(XMI_MSIM_GUI_LONG_TASK_WINDOW(task_window), "<b>Converting XMSO files to archive</b>");
+		gtk_widget_show(task_window);
+
+		GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
+		gdk_window_set_cursor(gtk_widget_get_window(task_window), watchCursor);
+
+		GTask *task = g_task_new(task_window, NULL, (GAsyncReadyCallback) save_archive_callback, NULL);
+		struct save_archive_data *sad = g_malloc(sizeof(struct save_archive_data));
+		sad->aod = aod;
+		sad->xpath1 = xpath1;
+		sad->xpath2 = xpath2;
+		sad->output = output;
+
+		g_task_set_task_data(task, sad, g_free);
+		g_task_run_in_thread(task, save_archive_thread);
+		g_object_unref(task);
 	}
-
-
-
-	return;
 }
 
 static int batch_mode(GtkWidget *main_window, struct xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2) {

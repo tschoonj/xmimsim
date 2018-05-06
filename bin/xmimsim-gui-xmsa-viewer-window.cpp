@@ -117,7 +117,6 @@ static void xmi_msim_gui_xmsa_viewer_window_dispose(GObject *gobject) {
 }
 
 static void xmi_msim_gui_xmsa_viewer_window_finalize(GObject *gobject) {
-	g_debug("Calling finalize");
 	XmiMsimGuiXmsaViewerWindow *window = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(gobject);
 
 	g_free(window->x);
@@ -573,8 +572,6 @@ static void axis_title_changed_cb(XmiMsimGuiXmsaViewerWindow *self, GtkEntry *ax
 }
 
 static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
-	g_debug("Calling constructed");
-
 	XmiMsimGuiXmsaViewerWindow *self = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(obj);
 
 	//find all unique elements and lines
@@ -909,7 +906,7 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 }
 
 static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *self) {
-	g_debug("Calling init");
+
 }
 
 GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(GtkWidget *parent_window, struct xmi_archive *archive) {
@@ -934,11 +931,9 @@ GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(GtkWidget *parent_window, struct 
 static void xmi_msim_gui_xmsa_viewer_window_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
 
   XmiMsimGuiXmsaViewerWindow *window= XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(object);
-  g_debug("Setting property");
 
   switch (prop_id) {
     case 1:
-      g_debug("Setting archive");
       window->archive =  (struct xmi_archive *) g_value_get_pointer(value);
       break;
     default:

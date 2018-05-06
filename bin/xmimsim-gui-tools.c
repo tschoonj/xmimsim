@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-long-task-window.h"
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
 #include "xmi_xrmc.h"
@@ -185,13 +186,13 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	}
 }
 
-static void read_xmsa_callback(GtkWidget *job_dialog, GAsyncResult *result, struct xmi_tools *xt) {
+static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct xmi_tools *xt) {
 	GError *error = NULL;
-	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(job_dialog, result, &error);
+	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
 	GTask *task = G_TASK(result);
 
-	gdk_window_set_cursor(gtk_widget_get_window(job_dialog), NULL);
-	gtk_widget_destroy(job_dialog);
+	gdk_window_set_cursor(gtk_widget_get_window(window), NULL);
+	gtk_widget_destroy(window);
 
 	if (!archive) {
 		GtkWidget *message_dialog = gtk_message_dialog_new(
@@ -265,12 +266,13 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		//read the file
-		GtkWidget *job_dialog = xmi_msim_gui_utils_long_job_dialog(xt->window, "<b>Reading XMSA file</b>");
-		gtk_widget_show_all(job_dialog);
+		GtkWidget *window = xmi_msim_gui_long_task_window_new(GTK_WINDOW(xt->window));
+		xmi_msim_gui_long_task_window_set_text(XMI_MSIM_GUI_LONG_TASK_WINDOW(window), "<b>Reading XMSA file</b>");
+		gtk_widget_show(window);
 		GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
-		gdk_window_set_cursor(gtk_widget_get_window(job_dialog), watchCursor);
+		gdk_window_set_cursor(gtk_widget_get_window(window), watchCursor);
 
-		xmi_msim_gui_utils_read_xmsa_async(job_dialog, filename, (GAsyncReadyCallback) read_xmsa_callback, xt);
+		xmi_msim_gui_utils_read_xmsa_async(window, filename, (GAsyncReadyCallback) read_xmsa_callback, xt);
 		g_free(filename);
 
 	}
@@ -799,10 +801,11 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
-	dialog = xmi_msim_gui_utils_long_job_dialog(xt->window, "<b>Converting XMSA file</b>");
-	gtk_widget_show_all(dialog);
+	GtkWidget *window = xmi_msim_gui_long_task_window_new(GTK_WINDOW(xt->window));
+	xmi_msim_gui_long_task_window_set_text(XMI_MSIM_GUI_LONG_TASK_WINDOW(window), "<b>Converting XMSA file</b>");
+	gtk_widget_show(window);
 	GdkCursor* watchCursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_WATCH);
-	gdk_window_set_cursor(gtk_widget_get_window(dialog), watchCursor);
+	gdk_window_set_cursor(gtk_widget_get_window(window), watchCursor);
 
 	struct xmsa_to_xmso_data *xtxd = g_malloc(sizeof(struct xmsa_to_xmso_data));
 	xtxd->xmsafile = g_strdup(xmsafile);
@@ -810,7 +813,7 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	xtxd->step1 = step1;
 	xtxd->step2 = step2;
 
-	GTask *task = g_task_new(dialog, NULL, (GAsyncReadyCallback) xmsa_to_xmso_callback, xt);
+	GTask *task = g_task_new(window, NULL, (GAsyncReadyCallback) xmsa_to_xmso_callback, xt);
 	g_task_set_task_data(task, xtxd, (GDestroyNotify) xmsa_to_xmso_data_free);
 	g_task_run_in_thread(task, xmsa_to_xmso_thread);
 	g_object_unref(task);
