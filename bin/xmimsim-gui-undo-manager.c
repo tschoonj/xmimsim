@@ -271,6 +271,7 @@ gboolean xmi_msim_gui_undo_manager_register_entry(
 	XmiMsimGuiUndoManagerValueValidator validator) {
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
 	g_return_val_if_fail(GTK_IS_ENTRY(entry), FALSE);
+	g_return_val_if_fail(message != NULL, FALSE);
 
 	if (g_hash_table_contains(manager->widget_table, entry)) {
 		g_warning("xmi_msim_gui_undo_manager_register_entry: entry already registered by manager");
@@ -737,7 +738,7 @@ static void text_buffer_delete_range_after_cb(GtkTextBuffer *textbuffer, GtkText
 	// get the last stack data
 	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->undo_stack->len - 1);
 	XmiMsimGuiUndoManagerTextViewDeleteData *current_delete_data = g_value_get_boxed(&current_stack_data->value);
-	
+
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_bounds(textbuffer, &start_iter, &end_iter);
 	current_delete_data->all_text = gtk_text_buffer_get_text(textbuffer, &start_iter, &end_iter, TRUE);
@@ -783,6 +784,97 @@ gboolean xmi_msim_gui_undo_manager_register_text_view(
 	g_hash_table_insert(manager->widget_table, text_view, widget_data);
 
 	return TRUE;
+}
+
+static void spin_button_value_changed_cb(GtkSpinButton *spin_button, XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, spin_button);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, G_TYPE_DOUBLE);
+	g_value_set_double(&value, gtk_spin_button_get_value(spin_button));
+
+	extend_undo_stack(manager, GTK_WIDGET(spin_button), &value, widget_data->message, current_stack_data->input);
+}
+
+gboolean xmi_msim_gui_undo_manager_register_spin_button(
+	XmiMsimGuiUndoManager *manager,
+	GtkSpinButton *spin_button,
+	const gchar *message,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
+	g_return_val_if_fail(GTK_IS_SPIN_BUTTON(spin_button), FALSE);
+	g_return_val_if_fail(message != NULL, FALSE);
+
+	if (g_hash_table_contains(manager->widget_table, spin_button)) {
+		g_warning("xmi_msim_gui_undo_manager_register_spin_button: spin_button already registered by manager");
+		return FALSE;
+	}
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_malloc(sizeof(XmiMsimGuiUndoManagerWidgetData));
+	widget_data->message = g_strdup(message);
+	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
+	widget_data->valid = TRUE; // unused
+	widget_data->writer = writer;
+	widget_data->reader = reader;
+
+	gulong signal_id = g_signal_connect(spin_button, "value-changed", G_CALLBACK(spin_button_value_changed_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_id);
+
+	g_hash_table_insert(manager->widget_table, spin_button, widget_data);
+
+	return TRUE;
+}
+
+static void combo_box_text_changed_cb(GtkComboBoxText *combo_box_text, XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, combo_box_text);
+	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
+	g_return_if_fail(manager->undo_stack->len > 0); // ensure undo_stack isnt empty
+
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, G_TYPE_INT);
+	g_value_set_int(&value, gtk_combo_box_get_active(GTK_COMBO_BOX(combo_box_text)));
+
+	extend_undo_stack(manager, GTK_WIDGET(combo_box_text), &value, widget_data->message, current_stack_data->input);
+}
+
+gboolean xmi_msim_gui_undo_manager_register_combo_box_text(
+	XmiMsimGuiUndoManager *manager,
+	GtkComboBoxText *combo_box_text,
+	const gchar *message,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
+	g_return_val_if_fail(GTK_IS_COMBO_BOX_TEXT(combo_box_text), FALSE);
+	g_return_val_if_fail(message != NULL, FALSE);
+
+	if (g_hash_table_contains(manager->widget_table, combo_box_text)) {
+		g_warning("xmi_msim_gui_undo_manager_register_combo_box_text: combo_box_text already registered by manager");
+		return FALSE;
+	}
+
+	XmiMsimGuiUndoManagerWidgetData *widget_data = g_malloc(sizeof(XmiMsimGuiUndoManagerWidgetData));
+	widget_data->message = g_strdup(message);
+	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
+	widget_data->valid = TRUE; // unused
+	widget_data->writer = writer;
+	widget_data->reader = reader;
+
+	gulong signal_id = g_signal_connect(combo_box_text, "changed", G_CALLBACK(combo_box_text_changed_cb), manager);
+	g_array_append_val(widget_data->signal_ids, signal_id);
+
+	g_hash_table_insert(manager->widget_table, combo_box_text, widget_data);
+
+	return TRUE;
+
 }
 
 static void widget_block_signals_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, gpointer data) {
@@ -875,6 +967,25 @@ static void widget_populate_hash_with_value(GtkWidget *widget, GValue *value) {
 		else {
 			g_warning("widget_populate_hash_with_value: widget is text_view with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
 		}
+	}
+	else if (GTK_IS_SPIN_BUTTON(widget)) {
+		if (G_VALUE_HOLDS_DOUBLE(value)) {
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), g_value_get_double(value));
+		}
+		else {
+			g_warning("widget_populate_hash_with_value: widget is spin button with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
+		}
+	}
+	else if (GTK_IS_COMBO_BOX_TEXT(widget)) {
+		if (G_VALUE_HOLDS_INT(value)) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(widget), g_value_get_int(value));
+		}
+		else {
+			g_warning("widget_populate_hash_with_value: widget is gtk_combo_box_text with unsupported GValue type %s", G_VALUE_TYPE_NAME(value));
+		}
+	}
+	else {
+		g_warning("widget_populate_hash_with_value: unsupported widget type %s", G_OBJECT_TYPE_NAME(widget));
 	}
 }
 
