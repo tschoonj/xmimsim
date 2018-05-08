@@ -101,6 +101,22 @@ gboolean xmi_msim_gui_undo_manager_register_text_view(
 	XmiMsimGuiUndoManagerValueReader reader
 	);
 
+gboolean xmi_msim_gui_undo_manager_register_spin_button(
+	XmiMsimGuiUndoManager *manager,
+	GtkSpinButton *spin_button,
+	const gchar *message,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	);
+
+gboolean xmi_msim_gui_undo_manager_register_combo_box_text(
+	XmiMsimGuiUndoManager *manager,
+	GtkComboBoxText *combo_box_text,
+	const gchar *message,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
+	);
+
 typedef struct _XmiMsimGuiUndoManagerTextViewInsertData XmiMsimGuiUndoManagerTextViewInsertData;
 typedef struct _XmiMsimGuiUndoManagerTextViewDeleteData XmiMsimGuiUndoManagerTextViewDeleteData;
 
