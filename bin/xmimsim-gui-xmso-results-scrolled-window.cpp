@@ -211,7 +211,7 @@ enum {
 };
 
 extern "C" struct _XmiMsimGuiXmsoResultsScrolledWindow {
-	GtkWindow parent_instance;
+	GtkScrolledWindow parent_instance;
 	struct xmi_output *results;	
 	/*double plot_xmin;
 	double plot_xmax;
