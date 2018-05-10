@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 
-int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 	//this function will read the concentrations calculated by PyMCA, of course only if they were calculated in the first place
 	int rv = 0;
@@ -133,7 +133,7 @@ int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input
 
 
 
-int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 	int rv = 0;
 	gchar **strings, **peaks, **escapepeaks;
@@ -223,7 +223,7 @@ int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 
 
 
-int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_layer **layer, int alloc) {
+static int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_layer **layer, int alloc) {
 	int rv = 0;
 	gchar *predefGroup;
 	gchar **compoundlist=NULL;
@@ -377,8 +377,7 @@ int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_lay
 	return rv;
 }
 
-
-int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
+static int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	int rv;
 	gchar *type;
 	gchar **params;
@@ -465,15 +464,13 @@ int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
 	return rv;
 }
 
-
 enum {
 	ABSORBER_BEAM,
 	ABSORBER_DETECTOR,
 	ABSORBER_CRYSTAL
 };
 
-
-int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layers, int kind) {
+static int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layers, int kind) {
 	gchar *exc_names[]={"BeamFilter0","BeamFilter1", NULL};
 	gchar **det_names;
 	gchar *crystal_names[]={"Detector", NULL};
@@ -565,7 +562,7 @@ int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layer
 	return rv;
 }
 
-int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
+static int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	int rv = 0;
 	double alpha, beta;
 	gchar **strings;
@@ -694,8 +691,7 @@ int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	return rv;
 }
 
-
-int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run, int *reference_layer) {
+static int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run, int *reference_layer) {
 	int rv = 0;
 	gint active;
 	gsize length, length2;
@@ -804,7 +800,7 @@ int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilay
 	return rv;
 }
 
-int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	int rv = 0;
 	gchar **elements, **lines;
 	gsize n_elements, n_lines;
@@ -1019,7 +1015,7 @@ int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	return rv;
 }
 
-int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excitation, struct xmi_detector *detector) {
+static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excitation, struct xmi_detector *detector) {
 	gchar **energy = NULL;
 	gdouble *energyweight = NULL;
 	gint *energyflag = NULL;

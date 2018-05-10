@@ -35,7 +35,7 @@ typedef struct _XmiMsimGuiClipboardManager		XmiMsimGuiClipboardManager;
 typedef struct _XmiMsimGuiClipboardManagerClass   	XmiMsimGuiClipboardManagerClass;
 
 
-XmiMsimGuiClipboardManager* xmi_msim_gui_clipboard_manager_new();
+XmiMsimGuiClipboardManager* xmi_msim_gui_clipboard_manager_new(void);
 
 void xmi_msim_gui_clipboard_manager_register_widget(XmiMsimGuiClipboardManager *clipboard_manager, GtkWidget *widget);
 

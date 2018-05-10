@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-clipboard-manager.h"
 #include "xmimsim-gui-undo-manager.h"
 #include "xmi_xml.h"
+#include <string.h>
 
 GtkWidget *copy, *cut, *paste;
 GtkWidget *undo, *redo, *save, *saveas;
@@ -52,22 +53,22 @@ static void changed(XmiMsimGuiLayerBox *lbc, gchar *change, gpointer data) {
 	xmi_free_composition(composition);
 }
 
-void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_copy_val, gboolean paste_val, gpointer data) {
+static void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_copy_val, gboolean paste_val, gpointer data) {
 	gtk_widget_set_sensitive(cut, cut_copy_val);
 	gtk_widget_set_sensitive(copy, cut_copy_val);
 	gtk_widget_set_sensitive(paste, paste_val);
 }
 
-void n_photons_interval_writer(GValue *value, const struct xmi_input *input) {
+static void n_photons_interval_writer(GValue *value, const struct xmi_input *input) {
 	g_value_init(value, G_TYPE_LONG);
 	g_value_set_long(value, input->general->n_photons_interval);
 }
 
-void n_photons_interval_reader(const GValue *value, struct xmi_input *input) {
+static void n_photons_interval_reader(const GValue *value, struct xmi_input *input) {
 	input->general->n_photons_interval = g_value_get_long(value);
 }
 
-XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(GtkWidget *widget, struct xmi_input *current_input, GValue *value) {
+static XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(GtkWidget *widget, struct xmi_input *current_input, GValue *value) {
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(widget));
 	gchar *endptr;
 
@@ -85,12 +86,12 @@ XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(GtkWidget
 	return XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_VALID;
 }
 
-void comments_writer(GValue *value, const struct xmi_input *input) {
+static void comments_writer(GValue *value, const struct xmi_input *input) {
 	g_value_init(value, G_TYPE_STRING);
 	g_value_set_string(value, input->general->comments);
 }
 
-void comments_reader(const GValue *value, struct xmi_input *input) {
+static void comments_reader(const GValue *value, struct xmi_input *input) {
 	const gchar *all_text = NULL;
 	if (G_VALUE_HOLDS(value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA)) {
 		all_text = xmi_msim_gui_undo_manager_text_view_insert_data_get_all_text((XmiMsimGuiUndoManagerTextViewInsertData *) g_value_get_boxed(value));
@@ -107,7 +108,7 @@ void comments_reader(const GValue *value, struct xmi_input *input) {
 	input->general->comments = g_strdup(all_text);	
 }
 
-void update_status_buttons(XmiMsimGuiUndoManager *manager, gboolean saveas_status, gboolean save_status, gchar *undo_string, gchar *redo_string, gpointer data) {
+static void update_status_buttons(XmiMsimGuiUndoManager *manager, gboolean saveas_status, gboolean save_status, gchar *undo_string, gchar *redo_string, gpointer data) {
 	gtk_widget_set_sensitive(saveas, saveas_status);
 	gtk_widget_set_sensitive(save, save_status);
 	gtk_widget_set_sensitive(undo, undo_string != NULL);

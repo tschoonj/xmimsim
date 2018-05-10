@@ -43,7 +43,7 @@ struct harvester {
 };
 
 
-void *harvest_thread(void *sh) {
+static void *harvest_thread(void *sh) {
 	struct harvester *shl = (struct harvester *) sh;
 	unsigned long int *seeds;
 	int fifofd2;
@@ -77,8 +77,7 @@ void *harvest_thread(void *sh) {
 	return NULL;
 }
 
-
-void daemonize(const char *cmd) {
+static void daemonize(const char *cmd) {
 	int i , fd0, fd1, fd2;
 	pid_t pid;
 	struct rlimit rl;
@@ -138,16 +137,13 @@ void daemonize(const char *cmd) {
 
 }
 
-
-int lockfile(int fd) {
+static int lockfile(int fd) {
 	struct flock fl = {.l_type = F_WRLCK, .l_start = 0, .l_whence = SEEK_SET, .l_len = 0};
 
 	return fcntl(fd,F_SETLK, &fl);
 }
 
-
-
-int already_running(void) {
+static int already_running(void) {
 	int fd;
 	char *buf;
 
@@ -171,7 +167,7 @@ int already_running(void) {
 	return 0;
 }
 
-void sigterm(int signo) {
+static void sigterm(int signo) {
 	syslog(LOG_INFO, "got signal %i: exiting", signo);
 	if (xmi_end_random_acquisition_dev() != 1) {
 		syslog(LOG_ERR,"xmi_end_random_acquisition_dev error");
@@ -182,10 +178,9 @@ void sigterm(int signo) {
 	_exit(0);
 }
 
-void sighup(int signo) {
+static void sighup(int signo) {
 	syslog(LOG_INFO, "got SIGHUP; doing nothing really");
 }
-
 
 int main (int argc, char *argv[]) {
 	char *cmd;

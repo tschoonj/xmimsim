@@ -53,7 +53,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-double calculate_detector_absorption(struct xmi_input *input, int Z, int line) {
+static double calculate_detector_absorption(struct xmi_input *input, int Z, int line) {
 	double energy = LineEnergy(Z, line);
 	int i, j;
 	double rv = 1.0;

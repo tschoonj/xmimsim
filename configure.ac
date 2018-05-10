@@ -347,6 +347,16 @@ AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
 AC_CHECK_FUNCS_ONCE([getdelim getline])
 
+WSTRICT_CFLAGS=
+AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=missing-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-declarations"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-prototypes"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=shadow],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=shadow"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=unused-function],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=unused-function"],,)
+
+AC_SUBST(WSTRICT_CFLAGS)
+
 #check for types
 AC_CHECK_TYPE([ptrdiff_t],,[AC_MSG_ERROR([ptrdiff_t type not found])])
 

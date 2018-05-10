@@ -48,6 +48,16 @@
 #endif /* !G_ENABLE_DEBUG */
 
 /* VOID:BOOLEAN,STRING (xmimsim-gui-marshal.list:3) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__BOOLEAN_STRING (GClosure     *closure,
+                                        GValue       *return_value,
+                                        guint         n_param_values,
+                                        const GValue *param_values,
+                                        gpointer      invocation_hint,
+                                        gpointer      marshal_data);
+G_END_DECLS
 void
 xmi_msim_gui_VOID__BOOLEAN_STRING (GClosure     *closure,
                                    GValue       *return_value G_GNUC_UNUSED,
@@ -85,6 +95,16 @@ xmi_msim_gui_VOID__BOOLEAN_STRING (GClosure     *closure,
 }
 
 /* VOID:INT,STRING (xmimsim-gui-marshal.list:4) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__INT_STRING (GClosure     *closure,
+                                    GValue       *return_value,
+                                    guint         n_param_values,
+                                    const GValue *param_values,
+                                    gpointer      invocation_hint,
+                                    gpointer      marshal_data);
+G_END_DECLS
 void
 xmi_msim_gui_VOID__INT_STRING (GClosure     *closure,
                                GValue       *return_value G_GNUC_UNUSED,
@@ -122,6 +142,16 @@ xmi_msim_gui_VOID__INT_STRING (GClosure     *closure,
 }
 
 /* VOID:INT,DOUBLE (xmimsim-gui-marshal.list:5) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__INT_DOUBLE (GClosure     *closure,
+                                    GValue       *return_value,
+                                    guint         n_param_values,
+                                    const GValue *param_values,
+                                    gpointer      invocation_hint,
+                                    gpointer      marshal_data);
+G_END_DECLS
 void
 xmi_msim_gui_VOID__INT_DOUBLE (GClosure     *closure,
                                GValue       *return_value G_GNUC_UNUSED,
@@ -159,6 +189,16 @@ xmi_msim_gui_VOID__INT_DOUBLE (GClosure     *closure,
 }
 
 /* VOID:BOOLEAN,BOOLEAN (xmimsim-gui-marshal.list:6) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN (GClosure     *closure,
+                                         GValue       *return_value,
+                                         guint         n_param_values,
+                                         const GValue *param_values,
+                                         gpointer      invocation_hint,
+                                         gpointer      marshal_data);
+G_END_DECLS
 void
 xmi_msim_gui_VOID__BOOLEAN_BOOLEAN (GClosure     *closure,
                                     GValue       *return_value G_GNUC_UNUSED,
@@ -196,6 +236,16 @@ xmi_msim_gui_VOID__BOOLEAN_BOOLEAN (GClosure     *closure,
 }
 
 /* VOID:BOOLEAN,BOOLEAN,STRING,STRING (xmimsim-gui-marshal.list:7) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
+                                                       GValue       *return_value,
+                                                       guint         n_param_values,
+                                                       const GValue *param_values,
+                                                       gpointer      invocation_hint,
+                                                       gpointer      marshal_data);
+G_END_DECLS
 void
 xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
                                                   GValue       *return_value G_GNUC_UNUSED,

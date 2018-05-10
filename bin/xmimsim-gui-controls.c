@@ -98,9 +98,9 @@ GPid xmimsim_pid = GPID_INACTIVE;
 
 static gboolean xmimsim_paused = FALSE;
 
-void reset_controls(void);
+static void reset_controls(void);
 
-void error_spinners(void) {
+static void error_spinners(void) {
 	//check spinners
 	if (GTK_IS_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW)))) {
 		gtk_spinner_stop(GTK_SPINNER(gtk_bin_get_child(GTK_BIN(image_solidW))));
@@ -457,7 +457,7 @@ static void xmimsim_child_watcher_cb(GPid pid, gint status, struct child_data *c
 	return;
 }
 
-void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
+static void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	GPtrArray *argv;
 	gchar *wd;
 	gchar *tmp_string;
@@ -1268,7 +1268,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	gtk_container_set_border_width(GTK_CONTAINER(frame),5);
 	gtk_label_set_markup(GTK_LABEL(gtk_frame_get_label_widget(GTK_FRAME(frame))), "<span size=\"large\">Options</span>");
 
-	options_boxW = xmi_msim_gui_options_box_new(window);
+	options_boxW = xmi_msim_gui_options_box_new();
 	gtk_container_add(GTK_CONTAINER(frame), options_boxW);
 
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE,2);
@@ -1380,7 +1380,7 @@ GtkWidget *init_simulation_controls(GtkWidget *window) {
 	return scrolled_window;
 }
 
-void reset_controls(void) {
+static void reset_controls(void) {
 	GtkTextIter start, end;
 
 	//set progressbars to 0 %

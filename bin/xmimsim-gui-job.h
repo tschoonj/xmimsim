@@ -61,9 +61,9 @@ gboolean xmi_msim_gui_job_get_pid(XmiMsimGuiJob *job, gint *pid, GError **error)
 
 void xmi_msim_gui_job_send_all_stdout_events(XmiMsimGuiJob *job, gboolean setting);
 
-void xmi_msim_gui_job_kill_all();
+void xmi_msim_gui_job_kill_all(void);
 
-gboolean xmi_msim_gui_job_is_suspend_available();
+gboolean xmi_msim_gui_job_is_suspend_available(void);
 
 typedef enum {
 	XMI_MSIM_GUI_JOB_ERROR_INVALID_INPUT,

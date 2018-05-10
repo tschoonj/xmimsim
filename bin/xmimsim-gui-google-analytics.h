@@ -31,9 +31,9 @@ XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(cons
 
 void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid);
 
-const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global();
+const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global(void);
 
-void xmi_msim_gui_google_analytics_tracker_free_global();
+void xmi_msim_gui_google_analytics_tracker_free_global(void);
 
 gboolean xmi_msim_gui_google_analytics_tracker_send_event(const XmiMsimGuiGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value);
 

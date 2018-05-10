@@ -386,7 +386,7 @@ static int archive_options(GtkWidget *main_window, struct xmi_input *input, gcha
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), introLabel, "Introduction");
 
 	//general options
-	GtkWidget *ow = xmi_msim_gui_options_box_new(main_window);
+	GtkWidget *ow = xmi_msim_gui_options_box_new();
 	gtk_assistant_append_page(GTK_ASSISTANT(wizard), ow);
 	gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ow, GTK_ASSISTANT_PAGE_CONTENT);
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), ow, "General options");
@@ -1304,7 +1304,7 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 	unsigned int i;
 	GtkWidget **ows = (GtkWidget **) g_malloc(sizeof(GtkWidget *) * g_slist_length(filenames));
 	for (i = 0 ; i < g_slist_length(filenames) ; i++) {
-		ows[i] = xmi_msim_gui_options_box_new(main_window);
+		ows[i] = xmi_msim_gui_options_box_new();
 		gtk_assistant_append_page(GTK_ASSISTANT(wizard), ows[i]);
 		gtk_assistant_set_page_type(GTK_ASSISTANT(wizard), ows[i], GTK_ASSISTANT_PAGE_CONTENT);
 		gchar *filename = g_strdup_printf("File %d: %s",i+1, g_path_get_basename((char *) g_slist_nth_data(filenames,i)));
@@ -1339,7 +1339,7 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 static int general_options(GtkWidget *main_window, struct xmi_main_options **options) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Set the options for the simulations batch", GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	GtkWidget *ow = xmi_msim_gui_options_box_new(main_window);
+	GtkWidget *ow = xmi_msim_gui_options_box_new();
 	gtk_container_add(GTK_CONTAINER(content_area), ow);
 	gtk_widget_show_all(ow);
 	int dialog_rv = gtk_dialog_run(GTK_DIALOG(dialog));

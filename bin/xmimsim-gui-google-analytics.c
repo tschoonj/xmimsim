@@ -108,11 +108,11 @@ void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid) {
 	global_tracker = xmi_msim_gui_google_analytics_tracker_new(uuid);
 }
 
-const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global() {
+const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global(void) {
 	return global_tracker;
 }
 
-void xmi_msim_gui_google_analytics_tracker_free_global() {
+void xmi_msim_gui_google_analytics_tracker_free_global(void) {
 	if (global_tracker != NULL)
 		g_object_unref(global_tracker);
 

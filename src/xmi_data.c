@@ -39,7 +39,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_registry_win.h"
 #endif
 
+struct hdf5_vars {
+	hid_t file_id;
+	hid_t *group_id;
+	int n_group_id;
+	hid_t dset_id;
+	hid_t dspace_id;
+};
 
+// used from fortran only
+struct hdf5_vars *xmi_db_open(char *filename);
+int xmi_db_open_group(struct hdf5_vars *hv, char *group_name);
+int xmi_db_close_group(struct hdf5_vars *hv);
+int xmi_db_open_dataset(struct hdf5_vars *hv, char *dataset_name, int *ndims, int **dims);
+int xmi_db_read_dataset(struct hdf5_vars *hv, void *data, int64_t type);
+int xmi_db_close(struct hdf5_vars *hv);
 
 
 char *cascade_group_names[4] = {"No cascade effect", "Non-radiative cascade effect", "Radiative cascade effect", "Full cascade effect"};
@@ -64,14 +78,6 @@ struct compton_profiles {
 	//Vincze
 	double *random_numbers;
 	double *profile_total_icdf;
-};
-
-struct hdf5_vars {
-	hid_t file_id;
-	hid_t *group_id;
-	int n_group_id;
-	hid_t dset_id;
-	hid_t dspace_id;
 };
 
 //fortran call

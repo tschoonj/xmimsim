@@ -49,7 +49,7 @@ typedef enum {
 
 typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (GtkWidget *widget, struct xmi_input *current_input, GValue *value);
 
-XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new();
+XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new(void);
 
 void xmi_msim_gui_undo_manager_create_new_file(XmiMsimGuiUndoManager *manager);
 

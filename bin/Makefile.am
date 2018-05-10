@@ -1,4 +1,4 @@
-#Copyright (C) 2010-2011 Tom Schoonjans and Laszlo Vincze
+#Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -97,6 +97,9 @@ nodist_libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-resources.c \
 	$(NULL)
 
+libxmimsim_gui_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
 libxmimsim_gui_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -105,7 +108,6 @@ libxmimsim_gui_la_CPPFLAGS = \
 	@xml2_CFLAGS@ \
 	@libsoup_CFLAGS@ \
 	@libnotify_CFLAGS@ \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 libxmimsim_gui_la_LDFLAGS = \
 	@LDFLAGS_XMIMSIM_GUI_LIB@ \
@@ -129,10 +131,13 @@ plugin_LTLIBRARIES = \
 	$(NULL)
 
 xmimsim_gui_source_tube_ebel_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
+xmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.h \
@@ -140,16 +145,18 @@ xmimsim_gui_source_tube_ebel_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
-	$(EXTRA_CFLAGS) \
 	$(AM_LDFLAGS) \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 
 xmimsim_gui_source_radionuclide_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
+xmimsim_gui_source_radionuclide_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_SOURCES = \
 	xmimsim-gui-source-radionuclide.h \
@@ -157,7 +164,6 @@ xmimsim_gui_source_radionuclide_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
-	$(EXTRA_CFLAGS) \
 	$(AM_LDFLAGS) \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
@@ -165,12 +171,15 @@ xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.
 noinst_LTLIBRARIES += \
 	xmimsim-gui-source-random.la
 xmimsim_gui_source_random_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
+xmimsim_gui_source_random_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@fgsl_CFLAGS@ \
 	@easyRNG_CFLAGS@ \
 	@xraylib_CFLAGS@ \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_random_la_SOURCES = \
 	xmimsim-gui-source-random.h \
@@ -178,7 +187,6 @@ xmimsim_gui_source_random_la_SOURCES = \
 	$(NULL)
 xmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 xmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
 	../src/libxmimsim.la
@@ -278,6 +286,9 @@ libxmimsim_gui_include_HEADERS += xmimsim-gui-google-analytics.h
 libxmimsim_gui_google_analytics_la_SOURCES = \
 		      xmimsim-gui-google-analytics.h \
 		      xmimsim-gui-google-analytics.c
+libxmimsim_gui_google_analytics_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
 libxmimsim_gui_google_analytics_la_CPPFLAGS = \
 		$(AM_CPPFLAGS) \
 		-I$(top_srcdir)/include \
@@ -297,7 +308,6 @@ xmimsim_gui_CPPFLAGS = \
 	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 	-DXMIMSIM_COORDINATE_SYSTEM=\"$(datadir)/xmimsim/coordinate_system.png\" \
 	-DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
-	$(EXTRA_CFLAGS) \
 	$(NULL)
 
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
@@ -511,6 +521,7 @@ xmimsim-gui-marshal.c: $(marshal_input)
 		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.h
 	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
 		--prefix "xmi_msim_gui" \
+		--prototypes \
 		--body \
 		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.c
 
