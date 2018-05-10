@@ -82,7 +82,7 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
 void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
 void preferences_error_handler(GtkWidget *window);
 
-char *xmimsim_gui_get_preferences_filename();
+char *xmimsim_gui_get_preferences_filename(void);
 
 int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file);
 

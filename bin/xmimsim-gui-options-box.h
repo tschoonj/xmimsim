@@ -16,11 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-#include <gtk/gtk.h>
-#include "xmi_main.h"
-
 #ifndef XMI_MSIM_GUI_OPTIONS_BOX_H
 #define XMI_MSIM_GUI_OPTIONS_BOX_H
+
+#include <gtk/gtk.h>
+#include "xmi_main.h"
 
 G_BEGIN_DECLS
 
@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiOptionsBox		XmiMsimGuiOptionsBox;
 typedef struct _XmiMsimGuiOptionsBoxClass   	XmiMsimGuiOptionsBoxClass;
 
-GtkWidget* xmi_msim_gui_options_box_new(GtkWidget *parent_window);
+GtkWidget* xmi_msim_gui_options_box_new(void);
 
 GType xmi_msim_gui_options_box_get_type(void) G_GNUC_CONST;
 

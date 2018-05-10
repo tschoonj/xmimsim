@@ -32,7 +32,7 @@ extern GdkRGBA purple_plot;
 extern GdkRGBA yellow_plot;
 extern GdkRGBA pink_plot;
 
-void xmi_msim_gui_utils_init_colors();
+void xmi_msim_gui_utils_init_colors(void);
 
 G_END_DECLS
 

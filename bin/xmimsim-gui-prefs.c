@@ -300,7 +300,6 @@ void preferences_error_handler(GtkWidget *window) {
 	gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
 	exit(1);
-
 }
 
 
@@ -1066,7 +1065,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 
 	GtkWidget *label;
 
-	GtkWidget *options_boxW = xmi_msim_gui_options_box_new(main_window);
+	GtkWidget *options_boxW = xmi_msim_gui_options_box_new();
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), options_boxW);
@@ -1353,7 +1352,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-char *xmimsim_gui_get_preferences_filename() {
+char *xmimsim_gui_get_preferences_filename(void) {
 
 #ifdef MAC_INTEGRATION
         const gchar *config_dir = xmi_resources_mac_get_user_data_dir();

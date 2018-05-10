@@ -846,7 +846,7 @@ GQuark xmi_msim_gui_job_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-job-error-quark");
 }
 
-void xmi_msim_gui_job_kill_all() {
+void xmi_msim_gui_job_kill_all(void ) {
 	// no further processing will be triggered, just a clean kill
 	G_LOCK(current_job);
 	if (current_job != NULL) {
@@ -856,7 +856,7 @@ void xmi_msim_gui_job_kill_all() {
 	G_UNLOCK(current_job);
 }
 
-gboolean xmi_msim_gui_job_is_suspend_available() {
+gboolean xmi_msim_gui_job_is_suspend_available(void) {
 	init_globals();
 #ifdef G_OS_WIN32
 	if (!NtSuspendProcess) {

@@ -903,7 +903,7 @@ int xmi_get_solid_angle_file(char **filePtr, int create_file) {
 
 
 
-const char *clGetErrorString(cl_int err){
+static const char *clGetErrorString(cl_int err){
          switch(err){
              case 0: return "CL_SUCCESS";
              case -1: return "CL_DEVICE_NOT_FOUND";
@@ -963,6 +963,8 @@ const char *clGetErrorString(cl_int err){
 	fprintf(stderr,"OpenCL error %s for function %s on line %i\n",clGetErrorString(status),#name,__LINE__);\
 	return 0;\
 	}
+
+G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo);
 
 G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
 

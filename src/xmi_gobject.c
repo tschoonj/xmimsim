@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 
 static gpointer xmi_msim_composition_copy(gpointer boxed) {
-	g_debug("Copying XmiMsimComposition");
 	struct xmi_composition *A = boxed;
 	struct xmi_composition *B = NULL;
 	xmi_copy_composition(A, &B);
@@ -28,12 +27,10 @@ static gpointer xmi_msim_composition_copy(gpointer boxed) {
 }
 
 static void xmi_msim_composition_free(gpointer boxed) {
-	g_debug("Freeing XmiMsimComposition");
 	xmi_free_composition((struct xmi_composition *) boxed);
 }
 
 static gpointer xmi_msim_excitation_copy(gpointer boxed) {
-	g_debug("Copying XmiMsimExcitation");
 	struct xmi_excitation *A = boxed;
 	struct xmi_excitation *B = NULL;
 	xmi_copy_excitation(A, &B);
@@ -41,7 +38,6 @@ static gpointer xmi_msim_excitation_copy(gpointer boxed) {
 }
 
 static void xmi_msim_excitation_free(gpointer boxed) {
-	g_debug("Freeing XmiMsimExcitation");
 	xmi_free_excitation((struct xmi_excitation *) boxed);
 }
 
@@ -61,8 +57,6 @@ static void xmi_msim_excitation_free(gpointer boxed) {
       } \
     return xmi_msim_define_id__volatile; \
   }
-
-
 
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimComposition, xmi_msim_composition);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimExcitation, xmi_msim_excitation);

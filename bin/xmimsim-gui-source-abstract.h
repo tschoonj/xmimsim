@@ -27,9 +27,11 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(a, b, c) \
 	G_BEGIN_DECLS \
 	G_DEFINE_DYNAMIC_TYPE(a, b, c) \
+	G_MODULE_EXPORT void b ## _load(GTypeModule *module); \
 	G_MODULE_EXPORT void b ## _load(GTypeModule *module) { \
 		b ## _register_type(module); \
 	} \
+	G_MODULE_EXPORT void b ## _unload(GTypeModule *module); \
 	G_MODULE_EXPORT void b ## _unload(GTypeModule *module) { \
 	} \
 	G_END_DECLS

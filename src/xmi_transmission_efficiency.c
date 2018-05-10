@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
+#include "xmi_transmission_efficiency.h"
 #include <gio/gio.h>
 #include <string.h>
 #include "xmi_aux.h"

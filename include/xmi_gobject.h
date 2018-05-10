@@ -24,10 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 G_BEGIN_DECLS
 
 #define XMI_MSIM_TYPE_COMPOSITION (xmi_msim_composition_get_type ())
-GType xmi_msim_composition_get_type() G_GNUC_CONST;
+GType xmi_msim_composition_get_type(void) G_GNUC_CONST;
 
 #define XMI_MSIM_TYPE_EXCITATION (xmi_msim_excitation_get_type ())
-GType xmi_msim_excitation_get_type() G_GNUC_CONST;
+GType xmi_msim_excitation_get_type(void) G_GNUC_CONST;
 
 G_END_DECLS
 

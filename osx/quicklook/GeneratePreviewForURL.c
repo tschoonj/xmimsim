@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview, CFURLRef url, CFStringRef contentTypeUTI, CFDictionaryRef options);
 
+GQuark xmi_msim_error_quark(void);
+
 GQuark xmi_msim_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-error-quark");
 }

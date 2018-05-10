@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 struct _XmiMsimGuiOptionsBox {
 	GtkBox parent_instance;
-	GtkWidget *parent_windowW;
 	GtkWidget *MlinesW;
 	GtkWidget *rad_cascadeW;
 	GtkWidget *nonrad_cascadeW;
@@ -50,11 +49,6 @@ struct _XmiMsimGuiOptionsBoxClass
 
 G_DEFINE_TYPE(XmiMsimGuiOptionsBox, xmi_msim_gui_options_box, GTK_TYPE_BOX)
 
-static void xmi_msim_gui_options_box_set_property (GObject          *object,
-                                                   guint             prop_id,
-                                                   const GValue     *value,
-                                                   GParamSpec       *pspec);
-
 static void xmi_msim_gui_options_box_dispose(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_gui_options_box_parent_class)->dispose(gobject);
 }
@@ -68,16 +62,6 @@ static void xmi_msim_gui_options_box_class_init(XmiMsimGuiOptionsBoxClass *klass
 
 	object_class->dispose = xmi_msim_gui_options_box_dispose;
 	object_class->finalize = xmi_msim_gui_options_box_finalize;
-	object_class->set_property = xmi_msim_gui_options_box_set_property;
-
-	g_object_class_install_property(object_class,
-		1,
-		g_param_spec_pointer("parent-window",
-			"Parent window",
-			"Parent window",
-    			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
-		)
-	);
 }
 
 static void custom_detector_response_toggled_cb(GtkToggleButton *button, XmiMsimGuiOptionsBox *self) {
@@ -143,7 +127,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->MlinesW, "Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->MlinesW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->MlinesW, TRUE, FALSE, 0);
@@ -152,7 +136,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->rad_cascadeW, "Enables the simulation of the radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->rad_cascadeW, TRUE, FALSE, 0);
@@ -161,7 +145,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->nonrad_cascadeW, "Enables the simulation of the non-radiative cascade effect (atomic relaxation). Should always be enabled unless one needs to investigate the contribution of the non-radiative cascade effect.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->nonrad_cascadeW, TRUE, FALSE, 0);
@@ -170,7 +154,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->variance_reductionW, "Disabling this option enables the brute-force method. Should only be used in combination with a high number of simulated photons.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->variance_reductionW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->variance_reductionW, TRUE, FALSE, 0);
@@ -179,7 +163,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->pile_upW, "When activated, will estimate detector electronics pulse pile-up. Determined by the pulse width parameter in Detector settings.");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->pile_upW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->pile_upW, TRUE, FALSE, 0);
@@ -188,7 +172,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->poissonW, "Enabling this feature will add noise according to a Poisson distribution the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->poissonW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->poissonW, TRUE, FALSE, 0);
@@ -197,7 +181,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->escape_peaksW, "Enabling this feature will add fluorescence and Compton escape peaks to the convoluted spectra");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->escape_peaksW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->escape_peaksW, TRUE, FALSE, 0);
@@ -206,7 +190,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->advanced_comptonW, "Enabling this feature will improve the simulation of the Compton scattering, and add support for the Compton fluorescence photons. Warning: due to the added complexity, the code will slow down considerably (at least a factor of 2, and increases with higher atomic number)");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->advanced_comptonW, TRUE, FALSE, 0);
@@ -215,7 +199,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->default_seedsW, "Enabling this feature will set the seeds that will be used during the simulation to default values, instead of random ones. This is useful when exactly reproducible simulation results are required, usually for testing purposes");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->default_seedsW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->default_seedsW, TRUE, FALSE, 0);
@@ -225,7 +209,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_widget_set_tooltip_text(self->openclW, "Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->openclW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(self), self->openclW, TRUE, FALSE, 0);
@@ -246,7 +230,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_box_pack_end(GTK_BOX(hbox), self->custom_detector_responseB, FALSE, FALSE, 0);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	if (xpv.s != NULL) {
 		gtk_widget_set_sensitive(self->custom_detector_responseE, TRUE);
@@ -262,10 +246,8 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	g_free(xpv.s);
 }
 
-GtkWidget* xmi_msim_gui_options_box_new(GtkWidget *parent_window) {
-	g_return_val_if_fail(GTK_IS_WINDOW(parent_window), NULL);
-
-	return GTK_WIDGET(g_object_new(XMI_MSIM_GUI_TYPE_OPTIONS_BOX, "parent-window", parent_window, NULL));
+GtkWidget* xmi_msim_gui_options_box_new(void) {
+	return GTK_WIDGET(g_object_new(XMI_MSIM_GUI_TYPE_OPTIONS_BOX, NULL));
 }
 
 struct xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *self) {
@@ -301,62 +283,62 @@ void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *self) {
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->MlinesW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->variance_reductionW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->pile_upW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->poissonW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->escape_peaksW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->default_seedsW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->openclW));
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 #endif
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC)) == TRUE &&
@@ -367,20 +349,7 @@ void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *self) {
 		xpv.s = NULL;
 	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, xpv) == 0) {
 		//abort
-		preferences_error_handler(self->parent_windowW);
+		preferences_error_handler(NULL);
 	}
 	g_free(xpv.s);
-}
-
-static void xmi_msim_gui_options_box_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
-
-  XmiMsimGuiOptionsBox *box = XMI_MSIM_GUI_OPTIONS_BOX(object);
-
-  switch (prop_id) {
-    case 1:
-      box->parent_windowW =  GTK_WIDGET(g_value_get_pointer(value));
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  }
 }

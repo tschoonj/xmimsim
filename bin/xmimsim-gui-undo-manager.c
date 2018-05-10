@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_gobject.h"
+#include <string.h>
 
 typedef struct {
 	gchar *message;
@@ -170,7 +171,7 @@ static void xmi_msim_gui_undo_manager_init(XmiMsimGuiUndoManager *manager) {
 	g_ptr_array_ref(manager->undo_stack);
 }
 
-XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new() {
+XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new(void) {
 	return XMI_MSIM_GUI_UNDO_MANAGER(g_object_new(XMI_MSIM_GUI_TYPE_UNDO_MANAGER, NULL));
 }
 

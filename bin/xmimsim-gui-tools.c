@@ -200,7 +200,7 @@ static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct x
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_ERROR,
 			GTK_BUTTONS_CLOSE,
-			"Could not read file %s", g_task_get_task_data(task)
+			"Could not read file %s", (char *) g_task_get_task_data(task)
 		);
 		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(message_dialog), "%s", error->message);
 	    	gtk_dialog_run(GTK_DIALOG(message_dialog));

@@ -29,7 +29,7 @@ GdkRGBA pink_plot;
 
 #define COLOR_INIT(color) gdk_rgba_parse(&color ## _plot, #color);
 
-void xmi_msim_gui_utils_init_colors() {
+void xmi_msim_gui_utils_init_colors(void) {
 	/*initialize colors*/
 	COLOR_INIT(white);
 	COLOR_INIT(blue);

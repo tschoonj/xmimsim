@@ -86,9 +86,9 @@ int compare_string(const void *a, const void *b);
 
 
 
-char *xmi_version_string();
+char *xmi_version_string(void);
 
-int xmi_omp_get_max_threads();
+int xmi_omp_get_max_threads(void);
 
 void xmi_init_hdf5(void);
 
@@ -109,6 +109,8 @@ void xmi_free(void *ptr);
 //similar for malloc and realloc
 void *xmi_malloc(size_t size);
 void *xmi_realloc(void *ptr, size_t size);
+
+void xmi_print_progress(char *string, int progress);
 
 #ifdef __cplusplus
 }

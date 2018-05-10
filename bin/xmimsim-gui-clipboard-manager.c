@@ -88,7 +88,7 @@ static void xmi_msim_gui_clipboard_manager_init(XmiMsimGuiClipboardManager *mana
 	manager->focus_widget = NULL;
 }
 
-XmiMsimGuiClipboardManager* xmi_msim_gui_clipboard_manager_new() {
+XmiMsimGuiClipboardManager* xmi_msim_gui_clipboard_manager_new(void) {
 	return XMI_MSIM_GUI_CLIPBOARD_MANAGER(g_object_new(XMI_MSIM_GUI_TYPE_CLIPBOARD_MANAGER, NULL));
 }
 
