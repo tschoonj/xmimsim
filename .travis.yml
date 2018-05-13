@@ -7,7 +7,7 @@ env:
     - CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Wimplicit  -Wimplicit-function-declaration  -Wimplicit-int"
     - LD_LIBRARY_PATH='/usr/local/lib'
     - PKG_CONFIG_PATH='/usr/local/lib/pkgconfig'
-    - GTKMM_PLPLOT_BRANCH='plot-objects'
+    - GTKMM_PLPLOT_BRANCH='master'
 
 matrix:
   include:
