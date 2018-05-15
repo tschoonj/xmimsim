@@ -71,6 +71,8 @@ XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoM
 
 const gchar* xmi_msim_gui_undo_manager_get_filename(XmiMsimGuiUndoManager *manager);
 
+const gchar* xmi_msim_gui_undo_manager_get_output_filename(XmiMsimGuiUndoManager *manager);
+
 gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GError **error);
 
 gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);

@@ -4,5 +4,6 @@
 	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons">
 		<file>gtk-yes.png</file>
 		<file>gtk-no.png</file>
+		<file alias="Logo_xmi_msim.png">../icons/Logo_xmi_msim.png</file>
 	</gresource>
 </gresources>

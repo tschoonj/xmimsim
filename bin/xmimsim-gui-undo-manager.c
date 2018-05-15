@@ -1095,6 +1095,7 @@ void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager) {
 
 void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager) {
 	g_return_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager));
+	g_return_if_fail(manager->undo_stack->len > 0);
 	g_return_if_fail(manager->current_index <= manager->undo_stack->len - 1);
 
 	// to return to next state, use the input in current_index + 1
@@ -1123,6 +1124,7 @@ void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager) {
 }
 
 XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoManager *manager) {
+	g_return_val_if_fail(manager->undo_stack->len > 0, XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID);
 	XmiMsimGuiUndoManagerStatus status;
 	
 	// check if input is valid
@@ -1214,6 +1216,23 @@ const gchar* xmi_msim_gui_undo_manager_get_filename(XmiMsimGuiUndoManager *manag
 			break;
 		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES:
 			rv = manager->inputfile;
+	}
+	return rv;
+}
+
+const gchar* xmi_msim_gui_undo_manager_get_output_filename(XmiMsimGuiUndoManager *manager) {
+	XmiMsimGuiUndoManagerStatus status = xmi_msim_gui_undo_manager_get_status(manager);
+
+	gchar* rv = NULL;
+
+	switch (status) {
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_VALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_VALID:
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_WITH_CHANGES_INVALID:
+			break;
+		case XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES:
+			rv = manager->last_saved_input->general->outputfile;
 	}
 	return rv;
 }

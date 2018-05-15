@@ -61,6 +61,8 @@ gboolean xmi_msim_gui_job_get_pid(XmiMsimGuiJob *job, gint *pid, GError **error)
 
 void xmi_msim_gui_job_send_all_stdout_events(XmiMsimGuiJob *job, gboolean setting);
 
+gchar* xmi_msim_gui_job_get_command(XmiMsimGuiJob *job);
+
 void xmi_msim_gui_job_kill_all(void);
 
 gboolean xmi_msim_gui_job_is_suspend_available(void);

@@ -135,6 +135,8 @@ void xmi_msim_gui_utils_open_url(const char *link) {
 }
 
 void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension) {
+	if (extension == NULL)
+		return;
 	GString *string = g_string_new(*filename);
 	g_free(*filename);
 	if (g_ascii_strcasecmp(string->str + string->len - strlen(extension), extension) != 0) {
