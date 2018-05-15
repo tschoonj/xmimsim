@@ -35,7 +35,6 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 	data->options = xmi_get_default_main_options();
 	data->options.use_variance_reduction = FALSE; // brute force!
 	data->options.use_escape_peaks = FALSE; // no escape peaks!
-	data->options.verbose = TRUE;
 
 	struct compoundData *cd = (struct compoundData *) user_data;
 	// add compound to composition

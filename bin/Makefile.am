@@ -57,6 +57,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-layer-box.h \
 	xmimsim-gui-clipboard-manager.h \
 	xmimsim-gui-long-task-window.h \
+	xmimsim-gui-controls-scrolled-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -91,6 +92,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-layer-box.c \
 	xmimsim-gui-clipboard-manager.c \
 	xmimsim-gui-long-task-window.c \
+	xmimsim-gui-controls-scrolled-window.c \
 	$(NULL)
 
 nodist_libxmimsim_gui_la_SOURCES = \
@@ -212,7 +214,7 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-layer-box-test
+noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test
 endif
 xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
 xmimsim_gui_layer_box_test_CPPFLAGS = \
@@ -222,6 +224,20 @@ xmimsim_gui_layer_box_test_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 xmimsim_gui_layer_box_test_LDADD = \
+	libxmimsim-gui.la \
+	../src/libxmimsim.la \
+	@gtkmm3_LIBS@ \
+	@xml2_LIBS@ \
+	$(NULL)
+
+xmimsim_gui_controls_scrolled_window_test_SOURCES = xmimsim-gui-controls-scrolled-window-test.c
+xmimsim_gui_controls_scrolled_window_test_CPPFLAGS = \
+	@xml2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+	$(AM_CPPFLAGS) \
+	$(NULL)
+xmimsim_gui_controls_scrolled_window_test_LDADD = \
 	libxmimsim-gui.la \
 	../src/libxmimsim.la \
 	@gtkmm3_LIBS@ \
