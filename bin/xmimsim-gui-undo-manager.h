@@ -77,6 +77,8 @@ gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GEr
 
 gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);
 
+struct xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager);
+
 gboolean xmi_msim_gui_undo_manager_register_entry(
 	XmiMsimGuiUndoManager *manager,
 	GtkEntry *entry,

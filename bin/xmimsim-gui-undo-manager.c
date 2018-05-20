@@ -177,13 +177,24 @@ XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new(void) {
 
 static void widget_set_sensitive_hash_true(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, gpointer ignored_data) {
 	gtk_widget_set_sensitive(widget, TRUE);
+	GtkWidget *aux_widget;
+	if ((aux_widget = g_object_get_data(G_OBJECT(widget), "aux-widget")) != NULL)
+		gtk_widget_set_sensitive(aux_widget, TRUE);
+
 }
 
 static void widget_set_sensitive_hash_false(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, GtkWidget *keep_true_widget) {
-	if (widget == keep_true_widget)
+	GtkWidget *aux_widget;
+	if (widget == keep_true_widget) {
 		gtk_widget_set_sensitive(widget, TRUE);
-	else
+		if ((aux_widget = g_object_get_data(G_OBJECT(widget), "aux-widget")) != NULL)
+			gtk_widget_set_sensitive(aux_widget, TRUE);
+	}
+	else {
 		gtk_widget_set_sensitive(widget, FALSE);
+		if ((aux_widget = g_object_get_data(G_OBJECT(widget), "aux-widget")) != NULL)
+			gtk_widget_set_sensitive(aux_widget, FALSE);
+	}
 }
 
 static void extend_undo_stack(XmiMsimGuiUndoManager *manager, GtkWidget *widget, GValue *value, const gchar *message, struct xmi_input *current_input) {
@@ -1062,6 +1073,20 @@ gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, con
 	manager_emit_update_buttons(manager);
 
 	return TRUE;
+}
+
+struct xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), NULL);
+	if (manager->current_index < 0 || manager->current_index >= manager->undo_stack->len) {
+		g_warning("xmi_msim_gui_undo_manager_get_current_input: current_index invalid");
+		return NULL;
+	}
+
+	struct xmi_input* rv = NULL;
+	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
+	xmi_copy_input(current_stack_data->input, &rv);
+
+	return rv;
 }
 
 void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager) {

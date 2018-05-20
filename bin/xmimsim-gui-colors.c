@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,7 +49,8 @@ void xmi_msim_gui_utils_init_colors(void) {
 	GError *error = NULL;
 
 	if (!gtk_css_provider_load_from_data(gtk_provider,
-		"#color_entry.red { background-image: linear-gradient(red,red); }",
+		"#color_entry.red { background-image: linear-gradient(red,red); }\n"
+		"#color_event_box.chartreuse { background-image: linear-gradient(chartreuse,chartreuse); }",
 		-1,
 		&error
 	)) {
