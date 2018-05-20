@@ -202,9 +202,8 @@ static void select_extra_output_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 
 	}
 	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
-
-
 }
+
 static void xmi_msim_gui_controls_scrolled_window_class_init(XmiMsimGuiControlsScrolledWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 

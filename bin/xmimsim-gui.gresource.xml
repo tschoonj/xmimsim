@@ -6,4 +6,7 @@
 		<file>gtk-no.png</file>
 		<file alias="Logo_xmi_msim.png">../icons/Logo_xmi_msim.png</file>
 	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/data">
+		<file>coordinate_system.png</file>
+	</gresource>
 </gresources>
