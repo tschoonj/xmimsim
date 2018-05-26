@@ -29,6 +29,12 @@ GType xmi_msim_composition_get_type(void) G_GNUC_CONST;
 #define XMI_MSIM_TYPE_EXCITATION (xmi_msim_excitation_get_type ())
 GType xmi_msim_excitation_get_type(void) G_GNUC_CONST;
 
+#define XMI_MSIM_TYPE_INPUT (xmi_msim_input_get_type ())
+GType xmi_msim_input_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_ARCHIVE (xmi_msim_archive_get_type ())
+GType xmi_msim_archive_get_type(void) G_GNUC_CONST;
+
 G_END_DECLS
 
 #endif

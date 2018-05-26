@@ -370,7 +370,6 @@ int remove_xml_tags(const char *filename_old, const char *filename_new,  const c
 	for (i = 0 ; i < xpathObj->nodesetval->nodeNr ; i++) {
 		xmlNodePtr node = xpathObj->nodesetval->nodeTab[i];
 		xmlUnlinkNode(node);	
-		xmlFreeNode(node);	
 	}
 	
 	xmlXPathFreeObject(xpathObj);

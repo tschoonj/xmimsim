@@ -637,7 +637,7 @@ XMI_MAIN
 		//xmi_print_input(stdout,xi);
 		zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 		//convolute_spectrum
-		channels_conv_temp = (double **) g_malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
+		channels_conv_temp = (double **) g_malloc0(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 
 		for (j=(zero_sum > 0.0 ? 0 : 1) ; j <= xi->general->n_interactions_trajectory ; j++) {
 			xmi_detector_convolute(inputFPtr, hdf5FPtr, channels+j*xi->detector->nchannels, &channels_conv_temp2, xi->detector->nchannels, options);
@@ -845,9 +845,9 @@ single_run:
 
 	zero_sum = xmi_sum_double(channels, xi->detector->nchannels);
 	//convolute_spectrum
-	channels_conv = (double **) g_malloc(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
+	channels_conv = (double **) g_malloc0(sizeof(double *)*(xi->general->n_interactions_trajectory+1));
 
-	double **channels_def_ptrs = g_malloc(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
+	double **channels_def_ptrs = g_malloc0(sizeof(double *) * (xi->general->n_interactions_trajectory+1));
 	for (i = 0 ; i <= xi->general->n_interactions_trajectory ; i++)
 		channels_def_ptrs[i] = channels+i*xi->detector->nchannels;
 

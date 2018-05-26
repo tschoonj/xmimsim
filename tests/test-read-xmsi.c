@@ -132,20 +132,20 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_input_xml("non-existent-file.xmsi", &input, &error) == 0);
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
-	g_error_free(error);
+	g_clear_error(&error);
 
 	g_assert(replace_xml_tag(TEST_XMSI, TEST_XMSI_COPY, "/xmimsim/general/n_photons_interval", "hsdhodhoosda") == 1);
 	g_assert(xmi_read_input_xml(TEST_XMSI_COPY, &input, &error) == 0);
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
-	g_error_free(error);
+	g_clear_error(&error);
 	unlink(TEST_XMSI_COPY);
 
 	g_assert(remove_xml_tags(TEST_XMSI, TEST_XMSI_COPY, "/xmimsim/general/n_photons_interval") == 1);
 	g_assert(xmi_read_input_xml(TEST_XMSI_COPY, &input, &error) == 0);
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
-	g_error_free(error);
+	g_clear_error(&error);
 	unlink(TEST_XMSI_COPY);
 
 	return 0;

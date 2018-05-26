@@ -1133,9 +1133,11 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	output->channels_unconv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 	output->ninteractions = input->general->n_interactions_trajectory;
 
-	for (i = (use_zero_interactions ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-		output->channels_unconv[i] = g_malloc(sizeof(double)*nchannels);
-		output->channels_conv[i] = g_malloc(sizeof(double)*nchannels);
+	for (i = 0 ; i <= input->general->n_interactions_trajectory ; i++) {
+		output->channels_unconv[i] = g_malloc0(sizeof(double)*nchannels);
+		output->channels_conv[i] = g_malloc0(sizeof(double)*nchannels);
+		if (i == 0 && use_zero_interactions == 0)
+			continue;
 		for (j = 0 ; j < nchannels ; j++) {
 			output->channels_unconv[i][j] = ARRAY2D_FORTRAN(channels_unconv,i,j,input->general->n_interactions_trajectory+1,nchannels);
 			output->channels_conv[i][j] = channels_conv[i][j];
@@ -1288,7 +1290,7 @@ void xmi_free_output(struct xmi_output *output) {
 		g_free(output->inputfile);
 	int i;
 
-	for (i = (output->use_zero_interactions ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
+	for (i = 0 ; i <= output->input->general->n_interactions_trajectory ; i++) {
 		g_free(output->channels_conv[i]);
 		g_free(output->channels_unconv[i]);
 	}
@@ -1301,13 +1303,41 @@ void xmi_free_output(struct xmi_output *output) {
 	g_free(output);
 }
 
+void xmi_copy_archive(struct xmi_archive *A, struct xmi_archive **B) {
+	struct xmi_archive *C = g_memdup(A, sizeof(struct xmi_archive));
+	C->xpath1 = g_strdup(A->xpath1);
+	C->xpath2 = g_strdup(A->xpath2);
+	
+	C->output = g_malloc(sizeof(struct xmi_output **) * (C->nsteps1 + 1));
+	C->input = g_malloc(sizeof(struct xmi_input **) * (C->nsteps1 + 1));
+	C->inputfiles = g_malloc(sizeof(char **) * (C->nsteps1 + 1));
+	C->outputfiles = g_malloc(sizeof(char **) * (C->nsteps1 + 1));
+
+	int i, j;
+
+	for (i = 0 ; i <= C->nsteps1 ; i++) {
+		C->output[i] = g_malloc(sizeof(struct xmi_output *) * (C->nsteps2 + 1));
+		C->input[i] = g_malloc(sizeof(struct xmi_input *) * (C->nsteps2 + 1));
+		C->inputfiles[i] = g_malloc(sizeof(char *) * (C->nsteps2 + 1));
+		C->outputfiles[i] = g_malloc(sizeof(char *) * (C->nsteps2 + 1));
+		for (j = 0 ; j <= C->nsteps2 ; j++) {
+			xmi_copy_output(A->output[i][j], &C->output[i][j]);
+			C->input[i][j] = C->output[i][j]->input;
+			C->inputfiles[i][j] = C->output[i][j]->inputfile;
+			C->outputfiles[i][j] = C->input[i][j]->general->outputfile;
+		}
+	}
+
+	*B = C;
+}
+
 void xmi_free_archive(struct xmi_archive *archive) {
 	if (archive == NULL)
 		return;
 
 	g_free(archive->xpath1);
-	if (archive->xpath2 != NULL)
-		g_free(archive->xpath2);
+	g_free(archive->xpath2);
+	
 	int i,j;
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
@@ -1322,8 +1352,7 @@ void xmi_free_archive(struct xmi_archive *archive) {
 	g_free(archive->output);
 	g_free(archive->inputfiles);
 	g_free(archive->outputfiles);
-
-	return;
+	g_free(archive);
 }
 
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
@@ -1344,16 +1373,14 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 	archive->input = g_malloc(sizeof(struct xmi_input **)*(nsteps1+1));
 	archive->inputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
 	archive->outputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
-	int i;
+
+	int i, j;
+
 	for (i = 0 ; i <= nsteps1 ; i++) {
 		archive->output[i] = g_malloc(sizeof(struct xmi_output *)*(nsteps2+1));
 		archive->input[i] = g_malloc(sizeof(struct xmi_input *)*(nsteps2+1));
 		archive->inputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
 		archive->outputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
-	}
-
-	int j;
-	for (i = 0 ; i <= nsteps1 ; i++) {
 		for (j = 0 ; j <= nsteps2 ; j++) {
 			xmi_copy_output(output[i][j], &archive->output[i][j]);
 			archive->input[i][j] = archive->output[i][j]->input;
@@ -1377,7 +1404,7 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	int i, j;
 	C->channels_conv = g_malloc(sizeof(double *) * (C->ninteractions+1));
 	C->channels_unconv = g_malloc(sizeof(double *) * (C->ninteractions+1));
-	for (i = (C->use_zero_interactions ? 0 : 1) ; i <= C->ninteractions ; i++) {
+	for (i = 0 ; i <= C->ninteractions ; i++) {
 		 C->channels_conv[i] = g_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
 		 C->channels_unconv[i] = g_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
 	}
@@ -1401,8 +1428,6 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 			C->var_red_history[i].lines[j].line_type = g_strdup(C->var_red_history[i].lines[j].line_type);
 		}
 	}
-
-
 
 	*B = C;
 }

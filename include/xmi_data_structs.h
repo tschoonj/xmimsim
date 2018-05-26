@@ -263,6 +263,7 @@ void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *hist
 
 void xmi_free_output(struct xmi_output *);
 
+void xmi_copy_archive(struct xmi_archive *A, struct xmi_archive **B);
 void xmi_free_archive(struct xmi_archive *archive);
 
 struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
