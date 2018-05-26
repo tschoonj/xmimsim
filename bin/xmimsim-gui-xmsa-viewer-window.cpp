@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-colors.h"
 #include <gtkmm-plplot/plot2d.h>
 #include <gtkmm-plplot/canvas.h>
+#include "xmi_gobject.h"
 
 class Plot2DBatch: public Gtk::PLplot::Plot2D {
 	public:
@@ -140,7 +141,8 @@ static void xmi_msim_gui_xmsa_viewer_window_class_init(XmiMsimGuiXmsaViewerWindo
 
 	g_object_class_install_property(object_class,
 		1,
-		g_param_spec_pointer("archive",
+		g_param_spec_pointer(
+			"archive",
 			"archive",
 			"archive",
     			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)

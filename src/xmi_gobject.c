@@ -19,44 +19,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_gobject.h"
 #include "xmi_data_structs.h"
 
-static gpointer xmi_msim_composition_copy(gpointer boxed) {
-	struct xmi_composition *A = boxed;
-	struct xmi_composition *B = NULL;
-	xmi_copy_composition(A, &B);
-	return B;
-}
-
-static void xmi_msim_composition_free(gpointer boxed) {
-	xmi_free_composition((struct xmi_composition *) boxed);
-}
-
-static gpointer xmi_msim_excitation_copy(gpointer boxed) {
-	struct xmi_excitation *A = boxed;
-	struct xmi_excitation *B = NULL;
-	xmi_copy_excitation(A, &B);
-	return B;
-}
-
-static void xmi_msim_excitation_free(gpointer boxed) {
-	xmi_free_excitation((struct xmi_excitation *) boxed);
-}
-
 // taken more or less from ebassi's graphene-gobject.c
 #define XMI_MSIM_DEFINE_BOXED_TYPE(TypeName, type_name) \
+  static gpointer xmi_msim_ ## type_name ## _copy(gpointer boxed) { \
+	struct xmi_ ## type_name *A = boxed; \
+	struct xmi_ ## type_name *B = NULL; \
+	xmi_copy_ ## type_name (A, &B); \
+	return B; \
+  } \
+  \
+  static void xmi_msim_ ## type_name ## _free(gpointer boxed) { \
+	xmi_free_ ## type_name((struct xmi_ ## type_name *) boxed); \
+  } \
   GType \
-    type_name ## _get_type (void) \
+    xmi_msim_ ## type_name ## _get_type (void) \
   { \
     static volatile gsize xmi_msim_define_id__volatile = 0; \
     if (g_once_init_enter (&xmi_msim_define_id__volatile)) \
       { \
         GType xmi_msim_define_id = \
           g_boxed_type_register_static (g_intern_static_string (#TypeName), \
-                                        (GBoxedCopyFunc) type_name ## _copy, \
-                                        (GBoxedFreeFunc) type_name ## _free); \
+                                        (GBoxedCopyFunc) xmi_msim_ ## type_name ## _copy, \
+                                        (GBoxedFreeFunc) xmi_msim_ ## type_name ## _free); \
         g_once_init_leave (&xmi_msim_define_id__volatile, xmi_msim_define_id); \
       } \
     return xmi_msim_define_id__volatile; \
   }
 
-XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimComposition, xmi_msim_composition);
-XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimExcitation, xmi_msim_excitation);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimComposition, composition);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimExcitation, excitation);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimInput, input);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimArchive, archive);

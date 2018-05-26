@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <string.h>
 #include "xmimsim-gui-marshal.h"
+#include "xmi_gobject.h"
 
 G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_BOX)
 
@@ -73,9 +74,11 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 
 	g_object_class_install_property(object_class,
 		1,
-		g_param_spec_pointer("xmi-input-current",
+		g_param_spec_boxed(
+			"xmi-input-current",
 			"Current struct xmi_input",
 			"Current struct xmi_input",
+			XMI_MSIM_TYPE_INPUT,
     			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 		)
 	);
@@ -136,8 +139,7 @@ static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	if (source->y)
 		g_array_free(source->y, TRUE);
 
-	if (source->current != NULL)
-		source->current = NULL; // since we are using the global current in a read-only way, we cannot free it
+	g_boxed_free(XMI_MSIM_TYPE_INPUT, source->current);
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }
@@ -280,7 +282,7 @@ static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint pro
 
   switch (prop_id) {
     case 1:
-      source->current = (struct xmi_input *) g_value_get_pointer(value);
+      source->current = (struct xmi_input *) g_value_dup_boxed(value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

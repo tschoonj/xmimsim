@@ -2,6 +2,8 @@
 #include <math.h>
 #include "xmi_gobject.h"
 #include "xmi_data_structs.h"
+#include "libxmimsim-test.h"
+#include <unistd.h>
 
 typedef struct {
 	struct xmi_composition *composition;
@@ -10,6 +12,14 @@ typedef struct {
 typedef struct {
 	struct xmi_excitation *excitation;
 } SetupDataExcitation;
+
+typedef struct {
+	struct xmi_input *input;
+} SetupDataInput;
+
+typedef struct {
+	struct xmi_archive *archive;
+} SetupDataArchive;
 
 static gboolean composition_equal(struct xmi_composition *A, struct xmi_composition *B) {
 	int i, j;
@@ -129,12 +139,28 @@ static void setup_data_excitation(SetupDataExcitation *data, gconstpointer user_
 	data->excitation->discrete[0].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 }
 
+static void setup_data_input(SetupDataInput *data, gconstpointer user_data) {
+	g_assert(xmi_read_input_xml(TEST_XMSI, &data->input, NULL) == 1);
+}
+
+static void setup_data_archive(SetupDataArchive *data, gconstpointer user_data) {
+	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &data->archive, NULL) == 1);
+}
+
 static void teardown_data_composition(SetupDataComposition *data, gconstpointer user_data) {
 	xmi_free_composition(data->composition);
 }
 
 static void teardown_data_excitation(SetupDataExcitation *data, gconstpointer user_data) {
 	xmi_free_excitation(data->excitation);
+}
+
+static void teardown_data_input(SetupDataInput *data, gconstpointer user_data) {
+	xmi_free_input(data->input);
+}
+
+static void teardown_data_archive(SetupDataArchive *data, gconstpointer user_data) {
+	xmi_free_archive(data->archive);
 }
 
 static void test_composition_static(SetupDataComposition *data, gconstpointer user_data) {
@@ -213,8 +239,90 @@ static void test_excitation(SetupDataExcitation *data, gconstpointer user_data) 
 	g_value_unset(&value);
 }
 
+static void test_input_static(SetupDataInput *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_INPUT);
+	g_value_set_static_boxed(&value, data->input);
+	g_assert(data->input == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_input_take(SetupDataInput *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_INPUT);
+	g_value_take_boxed(&value, data->input);
+	g_assert(data->input == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_input_null(SetupDataInput *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_assert_null(data->input);
+	g_value_init(&value, XMI_MSIM_TYPE_INPUT);
+	g_value_take_boxed(&value, data->input);
+	g_assert_null(g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_input(SetupDataInput *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_INPUT);
+	g_value_set_boxed(&value, data->input);
+	g_assert(data->input != g_value_get_boxed(&value));
+	g_assert(xmi_compare_input(data->input, g_value_get_boxed(&value)) == 0);
+	g_value_unset(&value);
+}
+
+static void test_archive_static(SetupDataArchive *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
+	g_value_set_static_boxed(&value, data->archive);
+	g_assert(data->archive == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_archive_take(SetupDataArchive *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
+	g_value_take_boxed(&value, data->archive);
+	g_assert(data->archive == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_archive_null(SetupDataArchive *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_assert_null(data->archive);
+	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
+	g_value_take_boxed(&value, data->archive);
+	g_assert_null(g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_archive(SetupDataArchive *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
+	g_value_set_boxed(&value, data->archive);
+	g_assert(data->archive != g_value_get_boxed(&value));
+	g_assert(xmi_compare_archive(data->archive, g_value_get_boxed(&value)) == 0);
+	g_value_unset(&value);
+}
+
 int main(int argc, char *argv[]) {
+	//init test
+	g_assert(test_init() == 1);
 	g_test_init(&argc, &argv, NULL);
+
+	//download files
+	g_assert(test_download_file(TEST_XMSI_URL) == 1);
+	g_assert(test_download_file(TEST_XMSA_URL_1) == 1);
 
 	g_test_add("/gobject/composition-static",
 			SetupDataComposition,
@@ -272,7 +380,67 @@ int main(int argc, char *argv[]) {
 			test_excitation,
 			teardown_data_excitation
 			);
+	g_test_add("/gobject/input-static",
+			SetupDataInput,
+			NULL,
+			setup_data_input,
+			test_input_static,
+			teardown_data_input
+			);
+	g_test_add("/gobject/input-take",
+			SetupDataInput,
+			NULL,
+			setup_data_input,
+			test_input_take,
+			NULL
+			);
+	g_test_add("/gobject/input-null",
+			SetupDataInput,
+			NULL,
+			NULL,
+			test_input_null,
+			teardown_data_input
+			);
+	g_test_add("/gobject/input",
+			SetupDataInput,
+			NULL,
+			setup_data_input,
+			test_input,
+			teardown_data_input
+			);
+	g_test_add("/gobject/archive-static",
+			SetupDataArchive,
+			NULL,
+			setup_data_archive,
+			test_archive_static,
+			teardown_data_archive
+			);
+	g_test_add("/gobject/archive-take",
+			SetupDataArchive,
+			NULL,
+			setup_data_archive,
+			test_archive_take,
+			NULL
+			);
+	g_test_add("/gobject/archive-null",
+			SetupDataArchive,
+			NULL,
+			NULL,
+			test_archive_null,
+			teardown_data_archive
+			);
+	g_test_add("/gobject/archive",
+			SetupDataArchive,
+			NULL,
+			setup_data_archive,
+			test_archive,
+			teardown_data_archive
+			);
 
+	int rv = g_test_run();
 
-	return g_test_run();
+	unlink(TEST_XMSI);
+	unlink(TEST_XMSA_1);
+
+	return rv;
 }

@@ -69,9 +69,13 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 static gboolean xml_catalog_loaded = FALSE;
 
 static void handle_error(GError **error) {
-	if (error == NULL)
-		return;
-	*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "%s", xmlGetLastError()->message);
+	xmlErrorPtr xmlError = xmlGetLastError();
+	if (xmlError) {
+		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "%s", xmlError->message);
+	}
+	else {
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "unknown error occurred");
+	}
 }
 
 static int xmi_xmlCatalogAdd(const gchar *path) {
@@ -166,8 +170,7 @@ static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struc
 	nchannels = (int) xmlChildElementCount(spectrumPtr);
 	if (nchannels < 1 ) {
 		fprintf(stderr,"xmi_read_output_spectrum: spectrum contains no channels\n");
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "spectrum contains no channels");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "spectrum contains no channels");
 		return 0;
 	}
 
@@ -188,8 +191,7 @@ static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struc
 			n_interactions_loc = (int) xmlChildElementCount(channelPtr);
 			if (n_interactions_loc < 3) {
 				fprintf(stderr,"xmi_read_output_spectrum: channel contains less than three entities\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "channel contains less than three entities");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "channel contains less than three entities");
 				return 0;
 			}
 			countsPtr = xmlFirstElementChild(channelPtr);
@@ -203,8 +205,7 @@ static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struc
 					txt = xmlNodeGetContent(countsPtr->children);
 					if (sscanf((const char*) txt, "%lg", &(channels_loc[interaction_loc][channel_loc])) !=1) {
 						fprintf(stderr,"xmi_read_output_spectrum: could not read counts\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read counts");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read counts");
 						return 0;
 					}
 					xmlFree(txt);
@@ -253,8 +254,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 				txt =xmlNodeGetContent(attr->children);
 				if(sscanf((const char *)txt,"%i",&(history_loc[counter].atomic_number)) != 1) {
 					fprintf(stderr,"xmi_read_output_history: error reading in atomic_number\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in atomic number");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in atomic number");
 					return 0;
 				}
 				xmlFree(txt);
@@ -263,8 +263,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 				txt =xmlNodeGetContent(attr->children);
 				if(sscanf((const char *)txt,"%lg",&(history_loc[counter].total_counts)) != 1) {
 					fprintf(stderr,"xmi_read_output_history: error reading in total_counts\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in total_counts");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in total_counts");
 					return 0;
 				}
 				xmlFree(txt);
@@ -287,8 +286,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 					txt =xmlNodeGetContent(attr->children);
 					if (txt == NULL) {
 						fprintf(stderr,"xmi_read_output_history: error reading in line_type\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in line_type");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in line_type");
 						return 0;
 					}
 					history_loc[counter].lines[counter2].line_type = g_strdup((gchar*) txt);
@@ -298,8 +296,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 					txt =xmlNodeGetContent(attr->children);
 					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].energy)) != 1) {
 						fprintf(stderr,"xmi_read_output_history: error reading in energy\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in energy");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in energy");
 						return 0;
 					}
 					xmlFree(txt);
@@ -308,8 +305,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 					txt =xmlNodeGetContent(attr->children);
 					if(sscanf((const char *)txt,"%lg",&(history_loc[counter].lines[counter2].total_counts)) != 1) {
 						fprintf(stderr,"xmi_read_output_history: error reading in total_counts lvl2\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in total_counts");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in total_counts");
 						return 0;
 					}
 					xmlFree(txt);
@@ -326,27 +322,23 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 				attr = subcountsPtr->properties;
 				while (attr) {
 					if (!xmlStrcmp(attr->name,(const xmlChar *) "interaction_number")) {
-					txt =xmlNodeGetContent(attr->children);
-					if(sscanf((const char *)txt,"%i",&(history_loc[counter].lines[counter2].interactions[counter3].interaction_number)) != 1) {
-						fprintf(stderr,"xmi_read_output_history: error reading in interaction_number\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in interaction_number");
-						return 0;
+						txt =xmlNodeGetContent(attr->children);
+						if(sscanf((const char *)txt,"%i",&(history_loc[counter].lines[counter2].interactions[counter3].interaction_number)) != 1) {
+							fprintf(stderr,"xmi_read_output_history: error reading in interaction_number\n");
+							g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in interaction_number");
+							return 0;
+						}
+						xmlFree(txt);
 					}
-					xmlFree(txt);
-					}
-
 					attr = attr->next;
 				}
 				txt = xmlNodeGetContent(subcountsPtr->children);
 				if (sscanf((const char*) txt, "%lg",&(history_loc[counter].lines[counter2].interactions[counter3].counts)) !=1) {
 					fprintf(stderr,"xmi_read_output_history: could not read counts\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in counts");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in counts");
 					return 0;
 				}
 				xmlFree(txt);
-
 
 				subcountsPtr = xmlNextElementSibling(subcountsPtr);
 				counter3++;
@@ -379,8 +371,7 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			txt =xmlNodeGetContent(attr->children);
 			if(sscanf((const char *)txt,"%f",&((*general)->version)) != 1) {
 				fprintf(stderr,"error reading in version of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -406,8 +397,7 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%li",&((*general)->n_photons_interval)) != 1) {
 				fprintf(stderr,"error reading in n_photons_interval of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_photons_interval of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_photons_interval of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -416,8 +406,7 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%li",&((*general)->n_photons_line)) != 1) {
 				fprintf(stderr,"error reading in n_photons_line of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_photons_line of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_photons_line of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -426,8 +415,7 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%i",&((*general)->n_interactions_trajectory)) != 1) {
 				fprintf(stderr,"error reading in n_interactions_trajectory of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_interactions_trajectory of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_interactions_trajectory of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -474,15 +462,13 @@ static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%i",&((*composition)->reference_layer)) != 1) {
 				fprintf(stderr,"error reading in reference_layer of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in reference_layer of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in reference_layer of xml file");
 				return 0;
 			}
 			xmlFree(txt);
 			if ((*composition)->reference_layer < 1 || (*composition)->reference_layer > (*composition)->n_layers) {
 				fprintf(stderr,"invalid reference_layer value detected\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid reference_layer value detected");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid reference_layer value detected");
 				return 0;
 			}
 		}
@@ -507,8 +493,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_sample_source)) != 1) {
 				fprintf(stderr,"error reading in d_sample_source of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in d_sample_source of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in d_sample_source of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -520,8 +505,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -530,8 +514,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -540,8 +523,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_sample_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_sample_orientation y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation z of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_sample_orientation z of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -557,8 +539,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[0])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -567,8 +548,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[1])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -577,8 +557,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->p_detector_window[2])) != 1) {
 						fprintf(stderr,"error reading in p_detector_window z of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window z of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in p_detector_window z of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -593,8 +572,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[0])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -603,8 +581,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[1])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -613,8 +590,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->n_detector_orientation[2])) != 1) {
 						fprintf(stderr,"error reading in n_detector_orientation z of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation z of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in n_detector_orientation z of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -626,8 +602,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*geometry)->area_detector)) != 1) {
 				fprintf(stderr,"error reading in area_detector of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in area_detector of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in area_detector of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -636,8 +611,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_height)) != 1) {
 				fprintf(stderr,"error reading in collimator_height of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in collimator_height of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in collimator_height of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -646,8 +620,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*geometry)->collimator_diameter)) != 1) {
 				fprintf(stderr,"error reading in collimator_diameter of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in collimator_diameter of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in collimator_diameter of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -656,8 +629,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*geometry)->d_source_slit)) != 1) {
 				fprintf(stderr,"error reading in d_source_slit of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in d_source_slit of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in d_source_slit of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -669,8 +641,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_x)) != 1) {
 						fprintf(stderr,"error reading in slit_size_x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in slit_size_x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in slit_size_x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -679,8 +650,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&((*geometry)->slit_size_y)) != 1) {
 						fprintf(stderr,"error reading in slit_size_y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in slit_size_y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in slit_size_y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -734,8 +704,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in discrete energy of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete energy of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete energy of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -744,8 +713,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete horizontal_intensity of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete horizontal_intensity of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete horizontal_intensity of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -754,8 +722,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in discrete vertical_intensity of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete vertical_intensity of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete vertical_intensity of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -764,8 +731,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -774,8 +740,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_xp of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_xp of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -784,8 +749,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -794,8 +758,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_yp of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in discrete sigma_yp of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -817,8 +780,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 								txt = xmlNodeGetContent(subsubnode->children);
 								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
-									if (error != NULL)
-										*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in scale_parameter of xml file");
+									g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in scale_parameter of xml file");
 									return 0;
 								}
 								xmlFree(txt);
@@ -830,8 +792,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 								txt = xmlNodeGetContent(subsubnode->children);
 								if(sscanf((const char *)txt,"%lg",&scale_parameter) != 1) {
 									fprintf(stderr,"error reading in scale_parameter of xml file\n");
-									if (error != NULL)
-										*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in scale_parameter of xml file");
+									g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in scale_parameter of xml file");
 									return 0;
 								}
 								xmlFree(txt);
@@ -860,8 +821,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 				}
 				else {
 					fprintf(stderr,"Error: Invalid discrete energy detected\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid discrete energy detected");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid discrete energy detected");
 					return 0;
 				}
 			}
@@ -879,8 +839,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			}
 			else {
 				fprintf(stderr,"Error: Invalid discrete energy detected\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid discrete energy detected");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid discrete energy detected");
 				return 0;
 			}
 		}
@@ -891,8 +850,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(energy)) != 1) {
 						fprintf(stderr,"error reading in continuous energy of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous energy of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous energy of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -901,8 +859,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(horizontal_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous horizontal_intensity of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous horizontal_intensity of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous horizontal_intensity of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -911,8 +868,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(vertical_intensity)) != 1) {
 						fprintf(stderr,"error reading in continuous vertical_intensity of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous vertical_intensity of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in continuous vertical_intensity of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -921,8 +877,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_x)) != 1) {
 						fprintf(stderr,"error reading in sigma_x of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_x of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_x of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -931,8 +886,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_xp)) != 1) {
 						fprintf(stderr,"error reading in sigma_xp of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_xp of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_xp of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -941,8 +895,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_y)) != 1) {
 						fprintf(stderr,"error reading in sigma_y of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_y of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_y of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -951,8 +904,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",&(sigma_yp)) != 1) {
 						fprintf(stderr,"error reading in sigma_yp of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_yp of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in sigma_yp of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -968,8 +920,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			if (lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #endif
 				fprintf(stderr,"Error: Duplicate continuous energy interval energy detected\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Duplicate continuous energy interval energy detected");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Duplicate continuous energy interval energy detected");
 				return 0;
 			}
 			else if (energy >= 0.0 && energy <= 200.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) >= 0.0) {
@@ -984,8 +935,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			}
 			else {
 				fprintf(stderr,"Error: Invalid continuous interval detected\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Invalid continuous energy interval energy detected");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Invalid continuous energy interval energy detected");
 				return 0;
 			}
 		}
@@ -994,14 +944,12 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 
 	if (excitation_rv->n_continuous < 2 && excitation_rv->n_discrete == 0) {
 		fprintf(stderr,"Error: Found no valid discrete or continuous energies in xml file\n");
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found no valid discrete or continuous energies in xml file");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found no valid discrete or continuous energies in xml file");
 		return 0;
 	}
 	else if (excitation_rv->n_continuous == 1) {
 		fprintf(stderr,"Error: Found only one continuous interval in xml file\nMust be either none or at least two\n");
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found only one continuous interval in xml file\nMust be either none or at least two");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Found only one continuous interval in xml file\nMust be either none or at least two");
 		return 0;
 	}
 
@@ -1128,8 +1076,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			}
 			else {
 				fprintf(stderr,"Unknown detector type\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Unknown detector type");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Unknown detector type");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1138,8 +1085,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->live_time)) != 1) {
 				fprintf(stderr,"error reading in live_time of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in live_time of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in live_time of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1148,8 +1094,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->pulse_width)) != 1) {
 				fprintf(stderr,"error reading in pulse_width of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in pulse_width of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in pulse_width of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1158,8 +1103,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->gain)) != 1) {
 				fprintf(stderr,"error reading in gain of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in gain of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in gain of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1168,8 +1112,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->zero)) != 1) {
 				fprintf(stderr,"error reading in zero of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in zero of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in zero of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1178,8 +1121,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->fano)) != 1) {
 				fprintf(stderr,"error reading in fano of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in fano of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in fano of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1188,8 +1130,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&((*detector)->noise)) != 1) {
 				fprintf(stderr,"error reading in noise of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in noise of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in noise of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1198,8 +1139,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%i",&((*detector)->nchannels)) != 1) {
 				fprintf(stderr,"error reading in nchannels of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in nchannels of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in nchannels of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1253,8 +1193,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%i",Z+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in atomic_number of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in atomic_number of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in atomic_number of xml file");
 						return 0;
 					}
 					xmlFree(txt);
@@ -1264,8 +1203,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 					txt = xmlNodeGetContent(subsubnode->children);
 					if(sscanf((const char *)txt,"%lg",weight+n_elements-1) != 1) {
 						fprintf(stderr,"error reading in weight_fraction of xml file\n");
-						if (error != NULL)
-							*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in weight_fraction of xml file");
+						g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in weight_fraction of xml file");
 						return 0;
 					}
 					//special case: if weight is equal to zero, skip the element
@@ -1286,8 +1224,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&(layer->density)) != 1) {
 				fprintf(stderr,"error reading in density of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in density of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in density of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -1296,8 +1233,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 			txt = xmlNodeGetContent(subnode->children);
 			if(sscanf((const char *)txt,"%lg",&(layer->thickness)) != 1) {
 				fprintf(stderr,"error reading in thickness of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in thickness of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in thickness of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2137,8 +2073,7 @@ int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-results") != 0) {
 		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
 		xmlFreeDoc(doc);
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
+		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
 		return 0;
 	}
 
@@ -2235,8 +2170,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 			txt =xmlNodeGetContent(attr->children);
 			if(sscanf((const char *)txt,"%f",&op->version) != 1) {
 				fprintf(stderr,"error reading in version of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2251,8 +2185,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 				txt = xmlNodeGetContent(attr->children);
 				if(sscanf((const char *)txt,"%i",step1) != 1) {
 					fprintf(stderr,"error reading in step1 attribute of xml file\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step1 attribute of xml file");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step1 attribute of xml file");
 					return 0;
 				}
 				xmlFree(txt);
@@ -2261,8 +2194,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 				txt = xmlNodeGetContent(attr->children);
 				if(sscanf((const char *)txt,"%i",step2) != 1) {
 					fprintf(stderr,"error reading in step2 attribute of xml file\n");
-					if (error != NULL)
-						*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step2 attribute of xml file");
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step2 attribute of xml file");
 					return 0;
 				}
 				xmlFree(txt);
@@ -2300,8 +2232,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 	if (xmi_validate_input(op->input) != 0) {
 		xmlFreeDoc(doc);
 		fprintf(stderr, "Error validating input data\n");
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");
 		return 0;
 	}
 #endif
@@ -2401,8 +2332,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-archive") != 0) {
 		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-archive\n",xmsafile);
 		xmlFreeDoc(doc);
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "wrong type, expected xmimsim-archive");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "wrong type, expected xmimsim-archive");
 		return 0;
 	}
 
@@ -2416,8 +2346,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt =xmlNodeGetContent(attr->children);
 			if(sscanf((const char *)txt,"%f",&ar->version) != 1) {
 				fprintf(stderr,"error reading in version of xml file\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2441,8 +2370,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value1");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value1");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2451,8 +2379,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value1");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value1");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2461,8 +2388,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps1\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps1");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps1");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2473,8 +2399,26 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			ar->outputfiles = g_malloc(sizeof(char**)*(ar->nsteps1+1));
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
-			// TODO: check if the xpath1 expression is valid
 			txt = xmlNodeGetContent(subroot->children);
+			// This cannot work on the archive since it applies on the master input-file
+			/*xmlXPathContextPtr xpathContext = xmlXPathNewContext(subroot->doc);
+			if (xpathContext == NULL) {
+				fprintf(stderr, "Could not get xpath1 xpathContext\n");
+				handle_error(error);
+				return 0;
+			}
+			xmlXPathObjectPtr xpathResult = xmlXPathEvalExpression(txt, xpathContext);
+			if (xpathResult == NULL || xmlXPathNodeSetIsEmpty(xpathResult->nodesetval)) {
+				fprintf(stderr, "Invalid xpath1: %s\n", txt);
+				handle_error(error);
+				if (xpathResult)
+					xmlXPathFreeObject(xpathResult);
+				xmlXPathFreeContext(xpathContext);
+				return 0;
+			}
+			xmlXPathFreeObject(xpathResult);
+			xmlXPathFreeContext(xpathContext);
+			*/
 			ar->xpath1 = g_strdup((char*) txt);
 			xmlFree(txt);
 		}
@@ -2482,8 +2426,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value2");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value2");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2492,8 +2435,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value2");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value2");
 				return 0;
 			}
 			xmlFree(txt);
@@ -2502,15 +2444,27 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
 				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps2\n");
-				if (error != NULL)
-					*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps2");
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps2");
 				return 0;
 			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath2")) {
-			// TODO: check if the xpath1 expression is valid
 			txt = xmlNodeGetContent(subroot->children);
+			// This cannot work on the archive since it applies on the master input-file
+			/*xmlXPathContextPtr xpathContext = xmlXPathNewContext(subroot->doc);
+			xmlXPathObjectPtr xpathResult = xmlXPathEvalExpression(txt, xpathContext);
+			if (xpathResult == NULL || xmlXPathNodeSetIsEmpty(xpathResult->nodesetval)) {
+				fprintf(stderr, "Invalid xpath2");
+				handle_error(error);
+				if (xpathResult)
+					xmlXPathFreeObject(xpathResult);
+				xmlXPathFreeContext(xpathContext);
+				return 0;
+			}
+			xmlXPathFreeObject(xpathResult);
+			xmlXPathFreeContext(xpathContext);*/
+
 			ar->xpath2 = g_strdup((char*) txt);
 			xmlFree(txt);
 		}
@@ -2540,8 +2494,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 
 	if (files_read != (ar->nsteps1+1)*(ar->nsteps2+1)) {
 		fprintf(stderr,"xmi_read_archive_xml: nfiles/nsteps mismatch\n");
-		if (error != NULL)
-			*error = g_error_new(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "nfiles/nsteps mismatch");
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "nfiles/nsteps mismatch");
 		return 0;
 	}
 
