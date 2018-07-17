@@ -52,7 +52,7 @@ static int compare_fluor_data(const void *f1, const void *f2) {
 }
 
 extern "C" struct _XmiMsimGuiXmsaViewerWindow {
-	GtkWindow parent_instance;
+	GtkApplicationWindow parent_instance;
 	GtkWidget *parent_windowW;
 	GtkWidget *roi_radioW;
 	GtkWidget *roi_channel_radioW;
@@ -103,10 +103,10 @@ extern "C" struct _XmiMsimGuiXmsaViewerWindow {
 };
 
 extern "C" struct _XmiMsimGuiXmsaViewerWindowClass {
-	GtkWindowClass parent_class;
+	GtkApplicationWindowClass parent_class;
 };
 
-G_DEFINE_TYPE(XmiMsimGuiXmsaViewerWindow, xmi_msim_gui_xmsa_viewer_window, GTK_TYPE_WINDOW)
+G_DEFINE_TYPE(XmiMsimGuiXmsaViewerWindow, xmi_msim_gui_xmsa_viewer_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static void xmi_msim_gui_xmsa_viewer_window_set_property (GObject          *object,
                                                    guint             prop_id,
@@ -907,17 +907,29 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	G_OBJECT_CLASS(xmi_msim_gui_xmsa_viewer_window_parent_class)->constructed(obj);
 }
 
-static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *self) {
-
+static void close_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	gtk_widget_destroy(GTK_WIDGET(user_data));
 }
 
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(GtkWidget *parent_window, struct xmi_archive *archive) {
-	g_return_val_if_fail(GTK_IS_WINDOW(parent_window), NULL);
+static void minimize_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	gtk_window_iconify(GTK_WINDOW(user_data));
+}
+
+static GActionEntry win_entries[] = {
+	{"close", close_activated, NULL, NULL, NULL},
+	{"minimize", minimize_activated, NULL, NULL, NULL},
+};
+
+static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *self) {
+	g_action_map_add_action_entries(G_ACTION_MAP(self), win_entries, G_N_ELEMENTS(win_entries), self);
+}
+
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, struct xmi_archive *archive) {
 	g_return_val_if_fail(archive != NULL, NULL);
 
 	XmiMsimGuiXmsaViewerWindow *rv = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(
 					g_object_new(XMI_MSIM_GUI_TYPE_XMSA_VIEWER_WINDOW,
-					"transient-for", GTK_WINDOW(parent_window),
+					"application", app,
 					"archive", archive,
 					"title", "Batch mode plot",
 					"window-position", GTK_WIN_POS_CENTER,

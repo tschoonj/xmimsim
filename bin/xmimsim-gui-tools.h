@@ -20,17 +20,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMIMSIM_GUI_TOOLS_H
 #define XMIMSIM_GUI_TOOLS_H
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
-void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data);
-void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data);
+void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmso2csv_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmso2spe_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
+void xmsa2xmso_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
 
 G_END_DECLS
 

@@ -1128,6 +1128,7 @@ struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_
 	output->input = input;
 	xmi_copy_input(input, &output->input);
 	output->inputfile = g_strdup(inputfile);
+	output->outputfile = g_strdup(input->general->outputfile);
 	output->use_zero_interactions = use_zero_interactions;
 	output->channels_conv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 	output->channels_unconv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
@@ -1288,6 +1289,10 @@ void xmi_free_output(struct xmi_output *output) {
 
 	if (output->inputfile)
 		g_free(output->inputfile);
+
+	if (output->outputfile)
+		g_free(output->outputfile);
+
 	int i;
 
 	for (i = 0 ; i <= output->input->general->n_interactions_trajectory ; i++) {
@@ -1324,7 +1329,7 @@ void xmi_copy_archive(struct xmi_archive *A, struct xmi_archive **B) {
 			xmi_copy_output(A->output[i][j], &C->output[i][j]);
 			C->input[i][j] = C->output[i][j]->input;
 			C->inputfiles[i][j] = C->output[i][j]->inputfile;
-			C->outputfiles[i][j] = C->input[i][j]->general->outputfile;
+			C->outputfiles[i][j] = C->output[i][j]->outputfile;
 		}
 	}
 
@@ -1385,7 +1390,7 @@ struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double s
 			xmi_copy_output(output[i][j], &archive->output[i][j]);
 			archive->input[i][j] = archive->output[i][j]->input;
 			archive->inputfiles[i][j] = archive->output[i][j]->inputfile;
-			archive->outputfiles[i][j] = archive->input[i][j]->general->outputfile;
+			archive->outputfiles[i][j] = archive->output[i][j]->outputfile;
 		}
 	}
 
@@ -1396,6 +1401,7 @@ void xmi_copy_output(struct xmi_output *A, struct xmi_output **B) {
 	struct xmi_output *C = g_malloc(sizeof(struct xmi_output));
 	C->version = A->version;
 	C->inputfile = g_strdup(A->inputfile);
+	C->outputfile = g_strdup(A->outputfile);
 	xmi_copy_input(A->input, &C->input);
 	C->nbrute_force_history = A->nbrute_force_history;
 	C->nvar_red_history = A->nvar_red_history;

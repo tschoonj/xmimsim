@@ -235,36 +235,35 @@ xmi_msim_gui_VOID__BOOLEAN_BOOLEAN (GClosure     *closure,
             data2);
 }
 
-/* VOID:BOOLEAN,BOOLEAN,STRING,STRING (xmimsim-gui-marshal.list:7) */
+/* VOID:BOOLEAN,BOOLEAN,BOOLEAN (xmimsim-gui-marshal.list:7) */
 /* Prototype for -Wmissing-prototypes */
 G_BEGIN_DECLS
 extern
-void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
-                                                       GValue       *return_value,
-                                                       guint         n_param_values,
-                                                       const GValue *param_values,
-                                                       gpointer      invocation_hint,
-                                                       gpointer      marshal_data);
+void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_BOOLEAN (GClosure     *closure,
+                                                 GValue       *return_value,
+                                                 guint         n_param_values,
+                                                 const GValue *param_values,
+                                                 gpointer      invocation_hint,
+                                                 gpointer      marshal_data);
 G_END_DECLS
 void
-xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
-                                                  GValue       *return_value G_GNUC_UNUSED,
-                                                  guint         n_param_values,
-                                                  const GValue *param_values,
-                                                  gpointer      invocation_hint G_GNUC_UNUSED,
-                                                  gpointer      marshal_data)
+xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_BOOLEAN (GClosure     *closure,
+                                            GValue       *return_value G_GNUC_UNUSED,
+                                            guint         n_param_values,
+                                            const GValue *param_values,
+                                            gpointer      invocation_hint G_GNUC_UNUSED,
+                                            gpointer      marshal_data)
 {
-  typedef void (*GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING) (gpointer data1,
-                                                                    gboolean arg1,
-                                                                    gboolean arg2,
-                                                                    gpointer arg3,
-                                                                    gpointer arg4,
-                                                                    gpointer data2);
+  typedef void (*GMarshalFunc_VOID__BOOLEAN_BOOLEAN_BOOLEAN) (gpointer data1,
+                                                              gboolean arg1,
+                                                              gboolean arg2,
+                                                              gboolean arg3,
+                                                              gpointer data2);
   GCClosure *cc = (GCClosure *) closure;
   gpointer data1, data2;
-  GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING callback;
+  GMarshalFunc_VOID__BOOLEAN_BOOLEAN_BOOLEAN callback;
 
-  g_return_if_fail (n_param_values == 5);
+  g_return_if_fail (n_param_values == 4);
 
   if (G_CCLOSURE_SWAP_DATA (closure))
     {
@@ -276,13 +275,65 @@ xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING (GClosure     *closure,
       data1 = g_value_peek_pointer (param_values + 0);
       data2 = closure->data;
     }
-  callback = (GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING) (marshal_data ? marshal_data : cc->callback);
+  callback = (GMarshalFunc_VOID__BOOLEAN_BOOLEAN_BOOLEAN) (marshal_data ? marshal_data : cc->callback);
+
+  callback (data1,
+            g_marshal_value_peek_boolean (param_values + 1),
+            g_marshal_value_peek_boolean (param_values + 2),
+            g_marshal_value_peek_boolean (param_values + 3),
+            data2);
+}
+
+/* VOID:BOOLEAN,BOOLEAN,STRING,STRING,BOOLEAN (xmimsim-gui-marshal.list:8) */
+/* Prototype for -Wmissing-prototypes */
+G_BEGIN_DECLS
+extern
+void xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN (GClosure     *closure,
+                                                               GValue       *return_value,
+                                                               guint         n_param_values,
+                                                               const GValue *param_values,
+                                                               gpointer      invocation_hint,
+                                                               gpointer      marshal_data);
+G_END_DECLS
+void
+xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN (GClosure     *closure,
+                                                          GValue       *return_value G_GNUC_UNUSED,
+                                                          guint         n_param_values,
+                                                          const GValue *param_values,
+                                                          gpointer      invocation_hint G_GNUC_UNUSED,
+                                                          gpointer      marshal_data)
+{
+  typedef void (*GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN) (gpointer data1,
+                                                                            gboolean arg1,
+                                                                            gboolean arg2,
+                                                                            gpointer arg3,
+                                                                            gpointer arg4,
+                                                                            gboolean arg5,
+                                                                            gpointer data2);
+  GCClosure *cc = (GCClosure *) closure;
+  gpointer data1, data2;
+  GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN callback;
+
+  g_return_if_fail (n_param_values == 6);
+
+  if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer (param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer (param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (GMarshalFunc_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN) (marshal_data ? marshal_data : cc->callback);
 
   callback (data1,
             g_marshal_value_peek_boolean (param_values + 1),
             g_marshal_value_peek_boolean (param_values + 2),
             g_marshal_value_peek_string (param_values + 3),
             g_marshal_value_peek_string (param_values + 4),
+            g_marshal_value_peek_boolean (param_values + 5),
             data2);
 }
 

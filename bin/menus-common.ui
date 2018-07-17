@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<interface>
+	<menu id="menubar">
+		<section>
+			<submenu>
+				<attribute name="label">_File</attribute>
+				<section>
+					<attribute name="id">files-submenu</attribute>
+					<item>
+						<attribute name="label">_New window</attribute>
+						<attribute name="action">app.new</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Open</attribute>
+						<attribute name="action">app.open</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Save</attribute>
+						<attribute name="action">win.save</attribute>
+					</item>
+					<item>
+						<attribute name="label">Save _As</attribute>
+						<attribute name="action">win.save-as</attribute>
+					</item>
+					<item>
+						<attribute name="label">Close Window</attribute>
+						<attribute name="action">win.close</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Quit</attribute>
+						<attribute name="action">app.quit</attribute>
+						<attribute name="hidden-when">macos-menubar</attribute>
+					</item>
+				</section>
+			</submenu>
+			<submenu>
+				<attribute name="label">_Edit</attribute>
+				<section>
+					<attribute name="id">undo-redo-section</attribute>
+					<item>
+						<attribute name="label">_Undo</attribute>
+						<attribute name="action">win.undo</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Redo</attribute>
+						<attribute name="action">win.redo</attribute>
+					</item>
+				</section>
+				<section>
+					<attribute name="id">clipboard-section</attribute>
+					<item>
+						<attribute name="label">C_ut</attribute>
+						<attribute name="action">win.cut</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Copy</attribute>
+						<attribute name="action">win.copy</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Paste</attribute>
+						<attribute name="action">win.paste</attribute>
+					</item>
+				</section>
+				<section>
+					<attribute name="id">prefs-section</attribute>
+					<item>
+						<attribute name="label">_Preferences</attribute>
+						<attribute name="action">app.preferences</attribute>
+						<attribute name="hidden-when">macos-menubar</attribute>
+					</item>
+				</section>
+			</submenu>
+			<submenu>
+				<attribute name="label">_Tools</attribute>
+				<section>
+					<attribute name="id">tools-section</attribute>
+					<submenu>
+						<attribute name="label">_Convert</attribute>
+						<section>
+							<attribute name="id">convert-section</attribute>
+							<submenu>
+								<attribute name="label">XMSI file</attribute>
+								<attribute name="icon">Logo_xmi_msim</attribute>
+								<section>
+									<item>
+										<attribute name="label">to XRMC input-files</attribute>
+										<attribute name="action">app.xmsi2xrmc</attribute>
+									</item>
+								</section>
+							</submenu>
+							<submenu>
+								<attribute name="label">XMSO file</attribute>
+								<attribute name="icon">Logo_xmi_msim_red</attribute>
+								<section>
+									<item>
+										<attribute name="label">to XMSI</attribute>
+										<attribute name="action">app.xmso2xmsi</attribute>
+									</item>
+									<item>
+										<attribute name="label">to CSV</attribute>
+										<attribute name="action">app.xmso2csv</attribute>
+									</item>
+									<item>
+										<attribute name="label">to SPE</attribute>
+										<attribute name="action">app.xmso2spe</attribute>
+									</item>
+									<item>
+										<attribute name="label">to HTML</attribute>
+										<attribute name="action">app.xmso2html</attribute>
+									</item>
+									<item>
+										<attribute name="label">to SVG</attribute>
+										<attribute name="action">app.xmso2svg</attribute>
+									</item>
+								</section>
+							</submenu>
+							<submenu>
+								<attribute name="label">XMSA file</attribute>
+								<attribute name="icon">Logo_xmi_msim_archive</attribute>
+								<section>
+									<item>
+										<attribute name="label">to XMSO</attribute>
+										<attribute name="action">app.xmsa2xmso</attribute>
+									</item>
+								</section>
+							</submenu>
+						</section>
+					</submenu>
+					<item>
+						<attribute name="label">X-ray Sources</attribute>
+						<attribute name="action">win.sources</attribute>
+						<attribute name="icon">Radiation_warning_symbol</attribute>
+					</item>
+					<item>
+						<attribute name="label">Batch Mode</attribute>
+						<attribute name="action">app.batch</attribute>
+						<attribute name="icon">Logo_xmi_msim_archive</attribute>
+					</item>
+				</section>
+			</submenu>
+			<submenu>
+				<attribute name="label">_Window</attribute>
+				<section>
+					<attribute name="id">minimize-section</attribute>
+					<item>
+						<attribute name="label">Minimize</attribute>
+						<attribute name="action">win.minimize</attribute>
+						<attribute name="accel">&lt;Primary&gt;M</attribute>
+					</item>
+				</section>
+				<section>
+					<attribute name="id">tabs-section</attribute>
+					<item>
+						<attribute name="label">Input Parameters</attribute>
+						<attribute name="action">win.switch-tab</attribute>
+						<attribute name="target">0</attribute>
+						<attribute name="accel">&lt;Primary&gt;1</attribute>
+					</item>
+					<item>
+						<attribute name="label">Simulation Controls</attribute>
+						<attribute name="action">win.switch-tab</attribute>
+						<attribute name="target">1</attribute>
+						<attribute name="accel">&lt;Primary&gt;2</attribute>
+					</item>
+					<item>
+						<attribute name="label">Results</attribute>
+						<attribute name="action">win.switch-tab</attribute>
+						<attribute name="target">2</attribute>
+						<attribute name="accel">&lt;Primary&gt;3</attribute>
+					</item>
+				</section>
+			</submenu>
+			<submenu>
+				<attribute name="label">_Help</attribute>
+				<section>
+					<attribute name="id">help-url-section</attribute>
+					<item>
+						<attribute name="label">Visit XMI-MSIM User Guide</attribute>
+						<attribute name="action">app.help-url</attribute>
+						<attribute name="target">https://github.com/tschoonj/xmimsim/wiki/User-guide</attribute>
+					</item>
+					<item>
+						<attribute name="label">Visit XMI-MSIM Github Repository</attribute>
+						<attribute name="action">app.help-url</attribute>
+						<attribute name="target">https://github.com/tschoonj/xmimsim</attribute>
+					</item>
+					<item>
+						<attribute name="label">Visit XMI-MSIM Wiki</attribute>
+						<attribute name="action">app.help-url</attribute>
+						<attribute name="target">https://github.com/tschoonj/xmimsim/wiki/Home</attribute>
+					</item>
+				</section>
+				<section>
+					<attribute name="id">help-email-section</attribute>
+					<item>
+						<attribute name="label">Report a Bug</attribute>
+						<attribute name="action">app.help-email</attribute>
+						<attribute name="target">Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20bug%20report</attribute>
+					</item>
+					<item>
+						<attribute name="label">Request a Feature</attribute>
+						<attribute name="action">app.help-email</attribute>
+						<attribute name="target">Tom.Schoonjans@gmail.com?subject=XMI-MSIM%20feature%20request</attribute>
+					</item>
+				</section>
+				<section>
+					<attribute name="id">about-section</attribute>
+					<item>
+						<attribute name="label">_About XMI-MSIM</attribute>
+						<attribute name="action">app.about</attribute>
+						<attribute name="hidden-when">macos-menubar</attribute>
+					</item>
+					<item>
+						<attribute name="label">_Check for Updates</attribute>
+						<attribute name="action">app.check-for-updates</attribute>
+						<attribute name="hidden-when">macos-menubar</attribute>
+					</item>
+				</section>
+			</submenu>
+		</section>
+	</menu>
+</interface>

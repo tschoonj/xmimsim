@@ -154,6 +154,7 @@ struct xmi_fluorescence_line_counts {
 struct xmi_output {
 	float version;
 	char *inputfile;
+	char *outputfile; // this will be the file XMSO filename, not necessarily the same as input->general->outputfile
 	struct xmi_input *input;
 	struct xmi_fluorescence_line_counts *brute_force_history;
 	struct xmi_fluorescence_line_counts *var_red_history;

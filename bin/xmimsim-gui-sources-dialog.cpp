@@ -525,3 +525,10 @@ struct xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSource
 
 	return rv;
 }
+
+const gchar* xmi_msim_gui_sources_dialog_get_active_source_name(XmiMsimGuiSourcesDialog *dialog) {
+	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
+
+	return xmi_msim_gui_source_abstract_get_name(source);
+}
+

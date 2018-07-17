@@ -6,7 +6,41 @@
 		<file>gtk-no.png</file>
 		<file alias="Logo_xmi_msim.png">../icons/Logo_xmi_msim.png</file>
 	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons/16x16/apps">
+		<file alias="Logo_xmi_msim.png">../icons/16x16/Logo_xmi_msim.png</file>
+		<file alias="Logo_xmi_msim_red.png">../icons/16x16/Logo_xmi_msim_red.png</file>
+		<file alias="Logo_xmi_msim_archive.png">../icons/16x16/Logo_xmi_msim_archive.png</file>
+		<file alias="Radiation_warning_symbol.png">../icons/16x16/Radiation_warning_symbol.png</file>
+	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons/32x32/apps">
+		<file alias="Logo_xmi_msim.png">../icons/32x32/Logo_xmi_msim.png</file>
+		<file alias="Logo_xmi_msim_red.png">../icons/32x32/Logo_xmi_msim_red.png</file>
+		<file alias="Logo_xmi_msim_archive.png">../icons/32x32/Logo_xmi_msim_archive.png</file>
+		<file alias="Radiation_warning_symbol.png">../icons/32x32/Radiation_warning_symbol.png</file>
+	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons/64x64/apps">
+		<file alias="Logo_xmi_msim.png">../icons/64x64/Logo_xmi_msim.png</file>
+		<file alias="Logo_xmi_msim_red.png">../icons/64x64/Logo_xmi_msim_red.png</file>
+		<file alias="Logo_xmi_msim_archive.png">../icons/64x64/Logo_xmi_msim_archive.png</file>
+		<file alias="Radiation_warning_symbol.png">../icons/64x64/Radiation_warning_symbol.png</file>
+	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons/128x128/apps">
+		<file alias="Logo_xmi_msim.png">../icons/128x128/Logo_xmi_msim.png</file>
+		<file alias="Logo_xmi_msim_red.png">../icons/128x128/Logo_xmi_msim_red.png</file>
+		<file alias="Logo_xmi_msim_archive.png">../icons/128x128/Logo_xmi_msim_archive.png</file>
+		<file alias="Radiation_warning_symbol.png">../icons/128x128/Radiation_warning_symbol.png</file>
+	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/icons/256x256/apps">
+		<file alias="Logo_xmi_msim.png">../icons/256x256/Logo_xmi_msim.png</file>
+		<file alias="Logo_xmi_msim_red.png">../icons/256x256/Logo_xmi_msim_red.png</file>
+		<file alias="Logo_xmi_msim_archive.png">../icons/256x256/Logo_xmi_msim_archive.png</file>
+		<file alias="Radiation_warning_symbol.png">../icons/256x256/Radiation_warning_symbol.png</file>
+	</gresource>
 	<gresource prefix="/com/github/tschoonj/xmimsim/gui/data">
 		<file>coordinate_system.png</file>
+	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/gtk">
+		<file preprocess="xml-stripblanks">menus-appmenu.ui</file>
+		<file preprocess="xml-stripblanks">menus-common.ui</file>
 	</gresource>
 </gresources>

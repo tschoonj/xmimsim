@@ -2080,6 +2080,7 @@ int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError
 	if (xmi_read_output_xml_body(doc, root, op, NULL, NULL, error) == 0)
 		return 0;
 
+	op->outputfile = g_strdup(xmsofile);
 
 	xmlFreeDoc(doc);
 
@@ -2474,6 +2475,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2, error) == 0) {
 				return 0;
 			}
+			output->outputfile = g_strdup(output->input->general->outputfile);
 			if (step2 == 0) {
 				ar->output[step1] = g_malloc(sizeof(struct xmi_output*)*(ar->nsteps2+1));
 				ar->input[step1] = g_malloc(sizeof(struct xmi_input*)*(ar->nsteps2+1));
@@ -2484,7 +2486,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			//fix links
 			ar->input[step1][step2] = ar->output[step1][step2]->input;
 			ar->inputfiles[step1][step2] = ar->output[step1][step2]->inputfile;
-			ar->outputfiles[step1][step2] = ar->input[step1][step2]->general->outputfile;
+			ar->outputfiles[step1][step2] = ar->output[step1][step2]->outputfile;
 			files_read++;
 		}
 		subroot = xmlNextElementSibling(subroot);

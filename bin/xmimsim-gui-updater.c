@@ -455,16 +455,16 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 	g_task_return_pointer(task, ud, g_free);
 }
 
-void xmi_msim_gui_updater_check_for_updates_async(GtkWidget *window, GAsyncReadyCallback callback, gpointer user_data) {
+void xmi_msim_gui_updater_check_for_updates_async(XmiMsimGuiApplication *app, GAsyncReadyCallback callback, gpointer user_data) {
 
 	g_debug("checking for updates...\n");
 
-	GTask *task = g_task_new(window, NULL, callback, user_data);
+	GTask *task = g_task_new(app, NULL, callback, user_data);
 	g_task_run_in_thread(task, check_for_updates_thread);
 	g_object_unref(task);
 }
 
-XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *window, GAsyncResult *result, gchar **max_version, gchar **message, GError **error) {
+XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(XmiMsimGuiApplication *app, GAsyncResult *result, gchar **max_version, gchar **message, GError **error) {
 	struct update_data *ud = g_task_propagate_pointer(G_TASK(result), error);
 	if (g_task_had_error(G_TASK(result)))
 		return XMI_MSIM_UPDATES_ERROR;
@@ -477,15 +477,17 @@ XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *
 	return XMI_MSIM_UPDATES_NONE;
 }
 
-int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_version, gchar *message) {
+int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gchar *max_version, gchar *message) {
 
 	//should only be called when there is actually a new version available...
 	//so call check_for_updates before
 
 	//spawn dialog
 	//write your own code for this
-	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater",window != NULL ? GTK_WINDOW(window):NULL,
-		window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, "_Cancel", GTK_RESPONSE_REJECT,NULL);
+	GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(app));
+	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater", active_window,
+		active_window != NULL ? GTK_DIALOG_MODAL : 0, "_Cancel", GTK_RESPONSE_REJECT, NULL);
+	gtk_window_set_application(GTK_WINDOW(update_dialog), GTK_APPLICATION(app));
 
 	gtk_window_set_default_size(GTK_WINDOW(update_dialog), 600, 600);
 
@@ -555,11 +557,12 @@ int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_v
 	//get value from preferences
 	union xmimsim_prefs_val prefs;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
-		GtkWidget *dialog = gtk_message_dialog_new(window != NULL ? GTK_WINDOW(window): NULL,
-			window != NULL ? GTK_DIALOG_MODAL : (GtkDialogFlags) 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		GtkWidget *dialog = gtk_message_dialog_new(active_window,
+			active_window != NULL ? GTK_DIALOG_MODAL : 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
+		gtk_window_set_application(GTK_WINDOW(dialog), GTK_APPLICATION(app));
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
-		exit(1);
+		g_application_quit(G_APPLICATION(app));
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),prefs.b);
 	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), update_dialog);

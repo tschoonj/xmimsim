@@ -37,7 +37,6 @@
 #endif
 
 struct prefsWidgets {
-	GtkWidget *parent_window;
 	GtkWidget *window;
 	GtkWidget *options_boxW;
 #if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
@@ -296,7 +295,7 @@ void preferences_error_handler(GtkWidget *window) {
 		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 	gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
-	exit(1);
+	g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(window))));
 }
 
 
@@ -357,7 +356,7 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 		gchar *layer_name = g_array_index(pw->deleted_layers, gchar *, i);
 		if (xmimsim_gui_remove_user_defined_layer(layer_name) != 1) {
 			//something went very wrong!
-			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(pw->parent_window),
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(pw->window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_ERROR,
 				GTK_BUTTONS_CLOSE,
@@ -1020,17 +1019,15 @@ static gboolean layers_backspace_key_clicked_cb(GtkWidget *widget, GdkEventKey *
 	g_list_free_full (selected_rows, (GDestroyNotify) gtk_tree_path_free);
 
 	return TRUE;
-
-
 }
 
-void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
+static GtkWidget *preferences_dialog = NULL;
+
+static GtkWidget* create_dialog(void) {
 	GtkWidget *window;
-	GtkWidget *main_window = GTK_WIDGET(data);
 	GtkWidget *notebook;
 	GtkWidget *master_box;
 	struct prefsWidgets *pw = (struct prefsWidgets *) g_malloc(sizeof(struct prefsWidgets));
-	pw->parent_window = main_window;
 	pw->deleted_layers = g_array_new(TRUE, FALSE, sizeof(gchar *));
 
 	master_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -1041,7 +1038,6 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_size_request(window, 600, 600);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
-	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
 
 	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 	//gtk_window_set_deletable(GTK_WINDOW(window), FALSE);
@@ -1099,7 +1095,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	pw->check_updatesW = gtk_check_button_new_with_label("Check for updates on startup");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
 		//abort
-		preferences_error_handler(main_window);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->check_updatesW),xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe), pw->check_updatesW, TRUE, FALSE, 3);
@@ -1171,7 +1167,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	//populate tree
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &xpv) == 0) {
 		//abort
-		preferences_error_handler(main_window);
+		preferences_error_handler(NULL);
 	}
 
 	GdkPixbuf *gtk_no = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-no.png", NULL);
@@ -1303,7 +1299,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_tooltip_text(pw->notificationsW,"Check this button to enable notifications support");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		//abort
-		preferences_error_handler(main_window);
+		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->notificationsW), xpv.b);
 	gtk_box_pack_start(GTK_BOX(superframe), pw->notificationsW, FALSE, FALSE, 3);
@@ -1317,7 +1313,7 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	gtk_widget_set_tooltip_text(pw->default_save_folderW, "Default folder for saving new files");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, &xpv) == 0) {
 		//abort
-		preferences_error_handler(main_window);
+		preferences_error_handler(NULL);
 	}
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(pw->default_save_folderW), xpv.s);
 	g_free(xpv.s);
@@ -1337,9 +1333,26 @@ void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data) {
 	g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(preferences_cancel_button_clicked), (gpointer) window);
 	g_signal_connect(G_OBJECT(applyButton), "clicked", G_CALLBACK(preferences_apply_button_clicked), (gpointer) pw);
 
+	gtk_widget_show_all(master_box);
 
-	gtk_widget_show_all(window);
+	return window;
 }
+
+void xmimsim_gui_launch_preferences(GtkWindow *parent) {
+
+	if (preferences_dialog == NULL) {
+		preferences_dialog = create_dialog();
+		gtk_window_set_application(GTK_WINDOW(preferences_dialog), GTK_APPLICATION(g_application_get_default()));
+		g_signal_connect(preferences_dialog, "destroy", G_CALLBACK(gtk_widget_destroyed), &preferences_dialog);
+	}
+
+	if (parent != gtk_window_get_transient_for(GTK_WINDOW(preferences_dialog))) {
+		gtk_window_set_transient_for(GTK_WINDOW(preferences_dialog), parent);
+	}
+
+	gtk_window_present(GTK_WINDOW(preferences_dialog));
+}
+
 
 char *xmimsim_gui_get_preferences_filename(void) {
 

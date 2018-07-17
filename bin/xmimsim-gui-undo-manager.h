@@ -60,6 +60,7 @@ void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager);
 void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager);
 
 typedef enum {
+	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_DEFAULT,
 	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_VALID,
 	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_INVALID,
 	XMI_MSIM_GUI_UNDO_MANAGER_STATUS_SAVED_NO_CHANGES,

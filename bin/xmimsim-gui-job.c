@@ -65,6 +65,7 @@ struct _XmiMsimGuiJob {
 	gchar *wd;
 	GIOChannel *stdout_channel;
 	GIOChannel *stderr_channel;
+	guint child_watch_id;
 };
 
 struct _XmiMsimGuiJobClass {
@@ -90,8 +91,10 @@ gboolean xmi_msim_gui_job_stop(XmiMsimGuiJob *job, GError **error) {
 	}
 
 	g_mutex_lock(&job->job_mutex);
-	if (job->killed)
-		return TRUE;	
+	if (job->killed) {
+		g_mutex_unlock(&job->job_mutex);
+		return TRUE;
+	}
 	job->killed = TRUE;
 	g_debug("Killing job with pid %d", job->pid);
 #ifdef G_OS_UNIX
@@ -226,7 +229,13 @@ static void xmi_msim_gui_job_finalize(GObject *gobject) {
 	g_debug("Entering xmi_msim_gui_job_finalize");
 	XmiMsimGuiJob *job = XMI_MSIM_GUI_JOB(gobject);
 	
+	if (xmi_msim_gui_job_is_running(job) == TRUE) {
+		g_source_remove(job->child_watch_id);
+	}
+
 	xmi_msim_gui_job_kill(job, NULL);
+
+	g_spawn_close_pid(job->gpid);
 
 	g_mutex_clear(&job->job_mutex);
 
@@ -767,7 +776,7 @@ gboolean xmi_msim_gui_job_start(XmiMsimGuiJob *job, GError **error) {
 	job->stdout_channel = g_io_channel_unix_new(out_fh);
 #endif
 
-	g_child_watch_add(job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, job);
+	job->child_watch_id = g_child_watch_add(job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, job);
 
 	const gchar *encoding = NULL;
 	g_get_charset(&encoding);

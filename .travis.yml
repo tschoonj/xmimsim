@@ -15,7 +15,6 @@ matrix:
     # trusty: fgsl and gtkmm-plplot
     # no updater
     # with gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -37,11 +36,10 @@ matrix:
             - hdf5-tools
             - libxrl7-dev
             - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify'
+      env: EXTRA='--enable-gui --disable-updater'
     # trusty: fgsl and gtkmm-plplot
     # with updater
     # with gui
-    # with notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -64,12 +62,10 @@ matrix:
             - libxrl7-dev
             - libsoup2.4-dev
             - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify'
+      env: EXTRA='--enable-gui --enable-updater'
     # trusty: fgsl
     # no updater
     # no gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -89,11 +85,10 @@ matrix:
             - hdf5-tools
             - libxrl7-dev
             - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify'
+      env: EXTRA='--disable-gui --disable-updater'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -114,11 +109,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
-    # with notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -140,12 +134,10 @@ matrix:
             - hdf5-tools
             - libsoup2.4-dev
             - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG 
     # no updater
     # no gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -163,11 +155,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--disable-gui --disable-updater' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -188,11 +179,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
-    # with notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -214,12 +204,10 @@ matrix:
             - hdf5-tools
             - libsoup2.4-dev
             - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG 
     # no updater
     # no gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -237,11 +225,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--disable-gui --disable-updater' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # no updater
     # with gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -262,11 +249,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --disable-updater' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG and gtkmm-plplot
     # with updater
     # with gui
-    # with notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -288,12 +274,10 @@ matrix:
             - hdf5-tools
             - libsoup2.4-dev
             - libjson-glib-dev
-            - libnotify-dev
-      env: EXTRA='--enable-gui --enable-updater --enable-libnotify' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--enable-gui --enable-updater' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: easyRNG 
     # no updater
     # no gui
-    # no notifications
     - os: linux
       sudo: required
       dist: trusty
@@ -311,11 +295,10 @@ matrix:
             - libhdf5-serial-dev
             - hdf5-tools
             - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
+      env: EXTRA='--disable-gui --disable-updater' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
     # trusty: fgsl
     # no updater
     # no gui
-    # no notifications
     # with MPI!!!
     - os: linux
       sudo: required
@@ -338,7 +321,7 @@ matrix:
             - libsoup2.4-dev
             - libopenmpi-dev
             - openmpi-bin
-      env: EXTRA='--disable-gui --disable-updater --disable-libnotify --enable-mpi'
+      env: EXTRA='--disable-gui --disable-updater --enable-mpi'
     ###
     ###
     ### Mac OS X

@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
+#include "xmimsim-gui-marshal.h"
 #include <xraylib.h>
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
@@ -212,7 +213,7 @@ enum {
 
 extern "C" struct _XmiMsimGuiXmsoResultsScrolledWindow {
 	GtkScrolledWindow parent_instance;
-	struct xmi_output *results;	
+	struct xmi_output *results;
 	/*double plot_xmin;
 	double plot_xmax;
 	double plot_ymin_conv;
@@ -255,15 +256,31 @@ static void xmi_msim_gui_xmso_results_scrolled_window_finalize(GObject *gobject)
 	G_OBJECT_CLASS(xmi_msim_gui_xmso_results_scrolled_window_parent_class)->finalize(gobject);
 }
 
+enum {
+	FINISHED_LOADING,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 static void xmi_msim_gui_xmso_results_scrolled_window_class_init(XmiMsimGuiXmsoResultsScrolledWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_gui_xmso_results_scrolled_window_dispose;
 	object_class->finalize = xmi_msim_gui_xmso_results_scrolled_window_finalize;
-}
 
-static void zoom_out(void) {
-
+	signals[FINISHED_LOADING] = g_signal_new(
+		"finished-loading",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_LAST,
+		0, // no default handler
+		NULL,
+		NULL,
+		xmi_msim_gui_VOID__STRING,
+		G_TYPE_NONE,
+		1,
+		G_TYPE_STRING // filename
+	);
 }
 
 class Plot2D : public Gtk::PLplot::Plot2D {
@@ -272,11 +289,6 @@ class Plot2D : public Gtk::PLplot::Plot2D {
 		const Glib::ustring &axis_title_x,
 		const Glib::ustring &axis_title_y) :
 		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
-	// TODO see if we can do a better job than the default here
-	/*virtual void on_double_press(double x, double y) override {
-		zoom_out();
-	}*/
-
 };
 
 static void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
@@ -463,9 +475,6 @@ static void scale_combo_changed_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, Gt
 	else {
 		dynamic_cast<Gtk::PLplot::Plot2D*>(self->canvas->get_plot(0))->set_axis_logarithmic_y(true);
 	}
-
-	//no matter what -> we need to bring everything to 1:1 scaling again
-	zoom_out();
 }
 
 static void radio_conv_changed_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, GtkToggleButton *button) {
@@ -480,9 +489,6 @@ static void radio_conv_changed_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, Gtk
 	for (SpectraDataBox *box : self->spectra_data_boxes) {
 		box->set_plot_mode(self->plot_mode);
 	}
-
-	zoom_out();
-
 }
 
 static void export_button_clicked_cb(XmiMsimGuiXmsoResultsScrolledWindow *self, gpointer data) {
@@ -746,6 +752,7 @@ static void xmi_msim_gui_xmso_results_scrolled_window_init(XmiMsimGuiXmsoResults
 	gtk_widget_show_all(frame);
 
 	gtk_paned_pack2(GTK_PANED(paned), frame, TRUE, FALSE);
+	gtk_widget_show_all(GTK_WIDGET(self));
 }
 
 GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new() {
@@ -1056,5 +1063,14 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 		// no history is actually quite plausible and should not be treated as an error at all
 	}
 
+	g_signal_emit(window, signals[FINISHED_LOADING], 0, xmsofile);
+
 	return TRUE;
+}
+
+const gchar* xmi_msim_gui_xmso_results_scrolled_window_get_filename(XmiMsimGuiXmsoResultsScrolledWindow *window) {
+	if (window->results == NULL) 
+		return NULL;
+
+	return window->results->outputfile;
 }

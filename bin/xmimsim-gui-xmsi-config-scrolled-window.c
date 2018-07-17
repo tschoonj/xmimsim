@@ -23,74 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
+#include "xmimsim-gui-private.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
 #include "xmimsim-gui-google-analytics.h"
 #endif
-
-struct _XmiMsimGuiXmsiConfigScrolledWindow {
-	GtkScrolledWindow parent_instance;
-	XmiMsimGuiUndoManager *undo_manager;
-	XmiMsimGuiClipboardManager *clipboard_manager;
-
-	// widgets
-	//general
-	GtkWidget *outputfileW;
-	GtkWidget *n_photons_intervalW;
-	GtkWidget *n_photons_lineW;
-	GtkWidget *n_interactions_trajectoryW;
-	GtkWidget *commentsW;
-
-	//composition
-	GtkWidget *compositionW;
-
-	//geometry
-	GtkWidget *d_sample_sourceW;
-	GtkWidget *n_sample_orientation_xW;
-	GtkWidget *n_sample_orientation_yW;
-	GtkWidget *n_sample_orientation_zW;
-	GtkWidget *p_detector_window_xW;
-	GtkWidget *p_detector_window_yW;
-	GtkWidget *p_detector_window_zW;
-	GtkWidget *n_detector_orientation_xW;
-	GtkWidget *n_detector_orientation_yW;
-	GtkWidget *n_detector_orientation_zW;
-	GtkWidget *area_detectorW;
-	GtkWidget *collimator_heightW;
-	GtkWidget *collimator_diameterW;
-	GtkWidget *d_source_slitW;
-	GtkWidget *slit_size_xW;
-	GtkWidget *slit_size_yW;
-	GtkWidget *geometry_helpW;
-	GtkWidget *cs_window;
-
-	gulong geometry_helpG;
-	double geometry_help_scale_factor;
-	GdkPixbuf *orig_pixbuf;
-	GdkPixbuf *current_pixbuf;
-	gint old_width;
-	gint old_height;
-	double *current_coords;
-	GHashTable *table;
-
-	//energy
-	GtkWidget *energiesW;
-
-	//absorbers
-	GtkWidget *exc_compositionW;
-	GtkWidget *det_compositionW;
-
-	//detector
-	GtkWidget *detector_typeW;
-	GtkWidget *detector_gainW;
-	GtkWidget *detector_live_timeW;
-	GtkWidget *detector_pulse_widthW;
-	GtkWidget *detector_zeroW;
-	GtkWidget *detector_fanoW;
-	GtkWidget *detector_noiseW;
-	GtkWidget *detector_nchannelsW;
-	GtkWidget *crystal_compositionW;
-};
 
 struct _XmiMsimGuiXmsiConfigScrolledWindowClass {
 	GtkScrolledWindowClass parent_class;

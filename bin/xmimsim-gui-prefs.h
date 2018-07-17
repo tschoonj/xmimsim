@@ -20,6 +20,7 @@
 #define XMIMSIM_GUI_PREFS_H
 
 #include <gtk/gtk.h>
+#include "xmimsim-gui-application.h"
 
 G_BEGIN_DECLS
 
@@ -79,7 +80,7 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs);
 //returns 1 on success, 0 on error
 int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
 
-void xmimsim_gui_launch_preferences(GtkWidget *widget, gpointer data);
+void xmimsim_gui_launch_preferences(GtkWindow *parent);
 void preferences_error_handler(GtkWidget *window);
 
 char *xmimsim_gui_get_preferences_filename(void);

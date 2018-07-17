@@ -47,8 +47,6 @@ static void xmi_msim_gui_long_task_window_init(XmiMsimGuiLongTaskWindow *self) {
 }
 
 GtkWidget* xmi_msim_gui_long_task_window_new(GtkWindow *parent_window) {
-	g_return_val_if_fail(GTK_IS_WINDOW(parent_window), NULL);
-
 	GObject *rv = g_object_new(XMI_MSIM_GUI_TYPE_LONG_TASK_WINDOW,
 		"transient-for", parent_window,
 		"window-position", GTK_WIN_POS_CENTER,

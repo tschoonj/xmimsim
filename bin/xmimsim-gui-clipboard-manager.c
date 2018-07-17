@@ -75,10 +75,11 @@ static void xmi_msim_gui_clipboard_manager_class_init(XmiMsimGuiClipboardManager
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN,
+		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_BOOLEAN,
 		G_TYPE_NONE,
-		2,
-		G_TYPE_BOOLEAN,// GBOOLEAN -> CUT/COPY
+		3,
+		G_TYPE_BOOLEAN,// GBOOLEAN -> CUT
+		G_TYPE_BOOLEAN,// GBOOLEAN -> COPY
 		G_TYPE_BOOLEAN // GBOOLEAN -> PASTE
 	);
 }
@@ -98,7 +99,7 @@ static void layer_box_update_clipboard_buttons(XmiMsimGuiLayerBox *box, gboolean
 	else
 		manager->focus_widget = NULL;
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, paste_status && gtk_clipboard_wait_is_target_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), LayerAtom));
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, cut_copy_status, paste_status && gtk_clipboard_wait_is_target_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), LayerAtom));
 }
 
 static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, XmiMsimGuiClipboardManager *manager) {
@@ -106,16 +107,16 @@ static gboolean entry_focus_out_cb(GtkEntry *entry, GdkEvent *event, XmiMsimGuiC
 	manager->focus_widget = NULL;
 	gtk_editable_select_region(GTK_EDITABLE(entry), 0, 0);
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE, FALSE);
 
 	return FALSE;
 }
 
 static gboolean entry_focus_in_cb(GtkEntry *entry, GdkEvent *event, XmiMsimGuiClipboardManager *manager) {
 	manager->focus_widget = GTK_WIDGET(entry);
-	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+	gboolean paste_status = gtk_editable_get_editable(GTK_EDITABLE(entry)) && gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, paste_status);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE, paste_status);
 
 	return FALSE;
 }
@@ -131,10 +132,11 @@ static void entry_notify_cursor_position_cb(GObject *entry, GParamSpec *pspec, X
 
 	g_object_get(entry, "selection-bound", &selection_bound, "cursor-position", &current_pos, NULL);
 
-	gboolean cut_copy_status = selection_bound != current_pos;
-	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+	gboolean copy_status = selection_bound != current_pos;
+	gboolean cut_status = copy_status && gtk_editable_get_editable(GTK_EDITABLE(entry));
+	gboolean paste_status = gtk_editable_get_editable(GTK_EDITABLE(entry)) && gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, paste_status);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_status, copy_status, paste_status);
 }
 
 static gboolean text_view_focus_out_cb(GtkTextView *text_view, GdkEvent *event, XmiMsimGuiClipboardManager *manager) {
@@ -147,7 +149,7 @@ static gboolean text_view_focus_out_cb(GtkTextView *text_view, GdkEvent *event, 
 		gtk_text_buffer_select_range(text_buffer, &start, &start);
 	}
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE, FALSE);
 
 	return FALSE;
 }
@@ -156,7 +158,7 @@ static gboolean text_view_focus_in_cb(GtkTextView *text_view, GdkEvent *event, X
 	manager->focus_widget = GTK_WIDGET(text_view);
 	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, paste_status);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, FALSE, FALSE, paste_status);
 
 	return FALSE;
 }
@@ -165,7 +167,7 @@ static void text_buffer_notify_has_selection_cb(GtkTextBuffer *buffer, GParamSpe
 	gboolean cut_copy_status = gtk_text_buffer_get_has_selection(buffer);
 	gboolean paste_status = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD) && gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
 
-	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, paste_status);
+	g_signal_emit(manager, signals[UPDATE_CLIPBOARD_BUTTONS], 0, cut_copy_status, cut_copy_status, paste_status);
 }
 
 void xmi_msim_gui_clipboard_manager_register_widget(XmiMsimGuiClipboardManager *manager, GtkWidget *widget) {

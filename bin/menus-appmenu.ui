@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<interface>
+	<menu id="app-menu">
+		<section>
+			<attribute name="id">section1</attribute>
+			<item>
+				<attribute name="label">_About XMI-MSIM</attribute>
+				<attribute name="action">app.about</attribute>
+			</item>
+			<item>
+				<attribute name="label">_Check for Updates</attribute>
+				<attribute name="action">app.check-for-updates</attribute>
+				<attribute name="hidden-when">action-missing</attribute>
+			</item>
+		</section>
+		<section>
+			<attribute name="id">section2</attribute>
+			<item>
+				<attribute name="label">_Preferences</attribute>
+				<attribute name="action">app.preferences</attribute>
+			</item>
+		</section>
+		<section>
+			<attribute name="id">section3</attribute>
+			<item>
+				<attribute name="label">_Quit</attribute>
+				<attribute name="action">app.quit</attribute>
+			</item>
+		</section>
+	</menu>
+</interface>
+

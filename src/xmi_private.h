@@ -27,12 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-#ifndef HAVE_GETLINE
-#include <sys/types.h>
-#include <stdio.h>
-ssize_t getline (char **lineptr, size_t *n, FILE *stream);
-#endif
-
 #ifdef G_OS_WIN32
   #include <windows.h>
   #define XMI_ARGC_ORIG argc_orig
