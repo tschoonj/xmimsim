@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([xmimsim],[7.1],[Tom.Schoonjans@me.com])
+AC_INIT([xmimsim],[7.2],[Tom.Schoonjans@me.com])
 AC_PREREQ([2.67])
 AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -31,6 +31,7 @@ AC_SUBST(OS_DARWIN, 1)
 else
 AC_SUBST(OS_DARWIN, 0)
 fi
+AM_CONDITIONAL([OS_DARWIN],[test x$OS_DARWIN = x1])
 
 #similar will have to happen for linux in /etc/init.d
 
@@ -278,19 +279,6 @@ if test "x$GTK_FOUND" = xyes ; then
 fi
 AM_CONDITIONAL([ENABLE_QUICKLOOK],[test "x$QUICKLOOK_DEPS_FOUND" = xyes])
 
-AC_ARG_ENABLE([libnotify],[AS_HELP_STRING([--disable-libnotify],[build without libnotify])],[enable_libnotify=$enableval],[enable_libnotify=check])
-LIBNOTIFY_FOUND=no
-if test "x$GTK_MAC_INTEGRATION_FOUND" = xno && test "x$enable_libnotify" != xno ; then
-	#libnotify
-	PKG_CHECK_MODULES([libnotify], [libnotify >= 0.7.0], [
-		LIBNOTIFY_FOUND=yes
-		AC_SUBST(LIBNOTIFY_PC, "libnotify >= 0.7.0")
-		AC_DEFINE([HAVE_LIBNOTIFY], [], [libnotify found])],
-		[
-		LIBNOTIFY_FOUND=no
-		])
-fi
-
 #check for headers
 AC_CHECK_HEADER(stdio.h,,[AC_MSG_ERROR([Required header not found on the system])])
 AC_CHECK_HEADER(errno.h,,[AC_MSG_ERROR([Required header not found on the system])])
@@ -344,8 +332,6 @@ AC_CHECK_FUNC(access,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_LIB([m], [exp], [], [AC_MSG_ERROR([math library does not contain exp])])
 AC_CHECK_FUNC(expm1,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
-
-AC_CHECK_FUNCS_ONCE([getdelim getline])
 
 WSTRICT_CFLAGS=
 AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)

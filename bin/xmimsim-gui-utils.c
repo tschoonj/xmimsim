@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef G_OS_WIN32
 #include <windows.h>
 #include <Shellapi.h>
-#elif defined(MAC_INTEGRATION)
+#elif defined(__APPLE__)
 #include <CoreFoundation/CFBundle.h>
 #include <ApplicationServices/ApplicationServices.h>
 #else
@@ -35,21 +35,6 @@ double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geomet
 	double solid_angle = 4.0 * atan(geometry->slit_size_x * geometry->slit_size_y/(2.0*geometry->d_source_slit*sqrt(4.0 * geometry->d_source_slit * geometry->d_source_slit + geometry->slit_size_x * geometry->slit_size_x + geometry->slit_size_y * geometry->slit_size_y)));
 
 	return solid_angle;
-}
-
-// TODO: remove this function as soon as all references to it have been removed
-void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text) {
-	//this function is a hack and may not work on Gtk3
-	GList *children = gtk_container_get_children(GTK_CONTAINER(button));
-	GtkWidget *temp = (GtkWidget *) g_list_nth_data(children, 0);
-	g_list_free(children);
-	children = gtk_container_get_children(GTK_CONTAINER(temp));
-	temp = (GtkWidget *) g_list_nth_data(children, 0);
-	g_list_free(children);
-	children = gtk_container_get_children(GTK_CONTAINER(temp));
-	gtk_label_set_text(GTK_LABEL((GtkWidget *) g_list_nth_data(children,1)), text);
-	g_list_free(children);
-	return;
 }
 
 static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
@@ -79,7 +64,7 @@ void xmi_msim_gui_utils_open_email(const char *address) {
 
 	link = g_strdup_printf("mailto:%s",address);
 
-#ifdef MAC_INTEGRATION
+#ifdef __APPLE__
 	CFURLRef url = CFURLCreateWithBytes (
       	NULL,
       	(UInt8*)link,
@@ -108,7 +93,7 @@ void xmi_msim_gui_utils_open_email(const char *address) {
 }
 
 void xmi_msim_gui_utils_open_url(const char *link) {
-#ifdef MAC_INTEGRATION
+#ifdef __APPLE__
 	CFURLRef url = CFURLCreateWithBytes (
       	NULL,
       	(UInt8*)link,

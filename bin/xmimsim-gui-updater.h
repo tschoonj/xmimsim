@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMIMSIM_GUI_UPDATER_H
 
 #include <gtk/gtk.h>
+#include "xmimsim-gui-application.h"
 
 G_BEGIN_DECLS
 
@@ -30,10 +31,10 @@ typedef enum {
 	XMI_MSIM_UPDATES_NONE
 } XmiMsimGuiUpdaterCheck;
 
-void xmi_msim_gui_updater_check_for_updates_async(GtkWidget *window, GAsyncReadyCallback callback, gpointer user_data);
-XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(GtkWidget *window, GAsyncResult *result, gchar **max_version, gchar **message, GError **error);
+void xmi_msim_gui_updater_check_for_updates_async(XmiMsimGuiApplication *app, GAsyncReadyCallback callback, gpointer user_data);
+XmiMsimGuiUpdaterCheck xmi_msim_gui_updater_check_for_updates_finish(XmiMsimGuiApplication *app, GAsyncResult *result, gchar **max_version, gchar **message, GError **error);
 
-int xmi_msim_gui_updater_download_updates_dialog(GtkWidget *window, gchar *max_version, gchar *message);
+int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gchar *max_version, gchar *message);
 
 void     xmi_msim_gui_updater_check_download_url_async(GtkListStore *store, gchar *download_url, GAsyncReadyCallback callback, gpointer user_data);
 gboolean xmi_msim_gui_updater_check_download_url_finish(GtkListStore *store, GAsyncResult *result);

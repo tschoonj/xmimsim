@@ -21,7 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-private.h"
 #include "xmimsim-gui-options-box.h"
+#include "xmimsim-gui-application-window.h"
 #include "xmi_aux.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
@@ -31,55 +33,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef MAC_INTEGRATION
   #include "xmi_resources_mac.h"
 #endif
-
-struct _XmiMsimGuiControlsScrolledWindow {
-	GtkScrolledWindow parent_instance;
-	XmiMsimGuiUndoManager *manager;
-	XmiMsimGuiJob *job;
-
-	// widgets
-	GtkWidget *executableW;
-	GtkWidget *executableB;
-	GtkWidget *options_boxW;
-	GtkWidget *spe_convW;
-	GtkWidget *spe_convB;
-	GtkWidget *csv_convW;
-	GtkWidget *csv_convB;
-	GtkWidget *svg_convW;
-	GtkWidget *svg_convB;
-	GtkWidget *html_convW;
-	GtkWidget *html_convB;
-
-	GtkWidget *playButton;
-	GtkWidget *pauseButton;
-	GtkWidget *stopButton;
-
-	GtkWidget *controlsLogW;
-	GtkTextBuffer *controlsLogB;
-
-	GtkWidget *progressbar_solidW;
-	GtkWidget *progressbar_mainW;
-	GtkWidget *progressbar_escapeW;
-
-	GtkWidget *image_solid_stopW;
-	GtkWidget *image_main_stopW;
-	GtkWidget *image_escape_stopW;
-	GtkWidget *image_solid_spinnerW;
-	GtkWidget *image_main_spinnerW;
-	GtkWidget *image_escape_spinnerW;
-	GtkWidget *image_solid_yesW;
-	GtkWidget *image_main_yesW;
-	GtkWidget *image_escape_yesW;
-	GtkWidget *image_solid_noW;
-	GtkWidget *image_main_noW;
-	GtkWidget *image_escape_noW;
-
-	GtkWidget *nthreadsW;
-	GTimer *timer;
-
-	gchar *input_file;
-	gchar *output_file;
-};
 
 struct _XmiMsimGuiControlsScrolledWindowClass {
 	GtkScrolledWindowClass parent_class;
@@ -300,6 +253,7 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 	if (self->nthreadsW != NULL)
 		gtk_widget_set_sensitive(self->nthreadsW,TRUE);
 
+#if !defined(G_OS_WIN32) || GLIB_CHECK_VERSION(2, 58, 0)
 	// send notification
 	union xmimsim_prefs_val xpv;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
@@ -321,12 +275,14 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 			g_free(my_basename);
 			g_free(information);
 		}
-		GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
-		g_notification_set_icon(notification, icon);
-		g_object_unref(icon);
+		// has to be a fileicon...
+		//GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
+		//g_notification_set_icon(notification, icon);
+		//g_object_unref(icon);
 		g_application_send_notification(g_application_get_default(), NULL, notification);
 		g_object_unref(notification);
 	}
+#endif
 
 	if (result == FALSE) {
 		//if something is spinning, make it stop and make it red
@@ -335,9 +291,13 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 	}
 
 	// read the spectrum in
-	GFile *file = g_file_new_for_path(self->output_file);
-	g_application_open(g_application_get_default(), &file, 1, "");
-	g_object_unref(file);
+	GtkWidget *window = gtk_widget_get_toplevel(GTK_WIDGET(self));
+	if (XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window)) {
+		GFile *file = g_file_new_for_path(self->output_file);
+		g_application_open(g_application_get_default(), &file, 1, gtk_widget_get_name(window));
+		g_object_unref(file);
+	
+	}
 }
 
 static void job_special_cb(XmiMsimGuiJob *job, XmiMsimGuiJobSpecialEvent event, const gchar *message, XmiMsimGuiControlsScrolledWindow *self) {
@@ -561,7 +521,7 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	gchar *buffer;
 
 	if (self->job)
-		g_object_unref(self->job);
+		g_clear_object(&self->job);
 
 	self->job = xmi_msim_gui_job_new(
 		gtk_entry_get_text(GTK_ENTRY(self->executableW)),

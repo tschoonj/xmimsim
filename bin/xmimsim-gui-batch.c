@@ -1379,7 +1379,9 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 		return;
 	}
 
-	launch_archive_plot(archive, GTK_WIDGET(window));
+	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive);
+	gtk_window_set_transient_for(GTK_WINDOW(xmsa_window), GTK_WINDOW(window));
+	gtk_window_present(GTK_WINDOW(xmsa_window));
 }
 
 struct save_archive_data {
@@ -2018,10 +2020,5 @@ static int batch_mode(GtkWidget *main_window, struct xmi_main_options **options,
 	gtk_main();
 
 	return rv;
-}
-
-void launch_archive_plot(struct xmi_archive *archive, GtkWidget *main_window) {
-	GtkWidget *window = xmi_msim_gui_xmsa_viewer_window_new(main_window, archive);
-	gtk_widget_show(window);
 }
 

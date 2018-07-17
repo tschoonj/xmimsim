@@ -26,8 +26,6 @@ G_BEGIN_DECLS
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window);
 
-void launch_archive_plot(struct xmi_archive *archive, GtkWidget *window);
-
 G_END_DECLS
 
 #endif

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
+#include "xmimsim-gui-application.h"
 
 #ifndef XMI_MSIM_GUI_XMSA_VIEWER_WINDOW_H
 #define XMI_MSIM_GUI_XMSA_VIEWER_WINDOW_H
@@ -34,7 +35,7 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsaViewerWindow		XmiMsimGuiXmsaViewerWindow;
 typedef struct _XmiMsimGuiXmsaViewerWindowClass   	XmiMsimGuiXmsaViewerWindowClass;
 
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(GtkWidget *parent_window, struct xmi_archive *archive);
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication* app, struct xmi_archive *archive);
 
 GType xmi_msim_gui_xmsa_viewer_window_get_type(void) G_GNUC_CONST;
 

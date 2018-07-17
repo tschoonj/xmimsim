@@ -45,7 +45,6 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-continuous-energy-dialog.h \
 	xmimsim-gui-compat.h \
 	xmimsim-gui-colors.h \
-	xmimsim-gui-notifications.h \
 	xmimsim-gui-xmsi-scrolled-window.h \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
@@ -59,6 +58,8 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-long-task-window.h \
 	xmimsim-gui-controls-scrolled-window.h \
 	xmimsim-gui-xmsi-config-scrolled-window.h \
+	xmimsim-gui-application.h \
+	xmimsim-gui-application-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -82,7 +83,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-marshal.c \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
-	xmimsim-gui-notifications.c \
 	xmimsim-gui-xmsi-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
@@ -95,6 +95,9 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-long-task-window.c \
 	xmimsim-gui-controls-scrolled-window.c \
 	xmimsim-gui-xmsi-config-scrolled-window.c \
+	xmimsim-gui-application.c \
+	xmimsim-gui-application-window.c \
+	xmimsim-gui-private.h \
 	$(NULL)
 
 nodist_libxmimsim_gui_la_SOURCES = \
@@ -111,8 +114,9 @@ libxmimsim_gui_la_CPPFLAGS = \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@libsoup_CFLAGS@ \
-	@libnotify_CFLAGS@ \
+	-DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
 	$(NULL)
+
 libxmimsim_gui_la_LDFLAGS = \
 	@LDFLAGS_XMIMSIM_GUI_LIB@ \
 	$(EXTRA_LDFLAGS) \
@@ -124,7 +128,6 @@ libxmimsim_gui_la_LIBADD = \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
 	@libsoup_LIBS@ \
-	@libnotify_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
 
@@ -288,12 +291,7 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 
 xmimsim_gui_SOURCES = \
-	xmimsim-gui-controls.c \
-	xmimsim-gui-controls.h \
-	xmimsim-gui.cpp \
-	xmimsim-gui.h \
-	xmimsim-gui-energies.c \
-	xmimsim-gui-energies.h \
+	xmimsim-gui-main.cpp
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -338,19 +336,17 @@ xmimsim_gui_CPPFLAGS = \
 	@GTK_MAC_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
-	-DXMIMSIM_COORDINATE_SYSTEM=\"$(datadir)/xmimsim/coordinate_system.png\" \
-	-DXMIMSIM_SOURCES_DEFAULT=\"$(plugindir)\" \
 	$(NULL)
 
 xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
 if ENABLE_GUI
-if ENABLE_MAC_APP
+if OS_DARWIN
 EXTRA_LDFLAGS = -stdlib=libc++
 
 noinst_LTLIBRARIES += libxmimsim-gui-osx.la
 libxmimsim_gui_osx_la_SOURCES = xmimsim-gui-osx.m xmimsim-gui-osx.h
-libxmimsim_gui_osx_la_OBJCFLAGS = @GTK_MAC_CFLAGS@ 
+libxmimsim_gui_osx_la_OBJCFLAGS = @gtkmm3_CFLAGS@
 libxmimsim_gui_la_LIBADD += libxmimsim-gui-osx.la
 endif
 endif
@@ -563,7 +559,5 @@ xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOUR
 clean-local:
 	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
 
-EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png
+EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
 
-#install-data-hook:
-#	chmod a+rw  $(DESTDIR)/$(datadir)/xmimsim/xmimsim-solid-angles.h5

@@ -26,8 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 G_BEGIN_DECLS
 
-void xmi_msim_gui_utils_update_button_text(GtkWidget *button, const gchar *text);
-
 double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry);
 
 void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename, GAsyncReadyCallback callback, gpointer user_data);

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,19 +15,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMIMSIM_GUI_NOTIFICATIONS_H
-#define XMIMSIM_GUI_NOTIFICATIONS_H
+#include <config.h>
+#include "xmimsim-gui-application.h"
+#include <gtkmm/main.h>
 
-#include <glib.h>
+int main(int argc, char *argv[]) {
 
-G_BEGIN_DECLS
+	gtk_disable_setlocale();
 
-int xmimsim_notifications_init(void);
+	// for gtkmm-plplot!
+	Gtk::Main::init_gtkmm_internals();
 
-int xmimsim_notifications_deliver(const char *title, const char *text);
-
-int xmimsim_notifications_close(void);
-
-G_END_DECLS
-
-#endif
+	return g_application_run(G_APPLICATION(xmi_msim_gui_application_new()), argc, argv);
+}

@@ -819,9 +819,8 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	g_object_unref(task);
 }
 
-void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
-
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -914,9 +913,8 @@ void xmimsim_gui_xmso2xmsi(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
-
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmso2csv_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -998,9 +996,8 @@ void xmimsim_gui_xmso2csv(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
-
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -1080,9 +1077,8 @@ void xmimsim_gui_xmso2html(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
-
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -1164,8 +1160,8 @@ void xmimsim_gui_xmso2svg(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmso2spe_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -1260,8 +1256,8 @@ void xmimsim_gui_xmso2spe(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;
@@ -1339,8 +1335,8 @@ void xmimsim_gui_xmsi2xrmc(GtkMenuItem *menuitem, gpointer data) {
 	gtk_widget_show_all(window);
 }
 
-void xmimsim_gui_xmsa2xmso(GtkMenuItem *menuitem, gpointer data) {
-	GtkWidget *main_window = (GtkWidget *) data;
+void xmsa2xmso_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
+	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
 	GtkWidget *window;
 	GtkWidget *grid;
 	GtkWidget *button;

@@ -38,6 +38,8 @@ GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new();
 
 gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile, GError **error);
 
+const gchar* xmi_msim_gui_xmso_results_scrolled_window_get_filename(XmiMsimGuiXmsoResultsScrolledWindow *window);
+
 GType xmi_msim_gui_xmso_results_scrolled_window_get_type(void) G_GNUC_CONST;
 
 G_END_DECLS
