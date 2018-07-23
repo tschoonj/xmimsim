@@ -1049,18 +1049,23 @@ inputF, hdf5F, energy_new)
         DO
                 r = xmi_rng_uniform(rng)
                 pos = INT(r/(hdf5_Z%compton_profiles%&
-                random_numbers(2)-&
-                hdf5_Z%compton_profiles%&
-                random_numbers(1)))+1
+                        random_numbers(2)-&
+                        hdf5_Z%compton_profiles%&
+                        random_numbers(1)))+1
+                ! ensure the last value for pz does not get used, as it leads to
+                ! an unrealistic horizontal shelf at the low energy end of the Compton peak
+                ! for low Z
+                IF (pos .EQ. SIZE(hdf5_Z%compton_profiles%random_numbers)-1) CYCLE
+
                 pz = interpolate_simple([&
-                hdf5_Z%compton_profiles%&
-                random_numbers(pos),&
-                hdf5_Z%compton_profiles%&
-                profile_total_icdf(pos)]&
-                ,[hdf5_Z%compton_profiles%&
-                random_numbers(pos+1),&
-                hdf5_Z%compton_profiles%&
-                profile_total_icdf(pos+1)], r)
+                        hdf5_Z%compton_profiles%&
+                        random_numbers(pos),&
+                        hdf5_Z%compton_profiles%&
+                        profile_total_icdf(pos)]&
+                        ,[hdf5_Z%compton_profiles%&
+                        random_numbers(pos+1),&
+                        hdf5_Z%compton_profiles%&
+                        profile_total_icdf(pos+1)], r)
 
 #if DEBUG == 2
                 WRITE (*,'(A,F12.5)') 'original photon energy: ',photon%energy
