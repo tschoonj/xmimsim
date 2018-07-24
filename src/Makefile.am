@@ -105,9 +105,9 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
 xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include
+xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
-xmimsim_cl_la_SOURCES = xmi_solid_angle.c
+xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
 if ENABLE_MAC_APP
 xmimsim_cl_la_LDFLAGS += -Wl,-headerpad_max_install_names
