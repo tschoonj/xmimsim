@@ -20,11 +20,7 @@ xmimsimdir = $(datadir)/xmimsim
 
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
 
-BUILT_SOURCES = $(nodist_xmimsiminclude_HEADERS)
-
-if ENABLE_OPENCL
-dist_xmimsim_DATA = array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
-endif
+BUILT_SOURCES = $(nodist_xmimsiminclude_HEADERS) $(nodist_libxmimsim_la_SOURCES)
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 
@@ -32,6 +28,10 @@ plugindir = $(libdir)/xmimsim
 
 lib_LTLIBRARIES = libxmimsim.la
 noinst_LTLIBRARIES =
+nodist_libxmimsim_la_SOURCES = \
+	xmi_resources.c \
+	xmi_resources.h \
+	$(NULL)
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
@@ -84,7 +84,6 @@ libxmimsim_la_CFLAGS =  \
 	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
 	-DXMI_XMSA2XMSO_XSLT=\"$(datadir)/xmimsim/xmsa2xmso.xml\" \
 	-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
-	-DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\" \
 	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
 
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
@@ -106,7 +105,7 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
 xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include -DXMI_OPENCL_CODE=\"$(datadir)/xmimsim\"
+xmimsim_cl_la_CPPFLAGS = -DXMIMSIM_CL -I${top_srcdir}/include -I${top_builddir}/include
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
@@ -153,7 +152,11 @@ libxmimsim_ql_la_LDFLAGS = \
 	-framework CoreFoundation
 endif
 
+xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
+	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-source $(srcdir)/xmi.gresource.xml
 
+xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
+	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -175,3 +178,7 @@ uninstall-local:
 
 clean-local:
 	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
+	rm -f $(nodist_libxmimsim_la_SOURCES)
+
+EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
+

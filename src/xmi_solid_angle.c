@@ -68,6 +68,7 @@ struct xmi_solid_angles_data{
 	#include "xmi_resources_mac.h"
   #endif
 
+  #include "xmi_resources.h"
 
   #define RANGE_DIVIDER 8
   #define XMI_OPENCL_MAJOR 1
@@ -110,7 +111,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 			opencl_lib = g_strdup(XMI_OPENCL_LIB);
 #endif
 		}
-		module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s",opencl_lib,"xmimsim-cl",G_MODULE_SUFFIX);
+		module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s", opencl_lib, "xmimsim-cl", G_MODULE_SUFFIX);
 		module = g_module_open(module_path, 0);
 		g_free(module_path);
 		g_free(opencl_lib);
@@ -140,8 +141,8 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle
 
 	}
 fallback:
-#endif
 	g_setenv("XMIMSIM_CL_FALLBACK", "", TRUE);
+#endif
 	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, g_strdup(input_string), xmo);
 }
 
@@ -1141,83 +1142,31 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 	//
 	//
 
-
-	gchar *opencl_code;
-	const gchar *opencl_code_env = g_getenv("XMIMSIM_CL_INCLUDE");
-
-	if (opencl_code_env != NULL)
-		opencl_code = g_strdup(opencl_code_env);
-#ifdef G_OS_WIN32
-	else if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_CODE,&opencl_code) == 0)
-		return 0;
-#elif defined(MAC_INTEGRATION)
-	else if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_CODE,&opencl_code) == 0)
-		return 0;
-#else
-	else
-		opencl_code = g_strdup(XMI_OPENCL_CODE);
-#endif
+	GResource *xmi_resource = xmi_get_resource();
+	const gchar * const filenames[] = {
+		"openclfeatures.h",
+		"compilerfeatures.h",
+		"sse.h",
+		"array.h",
+		"threefry.h",
+		"xmi_kernels.cl",
+	};
 
 	GString *kernel_code = g_string_sized_new(4096);
-	gchar *kernel_file;
-	gchar *source_code = NULL;
 
-	// the different headers are loaded separately as the OpenCL compiler cannot look for dirs with spaces...
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "openclfeatures.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
+	for (i = 0 ; i < G_N_ELEMENTS(filenames) ; i++) {
+		gchar *kernel_file = g_strdup_printf("/com/github/tschoonj/xmimsim/opencl/%s", filenames[i]);
+		GError *error = NULL;
+		GBytes *source_code = g_resource_lookup_data(xmi_resource, kernel_file, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+		if (!source_code) {
+			g_fprintf(stderr,"Could not open resource %s -> %s\n", kernel_file, error->message);
+			g_error_free(error);
+			return 0;
+		}
+		g_string_append(kernel_code, g_bytes_get_data(source_code, NULL));
+		g_free(kernel_file);
+		g_bytes_unref(source_code);
 	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "compilerfeatures.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
-	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "sse.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
-	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "array.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
-	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "threefry.h",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
-	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	kernel_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "xmi_kernels.cl",opencl_code);
-	if(g_file_get_contents(kernel_file, &source_code, NULL, NULL) == FALSE) {
-		g_fprintf(stderr,"Could not open %s\n",kernel_file);
-		return 0;
-	}
-	g_string_append(kernel_code, source_code);
-	g_free(source_code);
-	g_free(kernel_file);
-
-	g_free(opencl_code);
 
 	cl_program myprog = clCreateProgramWithSource(context, 1, (const char **) &kernel_code->str, NULL, &status);
 	OPENCL_ERROR(clCreateProgramWithSource)
