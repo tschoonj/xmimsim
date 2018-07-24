@@ -112,21 +112,9 @@ Source: "{#srcdir}\xml\xmso2svg.xml" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#srcdir}\xml\xmso2htm.xml" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#srcdir}\xml\xmsa2xmso.xml" ; DestDir: "{app}\Share" ; Components: core
 
-Source: "{#srcdir}\src\array.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\src\compilerfeatures.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\src\openclfeatures.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\src\sse.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\src\threefry.h" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\src\xmi_kernels.cl" ; DestDir: "{app}\Share" ; Components: core
 Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
-
-Source: "{#srcdir}\icons\256x256\Logo_xmi_msim.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#srcdir}\icons\256x256\Logo_xmi_msim_red.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#srcdir}\icons\256x256\Logo_xmi_msim_archive.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#srcdir}\icons\256x256\Radiation_warning_symbol.png" ; DestDir: "{app}\Share\Icons" ; Components: core
-Source: "{#srcdir}\bin\coordinate_system.png" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#builddir}\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 
@@ -196,10 +184,6 @@ Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2csv" ; ValueType: string ; ValueName
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2xmsi" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2xmsi.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2htm" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2htm.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\xmsa2xmso" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmsa2xmso.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\icon" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\Logo_xmi_msim.png"
-Root: HKLM; Subkey: "Software\XMI-MSIM\coordinate-system" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\coordinate_system.png"
-Root: HKLM; Subkey: "Software\XMI-MSIM\icons-dir" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\Icons\"
-Root: HKLM; Subkey: "Software\XMI-MSIM\openclcode" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share"
 Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\OpenCL"
 Root: HKLM; Subkey: "Software\XMI-MSIM\sources" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\Sources"
 

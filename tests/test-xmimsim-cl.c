@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
 
 	// set environment variables
 	g_assert(g_setenv("XMIMSIM_CL_LIB", XMIMSIM_CL_LIB, TRUE) == TRUE);
-	g_assert(g_setenv("XMIMSIM_CL_INCLUDE", XMIMSIM_CL_INCLUDE, TRUE) == TRUE);
 
 	// download file
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
