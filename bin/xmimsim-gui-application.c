@@ -546,6 +546,13 @@ static void app_startup(GApplication *app) {
 	add_accelerator(GTK_APPLICATION(app), "win.copy", "<Primary>C");
 	add_accelerator(GTK_APPLICATION(app), "win.paste", "<Primary>V");
 
+#ifdef __APPLE__
+	GtkBuilder *builder = gtk_builder_new_from_resource("/com/github/tschoonj/xmimsim/gui/gtk/menus-appmenu.ui");
+	GMenuModel *app_menu = G_MENU_MODEL(gtk_builder_get_object(builder, "app-menu"));
+	gtk_application_set_app_menu(GTK_APPLICATION(app), app_menu);
+	g_object_unref(builder);
+#endif
+
 	// import sources
 	query_source_modules();
 
