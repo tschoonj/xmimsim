@@ -606,14 +606,14 @@ static void select_outputfile_cb(GtkButton *button, XmiMsimGuiXmsiConfigScrolled
 	struct xmi_input *current = xmi_msim_gui_undo_manager_get_current_input(self->undo_manager);
 
 	if (current == NULL || current->general->outputfile == NULL || strlen(current->general->outputfile) == 0) {
-		union xmimsim_prefs_val prefs;
+		GValue prefs = G_VALUE_INIT;
 		if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, &prefs) == 0) {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
 		}
 		else {
-			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), prefs.s);
-			g_free(prefs.s);
+			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), g_value_get_string(&prefs));
 		}
+		g_value_unset(&prefs);
 		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "Untitled.xmso");
 	}
 	else {

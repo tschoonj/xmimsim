@@ -1264,7 +1264,6 @@ void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	GtkWidget *label;
 	GtkWidget *xmsi_fileW, *xrmc_folderW;
 	GtkWidget *enable_pileupW, *enable_poissonW;
-	union xmimsim_prefs_val xpv;
 
 	grid = gtk_grid_new(); // 7 rows, 2 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -1299,12 +1298,14 @@ void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	gtk_widget_set_hexpand(xrmc_folderW, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), xrmc_folderW, 1, 2, 1, 1);
 
+	GValue xpv = G_VALUE_INIT;
+
 	enable_pileupW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort
 		preferences_error_handler(window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_pileupW),xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_pileupW), g_value_get_boolean(&xpv));
 	gtk_grid_attach(GTK_GRID(grid), enable_pileupW, 0, 3, 2, 1);
 
 	enable_poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
@@ -1312,9 +1313,9 @@ void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 		//abort
 		preferences_error_handler(window);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW),xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_poissonW), g_value_get_boolean(&xpv));
 	gtk_grid_attach(GTK_GRID(grid), enable_poissonW, 0, 4, 2, 1);
-
+	g_value_unset(&xpv);
 
 	gtk_grid_attach(GTK_GRID(grid), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), 0, 5, 2, 1);
 

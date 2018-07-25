@@ -78,17 +78,19 @@ struct DownloadVars {
 
 static void update_check_toggled_cb(GtkToggleButton *checkbutton, GtkWidget *update_dialog) {
 
-	union xmimsim_prefs_val prefs;
+	GValue prefs = G_VALUE_INIT;
 
-	prefs.b = gtk_toggle_button_get_active(checkbutton);
+	g_value_init(&prefs, G_TYPE_BOOLEAN);
+	g_value_set_boolean(&prefs, gtk_toggle_button_get_active(checkbutton));
 
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, prefs) == 0) {
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(update_dialog),
 			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
 		exit(1);
 	}
+	g_value_unset(&prefs);
 }
 
 static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
@@ -183,15 +185,18 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"0.00 %");
 
 	//get download locations
-	union xmimsim_prefs_val prefs;
+	GValue prefs = G_VALUE_INIT;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &prefs) == 0) {
 		g_warning("Get preferences error\n");
 		// show error dialog
 		return;
 	}
 
-	for (i = 0 ; i < g_strv_length(prefs.ss) ; i++) {
-		gchar *url = g_strdup_printf("%s/%s", prefs.ss[i], dv->filename);
+	gchar **download_locations = g_value_get_boxed(&prefs);
+	g_value_unset(&prefs);
+
+	for (i = 0 ; i < g_strv_length(download_locations) ; i++) {
+		gchar *url = g_strdup_printf("%s/%s", download_locations[i], dv->filename);
 		g_debug("Trying url %s\n",url);
 
 		GFileOutputStream *stream = g_file_replace(gfile, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
@@ -270,8 +275,6 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		gtk_label_set_text(GTK_LABEL(dv->label), text);
 		g_free(text);
 	}
-
-	g_strfreev(prefs.ss);
 }
 
 
@@ -555,7 +558,7 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 	GtkWidget *checkbutton = gtk_check_button_new_with_label("Check for updates on startup?");
 	gtk_box_pack_start(GTK_BOX(update_content), checkbutton, FALSE, FALSE, 5);
 	//get value from preferences
-	union xmimsim_prefs_val prefs;
+	GValue prefs = G_VALUE_INIT;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
 		GtkWidget *dialog = gtk_message_dialog_new(active_window,
 			active_window != NULL ? GTK_DIALOG_MODAL : 0, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
@@ -564,7 +567,8 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 	        gtk_widget_destroy(dialog);
 		g_application_quit(G_APPLICATION(app));
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),prefs.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton), g_value_get_boolean(&prefs));
+	g_value_unset(&prefs);
 	g_signal_connect(G_OBJECT(checkbutton), "toggled", G_CALLBACK(update_check_toggled_cb), update_dialog);
 
 	gtk_container_set_border_width(GTK_CONTAINER(update_dialog), 10);

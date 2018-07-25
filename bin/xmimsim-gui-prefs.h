@@ -61,26 +61,23 @@ enum {
 	XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID,
 };
 
-union xmimsim_prefs_val{
-	gboolean b;
-	gint i;
-	gchar **ss;
-	gchar *s;
-};
-
 //user defined layers manipulation
 gchar **xmimsim_gui_get_user_defined_layer_names(void);
+
 struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name);
+
 int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name);
+
 int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name);
 
 //returns 1 on success, 0 on error
-int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs);
+int xmimsim_gui_get_prefs(int kind, GValue *prefs);
 
 //returns 1 on success, 0 on error
-int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs);
+int xmimsim_gui_set_prefs(int kind, const GValue *prefs);
 
 void xmimsim_gui_launch_preferences(GtkWindow *parent);
+
 void preferences_error_handler(GtkWidget *window);
 
 char *xmimsim_gui_get_preferences_filename(void);
