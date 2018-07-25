@@ -121,7 +121,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		NULL
 	);
 
-	union xmimsim_prefs_val xpv;
+	GValue xpv = G_VALUE_INIT;
 
 	self->MlinesW = gtk_check_button_new_with_label("Simulate M-lines");
 	gtk_widget_set_tooltip_text(self->MlinesW, "Enables the simulation of M-lines. Disabling this option may lead to a significant performance increase. Should always be enabled when high atomic number elements are present in the sample.");
@@ -129,7 +129,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->MlinesW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->MlinesW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->MlinesW, TRUE, FALSE, 0);
 
 	self->rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
@@ -138,7 +138,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->rad_cascadeW, TRUE, FALSE, 0);
 
 	self->nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
@@ -147,7 +147,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->nonrad_cascadeW, TRUE, FALSE, 0);
 
 	self->variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
@@ -156,7 +156,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->variance_reductionW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->variance_reductionW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->variance_reductionW, TRUE, FALSE, 0);
 
 	self->pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
@@ -165,7 +165,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->pile_upW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->pile_upW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->pile_upW, TRUE, FALSE, 0);
 
 	self->poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
@@ -174,7 +174,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->poissonW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->poissonW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->poissonW, TRUE, FALSE, 0);
 
 	self->escape_peaksW = gtk_check_button_new_with_label("Enable escape peaks support");
@@ -183,7 +183,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->escape_peaksW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->escape_peaksW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->escape_peaksW, TRUE, FALSE, 0);
 
 	self->advanced_comptonW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
@@ -192,7 +192,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->advanced_comptonW, TRUE, FALSE, 0);
 
 	self->default_seedsW = gtk_check_button_new_with_label("Enable default seeds support");
@@ -201,7 +201,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->default_seedsW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->default_seedsW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->default_seedsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
@@ -211,7 +211,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->openclW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->openclW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->openclW, TRUE, FALSE, 0);
 #endif
 
@@ -232,18 +232,18 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	if (xpv.s != NULL) {
+	if (g_value_get_string(&xpv) != NULL) {
 		gtk_widget_set_sensitive(self->custom_detector_responseE, TRUE);
 		gtk_widget_set_sensitive(self->custom_detector_responseB, TRUE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC), TRUE);
-		gtk_entry_set_text(GTK_ENTRY(self->custom_detector_responseE), xpv.s);
+		gtk_entry_set_text(GTK_ENTRY(self->custom_detector_responseE), g_value_get_string(&xpv));
 	}
 	else {
 		gtk_widget_set_sensitive(self->custom_detector_responseE, FALSE);
 		gtk_widget_set_sensitive(self->custom_detector_responseB, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC), FALSE);
 	}
-	g_free(xpv.s);
+	g_value_unset(&xpv);
 }
 
 GtkWidget* xmi_msim_gui_options_box_new(void) {
@@ -278,78 +278,81 @@ struct xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsB
 }
 
 void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *self) {
-	union xmimsim_prefs_val xpv;
+	GValue xpv = G_VALUE_INIT;
+	g_value_init(&xpv, G_TYPE_BOOLEAN);
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->MlinesW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->MlinesW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_M_LINES, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_RAD_CASCADE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NONRAD_CASCADE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->variance_reductionW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->variance_reductionW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->pile_upW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->pile_upW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_PILE_UP, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->poissonW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->poissonW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_POISSON, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->escape_peaksW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->escape_peaksW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ESCAPE_PEAKS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_ADVANCED_COMPTON, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->default_seedsW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->default_seedsW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SEEDS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->openclW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, xpv) == 0) {
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->openclW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
 #endif
+	g_value_unset(&xpv);
+	g_value_init(&xpv, G_TYPE_STRING);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC)) == TRUE &&
 		strlen(gtk_entry_get_text(GTK_ENTRY(self->custom_detector_responseE))) > 0) {
-		xpv.s = g_strdup(gtk_entry_get_text(GTK_ENTRY(self->custom_detector_responseE)));
+		g_value_set_static_string(&xpv, gtk_entry_get_text(GTK_ENTRY(self->custom_detector_responseE)));
 	}
 	else
-		xpv.s = NULL;
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, xpv) == 0) {
+		g_value_set_string(&xpv, NULL);
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	g_free(xpv.s);
+	g_value_unset(&xpv);
 }

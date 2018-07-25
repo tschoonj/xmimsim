@@ -295,23 +295,25 @@ void preferences_error_handler(GtkWidget *window) {
 		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 	gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
-	g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(window))));
+	g_application_quit(g_application_get_default());
 }
 
 
 static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	//read everything and store it in the preferences file
-	union xmimsim_prefs_val xpv;
-	struct prefsWidgets *pw = (struct prefsWidgets *) data;
+	struct prefsWidgets *pw = data;
+	GValue xpv = G_VALUE_INIT;
 
 	xmi_msim_gui_options_box_save_to_prefs(XMI_MSIM_GUI_OPTIONS_BOX(pw->options_boxW));	
 
 #if defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->check_updatesW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, xpv) == 0) {
+	g_value_init(&xpv, G_TYPE_BOOLEAN);
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->check_updatesW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
+	g_value_unset(&xpv);
 
 	gchar **urls = NULL;
 	GtkTreeIter temp_iter;
@@ -327,27 +329,30 @@ static void preferences_apply_button_clicked(GtkWidget *button, gpointer data) {
 	}
 	urls[nurls] = NULL;
 
-	xpv.ss = urls;
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, xpv) == 0) {
+	g_value_init(&xpv, G_TYPE_STRV);
+	g_value_take_boxed(&xpv, urls);
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
-
-	g_strfreev(xpv.ss);
+	g_value_unset(&xpv);
 #endif
 
-	xpv.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->notificationsW));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, xpv) == 0) {
+	g_value_init(&xpv, G_TYPE_BOOLEAN);
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pw->notificationsW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
+	g_value_unset(&xpv);
 
-	xpv.s = g_strdup(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(pw->default_save_folderW)));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, xpv) == 0) {
+	g_value_init(&xpv, G_TYPE_STRING);
+	g_value_take_string(&xpv, gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(pw->default_save_folderW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER, &xpv) == 0) {
 		//abort
 		preferences_error_handler(pw->window);
 	}
-	g_free(xpv.s);
+	g_value_unset(&xpv);
 
 	// delete layers
 	int i;
@@ -605,17 +610,19 @@ int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *lay
 
 	return 1;
 }
-int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
+
+int xmimsim_gui_get_prefs(int kind, GValue *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
 
+	g_value_unset(prefs);
 
 	prefs_file = xmimsim_gui_get_preferences_filename();
 
 	keyfile = g_key_file_new();
 	GError *error = NULL;
 
-	if (!g_key_file_load_from_file(keyfile, prefs_file, (GKeyFileFlags) (G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS), NULL)) {
+	if (!g_key_file_load_from_file(keyfile, prefs_file, G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS, NULL)) {
 		if (!xmimsim_gui_create_prefs_file(keyfile, prefs_file))
 			return 0;
 	}
@@ -624,7 +631,8 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 	gchar *prefs_file_contents;
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Check for updates", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Check for updates not found in preferences file\n");
@@ -634,11 +642,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_M_LINES:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "M lines", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "M lines", &error));
 			if (error != NULL) {
 				//error
 				g_warning("M lines not found in preferences file\n");
@@ -648,11 +657,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_RAD_CASCADE:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Radiative cascade", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Radiative cascade", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Radiative cascade not found in preferences file\n");
@@ -662,11 +672,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Non-radiative cascade", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Non-radiative cascade", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Non-radiative cascade not found in preferences file\n");
@@ -676,11 +687,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Variance reduction", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Variance reduction", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Variance reduction not found in preferences file\n");
@@ -690,11 +702,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_PILE_UP:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Pile-up", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Pile-up", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Pile-up not found in preferences file\n");
@@ -704,26 +717,27 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = FALSE;
+				g_value_set_boolean(prefs, FALSE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS:
-			prefs->ss = g_key_file_get_string_list(keyfile, "Preferences", "Download locations", NULL, &error);
+			g_value_init(prefs, G_TYPE_STRV);
+			g_value_take_boxed(prefs, g_key_file_get_string_list(keyfile, "Preferences", "Download locations", NULL, &error));
 			if (error != NULL) {
 				//error
 				g_warning("Download locations not found in preferences file\n");
-				g_debug("Number of locations: %i\n",g_strv_length((gchar **) xmimsim_download_locations));
 				g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->ss = g_strdupv((gchar **) xmimsim_download_locations);
+				g_value_set_static_boxed(prefs, xmimsim_download_locations);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Poisson noise", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Poisson noise", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Poisson noise not found in preferences file\n");
@@ -733,11 +747,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = FALSE;
+				g_value_set_boolean(prefs, FALSE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Escape peaks", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Escape peaks", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Escape peaks not found in preferences file\n");
@@ -747,11 +762,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Advanced Compton", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Advanced Compton", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Advanced Compton not found in preferences file\n");
@@ -761,11 +777,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = FALSE;
+				g_value_set_boolean(prefs, FALSE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_DEFAULT_SEEDS:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Default seeds", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Default seeds", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Default seeds not found in preferences file\n");
@@ -775,12 +792,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = FALSE;
+				g_value_set_boolean(prefs, FALSE);
 			}
 			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error));
 			if (error != NULL) {
 				//error
 				g_warning("OpenCL not found in preferences file\n");
@@ -790,12 +808,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 #endif
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
 			{
+			g_value_init(prefs, G_TYPE_STRING);
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Custom detector response", &error);
 			if (error != NULL) {
 				//error
@@ -806,17 +825,18 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->s = NULL;
+				g_value_set_string(prefs, NULL);
 				break;
 			}
 			if (strcmp(temps, "None") == 0)
-				prefs->s = NULL;
+				g_value_set_string(prefs, NULL);
 			else
-				prefs->s = temps;
+				g_value_take_string(prefs, temps);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER:
 			{
+			g_value_init(prefs, G_TYPE_STRING);
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Default save folder", &error);
 			if (error != NULL) {
 				//error
@@ -827,14 +847,15 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->s = g_strdup(g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
+				g_value_set_static_string(prefs, g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
 				break;
 			}
-			prefs->s = temps;
+			g_value_take_string(prefs, temps);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Notifications", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Notifications not found in preferences file\n");
@@ -844,12 +865,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 #ifdef HAVE_GOOGLE_ANALYTICS
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG:
-			prefs->b = g_key_file_get_boolean(keyfile, "Preferences", "Google Analytics Show Startup Dialog", &error);
+			g_value_init(prefs, G_TYPE_BOOLEAN);
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "Google Analytics Show Startup Dialog", &error));
 			if (error != NULL) {
 				//error
 				g_warning("Google Analytics Show Startup Dialog not found in preferences file\n");
@@ -859,11 +881,12 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->b = TRUE;
+				g_value_set_boolean(prefs, TRUE);
 			}
 			break;
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID:
 			{
+			g_value_init(prefs, G_TYPE_STRING);
 			gchar *temps = g_key_file_get_string(keyfile, "Preferences", "Google Analytics UUID", &error);
 			if (error != NULL) {
 				//error
@@ -875,10 +898,10 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
 					return 0;
 				g_free(prefs_file_contents);
-				prefs->s = uuid;
+				g_value_take_string(prefs, uuid);
 				break;
 			}
-			prefs->s = temps;
+			g_value_take_string(prefs, temps);
 			}
 			break;
 #endif
@@ -887,17 +910,13 @@ int xmimsim_gui_get_prefs(int kind, union xmimsim_prefs_val *prefs) {
 			return 0;
 	}
 
-
-
-
-
 	g_free(prefs_file);
 	g_key_file_free(keyfile);
 	return 1;
 }
 
 
-int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
+int xmimsim_gui_set_prefs(int kind, const GValue *prefs) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
 
@@ -913,61 +932,61 @@ int xmimsim_gui_set_prefs(int kind, union xmimsim_prefs_val prefs) {
 
 	switch (kind) {
 		case XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES:
-			g_key_file_set_boolean(keyfile, "Preferences", "Check for updates", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Check for updates", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_M_LINES:
-			g_key_file_set_boolean(keyfile, "Preferences","M lines", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "M lines", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_RAD_CASCADE:
-			g_key_file_set_boolean(keyfile, "Preferences","Radiative cascade", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Radiative cascade", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_NONRAD_CASCADE:
-			g_key_file_set_boolean(keyfile, "Preferences","Non-radiative cascade", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Non-radiative cascade", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_VARIANCE_REDUCTION:
-			g_key_file_set_boolean(keyfile, "Preferences","Variance reduction", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Variance reduction", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_PILE_UP:
-			g_key_file_set_boolean(keyfile, "Preferences","Pile-up", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Pile-up", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_DOWNLOAD_LOCATIONS:
-			g_key_file_set_string_list(keyfile, "Preferences", "Download locations",  (const gchar * const *) prefs.ss, (gsize) g_strv_length(prefs.ss));
+			g_key_file_set_string_list(keyfile, "Preferences", "Download locations", g_value_get_boxed(prefs), g_strv_length(g_value_get_boxed(prefs)));
 			break;
 		case XMIMSIM_GUI_PREFS_POISSON:
-			g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Poisson noise", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_ESCAPE_PEAKS:
-			g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Escape peaks", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_ADVANCED_COMPTON:
-			g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Advanced Compton", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_DEFAULT_SEEDS:
-			g_key_file_set_boolean(keyfile, "Preferences","Default seeds", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Default seeds", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE:
-			if (prefs.s != NULL)
-				g_key_file_set_string(keyfile, "Preferences","Custom detector response", prefs.s);
+			if (g_value_get_string(prefs) != NULL)
+				g_key_file_set_string(keyfile, "Preferences", "Custom detector response", g_value_get_string(prefs));
 			else
-				g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
+				g_key_file_set_string(keyfile, "Preferences", "Custom detector response", "None");
 			break;
 		case XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER:
-			g_key_file_set_string(keyfile, "Preferences","Default save folder", prefs.s);
+			g_key_file_set_string(keyfile, "Preferences", "Default save folder", g_value_get_string(prefs));
 			break;
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 		case XMIMSIM_GUI_PREFS_OPENCL:
-			g_key_file_set_boolean(keyfile, "Preferences","OpenCL", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "OpenCL", g_value_get_boolean(prefs));
 			break;
 #endif
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
-			g_key_file_set_boolean(keyfile, "Preferences","Notifications", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences", "Notifications", g_value_get_boolean(prefs));
 			break;
 #ifdef HAVE_GOOGLE_ANALYTICS
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG:
-			g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Show Startup Dialog", prefs.b);
+			g_key_file_set_boolean(keyfile, "Preferences","Google Analytics Show Startup Dialog", g_value_get_boolean(prefs));
 			break;
 		case XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID:
-			g_key_file_set_string(keyfile, "Preferences","Google Analytics UUID", prefs.s);
+			g_key_file_set_string(keyfile, "Preferences","Google Analytics UUID", g_value_get_string(prefs));
 			break;
 #endif
 		default:
@@ -1077,7 +1096,7 @@ static GtkWidget* create_dialog(void) {
 	GtkWidget *buttonbox;
 	unsigned int i;
 	GtkTreeIter iter;
-	union xmimsim_prefs_val xpv;
+	GValue xpv = G_VALUE_INIT;
 
 #if defined(RPM_BUILD)
 	label = gtk_label_new("XMI-MSIM was built with Redhat Package Manager. All updates should be installed with yum.");
@@ -1093,11 +1112,13 @@ static GtkWidget* create_dialog(void) {
 #elif defined(HAVE_LIBSOUP) && defined(HAVE_JSONGLIB)
 
 	pw->check_updatesW = gtk_check_button_new_with_label("Check for updates on startup");
+
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->check_updatesW),xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->check_updatesW), g_value_get_boolean(&xpv));
+	g_value_unset(&xpv);
 	gtk_box_pack_start(GTK_BOX(superframe), pw->check_updatesW, TRUE, FALSE, 3);
 
 	label = gtk_label_new("Download locations for updates");
@@ -1172,16 +1193,17 @@ static GtkWidget* create_dialog(void) {
 
 	GdkPixbuf *gtk_no = gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/gtk-no.png", NULL);
 
-	for (i= 0 ; i < g_strv_length(xpv.ss) ; i++) {
+	gchar **download_locations = g_value_get_boxed(&xpv);
+
+	for (i= 0 ; i < g_strv_length(download_locations) ; i++) {
 		gtk_list_store_append(store_prefsL,&iter);
 		gtk_list_store_set(store_prefsL, &iter,
-			URL_COLUMN_PREFS, xpv.ss[i],
+			URL_COLUMN_PREFS, download_locations[i],
 			STATUS_COLUMN_PREFS, gtk_no,
 			-1);
-		xmi_msim_gui_updater_check_download_url_async(store_prefsL, xpv.ss[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
+		xmi_msim_gui_updater_check_download_url_async(store_prefsL, download_locations[i], (GAsyncReadyCallback) check_download_ready_cb, gtk_tree_model_get_path(GTK_TREE_MODEL(store_prefsL), &iter));
 	}
-
-	g_strfreev(xpv.ss);
+	g_value_unset(&xpv);
 
 	gtk_box_pack_start(GTK_BOX(superframe), updatesboxW, FALSE, FALSE, 2);
 
@@ -1297,11 +1319,13 @@ static GtkWidget* create_dialog(void) {
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
 	pw->notificationsW = gtk_check_button_new_with_label("Enable notifications");
 	gtk_widget_set_tooltip_text(pw->notificationsW,"Check this button to enable notifications support");
+
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->notificationsW), xpv.b);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pw->notificationsW), g_value_get_boolean(&xpv));
+	g_value_unset(&xpv);
 	gtk_box_pack_start(GTK_BOX(superframe), pw->notificationsW, FALSE, FALSE, 3);
 
 	gtk_box_pack_start(GTK_BOX(superframe), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 3);
@@ -1315,8 +1339,8 @@ static GtkWidget* create_dialog(void) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(pw->default_save_folderW), xpv.s);
-	g_free(xpv.s);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(pw->default_save_folderW), g_value_get_string(&xpv));
+	g_value_unset(&xpv);
 	gtk_box_pack_start(GTK_BOX(hbox), pw->default_save_folderW, TRUE, TRUE, 3);
 	gtk_box_pack_start(GTK_BOX(superframe), hbox, FALSE, FALSE, 3);
 

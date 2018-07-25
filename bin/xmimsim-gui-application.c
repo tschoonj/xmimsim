@@ -339,7 +339,7 @@ static void check_for_updates_callback(XmiMsimGuiApplication *app, GAsyncResult 
 
 static gboolean check_for_updates_on_init_cb(XmiMsimGuiApplication *app) {
 	//do this only if it is allowed by the preferences
-	union xmimsim_prefs_val prefs;
+	GValue prefs = G_VALUE_INIT;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CHECK_FOR_UPDATES, &prefs) == 0) {
 		GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(app));
 		GtkWidget *dialog = gtk_message_dialog_new(active_window, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
@@ -347,9 +347,11 @@ static gboolean check_for_updates_on_init_cb(XmiMsimGuiApplication *app) {
 	        gtk_widget_destroy(dialog);
 		g_application_quit(G_APPLICATION(app));
 	}
-	if (prefs.b == FALSE)
+	if (g_value_get_boolean(&prefs) == FALSE) {
+		g_value_unset(&prefs);
 		return FALSE;
-
+	}
+	g_value_unset(&prefs);
 
 	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(app), "check-for-updates");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action), FALSE);
@@ -440,10 +442,11 @@ static void query_source_modules(void) {
 static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
 	g_debug("Launching Google Analytics support");
 
-	union xmimsim_prefs_val xpv;
+	GValue xpv = G_VALUE_INIT;
 	
 	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG, &xpv);
-	gboolean show_startup_dialog = xpv.b;
+	gboolean show_startup_dialog = g_value_get_boolean(&xpv);
+	g_value_unset(&xpv);
 
 	if (show_startup_dialog) {
 		GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(app));
@@ -456,13 +459,16 @@ static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		// update prefs
-		xpv.b = FALSE;
-		xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG, xpv);
+		g_value_init(&xpv, G_TYPE_BOOLEAN);
+		g_value_set_boolean(&xpv, FALSE);
+		xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_SHOW_STARTUP_DIALOG, &xpv);
+		g_value_unset(&xpv);
 	}
 
 	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID, &xpv);
-	gchar *uuid = xpv.s;
+	const gchar *uuid = g_value_get_string(&xpv);
 	xmi_msim_gui_google_analytics_tracker_create_global(uuid);
+	g_value_unset(&xpv);
 	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
 
 #ifdef __APPLE__

@@ -255,13 +255,13 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 
 #if !defined(G_OS_WIN32) || GLIB_CHECK_VERSION(2, 58, 0)
 	// send notification
-	union xmimsim_prefs_val xpv;
+	GValue xpv = G_VALUE_INIT;
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_NOTIFICATIONS, &xpv) == 0) {
 		g_warning("Could not get notification preferences!");
-		xpv.b = FALSE;
+		g_value_set_boolean(&xpv, FALSE);
 	}
 
-	if (xpv.b) {
+	if (g_value_get_boolean(&xpv)) {
 		GNotification *notification;
 		if (result == FALSE) {
 			notification = g_notification_new("Simulation failed");
@@ -282,6 +282,7 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 		g_application_send_notification(g_application_get_default(), NULL, notification);
 		g_object_unref(notification);
 	}
+	g_value_unset(&xpv);
 #endif
 
 	if (result == FALSE) {
@@ -765,7 +766,6 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	gtk_box_pack_start(GTK_BOX(superframe), frame, FALSE, FALSE, 2);
 
 	//options
-	union xmimsim_prefs_val xpv;
 	frame = gtk_frame_new("");
 	gtk_frame_set_label_align(GTK_FRAME(frame), 0.5, 0.5);
 	gtk_container_set_border_width(GTK_CONTAINER(frame), 5);
