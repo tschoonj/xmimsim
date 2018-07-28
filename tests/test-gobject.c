@@ -440,7 +440,6 @@ int main(int argc, char *argv[]) {
 	int rv = g_test_run();
 
 	unlink(TEST_XMSI);
-	unlink(TEST_XMSA_1);
 
 	return rv;
 }

@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 #include <glib.h>
+#include "xmi_resources.h"
 
 #ifdef G_OS_WIN32
 #include "xmi_registry_win.h"
@@ -55,35 +56,29 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 	const char *params[1] = {NULL};
 	xmlXPathContextPtr xpathCtx;
 	xmlXPathObjectPtr xpathObj;
-	const gchar *env = g_getenv("XMI_XMSO2XMSI_XSLT");
-	xmlChar *xsltfile = NULL;
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2XMSI,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2XMSI,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSO2XMSI_XSLT);
-#endif
-	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
-	xsltInit();
-
-	cur = xsltParseStylesheetFile(xsltfile);
-	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmso2xmsi.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmso2xmsi.xml -> %s\n", error->message);
+		g_error_free(error);
 		return 0;
 	}
 
-	g_free(xsltfile);
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmso2xmsi.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
 
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
+	xsltInit();
+
+	cur = xsltParseStylesheetDoc(xslDoc);
+	if (cur == NULL) {
+		fprintf(stderr, "Could not parse stylesheet xmso2xmsi.xml\n");
+		return 0;
+	}
+
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
 	}
@@ -103,7 +98,7 @@ int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile , char *outputfile  ) {
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsofile);
+		fprintf(stderr, "Could not apply stylesheet xmso2xmsi.xml to %s\n", xmsofile);
 		return 0;
 	}
 
@@ -148,23 +143,18 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         char s_convoluted[] = "'convoluted'";
         char s_unconvoluted[] = "'unconvoluted'";
 
-	const gchar *env = g_getenv("XMI_XMSO2SVG_XSLT");
-	xmlChar *xsltfile = NULL;
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2SVG,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SVG,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSO2SVG_XSLT);
-#endif
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmso2svg.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmso2svg.xml -> %s\n", error->message);
+		g_error_free(error);
+		return 0;
 	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
+
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmso2svg.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
 
 	xsltInit();
 
@@ -179,15 +169,13 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
-	cur = xsltParseStylesheetFile(xsltfile);
+	cur = xsltParseStylesheetDoc(xslDoc);
 	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+		fprintf(stderr, "Could not parse stylesheet xmso2svg.xml\n");
 		return 0;
 	}
 
-	g_free(xsltfile);
-
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
 	}
@@ -207,7 +195,7 @@ int xmi_xmso_to_svg_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsofile);
+		fprintf(stderr, "Could not apply stylesheet xmso2svg.xml to %s\n", xmsofile);
 		return 0;
 	}
 
@@ -236,23 +224,18 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
         char s_unconvoluted[] = "'spectrum_unconv'";
 	char *interaction;
 
-	const gchar *env = g_getenv("XMI_XMSO2SPE_XSLT");
-	xmlChar *xsltfile = NULL;
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2SPE,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2SPE,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSO2SPE_XSLT);
-#endif
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmso2spe.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmso2spe.xml -> %s\n", error->message);
+		g_error_free(error);
+		return 0;
 	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
+
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmso2spe.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
 
 	xsltInit();
 
@@ -270,15 +253,13 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
-	cur = xsltParseStylesheetFile(xsltfile);
+	cur = xsltParseStylesheetDoc(xslDoc);
 	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+		fprintf(stderr, "Could not parse stylesheet xmso2spe.xml\n");
 		return 0;
 	}
 
-	g_free(xsltfile);
-
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
 	}
@@ -298,7 +279,7 @@ int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsofile);
+		fprintf(stderr, "Could not apply stylesheet xmso2spe.xml to %s\n", xmsofile);
 		return 0;
 	}
 
@@ -326,24 +307,18 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
         char s_convoluted[] = "'spectrum_conv'";
         char s_unconvoluted[] = "'spectrum_unconv'";
 
-	const gchar *env = g_getenv("XMI_XMSO2CSV_XSLT");
-	xmlChar *xsltfile = NULL;
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmso2csv.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmso2csv.xml -> %s\n", error->message);
+		g_error_free(error);
+		return 0;
+	}
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2CSV,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2CSV,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSO2CSV_XSLT);
-#endif
-	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmso2csv.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
 
 	xsltInit();
 
@@ -358,15 +333,13 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
-	cur = xsltParseStylesheetFile(xsltfile);
+	cur = xsltParseStylesheetDoc(xslDoc);
 	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+		fprintf(stderr, "Could not parse stylesheet xmso2csv.xml\n");
 		return 0;
 	}
 
-	g_free(xsltfile);
-
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
 	}
@@ -386,7 +359,7 @@ int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted) {
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsofile);
+		fprintf(stderr, "Could not apply stylesheet xmso2csv.xml to %s\n", xmsofile);
 		return 0;
 	}
 
@@ -413,23 +386,18 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         char s_convoluted[] = "'convoluted'";
         char s_unconvoluted[] = "'unconvoluted'";
 
-	const gchar *env = g_getenv("XMI_XMSO2HTM_XSLT");
-	xmlChar *xsltfile = NULL;
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSO2HTM,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSO2HTM,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSO2HTM_XSLT);
-#endif
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmso2htm.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmso2htm.xml -> %s\n", error->message);
+		g_error_free(error);
+		return 0;
 	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
+
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmso2htm.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
 
 	xsltInit();
 
@@ -446,15 +414,13 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 	//fprintf(stdout, "parm 1 = %s \n", params[1] );
 	//fprintf(stdout, "parm 2 = %s \n", params[2] );
 
-	cur = xsltParseStylesheetFile(xsltfile);
+	cur = xsltParseStylesheetDoc(xslDoc);
 	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+		fprintf(stderr, "Could not parse stylesheet xmso2htm\n");
 		return 0;
 	}
 
-	g_free(xsltfile);
-
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
+	if ((ctx = xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
 		return 0;
 	}
@@ -474,7 +440,7 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
 
 	res = xsltApplyStylesheet(cur, doc, params);
 	if (res == NULL) {
-		fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsofile);
+		fprintf(stderr, "Could not apply stylesheet xmso2htm.xml to %s\n", xmsofile);
 		return 0;
 	}
 
@@ -487,49 +453,37 @@ int xmi_xmso_to_htm_xslt(char *xmsofile, char *xmsifile, unsigned convoluted) {
         xsltCleanupGlobals();
 
 	return 1;
-
 }
 
 int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) {
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
 	xmlParserCtxtPtr ctx;
-	const gchar **params;
+	gchar **params;
 	xmlXPathContextPtr xpathCtx;
 	xmlXPathObjectPtr xpathObj;
 	gchar *xmsofilenew;
 
-	const gchar *env = g_getenv("XMI_XMSA2XMSO_XSLT");
-	xmlChar *xsltfile = NULL;
+	GResource *xmi_resource = xmi_get_resource();
+	GError *error = NULL;
 
-	if (env == NULL) {
-#ifdef G_OS_WIN32
-		if (xmi_registry_win_query(XMI_REGISTRY_WIN_XMSA2XMSO,(char **) &xsltfile) == 0)
-			return 0;
-#elif defined(MAC_INTEGRATION)
-		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMSA2XMSO,(char **) &xsltfile) == 0)
-			return 0;
-#else
-		xsltfile = BAD_CAST g_strdup(XMI_XMSA2XMSO_XSLT);
-#endif
-	}
-	else {
-		xsltfile = BAD_CAST g_strdup(env);
-	}
-
-	xsltInit();
-
-       	//fprintf(stdout, "parm 0 = %s \n", params[0] );
-	//fprintf(stdout, "parm 1 = %s \n", params[1] );
-	//fprintf(stdout, "parm 2 = %s \n", params[2] );
-
-	cur = xsltParseStylesheetFile(xsltfile);
-	if (cur == NULL) {
-		fprintf(stderr, "Could not parse stylesheet %s\n", xsltfile);
+	GBytes *xslBytes = g_resource_lookup_data(xmi_resource, "/com/github/tschoonj/xmimsim/xslt/xmsa2xmso.xml", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+	if (!xslBytes) {
+		fprintf(stderr, "Could not open resource xmsa2xmso.xml -> %s\n", error->message);
+		g_error_free(error);
 		return 0;
 	}
 
-	g_free(xsltfile);
+	xmlDocPtr xslDoc = xmlReadMemory(g_bytes_get_data(xslBytes, NULL), g_bytes_get_size(xslBytes), "xmsa2xmso.xml", NULL, XSLT_PARSE_OPTIONS);
+	g_bytes_unref(xslBytes);
+
+	xsltInit();
+
+	cur = xsltParseStylesheetDoc(xslDoc);
+	if (cur == NULL) {
+		fprintf(stderr, "Could not parse stylesheet xmsa2xmso.xml\n");
+		return 0;
+	}
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
 		fprintf(stderr,"xmlNewParserCtxt error\n");
@@ -624,6 +578,14 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 			xmlFreeDoc(doc);
 			return 0;
 		}
+		else if (step2 < 0 && step1 != -1) {
+			fprintf(stderr, "Error: step2 cannot be negative\n");
+			xmlXPathFreeObject(xpathObj);
+			xmlXPathFreeContext(xpathCtx);
+			xsltFreeStylesheet(cur);
+			xmlFreeDoc(doc);
+			return 0;
+		}
 	}
 	xmlXPathFreeObject(xpathObj);
 	xmlXPathFreeContext(xpathCtx);
@@ -639,17 +601,17 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 #endif
 		for (step1 = 0 ; step1 <= nsteps1 ; step1++) {
 			for (step2 = 0 ; step2 <= nsteps2 ; step2++) {
-				params = g_malloc(sizeof(gchar *)*5);
+				params = g_malloc(sizeof(gchar *) * 5);
 				params[0] = g_strdup("step1");
         			params[1] = g_strdup_printf("'%i'", step1);
 				params[2] = g_strdup("step2");
         			params[3] = g_strdup_printf("'%i'", step2);
         			params[4] = NULL;
 
-				res = xsltApplyStylesheet(cur, doc, params);
-				g_strfreev((gchar **) params);
+				res = xsltApplyStylesheet(cur, doc, (const char **) params);
+				g_strfreev(params);
 				if (res == NULL) {
-					fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsafile);
+					fprintf(stderr, "Could not apply stylesheet xmsa2xmso.xml to %s\n", xmsafile);
 					//xsltFreeStylesheet(cur);
 					//xmlFreeDoc(doc);
 					//return 0;
@@ -668,17 +630,17 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 		}
 	}
 	else {
-		params = g_malloc(sizeof(gchar *)*5);
+		params = g_malloc(sizeof(gchar *) * 5);
 		params[0] = g_strdup("step1");
-        	params[1] = g_strdup_printf("'%i'", step1);
+        	params[1] = g_strdup_printf("'%d'", step1);
 		params[2] = g_strdup("step2");
-        	params[3] = g_strdup_printf("'%i'", step2);
+        	params[3] = g_strdup_printf("'%d'", step2);
         	params[4] = NULL;
 
-		res = xsltApplyStylesheet(cur, doc, params);
-		g_strfreev((gchar **) params);
+		res = xsltApplyStylesheet(cur, doc, (const char **) params);
+		g_strfreev(params);
 		if (res == NULL) {
-			fprintf(stderr, "Could not apply stylesheet %s to %s\n", xsltfile, xmsafile);
+			fprintf(stderr, "Could not apply stylesheet xmsa2xmso.xml to %s\n", xmsafile);
 			xsltFreeStylesheet(cur);
 			xmlFreeDoc(doc);
 			return 0;

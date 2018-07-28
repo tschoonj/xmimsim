@@ -20,18 +20,13 @@ xmimsimdir = $(datadir)/xmimsim
 
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
 
-BUILT_SOURCES = $(nodist_xmimsiminclude_HEADERS) $(nodist_libxmimsim_la_SOURCES)
-
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 
 plugindir = $(libdir)/xmimsim
 
 lib_LTLIBRARIES = libxmimsim.la
 noinst_LTLIBRARIES =
-nodist_libxmimsim_la_SOURCES = \
-	xmi_resources.c \
-	xmi_resources.h \
-	$(NULL)
+nodist_libxmimsim_la_SOURCES = xmi_resources.c xmi_resources.h
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
@@ -77,12 +72,6 @@ libxmimsim_la_CFLAGS =  \
 	@gmodule_CFLAGS@ \
 	@OPENMP_CFLAGS@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
-	-DXMI_XMSO2XMSI_XSLT=\"$(datadir)/xmimsim/xmso2xmsi.xml\" \
-	-DXMI_XMSO2SVG_XSLT=\"$(datadir)/xmimsim/xmso2svg.xml\" \
-	-DXMI_XMSO2SPE_XSLT=\"$(datadir)/xmimsim/xmso2spe.xml\" \
-	-DXMI_XMSO2CSV_XSLT=\"$(datadir)/xmimsim/xmso2csv.xml\" \
-	-DXMI_XMSO2HTM_XSLT=\"$(datadir)/xmimsim/xmso2htm.xml\" \
-	-DXMI_XMSA2XMSO_XSLT=\"$(datadir)/xmimsim/xmsa2xmso.xml\" \
 	-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
 	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
 
@@ -157,6 +146,8 @@ xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir
 
 xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
+
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES)
 
 xmimsim_main.mod: libxmimsim.la
 

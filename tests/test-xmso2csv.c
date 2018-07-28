@@ -10,8 +10,8 @@
 
 int main(int argc, char *argv[]) {
 
-	//init test
-	g_assert(test_init() == 1);
+  //init test
+  g_assert(test_init() == 1);
 
   //file should be present already
   g_assert(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 1) == 1);
