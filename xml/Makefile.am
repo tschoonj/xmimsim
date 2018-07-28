@@ -14,13 +14,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = xmimsim-1.0.dtd \
-		    xmso2xmsi.xml \
-		    xmso2svg.xml \
-		    xmso2spe.xml \
-		    xmso2csv.xml \
-		    xmso2htm.xml \
-		    xmsa2xmso.xml
+dist_xmimsim_DATA = xmimsim-1.0.dtd
 xmimsim_DATA = xmimsim_cat.xml
 
 
@@ -33,3 +27,10 @@ xmimsim_cat.xml:
 
 clean-local:
 	rm -rf xmimsim_cat.xml
+
+EXTRA_DIST = xmso2xmsi.xml \
+	     xmso2svg.xml \
+	     xmso2spe.xml \
+	     xmso2csv.xml \
+	     xmso2htm.xml \
+	     xmsa2xmso.xml

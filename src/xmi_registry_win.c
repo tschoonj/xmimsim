@@ -49,26 +49,8 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 		case XMI_REGISTRY_WIN_SHARE:
 			g_string_append(stringkey,"share");
 			break;
-		case XMI_REGISTRY_WIN_XMSO2XMSI:
-			g_string_append(stringkey,"xmso2xmsi");
-			break;
-		case XMI_REGISTRY_WIN_XMSO2SVG:
-			g_string_append(stringkey,"xmso2svg");
-			break;
-		case XMI_REGISTRY_WIN_XMSO2SPE:
-			g_string_append(stringkey,"xmso2spe");
-			break;
-		case XMI_REGISTRY_WIN_XMSO2CSV:
-			g_string_append(stringkey,"xmso2csv");
-			break;
-		case XMI_REGISTRY_WIN_XMSO2HTM:
-			g_string_append(stringkey,"xmso2htm");
-			break;
 		case XMI_REGISTRY_WIN_OPENCL_LIB:
 			g_string_append(stringkey,"opencllib");
-			break;
-		case XMI_REGISTRY_WIN_XMSA2XMSO:
-			g_string_append(stringkey,"xmsa2xmso");
 			break;
 		case XMI_REGISTRY_WIN_SOURCES:
 			g_string_append(stringkey,"sources");

@@ -105,12 +105,6 @@ Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components
 Source: "{#builddir}\bin\.libs\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Components: core
 
 Source: "{#srcdir}\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmso2xmsi.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmso2spe.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmso2csv.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmso2svg.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmso2htm.xml" ; DestDir: "{app}\Share" ; Components: core
-Source: "{#srcdir}\xml\xmsa2xmso.xml" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
@@ -178,12 +172,6 @@ Root: HKLM; Subkey: "Software\XMI-MSIM" ; ValueType: string ; ValueName: "Instal
 Root: HKLM; Subkey: "Software\XMI-MSIM" ; ValueType: string ; ValueName: "Vendor" ; ValueData: "Tom Schoonjans"
 Root: HKLM; Subkey: "Software\XMI-MSIM\data" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmimsimdata.h5"
 Root: HKLM; Subkey: "Software\XMI-MSIM\share" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2svg" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2svg.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2spe" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2spe.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2csv" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2csv.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2xmsi" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2xmsi.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmso2htm" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmso2htm.xml"
-Root: HKLM; Subkey: "Software\XMI-MSIM\xmsa2xmso" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Share\xmsa2xmso.xml"
 Root: HKLM; Subkey: "Software\XMI-MSIM\opencllib" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\OpenCL"
 Root: HKLM; Subkey: "Software\XMI-MSIM\sources" ; ValueType: string ; ValueName: "" ; ValueData: "{app}\Lib\Sources"
 

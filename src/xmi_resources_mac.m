@@ -49,29 +49,11 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 		case XMI_RESOURCES_MAC_DATA:
 			temp = g_strdup_printf("%s/xmimsimdata.h5", resource_path);
 			break;
-		case XMI_RESOURCES_MAC_XMSO2XMSI:
-			temp = g_strdup_printf("%s/xmso2xmsi.xml", resource_path);
-			break;
-		case XMI_RESOURCES_MAC_XMSO2SVG:
-			temp = g_strdup_printf("%s/xmso2svg.xml", resource_path);
-			break;
-		case XMI_RESOURCES_MAC_XMSO2SPE:
-			temp = g_strdup_printf("%s/xmso2spe.xml", resource_path);
-			break;
-		case XMI_RESOURCES_MAC_XMSO2CSV:
-			temp = g_strdup_printf("%s/xmso2csv.xml", resource_path);
-			break;
-		case XMI_RESOURCES_MAC_XMSO2HTM:
-			temp = g_strdup_printf("%s/xmso2htm.xml", resource_path);
-			break;
 		case XMI_RESOURCES_MAC_XMIMSIM_EXEC:
 			temp = g_strdup_printf("%s/xmimsim", resource_path);
 			break;
 		case XMI_RESOURCES_MAC_OPENCL_LIB:
 			temp = g_strdup_printf("%s/", resource_path);
-			break;
-		case XMI_RESOURCES_MAC_XMSA2XMSO:
-			temp = g_strdup_printf("%s/xmsa2xmso.xml", resource_path);
 			break;
 		case XMI_RESOURCES_MAC_SOURCES:
 			temp = g_strdup_printf("%s/sources", resource_path);
