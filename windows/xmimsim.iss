@@ -76,7 +76,7 @@ Name: "source" ; Description: "Source code" ; Types: full
 
 [Files]
 Source: "{#builddir}\windows\{#GTK_INSTALLER_EXE}" ; Flags: deleteafterinstall ; DestDir: "{tmp}" ; Components: core 
-Source: "{#MY_MINGW}\bin\libgfortran-4.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\bin\libgfortran-5.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
