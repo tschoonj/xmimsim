@@ -1,0 +1,24 @@
+FROM ubuntu:xenial
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y curl
+RUN curl -sSL "http://xmi-apt.tomschoonjans.eu/xmi.packages.key" | apt-key add -
+RUN echo "deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu xenial stable" | tee -a /etc/apt/sources.list > /dev/null
+RUN apt-get update
+RUN apt-get install -y build-essential \
+	git \
+	automake \
+	autoconf \
+	libtool \
+        libgsl0-dev \
+       	libfgsl1 \
+        libfgsl1-dev \
+        gfortran \
+        libxslt1-dev \
+        libxml2-utils \
+        libhdf5-serial-dev \
+        hdf5-tools \
+        libxrl7-dev \
+        libsoup2.4-dev
+
+WORKDIR /root
+

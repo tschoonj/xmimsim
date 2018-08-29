@@ -1,5 +1,8 @@
 language: generic
 
+services:
+  - docker
+
 env:
   global:
     - CPPFLAGS="-DH5_NO_DEPRECATED_SYMBOLS"
@@ -12,316 +15,97 @@ env:
 matrix:
   include:
 
-    # trusty: fgsl and gtkmm-plplot
+    # xenial: fgsl and gtkmm-plplot
     # no updater
     # with gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater'
-    # trusty: fgsl and gtkmm-plplot
+      env: EXTRA='--enable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui'
+    # xenial: fgsl and gtkmm-plplot
     # with updater
     # with gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libsoup2.4-dev
-            - libjson-glib-dev
-      env: EXTRA='--enable-gui --enable-updater'
-    # trusty: fgsl
+      env: EXTRA='--enable-gui --enable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui'
+    # xenial: fgsl
     # no updater
     # no gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater'
-    # trusty: easyRNG and gtkmm-plplot
+      env: EXTRA='--disable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui'
+    # xenial: easyRNG and gtkmm-plplot
     # no updater
     # with gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-5
-            - gcc-5
-            - g++-5
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG and gtkmm-plplot
+      env: EXTRA='--enable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui'
+    # xenial: easyRNG and gtkmm-plplot
     # with updater
     # with gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-5
-            - gcc-5
-            - g++-5
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-            - libjson-glib-dev
-      env: EXTRA='--enable-gui --enable-updater' CC='gcc-5' CXX='g++-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG 
+      env: EXTRA='--enable-gui --enable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui'
+    # xenial: easyRNG
     # no updater
     # no gui
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - gfortran-5
-            - gcc-5
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater' CC='gcc-5' FC='gfortran-5' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG and gtkmm-plplot
+      env: EXTRA='--disable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui'
+    # centos7: fgsl and gtkmm-plplot
     # no updater
     # with gui
+    # with google-analytics
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-6
-            - gcc-6
-            - g++-6
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG and gtkmm-plplot
+      env: EXTRA='--enable-gui --disable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui'
+    # centos7: fgsl and gtkmm-plplot
     # with updater
     # with gui
+    # with google-analytics
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-6
-            - gcc-6
-            - g++-6
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-            - libjson-glib-dev
-      env: EXTRA='--enable-gui --enable-updater' CC='gcc-6' CXX='g++-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG 
+      env: EXTRA='--enable-gui --enable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui'
+    # centos7: fgsl
     # no updater
     # no gui
+    # with google-analytics
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - gfortran-6
-            - gcc-6
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater' CC='gcc-6' FC='gfortran-6' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG and gtkmm-plplot
-    # no updater
-    # with gui
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-4.9
-            - gcc-4.9
-            - g++-4.9
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--enable-gui --disable-updater' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG and gtkmm-plplot
-    # with updater
-    # with gui
-    - os: linux
-      sudo: required
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - libgtkmm-plplot2
-            - libgtkmm-plplot2-dev
-            - gfortran-4.9
-            - gcc-4.9
-            - g++-4.9
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-            - libjson-glib-dev
-      env: EXTRA='--enable-gui --enable-updater' CC='gcc-4.9' CXX='g++-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: easyRNG 
+      env: EXTRA='--disable-gui --disable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui'
+    # xenial: fgsl
     # no updater
     # no gui
+    # with MPI
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-            - ubuntu-toolchain-r-test
-          packages:
-            - gfortran-4.9
-            - gcc-4.9
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libsoup2.4-dev
-      env: EXTRA='--disable-gui --disable-updater' CC='gcc-4.9' FC='gfortran-4.9' BUILD_XRL_AND_EASYRNG_FROM_SOURCE='yes'
-    # trusty: fgsl
+      env: EXTRA='--disable-gui --disable-updater --enable-mpi' DOCKER_IMAGE_TAG='xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
+    # xenial: easyRNG
     # no updater
     # no gui
-    # with MPI!!!
+    # with MPI
     - os: linux
       sudo: required
       dist: trusty
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu trusty stable'
-              key_url: 'http://xmi-apt.tomschoonjans.eu/xmi.packages.key'
-          packages:
-            - libgsl0-dev
-            - libfgsl0
-            - libfgsl0-dev
-            - gfortran
-            - libxslt1-dev
-            - libxml2-utils
-            - libhdf5-serial-dev
-            - hdf5-tools
-            - libxrl7-dev
-            - libsoup2.4-dev
-            - libopenmpi-dev
-            - openmpi-bin
-      env: EXTRA='--disable-gui --disable-updater --enable-mpi'
+      env: EXTRA='--disable-gui --disable-updater --enable-mpi' DOCKER_IMAGE_TAG='xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
+    # centos7: fgsl
+    # no updater
+    # no gui
+    # with google-analytics
+    # with MPI
+    - os: linux
+      sudo: required
+      dist: trusty
+      env: MPICC='/usr/lib64/openmpi/bin/mpicc' EXTRA='--disable-gui --disable-updater --enable-google-analytics --enable-mpi' DOCKER_IMAGE_TAG='centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
     ###
     ###
     ### Mac OS X
@@ -500,7 +284,7 @@ install:
       sudo make install || exit 1
       cd ..
     fi
-    if [ -n "$GTKMM_PLPLOT_BRANCH" ] ; then
+    if [ -n "$GTKMM_PLPLOT_BRANCH" ] && [ -z "$DOCKER_IMAGE_TAG" ] ; then
       git clone -b $GTKMM_PLPLOT_BRANCH --single-branch --depth=1 https://github.com/tschoonj/gtkmm-plplot.git
       cd gtkmm-plplot
       autoreconf -i
@@ -510,14 +294,44 @@ install:
       cd ..
     fi
 
-
+before_script:
+  - |
+    if [ -n "$DOCKER_IMAGE_TAG" ] ; then
+        docker run --name con_job -t -d tomschoonjans/xmimsim-travis-ci:${DOCKER_IMAGE_TAG} /bin/bash
+        echo "#!/bin/sh" > script.sh
+        echo "set -x -e" >> script.sh
+        echo "export CPPFLAGS=\"$CPPFLAGS\"" >> script.sh
+        echo "export CXXFLAGS=\"$CXXFLAGS\"" >> script.sh
+        echo "export CFLAGS=\"$CFLAGS\"" >> script.sh
+        if [ -n "$MPICC" ] ; then
+            echo "export MPICC=\"$MPICC\"" >> script.sh
+        fi
+        echo "autoreconf -fi" >> script.sh
+        echo "./configure ${EXTRA} --disable-static" >> script.sh
+        echo "make" >> script.sh
+        echo "make check" >> script.sh
+        echo "make distcheck" >> script.sh
+        echo "set +x" >> script.sh
+        chmod a+x script.sh
+        docker cp . con_job:/root
+        docker exec con_job ls -la
+        docker exec con_job cat script.sh
+    fi
+    
 
 script:
-  - autoreconf -fi || exit 1
-  - ./configure ${EXTRA} --disable-static || exit 1
-  - make || exit 1
-  - make check || exit 1
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then make distcheck || exit 1 ; fi
+  - |
+    if [ -n "$DOCKER_IMAGE_TAG" ] ; then
+        docker exec con_job ./script.sh
+    else
+        set -x
+        autoreconf -fi
+        ./configure ${EXTRA} --disable-static
+        make
+        make check
+        if [ "$TRAVIS_OS_NAME" == "linux" ] ; then make distcheck ; fi
+        set +x
+    fi
 
 notifications:
   email:
