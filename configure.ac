@@ -575,6 +575,8 @@ fi
 
 AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
 
+GOBJECT_INTROSPECTION_CHECK([1.30.0])
+
 AC_CONFIG_FILES([ 	Makefile
 			src/Makefile
 			bin/Makefile
