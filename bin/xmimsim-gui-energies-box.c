@@ -131,9 +131,9 @@ static void xmi_msim_gui_energies_box_init(XmiMsimGuiEnergiesBox *self) {
 
 	gtk_widget_show_all(GTK_WIDGET(self));
 
-	self->discrete_array = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_discrete));
+	self->discrete_array = g_array_new(FALSE, FALSE, sizeof(xmi_energy_discrete));
 	g_array_ref(self->discrete_array);
-	self->continuous_array = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_continuous));
+	self->continuous_array = g_array_new(FALSE, FALSE, sizeof(xmi_energy_continuous));
 	g_array_ref(self->continuous_array);
 }
 
@@ -226,7 +226,7 @@ static gint energy_column_comparator(GtkTreeModel *model, GtkTreeIter *a, GtkTre
 	return 0;
 }
 
-static void edit_discrete_energy(XmiMsimGuiEnergiesSingleBox *single_box, int selected_index, struct xmi_energy_discrete *xed) {
+static void edit_discrete_energy(XmiMsimGuiEnergiesSingleBox *single_box, int selected_index, xmi_energy_discrete *xed) {
 	GtkTreeIter iter;
 	GtkTreePath *path = gtk_tree_path_new_from_indices(selected_index, -1);
 
@@ -245,11 +245,11 @@ static void edit_discrete_energy(XmiMsimGuiEnergiesSingleBox *single_box, int se
 		SCALE_PARAMETER_COLUMN, xed->scale_parameter,
 		-1);
 
-	g_array_index(single_box->parent_box->discrete_array, struct xmi_energy_discrete, selected_index) = *xed;
+	g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, selected_index) = *xed;
 	g_array_sort(single_box->parent_box->discrete_array, xmi_cmp_struct_xmi_energy_discrete);
 }
 
-static void edit_continuous_energy(XmiMsimGuiEnergiesSingleBox *single_box, int selected_index, struct xmi_energy_continuous *xec) {
+static void edit_continuous_energy(XmiMsimGuiEnergiesSingleBox *single_box, int selected_index, xmi_energy_continuous *xec) {
 	GtkTreeIter iter;
 	GtkTreePath *path = gtk_tree_path_new_from_indices(selected_index, -1);
 
@@ -266,7 +266,7 @@ static void edit_continuous_energy(XmiMsimGuiEnergiesSingleBox *single_box, int 
 		SIGMA_YP_COLUMN, xec->sigma_yp,
 		-1);
 
-	g_array_index(single_box->parent_box->continuous_array, struct xmi_energy_continuous, selected_index) = *xec;
+	g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, selected_index) = *xec;
 	g_array_sort(single_box->parent_box->continuous_array, xmi_cmp_struct_xmi_energy_continuous);
 }
 
@@ -290,8 +290,8 @@ static void scale_discrete_energies(XmiMsimGuiEnergiesSingleBox *single_box, dou
 			VER_INTENSITY_COLUMN, ver_intensity,
 			-1);
 
-		g_array_index(single_box->parent_box->discrete_array, struct xmi_energy_discrete, i).horizontal_intensity *= value;
-		g_array_index(single_box->parent_box->discrete_array, struct xmi_energy_discrete, i).vertical_intensity *= value;
+		g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, i).horizontal_intensity *= value;
+		g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, i).vertical_intensity *= value;
 	}
 }
 
@@ -315,8 +315,8 @@ static void scale_continuous_energies(XmiMsimGuiEnergiesSingleBox *single_box, d
 			VER_INTENSITY_COLUMN, ver_intensity,
 			-1);
 
-		g_array_index(single_box->parent_box->continuous_array, struct xmi_energy_continuous, i).horizontal_intensity *= value;
-		g_array_index(single_box->parent_box->continuous_array, struct xmi_energy_continuous, i).vertical_intensity *= value;
+		g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, i).horizontal_intensity *= value;
+		g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, i).vertical_intensity *= value;
 	}
 }
 
@@ -355,7 +355,7 @@ static void scale_entry_changed_cb(GtkWidget *scaleEntry, GtkWidget *okButton) {
 	}
 }
 
-static void add_discrete_energies(XmiMsimGuiEnergiesSingleBox *single_box, gboolean clear, guint n_energies, struct xmi_energy_discrete *xed) {
+static void add_discrete_energies(XmiMsimGuiEnergiesSingleBox *single_box, gboolean clear, guint n_energies, xmi_energy_discrete *xed) {
 	GtkTreeIter iter;
 	guint i;
 	GtkListStore *store = single_box->store;
@@ -387,7 +387,7 @@ static void add_discrete_energies(XmiMsimGuiEnergiesSingleBox *single_box, gbool
 	}
 }
 
-static void add_continuous_energies(XmiMsimGuiEnergiesSingleBox *single_box, gboolean clear, guint n_energies, struct xmi_energy_continuous *xec) {
+static void add_continuous_energies(XmiMsimGuiEnergiesSingleBox *single_box, gboolean clear, guint n_energies, xmi_energy_continuous *xec) {
 	GtkTreeIter iter;
 	guint i;
 	GtkListStore *store = single_box->store;
@@ -430,9 +430,9 @@ static void energy_add_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesSi
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
-			struct xmi_energy_discrete *xed = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
+			xmi_energy_discrete *xed = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (single_box->parent_box->discrete_array->len > 0 && bsearch(xed, single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+			if (single_box->parent_box->discrete_array->len > 0 && bsearch(xed, single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -446,9 +446,9 @@ static void energy_add_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesSi
 			g_free(xed);
 		}
 		else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
-			struct xmi_energy_continuous *xec = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
+			xmi_energy_continuous *xec = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (single_box->parent_box->continuous_array->len > 0 && bsearch(xec, single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			if (single_box->parent_box->continuous_array->len > 0 && bsearch(xec, single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy interval: the energy already exists in the list of intervals.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -476,23 +476,23 @@ static void energy_edit_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesS
 
 	if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
 		dialog = xmi_msim_gui_discrete_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_EDIT);
-		xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->discrete_array, struct xmi_energy_discrete, selected_index));
+		xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, selected_index));
 	}
 	else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
 		dialog = xmi_msim_gui_continuous_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_EDIT);
-		xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->continuous_array, struct xmi_energy_continuous, selected_index));
+		xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, selected_index));
 	}
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
-			struct xmi_energy_discrete *xed = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
+			xmi_energy_discrete *xed = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
 			// check if the new xed is different from the old one
-			struct xmi_energy_discrete *xed_current = &g_array_index(single_box->parent_box->discrete_array, struct xmi_energy_discrete, selected_index);
+			xmi_energy_discrete *xed_current = &g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, selected_index);
 
 			if (xmi_equal_energy_discrete(xed, xed_current)) {
 				// do nothing
 			}
-			else if (bsearch(xed, single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+			else if (bsearch(xed, single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 				// check if the energy is not present already
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
@@ -507,14 +507,14 @@ static void energy_edit_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesS
 			g_free(xed);
 		}
 		else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
-			struct xmi_energy_continuous *xec = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
+			xmi_energy_continuous *xec = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
 			// check if the new xec is different from the old one
-			struct xmi_energy_continuous *xec_current = &g_array_index(single_box->parent_box->continuous_array, struct xmi_energy_continuous, selected_index);
+			xmi_energy_continuous *xec_current = &g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, selected_index);
 
 			if (xmi_equal_energy_continuous(xec, xec_current)) {
 				// do nothing
 			}
-			else if (bsearch(xec, single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			else if (bsearch(xec, single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 				// check if the energy is not present already
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy density: the energy already exists in the list.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
@@ -739,7 +739,7 @@ static void radio_button_toggled_cb(GtkToggleButton *button, GtkWidget *spinner)
 }
 
 static GArray* xmi_read_energies_from_ascii_file_discrete(const gchar *filename, unsigned int start_line, unsigned int nlines, GError **error) {
-	GArray *result = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_discrete));
+	GArray *result = g_array_new(FALSE, FALSE, sizeof(xmi_energy_discrete));
 	g_array_ref(result);
 
 	GFile *file = g_file_new_for_path(filename);
@@ -762,7 +762,7 @@ static GArray* xmi_read_energies_from_ascii_file_discrete(const gchar *filename,
 	double sigma_y;
 	double sigma_xp;
 	double sigma_yp;
-	struct xmi_energy_discrete temp;
+	xmi_energy_discrete temp;
 	unsigned int lines_read = 0;
 
 	while (line) {
@@ -834,13 +834,13 @@ static GArray* xmi_read_energies_from_ascii_file_discrete(const gchar *filename,
 		}
 		else {
 			//make sure the value was not already in the list
-			struct xmi_energy_discrete *find_res;
+			xmi_energy_discrete *find_res;
 #ifdef G_OS_WIN32
 			unsigned int result_len = result->len;
-			if((find_res = (struct xmi_energy_discrete *) _lfind(&temp, result->data, &result_len, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
+			if((find_res = (xmi_energy_discrete *) _lfind(&temp, result->data, &result_len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
 #else
 			size_t result_len = result->len;
-			if((find_res = (struct xmi_energy_discrete *) lfind(&temp, result->data, &result_len, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
+			if((find_res = (xmi_energy_discrete *) lfind(&temp, result->data, &result_len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
 #endif
 				{
 				g_array_append_val(result, temp);
@@ -862,7 +862,7 @@ static GArray* xmi_read_energies_from_ascii_file_discrete(const gchar *filename,
 }
 
 static GArray* xmi_read_energies_from_ascii_file_continuous(const gchar *filename, unsigned int start_line, unsigned int nlines, GError **error) {
-	GArray *result = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_continuous));
+	GArray *result = g_array_new(FALSE, FALSE, sizeof(xmi_energy_continuous));
 	g_array_ref(result);
 
 	GFile *file = g_file_new_for_path(filename);
@@ -885,7 +885,7 @@ static GArray* xmi_read_energies_from_ascii_file_continuous(const gchar *filenam
 	double sigma_y;
 	double sigma_xp;
 	double sigma_yp;
-	struct xmi_energy_continuous temp;
+	xmi_energy_continuous temp;
 	unsigned int lines_read = 0;
 
 	while (line) {
@@ -955,13 +955,13 @@ static GArray* xmi_read_energies_from_ascii_file_continuous(const gchar *filenam
 		}
 		else {
 			//make sure the value was not already in the list
-			struct xmi_energy_continuous *find_res;
+			xmi_energy_continuous *find_res;
 #ifdef G_OS_WIN32
 			unsigned int result_len = result->len;
-			if((find_res = (struct xmi_energy_continuous *) _lfind(&temp, result->data, &result_len, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous)) == NULL)
+			if((find_res = (xmi_energy_continuous *) _lfind(&temp, result->data, &result_len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous)) == NULL)
 #else
 			size_t result_len = result->len;
-			if((find_res = (struct xmi_energy_continuous *) lfind(&temp, result->data, &result_len, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous)) == NULL)
+			if((find_res = (xmi_energy_continuous *) lfind(&temp, result->data, &result_len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous)) == NULL)
 #endif
 				{
 				g_array_append_val(result, temp);
@@ -1113,7 +1113,7 @@ static void energy_import_button_clicked_cb(GtkWidget *widget, XmiMsimGuiEnergie
 				guint i;
 				if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
 					for (i = 0 ; i < results->len ; i++) {
-						if (bsearch(&g_array_index(results, struct xmi_energy_discrete, i), single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+						if (bsearch(&g_array_index(results, xmi_energy_discrete, i), single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 							dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 							gtk_dialog_run(GTK_DIALOG(dialog));
 							gtk_widget_destroy(dialog);
@@ -1123,13 +1123,13 @@ static void energy_import_button_clicked_cb(GtkWidget *widget, XmiMsimGuiEnergie
 						}
 					}
 					// modify store and GArray
-					add_discrete_energies(single_box, FALSE, results->len, (struct xmi_energy_discrete *) results->data);
+					add_discrete_energies(single_box, FALSE, results->len, (xmi_energy_discrete *) results->data);
 					// emit signal for UndoManager
 					g_signal_emit(single_box->parent_box, signals[CHANGED], 0, "addition of imported discrete energies");
 				}
 				else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
 					for (i = 0 ; i < results->len ; i++) {
-						if (bsearch(&g_array_index(results, struct xmi_energy_continuous, i), single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+						if (bsearch(&g_array_index(results, xmi_energy_continuous, i), single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 							dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 							gtk_dialog_run(GTK_DIALOG(dialog));
 							gtk_widget_destroy(dialog);
@@ -1139,7 +1139,7 @@ static void energy_import_button_clicked_cb(GtkWidget *widget, XmiMsimGuiEnergie
 						}
 					}
 					// modify store and GArray
-					add_continuous_energies(single_box, FALSE, results->len, (struct xmi_energy_continuous *) results->data);
+					add_continuous_energies(single_box, FALSE, results->len, (xmi_energy_continuous *) results->data);
 					// emit signal for UndoManager
 					g_signal_emit(single_box->parent_box, signals[CHANGED], 0, "addition of imported continuous energies");
 				}
@@ -1148,13 +1148,13 @@ static void energy_import_button_clicked_cb(GtkWidget *widget, XmiMsimGuiEnergie
 				//replace -> no need to check for duplicates here
 				if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
 					// modify store and GArray
-					add_discrete_energies(single_box, TRUE, results->len, (struct xmi_energy_discrete *) results->data);
+					add_discrete_energies(single_box, TRUE, results->len, (xmi_energy_discrete *) results->data);
 					// emit signal for UndoManager
 					g_signal_emit(single_box->parent_box, signals[CHANGED], 0, "replacing with imported discrete energies");
 				}
 				else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
 					// modify store and GArray
-					add_continuous_energies(single_box, TRUE, results->len, (struct xmi_energy_continuous *) results->data);
+					add_continuous_energies(single_box, TRUE, results->len, (xmi_energy_continuous *) results->data);
 					// emit signal for UndoManager
 					g_signal_emit(single_box->parent_box, signals[CHANGED], 0, "replacing with imported continuous energies");
 				}
@@ -1376,17 +1376,17 @@ GQuark xmi_msim_gui_energies_box_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-energies-box-error-quark");
 }
 
-void xmi_msim_gui_energies_box_set_excitation(XmiMsimGuiEnergiesBox *self, struct xmi_excitation *excitation) {
+void xmi_msim_gui_energies_box_set_excitation(XmiMsimGuiEnergiesBox *self, xmi_excitation *excitation) {
 	add_discrete_energies(self->discrete_box, TRUE, excitation->n_discrete, excitation->discrete);
 	add_continuous_energies(self->continuous_box, TRUE, excitation->n_continuous, excitation->continuous);
 }
 
-struct xmi_excitation* xmi_msim_gui_energies_box_get_excitation(XmiMsimGuiEnergiesBox *self) {
-	struct xmi_excitation *exc = g_malloc(sizeof(struct xmi_excitation));
+xmi_excitation* xmi_msim_gui_energies_box_get_excitation(XmiMsimGuiEnergiesBox *self) {
+	xmi_excitation *exc = g_malloc(sizeof(xmi_excitation));
 	exc->n_discrete = self->discrete_array->len;
-	exc->discrete = g_memdup(self->discrete_array->data, sizeof(struct xmi_energy_discrete) * self->discrete_array->len);
+	exc->discrete = g_memdup(self->discrete_array->data, sizeof(xmi_energy_discrete) * self->discrete_array->len);
 	exc->n_continuous = self->continuous_array->len;
-	exc->continuous = g_memdup(self->continuous_array->data, sizeof(struct xmi_energy_continuous) * self->continuous_array->len);
+	exc->continuous = g_memdup(self->continuous_array->data, sizeof(xmi_energy_continuous) * self->continuous_array->len);
 
 	return exc;
 }

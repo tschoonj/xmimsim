@@ -52,7 +52,7 @@ GType xmi_msim_gui_catalog_dialog_get_type(void) G_GNUC_CONST;
 
 GtkWidget *xmi_msim_gui_catalog_dialog_new(GtkWindow *parent);
 
-struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog);
+xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog);
 
 G_END_DECLS
 

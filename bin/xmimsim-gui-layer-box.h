@@ -43,10 +43,10 @@ typedef enum {
 GtkWidget* xmi_msim_gui_layer_box_new(XmiMsimGuiLayerBoxType layers_type);
 
 // this method does not emit a signal!!!
-void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const struct xmi_composition *composition);
+void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const xmi_composition *composition);
 
 // to be used by the UndoManager
-struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self);
+xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self);
 
 // to be used by the ClipboardManager
 void xmi_msim_gui_layer_box_clipboard_copy(XmiMsimGuiLayerBox *self);

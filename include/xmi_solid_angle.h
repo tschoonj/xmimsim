@@ -24,7 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-struct xmi_solid_angle {
+typedef struct _xmi_solid_angle xmi_solid_angle;
+struct _xmi_solid_angle {
 	double *solid_angles;
 	long int grid_dims_r_n;
 	long int grid_dims_theta_n;
@@ -35,18 +36,18 @@ struct xmi_solid_angle {
 
 int xmi_get_solid_angle_file(char **file, int create_file);
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
 
 int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file);
 
-int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *solid_angle);
+int xmi_update_solid_angle_hdf5_file(char *hdf5_file, xmi_solid_angle *solid_angle);
 
 //return 1 on success, 0 on no match
-int xmi_check_solid_angle_match(struct xmi_input *input_in, struct xmi_input *input_h5);
+int xmi_check_solid_angle_match(xmi_input *input_in, xmi_input *input_h5);
 
-int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv, struct xmi_main_options options);
+int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options options);
 
-void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle);
+void xmi_free_solid_angle(xmi_solid_angle *solid_angle);
 
 #define XMI_SOLID_ANGLES_MIN_VERSION 3.1
 

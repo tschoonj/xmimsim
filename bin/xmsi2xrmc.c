@@ -23,8 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 
 XMI_MAIN
-	static struct xmi_main_options options;
-	struct xmi_input *input;
+	static xmi_main_options options;
+	xmi_input *input;
 	static int version = 0;
 	int rv;
 
@@ -146,7 +146,7 @@ XMI_MAIN
 				spectrum_file,
 				convoluted_file,
 				unconvoluted_file,
-				/*struct xmi_layer *collimator*/ NULL,
+				/*xmi_layer *collimator*/ NULL,
 				options,
 				rotate_angle_z
 				) == 0)

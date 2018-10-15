@@ -213,7 +213,7 @@ enum {
 
 extern "C" struct _XmiMsimGuiXmsoResultsScrolledWindow {
 	GtkScrolledWindow parent_instance;
-	struct xmi_output *results;
+	xmi_output *results;
 	/*double plot_xmin;
 	double plot_xmax;
 	double plot_ymin_conv;
@@ -764,7 +764,7 @@ GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new() {
 
 gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile, GError **error) {
 
-	struct xmi_output *output;
+	xmi_output *output;
 
 	// before doing anything else, ensure that the file can be read properly
 	if (xmi_read_output_xml(xmsofile, &output, error) == 0)

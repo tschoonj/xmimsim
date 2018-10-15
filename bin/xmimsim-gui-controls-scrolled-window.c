@@ -516,7 +516,7 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	else
 		g_timer_start(self->timer);
 
-	struct xmi_main_options *options = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(self->options_boxW)); 
+	xmi_main_options *options = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(self->options_boxW)); 
 
 	GError *error = NULL;
 	gchar *buffer;

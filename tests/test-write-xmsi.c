@@ -8,8 +8,8 @@
 
 
 int main(int argc, char *argv[]) {
-	struct xmi_input *input = NULL;
-	struct xmi_input *input_copy = NULL;
+	xmi_input *input = NULL;
+	xmi_input *input_copy = NULL;
 
 	//init test
 	g_assert(test_init() == 1);

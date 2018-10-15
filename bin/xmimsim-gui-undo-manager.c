@@ -43,13 +43,13 @@ struct _XmiMsimGuiUndoManager {
 	GHashTable *widget_table;
 	GPtrArray *undo_stack;
 	gchar *inputfile;
-	struct xmi_input *last_saved_input;
+	xmi_input *last_saved_input;
 	gint current_index;
 };
 
 typedef struct {
 	GValue value;
-	struct xmi_input *input;
+	xmi_input *input;
 	GtkWidget *widget;
 	gchar *message;
 } XmiMsimGuiUndoManagerStackData;
@@ -214,7 +214,7 @@ static void widget_set_sensitive_hash_false(GtkWidget *widget, XmiMsimGuiUndoMan
 	}
 }
 
-static void extend_undo_stack(XmiMsimGuiUndoManager *manager, GtkWidget *widget, GValue *value, const gchar *message, struct xmi_input *current_input) {
+static void extend_undo_stack(XmiMsimGuiUndoManager *manager, GtkWidget *widget, GValue *value, const gchar *message, xmi_input *current_input) {
 	g_debug("extend_undo_stack: %s", message);
 
 	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, widget);
@@ -341,60 +341,60 @@ static void layer_box_changed_cb(XmiMsimGuiLayerBox *box, gchar *message, XmiMsi
 	extend_undo_stack(manager, GTK_WIDGET(box), &value, message, current_stack_data->input);
 }
 
-static void sample_composition_writer(GValue *value, const struct xmi_input *input) {
+static void sample_composition_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
 	g_value_set_boxed(value, input->composition);
 }
 
-static void sample_composition_reader(const GValue *value, struct xmi_input *input) {
+static void sample_composition_reader(const GValue *value, xmi_input *input) {
 	xmi_free_composition(input->composition);
 	input->composition = g_value_dup_boxed(value);
 }
 
-static void excitation_absorbers_composition_writer(GValue *value, const struct xmi_input *input) {
-	struct xmi_composition *composition = NULL;
+static void excitation_absorbers_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
 	xmi_copy_abs_or_crystal2composition(input->absorbers->exc_layers, input->absorbers->n_exc_layers, &composition);
 
 	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
 	g_value_take_boxed(value, composition);
 }
 
-static void excitation_absorbers_composition_reader(const GValue *value, struct xmi_input *input) {
+static void excitation_absorbers_composition_reader(const GValue *value, xmi_input *input) {
 	xmi_free_exc_absorbers(input->absorbers);
-	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_composition *composition = g_value_get_boxed(value);
 	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->exc_layers, &input->absorbers->n_exc_layers);
 }
 
-static void detector_absorbers_composition_writer(GValue *value, const struct xmi_input *input) {
-	struct xmi_composition *composition = NULL;
+static void detector_absorbers_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
 	xmi_copy_abs_or_crystal2composition(input->absorbers->det_layers, input->absorbers->n_det_layers, &composition);
 
 	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
 	g_value_take_boxed(value, composition);
 }
 
-static void detector_absorbers_composition_reader(const GValue *value, struct xmi_input *input) {
+static void detector_absorbers_composition_reader(const GValue *value, xmi_input *input) {
 	xmi_free_det_absorbers(input->absorbers);
-	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_composition *composition = g_value_get_boxed(value);
 	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->det_layers, &input->absorbers->n_det_layers);
 }
 
-static void crystal_composition_writer(GValue *value, const struct xmi_input *input) {
-	struct xmi_composition *composition = NULL;
+static void crystal_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
 	xmi_copy_abs_or_crystal2composition(input->detector->crystal_layers, input->detector->n_crystal_layers, &composition);
 
 	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
 	g_value_take_boxed(value, composition);
 }
 
-static void crystal_composition_reader(const GValue *value, struct xmi_input *input) {
+static void crystal_composition_reader(const GValue *value, xmi_input *input) {
 	int i;
 	if (input->detector->n_crystal_layers > 0) {
 		for (i = 0 ; i < input->detector->n_crystal_layers ; i++)
 			xmi_free_layer(input->detector->crystal_layers+i);
 		g_free(input->detector->crystal_layers);
 	}
-	struct xmi_composition *composition = g_value_get_boxed(value);
+	xmi_composition *composition = g_value_get_boxed(value);
 	xmi_copy_composition2abs_or_crystal(composition, &input->detector->crystal_layers, &input->detector->n_crystal_layers);
 }
 
@@ -452,12 +452,12 @@ gboolean xmi_msim_gui_undo_manager_register_layer_box(
 	return TRUE;
 }
 
-static void energies_box_writer(GValue *value, const struct xmi_input *input) {
+static void energies_box_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, XMI_MSIM_TYPE_EXCITATION);
 	g_value_set_boxed(value, input->excitation);
 }
 
-static void energies_box_reader(const GValue *value, struct xmi_input *input) {
+static void energies_box_reader(const GValue *value, xmi_input *input) {
 	xmi_free_excitation(input->excitation);
 	input->excitation = g_value_dup_boxed(value);
 }
@@ -1018,7 +1018,7 @@ static void widget_populate_hash_with_value(GtkWidget *widget, GValue *value) {
 	}
 }
 
-static void widget_populate_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, struct xmi_input *current_input) {
+static void widget_populate_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetData *widget_data, xmi_input *current_input) {
 
 	GValue value = G_VALUE_INIT;
 	widget_data->writer(&value, current_input);
@@ -1028,7 +1028,7 @@ static void widget_populate_hash(GtkWidget *widget, XmiMsimGuiUndoManagerWidgetD
 	g_value_unset(&value);
 }
 
-static void xmi_msim_gui_undo_manager_reset(XmiMsimGuiUndoManager *manager, struct xmi_input *input) {
+static void xmi_msim_gui_undo_manager_reset(XmiMsimGuiUndoManager *manager, xmi_input *input) {
 	g_return_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager));
 	g_return_if_fail(input != NULL);
 
@@ -1067,7 +1067,7 @@ static void xmi_msim_gui_undo_manager_reset(XmiMsimGuiUndoManager *manager, stru
 
 void xmi_msim_gui_undo_manager_create_new_file(XmiMsimGuiUndoManager *manager) {
 	g_return_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager));
-	struct xmi_input *input = xmi_init_empty_input();
+	xmi_input *input = xmi_init_empty_input();
 	xmi_msim_gui_undo_manager_reset(manager, input);
 	xmi_free_input(input);
 	// emit signal
@@ -1078,7 +1078,7 @@ gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, con
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
 	g_return_val_if_fail(filename != NULL, FALSE);
 
-	struct xmi_input *input = NULL;
+	xmi_input *input = NULL;
 
 	if (xmi_read_input_xml(filename, &input, error) == 0)
 		return FALSE;
@@ -1094,14 +1094,14 @@ gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, con
 	return TRUE;
 }
 
-struct xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager) {
+xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager) {
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), NULL);
 	if (manager->current_index < 0 || manager->current_index >= manager->undo_stack->len) {
 		g_warning("xmi_msim_gui_undo_manager_get_current_input: current_index invalid");
 		return NULL;
 	}
 
-	struct xmi_input* rv = NULL;
+	xmi_input* rv = NULL;
 	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
 	xmi_copy_input(current_stack_data->input, &rv);
 
@@ -1114,7 +1114,7 @@ void xmi_msim_gui_undo_manager_undo(XmiMsimGuiUndoManager *manager) {
 
 	// to return to previous state, use the input in current_index - 1
 	XmiMsimGuiUndoManagerStackData *previous_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index - 1);
-	struct xmi_input *previous_input = previous_stack_data->input;
+	xmi_input *previous_input = previous_stack_data->input;
 
 	// however, the widget is in the current_index
 	XmiMsimGuiUndoManagerStackData *current_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
@@ -1145,7 +1145,7 @@ void xmi_msim_gui_undo_manager_redo(XmiMsimGuiUndoManager *manager) {
 	// to return to next state, use the input in current_index + 1
 	// TODO: use value in stackdata!!!
 	XmiMsimGuiUndoManagerStackData *next_stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index + 1);
-	struct xmi_input *next_input = next_stack_data->input;
+	xmi_input *next_input = next_stack_data->input;
 
 	// widget of interest is also in current_index + 1
 	GtkWidget *next_widget = next_stack_data->widget;
@@ -1172,7 +1172,7 @@ XmiMsimGuiUndoManagerStatus xmi_msim_gui_undo_manager_get_status(XmiMsimGuiUndoM
 	
 	// check if input is valid
 	XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
-	struct xmi_input *current_input = stack_data->input;
+	xmi_input *current_input = stack_data->input;
 	int validate_result = xmi_validate_input(current_input);
 
 	if (manager->inputfile == NULL) {
@@ -1208,9 +1208,9 @@ gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GEr
 		return FALSE;
 	}
 
-	// get current struct xmi_input
+	// get current xmi_input
 	XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
-	struct xmi_input *current_input = stack_data->input;
+	xmi_input *current_input = stack_data->input;
 	if (xmi_write_input_xml(manager->inputfile, current_input, error) == 0)
 		return FALSE;
 
@@ -1231,9 +1231,9 @@ gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, c
 		return FALSE;
 	}
 
-	// get current struct xmi_input
+	// get current xmi_input
 	XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
-	struct xmi_input *current_input = stack_data->input;
+	xmi_input *current_input = stack_data->input;
 	if (xmi_write_input_xml(filename, current_input, error) == 0)
 		return FALSE;
 

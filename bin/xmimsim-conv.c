@@ -38,9 +38,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 XMI_MAIN
 
-	static struct xmi_main_options options;
+	static xmi_main_options options;
 	xmi_inputFPtr inputFPtr;
-	struct xmi_escape_ratios *escape_ratios_def=NULL;
+	xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	GError *error = NULL;
 	GOptionContext *context;
@@ -131,8 +131,8 @@ XMI_MAIN
 	char *xmsofile = argv[1];
 	char *xmsifile = argv[2];
 	char *new_xmsofile = argv[3];
-	struct xmi_output *xmso_in, *xmso_out;
-	struct xmi_input *xmsi_in;
+	xmi_output *xmso_in, *xmso_out;
+	xmi_input *xmsi_in;
 
 	if (xmi_read_output_xml(xmsofile, &xmso_in, NULL) == 0) {
 		fprintf(stderr,"%s could not be read\n", xmsofile);
@@ -232,7 +232,7 @@ XMI_MAIN
 		xmi_free_escape_ratios(escape_ratios_def);
 	}
 
-	xmso_out = g_malloc(sizeof(struct xmi_output));
+	xmso_out = g_malloc(sizeof(xmi_output));
 	xmso_out->inputfile = xmso_in->inputfile;
 	xmso_out->input = xmso_in->input;
 	xmso_out->brute_force_history = xmso_in->brute_force_history;

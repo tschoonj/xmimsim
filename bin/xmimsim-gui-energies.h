@@ -28,7 +28,7 @@ struct energiesWidget {
 	GtkWidget *widget;
 };
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window, struct energiesWidget **discWidget, struct energiesWidget **contWidget);
+GtkWidget *initialize_energies(xmi_excitation *excitation, GtkWidget *main_window, struct energiesWidget **discWidget, struct energiesWidget **contWidget);
 
 enum {
 	ENERGY_COLUMN,
@@ -48,13 +48,13 @@ struct energiesUndoInfo {
 	GArray *indices;
 	int index;
 	int n_energy_disc;
-	struct xmi_energy_discrete *energy_disc;
+	xmi_energy_discrete *energy_disc;
 	int n_energy_cont;
-	struct xmi_energy_continuous *energy_cont;
+	xmi_energy_continuous *energy_cont;
 };
 
-void repopulate_discrete_energies(GtkListStore *store, struct xmi_excitation *excitation);
-void repopulate_continuous_energies(GtkListStore *store, struct xmi_excitation *excitation);
+void repopulate_discrete_energies(GtkListStore *store, xmi_excitation *excitation);
+void repopulate_continuous_energies(GtkListStore *store, xmi_excitation *excitation);
 
 G_END_DECLS
 

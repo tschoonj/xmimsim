@@ -8,8 +8,8 @@
 
 
 int main(int argc, char *argv[]) {
-	struct xmi_archive *archive = NULL;
-	struct xmi_archive *archive_copy = NULL;
+	xmi_archive *archive = NULL;
+	xmi_archive *archive_copy = NULL;
 
 	//init test
 	g_assert(test_init() == 1);

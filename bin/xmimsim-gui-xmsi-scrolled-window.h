@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsiScrolledWindow		XmiMsimGuiXmsiScrolledWindow;
 typedef struct _XmiMsimGuiXmsiScrolledWindowClass   	XmiMsimGuiXmsiScrolledWindowClass;
 
-GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(struct xmi_input *input, gboolean with_colors);
+GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with_colors);
 
 GtkTreeView *xmi_msim_gui_xmsi_scrolled_window_get_tree_view(XmiMsimGuiXmsiScrolledWindow *scrolled_window);
 

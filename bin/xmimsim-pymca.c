@@ -53,7 +53,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_resources_mac.h"
 #endif
 
-static double calculate_detector_absorption(struct xmi_input *input, int Z, int line) {
+static double calculate_detector_absorption(xmi_input *input, int Z, int line) {
 	double energy = LineEnergy(Z, line);
 	int i, j;
 	double rv = 1.0;
@@ -75,9 +75,9 @@ static double calculate_detector_absorption(struct xmi_input *input, int Z, int 
 
 XMI_MAIN
 	char *xmimsim_hdf5_solid_angles=NULL;
-	struct xmi_input *xi = NULL;
-	struct xmi_pymca *xp = NULL ;
-	struct xmi_layer *matrix;
+	xmi_input *xi = NULL;
+	xmi_pymca *xp = NULL ;
+	xmi_layer *matrix;
 	double *weights_arr_quant;
 	int i,j,k;
 	xmi_inputFPtr inputFPtr;
@@ -85,7 +85,7 @@ XMI_MAIN
 	GError *error = NULL;
 	GOptionContext *context;
 	static gchar *hdf5_file=NULL;
-	static struct xmi_main_options options;
+	static xmi_main_options options;
 	static gchar *spe_file_noconv=NULL;
 	static gchar *spe_file_conv=NULL;
 	static gchar *csv_file_noconv=NULL;
@@ -104,7 +104,7 @@ XMI_MAIN
 	int rayleigh_channel;
 	double max_scale;
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
-	struct xmi_escape_ratios *escape_ratios_def=NULL;
+	xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	double sum_roi;
 	static int version = 0;
@@ -157,7 +157,7 @@ XMI_MAIN
 	double *brute_history;
 	double *var_red_history;
 	double sum_k, sum_l, sum_temp;
-	struct xmi_solid_angle *solid_angle_def;
+	xmi_solid_angle *solid_angle_def;
 	char *xmi_input_string;
 
 
@@ -265,7 +265,7 @@ XMI_MAIN
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);
 
 	//override if necessary
-	struct xmi_input *override = NULL;
+	xmi_input *override = NULL;
 	int override_rv;
 	if (excitation_file) {
 		override_rv = xmi_read_input_xml(excitation_file, &override, NULL);
@@ -860,7 +860,7 @@ single_run:
 	}
 
 	//write to xml outputfile
-	struct xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
+	xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
 	if (xmi_write_output_xml(argv[2], output, NULL) == 0) {
 		return 1;
 	}

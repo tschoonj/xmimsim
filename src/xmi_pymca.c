@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 
-static int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input) {
 
 	//this function will read the concentrations calculated by PyMCA, of course only if they were calculated in the first place
 	int rv = 0;
@@ -133,7 +133,7 @@ static int read_pymca_concentrations(GKeyFile *pymcaFile, struct xmi_pymca *pymc
 
 
 
-static int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int read_scatter_intensity(GKeyFile *pymcaFile, xmi_pymca *pymca_input) {
 
 	int rv = 0;
 	gchar **strings, **peaks, **escapepeaks;
@@ -223,7 +223,7 @@ static int read_scatter_intensity(GKeyFile *pymcaFile, struct xmi_pymca *pymca_i
 
 
 
-static int get_composition(GKeyFile *pymcaFile, char *compositionString, struct xmi_layer **layer, int alloc) {
+static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_layer **layer, int alloc) {
 	int rv = 0;
 	gchar *predefGroup;
 	gchar **compoundlist=NULL;
@@ -377,7 +377,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, struct 
 	return rv;
 }
 
-static int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detector) {
+static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 	int rv;
 	gchar *type;
 	gchar **params;
@@ -386,7 +386,7 @@ static int read_detector_params(GKeyFile *pymcaFile, struct xmi_detector **detec
 
 	rv = 0;
 
-	*detector = (struct xmi_detector *) g_malloc(sizeof(struct xmi_detector));
+	*detector = (xmi_detector *) g_malloc(sizeof(xmi_detector));
 
 	//get parameters from result, if available
 	params = g_key_file_get_string_list(pymcaFile, "result", "fittedpar", &nparams, NULL);
@@ -470,7 +470,7 @@ enum {
 	ABSORBER_CRYSTAL
 };
 
-static int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *n_layers, int kind) {
+static int read_absorbers (GKeyFile *pymcaFile, xmi_layer **layers, int *n_layers, int kind) {
 	gchar *exc_names[]={"BeamFilter0","BeamFilter1", NULL};
 	gchar **det_names;
 	gchar *crystal_names[]={"Detector", NULL};
@@ -481,7 +481,7 @@ static int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *
 	gsize length = 0;
 	gint active;
 	int i;
-	struct xmi_layer *temp;
+	xmi_layer *temp;
 
 	int rv = 0;
 	GError *error = NULL;
@@ -543,7 +543,7 @@ static int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *
 			continue;
 		}
 		//ok... allocate memory
-		*(layers) = (struct xmi_layer *) g_realloc(*(layers), sizeof(struct xmi_layer)*++(*n_layers));
+		*(layers) = (xmi_layer *) g_realloc(*(layers), sizeof(xmi_layer)*++(*n_layers));
 		temp = *layers+*n_layers-1;
 		if (get_composition(pymcaFile, strings[1], &temp, FALSE) == 0)
 			return rv;
@@ -562,7 +562,7 @@ static int read_absorbers (GKeyFile *pymcaFile, struct xmi_layer **layers, int *
 	return rv;
 }
 
-static int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
+static int read_geometry(GKeyFile *pymcaFile, xmi_geometry **geometry) {
 	int rv = 0;
 	double alpha, beta;
 	gchar **strings;
@@ -573,7 +573,7 @@ static int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 
 
 	//allocate memory
-	*geometry = (struct xmi_geometry *) g_malloc(sizeof(struct xmi_geometry));
+	*geometry = (xmi_geometry *) g_malloc(sizeof(xmi_geometry));
 
 
 	//calculate sample normal using Matrix angles alpha and beta
@@ -691,14 +691,14 @@ static int read_geometry(GKeyFile *pymcaFile, struct xmi_geometry **geometry) {
 	return rv;
 }
 
-static int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run, int *reference_layer) {
+static int read_multilayer_composition(GKeyFile *pymcaFile, xmi_layer **multilayer_layers, int *n_multilayer_layers, int flags[100], int ilay_pymca, int use_single_run, int *reference_layer) {
 	int rv = 0;
 	gint active;
 	gsize length, length2;
 	gchar **strings, **strings2;
 	gchar *buffer;
 	int i;
-	struct xmi_layer *temp;
+	xmi_layer *temp;
 
 	//see it Matrix is toggled -> absolute requirement!
 	if ((strings = g_key_file_get_string_list(pymcaFile, "result.config.attenuators", "Matrix", &length, NULL)) == NULL && (strings = g_key_file_get_string_list(pymcaFile, "attenuators", "Matrix", &length, NULL)) == NULL) {
@@ -747,7 +747,7 @@ static int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **m
 			}
 
 			//ok... allocate memory
-			*(multilayer_layers) = (struct xmi_layer *) g_realloc(*(multilayer_layers), sizeof(struct xmi_layer)*++(*n_multilayer_layers));
+			*(multilayer_layers) = (xmi_layer *) g_realloc(*(multilayer_layers), sizeof(xmi_layer)*++(*n_multilayer_layers));
 			temp = *multilayer_layers+*n_multilayer_layers-1;
 			if (get_composition(pymcaFile, strings2[1], &temp, FALSE) == 0)
 				return rv;
@@ -800,7 +800,7 @@ static int read_multilayer_composition(GKeyFile *pymcaFile, struct xmi_layer **m
 	return rv;
 }
 
-static int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
+static int get_peak_areas(GKeyFile *pymcaFile, xmi_pymca *pymca_input) {
 	int rv = 0;
 	gchar **elements, **lines;
 	gsize n_elements, n_lines;
@@ -1015,7 +1015,7 @@ static int get_peak_areas(GKeyFile *pymcaFile, struct xmi_pymca *pymca_input) {
 	return rv;
 }
 
-static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation **excitation, struct xmi_detector *detector) {
+static int read_excitation_spectrum(GKeyFile *pymcaFile, xmi_excitation **excitation, xmi_detector *detector) {
 	gchar **energy = NULL;
 	gdouble *energyweight = NULL;
 	gint *energyflag = NULL;
@@ -1086,7 +1086,7 @@ static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation *
 	}
 
 	//look at the flags -> assume that all lines are discrete!!!
-	(*excitation) = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
+	(*excitation) = (xmi_excitation *) g_malloc(sizeof(xmi_excitation));
 	(*excitation)->n_discrete = 0;
 	(*excitation)->discrete = NULL;
 	(*excitation)->n_continuous = 0;
@@ -1112,7 +1112,7 @@ static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation *
 		if (energyflag[i] == FALSE)
 			continue;
 
-		(*excitation)->discrete = (struct xmi_energy_discrete *) g_realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(struct xmi_energy_discrete));
+		(*excitation)->discrete = (xmi_energy_discrete *) g_realloc((*excitation)->discrete, ++((*excitation)->n_discrete)*sizeof(xmi_energy_discrete));
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].energy = g_ascii_strtod(energy[i],NULL);
 		if ((*excitation)->discrete[((*excitation)->n_discrete)-1].energy <= 0.0) {
 			fprintf(stderr,"A flagged energy turned out to be negative or zero... Fatal error\n");
@@ -1129,7 +1129,7 @@ static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation *
 
 	}
 
-	qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
+	qsort((*excitation)->discrete,(*excitation)->n_discrete,sizeof(xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
 
 
 	g_strfreev(energy);
@@ -1141,24 +1141,24 @@ static int read_excitation_spectrum(GKeyFile *pymcaFile, struct xmi_excitation *
 }
 
 
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **pymca_input, int use_matrix_override, int use_roi_normalization, int use_single_run) {
+int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_input, int use_matrix_override, int use_roi_normalization, int use_single_run) {
 	int rv = 0;
 	GKeyFile *pymcaFile;
 	GError *error=NULL;
-	struct xmi_layer *multilayer_layers = NULL;
+	xmi_layer *multilayer_layers = NULL;
 	int n_multilayer_layers=0;
-	struct xmi_layer *det_layers = NULL;
+	xmi_layer *det_layers = NULL;
 	int n_det_layers = 0;
-	struct xmi_layer *exc_layers = NULL;
+	xmi_layer *exc_layers = NULL;
 	int n_exc_layers = 0;
-	struct xmi_layer *crystal_layers = NULL;
+	xmi_layer *crystal_layers = NULL;
 	int n_crystal_layers = 0;
 	int i,j,k;
 	int found;
-	struct xmi_geometry *geometry = NULL;
-	struct xmi_excitation *excitation = NULL;
-	struct xmi_detector *detector = NULL;
-	struct xmi_general *general = NULL;
+	xmi_geometry *geometry = NULL;
+	xmi_excitation *excitation = NULL;
+	xmi_detector *detector = NULL;
+	xmi_general *general = NULL;
 	gchar **strings, *ydata_string;
 	int override_required = 0;
 
@@ -1173,8 +1173,8 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	g_key_file_set_list_separator(pymcaFile, ',');
 
 	//allocate input
-	*input = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
-	*pymca_input = (struct xmi_pymca *) g_malloc(sizeof(struct xmi_pymca));
+	*input = (xmi_input *) g_malloc(sizeof(xmi_input));
+	*pymca_input = (xmi_pymca *) g_malloc(sizeof(xmi_pymca));
 
 
 	if (!use_single_run) {
@@ -1374,7 +1374,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 
 	//general
-	general = (struct xmi_general *) g_malloc(sizeof(struct xmi_general));
+	general = (xmi_general *) g_malloc(sizeof(xmi_general));
 	general->outputfile = g_strdup("");
 	general->comments = g_strdup("");
 	general->n_photons_interval = 100000;
@@ -1404,7 +1404,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	//put it all together
 	(*input)->general = general;
 	//allocate composition
-	(*input)->composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
+	(*input)->composition = (xmi_composition *) g_malloc(sizeof(xmi_composition));
 	(*input)->composition->n_layers = n_multilayer_layers;
 	(*input)->composition->layers = multilayer_layers;
 	//check ReferenceLayer
@@ -1412,7 +1412,7 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 
 	(*input)->geometry = geometry;
 	(*input)->excitation = excitation;
-	(*input)->absorbers = (struct xmi_absorbers *) g_malloc(sizeof(struct xmi_absorbers));
+	(*input)->absorbers = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
 	(*input)->absorbers->n_exc_layers = n_exc_layers;
 	(*input)->absorbers->exc_layers = exc_layers;
 	(*input)->absorbers->n_det_layers = n_det_layers;
@@ -1631,9 +1631,9 @@ int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_
 	return rv;
 }
 
-struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant) {
+xmi_layer xmi_ilay_composition_pymca(xmi_layer *matrix, xmi_pymca *pymca_aux , double *weights_arr_quant) {
 
-	struct xmi_layer rv;
+	xmi_layer rv;
 	double sum_quant, sum_matrix, sum_above;
 	int i,j;
 	double *weight;

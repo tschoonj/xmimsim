@@ -51,7 +51,7 @@ static void xmi_msim_gui_xmsi_scrolled_window_init(XmiMsimGuiXmsiScrolledWindow 
 
 }
 
-GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(struct xmi_input *input, gboolean with_colors) {
+GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with_colors) {
 	XmiMsimGuiXmsiScrolledWindow *scrolled_window = XMI_MSIM_GUI_XMSI_SCROLLED_WINDOW(g_object_new(XMI_MSIM_GUI_TYPE_XMSI_SCROLLED_WINDOW, NULL));
 
 	//assume that the input has been validated

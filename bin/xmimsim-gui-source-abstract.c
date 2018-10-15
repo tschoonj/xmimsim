@@ -31,9 +31,9 @@ static const gchar *xmi_msim_gui_source_abstract_real_get_name(XmiMsimGuiSourceA
 
 static const gchar *xmi_msim_gui_source_abstract_real_get_about_text(XmiMsimGuiSourceAbstract *source);
 
-static gchar *xmi_msim_gui_source_abstract_real_energy_discrete_printf(XmiMsimGuiSourceAbstract *source, struct xmi_energy_discrete *energy);
+static gchar *xmi_msim_gui_source_abstract_real_energy_discrete_printf(XmiMsimGuiSourceAbstract *source, xmi_energy_discrete *energy);
 
-static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
+static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsimGuiSourceAbstract *source, xmi_energy_continuous *energy);
 
 static gboolean xmi_msim_gui_source_abstract_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
@@ -76,8 +76,8 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 		1,
 		g_param_spec_boxed(
 			"xmi-input-current",
-			"Current struct xmi_input",
-			"Current struct xmi_input",
+			"Current xmi_input",
+			"Current xmi_input",
 			XMI_MSIM_TYPE_INPUT,
     			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 		)
@@ -120,7 +120,7 @@ void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source
 	*y = source->y;
 }
 
-struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
+xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
 	return source->raw_data;
 }
 
@@ -268,11 +268,11 @@ const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstrac
 	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_about_text(source);
 }
 
-static gchar *xmi_msim_gui_source_abstract_real_energy_discrete_printf(XmiMsimGuiSourceAbstract *source, struct xmi_energy_discrete *energy) {
+static gchar *xmi_msim_gui_source_abstract_real_energy_discrete_printf(XmiMsimGuiSourceAbstract *source, xmi_energy_discrete *energy) {
 	return g_strdup_printf("%g     %g\n", energy->energy, energy->horizontal_intensity + energy->vertical_intensity);
 }
 
-static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy) {
+static gchar *xmi_msim_gui_source_abstract_real_energy_continuous_printf(XmiMsimGuiSourceAbstract *source, xmi_energy_continuous *energy) {
 	return g_strdup_printf("%g     %g\n", energy->energy, energy->horizontal_intensity + energy->vertical_intensity);
 }
 
@@ -282,7 +282,7 @@ static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint pro
 
   switch (prop_id) {
     case 1:
-      source->current = (struct xmi_input *) g_value_dup_boxed(value);
+      source->current = (xmi_input *) g_value_dup_boxed(value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int main (int argc, char *argv[]) {
 
-	struct xmi_input *input,*input2;
+	xmi_input *input,*input2;
 	int rv;
 	int i,j;
 

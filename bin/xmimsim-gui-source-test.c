@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
-typedef GtkWidget* (*XmiMsimGuiSourceConstructor) (struct xmi_input *current);
+typedef GtkWidget* (*XmiMsimGuiSourceConstructor) (xmi_input *current);
 
 static gboolean delete_event( GtkWidget *widget,
                               GdkEvent  *event,
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	struct xmi_input *current = NULL;
+	xmi_input *current = NULL;
 	if (xmi_read_input_xml(argv[2], &current) == 0) {
 		fprintf(stderr, "Could not read in XMSI file %s\n", argv[2]);
 		return 1;

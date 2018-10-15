@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
-void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, struct xmi_main_options options, struct xmi_escape_ratios_options ero);
+void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, xmi_escape_ratios **escape_ratios, char *input_string, xmi_main_options options, xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
@@ -88,9 +88,9 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	return 1;
 }
 
-void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options options, struct xmi_escape_ratios_options ero) {
+void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options options, xmi_escape_ratios_options ero) {
 
-	struct xmi_input *esc_ratio_inputPtr;
+	xmi_input *esc_ratio_inputPtr;
 	xmi_inputFPtr inputFPtr;
 	xmi_hdf5FPtr hdf5FPtr;
 
@@ -125,7 +125,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 	}
 
 
-	struct xmi_main_options escape_main_options = {.omp_num_threads = options.omp_num_threads, .verbose = options.verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options.extra_verbose};
+	xmi_main_options escape_main_options = {.omp_num_threads = options.omp_num_threads, .verbose = options.verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options.extra_verbose};
 
 	//read from HDF5 file what needs to be read in
 	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, escape_main_options) == 0) {
@@ -140,7 +140,7 @@ void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape
 
 }
 
-int xmi_check_escape_ratios_match(struct xmi_input *A, struct xmi_input *B) {
+int xmi_check_escape_ratios_match(xmi_input *A, xmi_input *B) {
 	//match if detector crystal compositions match
 	int i,j;
 
@@ -171,7 +171,7 @@ int xmi_check_escape_ratios_match(struct xmi_input *A, struct xmi_input *B) {
 }
 
 
-int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios *escape_ratios) {
+int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escape_ratios) {
 	hid_t file_id;
 	gchar *buffer;
 	hid_t group_id;
@@ -278,11 +278,11 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios
 	return 1;
 }
 
-struct xmi_escape_ratios_data{
-	struct xmi_escape_ratios **escape_ratios;
-	struct xmi_input *input;
-	struct xmi_main_options options;
-};
+typedef struct {
+	xmi_escape_ratios **escape_ratios;
+	xmi_input *input;
+	xmi_main_options options;
+} xmi_escape_ratios_data;
 
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
 
@@ -290,9 +290,9 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	hsize_t dims1[1],dims2[2], dims3[3],dims_string[1];
 	hid_t group_id;
 	char *xmi_input_string;
-	struct xmi_escape_ratios_data *data = (struct xmi_escape_ratios_data *) op_data;
-	struct xmi_input *temp_input;
-	struct xmi_escape_ratios *escape_ratios;
+	xmi_escape_ratios_data *data = (xmi_escape_ratios_data *) op_data;
+	xmi_input *temp_input;
+	xmi_escape_ratios *escape_ratios;
 
 
 	if (data->options.extra_verbose) {
@@ -322,7 +322,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		//match
 		//read in this group completely
 		xmi_free_input(temp_input);
-		*(data->escape_ratios) = (struct xmi_escape_ratios *) g_malloc(sizeof(struct xmi_escape_ratios));
+		*(data->escape_ratios) = (xmi_escape_ratios *) g_malloc(sizeof(xmi_escape_ratios));
 		escape_ratios = *(data->escape_ratios);
 		escape_ratios->xmi_input_string  = xmi_input_string;
 		//read elements
@@ -421,13 +421,13 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	return 1;
 }
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options) {
+int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options options) {
 
 	//open the hdf5 file and iterate through all the groups
 	//in every group read ONLY the xmi_input_string and use it to compare...
 	//if comparison is successful, then read in the rest and close the file
 	hid_t file_id;
-	struct xmi_escape_ratios_data data;
+	xmi_escape_ratios_data data;
 	herr_t iterate_rv;
 
 	//open the hdf5 file read-only!
@@ -541,7 +541,7 @@ int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xm
 	return 1;
 }
 
-void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios) {
+void xmi_free_escape_ratios(xmi_escape_ratios *escape_ratios) {
 	if (escape_ratios->fluo_escape_input_energies != escape_ratios->compton_escape_input_energies) {
 		//allocated in C
 		g_free(escape_ratios->Z);
@@ -627,7 +627,7 @@ int xmi_check_detector_convolute_plugin(char *dlm) {
 	return 1;
 }
 
-struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {
-	struct xmi_escape_ratios_options rv = {1990, 1999, 500000, 1.0, 0.1, 0.1, 0.1};
+xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void) {
+	xmi_escape_ratios_options rv = {1990, 1999, 500000, 1.0, 0.1, 0.1, 0.1};
 	return rv;
 }

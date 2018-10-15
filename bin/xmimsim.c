@@ -77,7 +77,7 @@ XMI_MAIN
 
 
 	//general variables
-	struct xmi_input *input;
+	xmi_input *input;
 	int rv;
 	xmi_inputFPtr inputFPtr;
 	xmi_hdf5FPtr hdf5FPtr;
@@ -88,7 +88,7 @@ XMI_MAIN
 	int i,j;
 	GError *error = NULL;
 	GOptionContext *context;
-	static struct xmi_main_options options;
+	static xmi_main_options options;
 	double *brute_history;
 	double *brute_historydef;
 	double *var_red_history;
@@ -103,8 +103,8 @@ XMI_MAIN
 	static gchar *htm_file_noconv=NULL;
 	static gchar *htm_file_conv=NULL;
 	double zero_sum;
-	struct xmi_solid_angle *solid_angle_def=NULL;
-	struct xmi_escape_ratios *escape_ratios_def=NULL;
+	xmi_solid_angle *solid_angle_def=NULL;
+	xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
 	static char *xmimsim_hdf5_solid_angles = NULL;
 	static char *xmimsim_hdf5_escape_ratios = NULL;
@@ -662,7 +662,7 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		struct xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
+		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
 		if (xmi_write_output_xml(input->general->outputfile, output, NULL) == 0) {
 			return 1;
 		}

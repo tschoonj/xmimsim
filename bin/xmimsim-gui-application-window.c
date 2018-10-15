@@ -217,12 +217,12 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 	g_debug("Calling sources_activated");
 	XmiMsimGuiApplicationWindow *self = XMI_MSIM_GUI_APPLICATION_WINDOW(user_data);
 
-	struct xmi_input *current_input = xmi_msim_gui_undo_manager_get_current_input(self->undo_manager);
+	xmi_input *current_input = xmi_msim_gui_undo_manager_get_current_input(self->undo_manager);
 	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(self), current_input);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		// get the excitation data from the dialog
-		struct xmi_excitation *excitation = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
+		xmi_excitation *excitation = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
 		gchar *source_name = g_strdup(xmi_msim_gui_sources_dialog_get_active_source_name(XMI_MSIM_GUI_SOURCES_DIALOG(dialog)));
 
 		gtk_widget_destroy(dialog);
@@ -252,7 +252,7 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			int i;
 			if (current_input->excitation->n_discrete > 0) {
 				for (i = 0 ; i < current_input->excitation->n_discrete ; i++) {
-					if (bsearch(excitation->discrete+i, current_input->excitation->discrete, current_input->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+					if (bsearch(excitation->discrete+i, current_input->excitation->discrete, current_input->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(self), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
@@ -265,7 +265,7 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			}
 			if (current_input->excitation->n_continuous > 0) {
 				for (i = 0 ; i < current_input->excitation->n_continuous ; i++) {
-					if (bsearch(excitation->continuous + i, current_input->excitation->continuous, current_input->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+					if (bsearch(excitation->continuous + i, current_input->excitation->continuous, current_input->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(self), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy intervals: one or more of the new energies exist already in the list of intervals.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
@@ -279,18 +279,18 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			// update current_input->excitation with excitation
 			current_input->excitation->n_discrete += excitation->n_discrete;
 			//realloc discrete energies
-			current_input->excitation->discrete = g_realloc(current_input->excitation->discrete, sizeof(struct xmi_energy_discrete) * current_input->excitation->n_discrete);
+			current_input->excitation->discrete = g_realloc(current_input->excitation->discrete, sizeof(xmi_energy_discrete) * current_input->excitation->n_discrete);
 			for (i = current_input->excitation->n_discrete - excitation->n_discrete ; i < current_input->excitation->n_discrete ; i++) {
 				current_input->excitation->discrete[i] = excitation->discrete[i - current_input->excitation->n_discrete + excitation->n_discrete];
 			}
-			qsort(current_input->excitation->discrete, current_input->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			qsort(current_input->excitation->discrete, current_input->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			current_input->excitation->n_continuous += excitation->n_continuous;
 			//realloc continuous energies
-			current_input->excitation->continuous = g_realloc(current_input->excitation->continuous, sizeof(struct xmi_energy_continuous) * current_input->excitation->n_continuous);
+			current_input->excitation->continuous = g_realloc(current_input->excitation->continuous, sizeof(xmi_energy_continuous) * current_input->excitation->n_continuous);
 			for (i = current_input->excitation->n_continuous - excitation->n_continuous ; i < current_input->excitation->n_continuous ; i++) {
 				current_input->excitation->continuous[i] = excitation->continuous[i - current_input->excitation->n_continuous + excitation->n_continuous];
 			}
-			qsort(current_input->excitation->continuous, current_input->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			qsort(current_input->excitation->continuous, current_input->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			GtkWidget *energiesW = XMI_MSIM_GUI_XMSI_CONFIG_SCROLLED_WINDOW(self->input_page)->energiesW;
 			xmi_msim_gui_energies_box_set_excitation(XMI_MSIM_GUI_ENERGIES_BOX(energiesW), current_input->excitation);
 			//update_undo_buffer(SOURCE_SPECTRUM_ADD, (GtkWidget *) excitation);

@@ -7,10 +7,10 @@
 int main(int argc, char *argv[]) {
 
 
-	struct xmi_input *input;
-	struct xmi_output *output;
+	xmi_input *input;
+	xmi_output *output;
 	xmi_inputFPtr inputFPtr;
-	struct xmi_main_options options;
+	xmi_main_options options;
 	
 	// set options
 	options = xmi_get_default_main_options();

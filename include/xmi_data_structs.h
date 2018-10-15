@@ -24,7 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-struct xmi_general {
+typedef struct _xmi_general xmi_general;
+struct _xmi_general {
 	float version;
 	char *outputfile;
 	long int n_photons_interval;
@@ -33,7 +34,8 @@ struct xmi_general {
 	char *comments;
 };
 
-struct xmi_layer {
+typedef struct _xmi_layer xmi_layer;
+struct _xmi_layer {
 	int n_elements;
 	int *Z;
 	double *weight;
@@ -41,13 +43,15 @@ struct xmi_layer {
 	double thickness;
 };
 
-struct xmi_composition {
+typedef struct _xmi_composition xmi_composition;
+struct _xmi_composition {
 	int n_layers;
-	struct xmi_layer *layers;
+	xmi_layer *layers;
 	int reference_layer;
 };
 
-struct xmi_geometry {
+typedef struct _xmi_geometry xmi_geometry;
+struct _xmi_geometry {
 	double d_sample_source;
 	double n_sample_orientation[3];
 	double p_detector_window[3];
@@ -66,7 +70,8 @@ enum {
 	XMI_DISCRETE_LORENTZIAN
 };
 
-struct xmi_energy_discrete {
+typedef struct _xmi_energy_discrete xmi_energy_discrete;
+struct _xmi_energy_discrete {
 	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
@@ -78,7 +83,8 @@ struct xmi_energy_discrete {
 	double scale_parameter;
 };
 
-struct xmi_energy_continuous {
+typedef struct _xmi_energy_continuous xmi_energy_continuous;
+struct _xmi_energy_continuous {
 	double energy;
 	double horizontal_intensity;
 	double vertical_intensity;
@@ -88,26 +94,28 @@ struct xmi_energy_continuous {
 	double sigma_yp;
 };
 
-struct xmi_excitation {
+typedef struct _xmi_excitation xmi_excitation;
+struct _xmi_excitation {
 	int n_discrete;
-	struct xmi_energy_discrete *discrete;
+	xmi_energy_discrete *discrete;
 	int n_continuous;
-	struct xmi_energy_continuous *continuous;
+	xmi_energy_continuous *continuous;
 };
 
-
-struct xmi_absorbers {
+typedef struct _xmi_absorbers xmi_absorbers;
+struct _xmi_absorbers {
 	int n_exc_layers;
-	struct xmi_layer *exc_layers;
+	xmi_layer *exc_layers;
 	int n_det_layers;
-	struct xmi_layer *det_layers;
+	xmi_layer *det_layers;
 };
 
 #define XMI_DETECTOR_SILI 0
 #define XMI_DETECTOR_GE 1
 #define XMI_DETECTOR_SI_SDD 2
 
-struct xmi_detector {
+typedef struct _xmi_detector xmi_detector;
+struct _xmi_detector {
 	int detector_type;
 	double live_time;
 	double pulse_width;
@@ -117,47 +125,50 @@ struct xmi_detector {
 	double noise;
 	int nchannels;
 	int n_crystal_layers;
-	struct xmi_layer *crystal_layers;
+	xmi_layer *crystal_layers;
 };
 
-struct xmi_input {
-	struct xmi_general *general;
-	struct xmi_composition *composition;
-	struct xmi_geometry *geometry;
-	struct xmi_excitation *excitation;
-	struct xmi_absorbers *absorbers;
-	struct xmi_detector *detector;
+typedef struct _xmi_input xmi_input;
+struct _xmi_input {
+	xmi_general *general;
+	xmi_composition *composition;
+	xmi_geometry *geometry;
+	xmi_excitation *excitation;
+	xmi_absorbers *absorbers;
+	xmi_detector *detector;
 };
 
-struct xmi_counts {
+typedef struct _xmi_counts xmi_counts;
+struct _xmi_counts {
 	double counts;
 	int interaction_number;
 };
 
-struct xmi_main_options;
-
-struct xmi_fluorescence_line {
+typedef struct _xmi_fluorescence_line xmi_fluorescence_line;
+struct _xmi_fluorescence_line {
 	char *line_type;
 	double energy;
 	double total_counts;
 	int n_interactions;
-	struct xmi_counts *interactions;
+	xmi_counts *interactions;
 };
 
-struct xmi_fluorescence_line_counts {
+typedef struct _xmi_fluorescence_line_counts xmi_fluorescence_line_counts;
+struct _xmi_fluorescence_line_counts {
 	int atomic_number;
 	double total_counts;
 	int n_lines;
-	struct xmi_fluorescence_line *lines;
+	xmi_fluorescence_line *lines;
 };
 
-struct xmi_output {
+typedef struct _xmi_output xmi_output;
+struct _xmi_output {
 	float version;
 	char *inputfile;
 	char *outputfile; // this will be the file XMSO filename, not necessarily the same as input->general->outputfile
-	struct xmi_input *input;
-	struct xmi_fluorescence_line_counts *brute_force_history;
-	struct xmi_fluorescence_line_counts *var_red_history;
+	xmi_input *input;
+	xmi_fluorescence_line_counts *brute_force_history;
+	xmi_fluorescence_line_counts *var_red_history;
 	int nbrute_force_history;
 	int nvar_red_history;
 	double **channels_conv;
@@ -166,7 +177,8 @@ struct xmi_output {
 	int use_zero_interactions;
 };
 
-struct xmi_archive {
+typedef struct _xmi_archive xmi_archive;
+struct _xmi_archive {
 	float version;
 	double start_value1;
 	double end_value1;
@@ -177,11 +189,30 @@ struct xmi_archive {
 	int nsteps2;
 	char *xpath2;
 	//input are just pointers to the input structs with output!
-	struct xmi_input ***input;
-	struct xmi_output ***output;
+	xmi_input ***input;
+	xmi_output ***output;
 	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
 	char ***inputfiles;
 	char ***outputfiles;
+};
+
+typedef struct _xmi_main_options xmi_main_options;
+struct _xmi_main_options {
+	int use_M_lines; //default : 1
+	int use_cascade_auger; //default : 1
+	int use_cascade_radiative; //default : 1
+	int use_variance_reduction; //default : 1
+	int use_sum_peaks; //default : 0
+	int use_escape_peaks; //default : 1
+	int escape_ratios_mode; //default : 0
+	int verbose; //default : 0
+	int use_poisson; //default : 0
+	int use_opencl; //default : 1
+	int omp_num_threads; //default : max
+	int extra_verbose; //default : 0
+	char *custom_detector_response; //default : NULL
+	int use_advanced_compton; //default : 0
+	int use_default_seeds; // default : 0
 };
 
 
@@ -200,51 +231,51 @@ typedef void* xmi_inputFPtr;
 
 #define XMI_COMPARE_THRESHOLD 1E-10
 
-void xmi_free_input(struct xmi_input *);
+void xmi_free_input(xmi_input *);
 
 //returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
-int xmi_compare_input(struct xmi_input *A, struct xmi_input *B);
+int xmi_compare_input(xmi_input *A, xmi_input *B);
 
 //returns 0 when identical, returns 1 if not identical
-int xmi_compare_output(struct xmi_output *A, struct xmi_output *B);
+int xmi_compare_output(xmi_output *A, xmi_output *B);
 
 //returns 0 when identical, returns 1 if not identical
-int xmi_compare_archive(struct xmi_archive *A, struct xmi_archive *B);
+int xmi_compare_archive(xmi_archive *A, xmi_archive *B);
 
 //returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
-int xmi_validate_input(struct xmi_input *);
+int xmi_validate_input(xmi_input *);
 
 // returns 1 when equal, 0 otherwise
-int xmi_equal_energy_discrete(struct xmi_energy_discrete *a, struct xmi_energy_discrete *b);
+int xmi_equal_energy_discrete(xmi_energy_discrete *a, xmi_energy_discrete *b);
 
 // returns 1 when equal, 0 otherwise
-int xmi_equal_energy_continuous(struct xmi_energy_continuous *a, struct xmi_energy_continuous *b);
+int xmi_equal_energy_continuous(xmi_energy_continuous *a, xmi_energy_continuous *b);
 
-void xmi_copy_input(struct xmi_input *A, struct xmi_input **B);
+void xmi_copy_input(xmi_input *A, xmi_input **B);
 
-void xmi_free_composition(struct xmi_composition *);
+void xmi_free_composition(xmi_composition *);
 
-void xmi_copy_composition(struct xmi_composition *A, struct xmi_composition **B);
+void xmi_copy_composition(xmi_composition *A, xmi_composition **B);
 
-void xmi_free_layer (struct xmi_layer *layer);
+void xmi_free_layer (xmi_layer *layer);
 
-void xmi_copy_layer(struct xmi_layer *, struct xmi_layer **B);
-void xmi_copy_layer2(struct xmi_layer *, struct xmi_layer *B);
+void xmi_copy_layer(xmi_layer *, xmi_layer **B);
+void xmi_copy_layer2(xmi_layer *, xmi_layer *B);
 
-struct xmi_input *xmi_init_empty_input(void);
+xmi_input *xmi_init_empty_input(void);
 
-void xmi_free_absorbers(struct xmi_absorbers *);
+void xmi_free_absorbers(xmi_absorbers *);
 
-void xmi_copy_absorbers(struct xmi_absorbers *A, struct xmi_absorbers **B);
+void xmi_copy_absorbers(xmi_absorbers *A, xmi_absorbers **B);
 
-void xmi_copy_abs_or_crystal2composition(struct xmi_layer *layers, int n_layers, struct xmi_composition **composition);
+void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition);
 
-void xmi_copy_composition2abs_or_crystal(struct xmi_composition *composition, struct xmi_layer **layers, int *n_layers);
+void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer **layers, int *n_layers);
 
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
-void xmi_input_C2F(struct xmi_input *xmi_inputC, xmi_inputFPtr *Ptr);
-void xmi_input_F2C(xmi_inputFPtr Ptr, struct xmi_input **xmi_inputC);
+void xmi_input_C2F(xmi_input *xmi_inputC, xmi_inputFPtr *Ptr);
+void xmi_input_F2C(xmi_inputFPtr Ptr, xmi_input **xmi_inputC);
 
 //Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
 void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
@@ -254,36 +285,36 @@ void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
 
 //prints the contents of the structure... useful when debugging
-void xmi_print_input(FILE *fPtr, struct xmi_input *input);
+void xmi_print_input(FILE *fPtr, xmi_input *input);
 
-void xmi_print_layer(FILE *fPtr, struct xmi_layer *layer, int n_layers);
+void xmi_print_layer(FILE *fPtr, xmi_layer *layer, int n_layers);
 
-struct xmi_output* xmi_output_raw2struct(struct xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions );
+xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions );
 
-void xmi_free_fluorescence_line_counts(struct xmi_fluorescence_line_counts *history, int nhistory);
+void xmi_free_fluorescence_line_counts(xmi_fluorescence_line_counts *history, int nhistory);
 
-void xmi_free_output(struct xmi_output *);
+void xmi_free_output(xmi_output *);
 
-void xmi_copy_archive(struct xmi_archive *A, struct xmi_archive **B);
-void xmi_free_archive(struct xmi_archive *archive);
+void xmi_copy_archive(xmi_archive *A, xmi_archive **B);
+void xmi_free_archive(xmi_archive *archive);
 
-struct xmi_archive* xmi_archive_raw2struct(struct xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
+xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
 
-void xmi_copy_output(struct xmi_output *A, struct xmi_output **B);
+void xmi_copy_output(xmi_output *A, xmi_output **B);
 
-double xmi_get_output_counts_for_element_line(struct xmi_output *output, int Z, int line);
+double xmi_get_output_counts_for_element_line(xmi_output *output, int Z, int line);
 
-void xmi_copy_detector(struct xmi_detector *A, struct xmi_detector **B);
-void xmi_copy_excitation(struct xmi_excitation *A, struct xmi_excitation **B);
-void xmi_copy_geometry(struct xmi_geometry *A, struct xmi_geometry **B);
-void xmi_copy_exc_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B);
-void xmi_copy_det_absorbers(struct xmi_absorbers *A, struct xmi_absorbers *B);
+void xmi_copy_detector(xmi_detector *A, xmi_detector **B);
+void xmi_copy_excitation(xmi_excitation *A, xmi_excitation **B);
+void xmi_copy_geometry(xmi_geometry *A, xmi_geometry **B);
+void xmi_copy_exc_absorbers(xmi_absorbers *A, xmi_absorbers *B);
+void xmi_copy_det_absorbers(xmi_absorbers *A, xmi_absorbers *B);
 
-void xmi_free_detector(struct xmi_detector *A);
-void xmi_free_excitation(struct xmi_excitation *A);
-void xmi_free_geometry(struct xmi_geometry *A);
-void xmi_free_exc_absorbers(struct xmi_absorbers *A);
-void xmi_free_det_absorbers(struct xmi_absorbers *A);
+void xmi_free_detector(xmi_detector *A);
+void xmi_free_excitation(xmi_excitation *A);
+void xmi_free_geometry(xmi_geometry *A);
+void xmi_free_exc_absorbers(xmi_absorbers *A);
+void xmi_free_det_absorbers(xmi_absorbers *A);
 
 #ifdef __cplusplus
 }

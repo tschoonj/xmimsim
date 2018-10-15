@@ -24,7 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-struct xmi_escape_ratios {
+typedef struct _xmi_escape_ratios xmi_escape_ratios;
+struct _xmi_escape_ratios {
         int  n_elements;
         int  n_fluo_input_energies;
         int  n_compton_input_energies;
@@ -38,7 +39,8 @@ struct xmi_escape_ratios {
 	char *xmi_input_string;
 };
 
-struct xmi_escape_ratios_options {
+typedef struct _xmi_escape_ratios_options xmi_escape_ratios_options;
+struct _xmi_escape_ratios_options {
 	long n_input_energies; //default : 1990
 	long n_compton_output_energies; //default : 1999
 	long n_photons; //default : 500000
@@ -48,23 +50,23 @@ struct xmi_escape_ratios_options {
 	double compton_output_energy_delta; //default : 0.1 keV
 };
 
-struct xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void);
+xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void);
 
 int xmi_get_escape_ratios_file(char **file, int create_file);
 
-void xmi_escape_ratios_calculation(struct xmi_input *inputPtr, struct xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, struct xmi_main_options, struct xmi_escape_ratios_options ero);
+void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options, xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file);
 
-int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, struct xmi_escape_ratios *escape_ratios);
+int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escape_ratios);
 
 
 //return 1 on success, 0 on no match
-int xmi_check_escape_ratios_match(struct xmi_input *input_in, struct xmi_input *input_h5);
+int xmi_check_escape_ratios_match(xmi_input *input_in, xmi_input *input_h5);
 
-int xmi_find_escape_ratios_match(char *hdf5_file, struct xmi_input *A, struct xmi_escape_ratios **rv, struct xmi_main_options options);
+int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options options);
 
-void xmi_free_escape_ratios(struct xmi_escape_ratios *escape_ratios);
+void xmi_free_escape_ratios(xmi_escape_ratios *escape_ratios);
 
 int xmi_init_input_escape_ratios(xmi_inputFPtr *inputFPtr);
 

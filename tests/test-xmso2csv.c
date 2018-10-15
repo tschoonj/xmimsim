@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   g_assert(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 1) == 1);
 
   //let's read both files in and compare...
-  struct xmi_output *output = NULL;
+  xmi_output *output = NULL;
   g_assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
 
   GFile *file = g_file_new_for_path(TEST_CSV);

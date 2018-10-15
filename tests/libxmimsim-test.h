@@ -42,13 +42,13 @@ struct spe_data * read_spe(const char *filename);
 
 void free_spe_data(struct spe_data *);
 
-double CS_Total_Layer(struct xmi_layer *layer, double E);
+double CS_Total_Layer(xmi_layer *layer, double E);
 
-double chi(double E0, double E1, struct xmi_layer *layer, double alpha, double beta);
+double chi(double E0, double E1, xmi_layer *layer, double alpha, double beta);
 
-double fpm(struct xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta);
+double fpm(xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta);
 
-struct xmi_output* run_main(const char *compound);
+xmi_output* run_main(const char *compound);
 
 int replace_xml_tag(const char *filename_old, const char *filename_new, const char *xpath_expression, const char *new_value);
 

@@ -250,8 +250,8 @@ GtkWidget* xmi_msim_gui_options_box_new(void) {
 	return GTK_WIDGET(g_object_new(XMI_MSIM_GUI_TYPE_OPTIONS_BOX, NULL));
 }
 
-struct xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *self) {
-	struct xmi_main_options *rv = g_malloc(sizeof(struct xmi_main_options));
+xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *self) {
+	xmi_main_options *rv = g_malloc(sizeof(xmi_main_options));
 
 	*rv = xmi_get_default_main_options();
 

@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char *argv[]) {
 	int rv;
 	xmi_inputFPtr inputFPtr;
-	struct xmi_input *input;
+	xmi_input *input;
 
 	if (argc != 2)
 		return 1;

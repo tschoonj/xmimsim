@@ -48,15 +48,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SVG_INTENSITY_TO_SVG_COORDS(intensity) ((SVG_DEFAULT_BOX_OFFSET_Y+SVG_DEFAULT_BOX_HEIGHT-2)+(5+2-SVG_DEFAULT_BOX_HEIGHT)*(log10(intensity)-minimum_log)/(maximum_log-minimum_log))
 
-static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_layer *layer, GError **error);
-static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_general **general, GError **error);
-static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_composition **composition, GError **error);
-static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_geometry **geometry, GError **error);
-static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_excitation **excitation, GError **error);
-static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_absorbers **absorbers, GError **error);
-static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_detector **detector, GError **error);
-static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_output *output, int conv, GError **error);
-static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory, GError **error);
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_layer *layer, GError **error);
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_general **general, GError **error);
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_composition **composition, GError **error);
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_geometry **geometry, GError **error);
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_excitation **excitation, GError **error);
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_absorbers **absorbers, GError **error);
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_detector **detector, GError **error);
+static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_output *output, int conv, GError **error);
+static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_fluorescence_line_counts **history, int *nhistory, GError **error);
 
 #ifndef QUICKLOOK
 static float e2c(double energy, double * channels, double * energies, int nchannels );
@@ -155,7 +155,7 @@ int xmi_xmlLoadCatalog() {
 	return rv;
 }
 
-static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struct xmi_output *output, int conv, GError **error) {
+static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, xmi_output *output, int conv, GError **error) {
 	double **channels_loc;
 	int channel_loc;
 	xmlNodePtr channelPtr, countsPtr;
@@ -220,14 +220,14 @@ static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, struc
 	return 1;
 }
 
-static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi_fluorescence_line_counts **history, int *nhistory, GError **error) {
+static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_fluorescence_line_counts **history, int *nhistory, GError **error) {
 
 	//assume history will be a NULL terminated array...
 	//count children
 	unsigned int nchildren;
 	xmlChar *txt;
 	xmlNodePtr linePtr, countsPtr, subcountsPtr;
-	struct xmi_fluorescence_line_counts *history_loc;
+	xmi_fluorescence_line_counts *history_loc;
 	xmlAttrPtr attr;
 	int counter, counter2, counter3;
 
@@ -239,7 +239,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 	}
 
 	//malloc required memory
-	*history = (struct xmi_fluorescence_line_counts *) g_malloc(sizeof(struct xmi_fluorescence_line_counts)*(nchildren));
+	*history = (xmi_fluorescence_line_counts *) g_malloc(sizeof(xmi_fluorescence_line_counts)*(nchildren));
 	history_loc = *history;
 	linePtr = xmlFirstElementChild(nodePtr);
 	*nhistory = nchildren;
@@ -275,7 +275,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 		//determine number of children
 		nchildren = xmlChildElementCount(linePtr);
 		history_loc[counter].n_lines = nchildren;
-		history_loc[counter].lines = (struct xmi_fluorescence_line *) g_malloc(sizeof(struct xmi_fluorescence_line)*nchildren);
+		history_loc[counter].lines = (xmi_fluorescence_line *) g_malloc(sizeof(xmi_fluorescence_line)*nchildren);
 
 		countsPtr = xmlFirstElementChild(linePtr);
 		counter2 = 0;
@@ -316,7 +316,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 			counter3 = 0;
 			subcountsPtr = xmlFirstElementChild(countsPtr);
 			nchildren = xmlChildElementCount(countsPtr);
-			history_loc[counter].lines[counter2].interactions = (struct xmi_counts *) g_malloc(sizeof(struct xmi_counts)*nchildren);
+			history_loc[counter].lines[counter2].interactions = (xmi_counts *) g_malloc(sizeof(xmi_counts)*nchildren);
 			history_loc[counter].lines[counter2].n_interactions = nchildren;
 			while (subcountsPtr) {
 				attr = subcountsPtr->properties;
@@ -354,13 +354,13 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, struct xmi
 	return 1;
 }
 
-static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_general **general, GError **error) {
+static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, xmi_general **general, GError **error) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
 
 	//allocate memory
-	*general = (struct xmi_general *) g_malloc(sizeof(struct xmi_general));
+	*general = (xmi_general *) g_malloc(sizeof(xmi_general));
 
 
 
@@ -438,12 +438,12 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, struct xmi_gen
 
 }
 
-static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi_composition **composition, GError **error) {
+static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, xmi_composition **composition, GError **error) {
 	xmlNodePtr subnode;
 	xmlChar *txt;
 
 	//allocate memory
-	*composition = (struct xmi_composition *) g_malloc(sizeof(struct xmi_composition));
+	*composition = (xmi_composition *) g_malloc(sizeof(xmi_composition));
 
 	(*composition)->n_layers = 0;
 	(*composition)->layers = NULL;
@@ -452,7 +452,7 @@ static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi
 
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "layer")){
-			(*composition)->layers = (struct xmi_layer *) g_realloc((*composition)->layers,sizeof(struct xmi_layer)*++((*composition)->n_layers));
+			(*composition)->layers = (xmi_layer *) g_realloc((*composition)->layers,sizeof(xmi_layer)*++((*composition)->n_layers));
 			//long live C and its deliciously complicated syntax :-)
 			if (xmi_read_input_layer(doc, subnode, (*composition)->layers+(*composition)->n_layers-1, error) == 0) {
 				return 0;
@@ -478,13 +478,13 @@ static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, struct xmi
 	return 1;
 }
 
-static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_geometry **geometry, GError **error) {
+static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, xmi_geometry **geometry, GError **error) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
 
 	//allocate memory
-	*geometry= (struct xmi_geometry *) g_malloc(sizeof(struct xmi_geometry));
+	*geometry= (xmi_geometry *) g_malloc(sizeof(xmi_geometry));
 
 	subnode = xmlFirstElementChild(node);
 
@@ -669,7 +669,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, struct xmi_ge
 	return 1;
 }
 
-static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_excitation **excitation, GError **error) {
+static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitation **excitation, GError **error) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	xmlAttrPtr attr;
@@ -680,12 +680,12 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 	double sigma_xp;
 	double sigma_y;
 	double sigma_yp;
-	struct xmi_energy_discrete xed;
-	struct xmi_energy_continuous xec;
+	xmi_energy_discrete xed;
+	xmi_energy_continuous xec;
 	int distribution_type = XMI_DISCRETE_MONOCHROMATIC;
 	double scale_parameter = 0.0;
 
-	struct xmi_excitation *excitation_rv = g_malloc(sizeof(struct xmi_excitation));
+	xmi_excitation *excitation_rv = g_malloc(sizeof(xmi_excitation));
 
 	excitation_rv->n_discrete = 0;
 	excitation_rv->discrete = NULL;
@@ -805,13 +805,13 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 				subsubnode = xmlNextElementSibling(subsubnode);
 			}
 			xed.energy = energy;
-			struct xmi_energy_discrete *xed_match;
+			xmi_energy_discrete *xed_match;
 #ifdef G_OS_WIN32
 			unsigned int n_discrete = excitation_rv->n_discrete;
-			if ((xed_match = _lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
+			if ((xed_match = _lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
 #else
 			size_t n_discrete = excitation_rv->n_discrete;
-			if ((xed_match = lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
+			if ((xed_match = lfind(&xed, excitation_rv->discrete, &n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) != NULL)
 #endif
 				{
 				fprintf(stderr,"Warning: Duplicate discrete line energy detected\nAdding to existing discrete line\n");
@@ -826,7 +826,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 				}
 			}
 			else if (energy > 0.0 && energy <= 200.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) > 0.0) {
-				excitation_rv->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_rv->discrete,++(excitation_rv->n_discrete)*sizeof(struct xmi_energy_discrete));
+				excitation_rv->discrete = (xmi_energy_discrete *) g_realloc(excitation_rv->discrete,++(excitation_rv->n_discrete)*sizeof(xmi_energy_discrete));
 				excitation_rv->discrete[excitation_rv->n_discrete-1].energy= energy ;
 				excitation_rv->discrete[excitation_rv->n_discrete-1].horizontal_intensity = horizontal_intensity;
 				excitation_rv->discrete[excitation_rv->n_discrete-1].vertical_intensity = vertical_intensity;
@@ -914,17 +914,17 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 			xec.energy = energy;
 #ifdef G_OS_WIN32
 			unsigned int n_continuous = excitation_rv->n_continuous;
-			if (_lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			if (_lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #else
 			size_t n_continuous = excitation_rv->n_continuous;
-			if (lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			if (lfind(&xec, excitation_rv->continuous, &n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 #endif
 				fprintf(stderr,"Error: Duplicate continuous energy interval energy detected\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Duplicate continuous energy interval energy detected");
 				return 0;
 			}
 			else if (energy >= 0.0 && energy <= 200.0 && horizontal_intensity >= 0.0 && vertical_intensity >= 0.0 && (horizontal_intensity + vertical_intensity) >= 0.0) {
-				excitation_rv->continuous = (struct xmi_energy_continuous *) g_realloc(excitation_rv->continuous,++(excitation_rv->n_continuous)*sizeof(struct xmi_energy_continuous));
+				excitation_rv->continuous = (xmi_energy_continuous *) g_realloc(excitation_rv->continuous,++(excitation_rv->n_continuous)*sizeof(xmi_energy_continuous));
 				excitation_rv->continuous[excitation_rv->n_continuous-1].energy= energy ;
 				excitation_rv->continuous[excitation_rv->n_continuous-1].horizontal_intensity = horizontal_intensity;
 				excitation_rv->continuous[excitation_rv->n_continuous-1].vertical_intensity = vertical_intensity;
@@ -956,10 +956,10 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 
 	// sort!
 	if (excitation_rv->n_continuous > 1) {
-		qsort(excitation_rv->continuous,excitation_rv->n_continuous,sizeof(struct xmi_energy_continuous),xmi_cmp_struct_xmi_energy_continuous);
+		qsort(excitation_rv->continuous,excitation_rv->n_continuous,sizeof(xmi_energy_continuous),xmi_cmp_struct_xmi_energy_continuous);
 	}
 	if (excitation_rv->n_discrete > 1) {
-		qsort(excitation_rv->discrete,excitation_rv->n_discrete,sizeof(struct xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
+		qsort(excitation_rv->discrete,excitation_rv->n_discrete,sizeof(xmi_energy_discrete),xmi_cmp_struct_xmi_energy_discrete);
 	}
 
 	// sanity check
@@ -1001,12 +1001,12 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, struct xmi_
 }
 
 
-static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_absorbers **absorbers, GError **error) {
+static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, xmi_absorbers **absorbers, GError **error) {
 
 	xmlNodePtr subnode,subsubnode;
 
 
-	*absorbers = (struct xmi_absorbers *) g_malloc(sizeof(struct xmi_absorbers));
+	*absorbers = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
 
 	(*absorbers)->n_exc_layers = 0;
 	(*absorbers)->exc_layers = NULL;
@@ -1021,7 +1021,7 @@ static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_a
 			subsubnode = xmlFirstElementChild(subnode);
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
-					(*absorbers)->exc_layers = g_realloc((*absorbers)->exc_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_exc_layers);
+					(*absorbers)->exc_layers = g_realloc((*absorbers)->exc_layers,sizeof(xmi_layer)*++(*absorbers)->n_exc_layers);
 					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->exc_layers+(*absorbers)->n_exc_layers-1, error) == 0) {
 						return 0;
 					}
@@ -1033,7 +1033,7 @@ static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_a
 			subsubnode = xmlFirstElementChild(subnode);
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
-					(*absorbers)->det_layers = g_realloc((*absorbers)->det_layers,sizeof(struct xmi_layer)*++(*absorbers)->n_det_layers);
+					(*absorbers)->det_layers = g_realloc((*absorbers)->det_layers,sizeof(xmi_layer)*++(*absorbers)->n_det_layers);
 					if (xmi_read_input_layer(doc, subsubnode, (*absorbers)->det_layers+(*absorbers)->n_det_layers-1, error) == 0) {
 						return 0;
 					}
@@ -1050,11 +1050,11 @@ static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, struct xmi_a
 
 
 
-static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_detector **detector, GError **error) {
+static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, xmi_detector **detector, GError **error) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
-	*detector= (struct xmi_detector *) g_malloc(sizeof(struct xmi_detector));
+	*detector= (xmi_detector *) g_malloc(sizeof(xmi_detector));
 
 	(*detector)->n_crystal_layers = 0;
 	(*detector)->crystal_layers = NULL;
@@ -1148,7 +1148,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 			subsubnode = xmlFirstElementChild(subnode);
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar *) "layer")) {
-					(*detector)->crystal_layers = g_realloc((*detector)->crystal_layers,sizeof(struct xmi_layer)*++(*detector)->n_crystal_layers);
+					(*detector)->crystal_layers = g_realloc((*detector)->crystal_layers,sizeof(xmi_layer)*++(*detector)->n_crystal_layers);
 					if (xmi_read_input_layer(doc, subsubnode, (*detector)->crystal_layers+(*detector)->n_crystal_layers-1, error) == 0) {
 						return 0;
 					}
@@ -1164,7 +1164,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, struct xmi_de
 	return 1;
 }
 
-static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layer, GError **error) {
+static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, xmi_layer *layer, GError **error) {
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 	int n_elements, *Z,i;
@@ -1268,7 +1268,7 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer
 }
 
 
-int xmi_read_input_xml (const char *xmlfile, struct xmi_input **input, GError **error) {
+int xmi_read_input_xml (const char *xmlfile, xmi_input **input, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -1315,7 +1315,7 @@ int xmi_read_input_xml (const char *xmlfile, struct xmi_input **input, GError **
 	}
 
 	//allocate memory for input
-	*input = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
+	*input = (xmi_input *) g_malloc(sizeof(xmi_input));
 
 	if (xmi_read_input_xml_body(doc, root, *input, error) == 0)
 		return 0;
@@ -1337,7 +1337,7 @@ int xmi_read_input_xml (const char *xmlfile, struct xmi_input **input, GError **
 }
 
 #ifndef QUICKLOOK
-int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input, GError **error) {
+int xmi_write_input_xml_to_string(char **xmlstring, xmi_input *input, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -1371,7 +1371,7 @@ int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input, GEr
 	return 1;
 }
 
-int xmi_write_input_xml(const char *xmlfile, struct xmi_input *input, GError **error) {
+int xmi_write_input_xml(const char *xmlfile, xmi_input *input, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -1413,7 +1413,7 @@ int xmi_write_input_xml(const char *xmlfile, struct xmi_input *input, GError **e
 }
 
 
-int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_output *output, int step1, int step2, int with_svg, GError **error) {
+int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *output, int step1, int step2, int with_svg, GError **error) {
 	int i,j,k;
 	double *maxima;
 	double gl_conv_max;
@@ -1575,7 +1575,7 @@ after_svg:
 	return 1;
 }
 
-int xmi_write_output_xml(const char *xmlfile, struct xmi_output *output, GError **error) {
+int xmi_write_output_xml(const char *xmlfile, xmi_output *output, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -1618,7 +1618,7 @@ int xmi_write_output_xml(const char *xmlfile, struct xmi_output *output, GError 
 }
 
 
-int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input, GError **error) {
+int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input, GError **error) {
 	int i;
 	gchar *detector_type = NULL;
 	xmlNodePtr nodePtr1, nodePtr2, nodePtr3;
@@ -1785,7 +1785,7 @@ int xmi_xmlfile_to_string(const char *xmlfile, char **xmlstring, int *xmlstringl
 	return 1;
 }
 
-int xmi_read_input_xml_from_string(const char *xmlstring, struct xmi_input **input, GError **error) {
+int xmi_read_input_xml_from_string(const char *xmlstring, xmi_input **input, GError **error) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
@@ -1833,7 +1833,7 @@ int xmi_read_input_xml_from_string(const char *xmlstring, struct xmi_input **inp
 	subroot= xmlFirstElementChild(root);
 
 	//allocate memory for input
-	*input = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
+	*input = (xmi_input *) g_malloc(sizeof(xmi_input));
 
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
@@ -1889,7 +1889,7 @@ int xmi_read_input_xml_from_string(const char *xmlstring, struct xmi_input **inp
 
 }
 #ifndef QUICKLOOK
-int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_input *input, char *name, int interaction,
+int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input, char *name, int interaction,
 double *channels, double maximum2, GError **error) {
 
 	double minimum;
@@ -2033,12 +2033,12 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 }
 #endif
 
-int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError **error) {
+int xmi_read_output_xml(const char *xmsofile, xmi_output **output, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	struct xmi_output *op = g_malloc(sizeof(struct xmi_output));
+	xmi_output *op = g_malloc(sizeof(xmi_output));
 
 	LIBXML_TEST_VERSION
 
@@ -2089,7 +2089,7 @@ int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError
 	return 1;
 }
 
-int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_input *input, GError **error) {
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_input *input, GError **error) {
 	xmlNodePtr subroot = xmlFirstElementChild(root);
 
 	while (subroot != NULL) {
@@ -2160,7 +2160,7 @@ int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node, GError **err
 }
 #endif
 
-int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *op, int *step1, int *step2, GError **error) {
+int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int *step1, int *step2, GError **error) {
 	xmlNodePtr subroot;
 	xmlChar *txt;
 
@@ -2224,7 +2224,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 		return 0;
 	}
 
-	op->input = (struct xmi_input *) g_malloc(sizeof(struct xmi_input));
+	op->input = (xmi_input *) g_malloc(sizeof(xmi_input));
 
 	if (xmi_read_input_xml_body(doc, xpathObj->nodesetval->nodeTab[0], op->input, error) == 0)
 		return 0;
@@ -2291,12 +2291,12 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, struct xmi_output *
 	return 1;
 }
 
-int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GError **error) {
+int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	struct xmi_archive *ar = g_malloc(sizeof(struct xmi_archive));
+	xmi_archive *ar = g_malloc(sizeof(xmi_archive));
 	int step1, step2;
 	int files_read = 0;
 
@@ -2394,8 +2394,8 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			}
 			xmlFree(txt);
 			//allocate memory
-			ar->output = g_malloc(sizeof(struct xmi_output**)*(ar->nsteps1+1));
-			ar->input = g_malloc(sizeof(struct xmi_input**)*(ar->nsteps1+1));
+			ar->output = g_malloc(sizeof(xmi_output**)*(ar->nsteps1+1));
+			ar->input = g_malloc(sizeof(xmi_input**)*(ar->nsteps1+1));
 			ar->inputfiles = g_malloc(sizeof(char**)*(ar->nsteps1+1));
 			ar->outputfiles = g_malloc(sizeof(char**)*(ar->nsteps1+1));
 		}
@@ -2470,15 +2470,15 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
-			struct xmi_output *output = g_malloc(sizeof(struct xmi_output));
+			xmi_output *output = g_malloc(sizeof(xmi_output));
 			step1 = step2 = 0;
 			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2, error) == 0) {
 				return 0;
 			}
 			output->outputfile = g_strdup(output->input->general->outputfile);
 			if (step2 == 0) {
-				ar->output[step1] = g_malloc(sizeof(struct xmi_output*)*(ar->nsteps2+1));
-				ar->input[step1] = g_malloc(sizeof(struct xmi_input*)*(ar->nsteps2+1));
+				ar->output[step1] = g_malloc(sizeof(xmi_output*)*(ar->nsteps2+1));
+				ar->input[step1] = g_malloc(sizeof(xmi_input*)*(ar->nsteps2+1));
 				ar->inputfiles[step1] = g_malloc(sizeof(char*)*(ar->nsteps2+1));
 				ar->outputfiles[step1] = g_malloc(sizeof(char*)*(ar->nsteps2+1));
 			}
@@ -2507,7 +2507,7 @@ int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GEr
 }
 
 #ifndef QUICKLOOK
-int xmi_write_archive_xml(const char *xmlfile, struct xmi_archive *archive, GError **error) {
+int xmi_write_archive_xml(const char *xmlfile, xmi_archive *archive, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -2569,7 +2569,7 @@ int xmi_write_archive_xml(const char *xmlfile, struct xmi_archive *archive, GErr
 	return 1;
 }
 
-int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, struct xmi_layer *layers, int n_layers, GError **error) {
+int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_layer *layers, int n_layers, GError **error) {
 	xmlNodePtr nodePtr1, nodePtr2;
 	int i, j;
 
@@ -2627,7 +2627,7 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 	double diff;
 
-	diff = ((struct xmi_energy_discrete *)a)->energy - ((struct xmi_energy_discrete *)b)->energy;
+	diff = ((xmi_energy_discrete *)a)->energy - ((xmi_energy_discrete *)b)->energy;
 
 	if (diff > 0.000000001)
 		return 1;
@@ -2639,7 +2639,7 @@ int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b) {
 int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	double diff;
 
-	diff = ((struct xmi_energy_continuous *)a)->energy - ((struct xmi_energy_continuous *)b)->energy;
+	diff = ((xmi_energy_continuous *)a)->energy - ((xmi_energy_continuous *)b)->energy;
 
 	if (diff > 0.000000001)
 		return 1;

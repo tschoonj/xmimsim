@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   //init test
   g_assert(test_init() == 1);
 
-  struct xmi_geometry geom;
+  xmi_geometry geom;
   geom.slit_size_x = 0.1;
   geom.slit_size_y = 100.0;
   geom.d_source_slit = 5.0;

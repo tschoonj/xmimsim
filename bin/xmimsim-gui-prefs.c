@@ -466,7 +466,7 @@ gchar **xmimsim_gui_get_user_defined_layer_names(void) {
 	return layer_names;
 }
 
-struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
+xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
 
@@ -529,7 +529,7 @@ struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name) {
 		return NULL;
 	}
 
-	struct xmi_layer *layer = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+	xmi_layer *layer = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 	//fill her up
 	layer->n_elements = (int) Zlen;
 	layer->Z = (int *) xmi_memdup(Z, sizeof(int)*Zlen);
@@ -574,7 +574,7 @@ int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name) {
 	return 1;
 }
 
-int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name) {
+int xmimsim_gui_add_user_defined_layer(xmi_layer *layer, const gchar *layer_name) {
 	gchar *ini_file = xmimsim_gui_get_user_defined_layer_filename();
 	GKeyFile *keyfile;
 

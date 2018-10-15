@@ -8,8 +8,8 @@
 
 
 int main(int argc, char *argv[]) {
-	struct xmi_archive *archive = NULL;
-	struct xmi_archive *archive_copy = NULL;
+	xmi_archive *archive = NULL;
+	xmi_archive *archive_copy = NULL;
 	int i,j;
 
 	//init test
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			struct xmi_output *output_copy = NULL;
+			xmi_output *output_copy = NULL;
 			xmi_copy_output(archive->output[i][j], &output_copy);
 			g_assert(xmi_validate_input(output_copy->input) == 0);
 			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			struct xmi_output *output_copy = NULL;
+			xmi_output *output_copy = NULL;
 			xmi_copy_output(archive->output[i][j], &output_copy);
 			g_assert(xmi_validate_input(output_copy->input) == 0);
 			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);

@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <string.h>
 
-struct xmi_ebel_parameters {
+typedef struct {
 	double tube_voltage;
 	double tube_current;
 	double tube_solid_angle;
@@ -46,7 +46,7 @@ struct xmi_ebel_parameters {
 	double filter_thickness;
 	gboolean transmission_tube;
 	gchar *transmission_efficiency_file;
-};
+} xmi_ebel_parameters;
 
 XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
@@ -89,8 +89,8 @@ static void xmi_msim_gui_source_tube_ebel_class_init(XmiMsimGuiSourceTubeEbelCla
 	parent_klass->save_parameters = xmi_msim_gui_source_tube_ebel_real_save_parameters;
 }
 
-static struct xmi_ebel_parameters* read_parameters_from_source(XmiMsimGuiSourceTubeEbel *source, GError **error) {
-	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
+static xmi_ebel_parameters* read_parameters_from_source(XmiMsimGuiSourceTubeEbel *source, GError **error) {
+	xmi_ebel_parameters *xep = (xmi_ebel_parameters *) g_malloc(sizeof(xmi_ebel_parameters));
 
 	xep->tube_voltage = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->tubeVoltageW));
 	xep->tube_current = gtk_spin_button_get_value(GTK_SPIN_BUTTON(source->tubeCurrentW));
@@ -174,7 +174,7 @@ static struct xmi_ebel_parameters* read_parameters_from_source(XmiMsimGuiSourceT
 	return xep;
 }
 
-static void write_parameters_to_source(XmiMsimGuiSourceTubeEbel *source, struct xmi_ebel_parameters *xep) {
+static void write_parameters_to_source(XmiMsimGuiSourceTubeEbel *source, xmi_ebel_parameters *xep) {
 	gchar *buf;
 
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(source->tubeVoltageW), xep->tube_voltage);
@@ -225,7 +225,7 @@ static void write_parameters_to_source(XmiMsimGuiSourceTubeEbel *source, struct 
 	}
 }
 
-static void write_parameters_to_file(struct xmi_ebel_parameters *xep, gchar *filename, GError **error) {
+static void write_parameters_to_file(xmi_ebel_parameters *xep, gchar *filename, GError **error) {
 	gchar *prefs_file = NULL;
 	GKeyFile *keyfile;
 
@@ -273,8 +273,8 @@ static void write_parameters_to_file(struct xmi_ebel_parameters *xep, gchar *fil
 	return;
 } 
 
-static struct xmi_ebel_parameters* read_parameters_from_file(gchar *filename, GError **error) {
-	struct xmi_ebel_parameters *xep = (struct xmi_ebel_parameters *) g_malloc(sizeof(struct xmi_ebel_parameters));
+static xmi_ebel_parameters* read_parameters_from_file(gchar *filename, GError **error) {
+	xmi_ebel_parameters *xep = (xmi_ebel_parameters *) g_malloc(sizeof(xmi_ebel_parameters));
 
 	gchar *prefs_file = NULL;
 	GKeyFile *keyfile;
@@ -679,7 +679,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_widget_show_all(hbox);
 
 	// load the preferences
-	struct xmi_ebel_parameters *xep = read_parameters_from_file(NULL, NULL);
+	xmi_ebel_parameters *xep = read_parameters_from_file(NULL, NULL);
 	
 	write_parameters_to_source(source, xep);
 
@@ -725,8 +725,8 @@ static void transmission_clicked_cb(XmiMsimGuiSourceTubeEbel *source, GtkToggleB
 	return;
 }
 
-static struct xmi_layer* create_layer(int Z, double rho, double thickness) {
-	struct xmi_layer* rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+static xmi_layer* create_layer(int Z, double rho, double thickness) {
+	xmi_layer* rv = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 	rv->n_elements = 1;
 	rv->Z = (int *) g_malloc(sizeof(int));
 	rv->Z[0] = Z;
@@ -742,7 +742,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	GError *error = NULL;
 
 	// read the parameters
-	struct xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), &error);
+	xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), &error);
 
 	if (xep == NULL) {
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
@@ -778,10 +778,10 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 		}
 	}
 
-	struct xmi_excitation* excitation_tube = NULL;
-	struct xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
-	struct xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
-	struct xmi_layer *filter = xep->filter_thickness > 0 && xep->filter_rho > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
+	xmi_excitation* excitation_tube = NULL;
+	xmi_layer *anode = create_layer(xep->anode_Z, xep->anode_rho, xep->anode_thickness);
+	xmi_layer *window = xep->window_thickness > 0 && xep->window_rho > 0 ? create_layer(xep->window_Z, xep->window_rho, xep->window_thickness) : NULL;
+	xmi_layer *filter = xep->filter_thickness > 0 && xep->filter_rho > 0 ? create_layer(xep->filter_Z, xep->filter_rho, xep->filter_thickness) : NULL;
 
 	// prepare arguments for the fortran function call
 	int ebel_rv = xmi_tube_ebel(anode, window, filter, xep->tube_voltage, xep->tube_current, xep->alpha_electron, xep->alpha_xray, xep->interval_width, xep->tube_solid_angle, xep->transmission_tube, nefficiencies, energies, efficiencies, &excitation_tube);
@@ -811,9 +811,9 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 
 	// investigate the intensities and remove those whose intensity is really, really low...
 	// for discrete energies: delete all less than 
-	struct xmi_excitation* excitation_tube_def = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
-	GArray *discrete_def = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_discrete));
-	GArray *continuous_def = g_array_new(FALSE, FALSE, sizeof(struct xmi_energy_continuous));
+	xmi_excitation* excitation_tube_def = (xmi_excitation *) g_malloc(sizeof(xmi_excitation));
+	GArray *discrete_def = g_array_new(FALSE, FALSE, sizeof(xmi_energy_discrete));
+	GArray *continuous_def = g_array_new(FALSE, FALSE, sizeof(xmi_energy_continuous));
 
 	int i, j;
 	for (i = 0 ; i < excitation_tube->n_discrete ; i++) {
@@ -838,8 +838,8 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 
 	excitation_tube_def->n_discrete = discrete_def->len;
 	excitation_tube_def->n_continuous = continuous_def->len;
-	excitation_tube_def->discrete = (struct xmi_energy_discrete *) g_array_free(discrete_def, FALSE);
-	excitation_tube_def->continuous = (struct xmi_energy_continuous *) g_array_free(continuous_def, FALSE);
+	excitation_tube_def->discrete = (xmi_energy_discrete *) g_array_free(discrete_def, FALSE);
+	excitation_tube_def->continuous = (xmi_energy_continuous *) g_array_free(continuous_def, FALSE);
 
 	xmi_free_excitation(excitation_tube);
 
@@ -928,7 +928,7 @@ static void xmi_msim_gui_source_tube_ebel_dispose(GObject *object) {
 	if (source->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
-		struct xmi_ebel_parameters *xep = read_parameters_from_source(source, NULL);
+		xmi_ebel_parameters *xep = read_parameters_from_source(source, NULL);
 		if (xep != NULL) {
 			write_parameters_to_file(xep, NULL, NULL);
 			g_free(xep->transmission_efficiency_file);
@@ -953,7 +953,7 @@ static void xmi_msim_gui_source_tube_ebel_class_finalize(XmiMsimGuiSourceTubeEbe
 }
 
 static gboolean xmi_msim_gui_source_tube_ebel_real_save_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
-	struct xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), error);
+	xmi_ebel_parameters *xep = read_parameters_from_source(XMI_MSIM_GUI_SOURCE_TUBE_EBEL(source), error);
 
 	if (xep == NULL) {
 		return FALSE;
@@ -968,7 +968,7 @@ static gboolean xmi_msim_gui_source_tube_ebel_real_save_parameters(XmiMsimGuiSou
 }
 
 static gboolean xmi_msim_gui_source_tube_ebel_real_load_parameters(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
-	struct xmi_ebel_parameters *xep = read_parameters_from_file((gchar *) filename, error);
+	xmi_ebel_parameters *xep = read_parameters_from_file((gchar *) filename, error);
 
 	if (xep == NULL) {
 		return FALSE;

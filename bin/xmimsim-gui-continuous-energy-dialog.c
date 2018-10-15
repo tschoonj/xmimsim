@@ -334,7 +334,7 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiContinuousEnergyDia
 
 }
 
-void xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog, const struct xmi_energy_continuous *continuous_energy) {
+void xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog, const xmi_energy_continuous *continuous_energy) {
   gchar *buffer = g_strdup_printf("%g", continuous_energy->energy);
   gtk_entry_set_text(GTK_ENTRY(dialog->energy_entry), buffer);
   g_free(buffer);
@@ -364,8 +364,8 @@ void xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XmiMsimGuiConti
   g_free(buffer);
 }
 
-struct xmi_energy_continuous* xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog) {
-  struct xmi_energy_continuous *rv = (struct xmi_energy_continuous *) g_malloc(sizeof(struct xmi_energy_continuous));
+xmi_energy_continuous* xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog) {
+  xmi_energy_continuous *rv = (xmi_energy_continuous *) g_malloc(sizeof(xmi_energy_continuous));
   rv->energy = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->energy_entry)), NULL);
   rv->horizontal_intensity = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->hor_intensity_entry)), NULL);
   rv->vertical_intensity = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->ver_intensity_entry)), NULL);

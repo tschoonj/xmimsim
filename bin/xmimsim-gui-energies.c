@@ -49,11 +49,11 @@ struct energyWidget {
 	GtkWidget *tree;
 };
 
-static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xmi_energy_discrete **energies, unsigned int start_line, unsigned int nlines);
-static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct xmi_energy_continuous **energies, unsigned int start_line, unsigned int nlines);
+static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, xmi_energy_discrete **energies, unsigned int start_line, unsigned int nlines);
+static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, xmi_energy_continuous **energies, unsigned int start_line, unsigned int nlines);
 
 
-void repopulate_discrete_energies(GtkListStore *store, struct xmi_excitation *excitation) {
+void repopulate_discrete_energies(GtkListStore *store, xmi_excitation *excitation) {
 	GtkTreeIter iter;
 	int i;
 
@@ -74,7 +74,7 @@ void repopulate_discrete_energies(GtkListStore *store, struct xmi_excitation *ex
 	}
 }
 
-void repopulate_continuous_energies(GtkListStore *store, struct xmi_excitation *excitation) {
+void repopulate_continuous_energies(GtkListStore *store, xmi_excitation *excitation) {
 	GtkTreeIter iter;
 	int i;
 
@@ -404,7 +404,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 				if (kind == DISCRETE) {
 					if (current->xi->excitation->n_discrete > 0) {
 						for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
-							if (bsearch(eui->energy_disc+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+							if (bsearch(eui->energy_disc+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 								gtk_widget_destroy(dialog);
 								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 								gtk_dialog_run(GTK_DIALOG(dialog));
@@ -418,7 +418,7 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 				else if (kind == CONTINUOUS) {
 					if (current->xi->excitation->n_continuous > 0) {
 						for (i = 0 ; i < current->xi->excitation->n_continuous ; i++) {
-							if (bsearch(eui->energy_cont+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+							if (bsearch(eui->energy_cont+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 								gtk_widget_destroy(dialog);
 								dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 								gtk_dialog_run(GTK_DIALOG(dialog));
@@ -445,13 +445,13 @@ static void import_button_clicked_cb(GtkWidget *widget, struct energyWidget *eb)
 				return;
 			}
 			if (kind == DISCRETE) {
-				struct xmi_excitation exc;
+				xmi_excitation exc;
 				exc.n_discrete = eui->n_energy_disc;
 				exc.discrete = eui->energy_disc;
 				repopulate_discrete_energies(eb->store, &exc);
 			}
 			else if (kind == CONTINUOUS) {
-				struct xmi_excitation exc;
+				xmi_excitation exc;
 				exc.n_continuous = eui->n_energy_cont;
 				exc.continuous = eui->energy_cont;
 				repopulate_continuous_energies(eb->store, &exc);
@@ -587,7 +587,7 @@ static void energy_add_button_clicked_cb(GtkWidget *widget, struct energyWidget 
 		if (kind == DISCRETE) {
 			eui->energy_disc = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (current->xi->excitation->n_discrete > 0 && bsearch(eui->energy_disc, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+			if (current->xi->excitation->n_discrete > 0 && bsearch(eui->energy_disc, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -600,7 +600,7 @@ static void energy_add_button_clicked_cb(GtkWidget *widget, struct energyWidget 
 		else if (kind == CONTINUOUS) {
 			eui->energy_cont = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (current->xi->excitation->n_continuous > 0 && bsearch(eui->energy_cont, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			if (current->xi->excitation->n_continuous > 0 && bsearch(eui->energy_cont, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy interval: the energy already exists in the list of intervals.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -644,7 +644,7 @@ static void energy_edit_button_clicked_cb(GtkWidget *widget, struct energyWidget
 		if (kind == DISCRETE) {
 			eui->energy_disc = xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (xmi_cmp_struct_xmi_energy_discrete(&current->xi->excitation->discrete[selected_index], eui->energy_disc) != 0 && bsearch(eui->energy_disc, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+			if (xmi_cmp_struct_xmi_energy_discrete(&current->xi->excitation->discrete[selected_index], eui->energy_disc) != 0 && bsearch(eui->energy_disc, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not modify energy line: the energy already exists in the list of lines.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -657,7 +657,7 @@ static void energy_edit_button_clicked_cb(GtkWidget *widget, struct energyWidget
 		else if (kind == CONTINUOUS) {
 			eui->energy_cont = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
 			//check if the energy is not present already
-			if (xmi_cmp_struct_xmi_energy_continuous(&current->xi->excitation->continuous[selected_index], eui->energy_cont) != 0 && bsearch(eui->energy_cont, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+			if (xmi_cmp_struct_xmi_energy_continuous(&current->xi->excitation->continuous[selected_index], eui->energy_cont) != 0 && bsearch(eui->energy_cont, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 				GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy interval: the energy already exists in the list of intervals.");
 				gtk_dialog_run(GTK_DIALOG(error_dialog));
 				gtk_widget_destroy(error_dialog);
@@ -765,12 +765,12 @@ static struct energiesWidget *initialize_single_energies(void *energies, int n_e
 	GtkWidget *scaleButton;
 	int i;
 
-	struct xmi_energy_discrete *energies_d;
-	struct xmi_energy_continuous *energies_c;
+	xmi_energy_discrete *energies_d;
+	xmi_energy_continuous *energies_c;
 	if (kind == DISCRETE)
-		energies_d = (struct xmi_energy_discrete *) energies;
+		energies_d = (xmi_energy_discrete *) energies;
 	else
-		energies_c = (struct xmi_energy_continuous *) energies;
+		energies_c = (xmi_energy_continuous *) energies;
 
 	struct energiesWidget *rv;
 	struct energyWidget *eb;
@@ -1011,7 +1011,7 @@ static struct energiesWidget *initialize_single_energies(void *energies, int n_e
 	return rv;
 }
 
-GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *main_window, struct energiesWidget **discWidget, struct energiesWidget **contWidget) {
+GtkWidget *initialize_energies(xmi_excitation *excitation, GtkWidget *main_window, struct energiesWidget **discWidget, struct energiesWidget **contWidget) {
 	GtkWidget *mainvbox;
 	GtkWidget *separator;
 
@@ -1032,9 +1032,9 @@ GtkWidget *initialize_energies(struct xmi_excitation *excitation, GtkWidget *mai
 }
 
 
-static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xmi_energy_discrete **energies, unsigned int start_line, unsigned int nlines) {
+static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, xmi_energy_discrete **energies, unsigned int start_line, unsigned int nlines) {
 	FILE *fp;
-	struct xmi_energy_discrete *xe = NULL;
+	xmi_energy_discrete *xe = NULL;
 #ifdef G_OS_WIN32
 	unsigned int nxe = 0;
 #else
@@ -1057,7 +1057,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 	double sigma_y;
 	double sigma_xp;
 	double sigma_yp;
-	struct xmi_energy_discrete temp;
+	xmi_energy_discrete temp;
 	unsigned int lines_read = 0;
 
 
@@ -1108,19 +1108,19 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 		if (nlines == nxe)
 			break;
 		if (nxe == 0) {
-			xe = (struct xmi_energy_discrete *) g_realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
+			xe = (xmi_energy_discrete *) g_realloc(xe, sizeof(xmi_energy_discrete) * ++nxe);
 			xe[0] = temp;
 		}
 		else {
 			//make sure the value was not already in the list
-			struct xmi_energy_discrete *find_res;
+			xmi_energy_discrete *find_res;
 #ifdef G_OS_WIN32
-			if((find_res = (struct xmi_energy_discrete *) _lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
+			if((find_res = (xmi_energy_discrete *) _lfind(&temp, xe, &nxe, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
 #else
-			if((find_res = (struct xmi_energy_discrete *) lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
+			if((find_res = (xmi_energy_discrete *) lfind(&temp, xe, &nxe, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete)) == NULL)
 #endif
 				{
-				xe = (struct xmi_energy_discrete *) g_realloc(xe, sizeof(struct xmi_energy_discrete) * ++nxe);
+				xe = (xmi_energy_discrete *) g_realloc(xe, sizeof(xmi_energy_discrete) * ++nxe);
 				xe[nxe-1] = temp;
 			}
 			else  {
@@ -1142,7 +1142,7 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 
 	//sort
 	if (nxe > 1) {
-		qsort(xe, nxe, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+		qsort(xe, nxe, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 	}
 
 	*energies = xe;
@@ -1151,9 +1151,9 @@ static int xmi_read_energies_from_ascii_file_discrete(gchar *filename, struct xm
 }
 
 
-static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct xmi_energy_continuous **energies, unsigned int start_line, unsigned int nlines) {
+static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, xmi_energy_continuous **energies, unsigned int start_line, unsigned int nlines) {
 	FILE *fp;
-	struct xmi_energy_continuous *xe = NULL;
+	xmi_energy_continuous *xe = NULL;
 #ifdef G_OS_WIN32
 	unsigned int nxe = 0;
 #else
@@ -1176,7 +1176,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 	double sigma_y;
 	double sigma_xp;
 	double sigma_yp;
-	struct xmi_energy_continuous temp;
+	xmi_energy_continuous temp;
 	unsigned int lines_read = 0;
 
 
@@ -1227,18 +1227,18 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 			break;
 
 		if (nxe == 0) {
-			xe = (struct xmi_energy_continuous *) g_realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
+			xe = (xmi_energy_continuous *) g_realloc(xe, sizeof(xmi_energy_continuous) * ++nxe);
 			xe[0] = temp;
 		}
 		else {
 			//make sure the value was not already in the list
 #ifdef G_OS_WIN32
-			if(_lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL)
+			if(_lfind(&temp, xe, &nxe, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL)
 #else
-			if(lfind(&temp, xe, &nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL)
+			if(lfind(&temp, xe, &nxe, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) == NULL)
 #endif
 				{
-				xe = (struct xmi_energy_continuous *) g_realloc(xe, sizeof(struct xmi_energy_continuous) * ++nxe);
+				xe = (xmi_energy_continuous *) g_realloc(xe, sizeof(xmi_energy_continuous) * ++nxe);
 				xe[nxe-1] = temp;
 			}
 			else  {
@@ -1258,7 +1258,7 @@ static int xmi_read_energies_from_ascii_file_continuous(gchar *filename, struct 
 
 	//sort
 	if (nxe > 1) {
-		qsort(xe, nxe, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+		qsort(xe, nxe, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 	}
 
 	if (nxe > 2) {

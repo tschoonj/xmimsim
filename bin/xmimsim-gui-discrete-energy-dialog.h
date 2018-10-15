@@ -75,8 +75,8 @@ GType xmi_msim_gui_discrete_energy_dialog_get_type(void) G_GNUC_CONST;
 
 GtkWidget *xmi_msim_gui_discrete_energy_dialog_new(GtkWindow *parent, XmiMsimGuiDiscreteEnergyDialogType type);
 
-void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog, const struct xmi_energy_discrete *discrete_energy);
-struct xmi_energy_discrete* xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog);
+void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog, const xmi_energy_discrete *discrete_energy);
+xmi_energy_discrete* xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog);
 
 G_END_DECLS
 #endif

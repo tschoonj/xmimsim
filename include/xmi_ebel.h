@@ -23,13 +23,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-int xmi_tube_ebel(struct xmi_layer *tube_anode, struct xmi_layer *tube_window,
-		  struct xmi_layer *tube_filter, double tube_voltage,
+int xmi_tube_ebel(xmi_layer *tube_anode, xmi_layer *tube_window,
+		  xmi_layer *tube_filter, double tube_voltage,
 		  double tube_current, double tube_angle_electron,
 		  double tube_angle_xray, double tube_delta_energy,
 		  double tube_solid_angle, int tube_transmission,
 		  size_t tube_nefficiencies, double *tube_energies, double *tube_efficiencies,
-		  struct xmi_excitation **ebel_spectrum
+		  xmi_excitation **ebel_spectrum
 		  );
 
 #ifdef __cplusplus

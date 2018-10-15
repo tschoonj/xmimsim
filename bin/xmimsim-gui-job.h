@@ -37,7 +37,7 @@ typedef struct _XmiMsimGuiJobClass   	XmiMsimGuiJobClass;
 XmiMsimGuiJob* xmi_msim_gui_job_new(
 	const gchar *xmi_msim_executable,
 	const gchar *xmsifile,
-	struct xmi_main_options *options,
+	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
 	const gchar *svg_conv,

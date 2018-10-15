@@ -71,7 +71,7 @@ int *xmi_sort_idl_int(int *array,int n_elements) {
 	return rv;
 }
 
-struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
+struct compoundData *xmi_layer2compoundData(xmi_layer *xl) {
 	struct compoundData *rv;
 
 	rv = (struct compoundData *) g_malloc(sizeof(struct compoundData));
@@ -91,10 +91,10 @@ struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl) {
 	return rv;
 }
 
-struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
-	struct xmi_layer *rv;
+xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
+	xmi_layer *rv;
 
-	rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+	rv = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 
 		rv->n_elements = cd->nElements;
 		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
@@ -102,10 +102,10 @@ struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd) {
 		rv->density = cd->density;
 	return rv;
 }
-struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
-	struct xmi_layer *rv;
+xmi_layer *compoundData2xmi_layer( struct compoundData *cd) {
+	xmi_layer *rv;
 
-	rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+	rv = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 
 		rv->n_elements = cd->nElements;
 		rv->Z = (int *) xmi_memdup(cd->Elements, sizeof(int)*cd->nElements);
@@ -285,7 +285,7 @@ struct copy_hdf5_data {
 	char *file_to;
 	char **groups;
 	int force;
-	struct xmi_input *temp_input;
+	xmi_input *temp_input;
 	int ncopied;
 };
 
@@ -314,7 +314,7 @@ static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5
 	H5Dclose(dset_id);
 	H5Gclose(group_id);
 
-	struct xmi_input *temp_input;
+	xmi_input *temp_input;
 
 	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
 		return -1;
@@ -386,7 +386,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 	H5Dclose(dset_id);
 	H5Gclose(group_id);
 
-	struct xmi_input *temp_input;
+	xmi_input *temp_input;
 
 	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
 		return -1;

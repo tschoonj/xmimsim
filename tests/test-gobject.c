@@ -6,22 +6,22 @@
 #include <unistd.h>
 
 typedef struct {
-	struct xmi_composition *composition;
+	xmi_composition *composition;
 } SetupDataComposition;
 
 typedef struct {
-	struct xmi_excitation *excitation;
+	xmi_excitation *excitation;
 } SetupDataExcitation;
 
 typedef struct {
-	struct xmi_input *input;
+	xmi_input *input;
 } SetupDataInput;
 
 typedef struct {
-	struct xmi_archive *archive;
+	xmi_archive *archive;
 } SetupDataArchive;
 
-static gboolean composition_equal(struct xmi_composition *A, struct xmi_composition *B) {
+static gboolean composition_equal(xmi_composition *A, xmi_composition *B) {
 	int i, j;
 
 	if (A->n_layers != B->n_layers) {
@@ -56,7 +56,7 @@ static gboolean composition_equal(struct xmi_composition *A, struct xmi_composit
 	return TRUE;
 }
 
-static gboolean excitation_equal(struct xmi_excitation *A, struct xmi_excitation *B) {
+static gboolean excitation_equal(xmi_excitation *A, xmi_excitation *B) {
 	int i, j;
 #define XMI_IF_COMPARE_EXCITATION_DISCRETE(a) if (fabs(A->discrete[i].a-B->discrete[i].a)/A->discrete[i].a > XMI_COMPARE_THRESHOLD) {\
 					return FALSE;\
@@ -107,10 +107,10 @@ static gboolean excitation_equal(struct xmi_excitation *A, struct xmi_excitation
 }
 
 static void setup_data_composition(SetupDataComposition *data, gconstpointer user_data) {
-	data->composition = g_malloc(sizeof(struct xmi_composition));
+	data->composition = g_malloc(sizeof(xmi_composition));
 	data->composition->reference_layer = 1;
 	data->composition->n_layers = 1;
-	data->composition->layers = g_malloc(sizeof(struct xmi_layer));
+	data->composition->layers = g_malloc(sizeof(xmi_layer));
 	data->composition->layers[0].n_elements = 2;
 	data->composition->layers[0].Z = g_malloc(sizeof(int) * 2);
 	data->composition->layers[0].weight = g_malloc(sizeof(double) * 2);
@@ -123,11 +123,11 @@ static void setup_data_composition(SetupDataComposition *data, gconstpointer use
 }
 
 static void setup_data_excitation(SetupDataExcitation *data, gconstpointer user_data) {
-	data->excitation = g_malloc(sizeof(struct xmi_excitation));
+	data->excitation = g_malloc(sizeof(xmi_excitation));
 	data->excitation->n_discrete = 1;
 	data->excitation->n_continuous = 0;
 	data->excitation->continuous = NULL;
-	data->excitation->discrete = g_malloc(sizeof(struct xmi_energy_discrete));
+	data->excitation->discrete = g_malloc(sizeof(xmi_energy_discrete));
 	data->excitation->discrete[0].energy = 28.0;
 	data->excitation->discrete[0].horizontal_intensity= 1E12;
 	data->excitation->discrete[0].vertical_intensity= 1E9;

@@ -26,13 +26,13 @@ extern "C" {
 
 #include <stddef.h>
 
-struct xmi_cubic_spline;
+typedef struct _xmi_cubic_spline xmi_cubic_spline;
 
-struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n);
+xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n);
 
-void xmi_cubic_spline_free(struct xmi_cubic_spline *spline);
+void xmi_cubic_spline_free(xmi_cubic_spline *spline);
 
-double xmi_cubic_spline_eval(struct xmi_cubic_spline *spline, double x);
+double xmi_cubic_spline_eval(xmi_cubic_spline *spline, double x);
 
 #ifdef __cplusplus
 }

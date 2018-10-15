@@ -496,7 +496,7 @@ static void start_job(struct undo_single *xmimsim_struct, GtkWidget *window) {
 	else
 		g_timer_start(timer);
 
-	struct xmi_main_options *options = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(options_boxW)); 
+	xmi_main_options *options = xmi_msim_gui_options_box_get_options(XMI_MSIM_GUI_OPTIONS_BOX(options_boxW)); 
 
 	argv = g_ptr_array_new_full(10, g_free);
 	g_ptr_array_add(argv, g_strdup(gtk_entry_get_text(GTK_ENTRY(executableW))));

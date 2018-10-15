@@ -99,7 +99,7 @@ extern "C" struct _XmiMsimGuiXmsaViewerWindow {
 	double *x;
 	double *y;
 	double *z;
-	struct xmi_archive *archive;
+	xmi_archive *archive;
 };
 
 extern "C" struct _XmiMsimGuiXmsaViewerWindowClass {
@@ -150,7 +150,7 @@ static void xmi_msim_gui_xmsa_viewer_window_class_init(XmiMsimGuiXmsaViewerWindo
 	);
 }
 
-static GPtrArray* get_fluor_data(struct xmi_archive *archive) {
+static GPtrArray* get_fluor_data(xmi_archive *archive) {
 
 	gboolean found;
 	unsigned int loc = 0;
@@ -924,7 +924,7 @@ static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *sel
 	g_action_map_add_action_entries(G_ACTION_MAP(self), win_entries, G_N_ELEMENTS(win_entries), self);
 }
 
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, struct xmi_archive *archive) {
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, xmi_archive *archive) {
 	g_return_val_if_fail(archive != NULL, NULL);
 
 	XmiMsimGuiXmsaViewerWindow *rv = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(
@@ -948,7 +948,7 @@ static void xmi_msim_gui_xmsa_viewer_window_set_property(GObject *object, guint 
 
   switch (prop_id) {
     case 1:
-      window->archive =  (struct xmi_archive *) g_value_get_pointer(value);
+      window->archive =  (xmi_archive *) g_value_get_pointer(value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1007,11 +1007,11 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 	}
 	else {
 		//XRF mode
-		struct xmi_fluorescence_line_counts **history = NULL;
+		xmi_fluorescence_line_counts **history = NULL;
 		int *nhistory = NULL;
 
 		nhistory = (int *) g_malloc(sizeof(int)*(self->archive->nsteps1+1));
-		history = (struct xmi_fluorescence_line_counts **) g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(self->archive->nsteps1+1));
+		history = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(self->archive->nsteps1+1));
 
 		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
 			if (self->archive->output[i][0]->nvar_red_history > 0) {
@@ -1253,15 +1253,15 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 	}
 	else {
 		//XRF mode
-		struct xmi_fluorescence_line_counts ***history = NULL;
+		xmi_fluorescence_line_counts ***history = NULL;
 		int **nhistory = NULL;
 
 		nhistory = (int **) g_malloc(sizeof(int*)*(self->archive->nsteps1+1));
-		history = (struct xmi_fluorescence_line_counts ***) g_malloc(sizeof(struct xmi_fluorescence_line_counts **)*(self->archive->nsteps1+1));
+		history = (xmi_fluorescence_line_counts ***) g_malloc(sizeof(xmi_fluorescence_line_counts **)*(self->archive->nsteps1+1));
 
 		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
 			nhistory[i] = (int *) g_malloc(sizeof(int)*(self->archive->nsteps2+1));
-			history[i] = (struct xmi_fluorescence_line_counts **) g_malloc(sizeof(struct xmi_fluorescence_line_counts *)*(self->archive->nsteps2+1));
+			history[i] = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(self->archive->nsteps2+1));
 			for (i2 = 0 ; i2 <= self->archive->nsteps2 ; i2++) {
 				if (self->archive->output[i][i2]->nvar_red_history > 0) {
 					history[i][i2] = self->archive->output[i][i2]->var_red_history;

@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #endif
 
-double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry) {
+double xmi_msim_gui_utils_get_solid_angle_from_slits(xmi_geometry *geometry) {
 	//calculate solid angle based on slits
 	double solid_angle = 4.0 * atan(geometry->slit_size_x * geometry->slit_size_y/(2.0*geometry->d_source_slit*sqrt(4.0 * geometry->d_source_slit * geometry->d_source_slit + geometry->slit_size_x * geometry->slit_size_x + geometry->slit_size_y * geometry->slit_size_y)));
 
@@ -39,7 +39,7 @@ double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geomet
 
 static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
 	GError *error = NULL;
-	struct xmi_archive *archive = NULL;
+	xmi_archive *archive = NULL;
 	if (!xmi_read_archive_xml(task_data, &archive, &error)) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
@@ -55,7 +55,7 @@ void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename
 	g_object_unref(task);
 }
 
-struct xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error) {
+xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error) {
 	return g_task_propagate_pointer(G_TASK(result), error);
 }
 
@@ -130,7 +130,7 @@ void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extensio
 	*filename = g_string_free(string, FALSE);
 }
 
-gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer) {
+gchar* xmi_msim_gui_utils_get_layer_element_string(xmi_layer *layer) {
 	GString *rv = g_string_new(NULL);
 	int j;
 

@@ -187,7 +187,7 @@ static void layer_selection_changed_cb (GtkTreeSelection *selection, XmiMsimGuiL
 	update_buttons(self);
 }
 
-static void append_layer(XmiMsimGuiLayerBox *self, struct xmi_layer *layer) {
+static void append_layer(XmiMsimGuiLayerBox *self, xmi_layer *layer) {
 	g_array_append_val(self->layer_array, *layer);
 
 	GtkListStore *store = self->store;
@@ -219,7 +219,7 @@ static void layers_add_button_clicked_cb(GtkWidget *widget, XmiMsimGuiLayerBox *
 	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_ADD);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+		xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
 
 		append_layer(self, layer);
 		g_free(layer);
@@ -243,11 +243,11 @@ static void layers_edit_button_clicked_cb(GtkWidget *widget, XmiMsimGuiLayerBox 
 	gtk_tree_path_free(path);
 
 	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_EDIT);
-	struct xmi_layer *selected_layer = &g_array_index(self->layer_array, struct xmi_layer, selected_index);
+	xmi_layer *selected_layer = &g_array_index(self->layer_array, xmi_layer, selected_index);
 	xmi_msim_gui_layer_dialog_set_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog), selected_layer);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+		xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
 		g_free(selected_layer->Z);
 		g_free(selected_layer->weight);
 		*selected_layer = *layer;
@@ -346,7 +346,7 @@ static gboolean layer_copy_base_cb(XmiMsimGuiLayerBox *self) {
 	GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(self->store), &iter);
 	gint selected_index = gtk_tree_path_get_indices(path)[0];
 	gtk_tree_path_free(path);
-	struct xmi_layer *selected_layer = &g_array_index(self->layer_array, struct xmi_layer, selected_index);
+	xmi_layer *selected_layer = &g_array_index(self->layer_array, xmi_layer, selected_index);
 
 	//create data for clipboard
 	GByteArray *data = g_byte_array_new();
@@ -414,7 +414,7 @@ static void layer_right_click_menu_delete_cb(GtkWidget *widget, XmiMsimGuiLayerB
 static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, XmiMsimGuiLayerBox *self) {
 
 	const guchar *data = gtk_selection_data_get_data(selection_data);
-	struct xmi_layer *clipboard_layer = g_malloc(sizeof(struct xmi_layer));
+	xmi_layer *clipboard_layer = g_malloc(sizeof(xmi_layer));
 	size_t offset = 0;
 	memcpy(&clipboard_layer->n_elements, data + offset, sizeof(int));
 	offset += sizeof(int);
@@ -594,8 +594,8 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 	for (i = 0 ; i < self->layer_array->len ; i++)
 		indices[i] = i;
 
-	struct xmi_layer temp;
-	xmi_copy_layer2(&g_array_index(self->layer_array, struct xmi_layer, selected_index), &temp);
+	xmi_layer temp;
+	xmi_copy_layer2(&g_array_index(self->layer_array, xmi_layer, selected_index), &temp);
 
 	g_array_remove_index(self->layer_array, selected_index);
 	
@@ -699,7 +699,7 @@ static void xmi_msim_gui_layer_box_init(XmiMsimGuiLayerBox *self) {
 		NULL
 	);
 
-	self->layer_array = g_array_new(FALSE, FALSE, sizeof(struct xmi_layer));
+	self->layer_array = g_array_new(FALSE, FALSE, sizeof(xmi_layer));
 	g_array_set_clear_func(self->layer_array, (GDestroyNotify) xmi_free_layer);
 	g_array_ref(self->layer_array);
 	self->reference_layer = -1; // intentionally invalid
@@ -865,19 +865,19 @@ XmiMsimGuiLayerBoxType xmi_msim_gui_layer_box_get_layers_type(XmiMsimGuiLayerBox
 	return self->type;
 }
 
-struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self) {
+xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self) {
 	if (self->layer_array->len == 0) {
 		return NULL;
 	}
 
-	struct xmi_composition *rv = g_malloc(sizeof(struct xmi_composition));
+	xmi_composition *rv = g_malloc(sizeof(xmi_composition));
 	rv->n_layers = self->layer_array->len;
 
-	rv->layers = g_malloc(sizeof(struct xmi_layer) * self->layer_array->len);
+	rv->layers = g_malloc(sizeof(xmi_layer) * self->layer_array->len);
 	unsigned int i;
 
 	for (i = 0 ; i < self->layer_array->len ; i++) {
-		xmi_copy_layer2(&g_array_index(self->layer_array, struct xmi_layer, i), &rv->layers[i]);
+		xmi_copy_layer2(&g_array_index(self->layer_array, xmi_layer, i), &rv->layers[i]);
 	}
 
 	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
@@ -890,7 +890,7 @@ struct xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBo
 	return rv;
 }
 
-void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const struct xmi_composition *composition) {
+void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const xmi_composition *composition) {
 	gtk_list_store_clear(self->store);
 	g_array_ref(self->layer_array);
 	g_array_free(self->layer_array, TRUE);
@@ -904,7 +904,7 @@ void xmi_msim_gui_layer_box_set_composition(XmiMsimGuiLayerBox *self, const stru
 	g_debug("xmi_msim_gui_layer_box_set_composition: self->reference_layer -> %d", self->reference_layer);
 
 	for (i = 0 ; i < composition->n_layers ; i++) {
-		struct xmi_layer layer = composition->layers[i];
+		xmi_layer layer = composition->layers[i];
 		layer.Z = g_memdup(layer.Z, sizeof(int) * layer.n_elements);
 		layer.weight = g_memdup(layer.weight, sizeof(double) * layer.n_elements);
 		g_array_append_val(self->layer_array, layer);
