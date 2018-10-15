@@ -128,7 +128,7 @@ void free_spe_data(struct spe_data *sd) {
 
 extern long hits_per_single;
 
-double CS_Total_Layer(struct xmi_layer *layer, double E) {
+double CS_Total_Layer(xmi_layer *layer, double E) {
 	int i;
 	double rv = 0.0;
 	for (i = 0 ; i < layer->n_elements ; i++) {
@@ -137,13 +137,13 @@ double CS_Total_Layer(struct xmi_layer *layer, double E) {
 	return rv;
 }
 
-double chi(double E0, double E1, struct xmi_layer *layer, double alpha, double beta) {
+double chi(double E0, double E1, xmi_layer *layer, double alpha, double beta) {
 	double mu0 = CS_Total_Layer(layer, E0);
 	double mu1 = CS_Total_Layer(layer, E1);
 	return mu0/sin(alpha) + mu1/sin(beta);
 }
 
-double fpm(struct xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta) {
+double fpm(xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta) {
 	double rv = I0;
 	double theta = atan(sqrt(Adet/M_PI)/D);
 	double Omega = 2.0 * M_PI * (1.0 * cos(theta));
@@ -157,13 +157,13 @@ double fpm(struct xmi_layer *layer, int Z, int line, double w, double E0, double
 	return rv;
 }
 
-struct xmi_output* run_main(const char *compound) {
-	struct xmi_solid_angle *solid_angle_def = NULL;
+xmi_output* run_main(const char *compound) {
+	xmi_solid_angle *solid_angle_def = NULL;
 	double *channels;
 	double *brute_history;
 	double *var_red_history;
 	int i;
-	struct xmi_main_options options = xmi_get_default_main_options();
+	xmi_main_options options = xmi_get_default_main_options();
 	options.use_escape_peaks = 0;
 	options.verbose = 1;
 
@@ -182,7 +182,7 @@ struct xmi_output* run_main(const char *compound) {
 		g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
 
 	// get default input-file
-	struct xmi_input *input = xmi_init_empty_input();
+	xmi_input *input = xmi_init_empty_input();
 	// simulate 1M photons
 	input->general->n_photons_line = 1000000;
 
@@ -190,7 +190,7 @@ struct xmi_output* run_main(const char *compound) {
 	input->general->n_interactions_trajectory = 1;
 
 	// add compound to composition
-	struct xmi_layer *layer = compoundData2xmi_layer(cd);
+	xmi_layer *layer = compoundData2xmi_layer(cd);
 	layer->thickness = 1.0;
 	layer->density = 1.0;
 	input->composition->n_layers = 1;
@@ -239,7 +239,7 @@ struct xmi_output* run_main(const char *compound) {
 	xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_history, var_red_history, options, NULL, input->general->n_interactions_trajectory, 0);
 
 	// convert to xmi_output
-	struct xmi_output *output = xmi_output_raw2struct(input, brute_history, var_red_history, channels_conv, channels, "test.xmso", 0);
+	xmi_output *output = xmi_output_raw2struct(input, brute_history, var_red_history, channels_conv, channels, "test.xmso", 0);
 
 	// cleanup
 	for (i = 1 ; i <= input->general->n_interactions_trajectory ; i++)

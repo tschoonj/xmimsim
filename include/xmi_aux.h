@@ -75,10 +75,10 @@ void xmi_add_val_to_array_double(double *array, int n, double increment);
 //to be used in qsort or bsearch for comparing integers
 int xmi_cmp_int(const void *a, const void *b);
 
-struct compoundData *xmi_layer2compoundData(struct xmi_layer *xl);
+struct compoundData *xmi_layer2compoundData(xmi_layer *xl);
 
-struct xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
-struct xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd);
+xmi_layer *compoundData2xmi_layer( struct compoundData *cd);
+xmi_layer *compoundDataNIST2xmi_layer( struct compoundDataNIST *cd);
 
 int xmi_cmp_struct_xmi_energy_discrete(const void *a, const void *b);
 int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b);

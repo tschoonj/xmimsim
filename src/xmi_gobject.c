@@ -22,14 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // taken more or less from ebassi's graphene-gobject.c
 #define XMI_MSIM_DEFINE_BOXED_TYPE(TypeName, type_name) \
   static gpointer xmi_msim_ ## type_name ## _copy(gpointer boxed) { \
-	struct xmi_ ## type_name *A = boxed; \
-	struct xmi_ ## type_name *B = NULL; \
+	xmi_ ## type_name *A = boxed; \
+	xmi_ ## type_name *B = NULL; \
 	xmi_copy_ ## type_name (A, &B); \
 	return B; \
   } \
   \
   static void xmi_msim_ ## type_name ## _free(gpointer boxed) { \
-	xmi_free_ ## type_name((struct xmi_ ## type_name *) boxed); \
+	xmi_free_ ## type_name((xmi_ ## type_name *) boxed); \
   } \
   GType \
     xmi_msim_ ## type_name ## _get_type (void) \

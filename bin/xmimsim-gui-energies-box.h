@@ -37,10 +37,10 @@ GtkWidget* xmi_msim_gui_energies_box_new(void);
 
 // this method does not emit a signal!!!
 // to be used by X-ray sources dialog and others...
-void xmi_msim_gui_energies_box_set_excitation(XmiMsimGuiEnergiesBox *self, struct xmi_excitation *excitation);
+void xmi_msim_gui_energies_box_set_excitation(XmiMsimGuiEnergiesBox *self, xmi_excitation *excitation);
 
 // to be used by the UndoManager
-struct xmi_excitation* xmi_msim_gui_energies_box_get_excitation(XmiMsimGuiEnergiesBox *self);
+xmi_excitation* xmi_msim_gui_energies_box_get_excitation(XmiMsimGuiEnergiesBox *self);
 
 GType xmi_msim_gui_energies_box_get_type(void) G_GNUC_CONST;
 

@@ -9,10 +9,10 @@
 
 int main(int argc, char *argv[]) {
 	char *xmimsim_hdf5_solid_angles = "xmimsim-solid-angles.h5";
-	struct xmi_input *input;
+	xmi_input *input;
 	xmi_inputFPtr inputFPtr;
-	struct xmi_solid_angle *solid_angle_def = NULL;
-	struct xmi_main_options options;
+	xmi_solid_angle *solid_angle_def = NULL;
+	xmi_main_options options;
 	gchar *xmi_input_string;
 	
 	// set options

@@ -20,24 +20,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <glib.h>
 
-struct xmi_cubic_spline_coeffs {
+typedef struct {
 	double a;
 	double b;
 	double c;
 	double d;
 	double x;
-};
+} xmi_cubic_spline_coeffs;
 
-struct xmi_cubic_spline {
+struct _xmi_cubic_spline {
 	size_t n;
 	double *x;
 	double *y;
-	struct xmi_cubic_spline_coeffs *all_coeffs;
+	xmi_cubic_spline_coeffs *all_coeffs;
 };
 
-struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
+xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 
-	struct xmi_cubic_spline *rv = (struct xmi_cubic_spline *) g_malloc(sizeof(struct xmi_cubic_spline));
+	xmi_cubic_spline *rv = (xmi_cubic_spline *) g_malloc(sizeof(xmi_cubic_spline));
 
 	rv->n = n-1;
 	rv->x = (double *) xmi_memdup(x, sizeof(double) * n);
@@ -86,7 +86,7 @@ struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 		d[j] = (c[j+1]-c[j])/3/h[j];
 	}
 
-	rv->all_coeffs = (struct xmi_cubic_spline_coeffs *) g_malloc(sizeof(struct xmi_cubic_spline_coeffs) * rv->n);
+	rv->all_coeffs = (xmi_cubic_spline_coeffs *) g_malloc(sizeof(xmi_cubic_spline_coeffs) * rv->n);
 
 	for (i = 0 ; i < rv->n ; ++i) {
 		rv->all_coeffs[i].a = a[i];
@@ -109,14 +109,14 @@ struct xmi_cubic_spline *xmi_cubic_spline_init(double *x, double *y, size_t n) {
 	return rv;
 }
 
-void xmi_cubic_spline_free(struct xmi_cubic_spline *spline) {
+void xmi_cubic_spline_free(xmi_cubic_spline *spline) {
 	g_free(spline->x);
 	g_free(spline->y);
 	g_free(spline->all_coeffs);
 	g_free(spline);
 }
 
-double xmi_cubic_spline_eval(struct xmi_cubic_spline *spline, double x) {
+double xmi_cubic_spline_eval(xmi_cubic_spline *spline, double x) {
 	int j;
 	for (j = 0 ; j < spline->n ; j++) {
 		if (spline->all_coeffs[j].x > x) {

@@ -431,7 +431,7 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
 
 }
 
-void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog, const struct xmi_energy_discrete *discrete_energy) {
+void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog, const xmi_energy_discrete *discrete_energy) {
   gchar *buffer = g_strdup_printf("%g", discrete_energy->energy);
   gtk_entry_set_text(GTK_ENTRY(dialog->energy_entry), buffer);
   g_free(buffer);
@@ -468,8 +468,8 @@ void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteE
   }
 }
 
-struct xmi_energy_discrete* xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog) {
-  struct xmi_energy_discrete *rv = (struct xmi_energy_discrete *) g_malloc(sizeof(struct xmi_energy_discrete));
+xmi_energy_discrete* xmi_msim_gui_discrete_energy_dialog_get_discrete_energy(XmiMsimGuiDiscreteEnergyDialog *dialog) {
+  xmi_energy_discrete *rv = (xmi_energy_discrete *) g_malloc(sizeof(xmi_energy_discrete));
   rv->energy = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->energy_entry)), NULL);
   rv->horizontal_intensity = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->hor_intensity_entry)), NULL);
   rv->vertical_intensity = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->ver_intensity_entry)), NULL);

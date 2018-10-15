@@ -33,7 +33,7 @@ G_BEGIN_DECLS
 
 
 struct undo_single {
-	struct xmi_input *xi;
+	xmi_input *xi;
 	gchar *message;
 	int kind;
 	void *widget;

@@ -305,10 +305,10 @@ GtkTargetEntry LayerTE = {(gchar *) "xmi-msim-layer", 0, 0};
  *
  */
 
-struct xmi_composition *compositionS;
-struct xmi_composition *exc_compositionS;
-struct xmi_composition *det_compositionS;
-struct xmi_composition *crystal_compositionS;
+xmi_composition *compositionS;
+xmi_composition *exc_compositionS;
+xmi_composition *det_compositionS;
+xmi_composition *crystal_compositionS;
 
 
 
@@ -400,15 +400,15 @@ struct dialog_helper_xmsa_data {
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data);
 
 
-void reset_undo_buffer(struct xmi_input *xi_new, const char *filename);
-static void change_all_values(struct xmi_input *);
-static void change_all_values_general(struct xmi_input *new_input);
-static void change_all_values_composition(struct xmi_input *new_input);
-static void change_all_values_geometry(struct xmi_input *new_input);
-static void change_all_values_excitation(struct xmi_input *new_input);
-static void change_all_values_beamabsorbers(struct xmi_input *new_input);
-static void change_all_values_detectionabsorbers(struct xmi_input *new_input);
-static void change_all_values_detectorsettings(struct xmi_input *new_input);
+void reset_undo_buffer(xmi_input *xi_new, const char *filename);
+static void change_all_values(xmi_input *);
+static void change_all_values_general(xmi_input *new_input);
+static void change_all_values_composition(xmi_input *new_input);
+static void change_all_values_geometry(xmi_input *new_input);
+static void change_all_values_excitation(xmi_input *new_input);
+static void change_all_values_beamabsorbers(xmi_input *new_input);
+static void change_all_values_detectionabsorbers(xmi_input *new_input);
+static void change_all_values_detectorsettings(xmi_input *new_input);
 void load_from_file_cb(GtkWidget *, gpointer);
 void saveas_cb(GtkWidget *widget, gpointer data);
 gboolean saveas_function(GtkWidget *widget, gpointer data);
@@ -431,7 +431,7 @@ static void geometry_help_clicked_cb(GtkWidget *window);
 
 
 struct import_undo_data {
-	struct xmi_input *xi;
+	xmi_input *xi;
 	int undo_rv;
 	char *filename;
 };
@@ -781,7 +781,7 @@ void chooser_activated_cb(GtkRecentChooser *chooser, gpointer *data) {
 	g_free(fileuri);
 	GtkWidget *dialog;
 	gchar *title;
-	struct xmi_input *xi;
+	xmi_input *xi;
 
 
 	if (g_ascii_strcasecmp(filename+strlen(filename)-5,".xmsi") == 0) {
@@ -1489,8 +1489,8 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 	int index,nindices;
 	gint *indices;
 	int i, updateKind = -1;
-	struct xmi_layer temp;
-	struct xmi_composition *composition;
+	xmi_layer temp;
+	xmi_composition *composition;
 
 #if DEBUG == 1
 	if (mb->buttonKind == BUTTON_TOP)
@@ -1526,7 +1526,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 		GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_ADD);
 
 		if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-			struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+			xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
 			if (mb->matrixKind == COMPOSITION) {
 				updateKind = COMPOSITION_ADD;
 			}
@@ -1541,7 +1541,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			}
 
 			//adding layer
-			composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+			composition->layers = (xmi_layer*) g_realloc(composition->layers, sizeof(xmi_layer)*(++composition->n_layers));
 			xmi_copy_layer2(layer,composition->layers+composition->n_layers-1);
 
 			GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(tree));
@@ -1718,7 +1718,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 				for (i = index ;  i < nindices-1 ; i++)
 					composition->layers[i] = composition->layers[i+1];
 			}
-			composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+			composition->layers = (xmi_layer*) g_realloc(composition->layers, sizeof(xmi_layer)*(nindices-1));
 			composition->n_layers--;
 			gtk_list_store_remove(mb->store,&iter);
 			if (mb->matrixKind == COMPOSITION) {
@@ -1762,7 +1762,7 @@ static void layers_button_clicked_cb(GtkWidget *widget, gpointer data) {
 			GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_EDIT);
 			xmi_msim_gui_layer_dialog_set_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog), composition->layers + index);
 			if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-				struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
+				xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
 				if (mb->matrixKind == COMPOSITION) {
 					updateKind = COMPOSITION_EDIT;
 				}
@@ -1938,7 +1938,7 @@ static void clipboard_get_layer_cb(GtkClipboard *clipboard, GtkSelectionData *se
 static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData *selection_data, struct matrix_button *mb) {
 
 	const guchar *data = gtk_selection_data_get_data(selection_data);
-	struct xmi_layer *clipboard_layer = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+	xmi_layer *clipboard_layer = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 	memcpy(&clipboard_layer->n_elements, data, sizeof(int));
 	clipboard_layer->Z = (int *) xmi_memdup(data+sizeof(int), sizeof(int)*clipboard_layer->n_elements);
 	clipboard_layer->weight = (double *) xmi_memdup(data+sizeof(int)+sizeof(int)*clipboard_layer->n_elements, sizeof(double)*clipboard_layer->n_elements);
@@ -1947,7 +1947,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 
 	//xmi_print_layer(stdout, clipboard_layer, 1);
 
-	struct xmi_composition *composition = NULL;
+	xmi_composition *composition = NULL;
 	GtkTreeIter iter;
 	GtkListStore *store = NULL;
 	gchar *elementString;
@@ -1975,7 +1975,7 @@ static void clipboard_receive_layer_cb(GtkClipboard *clipboard, GtkSelectionData
 		updateKind = CRYSTAL_COMPOSITION_PASTE;
 	}
 	//adding layer
-	composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(++composition->n_layers));
+	composition->layers = (xmi_layer*) g_realloc(composition->layers, sizeof(xmi_layer)*(++composition->n_layers));
 	xmi_copy_layer2(clipboard_layer,composition->layers+composition->n_layers-1);
 
 	gtk_list_store_append(store, &iter);
@@ -2038,7 +2038,7 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	struct xmi_composition *composition = NULL;
+	xmi_composition *composition = NULL;
 
 	if (!gtk_tree_selection_get_selected(mb->select, &model, &iter)) {
 		g_fprintf(stderr, "Nothing selected in layer_copy_cb->this should not occur!\n");
@@ -2055,7 +2055,7 @@ static void layer_copy_cb(GtkWidget *button, struct matrix_button *mb) {
 
 	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 	gint *my_indices = gtk_tree_path_get_indices(path);
-	struct xmi_layer *clipboard_layer;
+	xmi_layer *clipboard_layer;
 	xmi_copy_layer(composition->layers+my_indices[0], &clipboard_layer);
 
 	//xmi_print_layer(stdout, clipboard_layer, 1);
@@ -2096,7 +2096,7 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 	//call my copy routine
 	layer_copy_cb(button, mb);
 
-	struct xmi_composition *composition = NULL;
+	xmi_composition *composition = NULL;
 
 	if (mb->matrixKind == COMPOSITION)
 		composition = compositionS;
@@ -2122,7 +2122,7 @@ static void layer_cut_cb(GtkWidget *button, struct matrix_button *mb) {
 		for (i = index ;  i < nindices-1 ; i++)
 			composition->layers[i] = composition->layers[i+1];
 	}
-	composition->layers = (struct xmi_layer*) g_realloc(composition->layers, sizeof(struct xmi_layer)*(nindices-1));
+	composition->layers = (xmi_layer*) g_realloc(composition->layers, sizeof(xmi_layer)*(nindices-1));
 	composition->n_layers--;
 	gtk_list_store_remove(mb->store,&iter);
 	if (mb->matrixKind == COMPOSITION) {
@@ -2277,7 +2277,7 @@ static gboolean layer_focus_out_cb(GtkTreeView *tree, GdkEvent *event, gpointer 
 	return FALSE;
 }
 
-GtkWidget *initialize_matrix(struct xmi_composition *composition, int kind) {
+GtkWidget *initialize_matrix(xmi_composition *composition, int kind) {
 	GtkListStore *store;
 	GtkTreeIter iter;
 	GtkWidget *tree;
@@ -4036,7 +4036,7 @@ static gboolean dialog_helper_cb(gpointer data) {
 static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct dialog_helper_xmsa_data *data) {
 
 	GError *error = NULL;
-	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
+	xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
 	GTask *task = G_TASK(result);
 
 	gdk_window_set_cursor(gtk_widget_get_window(window), NULL);
@@ -4061,7 +4061,7 @@ static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct d
 }
 
 static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
-	struct xmi_archive *archive;
+	xmi_archive *archive;
 	GtkWidget *window = xmi_msim_gui_long_task_window_new(GTK_WINDOW(data->window));
 	xmi_msim_gui_long_task_window_set_text(XMI_MSIM_GUI_LONG_TASK_WINDOW(window), "<b>Reading XMSA file</b>");
 	gtk_widget_show(window);
@@ -4076,16 +4076,16 @@ static gboolean dialog_helper_xmsa_cb(struct dialog_helper_xmsa_data *data) {
 
 #ifdef MAC_INTEGRATION
 
-struct xmi_msim_gui_osx_load_data {
+xmi_msim_gui_osx_load_data {
 	GtkWidget *window;
 	gchar *path;
 };
 
 static gboolean load_from_file_osx_helper_cb(gpointer data) {
 	GtkWidget *dialog = NULL;
-	struct xmi_input *xi;
+	xmi_input *xi;
 	gchar *title;
-	struct xmi_msim_gui_osx_load_data *old = (struct xmi_msim_gui_osx_load_data *) data;
+	xmi_msim_gui_osx_load_data *old = (xmi_msim_gui_osx_load_data *) data;
 	gchar *filename = old->path;
 
 	xmi_msim_gui_osx_app_bring_to_front(old->window);
@@ -4156,7 +4156,7 @@ static gboolean load_from_file_osx_helper_cb(gpointer data) {
 
 
 static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpointer data) {
-	struct xmi_msim_gui_osx_load_data *old = (struct xmi_msim_gui_osx_load_data *) g_malloc(sizeof(struct xmi_msim_gui_osx_load_data));
+	xmi_msim_gui_osx_load_data *old = (xmi_msim_gui_osx_load_data *) g_malloc(sizeof(xmi_msim_gui_osx_load_data));
 
 	old->window = (GtkWidget *) data;
 	old->path = g_strdup(path);
@@ -4166,7 +4166,7 @@ static gboolean load_from_file_osx_cb(GtkosxApplication *app, gchar *path, gpoin
 	return TRUE;
 }
 #endif
-void reset_undo_buffer(struct xmi_input *xi_new, const char *filename) {
+void reset_undo_buffer(xmi_input *xi_new, const char *filename) {
 	struct undo_single *iter;
 
 #if DEBUG == 1
@@ -4282,7 +4282,7 @@ void update_undo_buffer(int kind, void *data) {
 	last->filename = g_strdup(UNLIKELY_FILENAME);
 	xmi_copy_input(current->xi, &(last->xi));
 	last->kind = kind;
-	struct xmi_excitation *temp_exc;
+	xmi_excitation *temp_exc;
 	struct energiesUndoInfo *eui;
 
 	if (kind != IMPORT_FROM_FILE)
@@ -4369,28 +4369,28 @@ void update_undo_buffer(int kind, void *data) {
 		case DISCRETE_ENERGY_ADD:
 			eui = (struct energiesUndoInfo *) data;
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*++last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(xmi_energy_discrete)*++last->xi->excitation->n_discrete);
 			last->xi->excitation->discrete[last->xi->excitation->n_discrete-1] = *eui->energy_disc;
 			//sort
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case SOURCE_SPECTRUM_ADD:
-			temp_exc = (struct xmi_excitation*) data;
+			temp_exc = (xmi_excitation*) data;
 			last->xi->excitation->n_discrete += temp_exc->n_discrete;
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			for (i = last->xi->excitation->n_discrete-temp_exc->n_discrete ; i < last->xi->excitation->n_discrete ; i++) {
 				last->xi->excitation->discrete[i] = temp_exc->discrete[i-last->xi->excitation->n_discrete+temp_exc->n_discrete];
 			}
-			qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+			qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			last->xi->excitation->n_continuous += temp_exc->n_continuous;
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			for (i = last->xi->excitation->n_continuous-temp_exc->n_continuous ; i < last->xi->excitation->n_continuous ; i++) {
 				last->xi->excitation->continuous[i] = temp_exc->continuous[i-last->xi->excitation->n_continuous+temp_exc->n_continuous];
 			}
-			qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+			qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			g_free(temp_exc);
 
 			break;
@@ -4398,20 +4398,20 @@ void update_undo_buffer(int kind, void *data) {
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->n_discrete += eui->n_energy_disc;
 			//realloc discrete energies
-			last->xi->excitation->discrete = (struct xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (xmi_energy_discrete*) g_realloc(last->xi->excitation->discrete,sizeof(xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			for (i = last->xi->excitation->n_discrete - eui->n_energy_disc ; i < last->xi->excitation->n_discrete ; i++) {
 				last->xi->excitation->discrete[i] = eui->energy_disc[i-last->xi->excitation->n_discrete + eui->n_energy_disc];
 			}
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_IMPORT_REPLACE:
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->n_discrete = eui->n_energy_disc;
 			g_free(last->xi->excitation->discrete);
-			last->xi->excitation->discrete = (struct xmi_energy_discrete *) xmi_memdup(eui->energy_disc, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+			last->xi->excitation->discrete = (xmi_energy_discrete *) xmi_memdup(eui->energy_disc, sizeof(xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_CLEAR:
 			g_free(last->xi->excitation->discrete);
@@ -4422,7 +4422,7 @@ void update_undo_buffer(int kind, void *data) {
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->discrete[eui->index] = *eui->energy_disc;
 			if (last->xi->excitation->n_discrete > 1)
-				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
+				qsort(last->xi->excitation->discrete, last->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete);
 			break;
 		case DISCRETE_ENERGY_SCALE:
 			eui = (struct energiesUndoInfo *) data;
@@ -4447,7 +4447,7 @@ void update_undo_buffer(int kind, void *data) {
 					}
 				}
 
-				last->xi->excitation->discrete = (struct xmi_energy_discrete *) g_realloc(last->xi->excitation->discrete, sizeof(struct xmi_energy_discrete)*last->xi->excitation->n_discrete);
+				last->xi->excitation->discrete = (xmi_energy_discrete *) g_realloc(last->xi->excitation->discrete, sizeof(xmi_energy_discrete)*last->xi->excitation->n_discrete);
 			}
 			else {
 				g_free(last->xi->excitation->discrete);
@@ -4458,30 +4458,30 @@ void update_undo_buffer(int kind, void *data) {
 		case CONTINUOUS_ENERGY_ADD:
 			eui = (struct energiesUndoInfo *) data;
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*++last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(xmi_energy_continuous)*++last->xi->excitation->n_continuous);
 			last->xi->excitation->continuous[last->xi->excitation->n_continuous-1] = *eui->energy_cont;
 			//sort
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_ADD:
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->n_continuous += eui->n_energy_cont;
 			//realloc continuous energies
-			last->xi->excitation->continuous = (struct xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (xmi_energy_continuous*) g_realloc(last->xi->excitation->continuous,sizeof(xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			for (i = last->xi->excitation->n_continuous-GPOINTER_TO_INT(data) ; i < last->xi->excitation->n_continuous ; i++) {
 				last->xi->excitation->continuous[i] = eui->energy_cont[i-last->xi->excitation->n_continuous + eui->n_energy_cont];
 			}
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_IMPORT_REPLACE:
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->n_continuous = eui->n_energy_cont;
 			g_free(last->xi->excitation->continuous);
-			last->xi->excitation->continuous = (struct xmi_energy_continuous *) xmi_memdup(eui->energy_cont, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+			last->xi->excitation->continuous = (xmi_energy_continuous *) xmi_memdup(eui->energy_cont, sizeof(xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_CLEAR:
 			g_free(last->xi->excitation->continuous);
@@ -4499,7 +4499,7 @@ void update_undo_buffer(int kind, void *data) {
 			eui = (struct energiesUndoInfo *) data;
 			last->xi->excitation->continuous[eui->index] = *eui->energy_cont;
 			if (last->xi->excitation->n_continuous > 1)
-				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
+				qsort(last->xi->excitation->continuous, last->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous);
 			break;
 		case CONTINUOUS_ENERGY_DELETE:
 			eui = (struct energiesUndoInfo *) data;
@@ -4517,7 +4517,7 @@ void update_undo_buffer(int kind, void *data) {
 					}
 				}
 
-				last->xi->excitation->continuous = (struct xmi_energy_continuous *) g_realloc(last->xi->excitation->continuous, sizeof(struct xmi_energy_continuous)*last->xi->excitation->n_continuous);
+				last->xi->excitation->continuous = (xmi_energy_continuous *) g_realloc(last->xi->excitation->continuous, sizeof(xmi_energy_continuous)*last->xi->excitation->n_continuous);
 			}
 			else {
 				g_free(last->xi->excitation->continuous);
@@ -4531,7 +4531,7 @@ void update_undo_buffer(int kind, void *data) {
 			if (last->xi->excitation->n_discrete > 0)
 				g_free(last->xi->excitation->discrete);
 			g_free(last->xi->excitation);
-			temp_exc = (struct xmi_excitation*) data;
+			temp_exc = (xmi_excitation*) data;
 			last->xi->excitation = temp_exc;
 			break;
 		case EXC_COMPOSITION_ORDER:
@@ -4767,7 +4767,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 	GtkWidget *dialog = xmi_msim_gui_sources_dialog_new(GTK_WINDOW(main_window), current->xi);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		// get the excitation data from the dialog
-		struct xmi_excitation *excitation = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
+		xmi_excitation *excitation = xmi_msim_gui_sources_dialog_get_raw_data(XMI_MSIM_GUI_SOURCES_DIALOG(dialog));
 
 		gtk_widget_destroy(dialog);
 
@@ -4796,7 +4796,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 			int i;
 			if (current->xi->excitation->n_discrete > 0) {
 				for (i = 0 ; i < current->xi->excitation->n_discrete ; i++) {
-					if (bsearch(excitation->discrete+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(struct xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
+					if (bsearch(excitation->discrete+i, current->xi->excitation->discrete, current->xi->excitation->n_discrete, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
@@ -4806,7 +4806,7 @@ static void xray_sources_button_clicked_cb(GtkWidget *xray_button, GtkWidget *ma
 			}
 			if (current->xi->excitation->n_continuous > 0) {
 				for (i = 0 ; i < current->xi->excitation->n_continuous ; i++) {
-					if (bsearch(excitation->continuous+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(struct xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
+					if (bsearch(excitation->continuous+i, current->xi->excitation->continuous, current->xi->excitation->n_continuous, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy intervals: one or more of the new energies exist already in the list of intervals.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
@@ -4875,7 +4875,7 @@ XMI_MAIN
 	GtkWidget *scrolled_window;
 	GtkWidget *tempW;
 	char *buffer;
-	struct xmi_composition *temp_composition;
+	xmi_composition *temp_composition;
 	struct val_changed *vc;
 	char *title;
 	GtkTextBuffer *commentsBuffer;
@@ -6135,7 +6135,7 @@ XMI_MAIN
 	xmi_msim_gui_osx_app_enable_full_screen(window);
 #endif
 
-	struct xmi_input *xi;
+	xmi_input *xi;
 	GtkWidget *dialog;
 	if (argc == 2) {
 		gchar *filename = g_strdup(argv[1]);
@@ -6262,7 +6262,7 @@ XMI_MAIN
 	return 0;
 }
 
-static void change_all_values(struct xmi_input *new_input) {
+static void change_all_values(xmi_input *new_input) {
 	change_all_values_general(new_input);
 	change_all_values_composition(new_input);
 	change_all_values_geometry(new_input);
@@ -6426,8 +6426,8 @@ static void import_cb(GtkWidget *widget, gpointer data) {
 	XmiMsimGuiFileChooserDialog *dialog = NULL;
 	GtkFileFilter *filter;
 	gchar *filename;
-	struct xmi_input *xi = NULL;
-	struct xmi_output *xo = NULL;
+	xmi_input *xi = NULL;
+	xmi_output *xo = NULL;
 
 
 	filter = gtk_file_filter_new();
@@ -6577,7 +6577,7 @@ static void switch_tab_click(GtkWidget *widget, gpointer data) {
 }
 
 static void new_cb(GtkWidget *widget, gpointer data) {
-	struct xmi_input *xi;
+	xmi_input *xi;
 
 
 
@@ -6664,7 +6664,7 @@ void load_from_file_cb(GtkWidget *widget, gpointer data) {
 	XmiMsimGuiFileChooserDialog *dialog = NULL;
 	GtkFileFilter *filter1, *filter2, *filter3;
 	gchar *filename;
-	struct xmi_input *xi;
+	xmi_input *xi;
 	gchar *title;
 
 	filter1 = gtk_file_filter_new();
@@ -6989,7 +6989,7 @@ gboolean saveas_function(GtkWidget *widget, gpointer data) {
 }
 
 
-static void change_all_values_general(struct xmi_input *new_input) {
+static void change_all_values_general(xmi_input *new_input) {
 	char *buffer;
 	GtkTextBuffer *commentsBuffer;
 
@@ -7022,7 +7022,7 @@ static void change_all_values_general(struct xmi_input *new_input) {
 }
 
 
-static void change_all_values_composition(struct xmi_input *new_input) {
+static void change_all_values_composition(xmi_input *new_input) {
 	char *elementString;
 	int i;
 	GtkTreeIter iter;
@@ -7045,7 +7045,7 @@ static void change_all_values_composition(struct xmi_input *new_input) {
 	xmi_copy_composition(new_input->composition,&compositionS);
 }
 
-static void change_all_values_geometry(struct xmi_input *new_input) {
+static void change_all_values_geometry(xmi_input *new_input) {
 	char *buffer;
 
 	d_sample_sourceC = 1;
@@ -7133,12 +7133,12 @@ static void change_all_values_geometry(struct xmi_input *new_input) {
 	g_signal_handler_unblock(G_OBJECT(slit_size_yW), slit_size_yG);
 }
 
-static void change_all_values_excitation(struct xmi_input *new_input) {
+static void change_all_values_excitation(xmi_input *new_input) {
 	repopulate_discrete_energies(discWidget->store, (new_input)->excitation);
 	repopulate_continuous_energies(contWidget->store, (new_input)->excitation);
 }
 
-static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
+static void change_all_values_beamabsorbers(xmi_input *new_input) {
 	char *elementString;
 	int i;
 	GtkTreeIter iter;
@@ -7163,7 +7163,7 @@ static void change_all_values_beamabsorbers(struct xmi_input *new_input) {
 	return;
 }
 
-static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
+static void change_all_values_detectionabsorbers(xmi_input *new_input) {
 	char *elementString;
 	int i;
 	GtkTreeIter iter;
@@ -7187,7 +7187,7 @@ static void change_all_values_detectionabsorbers(struct xmi_input *new_input) {
 
 }
 
-static void change_all_values_detectorsettings(struct xmi_input *new_input) {
+static void change_all_values_detectorsettings(xmi_input *new_input) {
 	char *buffer, *elementString;
 	int i;
 	GtkTreeIter iter;

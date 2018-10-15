@@ -17,10 +17,10 @@ int main(int argc, char *argv[]) {
   // 1. keep outputfile as is
   g_assert(xmi_xmso_to_xmsi_xslt(TEST_XMSO, "temp.xmsi", NULL) == 1);
 
-  struct xmi_output *output = NULL;
+  xmi_output *output = NULL;
   g_assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
 
-  struct xmi_input *input = NULL;
+  xmi_input *input = NULL;
   g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
 
   g_assert(xmi_compare_input(input, output->input) == 0);

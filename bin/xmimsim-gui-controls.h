@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtk/gtk.h>
 
-struct xmi_options {
+xmi_options {
 	char *executable;
 	gboolean Mlines;
 	gboolean rad_cascade;

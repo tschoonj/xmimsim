@@ -117,8 +117,8 @@ static void combo_changed(GtkWidget *comboBox, GtkToggleButton *radio) {
   gtk_toggle_button_set_active(radio, TRUE);
 }
 
-struct xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog) {
-  struct xmi_layer *rv;
+xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog) {
+  xmi_layer *rv;
 #ifdef HAVE_GOOGLE_ANALYTICS
   gchar *event_label = NULL;
 #endif

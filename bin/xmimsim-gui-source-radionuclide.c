@@ -32,12 +32,12 @@ enum {
 	ACTIVITY_UNIT_Bq,
 };
 
-struct xmi_nuclide_parameters {
+typedef struct {
 	int radioNuclide;
 	int activityUnit;
 	double activity;
 	double nuclide_solid_angle;
-};
+} xmi_nuclide_parameters;
 
 static const gchar *activity_units[4] = {"mCi", "Ci", "GBq", "Bq"};
 
@@ -70,8 +70,8 @@ static void xmi_msim_gui_source_radionuclide_class_init(XmiMsimGuiSourceRadionuc
 	parent_klass->get_about_text = xmi_msim_gui_source_radionuclide_real_get_about_text;
 }
 
-static struct xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclide *source, GError **error) {
-	struct xmi_nuclide_parameters *xnp = (struct xmi_nuclide_parameters *) g_malloc(sizeof(struct xmi_nuclide_parameters));
+static xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclide *source, GError **error) {
+	xmi_nuclide_parameters *xnp = (xmi_nuclide_parameters *) g_malloc(sizeof(xmi_nuclide_parameters));
 
 	xnp->radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(source->radioNuclideW));
 	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(source->activityUnitW));
@@ -95,7 +95,7 @@ static struct xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclid
 	return xnp;
 }
 
-static void set_parameters(XmiMsimGuiSourceRadionuclide *source, struct xmi_nuclide_parameters *xnp) {
+static void set_parameters(XmiMsimGuiSourceRadionuclide *source, xmi_nuclide_parameters *xnp) {
 	gchar *buf;
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(source->radioNuclideW), xnp->radioNuclide);
@@ -110,7 +110,7 @@ static void set_parameters(XmiMsimGuiSourceRadionuclide *source, struct xmi_nucl
 	g_free(buf);
 }
 
-static void set_preferences(struct xmi_nuclide_parameters *xnp) {
+static void set_preferences(xmi_nuclide_parameters *xnp) {
 	gchar *prefs_file;
 	GKeyFile *keyfile;
 
@@ -153,8 +153,8 @@ static void set_preferences(struct xmi_nuclide_parameters *xnp) {
 	return;
 }
 
-static struct xmi_nuclide_parameters* get_preferences() {
-	struct xmi_nuclide_parameters *xnp = (struct xmi_nuclide_parameters *) g_malloc(sizeof(struct xmi_nuclide_parameters));
+static xmi_nuclide_parameters* get_preferences() {
+	xmi_nuclide_parameters *xnp = (xmi_nuclide_parameters *) g_malloc(sizeof(xmi_nuclide_parameters));
 
 	gchar *prefs_file;
 	GKeyFile *keyfile;
@@ -311,7 +311,7 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	gtk_widget_show_all(hbox);
 
 	// load the preferences
-	struct xmi_nuclide_parameters *xnp = get_preferences();
+	xmi_nuclide_parameters *xnp = get_preferences();
 	
 	set_parameters(source, xnp);
 
@@ -336,7 +336,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 	GError *error = NULL;
 
 	// read the parameters
-	struct xmi_nuclide_parameters *xnp = get_parameters(XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(source), &error);
+	xmi_nuclide_parameters *xnp = get_parameters(XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(source), &error);
 
 	if (xnp == NULL) {
 		g_signal_emit_by_name((gpointer) source, "after-generate", error);
@@ -364,7 +364,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 
 	int i;
 
-	struct xmi_excitation *excitation_nuclide = (struct xmi_excitation *) g_malloc(sizeof(struct xmi_excitation));
+	xmi_excitation *excitation_nuclide = (xmi_excitation *) g_malloc(sizeof(xmi_excitation));
 	excitation_nuclide->n_continuous = 0;
 	excitation_nuclide->continuous = NULL;
 	excitation_nuclide->n_discrete= 0;
@@ -380,7 +380,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		excitation_nuclide->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
+		excitation_nuclide->discrete = (xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(xmi_energy_discrete)*++excitation_nuclide->n_discrete);
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].energy = energy;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].horizontal_intensity =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].vertical_intensity =
@@ -401,7 +401,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		if (energy > plot_xmax)
 			plot_xmax = energy;
 
-		excitation_nuclide->discrete = (struct xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(struct xmi_energy_discrete)*++excitation_nuclide->n_discrete);
+		excitation_nuclide->discrete = (xmi_energy_discrete *) g_realloc(excitation_nuclide->discrete, sizeof(xmi_energy_discrete)*++excitation_nuclide->n_discrete);
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].energy = energy;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].horizontal_intensity =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].vertical_intensity =
@@ -497,7 +497,7 @@ static void xmi_msim_gui_source_radionuclide_dispose(GObject *object) {
 	if (source->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
-		struct xmi_nuclide_parameters *xnp = get_parameters(source, NULL);
+		xmi_nuclide_parameters *xnp = get_parameters(source, NULL);
 		if (xnp != NULL) {
 			set_preferences(xnp);
 			g_free(xnp);

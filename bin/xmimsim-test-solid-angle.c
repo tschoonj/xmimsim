@@ -24,14 +24,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char *argv[]) {
 	int rv;
 	xmi_inputFPtr inputFPtr;
-	struct xmi_input *input;
-	struct xmi_solid_angle *solid_angle;
+	xmi_input *input;
+	xmi_solid_angle *solid_angle;
 	xmi_hdf5FPtr hdf5FPtr;
-	struct xmi_solid_angle *solid_angle_h5;
+	xmi_solid_angle *solid_angle_h5;
 	int n_solid_angle_h5;
-	struct xmi_input **solid_angle_inputs;
+	xmi_input **solid_angle_inputs;
 	int i;
-	struct xmi_solid_angle *solid_angle_def;
+	xmi_solid_angle *solid_angle_def;
 
 	if (argc != 2)
 		return 1;
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 	if (xmi_read_solid_angle_hdf5_file(XMIMSIM_HDF5_SOLID_ANGLES, &solid_angle_h5, &n_solid_angle_h5) == 0)
 		return 1;
 
-	solid_angle_inputs = (struct xmi_input **) g_malloc(sizeof(struct xmi_input *)*n_solid_angle_h5);
+	solid_angle_inputs = (xmi_input **) g_malloc(sizeof(xmi_input *)*n_solid_angle_h5);
 
 	for (i = 0 ; i < n_solid_angle_h5 ; i++)  {
 		//fprintf(stdout,"xmlfile: %s\n",solid_angle_h5[i].xmi_input_string);

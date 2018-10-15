@@ -37,9 +37,9 @@ typedef struct _XmiMsimGuiUndoManager		XmiMsimGuiUndoManager;
 typedef struct _XmiMsimGuiUndoManagerClass   	XmiMsimGuiUndoManagerClass;
 
 // update value with data from input
-typedef void (*XmiMsimGuiUndoManagerValueWriter) (GValue *value, const struct xmi_input *input);
+typedef void (*XmiMsimGuiUndoManagerValueWriter) (GValue *value, const xmi_input *input);
 // update input with data from value
-typedef void (*XmiMsimGuiUndoManagerValueReader) (const GValue *value, struct xmi_input *input);
+typedef void (*XmiMsimGuiUndoManagerValueReader) (const GValue *value, xmi_input *input);
 
 typedef enum {
 	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_VALID,
@@ -47,7 +47,7 @@ typedef enum {
 	XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_EQUAL,
 } XmiMsimGuiUndoManagerValueValidatorResult;
 
-typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (GtkWidget *widget, struct xmi_input *current_input, GValue *value);
+typedef XmiMsimGuiUndoManagerValueValidatorResult (*XmiMsimGuiUndoManagerValueValidator) (GtkWidget *widget, xmi_input *current_input, GValue *value);
 
 XmiMsimGuiUndoManager* xmi_msim_gui_undo_manager_new(void);
 
@@ -78,7 +78,7 @@ gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GEr
 
 gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, const gchar *filename, GError **error);
 
-struct xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager);
+xmi_input* xmi_msim_gui_undo_manager_get_current_input(XmiMsimGuiUndoManager *manager);
 
 gboolean xmi_msim_gui_undo_manager_register_entry(
 	XmiMsimGuiUndoManager *manager,

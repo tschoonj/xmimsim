@@ -100,7 +100,7 @@ static int xmi_write_xrmc_inputfile(char *xrmc_inputfile, char *xrmc_composition
 	return 1;
 }
 
-static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *input, double rotate_angle_z) {
+static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, xmi_input *input, double rotate_angle_z) {
 	FILE *filePtr;
 
 	if ((filePtr = g_fopen(xrmc_sourcefile, "w")) == NULL) {
@@ -131,7 +131,7 @@ static int xmi_write_xrmc_sourcefile(char *xrmc_sourcefile, struct xmi_input *in
 	return 1;
 }
 
-static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, struct xmi_input *input) {
+static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, xmi_input *input) {
 	FILE *filePtr;
 	int i, j, k;
 
@@ -182,7 +182,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, struct xmi_input
 	return 1;
 }
 
-static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *input) {
+static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, xmi_input *input) {
 	FILE *filePtr;
 	int i;
 
@@ -208,7 +208,7 @@ static int xmi_write_xrmc_samplefile(char *xrmc_samplefile, struct xmi_input *in
 	return 1;
 }
 
-static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *input, double rotate_angle_z) {
+static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, xmi_input *input, double rotate_angle_z) {
 	FILE *filePtr;
 	int i;
 
@@ -416,7 +416,7 @@ static int xmi_write_xrmc_quadricfile(char *xrmc_quadricfile, struct xmi_input *
 	return 1;
 }
 
-static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *input) {
+static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, xmi_input *input) {
 	FILE *filePtr;
 	int i;
 
@@ -473,7 +473,7 @@ static int xmi_write_xrmc_geom3dfile(char *xrmc_geom3dfile, struct xmi_input *in
 	return 1;
 }
 
-static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi_input *input) {
+static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, xmi_input *input) {
 	FILE *filePtr;
 	int i,j;
 
@@ -546,7 +546,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, struct xmi
 	return 1;
 }
 
-static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input *input, struct xmi_main_options options, double rotate_angle_z) {
+static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input, xmi_main_options options, double rotate_angle_z) {
 	FILE *filePtr;
 
 	if ((filePtr = g_fopen(xrmc_detectorfile, "w")) == NULL) {
@@ -609,7 +609,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, struct xmi_input
 	return 1;
 }
 
-int xmi_copy_input_to_xrmc(struct xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, struct xmi_layer *collimator, struct xmi_main_options options, double rotate_angle_z) {
+int xmi_copy_input_to_xrmc(xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, xmi_layer *collimator, xmi_main_options options, double rotate_angle_z) {
 
 	if (xmi_write_xrmc_inputfile(xrmc_inputfile, xrmc_compositionfile, xrmc_detectorfile, xrmc_geom3dfile, xrmc_quadricfile, xrmc_samplefile, xrmc_sourcefile, xrmc_spectrumfile, xrmc_convolutedspectrumfile, xrmc_unconvolutedspectrumfile) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_inputfile: Aborting\n");

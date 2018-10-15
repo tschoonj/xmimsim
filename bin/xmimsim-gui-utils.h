@@ -26,10 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 G_BEGIN_DECLS
 
-double xmi_msim_gui_utils_get_solid_angle_from_slits(struct xmi_geometry *geometry);
+double xmi_msim_gui_utils_get_solid_angle_from_slits(xmi_geometry *geometry);
 
 void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename, GAsyncReadyCallback callback, gpointer user_data);
-struct xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error);
+xmi_archive* xmi_msim_gui_utils_read_xmsa_finish(GtkWidget *dialog, GAsyncResult *result, GError **error);
 
 void xmi_msim_gui_utils_open_url(const char *link);
 
@@ -37,7 +37,7 @@ void xmi_msim_gui_utils_open_email(const char *address);
 
 void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extension);
 
-gchar* xmi_msim_gui_utils_get_layer_element_string(struct xmi_layer *layer);
+gchar* xmi_msim_gui_utils_get_layer_element_string(xmi_layer *layer);
 
 void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *controlsLogW, GTimer *timer, GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
 G_END_DECLS

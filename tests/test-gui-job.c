@@ -23,8 +23,8 @@ const gchar *extra_options[4] = {
 
 typedef struct {
 	GMainLoop *main_loop;
-	struct xmi_input *input;
-	struct xmi_main_options options;
+	xmi_input *input;
+	xmi_main_options options;
 } SetupData;
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
@@ -38,7 +38,7 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 
 	struct compoundData *cd = (struct compoundData *) user_data;
 	// add compound to composition
-	struct xmi_layer *layer = compoundData2xmi_layer(cd);
+	xmi_layer *layer = compoundData2xmi_layer(cd);
 	layer->thickness = 1.0;
 	layer->density = 1.0;
 	data->input->composition->n_layers = 1;

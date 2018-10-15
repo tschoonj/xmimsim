@@ -605,7 +605,7 @@ static void viewer_cb(GtkWidget *viewer, gchar *filename) {
 static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, GtkWidget *active_window) {
 
 	GError *error = NULL;
-	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(task_window, result, &error);
+	xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(task_window, result, &error);
 	GTask *task = G_TASK(result);
 
 	gdk_window_set_cursor(gtk_widget_get_window(task_window), NULL);

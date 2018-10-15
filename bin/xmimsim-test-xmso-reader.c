@@ -21,11 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int main(int argc, char *argv[]) {
 
 	char xmso_file[] = "nist.xmso";
-	struct xmi_input *input;
-	struct xmi_fluorescence_line_counts *brute_force_history;
+	xmi_input *input;
+	xmi_fluorescence_line_counts *brute_force_history;
 	int nbrute_force_history;
 
-	struct xmi_fluorescence_line_counts *var_red_history;
+	xmi_fluorescence_line_counts *var_red_history;
 	int nvar_red_history;
 
 	double **channels_conv;

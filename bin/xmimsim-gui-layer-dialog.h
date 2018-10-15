@@ -70,8 +70,8 @@ GType xmi_msim_gui_layer_dialog_get_type(void) G_GNUC_CONST;
 
 GtkWidget *xmi_msim_gui_layer_dialog_new(GtkWindow *parent, XmiMsimGuiLayerDialogType type);
 
-void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, struct xmi_layer *layer);
-struct xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog);
+void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, xmi_layer *layer);
+xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog);
 
 G_END_DECLS
 #endif

@@ -45,7 +45,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_OPENCL_MAJOR 1
 #define XMI_OPENCL_MINOR 1
 
-extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
+extern void xmi_solid_angle_inputs_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, int *collimator_present, float *detector_radius, float *collimator_radius, float *collimator_height);
 
 extern long hits_per_single;
 
@@ -111,7 +111,7 @@ static const char *clGetErrorString(cl_int err){
 	return 0;\
 	}
 
-G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
+G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options xmo) {
 
 	cl_int status;
 	char info[1000];
@@ -213,7 +213,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, stru
 
 	xmi_solid_angle_inputs_f(inputFPtr, solid_angle, &collimator_present, &detector_radius, &collimator_radius, &collimator_height);
 
-	struct xmi_solid_angle *sa = *solid_angle;
+	xmi_solid_angle *sa = *solid_angle;
 
 	//fprintf(stdout,"grid_dims_r_n: %li\n", sa->grid_dims_r_n);
 	//fprintf(stdout,"grid_dims_theta_n: %li\n", sa->grid_dims_theta_n);

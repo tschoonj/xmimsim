@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 	const char compound[] = "CaSO4";
 
 	// analyze output by comparing results with FPM
-	struct xmi_output *output = run_main(compound);
+	xmi_output *output = run_main(compound);
 
 	// use Ca-KL3
 	double CaKL3_count = xmi_get_output_counts_for_element_line(output, 20, KL3_LINE);

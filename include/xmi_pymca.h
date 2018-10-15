@@ -30,8 +30,8 @@ extern "C" {
 #define XMI_PYMCA_MAX_ITERATIONS 100
 #define XMI_PYMCA_CONV_THRESHOLD 0.001
 
-
-struct xmi_pymca {
+typedef struct _xmi_pymca xmi_pymca;
+struct _xmi_pymca {
 	int *z_arr;
 	int n_peaks;
 	//KL2 and KL3 + escape peaks
@@ -67,9 +67,9 @@ struct xmi_pymca {
 //return 1 on success, 0 otherwise
 
 //allocation of input occurs in function!
-int xmi_read_input_pymca(char *pymca_file, struct xmi_input **input, struct xmi_pymca **, int use_matrix_override, int use_roi_normalization, int use_single_run);
+int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **, int use_matrix_override, int use_roi_normalization, int use_single_run);
 
-struct xmi_layer xmi_ilay_composition_pymca(struct xmi_layer *matrix, struct xmi_pymca *pymca_aux , double *weights_arr_quant);
+xmi_layer xmi_ilay_composition_pymca(xmi_layer *matrix, xmi_pymca *pymca_aux , double *weights_arr_quant);
 
 #ifdef __cplusplus
 }

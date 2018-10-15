@@ -32,24 +32,24 @@ extern "C" {
 //return 1 on success, 0 otherwise
 
 //allocation of input occurs in function!
-int xmi_read_input_xml(const char *xmsifile, struct xmi_input **input, GError **error);
-int xmi_write_input_xml(const char *xmsifile, struct xmi_input *input, GError **error);
-int xmi_write_input_xml_to_string(char **xmlstring, struct xmi_input *input, GError **error);
-int xmi_write_output_xml(const char *xmsofile, struct xmi_output *output, GError **error);
+int xmi_read_input_xml(const char *xmsifile, xmi_input **input, GError **error);
+int xmi_write_input_xml(const char *xmsifile, xmi_input *input, GError **error);
+int xmi_write_input_xml_to_string(char **xmlstring, xmi_input *input, GError **error);
+int xmi_write_output_xml(const char *xmsofile, xmi_output *output, GError **error);
 int xmi_xmlfile_to_string(const char *xmlfile, char **xmlstring, int *xmlstringlength, GError **error);
-int xmi_read_input_xml_from_string(const char *xmsistring, struct xmi_input **input, GError **error);
+int xmi_read_input_xml_from_string(const char *xmsistring, xmi_input **input, GError **error);
 int xmi_xmlLoadCatalog(void);
-int xmi_read_output_xml(const char *xmsofile, struct xmi_output **output, GError **error);
-int xmi_read_archive_xml(const char *xmsafile, struct xmi_archive **archive, GError **error);
-int xmi_write_archive_xml(const char *xmsafile, struct xmi_archive *archive, GError **error);
+int xmi_read_output_xml(const char *xmsofile, xmi_output **output, GError **error);
+int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **error);
+int xmi_write_archive_xml(const char *xmsafile, xmi_archive *archive, GError **error);
 
-int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, GError **error);
-int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, char *name, int interaction,  double *channels, double maximum, GError **error);
-int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_output *output, int step1, int step2, int with_svg, GError **error);
+int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, GError **error);
+int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, char *name, int interaction,  double *channels, double maximum, GError **error);
+int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_output *output, int step1, int step2, int with_svg, GError **error);
 int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node, GError **error);
-int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_layer *layers, int n_layers, GError **error);
-int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_input *input, GError **error);
-int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr node, struct xmi_output *output, int *step1, int *step2, GError **error);
+int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_layer *layers, int n_layers, GError **error);
+int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, GError **error);
+int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_output *output, int *step1, int *step2, GError **error);
 
 #ifdef __cplusplus
 }

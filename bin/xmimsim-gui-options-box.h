@@ -38,7 +38,7 @@ GtkWidget* xmi_msim_gui_options_box_new(void);
 
 GType xmi_msim_gui_options_box_get_type(void) G_GNUC_CONST;
 
-struct xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *options_box);
+xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *options_box);
 
 void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *options_box);
 

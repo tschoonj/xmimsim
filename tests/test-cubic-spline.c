@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 	double x[5] = {0, 1, 2, 3, 4};
 	double y[5] = {100, 50, -100, 50, 200};
 
-	struct xmi_cubic_spline *spline = xmi_cubic_spline_init(x, y, 5);
+	xmi_cubic_spline *spline = xmi_cubic_spline_init(x, y, 5);
 
 	size_t i;
 

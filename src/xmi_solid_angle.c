@@ -39,19 +39,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_resources_mac.h"
 #endif
 
-struct xmi_solid_angles_data{
-	struct xmi_solid_angle **solid_angles;
-	struct xmi_input *input;
-	struct xmi_main_options options;
-};
+typedef struct {
+	xmi_solid_angle **solid_angles;
+	xmi_input *input;
+	xmi_main_options options;
+} xmi_solid_angles_data;
 
 static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
-extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
 
-typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options);
+typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, struct xmi_solid_angle **solid_angle, char *input_string, struct xmi_main_options xmo) {
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options xmo) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
@@ -165,7 +165,7 @@ int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 }
 
 
-int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *solid_angle) {
+int xmi_update_solid_angle_hdf5_file(char *hdf5_file, xmi_solid_angle *solid_angle) {
 	hid_t file_id;
 	char *buffer;
 	hid_t group_id;
@@ -235,7 +235,7 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, struct xmi_solid_angle *so
 }
 
 struct multiple_solid_angles {
-	struct xmi_solid_angle *solid_angles;
+	xmi_solid_angle *solid_angles;
 	int n_solid_angles;
 };
 
@@ -244,9 +244,9 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	hsize_t dims[2], dims_string[1];
 	hid_t group_id;
 	char *xmi_input_string;
-	struct xmi_solid_angles_data *data = op_data;
-	struct xmi_input *temp_input;
-	struct xmi_solid_angle *solid_angles;
+	xmi_solid_angles_data *data = op_data;
+	xmi_input *temp_input;
+	xmi_solid_angle *solid_angles;
 
 	if (data->options.extra_verbose) {
 		fprintf(stdout, "Checking solid angle grid group with name %s\n", name);
@@ -275,7 +275,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		//match
 		//read in this group completely
 		xmi_free_input(temp_input);
-		*(data->solid_angles) = g_malloc(sizeof(struct xmi_solid_angle));
+		*(data->solid_angles) = g_malloc(sizeof(xmi_solid_angle));
 		solid_angles = *(data->solid_angles);
 		solid_angles->xmi_input_string  = xmi_input_string;
 
@@ -333,7 +333,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 
 //A -> from HDF5 file (existing - old)
 //B -> from XMSI file (new)
-int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
+int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	int i;
 	double *thickness_along_Z_a, *thickness_along_Z_b;
 	double *Z_coord_begin_a, *Z_coord_begin_b;
@@ -586,10 +586,10 @@ int xmi_check_solid_angle_match(struct xmi_input *A, struct xmi_input *B) {
 	return 1;
 }
 
-int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_solid_angle **rv, struct xmi_main_options options) {
+int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options options) {
 
 	hid_t file_id;
-	struct xmi_solid_angles_data data;
+	xmi_solid_angles_data data;
 	herr_t iterate_rv;
 
 	//open the hdf5 file read-only!
@@ -703,7 +703,7 @@ int xmi_find_solid_angle_match(char *hdf5_file, struct xmi_input *A, struct xmi_
 	return 1;
 }
 
-void xmi_free_solid_angle(struct xmi_solid_angle *solid_angle) {
+void xmi_free_solid_angle(xmi_solid_angle *solid_angle) {
 	//this is potentially dangerous... some of this memory is allocated by fortran...
 	g_free(solid_angle->solid_angles);
 	g_free(solid_angle->grid_dims_r_vals);

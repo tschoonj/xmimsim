@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 //returns 1 one on success, 0 on error
-int xmi_copy_input_to_xrmc(	struct xmi_input *input,
+int xmi_copy_input_to_xrmc(	xmi_input *input,
 				char *xrmc_inputfile,
 				char *xrmc_compositionfile,
 				char *xrmc_detectorfile,
@@ -36,8 +36,8 @@ int xmi_copy_input_to_xrmc(	struct xmi_input *input,
 				char *xrmc_spectrumfile,
 				char *xrmc_convolutedspectrumfile,
 				char *xrmc_unconvolutedspectrumfile,
-				struct xmi_layer *collimator,
-				struct xmi_main_options options,
+				xmi_layer *collimator,
+				xmi_main_options options,
 				double rotate_angle_z
 				);
 

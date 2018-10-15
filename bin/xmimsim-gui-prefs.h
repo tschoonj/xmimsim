@@ -21,6 +21,7 @@
 
 #include <gtk/gtk.h>
 #include "xmimsim-gui-application.h"
+#include "xmi_data_structs.h"
 
 G_BEGIN_DECLS
 
@@ -64,9 +65,9 @@ enum {
 //user defined layers manipulation
 gchar **xmimsim_gui_get_user_defined_layer_names(void);
 
-struct xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name);
+xmi_layer* xmimsim_gui_get_user_defined_layer(const gchar *layer_name);
 
-int xmimsim_gui_add_user_defined_layer(struct xmi_layer *layer, const gchar *layer_name);
+int xmimsim_gui_add_user_defined_layer(xmi_layer *layer, const gchar *layer_name);
 
 int xmimsim_gui_remove_user_defined_layer(const gchar *layer_name);
 

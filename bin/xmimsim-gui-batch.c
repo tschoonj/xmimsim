@@ -75,13 +75,13 @@ struct batch_window_data {
 	GtkWidget *controlsLogFileW;
 	GtkWidget *verboseW;
 	GtkWidget *exitButton;
-	struct xmi_main_options **options;
+	xmi_main_options **options;
 	GSList *filenames;
 	enum xmi_msim_batch_options batch_options;
 	GTimer *timer;
 	GFileOutputStream *logFile;
 	gchar *xmimsim_executable;
-	struct xmi_output ***output;
+	xmi_output ***output;
 	gchar **filenames_xmso;
 	int nsteps2;
 	XmiMsimGuiJob *job;
@@ -96,7 +96,7 @@ struct archive_options_data {
 	double end_value2;
 	int nsteps2;
 	gchar *xmsa_file;
-	struct xmi_main_options *xmo;
+	xmi_main_options *xmo;
 };
 
 struct wizard_range_data {
@@ -368,7 +368,7 @@ static void wizard_range_changed_cb(GtkEditable *entry, struct wizard_range_data
 	return;
 }
 
-static int archive_options(GtkWidget *main_window, struct xmi_input *input, gchar *filename, gchar *xpath1, gchar *xpath2, int allowed1, int allowed2, struct archive_options_data *aod) {
+static int archive_options(GtkWidget *main_window, xmi_input *input, gchar *filename, gchar *xpath1, gchar *xpath2, int allowed1, int allowed2, struct archive_options_data *aod) {
 	int rv = 0;
 	GtkWidget *wizard = gtk_assistant_new();
 	gtk_window_set_transient_for(GTK_WINDOW(wizard), GTK_WINDOW(main_window));
@@ -771,7 +771,7 @@ static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path
 	return;
 }
 
-static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
+static int select_parameter(GtkWidget *window, xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select one or two variable parameters", GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *scrolled_window = xmi_msim_gui_xmsi_scrolled_window_new(input, TRUE);
@@ -820,7 +820,7 @@ static int select_parameter(GtkWidget *window, struct xmi_input *input, gchar **
 	return rv;
 }
 
-static int batch_mode(GtkWidget * main_window, struct xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2);
+static int batch_mode(GtkWidget * main_window, xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options, xmi_output ***output, gchar **filenames_xmso, int nsteps2);
 
 static void batch_reset_controls(struct batch_window_data *bwd) {
 	GtkTextIter start, end;
@@ -994,7 +994,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		else
 			j = 0;
 
-		struct xmi_main_options *options = bwd->options[j];
+		xmi_main_options *options = bwd->options[j];
 
 		gint verbose_level = gtk_combo_box_get_active(GTK_COMBO_BOX(bwd->verboseW));
 
@@ -1216,7 +1216,7 @@ static void pause_button_clicked(GtkButton *button, struct batch_window_data *bw
 }
 
 struct wizard_close_data {
-	struct xmi_main_options **options;
+	xmi_main_options **options;
 	GtkWidget **ows;
 	int *rv;
 };
@@ -1321,7 +1321,7 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 	gtk_assistant_set_page_title(GTK_ASSISTANT(wizard), confirmationLabel, "Confirmation");
 
 	//signal handlers
-	wcd->options = (struct xmi_main_options **) g_malloc(sizeof(struct xmi_main_options *) * g_slist_length(filenames));
+	wcd->options = (xmi_main_options **) g_malloc(sizeof(xmi_main_options *) * g_slist_length(filenames));
 	wcd->ows = ows;
 	int rv;
 	wcd->rv = &rv;
@@ -1336,7 +1336,7 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 
 
 
-static int general_options(GtkWidget *main_window, struct xmi_main_options **options) {
+static int general_options(GtkWidget *main_window, xmi_main_options **options) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Set the options for the simulations batch", GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	GtkWidget *ow = xmi_msim_gui_options_box_new();
@@ -1363,7 +1363,7 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 
 	GError *error = NULL;
 
-	struct xmi_archive *archive = g_task_propagate_pointer(G_TASK(result), &error);
+	xmi_archive *archive = g_task_propagate_pointer(G_TASK(result), &error);
 
 	if (!archive) {
 		GtkWidget *dialog = gtk_message_dialog_new(window,
@@ -1388,7 +1388,7 @@ struct save_archive_data {
 	struct archive_options_data *aod;
 	gchar *xpath1;
        	gchar *xpath2;
-	struct xmi_output ***output;
+	xmi_output ***output;
 };
 
 struct save_archive_update_task_window_data {
@@ -1408,7 +1408,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	struct save_archive_data *sad = task_data;
 	
 	//convert to an archive struct -> this should never fail
-	struct xmi_archive *archive = xmi_archive_raw2struct(
+	xmi_archive *archive = xmi_archive_raw2struct(
 		sad->output,
 		sad->aod->start_value1,
 		sad->aod->end_value1,
@@ -1486,7 +1486,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	int i;
    	xmi_msim_gui_file_chooser_dialog_destroy(file_dialog);
 	GtkWidget *dialog;
-	struct xmi_main_options **options;
+	xmi_main_options **options;
 	if (g_slist_length(filenames) > 1) {
 		//more than one file selected
 		//1) ask if the options will apply to all or if individual job options will be used
@@ -1514,7 +1514,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		else if (response == GTK_RESPONSE_NO) {
 			//options apply to all
    			gtk_widget_destroy (dialog);
-			options = (struct xmi_main_options **) g_malloc(sizeof(struct xmi_main_options *));
+			options = (xmi_main_options **) g_malloc(sizeof(xmi_main_options *));
 			int rv = general_options(window, options);
 			if (rv == 0) {
 				return;
@@ -1537,7 +1537,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		//one file selected
 		//options apply to all
 		gchar *xpath1, *xpath2;
-		struct xmi_input *input;
+		xmi_input *input;
 		GError *error = NULL;
 		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input, &error) == 0) {
 			//error reading inputfile
@@ -1860,9 +1860,9 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		xmlXPathFreeObject(result);
 		xmlXPathFreeObject(result3);
 		xmlFreeDoc(doc);
-		struct xmi_output ***output = (struct xmi_output ***) g_malloc(sizeof(struct xmi_output **)*(aod->nsteps1+1));
+		xmi_output ***output = (xmi_output ***) g_malloc(sizeof(xmi_output **)*(aod->nsteps1+1));
 		for (i = 0 ; i <= aod->nsteps1 ; i++)
-			output[i] = (struct xmi_output **) g_malloc(sizeof(struct xmi_output *)*(aod->nsteps2+1));
+			output[i] = (xmi_output **) g_malloc(sizeof(xmi_output *)*(aod->nsteps2+1));
 		int exec_rv = batch_mode(window, &aod->xmo, filenames_xmsiGSL, XMI_MSIM_BATCH_ONE_OPTION, output, filenames_xmso, aod->nsteps2);
 
 		g_strfreev(filenames_xmsi);
@@ -1893,7 +1893,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 	}
 }
 
-static int batch_mode(GtkWidget *main_window, struct xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options batch_options, struct xmi_output ***output, gchar **filenames_xmso, int nsteps2) {
+static int batch_mode(GtkWidget *main_window, xmi_main_options **options, GSList *filenames, enum xmi_msim_batch_options batch_options, xmi_output ***output, gchar **filenames_xmso, int nsteps2) {
 	int rv = 0;
 	GtkWidget *batch_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_transient_for(GTK_WINDOW(batch_window), GTK_WINDOW(main_window));

@@ -31,7 +31,7 @@ static void destroy( GtkWidget *widget,
 }
 
 static void changed(XmiMsimGuiEnergiesBox *eb, gchar *change, gpointer data) {
-	struct xmi_excitation *excitation = xmi_msim_gui_energies_box_get_excitation(eb);
+	xmi_excitation *excitation = xmi_msim_gui_energies_box_get_excitation(eb);
 
 	fprintf(stdout, "change: %s\n", change);
 	fprintf(stdout, "discrete\n");

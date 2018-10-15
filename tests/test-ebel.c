@@ -5,9 +5,9 @@
 #include <xraylib.h>
 
 typedef struct {
-	struct xmi_layer *tube_anode;
-	struct xmi_layer *tube_window;
-	struct xmi_layer *tube_filter;
+	xmi_layer *tube_anode;
+	xmi_layer *tube_window;
+	xmi_layer *tube_filter;
 	double tube_voltage;
 	double tube_current;
 	double tube_angle_electron;
@@ -20,8 +20,8 @@ typedef struct {
 	double *tube_efficiencies;
 } SetupData;
 
-static struct xmi_layer* create_layer(int Z, double rho, double thickness) {
-	struct xmi_layer* rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+static xmi_layer* create_layer(int Z, double rho, double thickness) {
+	xmi_layer* rv = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 	rv->n_elements = 1;
 	rv->Z = (int *) g_malloc(sizeof(int));
 	rv->Z[0] = Z;
@@ -64,7 +64,7 @@ static void setup_data_bad_with_window_with_filter_with_efficiency(SetupData *da
 }
 
 static void test(SetupData *data, gconstpointer user_data) {
-	struct xmi_excitation *ebel_spectrum;
+	xmi_excitation *ebel_spectrum;
 	g_assert(xmi_tube_ebel(
 		data->tube_anode,
 		data->tube_window,

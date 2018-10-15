@@ -348,7 +348,7 @@ static void density_thickness_changed(GtkWidget *widget, XmiMsimGuiLayerDialog *
   return;
 }
 
-void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, struct xmi_layer *layer) {
+void xmi_msim_gui_layer_dialog_set_layer(XmiMsimGuiLayerDialog *dialog, xmi_layer *layer) {
 
   gchar *buffer = g_strdup_printf("%g", layer->thickness);
   gtk_entry_set_text(GTK_ENTRY(dialog->thicknessEntry), buffer);
@@ -416,8 +416,8 @@ static void xmi_msim_gui_layer_dialog_get_composition(XmiMsimGuiLayerDialog *dia
   }
 }
 
-struct xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog) {
-  struct xmi_layer *rv = (struct xmi_layer *) g_malloc(sizeof(struct xmi_layer));
+xmi_layer* xmi_msim_gui_layer_dialog_get_layer(XmiMsimGuiLayerDialog *dialog) {
+  xmi_layer *rv = (xmi_layer *) g_malloc(sizeof(xmi_layer));
   xmi_msim_gui_layer_dialog_get_composition(dialog, &rv->n_elements, &rv->Z, &rv->weight);
 
   rv->density = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(dialog->densityEntry)), NULL);
@@ -505,7 +505,7 @@ static void add_to_catalog_button_clicked(GtkButton *button, XmiMsimGuiLayerDial
   if (gtk_dialog_run(GTK_DIALOG(update_dialog)) == GTK_RESPONSE_ACCEPT) {
     gchar *layer_name = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(nameEntry))));
     GtkWidget *error_dialog;
-    struct xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(dialog);
+    xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(dialog);
 
     if (xmimsim_gui_add_user_defined_layer(layer, layer_name) == 1) {
       error_dialog = gtk_message_dialog_new(GTK_WINDOW(update_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Layer %s has been added to the catalog", layer_name);
@@ -540,7 +540,7 @@ static void predef_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dial
   gchar *buffer;
 
   if (gtk_dialog_run(GTK_DIALOG(catalog_dialog)) == GTK_RESPONSE_ACCEPT) {
-    struct xmi_layer *layer = xmi_msim_gui_catalog_dialog_get_layer(XMI_MSIM_GUI_CATALOG_DIALOG(catalog_dialog));
+    xmi_layer *layer = xmi_msim_gui_catalog_dialog_get_layer(XMI_MSIM_GUI_CATALOG_DIALOG(catalog_dialog));
     xmi_msim_gui_layer_dialog_set_composition(dialog, layer->n_elements, layer->Z, layer->weight);
     buffer = g_strdup_printf("%g", layer->density);
     gtk_entry_set_text(GTK_ENTRY(dialog->densityEntry), buffer);
@@ -667,7 +667,7 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
     double *weight;
     xmi_msim_gui_layer_dialog_get_composition(dialog, &n_elements, &Z, &weight);
     if (n_elements > 0) {
-      struct xmi_layer layer = {n_elements, Z, weight, 0.0, 0.0};
+      xmi_layer layer = {n_elements, Z, weight, 0.0, 0.0};
 
       //copy xmi_layer to compoundData and add current contents
       cd = xmi_layer2compoundData(&layer);

@@ -77,7 +77,7 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
     if (xmi_xmlLoadCatalog() == 0)
         return noErr;
     
-    struct xmi_output *output = NULL;
+    xmi_output *output = NULL;
     if (xmi_read_output_xml(path, &output, NULL) == 0)
         return noErr;
     

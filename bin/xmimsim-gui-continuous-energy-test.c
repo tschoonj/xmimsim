@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 
 	GtkWidget *dialog = xmi_msim_gui_continuous_energy_dialog_new(NULL, XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_EDIT);
 
-	struct xmi_energy_continuous orig = {
+	xmi_energy_continuous orig = {
 		.energy = 1.0,
 		.horizontal_intensity = 2.0,
 		.vertical_intensity = 3.0,
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 
 	if (rv == GTK_RESPONSE_ACCEPT) {
 		//something was changed
-		struct xmi_energy_continuous *cont = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
+		xmi_energy_continuous *cont = xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog));
 		fprintf(stdout, "Energy: %g\n", cont->energy);
 		fprintf(stdout, "Horizontal intensity: %g\n", cont->horizontal_intensity);
 		fprintf(stdout, "Vertical intensity: %g\n", cont->vertical_intensity);

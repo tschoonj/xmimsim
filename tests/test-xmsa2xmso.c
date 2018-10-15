@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
   // file should be present already
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_1, "temp.xmso", 0, -1) == 1);
-  struct xmi_output *output = NULL;
+  xmi_output *output = NULL;
   g_assert(xmi_read_output_xml("temp.xmso", &output, NULL) == 1);
   xmi_free_output(output);
   unlink("temp.xmso");
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_1, "temp", -1, -1) == 1);
 
-  struct xmi_archive *archive = NULL;
+  xmi_archive *archive = NULL;
 
   g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive, NULL) == 1);
 

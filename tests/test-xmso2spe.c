@@ -8,7 +8,7 @@
 #include <assert.h>
 
 int main(int argc, char *argv[]) {
-  struct xmi_output *output = NULL;
+  xmi_output *output = NULL;
   int i, j;
   struct spe_data *sd = NULL;
 

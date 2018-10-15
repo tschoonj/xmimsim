@@ -52,8 +52,8 @@ struct _XmiMsimGuiSourceAbstract
   GtkBox parent_instance;
   GArray *x;
   GArray *y;
-  struct xmi_excitation *raw_data;
-  struct xmi_input *current;
+  xmi_excitation *raw_data;
+  xmi_input *current;
 };
 
 struct _XmiMsimGuiSourceAbstractClass
@@ -68,9 +68,9 @@ struct _XmiMsimGuiSourceAbstractClass
 
   const gchar* (*get_about_text) (XmiMsimGuiSourceAbstract *source);
 
-  gchar* (*energy_discrete_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_discrete *energy);
+  gchar* (*energy_discrete_printf) (XmiMsimGuiSourceAbstract *source, xmi_energy_discrete *energy);
 
-  gchar* (*energy_continuous_printf) (XmiMsimGuiSourceAbstract *source, struct xmi_energy_continuous *energy);
+  gchar* (*energy_continuous_printf) (XmiMsimGuiSourceAbstract *source, xmi_energy_continuous *energy);
 
   gboolean (*save_parameters)  (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
 
@@ -93,7 +93,7 @@ const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *sou
 
 const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source);
 
-struct xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source);
+xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source);
 
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED,

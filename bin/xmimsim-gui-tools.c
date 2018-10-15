@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_main.h"
 #include <string.h>
 
-struct xmi_tools {
+typedef struct {
 	GtkWidget *window;
 	GtkWidget *entry;
 	GtkWidget *entry1;
@@ -45,7 +45,7 @@ struct xmi_tools {
 	GtkWidget *spinner2;
 	GtkWidget *label1;
 	GtkWidget *label2;
-};
+} xmi_tools;
 
 
 struct xmsa_to_xmso_data {
@@ -102,7 +102,7 @@ static void xmso_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmso");
@@ -132,8 +132,8 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-	struct xmi_tools *xt = (struct xmi_tools *) data;
-	struct xmi_output *output;
+	xmi_tools *xt = (xmi_tools *) data;
+	xmi_output *output;
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmso");
@@ -186,9 +186,9 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	}
 }
 
-static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, struct xmi_tools *xt) {
+static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, xmi_tools *xt) {
 	GError *error = NULL;
-	struct xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
+	xmi_archive *archive = xmi_msim_gui_utils_read_xmsa_finish(window, result, &error);
 	GTask *task = G_TASK(result);
 
 	gdk_window_set_cursor(gtk_widget_get_window(window), NULL);
@@ -243,8 +243,8 @@ static void xmsa_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
-	struct xmi_tools *xt = data;
-	struct xmi_archive *archive;
+	xmi_tools *xt = data;
+	xmi_archive *archive;
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter,"*.xmsa");
@@ -291,7 +291,7 @@ static void prefix ## _save_button_clicked_cb(GtkButton *button, gpointer data) 
 	gtk_file_filter_add_pattern(filter, filter1); \
 	gtk_file_filter_add_pattern(filter, filter2); \
 	gtk_file_filter_set_name(filter, filter_name); \
-	struct xmi_tools *xt = (struct xmi_tools *) data; \
+	xmi_tools *xt = (xmi_tools *) data; \
 	\
 	dialog = xmi_msim_gui_file_chooser_dialog_new("Select the name for the new " file_type, \
 		GTK_WINDOW(xt->window), \
@@ -323,7 +323,7 @@ SAVE_BUTTON_CLICKED_CALLBACK(svg, "*.svg", "*.SVG", "Scalable Vector Graphics fi
 SAVE_BUTTON_CLICKED_CALLBACK(spe, "*.spe", "*.SPE", "SPE files", "SPE file", ".spe")
 
 static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	gchar *xmsi_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(xt->xmsi_fileW));
@@ -341,7 +341,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
-	struct xmi_main_options options;
+	xmi_main_options options;
 	options.use_M_lines = 1;
 	options.use_cascade_auger = 1;
 	options.use_cascade_radiative = 1;
@@ -374,7 +374,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	convoluted_file = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s", xrmc_folder, "convoluted_spectra.dat");
 	//
 	//read in the inputfile
-	struct xmi_input *input;
+	xmi_input *input;
 	GError *error = NULL;
 	int rv = xmi_read_input_xml(xmsi_file, &input, &error);
 
@@ -402,7 +402,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 				spectrum_file,
 				convoluted_file,
 				NULL,
-				/*struct xmi_layer *collimator*/ NULL,
+				/*xmi_layer *collimator*/ NULL,
 				options,
 				0.0
 				) == 0) {
@@ -445,7 +445,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 }
 
 static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -496,7 +496,7 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 }
 
 static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -554,7 +554,7 @@ static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 }
 
 static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -612,7 +612,7 @@ static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 }
 
 static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -669,7 +669,7 @@ static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	}
 }
 static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -728,7 +728,7 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	}
 }
 
-static void xmsa_to_xmso_callback(GtkWidget *job_dialog, GAsyncResult *result, struct xmi_tools *xt) {
+static void xmsa_to_xmso_callback(GtkWidget *job_dialog, GAsyncResult *result, xmi_tools *xt) {
 
 	gdk_window_set_cursor(gtk_widget_get_window(job_dialog), NULL);
 	gtk_widget_destroy(job_dialog);
@@ -758,7 +758,7 @@ static void xmsa_to_xmso_callback(GtkWidget *job_dialog, GAsyncResult *result, s
 }
 
 static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	struct xmi_tools *xt = (struct xmi_tools *) data;
+	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
 
 	//first check if the two first entries are filled
@@ -825,12 +825,12 @@ void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	GtkWidget *grid;
 	GtkWidget *button;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt3, *xt4;
+	xmi_tools *xt1, *xt2, *xt3, *xt4;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt3 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt3 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new(); // 6 rows ,3 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -919,12 +919,12 @@ void xmso2csv_activated(GSimpleAction *action, GVariant *parameter, gpointer dat
 	GtkWidget *grid;
 	GtkWidget *button;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt4;
+	xmi_tools *xt1, *xt2, *xt4;
 	GtkWidget *button1, *button2;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new(); // 7 rows, 3 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -1002,12 +1002,12 @@ void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	GtkWidget *grid;
 	GtkWidget *button;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt4;
+	xmi_tools *xt1, *xt2, *xt4;
 	GtkWidget *button1, *button2;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new(); // 7 rows, 3 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -1083,12 +1083,12 @@ void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer dat
 	GtkWidget *grid;
 	GtkWidget *button;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt4;
+	xmi_tools *xt1, *xt2, *xt4;
 	GtkWidget *button1, *button2;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new(); // 7 rows, 3 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -1166,13 +1166,13 @@ void xmso2spe_activated(GSimpleAction *action, GVariant *parameter, gpointer dat
 	GtkWidget *grid;
 	GtkWidget *button;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt4;
+	xmi_tools *xt1, *xt2, *xt4;
 	GtkWidget *button1, *button2;
 	GtkWidget *spinner;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new();
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
@@ -1322,7 +1322,7 @@ void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	button = gtk_button_new_with_mnemonic("_Apply");
 	gtk_widget_set_halign(button, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
-	struct xmi_tools *xi = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xmi_tools *xi = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 	xi->window = window;
 	xi->xmsi_fileW = xmsi_fileW;
 	xi->xrmc_folderW = xrmc_folderW;
@@ -1343,16 +1343,16 @@ void xmsa2xmso_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	GtkWidget *button;
 	GtkWidget *button1, *button2;
 	GtkWidget *label, *text;
-	struct xmi_tools *xt1, *xt2, *xt4;
+	xmi_tools *xt1, *xt2, *xt4;
 	GtkWidget *xpath1_spinner;
 	GtkWidget *xpath2_spinner;
 	GtkWidget *xpath1_label;
 	GtkWidget *xpath2_label;
 	GtkWidget *xpath_vbox;
 
-	xt1 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt2 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
-	xt4 = (struct xmi_tools *) g_malloc(sizeof(struct xmi_tools));
+	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
+	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
 
 	grid = gtk_grid_new(); // 8 rows, 3 cols
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);

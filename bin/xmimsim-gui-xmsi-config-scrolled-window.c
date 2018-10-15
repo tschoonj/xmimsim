@@ -70,17 +70,17 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_set_property(GObject *objec
   }
 }
 
-static void outputfile_writer(GValue *value, const struct xmi_input *input) {
+static void outputfile_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_STRING);
 	g_value_set_string(value, input->general->outputfile);
 }
 
-static void outputfile_reader(const GValue *value, struct xmi_input *input) {
+static void outputfile_reader(const GValue *value, xmi_input *input) {
 	g_free(input->general->outputfile);
 	input->general->outputfile = g_value_dup_string(value);
 }
 
-static XmiMsimGuiUndoManagerValueValidatorResult outputfile_validator(GtkWidget *widget, struct xmi_input *current_input, GValue *value) {
+static XmiMsimGuiUndoManagerValueValidatorResult outputfile_validator(GtkWidget *widget, xmi_input *current_input, GValue *value) {
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(widget));
 
 	if (g_strcmp0(text, current_input->general->outputfile) == 0)
@@ -93,16 +93,16 @@ static XmiMsimGuiUndoManagerValueValidatorResult outputfile_validator(GtkWidget 
 }
 
 #define CREATE_ENTRY_UNDO_MANAGER_METHODS_INT(widget_name, data_name, min_value, max_value) \
-static void widget_name ## _writer(GValue *value, const struct xmi_input *input) { \
+static void widget_name ## _writer(GValue *value, const xmi_input *input) { \
 	g_value_init(value, G_TYPE_INT); \
 	g_value_set_int(value, data_name); \
 } \
 \
-static void widget_name ## _reader(const GValue *value, struct xmi_input *input) { \
+static void widget_name ## _reader(const GValue *value, xmi_input *input) { \
 	data_name = g_value_get_int(value); \
 } \
 \
-static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, struct xmi_input *input, GValue *value) { \
+static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, xmi_input *input, GValue *value) { \
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(widget)); \
 	gchar *endptr; \
 \
@@ -121,16 +121,16 @@ static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWi
 }
 
 #define CREATE_ENTRY_UNDO_MANAGER_METHODS_LONG(widget_name, data_name, min_value, max_value) \
-static void widget_name ## _writer(GValue *value, const struct xmi_input *input) { \
+static void widget_name ## _writer(GValue *value, const xmi_input *input) { \
 	g_value_init(value, G_TYPE_LONG); \
 	g_value_set_long(value, data_name); \
 } \
 \
-static void widget_name ## _reader(const GValue *value, struct xmi_input *input) { \
+static void widget_name ## _reader(const GValue *value, xmi_input *input) { \
 	data_name = g_value_get_long(value); \
 } \
 \
-static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, struct xmi_input *input, GValue *value) { \
+static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, xmi_input *input, GValue *value) { \
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(widget)); \
 	gchar *endptr; \
 \
@@ -149,16 +149,16 @@ static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWi
 }
 
 #define CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(widget_name, data_name, min_value, min_value_inclusive, max_value, max_value_inclusive) \
-static void widget_name ## _writer(GValue *value, const struct xmi_input *input) { \
+static void widget_name ## _writer(GValue *value, const xmi_input *input) { \
 	g_value_init(value, G_TYPE_DOUBLE); \
 	g_value_set_double(value, data_name); \
 } \
 \
-static void widget_name ## _reader(const GValue *value, struct xmi_input *input) { \
+static void widget_name ## _reader(const GValue *value, xmi_input *input) { \
 	data_name = g_value_get_double(value); \
 } \
 \
-static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, struct xmi_input *input, GValue *value) { \
+static XmiMsimGuiUndoManagerValueValidatorResult widget_name ## _validator(GtkWidget *widget, xmi_input *input, GValue *value) { \
 	gchar *text = g_strstrip(g_strdup(gtk_entry_get_text(GTK_ENTRY(widget)))); \
 	gchar *endptr; \
 \
@@ -205,12 +205,12 @@ CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_zero, input->detector->zero, G
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_fano, input->detector->fano, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_noise, input->detector->noise, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 
-static void comments_writer(GValue *value, const struct xmi_input *input) {
+static void comments_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_STRING);
 	g_value_set_string(value, input->general->comments);
 }
 
-static void comments_reader(const GValue *value, struct xmi_input *input) {
+static void comments_reader(const GValue *value, xmi_input *input) {
 	const gchar *all_text = NULL;
 	if (G_VALUE_HOLDS(value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA)) {
 		all_text = xmi_msim_gui_undo_manager_text_view_insert_data_get_all_text((XmiMsimGuiUndoManagerTextViewInsertData *) g_value_get_boxed(value));
@@ -227,21 +227,21 @@ static void comments_reader(const GValue *value, struct xmi_input *input) {
 	input->general->comments = g_strdup(all_text);	
 }
 
-static void detector_type_writer(GValue *value, const struct xmi_input *input) {
+static void detector_type_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_INT);
 	g_value_set_int(value, input->detector->detector_type);
 }
 
-static void detector_type_reader(const GValue *value, struct xmi_input *input) {
+static void detector_type_reader(const GValue *value, xmi_input *input) {
 	input->detector->detector_type = g_value_get_int(value);
 }
 
-static void detector_nchannels_writer(GValue *value, const struct xmi_input *input) {
+static void detector_nchannels_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_DOUBLE);
 	g_value_set_double(value, (double) input->detector->nchannels);
 }
 
-static void detector_nchannels_reader(const GValue *value, struct xmi_input *input) {
+static void detector_nchannels_reader(const GValue *value, xmi_input *input) {
 	input->detector->nchannels = (int) g_value_get_double(value);
 }
 
@@ -603,7 +603,7 @@ static void select_outputfile_cb(GtkButton *button, XmiMsimGuiXmsiConfigScrolled
 
 	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 
-	struct xmi_input *current = xmi_msim_gui_undo_manager_get_current_input(self->undo_manager);
+	xmi_input *current = xmi_msim_gui_undo_manager_get_current_input(self->undo_manager);
 
 	if (current == NULL || current->general->outputfile == NULL || strlen(current->general->outputfile) == 0) {
 		GValue prefs = G_VALUE_INIT;

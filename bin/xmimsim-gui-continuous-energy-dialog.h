@@ -69,8 +69,8 @@ GType xmi_msim_gui_continuous_energy_dialog_get_type(void) G_GNUC_CONST;
 
 GtkWidget *xmi_msim_gui_continuous_energy_dialog_new(GtkWindow *parent, XmiMsimGuiContinuousEnergyDialogType type);
 
-void xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog, const struct xmi_energy_continuous *continuous_energy);
-struct xmi_energy_continuous* xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog);
+void xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog, const xmi_energy_continuous *continuous_energy);
+xmi_energy_continuous* xmi_msim_gui_continuous_energy_dialog_get_continuous_energy(XmiMsimGuiContinuousEnergyDialog *dialog);
 
 G_END_DECLS
 #endif

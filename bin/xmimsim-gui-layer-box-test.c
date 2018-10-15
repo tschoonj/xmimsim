@@ -38,7 +38,7 @@ static void destroy( GtkWidget *widget,
 }
 
 static void changed(XmiMsimGuiLayerBox *lbc, gchar *change, gpointer data) {
-	struct xmi_composition *composition = xmi_msim_gui_layer_box_get_composition(lbc);
+	xmi_composition *composition = xmi_msim_gui_layer_box_get_composition(lbc);
 
 	fprintf(stdout, "change: %s\n", change);
 	if (composition == NULL) {
@@ -59,16 +59,16 @@ static void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manag
 	gtk_widget_set_sensitive(paste, paste_val);
 }
 
-static void n_photons_interval_writer(GValue *value, const struct xmi_input *input) {
+static void n_photons_interval_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_LONG);
 	g_value_set_long(value, input->general->n_photons_interval);
 }
 
-static void n_photons_interval_reader(const GValue *value, struct xmi_input *input) {
+static void n_photons_interval_reader(const GValue *value, xmi_input *input) {
 	input->general->n_photons_interval = g_value_get_long(value);
 }
 
-static XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(GtkWidget *widget, struct xmi_input *current_input, GValue *value) {
+static XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(GtkWidget *widget, xmi_input *current_input, GValue *value) {
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(widget));
 	gchar *endptr;
 
@@ -86,12 +86,12 @@ static XmiMsimGuiUndoManagerValueValidatorResult n_photons_interval_validator(Gt
 	return XMI_MSIM_GUI_UNDO_MANAGER_VALUE_VALIDATOR_RESULT_VALID;
 }
 
-static void comments_writer(GValue *value, const struct xmi_input *input) {
+static void comments_writer(GValue *value, const xmi_input *input) {
 	g_value_init(value, G_TYPE_STRING);
 	g_value_set_string(value, input->general->comments);
 }
 
-static void comments_reader(const GValue *value, struct xmi_input *input) {
+static void comments_reader(const GValue *value, xmi_input *input) {
 	const gchar *all_text = NULL;
 	if (G_VALUE_HOLDS(value, XMI_MSIM_GUI_UNDO_MANAGER_TEXT_VIEW_TYPE_INSERT_DATA)) {
 		all_text = xmi_msim_gui_undo_manager_text_view_insert_data_get_all_text((XmiMsimGuiUndoManagerTextViewInsertData *) g_value_get_boxed(value));
@@ -201,8 +201,8 @@ int main(int argc, char *argv[]) {
 	GtkWidget *lb = xmi_msim_gui_layer_box_new(XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION);
 	int Z[3] = {12, 18, 26};
 	double weight[3] = {0.3, 0.5, 0.2};
-	struct xmi_layer layer = {.n_elements = 3, .Z = Z, .weight = weight, .density = 4.5, .thickness = 1.3};
-	struct xmi_composition composition = {.n_layers = 1, .layers = &layer, .reference_layer = 0};
+	xmi_layer layer = {.n_elements = 3, .Z = Z, .weight = weight, .density = 4.5, .thickness = 1.3};
+	xmi_composition composition = {.n_layers = 1, .layers = &layer, .reference_layer = 0};
 	//xmi_msim_gui_layer_box_set_composition(XMI_MSIM_GUI_LAYER_BOX(lb), &composition);
 	g_signal_connect(G_OBJECT(lb), "changed", G_CALLBACK(changed), NULL);
 	gtk_grid_attach(GTK_GRID(grid), lb, 0, 2, 1, 1);
