@@ -23,60 +23,54 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 
 XMI_MAIN
-	static xmi_main_options options;
+	xmi_main_options *options = xmi_main_options_new();
+
 	xmi_input *input;
-	static int version = 0;
+	int version = 0;
 	int rv;
 
 	GOptionContext *context;
-	static gchar *input_file = NULL;
-	static gchar *source_file = NULL;
-	static gchar *sample_file = NULL;
-	static gchar *composition_file = NULL;
-	static gchar *spectrum_file = NULL;
-	static gchar *geom3d_file = NULL;
-	static gchar *quadric_file = NULL;
-	static gchar *detector_file = NULL;
-	static gchar *convoluted_file = NULL;
-	static gchar *unconvoluted_file = NULL;
-	static double rotate_angle_z = 0.0;
+	gchar *input_file = NULL;
+	gchar *source_file = NULL;
+	gchar *sample_file = NULL;
+	gchar *composition_file = NULL;
+	gchar *spectrum_file = NULL;
+	gchar *geom3d_file = NULL;
+	gchar *quadric_file = NULL;
+	gchar *detector_file = NULL;
+	gchar *convoluted_file = NULL;
+	gchar *unconvoluted_file = NULL;
+	double rotate_angle_z = 0.0;
 
-	static GOptionEntry entries[] = {
-		{"input-file",0,0,G_OPTION_ARG_FILENAME,&input_file, "Path to XRMC input file", "FILE"},
-		{"composition-file",0,0,G_OPTION_ARG_FILENAME,&composition_file, "Path to XRMC composition file", "FILE"},
-		{"source-file",0,0,G_OPTION_ARG_FILENAME,&source_file, "Path to XRMC source file", "FILE"},
-		{"sample-file",0,0,G_OPTION_ARG_FILENAME,&sample_file, "Path to XRMC sample file", "FILE"},
-		{"spectrum-file",0,0,G_OPTION_ARG_FILENAME,&spectrum_file, "Path to XRMC spectrum file", "FILE"},
-		{"geom3d-file",0,0,G_OPTION_ARG_FILENAME,&geom3d_file, "Path to XRMC geom3d file", "FILE"},
-		{"quadric-file",0,0,G_OPTION_ARG_FILENAME,&quadric_file, "Path to XRMC quadric file", "FILE"},
-		{"detector-file",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Path to XRMC detector file", "FILE"},
-		{"convoluted-file",0,0,G_OPTION_ARG_FILENAME,&convoluted_file, "Path to XRMC convoluted spectra output", "FILE"},
-		{"unconvoluted-file",0,0,G_OPTION_ARG_FILENAME,&unconvoluted_file, "Path to XRMC unconvoluted spectra output", "FILE"},
-		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL},
-		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
-		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
-		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{"rotate-angle-z", 0, 0, G_OPTION_ARG_DOUBLE, &rotate_angle_z, "Rotate all objects, source and detector around XRMC's Z-axis by ANGLE degrees", "ANGLE"},
-		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
-		{NULL}
-	};
+	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 16);
+#define ADD_OPTION(long_name, short_name, flags, arg, arg_data, description, arg_description) \
+	{ \
+		GOptionEntry entry = {long_name, short_name, flags, arg, arg_data, description, arg_description}; \
+		g_array_append_val(entries, entry); \
+	}
 
-
+	ADD_OPTION("input-file",0,0,G_OPTION_ARG_FILENAME,&input_file, "Path to XRMC input file", "FILE");
+	ADD_OPTION("composition-file",0,0,G_OPTION_ARG_FILENAME,&composition_file, "Path to XRMC composition file", "FILE");
+	ADD_OPTION("source-file",0,0,G_OPTION_ARG_FILENAME,&source_file, "Path to XRMC source file", "FILE");
+	ADD_OPTION("sample-file",0,0,G_OPTION_ARG_FILENAME,&sample_file, "Path to XRMC sample file", "FILE");
+	ADD_OPTION("spectrum-file",0,0,G_OPTION_ARG_FILENAME,&spectrum_file, "Path to XRMC spectrum file", "FILE");
+	ADD_OPTION("geom3d-file",0,0,G_OPTION_ARG_FILENAME,&geom3d_file, "Path to XRMC geom3d file", "FILE");
+	ADD_OPTION("quadric-file",0,0,G_OPTION_ARG_FILENAME,&quadric_file, "Path to XRMC quadric file", "FILE");
+	ADD_OPTION("detector-file",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Path to XRMC detector file", "FILE");
+	ADD_OPTION("convoluted-file",0,0,G_OPTION_ARG_FILENAME,&convoluted_file, "Path to XRMC convoluted spectra output", "FILE");
+	ADD_OPTION("unconvoluted-file",0,0,G_OPTION_ARG_FILENAME,&unconvoluted_file, "Path to XRMC unconvoluted spectra output", "FILE");
+	ADD_OPTION("enable-poisson", 0, 0, G_OPTION_ARG_NONE, &options->use_poisson, "Generate Poisson noise in the spectra", NULL);
+	ADD_OPTION("disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_poisson, "Disable the generating of spectral Poisson noise (default)", NULL );
+	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
+	ADD_OPTION("disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Disable pile-up (default)", NULL );
+	ADD_OPTION("rotate-angle-z", 0, 0, G_OPTION_ARG_DOUBLE, &rotate_angle_z, "Rotate all objects, source and detector around XRMC's Z-axis by ANGLE degrees", "ANGLE");
+	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
+	
 	//parse options
-	options.use_M_lines = 1;
-	options.use_cascade_auger = 1;
-	options.use_cascade_radiative = 1;
-	options.use_variance_reduction = 1;
-	options.use_sum_peaks = 0;
-	options.use_poisson = 0;
-	options.use_escape_peaks = 1;
-	options.verbose = 0;
-	options.use_opencl = 0;
-	options.extra_verbose = 0;
 
 	context = g_option_context_new ("XMSI_file");
 	GError *error = NULL;
-	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmsi2xrmc: a utility for the conversion of an XMI-MSIM input-file to the corresponding XRMC input-files.\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
@@ -92,6 +86,10 @@ XMI_MAIN
 		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
+
+	g_option_context_free(context);
+
+	g_array_free(entries, TRUE);
 
 	//ok time, to fill up the paths with defaults
 	gchar *cwd = g_get_current_dir();

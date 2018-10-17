@@ -1744,3 +1744,41 @@ int xmi_cmp_int(const void *a, const void *b) {
 	return *((int *) a) - *((int *) b);
 }
 
+static const xmi_main_options __default_main_options = {
+        .use_M_lines = 1,
+        .use_cascade_auger = 1,
+        .use_cascade_radiative = 1,
+        .use_variance_reduction = 1,
+        .use_sum_peaks = 0,
+        .use_escape_peaks = 1,
+        .escape_ratios_mode = 0,
+        .verbose = 0,
+        .use_poisson = 0,
+        .use_opencl = 1,
+        .omp_num_threads = 1,
+        .extra_verbose = 0,
+        .custom_detector_response = NULL,
+        .use_advanced_compton = 0,
+        .use_default_seeds = 0
+};
+
+xmi_main_options* xmi_main_options_new(void) {
+	xmi_main_options *rv = g_memdup(&__default_main_options, sizeof(xmi_main_options));
+        rv->omp_num_threads = xmi_omp_get_max_threads();
+
+	return rv;
+}
+
+void xmi_free_main_options(xmi_main_options *options) {
+	if (!options)
+		return;
+	g_free(options->custom_detector_response);	
+	g_free(options);
+}
+
+void xmi_copy_main_options(xmi_main_options *A, xmi_main_options **B) {
+	*B = g_memdup(A, sizeof(xmi_main_options));
+	if (!*B)
+		return;
+	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
+}

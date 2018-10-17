@@ -251,9 +251,9 @@ GtkWidget* xmi_msim_gui_options_box_new(void) {
 }
 
 xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *self) {
-	xmi_main_options *rv = g_malloc(sizeof(xmi_main_options));
+	xmi_main_options *rv = NULL;
 
-	*rv = xmi_get_default_main_options();
+	rv = xmi_main_options_new();
 
 	rv->use_M_lines = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->MlinesW));
 	rv->use_cascade_radiative = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW));

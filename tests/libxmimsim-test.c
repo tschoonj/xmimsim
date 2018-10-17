@@ -163,9 +163,9 @@ xmi_output* run_main(const char *compound) {
 	double *brute_history;
 	double *var_red_history;
 	int i;
-	xmi_main_options options = xmi_get_default_main_options();
-	options.use_escape_peaks = 0;
-	options.verbose = 1;
+	xmi_main_options *options = xmi_main_options_new();
+	options->use_escape_peaks = 0;
+	options->verbose = 1;
 
 	// init test
 	g_assert(test_init() == 1);

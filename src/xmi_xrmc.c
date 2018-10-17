@@ -546,7 +546,7 @@ static int xmi_write_xrmc_compositionfile(char *xrmc_compositionfile, xmi_input 
 	return 1;
 }
 
-static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input, xmi_main_options options, double rotate_angle_z) {
+static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input, xmi_main_options *options, double rotate_angle_z) {
 	FILE *filePtr;
 
 	if ((filePtr = g_fopen(xrmc_detectorfile, "w")) == NULL) {
@@ -577,7 +577,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input
 	fprintf(filePtr, "ExpTime %g\n", input->detector->live_time);
 	fprintf(filePtr, "PhotonNum %i\n", 100000);
 	fprintf(filePtr, "RandomPixelFlag 1\n");
-	fprintf(filePtr, "PoissonFlag %i\n", options.use_poisson);
+	fprintf(filePtr, "PoissonFlag %i\n", options->use_poisson);
 	fprintf(filePtr, "RoundFlag 0\n");
 	fprintf(filePtr, "HeaderFlag 1\n");
 	fprintf(filePtr, "ForceDetectFlag 1\n");
@@ -600,7 +600,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input
 	}
 	fprintf(filePtr, "FanoFactor %g\n", input->detector->fano);
 	fprintf(filePtr, "Noise %g\n", input->detector->noise);
-	if (options.use_sum_peaks) {
+	if (options->use_sum_peaks) {
 		fprintf(filePtr, "PulseWidth %g\n", input->detector->pulse_width);
 	}
 
@@ -609,7 +609,7 @@ static int xmi_write_xrmc_detectorfile(char *xrmc_detectorfile, xmi_input *input
 	return 1;
 }
 
-int xmi_copy_input_to_xrmc(xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, xmi_layer *collimator, xmi_main_options options, double rotate_angle_z) {
+int xmi_copy_input_to_xrmc(xmi_input *input, char *xrmc_inputfile, char *xrmc_compositionfile, char *xrmc_detectorfile, char *xrmc_geom3dfile, char *xrmc_quadricfile, char *xrmc_samplefile, char *xrmc_sourcefile, char *xrmc_spectrumfile, char *xrmc_convolutedspectrumfile, char *xrmc_unconvolutedspectrumfile, xmi_layer *collimator, xmi_main_options *options, double rotate_angle_z) {
 
 	if (xmi_write_xrmc_inputfile(xrmc_inputfile, xrmc_compositionfile, xrmc_detectorfile, xrmc_geom3dfile, xrmc_quadricfile, xrmc_samplefile, xrmc_sourcefile, xrmc_spectrumfile, xrmc_convolutedspectrumfile, xrmc_unconvolutedspectrumfile) == 0) {
 		fprintf(stderr, "Error in xmi_write_xrmc_inputfile: Aborting\n");

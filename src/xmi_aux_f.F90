@@ -2080,19 +2080,6 @@ FUNCTION xmi_get_q_from_energy(old_energy, new_energy, theta) RESULT(Q)
 
 ENDFUNCTION xmi_get_q_from_energy
 
-FUNCTION xmi_get_default_main_options() &
-BIND(C,NAME='xmi_get_default_main_options') &
-RESULT(rv)
-        IMPLICIT NONE
-        TYPE (xmi_main_options) :: rv
-
-        !set the number of threads right
-        rv%omp_num_threads = xmi_omp_get_max_threads()
-        rv%custom_detector_response = C_NULL_PTR
-
-        RETURN
-ENDFUNCTION xmi_get_default_main_options
-
 ! taken from http://fortranwiki.org/fortran/show/Matrix+inversion
 PURE FUNCTION xmi_inverse_matrix(A) RESULT(B)
     implicit none

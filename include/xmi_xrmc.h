@@ -37,7 +37,7 @@ int xmi_copy_input_to_xrmc(	xmi_input *input,
 				char *xrmc_convolutedspectrumfile,
 				char *xrmc_unconvolutedspectrumfile,
 				xmi_layer *collimator,
-				xmi_main_options options,
+				xmi_main_options *options,
 				double rotate_angle_z
 				);
 

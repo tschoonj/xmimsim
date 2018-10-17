@@ -292,7 +292,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 

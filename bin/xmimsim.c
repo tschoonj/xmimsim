@@ -88,75 +88,76 @@ XMI_MAIN
 	int i,j;
 	GError *error = NULL;
 	GOptionContext *context;
-	static xmi_main_options options;
+	xmi_main_options *options = xmi_main_options_new();
+
 	double *brute_history;
 	double *brute_historydef;
 	double *var_red_history;
 	double *var_red_historydef;
-	static gchar *hdf5_file=NULL;
-	static gchar *spe_file_noconv=NULL;
-	static gchar *spe_file_conv=NULL;
-	static gchar *csv_file_noconv=NULL;
-	static gchar *csv_file_conv=NULL;
-	static gchar *svg_file_noconv=NULL;
-	static gchar *svg_file_conv=NULL;
-	static gchar *htm_file_noconv=NULL;
-	static gchar *htm_file_conv=NULL;
+	gchar *hdf5_file=NULL;
+	gchar *spe_file_noconv=NULL;
+	gchar *spe_file_conv=NULL;
+	gchar *csv_file_noconv=NULL;
+	gchar *csv_file_conv=NULL;
+	gchar *svg_file_noconv=NULL;
+	gchar *svg_file_conv=NULL;
+	gchar *htm_file_noconv=NULL;
+	gchar *htm_file_conv=NULL;
 	double zero_sum;
 	xmi_solid_angle *solid_angle_def=NULL;
 	xmi_escape_ratios *escape_ratios_def=NULL;
 	char *xmi_input_string;
-	static char *xmimsim_hdf5_solid_angles = NULL;
-	static char *xmimsim_hdf5_escape_ratios = NULL;
+	char *xmimsim_hdf5_solid_angles = NULL;
+	char *xmimsim_hdf5_escape_ratios = NULL;
 	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
 	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
 	gchar *hdf5_file_utf8 = NULL;
-	static int version = 0;
+	int version = 0;
 
-
-	static GOptionEntry entries[] = {
-		{ "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
-		{ "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-		{ "enable-auger-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Enable Auger (non radiative) cascade effects (default)", NULL },
-		{ "disable-auger-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_auger), "Disable Auger cascade effects", NULL },
-		{ "enable-radiative-cascade", 0, 0, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Enable radiative cascade effects (default)", NULL },
-		{ "disable-radiative-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_cascade_radiative), "Disable radiative cascade effects", NULL },
-		{ "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Enable variance reduction (default)", NULL },
-		{ "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_variance_reduction), "Disable variance reduction", NULL },
-		{"with-hdf5-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
-		{"with-solid-angles-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_solid_angles,"Select a HDF5 solid angles file (advanced usage)",NULL},
-		{"with-escape-ratios-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_escape_ratios,"Select a HDF5 escape ratios file (advanced usage)",NULL},
-		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
-		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
-		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
-		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
-		{"svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL},
-		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
-		{"htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL},
-		{"htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL},
-		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
-		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{"enable-escape-peaks", 0, 0, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Enable escape peaks (default)", NULL },
-		{"disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Disable escape peaks", NULL },
-		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
-		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 30);
+#define ADD_OPTION(long_name, short_name, flags, arg, arg_data, description, arg_description) \
+	{ \
+		GOptionEntry entry = {long_name, short_name, flags, arg, arg_data, description, arg_description}; \
+		g_array_append_val(entries, entry); \
+	}
+	ADD_OPTION( "enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &options->use_M_lines, "Enable M lines (default)", NULL );
+	ADD_OPTION( "disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_M_lines, "Disable M lines", NULL );
+	ADD_OPTION( "enable-auger-cascade", 0, 0, G_OPTION_ARG_NONE, &options->use_cascade_auger, "Enable Auger (non radiative) cascade effects (default)", NULL );
+	ADD_OPTION( "disable-auger-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_cascade_auger, "Disable Auger cascade effects", NULL );
+	ADD_OPTION( "enable-radiative-cascade", 0, 0, G_OPTION_ARG_NONE, &options->use_cascade_radiative, "Enable radiative cascade effects (default)", NULL );
+	ADD_OPTION( "disable-radiative-cascade", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_cascade_radiative, "Disable radiative cascade effects", NULL );
+	ADD_OPTION( "enable-variance-reduction", 0, 0, G_OPTION_ARG_NONE, &options->use_variance_reduction, "Enable variance reduction (default)", NULL );
+	ADD_OPTION( "disable-variance-reduction", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_variance_reduction, "Disable variance reduction", NULL );
+	ADD_OPTION("with-hdf5-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL);
+	ADD_OPTION("with-solid-angles-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_solid_angles,"Select a HDF5 solid angles file (advanced usage)",NULL);
+	ADD_OPTION("with-escape-ratios-data",0,G_OPTION_FLAG_HIDDEN,G_OPTION_ARG_FILENAME,&xmimsim_hdf5_escape_ratios,"Select a HDF5 escape ratios file (advanced usage)",NULL);
+	ADD_OPTION("spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL);
+	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
+	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
+	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
+	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
+	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
+	ADD_OPTION("htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL);
+	ADD_OPTION("htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL);
+	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
+	ADD_OPTION("disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Disable pile-up (default)", NULL );
+	ADD_OPTION("enable-escape-peaks", 0, 0, G_OPTION_ARG_NONE, &options->use_escape_peaks, "Enable escape peaks (default)", NULL );
+	ADD_OPTION("disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_escape_peaks, "Disable escape peaks", NULL );
+	ADD_OPTION("enable-poisson", 0, 0, G_OPTION_ARG_NONE, &options->use_poisson, "Generate Poisson noise in the spectra", NULL );
+	ADD_OPTION("disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_poisson, "Disable the generating of spectral Poisson noise (default)", NULL );
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL", NULL },
-		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL (default)", NULL },
+	ADD_OPTION("enable-opencl", 0, 0, G_OPTION_ARG_NONE, &options->use_opencl, "Enable OpenCL", NULL );
+	ADD_OPTION("disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_opencl, "Disable OpenCL (default)", NULL );
 #endif
-		{"enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Enable advanced yet slower Compton simulation", NULL },
-		{"disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Disable advanced yet slower Compton simulation (default)", NULL },
-		{"custom-detector-response",0,0,G_OPTION_ARG_FILENAME,&options.custom_detector_response,"Use the supplied library for the detector response routine",NULL},
-		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Sets the number of threads to NTHREADS (default=max)", "NTHREADS"},
-		{"enable-default-seeds", 0, 0, G_OPTION_ARG_NONE, &(options.use_default_seeds), "Use default seeds for reproducible simulation results", NULL },
-		{"disable-default-seeds", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_default_seeds), "Disable default seeds for irreproducible simulation results (default)", NULL },
-		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
-		{"very-verbose", 'V', 0, G_OPTION_ARG_NONE, &(options.extra_verbose), "Even more verbose mode", NULL },
-		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
-		{ NULL }
-	};
-
-
+	ADD_OPTION("enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Enable advanced yet slower Compton simulation", NULL );
+	ADD_OPTION("disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Disable advanced yet slower Compton simulation (default)", NULL );
+	ADD_OPTION("custom-detector-response",0,0,G_OPTION_ARG_FILENAME, &options->custom_detector_response, "Use the supplied library for the detector response routine",NULL);
+	ADD_OPTION("set-threads",0,0,G_OPTION_ARG_INT, &options->omp_num_threads, "Sets the number of threads to NTHREADS (default=max)", "NTHREADS");
+	ADD_OPTION("enable-default-seeds", 0, 0, G_OPTION_ARG_NONE, &options->use_default_seeds, "Use default seeds for reproducible simulation results", NULL );
+	ADD_OPTION("disable-default-seeds", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_default_seeds, "Disable default seeds for irreproducible simulation results (default)", NULL );
+	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
+	ADD_OPTION("very-verbose", 'V', 0, G_OPTION_ARG_NONE, &options->extra_verbose, "Even more verbose mode", NULL );
+	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
 
 
 
@@ -189,8 +190,6 @@ XMI_MAIN
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
-	options = xmi_get_default_main_options();
-
 #ifdef G_OS_WIN32
 	gchar *equalsignchar;
 	for (i = 0 ; i < argc ; i++) {
@@ -211,8 +210,8 @@ XMI_MAIN
 
 
 	//parse options
-	context = g_option_context_new ("inputfile");
-	g_option_context_add_main_entries (context, entries, NULL);
+	context = g_option_context_new("inputfile");
+	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
@@ -238,25 +237,27 @@ XMI_MAIN
 
 	g_option_context_free(context);
 
-	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
-			options.omp_num_threads < 1) {
-		options.omp_num_threads = xmi_omp_get_max_threads();
+	g_array_free(entries, TRUE);
+
+	if (options->omp_num_threads > xmi_omp_get_max_threads() ||
+			options->omp_num_threads < 1) {
+		options->omp_num_threads = xmi_omp_get_max_threads();
 	}
 
-	if (options.extra_verbose) {
-		options.verbose = 1;
+	if (options->extra_verbose) {
+		options->verbose = 1;
 		//print all selected options
-		g_fprintf(stdout,"Option M-lines: %i\n", options.use_M_lines);
-		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options.use_cascade_auger);
-		g_fprintf(stdout,"Option radiative cascade: %i\n", options.use_cascade_radiative);
-		g_fprintf(stdout,"Option variance reduction: %i\n", options.use_variance_reduction);
-		g_fprintf(stdout,"Option pile-up: %i\n", options.use_sum_peaks);
-		g_fprintf(stdout,"Option Poisson noise: %i\n", options.use_poisson);
-		g_fprintf(stdout,"Option escape peaks: %i\n", options.use_escape_peaks);
+		g_fprintf(stdout,"Option M-lines: %i\n", options->use_M_lines);
+		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options->use_cascade_auger);
+		g_fprintf(stdout,"Option radiative cascade: %i\n", options->use_cascade_radiative);
+		g_fprintf(stdout,"Option variance reduction: %i\n", options->use_variance_reduction);
+		g_fprintf(stdout,"Option pile-up: %i\n", options->use_sum_peaks);
+		g_fprintf(stdout,"Option Poisson noise: %i\n", options->use_poisson);
+		g_fprintf(stdout,"Option escape peaks: %i\n", options->use_escape_peaks);
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		g_fprintf(stdout,"Option OpenCL: %i\n", options.use_opencl);
+		g_fprintf(stdout,"Option OpenCL: %i\n", options->use_opencl);
 #endif
-		g_fprintf(stdout,"Option number of threads: %i\n", options.omp_num_threads);
+		g_fprintf(stdout,"Option number of threads: %i\n", options->omp_num_threads);
 	}
 
 
@@ -265,7 +266,7 @@ XMI_MAIN
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"XML catalog loaded\n");
 
 
@@ -289,10 +290,10 @@ XMI_MAIN
 	if (rv != 1) {
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
-	if (options.extra_verbose)
+	if (options->extra_verbose)
 		xmi_print_input(stdout,input);
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
@@ -303,7 +304,7 @@ XMI_MAIN
 	}
 
 
-	if (options.verbose)
+	if (options->verbose)
 		g_fprintf(stdout,"Reading HDF5 datafile\n");
 
 	//read from HDF5 file what needs to be read in
@@ -311,7 +312,7 @@ XMI_MAIN
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
@@ -322,17 +323,17 @@ XMI_MAIN
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif
-	if (options.use_variance_reduction == 1) {
+	if (options->use_variance_reduction == 1) {
 		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
 		//check if solid angles are already precalculated
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles, input, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
@@ -343,14 +344,14 @@ XMI_MAIN
 			//update hdf5 file
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"Operating in brute-force mode: solid angle grid is redundant\n");
 
 
@@ -361,7 +362,7 @@ XMI_MAIN
 #ifdef HAVE_OPENMPI
 	MPI_Barrier(MPI_COMM_WORLD);
 	//read solid angles for the other nodes
-	if (options.use_variance_reduction == 1 && rank != 0) {
+	if (options->use_variance_reduction == 1 && rank != 0) {
 		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
@@ -376,7 +377,7 @@ XMI_MAIN
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-	if (options.verbose)
+	if (options->verbose)
 		g_fprintf(stdout,"Simulating interactions\n");
 
 	if (xmi_main_msim(inputFPtr, hdf5FPtr, numprocs, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
@@ -386,7 +387,7 @@ XMI_MAIN
 	if (solid_angle_def != NULL)
 		xmi_free_solid_angle(solid_angle_def);
 
-	if (options.verbose)
+	if (options->verbose)
 		g_fprintf(stdout,"Interactions simulation finished\n");
 
 
@@ -417,7 +418,7 @@ XMI_MAIN
 	if (rank == 0) {
 		channelsdef = (double *) g_malloc0((input->general->n_interactions_trajectory+1)*input->detector->nchannels*sizeof(double));
 		brute_historydef = (double *) g_malloc0(100*(383+2)*input->general->n_interactions_trajectory*sizeof(double));
-		if (options.use_variance_reduction == 1)
+		if (options->use_variance_reduction == 1)
 			var_red_historydef = (double *) g_malloc0(100*(383+2)*input->general->n_interactions_trajectory*sizeof(double));
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -427,7 +428,7 @@ XMI_MAIN
 	//reduce brute_history
 	MPI_Reduce(brute_history, brute_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 	//reduce var_red_history
-	if (options.use_variance_reduction == 1)
+	if (options->use_variance_reduction == 1)
 		MPI_Reduce(var_red_history, var_red_historydef,100*(383+2)*input->general->n_interactions_trajectory, MPI_DOUBLE,MPI_SUM, 0, MPI_COMM_WORLD);
 
 
@@ -481,18 +482,18 @@ XMI_MAIN
 #endif
 
 		//read escape ratios
-		if (options.use_escape_peaks) {
+		if (options->use_escape_peaks) {
 			if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 				return 1;
 
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 			//check if escape ratios are already precalculated
 			if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , input, &escape_ratios_def, options) == 0)
 				return 1;
 			if (escape_ratios_def == NULL) {
-				if (options.verbose)
+				if (options->verbose)
 					g_fprintf(stdout,"Precalculating escape peak ratios\n");
 				//doesn't exist yet
 				//convert input to string
@@ -503,13 +504,13 @@ XMI_MAIN
 				//update hdf5 file
 				if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 					return 1;
-				else if (options.verbose)
+				else if (options->verbose)
 					g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"No escape peaks requested: escape peak calculation is redundant\n");
 
 		double **channels_def_ptrs = g_malloc(sizeof(double *) * (input->general->n_interactions_trajectory+1));
@@ -517,8 +518,8 @@ XMI_MAIN
 			channels_def_ptrs[i] = channelsdef+i*input->detector->nchannels;
 
 
-		if (options.custom_detector_response == NULL) {
-			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+		if (options->custom_detector_response == NULL) {
+			xmi_detector_convolute_all(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 		}
 		else {
 			XmiDetectorConvoluteAll xmi_detector_convolute_all_custom;
@@ -527,26 +528,26 @@ XMI_MAIN
 				fprintf(stderr,"No module support on this platform: cannot use custom detector convolution routine\n");
 				return 1;
 			}
-			module = g_module_open(options.custom_detector_response, 0);
+			module = g_module_open(options->custom_detector_response, 0);
 			if (!module) {
-				fprintf(stderr,"Could not open %s: %s\n", options.custom_detector_response, g_module_error());
+				fprintf(stderr,"Could not open %s: %s\n", options->custom_detector_response, g_module_error());
 				return 1;
 			}
 			if (!g_module_symbol(module, "xmi_detector_convolute_all_custom", (gpointer *) &xmi_detector_convolute_all_custom)) {
-				fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", options.custom_detector_response, g_module_error());
+				fprintf(stderr,"Error retrieving xmi_detector_convolute_all_custom in %s: %s\n", options->custom_detector_response, g_module_error());
 				return 1;
 			}
-			else if (options.verbose)
-				g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", options.custom_detector_response);
-			xmi_detector_convolute_all_custom(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
+			else if (options->verbose)
+				g_fprintf(stdout,"xmi_detector_convolute_all_custom loaded from %s\n", options->custom_detector_response);
+			xmi_detector_convolute_all_custom(inputFPtr, channels_def_ptrs, channels_conv, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, options, escape_ratios_def, input->general->n_interactions_trajectory, zero_sum > 0.0 ? 1 : 0);
 			if (!g_module_close(module)) {
-				fprintf(stderr,"Warning: could not close module %s: %s\n",options.custom_detector_response, g_module_error());
+				fprintf(stderr,"Warning: could not close module %s: %s\n",options->custom_detector_response, g_module_error());
 			}
 		}
 
 
 		g_free(channels_def_ptrs);
-		if (options.use_escape_peaks) {
+		if (options->use_escape_peaks) {
 			xmi_free_escape_ratios(escape_ratios_def);
 		}
 
@@ -557,7 +558,7 @@ XMI_MAIN
 				g_fprintf(stderr,"Could not write to %s\n",csv_file_noconv);
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 		}
 		if (csv_file_conv != NULL) {
@@ -565,7 +566,7 @@ XMI_MAIN
 				g_fprintf(stderr,"Could not write to %s\n",csv_file_conv);
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
 		}
 
@@ -579,7 +580,7 @@ XMI_MAIN
 					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
-				else if (options.verbose)
+				else if (options->verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				g_free(filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
@@ -605,7 +606,7 @@ XMI_MAIN
 					g_fprintf(stderr,"Could not write to %s\n",filename);
 					exit(1);
 				}
-				else if (options.verbose)
+				else if (options->verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				g_free(filename);
 				fprintf(outPtr,"$SPEC_ID:\n\n");
@@ -662,11 +663,11 @@ XMI_MAIN
 #endif
 
 		//write to xml outputfile
-		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options.use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
+		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
 		if (xmi_write_output_xml(input->general->outputfile, output, NULL) == 0) {
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		xmi_free_output(output);
@@ -675,7 +676,7 @@ XMI_MAIN
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
 		}
 
@@ -684,7 +685,7 @@ XMI_MAIN
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 0) == 0) {
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 		}
 
@@ -694,7 +695,7 @@ XMI_MAIN
 			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_conv, 1) == 0) {
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Output written to HTML file %s\n",htm_file_conv);
 		}
 
@@ -703,7 +704,7 @@ XMI_MAIN
 			if (xmi_xmso_to_htm_xslt(input->general->outputfile, htm_file_noconv, 0) == 0) {
 				return 1;
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Output written to HTML file %s\n",htm_file_noconv);
 		}
 
@@ -719,7 +720,7 @@ XMI_MAIN
 		/* Do not deallocate as problems may arise in OpenMPI mode
 		xmi_deallocate(channelsdef);
 		xmi_deallocate(brute_history);
-		if (options.use_variance_reduction)
+		if (options->use_variance_reduction)
 			xmi_deallocate(var_red_history);
 		*/
 #ifdef HAVE_OPENMPI

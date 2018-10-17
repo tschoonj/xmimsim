@@ -36,7 +36,7 @@ struct _xmi_solid_angle {
 
 int xmi_get_solid_angle_file(char **file, int create_file);
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *options);
 
 int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file);
 
@@ -45,7 +45,7 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, xmi_solid_angle *solid_ang
 //return 1 on success, 0 on no match
 int xmi_check_solid_angle_match(xmi_input *input_in, xmi_input *input_h5);
 
-int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options options);
+int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options *options);
 
 void xmi_free_solid_angle(xmi_solid_angle *solid_angle);
 

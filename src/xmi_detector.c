@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
-void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, xmi_escape_ratios **escape_ratios, char *input_string, xmi_main_options options, xmi_escape_ratios_options ero);
+void xmi_escape_ratios_calculation_fortran(xmi_inputFPtr inputFPtr, xmi_hdf5FPtr hdf5FPtr, xmi_escape_ratios **escape_ratios, char *input_string, xmi_main_options *options, xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 
@@ -88,7 +88,7 @@ int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file) {
 	return 1;
 }
 
-void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options options, xmi_escape_ratios_options ero) {
+void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options *options, xmi_escape_ratios_options ero) {
 
 	xmi_input *esc_ratio_inputPtr;
 	xmi_inputFPtr inputFPtr;
@@ -125,10 +125,10 @@ void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **esca
 	}
 
 
-	xmi_main_options escape_main_options = {.omp_num_threads = options.omp_num_threads, .verbose = options.verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options.extra_verbose};
+	xmi_main_options escape_main_options = {.omp_num_threads = options->omp_num_threads, .verbose = options->verbose, .use_cascade_auger = 0, .use_cascade_radiative = 0, .use_M_lines = 0, .extra_verbose = options->extra_verbose};
 
 	//read from HDF5 file what needs to be read in
-	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, escape_main_options) == 0) {
+	if (xmi_init_from_hdf5(hdf5_file,inputFPtr,&hdf5FPtr, &escape_main_options) == 0) {
 		fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		exit(1);
 	}
@@ -136,7 +136,7 @@ void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **esca
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
 
 	//do the actual calculation...
-	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, g_strdup(input_string), escape_main_options, ero);
+	xmi_escape_ratios_calculation_fortran(inputFPtr, hdf5FPtr, escape_ratios, g_strdup(input_string), &escape_main_options, ero);
 
 }
 
@@ -281,7 +281,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escap
 typedef struct {
 	xmi_escape_ratios **escape_ratios;
 	xmi_input *input;
-	xmi_main_options options;
+	xmi_main_options *options;
 } xmi_escape_ratios_data;
 
 static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const H5L_info_t *info, void *op_data) {
@@ -295,7 +295,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	xmi_escape_ratios *escape_ratios;
 
 
-	if (data->options.extra_verbose) {
+	if (data->options->extra_verbose) {
 		fprintf(stdout,"Checking escape ratios group with name %s\n", name);
 	}
 
@@ -405,7 +405,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Dclose(dset_id);
 
 		H5Gclose(group_id);
-		if (data->options.extra_verbose)
+		if (data->options->extra_verbose)
 			fprintf(stdout,"Match in escape ratios\n");
 	}
 	else {
@@ -413,7 +413,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		g_free(xmi_input_string);
-		if (data->options.extra_verbose)
+		if (data->options->extra_verbose)
 			fprintf(stdout,"No match in escape ratios\n");
 		return 0;
 	}
@@ -421,7 +421,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	return 1;
 }
 
-int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options options) {
+int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options *options) {
 
 	//open the hdf5 file and iterate through all the groups
 	//in every group read ONLY the xmi_input_string and use it to compare...

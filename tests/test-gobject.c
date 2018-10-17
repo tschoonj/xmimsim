@@ -21,6 +21,10 @@ typedef struct {
 	xmi_archive *archive;
 } SetupDataArchive;
 
+typedef struct {
+	xmi_main_options *main_options;
+} SetupDataMainOptions;
+
 static gboolean composition_equal(xmi_composition *A, xmi_composition *B) {
 	int i, j;
 
@@ -106,6 +110,40 @@ static gboolean excitation_equal(xmi_excitation *A, xmi_excitation *B) {
 	return TRUE;
 }
 
+static gboolean main_options_equal(xmi_main_options *A, xmi_main_options *B) {
+	if (A->use_M_lines != B->use_M_lines)
+		return FALSE;
+	if (A->use_cascade_radiative != B->use_cascade_radiative)
+		return FALSE;
+	if (A->use_cascade_auger != B->use_cascade_auger)
+		return FALSE;
+	if (A->use_variance_reduction != B->use_variance_reduction)
+		return FALSE;
+	if (A->use_sum_peaks != B->use_sum_peaks)
+		return FALSE;
+	if (A->use_escape_peaks != B->use_escape_peaks)
+		return FALSE;
+	if (A->escape_ratios_mode != B->escape_ratios_mode)
+		return FALSE;
+	if (A->verbose != B->verbose)
+		return FALSE;
+	if (A->use_poisson != B->use_poisson)
+		return FALSE;
+	if (A->use_opencl != B->use_opencl)
+		return FALSE;
+	if (A->omp_num_threads != B->omp_num_threads)
+		return FALSE;
+	if (A->extra_verbose != B->extra_verbose)
+		return FALSE;
+	if (A->use_advanced_compton != B->use_advanced_compton)
+		return FALSE;
+	if (A->use_default_seeds != B->use_default_seeds)
+		return FALSE;
+	if (g_strcmp0(A->custom_detector_response, B->custom_detector_response) != 0)
+		return FALSE;
+	return TRUE;	
+}
+
 static void setup_data_composition(SetupDataComposition *data, gconstpointer user_data) {
 	data->composition = g_malloc(sizeof(xmi_composition));
 	data->composition->reference_layer = 1;
@@ -147,6 +185,10 @@ static void setup_data_archive(SetupDataArchive *data, gconstpointer user_data) 
 	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &data->archive, NULL) == 1);
 }
 
+static void setup_data_main_options(SetupDataMainOptions *data, gconstpointer user_data) {
+	data->main_options = xmi_main_options_new();
+}
+
 static void teardown_data_composition(SetupDataComposition *data, gconstpointer user_data) {
 	xmi_free_composition(data->composition);
 }
@@ -161,6 +203,10 @@ static void teardown_data_input(SetupDataInput *data, gconstpointer user_data) {
 
 static void teardown_data_archive(SetupDataArchive *data, gconstpointer user_data) {
 	xmi_free_archive(data->archive);
+}
+
+static void teardown_data_main_options(SetupDataMainOptions *data, gconstpointer user_data) {
+	xmi_free_main_options(data->main_options);
 }
 
 static void test_composition_static(SetupDataComposition *data, gconstpointer user_data) {
@@ -315,6 +361,44 @@ static void test_archive(SetupDataArchive *data, gconstpointer user_data) {
 	g_value_unset(&value);
 }
 
+static void test_main_options_static(SetupDataMainOptions *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_MAIN_OPTIONS);
+	g_value_set_static_boxed(&value, data->main_options);
+	g_assert(data->main_options == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_main_options_take(SetupDataMainOptions *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_MAIN_OPTIONS);
+	g_value_take_boxed(&value, data->main_options);
+	g_assert(data->main_options == g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_main_options_null(SetupDataMainOptions *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_assert_null(data->main_options);
+	g_value_init(&value, XMI_MSIM_TYPE_MAIN_OPTIONS);
+	g_value_take_boxed(&value, data->main_options);
+	g_assert_null(g_value_get_boxed(&value));
+	g_value_unset(&value);
+}
+
+static void test_main_options(SetupDataMainOptions *data, gconstpointer user_data) {
+	GValue value = G_VALUE_INIT;
+
+	g_value_init(&value, XMI_MSIM_TYPE_MAIN_OPTIONS);
+	g_value_set_boxed(&value, data->main_options);
+	g_assert(data->main_options != g_value_get_boxed(&value));
+	g_assert(main_options_equal(data->main_options, g_value_get_boxed(&value)));
+	g_value_unset(&value);
+}
+
 int main(int argc, char *argv[]) {
 	//init test
 	g_assert(test_init() == 1);
@@ -435,6 +519,34 @@ int main(int argc, char *argv[]) {
 			setup_data_archive,
 			test_archive,
 			teardown_data_archive
+			);
+	g_test_add("/gobject/main_options-static",
+			SetupDataMainOptions,
+			NULL,
+			setup_data_main_options,
+			test_main_options_static,
+			teardown_data_main_options
+			);
+	g_test_add("/gobject/main_options-take",
+			SetupDataMainOptions,
+			NULL,
+			setup_data_main_options,
+			test_main_options_take,
+			NULL
+			);
+	g_test_add("/gobject/main_options-null",
+			SetupDataMainOptions,
+			NULL,
+			NULL,
+			test_main_options_null,
+			teardown_data_main_options
+			);
+	g_test_add("/gobject/main_options",
+			SetupDataMainOptions,
+			NULL,
+			setup_data_main_options,
+			test_main_options,
+			teardown_data_main_options
 			);
 
 	int rv = g_test_run();

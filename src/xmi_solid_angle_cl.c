@@ -111,7 +111,7 @@ static const char *clGetErrorString(cl_int err){
 	return 0;\
 	}
 
-G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options xmo) {
+G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
 
 	cl_int status;
 	char info[1000];
@@ -140,7 +140,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	for (i = 0 ; i < numPlatforms ; i++) {
 		status = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, info_size, info, NULL);
 		OPENCL_ERROR(clGetPlatformInfo)
-		if (xmo.verbose)
+		if (xmo->verbose)
 			fprintf(stdout,"Found OpenCL platform %i name %s\n", i, info);
 
 		cl_uint numDevices = 0;
@@ -174,7 +174,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 
 			status = clGetDeviceInfo(devices[j], CL_DEVICE_NAME, info_size, info, NULL);
 			OPENCL_ERROR(clGetDeviceInfo)
-			if (xmo.verbose)
+			if (xmo->verbose)
 				fprintf(stdout,"Found OpenCL device %i name %s\n", j, info);
 
 			size_t max_work_group_size_temp;
@@ -389,7 +389,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 			status = clReleaseEvent(kernelEvent[0]);
 			OPENCL_ERROR(clReleaseEvent)
 			g_free(kernelEvent);
-			if (xmo.verbose)
+			if (xmo->verbose)
 				fprintf(stdout,"Solid angle calculation at %3i %%\n",(int) floor(100.0*(float)(RANGE_DIVIDER*i+j+1)/(float)(RANGE_DIVIDER*RANGE_DIVIDER)));
 		}
 	}
@@ -425,7 +425,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 
 	g_free(solid_angles_float);
 
-	if (xmo.verbose)
+	if (xmo->verbose)
 		fprintf(stdout,"Solid angle calculation finished\n");
 	return 1;
 }

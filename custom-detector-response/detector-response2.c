@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #  define       XMI_EXPORT
 #endif
-XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, xmi_main_options options, xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction) {
+XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, xmi_main_options *options, xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction) {
 
 	int i;
 	xmi_input *input;
@@ -48,8 +48,8 @@ XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, doubl
 		xmi_detector_convolute_spectrum(inputFPtr, channels_noconv[i], &channels_conv[i], options, escape_ratios, i);
 	}
 
-        if (options.use_variance_reduction == 1 && var_red_history != NULL) {
-          if (options.verbose == 1)
+        if (options->use_variance_reduction == 1 && var_red_history != NULL) {
+          if (options->verbose == 1)
             fprintf(stdout, "Calculating variance reduction history detector absorption correction\n");
           xmi_detector_convolute_history(
             inputFPtr,
@@ -58,7 +58,7 @@ XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, doubl
 	}
 
         if (brute_history != NULL) {
-          if (options.verbose == 1)
+          if (options->verbose == 1)
             fprintf(stdout, "Calculating brute force history detector absorption correction\n");
           xmi_detector_convolute_history(
             inputFPtr,
