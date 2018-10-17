@@ -50,3 +50,4 @@ XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimComposition, composition);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimExcitation, excitation);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimInput, input);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimArchive, archive);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimMainOptions, main_options);

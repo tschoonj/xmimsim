@@ -168,7 +168,7 @@ BIND(C,NAME='xmi_init_from_hdf5') RESULT(rv)
         TYPE (C_PTR), VALUE, INTENT(IN) :: xmi_hdf5_file
         TYPE (C_PTR), VALUE, INTENT(IN) :: xmi_inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: xmi_hdf5FPtr
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         INTEGER (C_INT) :: rv
         INTEGER :: error
 

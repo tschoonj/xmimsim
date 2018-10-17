@@ -234,7 +234,7 @@ SUBROUTINE xmi_detector_convolute_all(&
         TYPE (C_PTR), INTENT(IN), VALUE :: var_red_historyPtr
         TYPE (C_PTR), INTENT(IN), VALUE :: brute_historyPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions_all, zero_inter
 
         TYPE (C_PTR), POINTER, DIMENSION(:) :: channels_noconv, channels_conv
@@ -295,7 +295,7 @@ SUBROUTINE xmi_detector_convolute_history(&
         BIND(C,NAME='xmi_detector_convolute_history')
         IMPLICIT NONE
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, historyPtr
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: history
         TYPE (xmi_input), POINTER :: inputF
         INTEGER (C_INT) :: i, j, k, l
@@ -343,7 +343,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, channels_noconvPtr
         TYPE (C_PTR), INTENT(INOUT) :: channels_convPtr
         TYPE (xmi_escape_ratiosC), INTENT(IN) :: escape_ratiosCPtr
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_interactions
 
         TYPE (xmi_escape_ratios) :: escape_ratios

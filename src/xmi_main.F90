@@ -70,7 +70,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         INTEGER (C_INT), VALUE, INTENT(IN) :: n_mpi_hosts
         INTEGER (C_INT) :: rv
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: options
+        TYPE (xmi_main_options), INTENT(IN) :: options
         TYPE (C_PTR), INTENT(INOUT) :: brute_historyPtr, channelsPtr,&
         var_red_historyPtr
         TYPE (xmi_solid_angleC), INTENT(IN) :: solid_anglesCPtr
@@ -5494,7 +5494,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         TYPE (C_PTR), INTENT(IN), VALUE :: inputFPtr, hdf5FPtr
         TYPE (C_PTR), INTENT(INOUT) :: escape_ratiosPtr
         TYPE (C_PTR), VALUE, INTENT(IN) :: input_string
-        TYPE (xmi_main_options), VALUE, INTENT(IN) :: input_options
+        TYPE (xmi_main_options), INTENT(IN) :: input_options
         TYPE (xmi_escape_ratios_options), VALUE, INTENT(IN) :: ero
 
 

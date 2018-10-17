@@ -341,17 +341,9 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
-	xmi_main_options options;
-	options.use_M_lines = 1;
-	options.use_cascade_auger = 1;
-	options.use_cascade_radiative = 1;
-	options.use_variance_reduction = 1;
-	options.use_sum_peaks = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_pileupW)) == TRUE ? 1 : 0;
-	options.use_poisson = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_poissonW)) == TRUE ? 1 : 0;
-	options.use_escape_peaks = 1;
-	options.verbose = 0;
-	options.use_opencl = 0;
-	options.extra_verbose = 0;
+	xmi_main_options *options = xmi_main_options_new();
+	options->use_sum_peaks = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_pileupW)) == TRUE ? 1 : 0;
+	options->use_poisson = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_poissonW)) == TRUE ? 1 : 0;
 
 	gchar *input_file = NULL;
 	gchar *source_file = NULL;

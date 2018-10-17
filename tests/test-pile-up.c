@@ -10,14 +10,14 @@ int main(int argc, char *argv[]) {
 	xmi_input *input;
 	xmi_output *output;
 	xmi_inputFPtr inputFPtr;
-	xmi_main_options options;
+	xmi_main_options *options;
 	
 	// set options
-	options = xmi_get_default_main_options();
-	options.use_sum_peaks = 0;
-	options.verbose = 1;
-	options.use_default_seeds = 1;
-	options.use_escape_peaks = 0;
+	options = xmi_main_options_new();
+	options->use_sum_peaks = 0;
+	options->verbose = 1;
+	options->use_default_seeds = 1;
+	options->use_escape_peaks = 0;
 
 	// init test
 	g_assert(test_init() == 1);
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "counts_without_pile_up: %g\n", counts_without_pile_up);	
 	
 	// now with pile up
-	options.use_sum_peaks = 1;
+	options->use_sum_peaks = 1;
 	double *channels_with_pile_up;
 
 	xmi_detector_convolute_spectrum(inputFPtr, channels, &channels_with_pile_up, options, NULL, output->ninteractions);

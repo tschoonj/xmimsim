@@ -42,16 +42,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 typedef struct {
 	xmi_solid_angle **solid_angles;
 	xmi_input *input;
-	xmi_main_options options;
+	xmi_main_options *options;
 } xmi_solid_angles_data;
 
 static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
-extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
+extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *options);
 
-typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options);
+typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *options);
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options xmo) {
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
 	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
@@ -59,7 +59,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **soli
 	gchar *module_path;
 	gchar *opencl_lib;
 
-	if (xmo.use_opencl) {
+	if (xmo->use_opencl) {
 		//try to open the module
 		if (!g_module_supported()) {
 			fprintf(stderr,"No module support on this platform\n");
@@ -248,7 +248,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	xmi_input *temp_input;
 	xmi_solid_angle *solid_angles;
 
-	if (data->options.extra_verbose) {
+	if (data->options->extra_verbose) {
 		fprintf(stdout, "Checking solid angle grid group with name %s\n", name);
 	}
 
@@ -314,7 +314,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		H5Dclose(dset_id);
 		H5Gclose(group_id);
 
-		if (data->options.extra_verbose)
+		if (data->options->extra_verbose)
 			fprintf(stdout, "Match in solid angle grid\n");
 	}
 	else {
@@ -322,7 +322,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 		H5Gclose(group_id);
 		xmi_free_input(temp_input);
 		g_free(xmi_input_string);
-		if (data->options.extra_verbose)
+		if (data->options->extra_verbose)
 			fprintf(stdout, "No match in solid angle grid\n");
 
 		return 0;
@@ -586,7 +586,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	return 1;
 }
 
-int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options options) {
+int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **rv, xmi_main_options *options) {
 
 	hid_t file_id;
 	xmi_solid_angles_data data;

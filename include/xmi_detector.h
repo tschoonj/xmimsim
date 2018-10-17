@@ -54,7 +54,7 @@ xmi_escape_ratios_options xmi_get_default_escape_ratios_options(void);
 
 int xmi_get_escape_ratios_file(char **file, int create_file);
 
-void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options, xmi_escape_ratios_options ero);
+void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **escape_ratios, char *input_string, char *hdf5_file, xmi_main_options *options, xmi_escape_ratios_options ero);
 
 int xmi_create_empty_escape_ratios_hdf5_file(char *hdf5_file);
 
@@ -64,7 +64,7 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escap
 //return 1 on success, 0 on no match
 int xmi_check_escape_ratios_match(xmi_input *input_in, xmi_input *input_h5);
 
-int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options options);
+int xmi_find_escape_ratios_match(char *hdf5_file, xmi_input *A, xmi_escape_ratios **rv, xmi_main_options *options);
 
 void xmi_free_escape_ratios(xmi_escape_ratios *escape_ratios);
 

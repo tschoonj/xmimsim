@@ -24,7 +24,7 @@ const gchar *extra_options[4] = {
 typedef struct {
 	GMainLoop *main_loop;
 	xmi_input *input;
-	xmi_main_options options;
+	xmi_main_options *options;
 } SetupData;
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
@@ -32,9 +32,9 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 	data->input = xmi_init_empty_input();
 	// simulate 10M photons
 	data->input->general->n_photons_line = 10000000;
-	data->options = xmi_get_default_main_options();
-	data->options.use_variance_reduction = FALSE; // brute force!
-	data->options.use_escape_peaks = FALSE; // no escape peaks!
+	data->options = xmi_main_options_new();
+	data->options->use_variance_reduction = FALSE; // brute force!
+	data->options->use_escape_peaks = FALSE; // no escape peaks!
 
 	struct compoundData *cd = (struct compoundData *) user_data;
 	// add compound to composition
@@ -58,7 +58,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_NON_EXISTENT_EXEC,
 		"non-existent-file.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -112,7 +112,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		"non-existent-file.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -158,7 +158,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -213,7 +213,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -266,7 +266,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -329,7 +329,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,
@@ -393,7 +393,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
-		&data->options,
+		data->options,
 		NULL, NULL, NULL, NULL,
 		-1,
 		extra_options,

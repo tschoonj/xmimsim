@@ -12,13 +12,13 @@ int main(int argc, char *argv[]) {
 	xmi_input *input;
 	xmi_inputFPtr inputFPtr;
 	xmi_solid_angle *solid_angle_def = NULL;
-	xmi_main_options options;
+	xmi_main_options *options;
 	gchar *xmi_input_string;
 	
 	// set options
-	options = xmi_get_default_main_options();
-	options.verbose = 1;
-	options.use_opencl = 1;
+	options = xmi_main_options_new();
+	options->verbose = 1;
+	options->use_opencl = 1;
 
 	// init test
 	g_assert(test_init() == 1);

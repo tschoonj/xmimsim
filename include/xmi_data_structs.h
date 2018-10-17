@@ -316,6 +316,10 @@ void xmi_free_geometry(xmi_geometry *A);
 void xmi_free_exc_absorbers(xmi_absorbers *A);
 void xmi_free_det_absorbers(xmi_absorbers *A);
 
+xmi_main_options* xmi_main_options_new(void);
+void xmi_free_main_options(xmi_main_options *options);
+void xmi_copy_main_options(xmi_main_options *A, xmi_main_options **B);
+
 #ifdef __cplusplus
 }
 #endif

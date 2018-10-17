@@ -84,23 +84,24 @@ XMI_MAIN
 	xmi_hdf5FPtr hdf5FPtr;
 	GError *error = NULL;
 	GOptionContext *context;
-	static gchar *hdf5_file=NULL;
-	static xmi_main_options options;
-	static gchar *spe_file_noconv=NULL;
-	static gchar *spe_file_conv=NULL;
-	static gchar *csv_file_noconv=NULL;
-	static gchar *csv_file_conv=NULL;
-	static gchar *svg_file_noconv=NULL;
-	static gchar *svg_file_conv=NULL;
-	static gchar *excitation_file = NULL;
-	static gchar *geometry_file = NULL;
-	static gchar *detector_file = NULL;
+	gchar *hdf5_file=NULL;
+	xmi_main_options *options = xmi_main_options_new();
+
+	gchar *spe_file_noconv=NULL;
+	gchar *spe_file_conv=NULL;
+	gchar *csv_file_noconv=NULL;
+	gchar *csv_file_conv=NULL;
+	gchar *svg_file_noconv=NULL;
+	gchar *svg_file_conv=NULL;
+	gchar *excitation_file = NULL;
+	gchar *geometry_file = NULL;
+	gchar *detector_file = NULL;
 	FILE *outPtr, *csv_convPtr, *csv_noconvPtr;
 	gchar *filename;
-	static int use_rayleigh_normalization = 0;
-	static int use_roi_normalization = 0;
-	static int use_matrix_override= 0;
-	static int use_single_run= 0;
+	int use_rayleigh_normalization = 0;
+	int use_roi_normalization = 0;
+	int use_matrix_override= 0;
+	int use_single_run= 0;
 	int rayleigh_channel;
 	double max_scale;
 	double *scale, sum_scale, *k_exp, *k_sim, *l_exp, *l_sim;
@@ -113,43 +114,47 @@ XMI_MAIN
 	gchar *hdf5_file_utf8 = NULL;
 
 
-	static GOptionEntry entries[] = {
-		{"enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &(options.use_M_lines), "Enable M lines (default)", NULL },
-		{"disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_M_lines), "Disable M lines", NULL },
-		{"spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL},
-		{"spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL},
-		{"csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL},
-		{"csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL},
-		{"svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL},
-		{"svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL},
-		{"with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL},
-		{"enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL},
-		{"disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL},
-		{"enable-roi-normalization", 0, 0, G_OPTION_ARG_NONE,&use_roi_normalization,"Enable region of interest integration based intensity normalization",NULL},
-		{"disable-roi-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_roi_normalization,"Disable region of interest integration based intensity normalization (default)",NULL},
-		{"enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead",NULL},
-		{"disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead (default)",NULL},
-		{"enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Enable pile-up", NULL },
-		{"disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_sum_peaks), "Disable pile-up (default)", NULL },
-		{"enable-escape-peaks", 0, 0, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Enable escape peaks (default)", NULL },
-		{"disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_escape_peaks), "Disable escape peaks", NULL },
-		{"enable-poisson", 0, 0, G_OPTION_ARG_NONE, &(options.use_poisson), "Generate Poisson noise in the spectra", NULL },
-		{"disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_poisson), "Disable the generating of spectral Poisson noise (default)", NULL },
+	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 30);
+#define ADD_OPTION(long_name, short_name, flags, arg, arg_data, description, arg_description) \
+	{ \
+		GOptionEntry entry = {long_name, short_name, flags, arg, arg_data, description, arg_description}; \
+		g_array_append_val(entries, entry); \
+	}
+	ADD_OPTION("enable-M-lines", 0, 0, G_OPTION_ARG_NONE, &options->use_M_lines, "Enable M lines (default)", NULL );
+	ADD_OPTION("disable-M-lines", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_M_lines, "Disable M lines", NULL );
+	ADD_OPTION("spe-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&spe_file_noconv,"Write detector unconvoluted spectra to file",NULL);
+	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
+	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
+	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
+	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
+	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
+	ADD_OPTION("with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL);
+	ADD_OPTION("enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL);
+	ADD_OPTION("disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL);
+	ADD_OPTION("enable-roi-normalization", 0, 0, G_OPTION_ARG_NONE,&use_roi_normalization,"Enable region of interest integration based intensity normalization",NULL);
+	ADD_OPTION("disable-roi-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_roi_normalization,"Disable region of interest integration based intensity normalization (default)",NULL);
+	ADD_OPTION("enable-matrix-override", 0, 0, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, use a similar matrix instead",NULL);
+	ADD_OPTION("disable-matrix-override", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_matrix_override,"If the matrix includes quantifiable elements, do not use a similar matrix instead (default)",NULL);
+	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
+	ADD_OPTION("disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Disable pile-up (default)", NULL );
+	ADD_OPTION("enable-escape-peaks", 0, 0, G_OPTION_ARG_NONE, &options->use_escape_peaks, "Enable escape peaks (default)", NULL );
+	ADD_OPTION("disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_escape_peaks, "Disable escape peaks", NULL );
+	ADD_OPTION("enable-poisson", 0, 0, G_OPTION_ARG_NONE, &options->use_poisson, "Generate Poisson noise in the spectra", NULL );
+	ADD_OPTION("disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_poisson, "Disable the generating of spectral Poisson noise (default)", NULL );
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		{"enable-opencl", 0, 0, G_OPTION_ARG_NONE, &(options.use_opencl), "Enable OpenCL (default)", NULL },
-		{"disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_opencl), "Disable OpenCL", NULL },
+	ADD_OPTION("enable-opencl", 0, 0, G_OPTION_ARG_NONE, &options->use_opencl, "Enable OpenCL (default)", NULL );
+	ADD_OPTION("disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_opencl, "Disable OpenCL", NULL );
 #endif
-		{"enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Enable advanced yet slower Compton simulation", NULL },
-		{"disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &(options.use_advanced_compton), "Disable advanced yet slower Compton simulation (default)", NULL },
-		{"enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL },
-		{"override-excitation",0,0,G_OPTION_ARG_FILENAME,&excitation_file, "Override excitation from XMSI file",NULL},
-		{"override-detector",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Override detector from XMSI file",NULL},
-		{"override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL},
-		{"set-threads",0,0,G_OPTION_ARG_INT,&(options.omp_num_threads),"Sets the number of threads to NTHREADS (default=max)", "NTHREADS"},
-		{"verbose", 'v', 0, G_OPTION_ARG_NONE, &(options.verbose), "Verbose mode", NULL },
-		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL },
-		{NULL}
-	};
+	ADD_OPTION("enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Enable advanced yet slower Compton simulation", NULL );
+	ADD_OPTION("disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Disable advanced yet slower Compton simulation (default)", NULL );
+	ADD_OPTION("enable-single-run", 0, 0, G_OPTION_ARG_NONE, &use_single_run, "Force the simulation to run just once", NULL );
+	ADD_OPTION("override-excitation",0,0,G_OPTION_ARG_FILENAME,&excitation_file, "Override excitation from XMSI file",NULL);
+	ADD_OPTION("override-detector",0,0,G_OPTION_ARG_FILENAME,&detector_file, "Override detector from XMSI file",NULL);
+	ADD_OPTION("override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL);
+	ADD_OPTION("set-threads",0,0,G_OPTION_ARG_INT, &options->omp_num_threads, "Sets the number of threads to NTHREADS (default=max)", "NTHREADS");
+	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
+	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
+
 	double *channels;
 	double **channels_conv;
 	double *channels_conv_temp2;
@@ -171,23 +176,6 @@ XMI_MAIN
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
-	/*
-	options.use_M_lines = 1;
-	options.use_cascade_auger = 1;
-	options.use_cascade_radiative = 1;
-	options.use_variance_reduction = 1;
-	options.use_sum_peaks = 0;
-	options.use_escape_peaks = 1;
-	options.use_poisson = 0;
-	options.verbose = 0;
-	options.use_opencl = 0;
-	options.extra_verbose = 0;
-	options.omp_num_threads = xmi_omp_get_max_threads();
-	options.use_advanced_compton = 0;
-	options.custom_detector_response = NULL;
-	*/
-	options = xmi_get_default_main_options();
-
 #ifdef G_OS_WIN32
 	gchar *equalsignchar;
 	for (i = 0 ; i < argc ; i++) {
@@ -208,12 +196,13 @@ XMI_MAIN
 
 	//parse options
 	context = g_option_context_new ("inputfile outputfile");
-	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim-pymca: a program for the quantification of X-ray fluorescence spectra using inverse Monte-Carlo simulations. Inputfiles should be prepared using PyMCA\n");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_fprintf (stderr, "option parsing failed: %s\n", error->message);
 		return 1;
 	}
+
 	if (version) {
 		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
@@ -225,20 +214,16 @@ XMI_MAIN
 		exit(1);
 	}
 
-
-	if (options.omp_num_threads > xmi_omp_get_max_threads() ||
-			options.omp_num_threads < 1) {
-		options.omp_num_threads = xmi_omp_get_max_threads();
+	if (options->omp_num_threads > xmi_omp_get_max_threads() ||
+			options->omp_num_threads < 1) {
+		options->omp_num_threads = xmi_omp_get_max_threads();
 	}
-
-	//omp_set_num_threads(omp_num_threads);
-	//omp_set_dynamic(0);
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog() == 0) {
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"XML catalog loaded\n");
 
 
@@ -253,6 +238,9 @@ XMI_MAIN
 		return 1;
 	}
 
+	g_option_context_free(context);
+
+	g_array_free(entries, TRUE);
 
 	//start random number acquisition
 	if (xmi_start_random_acquisition() == 0) {
@@ -261,7 +249,7 @@ XMI_MAIN
 
 	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization, use_single_run) == 0)
 		return 1;
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);
 
 	//override if necessary
@@ -273,7 +261,7 @@ XMI_MAIN
 			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
 			return 1;
 		}
-		else if (options.verbose) {
+		else if (options->verbose) {
 			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
 		}
 		xmi_free_excitation(xi->excitation);
@@ -287,7 +275,7 @@ XMI_MAIN
 			g_fprintf(stderr, "Override geometry file %s could not be parsed\n", geometry_file);
 			return 1;
 		}
-		else if (options.verbose) {
+		else if (options->verbose) {
 			g_fprintf(stderr, "Override geometry file %s successfully parsed\n", geometry_file);
 		}
 		xmi_free_geometry(xi->geometry);
@@ -301,7 +289,7 @@ XMI_MAIN
 			g_fprintf(stderr, "Override excitation file %s could not be parsed\n", excitation_file);
 			return 1;
 		}
-		else if (options.verbose) {
+		else if (options->verbose) {
 			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
 		}
 		xmi_free_excitation(xi->excitation);
@@ -324,7 +312,7 @@ XMI_MAIN
 		if (xmi_init_input(&inputFPtr) == 0) {
 			return 1;
 		}
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Reading HDF5 datafile\n");
 
 		//initialize HDF5 data
@@ -333,7 +321,7 @@ XMI_MAIN
 			g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 		xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
@@ -342,7 +330,7 @@ XMI_MAIN
 		if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 			return 1;
 
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 
 
@@ -350,7 +338,7 @@ XMI_MAIN
 		if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def, options) == 0)
 			return 1;
 		if (solid_angle_def == NULL) {
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout,"Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
@@ -361,13 +349,13 @@ XMI_MAIN
 			//update hdf5 file
 			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 				return 1;
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 		//launch simulation
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
@@ -375,40 +363,40 @@ XMI_MAIN
 			return 1;
 		}
 
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Interactions simulation finished\n");
 
 		//read escape ratios
-		if (options.use_escape_peaks) {
+		if (options->use_escape_peaks) {
 			if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 				return 1;
 
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 			//check if escape ratios are already precalculated
 			if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def, options) == 0)
 				return 1;
 			if (escape_ratios_def == NULL) {
-				if (options.verbose)
+				if (options->verbose)
 					g_fprintf(stdout,"Precalculating escape peak ratios\n");
 				//doesn't exist yet
 				//convert input to string
 				if (xmi_write_input_xml_to_string(&xmi_input_string, xi, NULL) == 0) {
 					return 1;
 				}
-				xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
+				xmi_escape_ratios_calculation(xi, &escape_ratios_def, xmi_input_string,hdf5_file, options, xmi_get_default_escape_ratios_options());
 				//update hdf5 file
 				if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 					return 1;
-				else if (options.verbose)
+				else if (options->verbose)
 					g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"No escape peaks requested: calculation is redundant\n");
 		//the dreaded goto statement
 		goto single_run;
@@ -463,7 +451,7 @@ XMI_MAIN
 		return 1;
 	}
 	//initialize HDF5 data
-	if (options.verbose)
+	if (options->verbose)
 		g_fprintf(stdout,"Reading HDF5 datafile\n");
 
 	//read from HDF5 file what needs to be read in
@@ -471,7 +459,7 @@ XMI_MAIN
 		g_fprintf(stderr,"Could not initialize from hdf5 data file\n");
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"HDF5 datafile %s successfully processed\n",hdf5_file);
 
 	xmi_update_input_from_hdf5(inputFPtr, hdf5FPtr);
@@ -480,7 +468,7 @@ XMI_MAIN
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0)
 		return 1;
 
-	if (options.verbose)
+	if (options->verbose)
 		g_fprintf(stdout,"Querying %s for solid angle grid\n",xmimsim_hdf5_solid_angles);
 
 
@@ -488,7 +476,7 @@ XMI_MAIN
 	if (xmi_find_solid_angle_match(xmimsim_hdf5_solid_angles , xi, &solid_angle_def, options) == 0)
 		return 1;
 	if (solid_angle_def == NULL) {
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Precalculating solid angle grid\n");
 		//doesn't exist yet
 		//convert input to string
@@ -499,10 +487,10 @@ XMI_MAIN
 		//update hdf5 file
 		if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
 			return 1;
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
 
 	//everything is read in... start iteration
@@ -522,11 +510,11 @@ XMI_MAIN
 
 	SetErrorMessages(0);
 
-	if (options.use_escape_peaks) {
+	if (options->use_escape_peaks) {
 		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)
 			return 1;
 
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Querying %s for escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 
 
@@ -534,7 +522,7 @@ XMI_MAIN
 		if (xmi_find_escape_ratios_match(xmimsim_hdf5_escape_ratios , xi, &escape_ratios_def, options) == 0)
 			return 1;
 		if (escape_ratios_def == NULL) {
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
@@ -545,13 +533,13 @@ XMI_MAIN
 			//update hdf5 file
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"%s was successfully updated with new escape peak ratios\n",xmimsim_hdf5_escape_ratios);
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Escape peak ratios already present in %s\n",xmimsim_hdf5_escape_ratios);
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"No escape peaks requested: calculation is redundant\n");
 
 	if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
@@ -623,14 +611,14 @@ XMI_MAIN
 
 
 		//launch simulation
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Simulating interactions\n");
 
 		if (xmi_main_msim(inputFPtr, hdf5FPtr, 1, &channels, options, &brute_history, &var_red_history, solid_angle_def) == 0) {
 			g_fprintf(stderr,"Error in xmi_main_msim\n");
 			return 1;
 		}
-		if (options.verbose)
+		if (options->verbose)
 			g_fprintf(stdout,"Interactions simulation finished\n");
 #if DEBUG == 1
 		//write input structure
@@ -658,7 +646,7 @@ XMI_MAIN
 		//optimize concentrations
 		//if normalization is enabled -> do not optimize after first run. Only the intensity of the exciting radiation will be adjusted in this case
 		if (!(use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0 && i == 1) && !(use_roi_normalization && i % 2 == 1)) {
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout, "Recalculating weight fractions\n");
 
 			sum_k = sum_l = 0.0;
@@ -764,7 +752,7 @@ XMI_MAIN
 		}
 		//update energy intensities when required
 		if (use_rayleigh_normalization && xp->scatter_energy > 0.0 && xp->scatter_intensity > 0.0) {
-			if (options.verbose)
+			if (options->verbose)
 				g_fprintf(stdout, "Scaling beam intensity according to Rayleigh signal\n");
 			for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
 				xi->excitation->discrete[j].horizontal_intensity *= xp->scatter_intensity/ARRAY2D_FORTRAN(channels,xi->general->n_interactions_trajectory,rayleigh_channel,xi->general->n_interactions_trajectory+1,xi->detector->nchannels);
@@ -786,7 +774,7 @@ XMI_MAIN
 			//integrate the region of interest
 			//first apply detector convolution
 			if (i % 2 == 1) {
-				if (options.verbose)
+				if (options->verbose)
 					g_fprintf(stdout, "Scaling beam intensity according to region of interest intensity integration\n");
 				xmi_detector_convolute_spectrum(inputFPtr, channels+xi->general->n_interactions_trajectory*xi->detector->nchannels, &channels_conv_temp2, options, escape_ratios_def, xi->general->n_interactions_trajectory);
 
@@ -864,7 +852,7 @@ single_run:
 	if (xmi_write_output_xml(argv[2], output, NULL) == 0) {
 		return 1;
 	}
-	else if (options.verbose)
+	else if (options->verbose)
 		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 	xmi_free_output(output);
 
@@ -876,7 +864,7 @@ single_run:
 			fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 	}
 	if (csv_file_conv != NULL) {
@@ -884,7 +872,7 @@ single_run:
 			fprintf(stdout,"Could not write to %s\n",csv_file_conv);
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_conv);
 	}
 
@@ -898,7 +886,7 @@ single_run:
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
@@ -925,7 +913,7 @@ single_run:
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
 			}
-			else if (options.verbose)
+			else if (options->verbose)
 				g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 
 			fprintf(outPtr,"$SPEC_ID:\n\n");
@@ -984,7 +972,7 @@ single_run:
 		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 1) == 0) {
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
 	}
 
@@ -993,7 +981,7 @@ single_run:
 		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 0) == 0) {
 			return 1;
 		}
-		else if (options.verbose)
+		else if (options->verbose)
 			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 	}
 
