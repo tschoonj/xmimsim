@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtk/gtk.h>
 #include "xmimsim-gui-undo-manager.h"
 #include "xmimsim-gui-clipboard-manager.h"
-#include "xmimsim-gui-job.h"
+#include "xmi_job.h"
 #include "xmimsim-gui-application-window.h"
 
 struct _XmiMsimGuiXmsiConfigScrolledWindow {
@@ -91,7 +91,7 @@ struct _XmiMsimGuiXmsiConfigScrolledWindow {
 struct _XmiMsimGuiControlsScrolledWindow {
 	GtkScrolledWindow parent_instance;
 	XmiMsimGuiUndoManager *manager;
-	XmiMsimGuiJob *job;
+	XmiMsimJob *job;
 
 	// widgets
 	GtkWidget *executableW;

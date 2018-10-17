@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-  #include "xmimsim-gui-google-analytics.h"
+  #include "xmi_google_analytics.h"
 #endif
 
 G_DEFINE_TYPE(XmiMsimGuiCatalogDialog, xmi_msim_gui_catalog_dialog, GTK_TYPE_DIALOG)
@@ -153,8 +153,8 @@ xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog
 #endif
   }
 #ifdef HAVE_GOOGLE_ANALYTICS
-  const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
-  xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-CATALOG-DIALOG", event_label, NULL);
+  const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+  xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-CATALOG-DIALOG", event_label, NULL);
   g_free(event_label);
 #endif
   return rv;

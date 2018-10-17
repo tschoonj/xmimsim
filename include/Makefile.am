@@ -34,6 +34,7 @@ xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_spline.h \
 			 xmi_transmission_efficiency.h \
 			 xmi_gobject.h \
+			 xmi_job.h \
 			 $(NULL)
 
 if OS_WINDOWS
@@ -42,4 +43,8 @@ endif
 
 if ENABLE_MAC_APP
 xmimsiminclude_HEADERS += xmi_resources_mac.h
+endif
+
+if ENABLE_GOOGLE_ANALYTICS
+xmimsiminclude_HEADERS += xmi_google_analytics.h
 endif

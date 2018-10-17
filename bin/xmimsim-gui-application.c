@@ -37,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-  #include "xmimsim-gui-google-analytics.h"
+  #include "xmi_google_analytics.h"
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -467,9 +467,9 @@ static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
 
 	xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GOOGLE_ANALYTICS_UUID, &xpv);
 	const gchar *uuid = g_value_get_string(&xpv);
-	xmi_msim_gui_google_analytics_tracker_create_global(uuid);
+	xmi_msim_google_analytics_tracker_create_global(uuid);
 	g_value_unset(&xpv);
-	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 
 #ifdef __APPLE__
 	const gchar os[] = "macOS";
@@ -485,7 +485,7 @@ static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
 
 	gchar *event_label = g_strdup_printf("OS: %s VERSION: %s", os, PACKAGE_VERSION);
 
-	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "LAUNCH", event_label, NULL);
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "LAUNCH", event_label, NULL);
 	g_free(event_label);
 	return FALSE;
 }

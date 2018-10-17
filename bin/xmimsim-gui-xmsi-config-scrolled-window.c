@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-private.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-#include "xmimsim-gui-google-analytics.h"
+#include "xmi_google_analytics.h"
 #endif
 
 struct _XmiMsimGuiXmsiConfigScrolledWindowClass {
@@ -579,8 +579,8 @@ static void geometry_help_clicked_cb(XmiMsimGuiXmsiConfigScrolledWindow *self) {
 	gtk_widget_show_all(self->cs_window);
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
-	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SHOW-GEOMETRY-HELP", NULL, NULL);
+	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SHOW-GEOMETRY-HELP", NULL, NULL);
 #endif
 }
 

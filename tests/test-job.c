@@ -1,5 +1,5 @@
 #include <config.h>
-#include "xmimsim-gui-job.h"
+#include "xmi_job.h"
 #include "xmi_msim.h"
 #include "libxmimsim-test.h"
 #include <unistd.h>
@@ -55,7 +55,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	// write input to file -> not necessary here...
 	GError *error = NULL;
 
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_NON_EXISTENT_EXEC,
 		"non-existent-file.xmsi",
 		data->options,
@@ -65,7 +65,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 		&error
 		);
 	g_assert_nonnull(job);
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
+	g_assert_false(xmi_msim_job_start(job, &error));
 
 	g_assert(error->domain == G_SPAWN_ERROR);
 	g_debug("message: %s", error->message);
@@ -75,41 +75,41 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 #else
 	g_assert(error->code == G_SPAWN_ERROR_NOENT);
 #endif
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_false(xmi_msim_gui_job_has_finished(job));
-	g_assert_false(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_false(xmi_msim_job_has_finished(job));
+	g_assert_false(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
 	g_object_unref(job);
 }
 
-static void test_fail_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *buffer, SetupData *data) {
+static void test_fail_finished_cb(XmiMsimJob *job, gboolean result, const gchar *buffer, SetupData *data) {
 	g_assert_false(result);
 	g_debug("message: %s", buffer);
 	g_main_loop_quit(data->main_loop);
 }
 
-static void test_succeed_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *buffer, SetupData *data) {
+static void test_succeed_finished_cb(XmiMsimJob *job, gboolean result, const gchar *buffer, SetupData *data) {
 	g_assert_true(result);
 	g_debug("message: %s", buffer);
 	g_main_loop_quit(data->main_loop);
 }
 
-static void print_stdout(XmiMsimGuiJob *job, const gchar *string) {
+static void print_stdout(XmiMsimJob *job, const gchar *string) {
 	g_debug("stdout: %s", string);
 }
 
-static void print_stderr(XmiMsimGuiJob *job, const gchar *string) {
+static void print_stderr(XmiMsimJob *job, const gchar *string) {
 	g_debug("stderr: %s", string);
 }
 
 static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		"non-existent-file.xmsi",
 		data->options,
@@ -125,21 +125,21 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_false(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_false(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 }
@@ -155,7 +155,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
 		data->options,
@@ -171,32 +171,32 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_false(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_false(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 	g_assert(unlink(COMPOUND "-test.xmsi") == 0);
 }
 
-static void test_special_event_cb(XmiMsimGuiJob *job, int event, const gchar *buffer, gpointer data) {
-	g_assert_true(xmi_msim_gui_job_is_running(job));
+static void test_special_event_cb(XmiMsimJob *job, int event, const gchar *buffer, gpointer data) {
+	g_assert_true(xmi_msim_job_is_running(job));
 	// this test is running in brute force mode, so we know exactly what to expect
-	if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_SOLID_ANGLE)
+	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE)
 		g_assert(strcmp(buffer, "Solid angle grid redundant") == 0);
-	else if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_ESCAPE_PEAKS)
+	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_ESCAPE_PEAKS)
 		g_assert(strcmp(buffer, "Escape peaks redundant") == 0);
 	else
 		g_debug("special_event: %s", buffer);
@@ -210,7 +210,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
 		data->options,
@@ -227,21 +227,21 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_true(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_true(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 
@@ -249,8 +249,8 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_assert(unlink(COMPOUND "-test.xmso") == 0);
 }
 
-static gboolean stop_timeout(XmiMsimGuiJob *job) {
-	g_assert_true(xmi_msim_gui_job_stop(job, NULL));
+static gboolean stop_timeout(XmiMsimJob *job) {
+	g_assert_true(xmi_msim_job_stop(job, NULL));
 	g_debug("message: job stopped");
 	return FALSE;
 }
@@ -263,7 +263,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
 		data->options,
@@ -280,39 +280,39 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will stop the job
 	g_timeout_add_seconds(5, (GSourceFunc) stop_timeout, job);
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_false(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_false(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 
 	g_assert(unlink(COMPOUND "-test.xmsi") == 0);
 }
 
-static gboolean suspend_resume_timeout(XmiMsimGuiJob *job) {
-	g_assert_true(xmi_msim_gui_job_is_running(job));
+static gboolean suspend_resume_timeout(XmiMsimJob *job) {
+	g_assert_true(xmi_msim_job_is_running(job));
 
-	if (xmi_msim_gui_job_is_suspended(job) == FALSE) {
-		g_assert_true(xmi_msim_gui_job_suspend(job, NULL));
+	if (xmi_msim_job_is_suspended(job) == FALSE) {
+		g_assert_true(xmi_msim_job_suspend(job, NULL));
 		g_debug("message: job suspended");
 		return TRUE;
 	}
-	g_assert_true(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_true(xmi_msim_job_resume(job, NULL));
 	g_debug("message: job resumed");
 
 	return FALSE;
@@ -326,7 +326,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
 		data->options,
@@ -343,24 +343,24 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will suspend and resume the job
 	g_timeout_add_seconds(5, (GSourceFunc) suspend_resume_timeout, job);
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_true(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_true(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 
@@ -368,15 +368,15 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_assert(unlink(COMPOUND "-test.xmso") == 0);
 }
 
-static gboolean suspend_stop_timeout(XmiMsimGuiJob *job) {
-	g_assert_true(xmi_msim_gui_job_is_running(job));
+static gboolean suspend_stop_timeout(XmiMsimJob *job) {
+	g_assert_true(xmi_msim_job_is_running(job));
 
-	if (xmi_msim_gui_job_is_suspended(job) == FALSE) {
-		g_assert_true(xmi_msim_gui_job_suspend(job, NULL));
+	if (xmi_msim_job_is_suspended(job) == FALSE) {
+		g_assert_true(xmi_msim_job_suspend(job, NULL));
 		g_debug("message: job suspended");
 		return TRUE;
 	}
-	g_assert_true(xmi_msim_gui_job_stop(job, NULL));
+	g_assert_true(xmi_msim_job_stop(job, NULL));
 	g_debug("message: job killed");
 
 	return FALSE;
@@ -390,7 +390,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
-	XmiMsimGuiJob* job = xmi_msim_gui_job_new(
+	XmiMsimJob* job = xmi_msim_job_new(
 		XMIMSIM_EXEC,
 		COMPOUND "-test.xmsi",
 		data->options,
@@ -407,24 +407,24 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
-	g_assert_true(xmi_msim_gui_job_start(job, &error));
+	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will suspend and stop the job
 	g_timeout_add_seconds(5, (GSourceFunc) suspend_stop_timeout, job);
 
 	g_main_loop_run(data->main_loop);
 
-	g_assert_false(xmi_msim_gui_job_is_running(job));
-	g_assert_false(xmi_msim_gui_job_is_suspended(job));
-	g_assert_true(xmi_msim_gui_job_has_finished(job));
-	g_assert_false(xmi_msim_gui_job_was_successful(job));
-	g_assert_false(xmi_msim_gui_job_stop(job, NULL));
-	g_assert_false(xmi_msim_gui_job_suspend(job, NULL));
-	g_assert_false(xmi_msim_gui_job_resume(job, NULL));
+	g_assert_false(xmi_msim_job_is_running(job));
+	g_assert_false(xmi_msim_job_is_suspended(job));
+	g_assert_true(xmi_msim_job_has_finished(job));
+	g_assert_false(xmi_msim_job_was_successful(job));
+	g_assert_false(xmi_msim_job_stop(job, NULL));
+	g_assert_false(xmi_msim_job_suspend(job, NULL));
+	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_false(xmi_msim_gui_job_start(job, &error));
-	g_assert(error->domain == XMI_MSIM_GUI_JOB_ERROR);
-	g_assert(error->code == XMI_MSIM_GUI_JOB_ERROR_UNAVAILABLE);
+	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
+	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
 	g_object_unref(job);
 
@@ -440,7 +440,7 @@ int main(int argc, char *argv[]) {
 #endif
 	g_test_init(&argc, &argv, NULL);
 
-	g_assert_true(xmi_msim_gui_job_is_suspend_available());
+	g_assert_true(xmi_msim_job_is_suspend_available());
 
 	// init test
 	g_assert(test_init() == 1);

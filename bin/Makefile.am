@@ -49,7 +49,6 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
 	xmimsim-gui-xmso-results-scrolled-window.h \
-	xmimsim-gui-job.h \
 	xmimsim-gui-batch.h \
 	xmimsim-gui-undo-manager.h \
 	xmimsim-gui-energies-box.h \
@@ -86,7 +85,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmsi-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
-	xmimsim-gui-job.c \
 	xmimsim-gui-batch.c \
 	xmimsim-gui-undo-manager.c \
 	xmimsim-gui-energies-box.c \
@@ -309,25 +307,6 @@ mkenum_sources = \
 marshal_input = \
 	xmimsim-gui-marshal.list
 
-if ENABLE_GUI
-if ENABLE_GOOGLE_ANALYTICS
-noinst_LTLIBRARIES += libxmimsim-gui-google-analytics.la
-libxmimsim_gui_include_HEADERS += xmimsim-gui-google-analytics.h
-libxmimsim_gui_google_analytics_la_SOURCES = \
-		      xmimsim-gui-google-analytics.h \
-		      xmimsim-gui-google-analytics.c
-libxmimsim_gui_google_analytics_la_CFLAGS = \
-	$(WSTRICT_CFLAGS) \
-	$(NULL)
-libxmimsim_gui_google_analytics_la_CPPFLAGS = \
-		$(AM_CPPFLAGS) \
-		-I$(top_srcdir)/include \
-		@GOOGLE_ANALYTICS_CFLAGS@
-libxmimsim_gui_google_analytics_la_LIBADD = @GOOGLE_ANALYTICS_LIBS@
-libxmimsim_gui_la_LIBADD += libxmimsim-gui-google-analytics.la 
-endif
-endif
-
 
 xmimsim_gui_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -513,7 +492,7 @@ INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --add-include-path=$(t
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 if HAVE_INTROSPECTION
-introspection_sources = xmimsim-gui-job.c xmimsim-gui-job.h
+introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la
 XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0

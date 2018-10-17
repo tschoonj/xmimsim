@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include "xmimsim-gui-google-analytics.h"
-#include "xmimsim-gui-marshal.h"
+#include "xmi_google_analytics.h"
+#include "xmi_marshal.h"
 #include <libsoup/soup.h>
 #include <glib.h>
 #include <string.h>
@@ -35,34 +35,34 @@ enum {
 
 static guint signals[LAST_SIGNAL];
 
-static XmiMsimGuiGoogleAnalyticsTracker *global_tracker = NULL;
+static XmiMsimGoogleAnalyticsTracker *global_tracker = NULL;
 
-struct _XmiMsimGuiGoogleAnalyticsTracker {
+struct _XmiMsimGoogleAnalyticsTracker {
 	GObject parent_instance;
 	gchar *uuid;
 	SoupSession *session;
 };
 
-G_DEFINE_TYPE(XmiMsimGuiGoogleAnalyticsTracker, xmi_msim_gui_google_analytics_tracker, G_TYPE_OBJECT)
+G_DEFINE_TYPE(XmiMsimGoogleAnalyticsTracker, xmi_msim_google_analytics_tracker, G_TYPE_OBJECT)
 
-static void xmi_msim_gui_google_analytics_tracker_dispose(GObject *gobject) {
-	G_OBJECT_CLASS(xmi_msim_gui_google_analytics_tracker_parent_class)->dispose(gobject);
+static void xmi_msim_google_analytics_tracker_dispose(GObject *gobject) {
+	G_OBJECT_CLASS(xmi_msim_google_analytics_tracker_parent_class)->dispose(gobject);
 }
 
-static void xmi_msim_gui_google_analytics_tracker_finalize(GObject *gobject) {
-	XmiMsimGuiGoogleAnalyticsTracker *tracker = XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER(gobject);
+static void xmi_msim_google_analytics_tracker_finalize(GObject *gobject) {
+	XmiMsimGoogleAnalyticsTracker *tracker = XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(gobject);
 
 	g_free(tracker->uuid);
 	g_object_unref(tracker->session);
 
-	G_OBJECT_CLASS(xmi_msim_gui_google_analytics_tracker_parent_class)->finalize(gobject);
+	G_OBJECT_CLASS(xmi_msim_google_analytics_tracker_parent_class)->finalize(gobject);
 }
 
-static void xmi_msim_gui_google_analytics_tracker_class_init(XmiMsimGuiGoogleAnalyticsTrackerClass *klass) {
+static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsTrackerClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-	object_class->dispose = xmi_msim_gui_google_analytics_tracker_dispose;
-	object_class->finalize = xmi_msim_gui_google_analytics_tracker_finalize;
+	object_class->dispose = xmi_msim_google_analytics_tracker_dispose;
+	object_class->finalize = xmi_msim_google_analytics_tracker_finalize;
 	
 	signals[AFTER_EVENT] = g_signal_new(
 		"after-event",
@@ -71,7 +71,7 @@ static void xmi_msim_gui_google_analytics_tracker_class_init(XmiMsimGuiGoogleAna
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__POINTER,
+		xmi_VOID__POINTER,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_POINTER // GError *
@@ -79,12 +79,12 @@ static void xmi_msim_gui_google_analytics_tracker_class_init(XmiMsimGuiGoogleAna
 
 }
 
-static void xmi_msim_gui_google_analytics_tracker_init(XmiMsimGuiGoogleAnalyticsTracker *self) {
+static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker *self) {
 	self->session = soup_session_new();
 }
 
-XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(const gchar *uuid) {
-	XmiMsimGuiGoogleAnalyticsTracker *tracker = XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_GUI_TYPE_GOOGLE_ANALYTICS_TRACKER, NULL));
+XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_new(const gchar *uuid) {
+	XmiMsimGoogleAnalyticsTracker *tracker = XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_TYPE_GOOGLE_ANALYTICS_TRACKER, NULL));
 	
 	// existing UUIDs must be valid
 	if (uuid != NULL && !g_uuid_string_is_valid(uuid)) {
@@ -101,38 +101,38 @@ XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_new(cons
 	return tracker;
 }
 
-void xmi_msim_gui_google_analytics_tracker_create_global(const gchar *uuid) {
+void xmi_msim_google_analytics_tracker_create_global(const gchar *uuid) {
 	if (global_tracker != NULL) 
 		g_object_unref(global_tracker);
 
-	global_tracker = xmi_msim_gui_google_analytics_tracker_new(uuid);
+	global_tracker = xmi_msim_google_analytics_tracker_new(uuid);
 }
 
-const XmiMsimGuiGoogleAnalyticsTracker *xmi_msim_gui_google_analytics_tracker_get_global(void) {
+const XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void) {
 	return global_tracker;
 }
 
-void xmi_msim_gui_google_analytics_tracker_free_global(void) {
+void xmi_msim_google_analytics_tracker_free_global(void) {
 	if (global_tracker != NULL)
 		g_object_unref(global_tracker);
 
 	global_tracker = NULL;
 }
 
-static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGuiGoogleAnalyticsTracker *tracker) {
+static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGoogleAnalyticsTracker *tracker) {
 	g_debug("event_callback status: %d", msg->status_code);
 	if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
 		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, NULL);
 	}
 	else {
 		g_warning("libsoup error message: %s", msg->reason_phrase);
-		GError *error = g_error_new(XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER_ERROR, XMI_MSIM_GUI_GOOGLE_ANALYTICS_TRACKER_LIBSOUP, "libsoup error message: %s", msg->reason_phrase);
+		GError *error = g_error_new(XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_ERROR, XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_LIBSOUP, "libsoup error message: %s", msg->reason_phrase);
 		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, error);
 		g_error_free(error);
 	}
 }
 
-gboolean xmi_msim_gui_google_analytics_tracker_send_event(const XmiMsimGuiGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value) {
+gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value) {
 	
 	g_return_val_if_fail(tracker != NULL, FALSE);
 	g_return_val_if_fail(category != NULL, FALSE);
@@ -164,6 +164,6 @@ gboolean xmi_msim_gui_google_analytics_tracker_send_event(const XmiMsimGuiGoogle
 	return TRUE;
 }
 
-GQuark xmi_msim_gui_google_analytics_tracker_error_quark(void) {
+GQuark xmi_msim_google_analytics_tracker_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-google-analytics-tracker-error-quark");
 }
