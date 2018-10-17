@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-options-box.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-long-task-window.h"
-#include "xmimsim-gui-job.h"
+#include "xmi_job.h"
 #include <stdio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -53,7 +53,7 @@ xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPath
 #endif
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-  #include "xmimsim-gui-google-analytics.h"
+  #include "xmi_google_analytics.h"
 #endif
 
 enum xmi_msim_batch_options{
@@ -84,7 +84,7 @@ struct batch_window_data {
 	xmi_output ***output;
 	gchar **filenames_xmso;
 	int nsteps2;
-	XmiMsimGuiJob *job;
+	XmiMsimJob *job;
 	GMainLoop *main_loop;
 };
 
@@ -857,7 +857,7 @@ static void choose_logfile(GtkButton *saveButton, struct batch_window_data *bwd)
 	return;
 }
 
-static void job_stderr_cb(XmiMsimGuiJob *job, const gchar *string, struct batch_window_data *bwd) {
+static void job_stderr_cb(XmiMsimJob *job, const gchar *string, struct batch_window_data *bwd) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogW, bwd->timer, bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 	if (bwd->logFile) {
@@ -866,7 +866,7 @@ static void job_stderr_cb(XmiMsimGuiJob *job, const gchar *string, struct batch_
 	g_free(buffer);
 }
 
-static void job_stdout_cb(XmiMsimGuiJob *job, const gchar *string, struct batch_window_data *bwd) {
+static void job_stdout_cb(XmiMsimJob *job, const gchar *string, struct batch_window_data *bwd) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogW, bwd->timer, bwd->controlsLogB, buffer,-1,NULL);
 	if (bwd->logFile) {
@@ -875,7 +875,7 @@ static void job_stdout_cb(XmiMsimGuiJob *job, const gchar *string, struct batch_
 	g_free(buffer);
 }
 
-static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *string, struct batch_window_data *bwd) {
+static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *string, struct batch_window_data *bwd) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	if (result) {
 		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogW, bwd->timer, bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB), "success"), NULL);
@@ -895,7 +895,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 
 
 	//first deal with the pause case
-	if (bwd->pauseButton && bwd->job && xmi_msim_gui_job_is_suspended(bwd->job)) {
+	if (bwd->pauseButton && bwd->job && xmi_msim_job_is_suspended(bwd->job)) {
 		gint pid;
 		gtk_widget_set_sensitive(bwd->playButton, FALSE);
 		gboolean resume_rv;
@@ -903,9 +903,9 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		GError *error = NULL;
 		g_timer_continue(bwd->timer);
 
-		xmi_msim_gui_job_get_pid(bwd->job, &pid, NULL); // let's assume this won't fail...
+		xmi_msim_job_get_pid(bwd->job, &pid, NULL); // let's assume this won't fail...
 
-		resume_rv = xmi_msim_gui_job_resume(bwd->job, &error);
+		resume_rv = xmi_msim_job_resume(bwd->job, &error);
 
 		if (resume_rv) {
 			buffer = g_strdup_printf( "Process %d was successfully resumed\n", pid);
@@ -1008,7 +1008,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		GError *error = NULL;
 		gchar *buffer;
 
-		bwd->job = xmi_msim_gui_job_new(xmimsim_executable, (const char *) g_slist_nth_data(bwd->filenames, file_index), options, NULL, NULL, NULL, NULL, (int) gtk_range_get_value(GTK_RANGE(bwd->nthreadsW)), NULL, &error);
+		bwd->job = xmi_msim_job_new(xmimsim_executable, (const char *) g_slist_nth_data(bwd->filenames, file_index), options, NULL, NULL, NULL, NULL, (int) gtk_range_get_value(GTK_RANGE(bwd->nthreadsW)), NULL, &error);
 
 		if (error != NULL) {
 			buffer = g_strdup_printf("%s\n", error->message);
@@ -1033,7 +1033,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 
 			break;
 		}
-		xmi_msim_gui_job_send_all_stdout_events(bwd->job, TRUE); // we are going to use only the STDOUT_EVENT signals really so...
+		xmi_msim_job_send_all_stdout_events(bwd->job, TRUE); // we are going to use only the STDOUT_EVENT signals really so...
 
 		// hook up signal handlers
 		bwd->main_loop = g_main_loop_new(NULL, FALSE);
@@ -1042,7 +1042,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		g_signal_connect(G_OBJECT(bwd->job), "finished-event", G_CALLBACK(job_finished_cb), bwd);
 
 		// start the job
-		if (!xmi_msim_gui_job_start(bwd->job, &error)) {
+		if (!xmi_msim_job_start(bwd->job, &error)) {
 			buffer = g_strdup_printf("%s\n", error->message);
 			xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogW, bwd->timer, bwd->controlsLogB, buffer,-1,gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(bwd->controlsLogB),"error" ),NULL);
 			if (bwd->logFile) {
@@ -1067,7 +1067,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		}
 
 		int pid;
-		xmi_msim_gui_job_get_pid(bwd->job, &pid, NULL); // let's assume this won't fail...
+		xmi_msim_job_get_pid(bwd->job, &pid, NULL); // let's assume this won't fail...
 		buffer = g_strdup_printf("%s was started with process id %d\n", xmimsim_executable, pid);
 		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(bwd->controlsLogW, bwd->timer, bwd->controlsLogB, buffer,-1,NULL);
 		if (bwd->logFile) {
@@ -1085,7 +1085,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		g_main_loop_unref(bwd->main_loop);
 
 
-		if (!xmi_msim_gui_job_was_successful(bwd->job)) {
+		if (!xmi_msim_job_was_successful(bwd->job)) {
 			g_object_unref(bwd->job);
 			global_success = FALSE;
 
@@ -1162,14 +1162,14 @@ static void stop_button_clicked(GtkButton *button, struct batch_window_data *bwd
 	GError *error = NULL;
 	gint pid;
 
-	xmi_msim_gui_job_get_pid(bwd->job, &pid, NULL);
+	xmi_msim_job_get_pid(bwd->job, &pid, NULL);
 
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
 
 	if (bwd->pauseButton)
 		gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
 
-	kill_rv = xmi_msim_gui_job_stop(bwd->job, &error);
+	kill_rv = xmi_msim_job_stop(bwd->job, &error);
 
 	if (kill_rv == TRUE) {
 		buffer = g_strdup_printf( "Process %d was successfully terminated before completion\n", pid);
@@ -1197,12 +1197,12 @@ static void pause_button_clicked(GtkButton *button, struct batch_window_data *bw
 
 	g_timer_stop(bwd->timer);
 
-	xmi_msim_gui_job_get_pid(bwd->job, &pid, NULL);
+	xmi_msim_job_get_pid(bwd->job, &pid, NULL);
 
 	gtk_widget_set_sensitive(bwd->pauseButton,FALSE);
 	gtk_widget_set_sensitive(bwd->stopButton,FALSE);
 
-	kill_rv = xmi_msim_gui_job_suspend(bwd->job, &error);
+	kill_rv = xmi_msim_job_suspend(bwd->job, &error);
 
 	if (kill_rv == TRUE) {
 		buffer = g_strdup_printf( "Process %d was successfully paused. Press the Play button to continue or Stop to kill the process\n", pid);
@@ -1246,18 +1246,18 @@ static gboolean wizard_delete_event(GtkWidget *wizard, GdkEvent *event, struct w
 }
 
 static void batch_window_exit(GtkButton *button, struct batch_window_data *bwd) {
-	if (bwd->job && xmi_msim_gui_job_is_running(bwd->job)) {
-		xmi_msim_gui_job_suspend(bwd->job, NULL);
+	if (bwd->job && xmi_msim_job_is_running(bwd->job)) {
+		xmi_msim_job_suspend(bwd->job, NULL);
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, "A simulation is currently running.\nAre you sure you want to quit?");
 		int response = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		if (response == GTK_RESPONSE_YES) {
-			xmi_msim_gui_job_kill(bwd->job, NULL);
+			xmi_msim_job_kill(bwd->job, NULL);
 			gtk_widget_destroy(bwd->batch_window);
 			g_object_unref(bwd->logFile);
 		}
 		else {
-			xmi_msim_gui_job_resume(bwd->job, NULL);
+			xmi_msim_job_resume(bwd->job, NULL);
 		}
 	}
 	else {
@@ -1267,17 +1267,17 @@ static void batch_window_exit(GtkButton *button, struct batch_window_data *bwd) 
 }
 
 static gboolean batch_window_delete_event(GtkWidget *batch_window, GdkEvent *event, struct batch_window_data *bwd) {
-	if (bwd->job && xmi_msim_gui_job_is_running(bwd->job)) {
-		xmi_msim_gui_job_suspend(bwd->job, NULL);
+	if (bwd->job && xmi_msim_job_is_running(bwd->job)) {
+		xmi_msim_job_suspend(bwd->job, NULL);
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, "A simulation is currently running.\nAre you sure you want to quit?");
 		int response = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		if (response == GTK_RESPONSE_YES) {
-			xmi_msim_gui_job_kill(bwd->job, NULL);
+			xmi_msim_job_kill(bwd->job, NULL);
 			g_object_unref(bwd->logFile);
 			return FALSE;
 		}
-		xmi_msim_gui_job_resume(bwd->job, NULL);
+		xmi_msim_job_resume(bwd->job, NULL);
 		return TRUE;
 	}
 	g_object_unref(bwd->logFile);
@@ -1507,8 +1507,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				return;
 			}
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
-			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-MULTIPLE-OPTIONS", NULL);
+			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+			xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-MULTIPLE-OPTIONS", NULL);
 #endif
 		}
 		else if (response == GTK_RESPONSE_NO) {
@@ -1521,8 +1521,8 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			}
 			//options are set
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
-			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-SINGLE-OPTION", NULL);
+			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+			xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-SINGLE-OPTION", NULL);
 #endif
 		}
 		else {
@@ -1559,13 +1559,13 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				g_debug("allowed2: %i", allowed2);
 			}
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
+			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 			gchar *event_label = NULL;
 			if (xpath2)
 				event_label = g_strdup_printf("SINGLE-FILE-%s-%s", xpath1, xpath2);
 			else
 				event_label = g_strdup_printf("SINGLE-FILE-%s", xpath1);
-			xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", event_label, NULL);
+			xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", event_label, NULL);
 			g_free(event_label);
 #endif
 		}
@@ -1915,7 +1915,7 @@ static int batch_mode(GtkWidget *main_window, xmi_main_options **options, GSList
 	bwd->playButton = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_DIALOG);
 	gtk_box_pack_start(GTK_BOX(hbox), bwd->playButton, FALSE, FALSE, 2);
 
-	if (xmi_msim_gui_job_is_suspend_available()) {
+	if (xmi_msim_job_is_suspend_available()) {
 		bwd->pauseButton = gtk_button_new_from_icon_name("media-playback-pause", GTK_ICON_SIZE_DIALOG);
 		gtk_box_pack_start(GTK_BOX(hbox), bwd->pauseButton, FALSE, FALSE, 2);
 		gtk_widget_set_sensitive(bwd->pauseButton, FALSE);

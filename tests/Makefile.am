@@ -19,15 +19,16 @@ check_PROGRAMS = \
      test-cubic-spline \
      test-ebel \
      test-gobject \
+     test-job
      $(NULL)
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
-  check_PROGRAMS += test-gui-job
-if ENABLE_GOOGLE_ANALYTICS
-  check_PROGRAMS += test-gui-google-analytics-tracker
 endif
+
+if ENABLE_GOOGLE_ANALYTICS
+  check_PROGRAMS += test-google-analytics-tracker
 endif
 
 if ENABLE_FGSL
@@ -162,13 +163,13 @@ test_xmimsim_main_CaSO4_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CF
 					-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 
-test_gui_google_analytics_tracker_SOURCES = test-gui-google-analytics-tracker.c
-test_gui_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/bin @gobject_CFLAGS@
-test_gui_google_analytics_tracker_LDADD = ../bin/libxmimsim-gui-google-analytics.la @gobject_LIBS@
+test_google_analytics_tracker_SOURCES = test-google-analytics-tracker.c
+test_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/include @gobject_CFLAGS@
+test_google_analytics_tracker_LDADD = ../src/libxmimsim-google-analytics.la @gobject_LIBS@
 
-test_gui_job_SOURCES = test-gui-job.c
-test_gui_job_CPPFLAGS = -I${top_srcdir}/bin @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
-test_gui_job_LDADD = ../bin/libxmimsim-gui.la libxmimsim-test.la @gobject_LIBS@
+test_job_SOURCES = test-job.c
+test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_job_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
 test_version_SOURCES = test-version.c
 test_version_CPPFLAGS = -I${top_builddir} -I${top_srcdir}/include @xml2_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@

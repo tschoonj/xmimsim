@@ -7,7 +7,7 @@ Name: xmimsim-gui
 Description: XMI-MSIM is a tool designed for the prediction of the spectral response of ED-XRF spectrometers through Monte Carlo simulations. Use this file to gain access to the GTK widgets that are used by the GUI.
 Version: @VERSION@
 Requires: libxmimsim = @VERSION@ @GTK_PC@
-Requires.private: @UPDATER_PC@ @GOOGLE_ANALYTICS_PC@
+Requires.private: @UPDATER_PC@
 Conflicts:
 Libs: -L${libdir} -lxmimsim-gui -lxmimsim
 Cflags: -I${includedir} 

@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-controls-scrolled-window.h"
-#include "xmimsim-gui-job.h"
+#include "xmi_job.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-prefs.h"
@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-  #include "xmimsim-gui-google-analytics.h"
+  #include "xmi_google_analytics.h"
 #endif
 
 #ifdef MAC_INTEGRATION
@@ -213,19 +213,19 @@ static void error_spinners(XmiMsimGuiControlsScrolledWindow *self) {
 	}
 
 }
-static void job_stderr_cb(XmiMsimGuiJob *job, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
+static void job_stderr_cb(XmiMsimJob *job, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error" ), NULL);
 	g_free(buffer);
 }
 
-static void job_stdout_cb(XmiMsimGuiJob *job, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
+static void job_stdout_cb(XmiMsimJob *job, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, NULL);
 	g_free(buffer);
 }
 
-static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
+static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *string, XmiMsimGuiControlsScrolledWindow *self) {
 	gchar *buffer = g_strdup_printf("%s\n", string);
 	if (result) {
 		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "success"), NULL);
@@ -301,20 +301,20 @@ static void job_finished_cb(XmiMsimGuiJob *job, gboolean result, const gchar *st
 	}
 }
 
-static void job_special_cb(XmiMsimGuiJob *job, XmiMsimGuiJobSpecialEvent event, const gchar *message, XmiMsimGuiControlsScrolledWindow *self) {
-	if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_SOLID_ANGLE) {
+static void job_special_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *message, XmiMsimGuiControlsScrolledWindow *self) {
+	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(self->progressbar_solidW), message);
 	}
-	else if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_SIMULATION) {
+	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SIMULATION) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(self->progressbar_mainW), message);
 	}
-	else if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_ESCAPE_PEAKS) {
+	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_ESCAPE_PEAKS) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(self->progressbar_escapeW), message);
 	}
 }
 
-static void job_progress_cb(XmiMsimGuiJob *job, XmiMsimGuiJobSpecialEvent event, double progress, XmiMsimGuiControlsScrolledWindow *self) {
-	if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_SOLID_ANGLE) {
+static void job_progress_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, double progress, XmiMsimGuiControlsScrolledWindow *self) {
+	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE) {
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progressbar_solidW), progress);
 		if (progress == 0.0) {
 			gtk_widget_hide(self->image_solid_stopW);
@@ -328,7 +328,7 @@ static void job_progress_cb(XmiMsimGuiJob *job, XmiMsimGuiJobSpecialEvent event,
 			gtk_widget_show(self->image_solid_yesW);
 		}
 	}
-	else if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_SIMULATION) {
+	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SIMULATION) {
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progressbar_mainW), progress);
 		if (progress == 0.0) {
 			gtk_widget_hide(self->image_main_stopW);
@@ -342,7 +342,7 @@ static void job_progress_cb(XmiMsimGuiJob *job, XmiMsimGuiJobSpecialEvent event,
 			gtk_widget_show(self->image_main_yesW);
 		}
 	}
-	else if (event == XMI_MSIM_GUI_JOB_SPECIAL_EVENT_ESCAPE_PEAKS) {
+	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_ESCAPE_PEAKS) {
 		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progressbar_escapeW), progress);
 		if (progress == 0.0) {
 			gtk_widget_hide(self->image_escape_stopW);
@@ -365,9 +365,9 @@ static void pause_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolle
 	gtk_widget_set_sensitive(self->stopButton, FALSE);
 
 	gint pid;
-	xmi_msim_gui_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
+	xmi_msim_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
 	GError *error = NULL;
-	gboolean clean_suspend = xmi_msim_gui_job_suspend(self->job, &error);
+	gboolean clean_suspend = xmi_msim_job_suspend(self->job, &error);
 
 	if (clean_suspend) {
 		gchar *buffer = g_strdup_printf( "Process %d was successfully paused. Press the Play button to continue or Stop to kill the process\n", pid);
@@ -402,9 +402,9 @@ static void stop_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		gtk_widget_set_sensitive(self->pauseButton, FALSE);
 
 	gint pid;
-	xmi_msim_gui_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
+	xmi_msim_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
 	GError *error = NULL;
-	gboolean clean_kill = xmi_msim_gui_job_stop(self->job, &error);
+	gboolean clean_kill = xmi_msim_job_stop(self->job, &error);
 
 	if (clean_kill) {
 		gchar *buffer = g_strdup_printf( "Process %d was successfully terminated before completion\n", pid);
@@ -423,7 +423,7 @@ static void stop_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolledWindow *self) {
 
 	//first deal with the pause case
-	if (self->pauseButton && self->job && xmi_msim_gui_job_is_suspended(self->job)) {
+	if (self->pauseButton && self->job && xmi_msim_job_is_suspended(self->job)) {
 		gint pid;
 		gtk_widget_set_sensitive(self->playButton, FALSE);
 		gboolean resume_rv;
@@ -432,9 +432,9 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		g_timer_continue(self->timer);
 		gboolean spinning;
 
-		xmi_msim_gui_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
+		xmi_msim_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
 
-		resume_rv = xmi_msim_gui_job_resume(self->job, &error);
+		resume_rv = xmi_msim_job_resume(self->job, &error);
 
 		if (resume_rv) {
 			buffer = g_strdup_printf( "Process %d was successfully resumed\n", pid);
@@ -489,8 +489,8 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	// if saved -> start job	
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-	const XmiMsimGuiGoogleAnalyticsTracker *tracker = xmi_msim_gui_google_analytics_tracker_get_global();
-	xmi_msim_gui_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SIMULATION-START", NULL, NULL);
+	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SIMULATION-START", NULL, NULL);
 #endif
 
 	//freeze gui except for pause and stop buttons
@@ -524,7 +524,7 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	if (self->job)
 		g_clear_object(&self->job);
 
-	self->job = xmi_msim_gui_job_new(
+	self->job = xmi_msim_job_new(
 		gtk_entry_get_text(GTK_ENTRY(self->executableW)),
 		self->input_file,
 		options,
@@ -552,7 +552,7 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	g_signal_connect(G_OBJECT(self->job), "special-event", G_CALLBACK(job_special_cb), self);
 	g_signal_connect(G_OBJECT(self->job), "progress-event", G_CALLBACK(job_progress_cb), self);
 
-	if (!xmi_msim_gui_job_start(self->job, &error)) {
+	if (!xmi_msim_job_start(self->job, &error)) {
 		buffer = g_strdup_printf("Could not start new job: %s\n", error->message);
 		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error" ), NULL);
 		g_free(buffer);
@@ -561,9 +561,9 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		return;
 	}
 
-	gchar *command = xmi_msim_gui_job_get_command(self->job);
+	gchar *command = xmi_msim_job_get_command(self->job);
 	gint pid;
-	xmi_msim_gui_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
+	xmi_msim_job_get_pid(self->job, &pid, NULL); // let's assume this won't fail...
 	buffer = g_strdup_printf("%s was started with process id %d\n", command, pid);
 	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, NULL);
 	g_free(command);
@@ -599,7 +599,7 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	self->stopButton = gtk_button_new_from_icon_name("media-playback-stop", GTK_ICON_SIZE_DIALOG);
 	g_signal_connect(G_OBJECT(self->stopButton), "clicked", G_CALLBACK(stop_button_clicked_cb), self);
 
-	if (xmi_msim_gui_job_is_suspend_available()) {
+	if (xmi_msim_job_is_suspend_available()) {
 		self->pauseButton = gtk_button_new_from_icon_name("media-playback-pause", GTK_ICON_SIZE_DIALOG);
 		g_signal_connect(G_OBJECT(self->pauseButton), "clicked", G_CALLBACK(pause_button_clicked_cb), self);
 	}

@@ -7,8 +7,8 @@ rng=@RNG@
 Name: xmimsim
 Description: XMI-MSIM is a tool designed for the prediction of the spectral response of ED-XRF spectrometers through Monte Carlo simulations
 Version: @VERSION@
-Requires.private: libxrlf03 >= 3.2.0 libxslt >= 1.1.26 gio-2.0 @fortran_rng@
-Requires: libxml-2.0 >= 2.7.0 libxrl >= 3.2.0 glib-2.0
+Requires.private: libxrlf03 >= 3.2.0 libxslt >= 1.1.26 gio-2.0 @fortran_rng@ @GOOGLE_ANALYTICS_PC@
+Requires: libxml-2.0 >= 2.7.0 libxrl >= 3.2.0 glib-2.0 gobject-2.0
 Conflicts:
 Libs: -L${libdir} -lxmimsim
 Libs.private: @HDF5_LIBS@

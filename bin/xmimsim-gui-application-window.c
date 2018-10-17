@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-  #include "xmimsim-gui-google-analytics.h"
+  #include "xmi_google_analytics.h"
 #endif
 
 #ifdef __APPLE__
@@ -381,7 +381,7 @@ static gboolean job_killer(GtkWidget *dialog) {
 	XmiMsimGuiApplicationWindow *window = XMI_MSIM_GUI_APPLICATION_WINDOW(gtk_window_get_transient_for(GTK_WINDOW(dialog)));
 	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
 
-	if (controls_page->job && xmi_msim_gui_job_is_running(controls_page->job)) {
+	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
 		return G_SOURCE_CONTINUE;
 	}
 	gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_CLOSE);
@@ -512,7 +512,7 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 
 	// afterwards, if user still decides to close the window -> check if there is still a job running!
 	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
-	if (controls_page->job && xmi_msim_gui_job_is_running(controls_page->job)) {
+	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
 		g_debug("job is running!");
 		GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
 			GTK_WINDOW(window),
@@ -536,8 +536,8 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 			case GTK_RESPONSE_CLOSE: // from job_killer!
 			{
 				gtk_widget_destroy(dialog);
-				if (controls_page->job && xmi_msim_gui_job_is_running(controls_page->job)) {
-					xmi_msim_gui_job_kill(controls_page->job, NULL);
+				if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
+					xmi_msim_job_kill(controls_page->job, NULL);
 				}
 				return FALSE;
 			}

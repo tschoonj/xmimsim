@@ -49,6 +49,9 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_spline.c \
 			xmi_transmission_efficiency.c \
 			xmi_gobject.c \
+			xmi_job.c \
+			xmi_marshal.c \
+			xmi_marshal.h \
 			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
@@ -106,6 +109,7 @@ endif
 if OS_WINDOWS
 libxmimsim_la_FCFLAGS += -DXMI_WINDOWS
 endif
+
 if ENABLE_MAC_APP
 libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 
@@ -116,6 +120,21 @@ libxmimsim_osx_la_OBJCFLAGS =  \
 	@glib2_CFLAGS@
 
 libxmimsim_la_LIBADD +=	libxmimsim-osx.la
+endif
+
+if ENABLE_GOOGLE_ANALYTICS
+noinst_LTLIBRARIES += libxmimsim-google-analytics.la
+libxmimsim_google_analytics_la_SOURCES = \
+		      xmi_google_analytics.c
+libxmimsim_google_analytics_la_CFLAGS = \
+	$(WSTRICT_CFLAGS) \
+	$(NULL)
+libxmimsim_google_analytics_la_CPPFLAGS = \
+		$(AM_CPPFLAGS) \
+		-I$(top_srcdir)/include \
+		@GOOGLE_ANALYTICS_CFLAGS@
+libxmimsim_google_analytics_la_LIBADD = @GOOGLE_ANALYTICS_LIBS@
+libxmimsim_la_LIBADD += libxmimsim-google-analytics.la 
 endif
 
 # quicklook plugin library for macOS bundle
@@ -147,7 +166,22 @@ xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir
 xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
 
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES)
+marshal_input = xmi_marshal.list
+
+xmi_marshal.h: $(marshal_input) xmi_marshal.c
+
+xmi_marshal.c: $(marshal_input)
+	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
+		--prefix "xmi" \
+		--header \
+		$(marshal_input) ) > $(srcdir)/xmi_marshal.h
+	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
+		--prefix "xmi" \
+		--prototypes \
+		--body \
+		$(marshal_input) ) > $(srcdir)/xmi_marshal.c
+
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -171,5 +205,5 @@ clean-local:
 	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 
-EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl
+EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list
 
