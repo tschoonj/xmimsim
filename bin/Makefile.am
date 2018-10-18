@@ -488,27 +488,29 @@ dist_xmimsim_DATA = coordinate_system.png
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
-INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --add-include-path=$(top_srcdir)/include --warn-all
-INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+INTROSPECTION_SCANNER_ARGS = --add-include-path=$(top_builddir)/src --warn-all
+INTROSPECTION_COMPILER_ARGS = --includedir=$(top_builddir)/src 
 
-if HAVE_INTROSPECTION
-introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
+#if ENABLE_GUI
+#if HAVE_INTROSPECTION
+#introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
 
-XmiMsimGui-1.0.gir: libxmimsim-gui.la
-XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0
-XmiMsimGui_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
-XmiMsimGui_1_0_gir_LIBS = libxmimsim-gui.la
-XmiMsimGui_1_0_gir_FILES = $(introspection_sources)
-INTROSPECTION_GIRS += XmiMsimGui-1.0.gir
+#XmiMsimGui-1.0.gir: libxmimsim-gui.la
+#XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0 XmiMsim-1.0 Gtk-3.0
+#XmiMsimGui_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
+#XmiMsimGui_1_0_gir_LIBS = libxmimsim-gui.la
+#XmiMsimGui_1_0_gir_FILES = $(introspection_sources)
+#INTROSPECTION_GIRS += XmiMsimGui-1.0.gir
 
-girdir = $(datadir)/gir-1.0
-gir_DATA = $(INTROSPECTION_GIRS)
+#girdir = $(datadir)/gir-1.0
+#gir_DATA = $(INTROSPECTION_GIRS)
 
-typelibdir = $(libdir)/girepository-1.0
-typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+#typelibdir = $(libdir)/girepository-1.0
+#typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-CLEANFILES = $(gir_DATA) $(typelib_DATA)
-endif
+#CLEANFILES = $(gir_DATA) $(typelib_DATA)
+#endif
+#endif
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc
@@ -560,7 +562,7 @@ xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOUR
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi_msim_gui --generate-source $(srcdir)/xmimsim-gui.gresource.xml
 
 clean-local:
-	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def
+	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def $(CLEANFILES)
 
-EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui $(CLEANFILES)
+EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
 

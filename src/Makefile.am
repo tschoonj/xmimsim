@@ -195,6 +195,32 @@ xmimsim_varred.mod: libxmimsim.la
 
 xmimsim_detector.mod: libxmimsim.la
 
+-include $(INTROSPECTION_MAKEFILE)
+INTROSPECTION_GIRS =
+INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --add-include-path=$(top_srcdir)/include --warn-all
+INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+
+if ENABLE_GOOGLE_ANALYTICS
+if HAVE_INTROSPECTION
+introspection_sources = xmi_google_analytics.c $(top_srcdir)/include/xmi_google_analytics.h
+
+XmiMsim-1.0.gir: libxmimsim.la
+XmiMsim_1_0_gir_INCLUDES = GObject-2.0
+XmiMsim_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
+XmiMsim_1_0_gir_LIBS = libxmimsim.la
+XmiMsim_1_0_gir_FILES = $(introspection_sources)
+INTROSPECTION_GIRS += XmiMsim-1.0.gir
+
+girdir = $(datadir)/gir-1.0
+gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES = $(gir_DATA) $(typelib_DATA)
+endif
+endif
+
 #I delete the libtool archives on installation, so this step is necessary to ensure the libraries are uninstalled
 uninstall-local:
 	rm -rf $(DESTDIR)$(bindir)/libxmimsim*dll
@@ -204,6 +230,8 @@ uninstall-local:
 clean-local:
 	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
 	rm -f $(nodist_libxmimsim_la_SOURCES)
+	rm -f $(CLEANFILES)
+:wa
 
 EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list
 
