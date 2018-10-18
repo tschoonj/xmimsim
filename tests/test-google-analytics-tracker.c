@@ -18,8 +18,8 @@ static void teardown_data(SetupData *data, gconstpointer user_data) {
 	g_main_loop_unref(data->main_loop);
 }
 
-static void after_event_cb(XmiMsimGoogleAnalyticsTracker *tracker, GError *error, SetupData *data) {
-	g_assert_null(error);
+static void after_event_cb(XmiMsimGoogleAnalyticsTracker *tracker, gchar *error_msg, SetupData *data) {
+	g_assert_null(error_msg);
 	g_main_loop_quit(data->main_loop);
 }
 

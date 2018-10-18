@@ -33,6 +33,11 @@ enum {
 	LAST_SIGNAL
 };
 
+enum {
+	PROP_0,
+	PROP_UUID
+};
+
 static guint signals[LAST_SIGNAL];
 
 static XmiMsimGoogleAnalyticsTracker *global_tracker = NULL;
@@ -58,12 +63,49 @@ static void xmi_msim_google_analytics_tracker_finalize(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_google_analytics_tracker_parent_class)->finalize(gobject);
 }
 
+static void xmi_msim_gui_google_analytics_tracker_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
+	XmiMsimGoogleAnalyticsTracker *tracker = XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(object);
+
+	switch (prop_id) {
+	case 1:
+		tracker->uuid = g_value_dup_string(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void xmi_msim_google_analytics_tracker_constructed(GObject *obj) {
+	XmiMsimGoogleAnalyticsTracker *tracker = XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(obj);
+
+	// existing UUIDs must be valid
+	if (tracker->uuid != NULL && !g_uuid_string_is_valid(tracker->uuid)) {
+		g_critical("Invalid UUID string provided! Will use random UUID instead");
+		g_free(tracker->uuid);
+		tracker->uuid = g_uuid_string_random();
+	}
+	else if (tracker->uuid == NULL) {
+		tracker->uuid = g_uuid_string_random();
+	}
+}
+
 static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsTrackerClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_google_analytics_tracker_dispose;
 	object_class->finalize = xmi_msim_google_analytics_tracker_finalize;
+	object_class->constructed = xmi_msim_google_analytics_tracker_constructed;
+	object_class->set_property = xmi_msim_gui_google_analytics_tracker_set_property;
 	
+	g_object_class_install_property(object_class,
+		PROP_UUID,
+		g_param_spec_string("uuid",
+		"Client UUID",
+		"Client UUID",
+		NULL,
+		G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY)
+	);
+
 	signals[AFTER_EVENT] = g_signal_new(
 		"after-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -71,10 +113,10 @@ static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsT
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__POINTER,
+		xmi_VOID__STRING,
 		G_TYPE_NONE,
 		1,
-		G_TYPE_POINTER // GError *
+		G_TYPE_STRING // string with error message or NULL
 	);
 
 }
@@ -83,24 +125,25 @@ static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker
 	self->session = soup_session_new();
 }
 
+/**
+ * xmi_msim_google_analytics_tracker_new:
+ * @uuid: (nullable): a valid UUID, or %NULL
+ *
+ * Instantiate a new google analytics tracker object
+ *
+ * Returns: (transfer full): the tracker
+ */
 XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_new(const gchar *uuid) {
-	XmiMsimGoogleAnalyticsTracker *tracker = XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_TYPE_GOOGLE_ANALYTICS_TRACKER, NULL));
+	return XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_TYPE_GOOGLE_ANALYTICS_TRACKER, "uuid", uuid, NULL));
 	
-	// existing UUIDs must be valid
-	if (uuid != NULL && !g_uuid_string_is_valid(uuid)) {
-		g_critical("Invalid UUID string provided!");
-		return NULL;
-	}
-	else if (uuid == NULL) {
-		tracker->uuid = g_uuid_string_random();
-	}
-	else {
-		tracker->uuid = g_strdup(uuid);
-	}
-
-	return tracker;
 }
 
+/**
+ * xmi_msim_google_analytics_tracker_create_global:
+ * @uuid: (nullable): a valid UUID, or %NULL
+ *
+ * Instantiate a new global google analytics tracker object
+ */
 void xmi_msim_google_analytics_tracker_create_global(const gchar *uuid) {
 	if (global_tracker != NULL) 
 		g_object_unref(global_tracker);
@@ -108,10 +151,22 @@ void xmi_msim_google_analytics_tracker_create_global(const gchar *uuid) {
 	global_tracker = xmi_msim_google_analytics_tracker_new(uuid);
 }
 
+/**
+ * xmi_msim_google_analytics_tracker_get_global:
+ *
+ * Get the global google analytics tracker object, or %NULL if it hasn't been created yet
+ *
+ * Returns: (transfer none): the global tracker
+ */
 const XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void) {
 	return global_tracker;
 }
 
+/**
+ * xmi_msim_google_analytics_tracker_free_global:
+ *
+ * Free the global google analytics tracker object
+ */
 void xmi_msim_google_analytics_tracker_free_global(void) {
 	if (global_tracker != NULL)
 		g_object_unref(global_tracker);
@@ -120,20 +175,27 @@ void xmi_msim_google_analytics_tracker_free_global(void) {
 }
 
 static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGoogleAnalyticsTracker *tracker) {
-	g_debug("event_callback status: %d", msg->status_code);
 	if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
 		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, NULL);
 	}
 	else {
 		g_warning("libsoup error message: %s", msg->reason_phrase);
-		GError *error = g_error_new(XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_ERROR, XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_LIBSOUP, "libsoup error message: %s", msg->reason_phrase);
-		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, error);
-		g_error_free(error);
+		g_signal_emit((gpointer) tracker, signals[AFTER_EVENT], 0, msg->reason_phrase);
 	}
 }
 
+/**
+ * xmi_msim_google_analytics_tracker_send_event:
+ * @tracker: (not nullable): the tracker
+ * @category: (not nullable): the event category (must be less than 150 characters)
+ * @action: (not nullable): the event action (must be less than 500 characters)
+ * @label: (nullable): the event action (if present, must be less than 500 characters)
+ * @value: (nullable): the event value (if present, must be less than 500 characters)
+ *
+ * Returns: %TRUE if the message was sent (does not mean it was received!), %FALSE otherwise
+ *
+ */
 gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value) {
-	
 	g_return_val_if_fail(tracker != NULL, FALSE);
 	g_return_val_if_fail(category != NULL, FALSE);
 	g_return_val_if_fail(strlen(category) < 150, FALSE);
