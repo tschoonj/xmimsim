@@ -9,16 +9,18 @@ RUN apt-get install -y build-essential \
 	automake \
 	autoconf \
 	libtool \
-        libgsl0-dev \
-       	libfgsl1 \
-        libfgsl1-dev \
         gfortran \
         libxslt1-dev \
         libxml2-utils \
         libhdf5-serial-dev \
         hdf5-tools \
         libxrl7-dev \
-        libsoup2.4-dev
+        libsoup2.4-dev \
+	gobject-introspection \
+	python-gobject \
+	libgirepository1.0-dev
+
+RUN apt-get install -y libgsl0-dev libfgsl1 libfgsl1-dev
 
 WORKDIR /root
 
