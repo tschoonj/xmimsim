@@ -71,7 +71,8 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	g_debug("message: %s", error->message);
 	g_debug("code: %d", error->code);
 #ifdef G_OS_WIN32
-	g_assert(error->code == G_SPAWN_ERROR_FAILED);
+	/* in glib 2.58.0 this was fixed so it returns G_SPAWN_ERROR_NOENT, just as on Linux and macOS */
+	g_assert(error->code == G_SPAWN_ERROR_FAILED || error->code == G_SPAWN_ERROR_NOENT);
 #else
 	g_assert(error->code == G_SPAWN_ERROR_NOENT);
 #endif
